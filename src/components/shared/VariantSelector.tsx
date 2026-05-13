@@ -7,6 +7,7 @@ import {
   GitCompare,
   HardDrive,
   Info,
+  MessageCircle,
   Palette,
   ShoppingBag,
 } from "lucide-react";
@@ -52,9 +53,9 @@ export function VariantSelector({ phone, brandName, initialVariantId }: VariantS
   )}, ${selected.colorName}) for ${formatPrice(selected.priceRupees)}.`;
 
   return (
-    <div className="space-y-7">
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-5 sm:space-y-7">
+      <div className="space-y-2.5 sm:space-y-3">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <GradeBadge grade={selected.grade} size="md" showLabel />
           <StockTypeBadge stockType={selected.stockType} size="md" />
           {selected.isPtaApproved && <PtaBadge size="md" showLabel />}
@@ -67,10 +68,10 @@ export function VariantSelector({ phone, brandName, initialVariantId }: VariantS
         <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-500)]">
           {brandName}
         </p>
-        <h1 className="text-5xl font-semibold leading-[1] tracking-[-0.03em] text-[var(--color-ink-900)] sm:text-6xl">
+        <h1 className="text-3xl font-semibold leading-[1] tracking-[-0.03em] text-[var(--color-ink-900)] sm:text-5xl lg:text-6xl">
           {phone.modelName}
         </h1>
-        <p className="text-base text-[var(--color-ink-600)]">
+        <p className="text-[13px] text-[var(--color-ink-600)] sm:text-base">
           {selected.colorName} · {formatStorage(selected.storageGb)} · {selected.ramGb} GB RAM
         </p>
       </div>
@@ -99,6 +100,12 @@ export function VariantSelector({ phone, brandName, initialVariantId }: VariantS
 
       <PurchaseActions isInStock={selected.isInStock} whatsappMessage={whatsappMessage} />
 
+      <MobileStickyCta
+        priceRupees={selected.priceRupees}
+        isInStock={selected.isInStock}
+        whatsappMessage={whatsappMessage}
+      />
+
       {isCompareOpen && (
         <CompareVariantsModal
           phone={phone}
@@ -108,6 +115,59 @@ export function VariantSelector({ phone, brandName, initialVariantId }: VariantS
           onSelect={setSelectedVariantId}
         />
       )}
+    </div>
+  );
+}
+
+interface MobileStickyCtaProps {
+  priceRupees: number;
+  isInStock: boolean;
+  whatsappMessage: string;
+}
+
+function MobileStickyCta({ priceRupees, isInStock, whatsappMessage }: MobileStickyCtaProps) {
+  return (
+    <div
+      className="fixed inset-x-0 z-30 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)]/95 px-4 pt-3 backdrop-blur md:hidden"
+      style={{
+        bottom: "calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px))",
+        paddingBottom: "12px",
+      }}
+    >
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-500)]">
+            Your selection
+          </p>
+          <p className="text-lg font-semibold leading-tight tracking-[-0.01em] text-[var(--color-ink-900)]">
+            {formatPrice(priceRupees)}
+          </p>
+        </div>
+        {isInStock ? (
+          <>
+            <a
+              href={buildWhatsAppLink(whatsappMessage)}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Inquire on WhatsApp"
+              className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-full)] bg-[var(--color-whatsapp)] text-white shadow-[var(--shadow-sm)] active:bg-[var(--color-whatsapp-dark)]"
+            >
+              <MessageCircle size={18} className="fill-white" />
+            </a>
+            <button
+              type="button"
+              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-[var(--radius-full)] bg-[var(--color-accent-700)] px-5 text-sm font-semibold text-white active:bg-[var(--color-accent-800)]"
+            >
+              <ShoppingBag size={15} />
+              Reserve
+            </button>
+          </>
+        ) : (
+          <span className="inline-flex h-11 shrink-0 items-center rounded-[var(--radius-full)] bg-[var(--color-ink-100)] px-5 text-sm font-semibold text-[var(--color-ink-500)]">
+            Sold out
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -127,14 +187,14 @@ function PriceBlock({
 }: PriceBlockProps) {
   const bankTransferPrice = Math.round(priceRupees * 0.95);
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5">
-      <div className="flex flex-wrap items-baseline gap-3">
-        <span className="text-5xl font-semibold leading-none tracking-[-0.03em] text-[var(--color-ink-900)]">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 sm:p-5">
+      <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
+        <span className="text-3xl font-semibold leading-none tracking-[-0.03em] text-[var(--color-ink-900)] sm:text-5xl">
           {formatPrice(priceRupees)}
         </span>
         {hasDiscount && (
           <>
-            <span className="text-base text-[var(--color-ink-400)] line-through">
+            <span className="text-sm text-[var(--color-ink-400)] line-through sm:text-base">
               {formatPrice(originalPriceRupees)}
             </span>
             <Pill tone="accent" size="md">
@@ -143,7 +203,7 @@ function PriceBlock({
           </>
         )}
       </div>
-      <p className="mt-2 text-sm text-[var(--color-ink-600)]">
+      <p className="mt-2 text-[13px] text-[var(--color-ink-600)] sm:text-sm">
         Or{" "}
         <span className="font-semibold text-[var(--color-accent-700)]">
           {formatPrice(bankTransferPrice)}

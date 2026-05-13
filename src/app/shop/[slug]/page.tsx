@@ -68,10 +68,12 @@ export default async function PhoneDetailPage({ params, searchParams }: PhoneDet
     .slice(0, 4);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <Breadcrumbs brandName={brandName} brandSlug={phone.brandSlug} modelName={phone.modelName} />
+    <div className="mx-auto max-w-7xl px-4 pt-4 pb-[calc(80px+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-8 sm:pb-8 lg:px-8 lg:pb-10">
+      <div className="hidden sm:block">
+        <Breadcrumbs brandName={brandName} brandSlug={phone.brandSlug} modelName={phone.modelName} />
+      </div>
 
-      <div className="mt-6 grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
+      <div className="mt-3 grid gap-8 sm:mt-6 sm:gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-14">
         <PhotoGallery
           imageUrl={phone.imageUrl}
           galleryUrls={phone.galleryUrls}
@@ -98,19 +100,19 @@ export default async function PhoneDetailPage({ params, searchParams }: PhoneDet
       <PaymentDeliverySection />
 
       {relatedPhones.length > 0 && (
-        <section className="mt-16">
-          <div className="flex items-end justify-between">
-            <h2 className="text-3xl font-semibold tracking-[-0.02em] text-[var(--color-ink-900)] sm:text-4xl">
+        <section className="mt-10 sm:mt-16">
+          <div className="flex items-end justify-between gap-3">
+            <h2 className="text-xl font-semibold tracking-[-0.02em] text-[var(--color-ink-900)] sm:text-3xl lg:text-4xl">
               More from {brandName}
             </h2>
             <Link
               href={`/shop?brand=${phone.brandSlug}`}
-              className="text-sm font-medium text-[var(--color-accent-700)] hover:underline"
+              className="hidden text-sm font-medium text-[var(--color-accent-700)] hover:underline sm:inline"
             >
-              See all {brandName} phones →
+              See all {brandName} →
             </Link>
           </div>
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-6 sm:gap-5 lg:grid-cols-4">
             {relatedPhones.map((relatedPhone) => (
               <PhoneCard key={relatedPhone.id} phone={relatedPhone} />
             ))}
@@ -167,24 +169,26 @@ function PhotoGallery({
 
   return (
     <div className="space-y-3">
-      <Card className="relative aspect-square overflow-hidden bg-[var(--color-canvas-deep)] p-0">
-        <ProductImage
-          imageUrl={imageUrl}
-          brandName={brandName}
-          modelName={modelName}
-          colorName={colorName}
-          brandSlug={brandSlug}
-          sizes="(max-width: 1024px) 100vw, 50vw"
-          priority
-        />
-      </Card>
-      <div className="grid grid-cols-4 gap-3">
+      <div className="-mx-4 sm:mx-0">
+        <div className="relative aspect-square overflow-hidden bg-[var(--color-canvas-deep)] sm:rounded-[var(--radius-lg)] sm:border sm:border-[var(--color-ink-100)]">
+          <ProductImage
+            imageUrl={imageUrl}
+            brandName={brandName}
+            modelName={modelName}
+            colorName={colorName}
+            brandSlug={brandSlug}
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            priority
+          />
+        </div>
+      </div>
+      <div className="-mx-4 flex gap-2.5 overflow-x-auto px-4 no-scrollbar sm:mx-0 sm:grid sm:grid-cols-4 sm:gap-3 sm:overflow-visible sm:px-0">
         {thumbnails.slice(0, 4).map((thumbUrl, thumbIndex) => (
           <button
             key={`${thumbUrl}-${thumbIndex}`}
             type="button"
             aria-label={`Photo ${thumbIndex + 1}`}
-            className="relative aspect-square overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] transition-colors hover:border-[var(--color-ink-300)]"
+            className="relative aspect-square w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] transition-colors hover:border-[var(--color-ink-300)] sm:w-auto"
           >
             <ProductImage
               imageUrl={thumbUrl}
@@ -258,17 +262,17 @@ interface HighlightsSectionProps {
 
 function HighlightsSection({ highlights }: HighlightsSectionProps) {
   return (
-    <section className="mt-16 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-8 sm:p-10">
-      <h2 className="text-3xl font-semibold tracking-[-0.02em] text-[var(--color-ink-900)]">
+    <section className="mt-10 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5 sm:mt-16 sm:p-8 lg:p-10">
+      <h2 className="text-xl font-semibold tracking-[-0.02em] text-[var(--color-ink-900)] sm:text-3xl">
         Highlights
       </h2>
-      <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+      <ul className="mt-4 grid gap-2.5 sm:mt-5 sm:gap-3 sm:grid-cols-2">
         {highlights.map((highlight) => (
           <li
             key={highlight}
-            className="flex items-start gap-3 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] p-4 text-sm text-[var(--color-ink-700)]"
+            className="flex items-start gap-2.5 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] p-3 text-[13px] text-[var(--color-ink-700)] sm:gap-3 sm:p-4 sm:text-sm"
           >
-            <span className="mt-0.5 size-2 shrink-0 rounded-full bg-[var(--color-accent-500)]" />
+            <span className="mt-1 size-1.5 shrink-0 rounded-full bg-[var(--color-accent-500)] sm:mt-0.5 sm:size-2" />
             <span>{highlight}</span>
           </li>
         ))}
@@ -279,17 +283,17 @@ function HighlightsSection({ highlights }: HighlightsSectionProps) {
 
 function PaymentDeliverySection() {
   return (
-    <section className="mt-12 grid gap-4 sm:grid-cols-2">
-      <Card className="p-6">
+    <section className="mt-8 grid gap-3 sm:mt-12 sm:gap-4 sm:grid-cols-2">
+      <Card className="p-4 sm:p-6">
         <div className="flex items-center gap-2 text-[var(--color-accent-700)]">
-          <ShieldCheck size={18} />
-          <h3 className="text-sm font-semibold uppercase tracking-[0.15em]">Payment options</h3>
+          <ShieldCheck size={16} className="sm:size-[18px]" />
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.15em] sm:text-sm">Payment options</h3>
         </div>
-        <ul className="mt-4 grid grid-cols-2 gap-2 text-sm">
+        <ul className="mt-3 grid grid-cols-2 gap-2 text-[13px] sm:mt-4 sm:text-sm">
           {PAYMENT_METHODS.map((paymentMethod) => (
             <li
               key={paymentMethod.id}
-              className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-2.5"
+              className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-2.5 py-2 sm:px-3 sm:py-2.5"
             >
               <p className="font-medium text-[var(--color-ink-900)]">{paymentMethod.label}</p>
               <p className="text-xs text-[var(--color-ink-500)]">{paymentMethod.note}</p>
@@ -297,21 +301,21 @@ function PaymentDeliverySection() {
           ))}
         </ul>
       </Card>
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         <div className="flex items-center gap-2 text-[var(--color-accent-700)]">
-          <MapPin size={18} />
-          <h3 className="text-sm font-semibold uppercase tracking-[0.15em]">Delivery</h3>
+          <MapPin size={16} className="sm:size-[18px]" />
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.15em] sm:text-sm">Delivery</h3>
         </div>
-        <p className="mt-4 text-sm text-[var(--color-ink-700)]">
+        <p className="mt-3 text-[13px] text-[var(--color-ink-700)] sm:mt-4 sm:text-sm">
           <span className="font-semibold text-[var(--color-ink-900)]">Same-day in Lahore</span> ·
           1–3 days across {SERVICE_CITIES.length} cities. We send a video of your unit before
           dispatch. Verify on delivery in Lahore or in person at our Hall Road outlet.
         </p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-2.5 flex flex-wrap gap-1.5 sm:mt-3">
           {SERVICE_CITIES.map((cityName) => (
             <span
               key={cityName}
-              className="rounded-[var(--radius-full)] bg-[var(--color-canvas-deep)] px-2.5 py-1 text-xs text-[var(--color-ink-600)]"
+              className="rounded-[var(--radius-full)] bg-[var(--color-canvas-deep)] px-2.5 py-1 text-[11px] text-[var(--color-ink-600)] sm:text-xs"
             >
               {cityName}
             </span>

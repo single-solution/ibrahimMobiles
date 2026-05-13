@@ -37,7 +37,7 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)]/85 backdrop-blur">
+    <header className="sticky top-0 z-30 hidden border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)]/85 backdrop-blur md:block">
       <SupportStrip />
 
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">

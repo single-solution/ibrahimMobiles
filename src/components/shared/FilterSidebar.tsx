@@ -1,15 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Filter, X } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { StockTypeBadge } from "@/components/shared/StockTypeBadge";
 import { brands } from "@/data/brands";
 import { gradeDescriptors } from "@/data/grades";
 import { stockTypeDescriptors } from "@/data/stockTypes";
 import { PRICE_FILTER_BUCKETS, RAM_OPTIONS, STORAGE_OPTIONS } from "@/lib/constants";
-import { classNames } from "@/lib/utils";
 import type { ConditionGrade } from "@/types";
 
 const CONDITION_FILTERS: ConditionGrade[] = ["A+", "A", "B", "C"];
@@ -17,122 +17,149 @@ const CONDITION_FILTERS: ConditionGrade[] = ["A+", "A", "B", "C"];
 export function FilterSidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  function handleMobileToggle() {
-    setIsMobileOpen((previous) => !previous);
-  }
-
   return (
     <>
-      <div className="lg:hidden">
-        <Button
-          variant="outline"
-          size="md"
-          leadingIcon={<Filter size={16} />}
-          onClick={handleMobileToggle}
-          className="w-full"
+      <div className="md:hidden">
+        <button
+          type="button"
+          onClick={() => setIsMobileOpen(true)}
+          className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-full)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-4 py-3 text-sm font-semibold text-[var(--color-ink-800)] active:bg-[var(--color-canvas-deep)]"
         >
-          Filter results
-        </Button>
+          <SlidersHorizontal size={16} />
+          Filter & sort
+          <span className="ml-1 grid size-5 place-items-center rounded-full bg-[var(--color-accent-700)] text-[10px] font-bold text-white">
+            3
+          </span>
+        </button>
       </div>
 
-      <aside
-        className={classNames(
-          "lg:sticky lg:top-28 lg:block",
-          isMobileOpen
-            ? "fixed inset-0 z-40 flex flex-col overflow-y-auto bg-[var(--color-canvas)] p-6"
-            : "hidden",
-        )}
-      >
-        {isMobileOpen && (
-          <div className="mb-4 flex items-center justify-between lg:hidden">
-            <h2 className="text-lg font-semibold">Filters</h2>
-            <button
-              type="button"
-              aria-label="Close filters"
-              onClick={handleMobileToggle}
-              className="grid size-9 place-items-center rounded-[var(--radius-md)] hover:bg-[var(--color-surface-muted)]"
+      <aside className="hidden md:sticky md:top-28 md:block">
+        <FilterPanel />
+      </aside>
+
+      <BottomSheet
+        isOpen={isMobileOpen}
+        onClose={() => setIsMobileOpen(false)}
+        title="Filter & sort"
+        description="Narrow down by grade, brand, price and more"
+        height="lg"
+        footer={
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="md"
+              className="flex-1"
+              onClick={() => setIsMobileOpen(false)}
             >
-              <X size={18} />
-            </button>
+              Clear all
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              className="flex-[2]"
+              onClick={() => setIsMobileOpen(false)}
+            >
+              Show 31 results
+            </Button>
           </div>
-        )}
+        }
+      >
+        <FilterPanel mobile />
+      </BottomSheet>
+    </>
+  );
+}
 
-        <div className="space-y-6 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5">
-          <FilterGroup title="Condition grade">
-            <div className="flex flex-wrap gap-2">
-              {CONDITION_FILTERS.map((conditionGrade) => (
-                <FilterPill key={conditionGrade}>
-                  <GradeBadge grade={conditionGrade} size="sm" showLabel />
-                </FilterPill>
-              ))}
-            </div>
-          </FilterGroup>
+interface FilterPanelProps {
+  mobile?: boolean;
+}
 
-          <FilterDivider />
+function FilterPanel({ mobile = false }: FilterPanelProps) {
+  return (
+    <>
+      <div
+        className={
+          mobile
+            ? "space-y-6"
+            : "space-y-6 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5"
+        }
+      >
+        <FilterGroup title="Condition grade">
+          <div className="flex flex-wrap gap-2">
+            {CONDITION_FILTERS.map((conditionGrade) => (
+              <FilterPill key={conditionGrade}>
+                <GradeBadge grade={conditionGrade} size="sm" showLabel />
+              </FilterPill>
+            ))}
+          </div>
+        </FilterGroup>
 
-          <FilterGroup title="Stock type">
-            <div className="flex flex-wrap gap-1.5">
-              {stockTypeDescriptors.map((descriptor) => (
-                <FilterPill key={descriptor.stockType}>
-                  <StockTypeBadge stockType={descriptor.stockType} size="sm" />
-                </FilterPill>
-              ))}
-            </div>
-          </FilterGroup>
+        <FilterDivider />
 
-          <FilterDivider />
+        <FilterGroup title="Stock type">
+          <div className="flex flex-wrap gap-1.5">
+            {stockTypeDescriptors.map((descriptor) => (
+              <FilterPill key={descriptor.stockType}>
+                <StockTypeBadge stockType={descriptor.stockType} size="sm" />
+              </FilterPill>
+            ))}
+          </div>
+        </FilterGroup>
 
-          <FilterGroup title="Brand">
-            <div className="space-y-2">
-              {brands.map((brand) => (
-                <FilterCheckbox key={brand.slug} label={brand.name} count={brand.phoneCount} />
-              ))}
-            </div>
-          </FilterGroup>
+        <FilterDivider />
 
-          <FilterDivider />
+        <FilterGroup title="Brand">
+          <div className="space-y-2">
+            {brands.map((brand) => (
+              <FilterCheckbox key={brand.slug} label={brand.name} count={brand.phoneCount} />
+            ))}
+          </div>
+        </FilterGroup>
 
-          <FilterGroup title="Price">
-            <div className="space-y-2">
-              {PRICE_FILTER_BUCKETS.map((priceBucket) => (
-                <FilterCheckbox key={priceBucket.id} label={priceBucket.label} />
-              ))}
-            </div>
-          </FilterGroup>
+        <FilterDivider />
 
-          <FilterDivider />
+        <FilterGroup title="Price">
+          <div className="space-y-2">
+            {PRICE_FILTER_BUCKETS.map((priceBucket) => (
+              <FilterCheckbox key={priceBucket.id} label={priceBucket.label} />
+            ))}
+          </div>
+        </FilterGroup>
 
-          <FilterGroup title="Storage">
-            <div className="flex flex-wrap gap-2">
-              {STORAGE_OPTIONS.map((storageGb) => (
-                <FilterPill key={storageGb}>
-                  {storageGb >= 1024 ? `${storageGb / 1024} TB` : `${storageGb} GB`}
-                </FilterPill>
-              ))}
-            </div>
-          </FilterGroup>
+        <FilterDivider />
 
-          <FilterDivider />
+        <FilterGroup title="Storage">
+          <div className="flex flex-wrap gap-2">
+            {STORAGE_OPTIONS.map((storageGb) => (
+              <FilterPill key={storageGb}>
+                {storageGb >= 1024 ? `${storageGb / 1024} TB` : `${storageGb} GB`}
+              </FilterPill>
+            ))}
+          </div>
+        </FilterGroup>
 
-          <FilterGroup title="RAM">
-            <div className="flex flex-wrap gap-2">
-              {RAM_OPTIONS.map((ramGb) => (
-                <FilterPill key={ramGb}>{ramGb} GB</FilterPill>
-              ))}
-            </div>
-          </FilterGroup>
+        <FilterDivider />
 
-          <FilterDivider />
+        <FilterGroup title="RAM">
+          <div className="flex flex-wrap gap-2">
+            {RAM_OPTIONS.map((ramGb) => (
+              <FilterPill key={ramGb}>{ramGb} GB</FilterPill>
+            ))}
+          </div>
+        </FilterGroup>
 
-          <FilterGroup title="Other">
-            <div className="space-y-2">
-              <FilterCheckbox label="On sale only" />
-              <FilterCheckbox label="In stock only" defaultChecked />
-              <FilterCheckbox label="Battery health 90%+" />
-              <FilterCheckbox label="With original box" />
-            </div>
-          </FilterGroup>
+        <FilterDivider />
 
+        <FilterGroup title="Other">
+          <div className="space-y-2">
+            <FilterCheckbox label="On sale only" />
+            <FilterCheckbox label="In stock only" defaultChecked />
+            <FilterCheckbox label="Battery health 90%+" />
+            <FilterCheckbox label="With original box" />
+          </div>
+        </FilterGroup>
+
+        {!mobile && (
           <div className="flex gap-2 pt-2">
             <Button variant="primary" size="sm" className="flex-1">
               Apply
@@ -141,8 +168,10 @@ export function FilterSidebar() {
               Clear
             </Button>
           </div>
-        </div>
+        )}
+      </div>
 
+      {!mobile && (
         <details className="mt-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 text-sm text-[var(--color-ink-600)]">
           <summary className="cursor-pointer font-medium text-[var(--color-ink-800)]">
             What do the grades mean?
@@ -156,7 +185,7 @@ export function FilterSidebar() {
             ))}
           </ul>
         </details>
-      </aside>
+      )}
     </>
   );
 }

@@ -38,7 +38,7 @@ export default function HomePage() {
   const heroPhone = phones.find((phone) => phone.slug === "iphone-15-pro-256-natural-titanium");
 
   return (
-    <div className="space-y-24">
+    <div className="space-y-14 md:space-y-24">
       <HeroSection heroPhone={heroPhone} />
       <BrandsSection />
       <FeaturedPhonesSection featuredPhones={featuredPhones} />
@@ -60,14 +60,14 @@ function VisitStoreSection() {
     <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
         <div className="grid lg:grid-cols-[1.1fr_1fr]">
-          <div className="flex flex-col justify-center gap-5 p-8 sm:p-12">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)]">
+          <div className="flex flex-col justify-center gap-3.5 p-5 sm:gap-5 sm:p-8 lg:p-12">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)] sm:text-xs">
               Visit our store
             </p>
-            <h2 className="font-semibold text-4xl leading-[1] tracking-tight text-[var(--color-ink-900)] sm:text-5xl">
+            <h2 className="font-semibold text-2xl leading-[1] tracking-tight text-[var(--color-ink-900)] sm:text-4xl lg:text-5xl">
               Walk in to <span className="italic text-[var(--color-accent-700)]">Hall Road</span>.
             </h2>
-            <p className="text-pretty text-base text-[var(--color-ink-600)]">
+            <p className="text-pretty text-[13px] text-[var(--color-ink-600)] sm:text-sm lg:text-base">
               Our flagship outlet sits in the heart of Pakistan&apos;s biggest mobile market. Come
               hold the phone, test it for yourself, and walk out the same day. Or follow our
               daily drops on social.
@@ -173,21 +173,21 @@ interface HeroSectionProps {
 function HeroSection({ heroPhone }: HeroSectionProps) {
   return (
     <section className="border-b border-[var(--color-ink-100)] bg-gradient-to-b from-[var(--color-canvas-deep)] to-[var(--color-canvas)]">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:px-8 lg:py-24">
-        <div className="flex flex-col justify-center gap-6">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:gap-10 sm:px-6 sm:py-14 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:px-8 lg:py-24">
+        <div className="flex flex-col justify-center gap-4 sm:gap-6">
           <Pill tone="accent" size="md" leadingIcon={<Recycle size={12} />}>
             Pakistan&apos;s most-trusted pre-owned phone store
           </Pill>
-          <h1 className="text-balance text-5xl font-semibold leading-[0.98] tracking-[-0.04em] text-[var(--color-ink-900)] sm:text-6xl lg:text-7xl">
+          <h1 className="text-balance text-4xl font-semibold leading-[0.98] tracking-[-0.04em] text-[var(--color-ink-900)] sm:text-6xl lg:text-7xl">
             Pre-loved,<br />
             <span className="text-[var(--color-accent-700)]">pre-Owned.</span>
           </h1>
-          <p className="max-w-xl text-pretty text-base text-[var(--color-ink-600)] sm:text-lg">
+          <p className="max-w-xl text-pretty text-sm text-[var(--color-ink-600)] sm:text-base lg:text-lg">
             Hand-checked, graded A+ to C, and clearly tagged by stock type — brand-new, genuine,
             refurbished, box-open and more. PTA-approved options at half the new-phone price,
             with a 15-day moneyback guarantee on every order.
           </p>
-          <div className="flex flex-wrap items-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center gap-2.5 pt-1 sm:gap-3 sm:pt-2">
             <ButtonLink href="/shop" variant="primary" size="lg" trailingIcon={<ArrowRight size={16} />}>
               Shop all phones
             </ButtonLink>
@@ -203,7 +203,7 @@ function HeroSection({ heroPhone }: HeroSectionProps) {
               WhatsApp us
             </ButtonLink>
           </div>
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-4 text-sm text-[var(--color-ink-500)]">
+          <div className="hidden flex-wrap items-center gap-x-6 gap-y-2 pt-4 text-sm text-[var(--color-ink-500)] sm:flex">
             <div className="flex items-center gap-2">
               <Undo2 size={16} className="text-[var(--color-accent-600)]" />
               <span>15-day moneyback</span>
@@ -333,7 +333,7 @@ function BrandsSection() {
         ctaHref="/shop"
         ctaLabel="Browse all brands"
       />
-      <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mt-5 grid grid-cols-4 gap-2 sm:mt-8 sm:gap-4">
         {homepageBrands.map((brand) => (
           <BrandTile key={brand.slug} brand={brand} />
         ))}
@@ -356,7 +356,7 @@ function FeaturedPhonesSection({ featuredPhones }: FeaturedPhonesSectionProps) {
         ctaHref="/shop"
         ctaLabel="See all phones"
       />
-      <div className="mt-8 grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">
+      <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-5 lg:grid-cols-4">
         {featuredPhones.map((featuredPhone) => (
           <PhoneCard key={featuredPhone.id} phone={featuredPhone} />
         ))}
@@ -396,27 +396,27 @@ function HowItWorksSection() {
         title="Buying a used phone shouldn't feel risky."
         description="Four steps, no surprises. Or skip it all and walk into our Hall Road outlet — verify in person, pay on the spot."
       />
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-6 grid gap-3 sm:mt-8 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {steps.map((step) => (
-          <Card key={step.number} className="p-6">
+          <Card key={step.number} className="p-4 sm:p-6">
             <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-semibold leading-none text-[var(--color-accent-700)]">
+              <span className="text-3xl font-semibold leading-none text-[var(--color-accent-700)] sm:text-4xl">
                 {step.number}
               </span>
-              <h3 className="text-xl font-semibold leading-tight tracking-[-0.02em] text-[var(--color-ink-900)]">
+              <h3 className="text-base font-semibold leading-tight tracking-[-0.02em] text-[var(--color-ink-900)] sm:text-xl">
                 {step.title}
               </h3>
             </div>
-            <p className="mt-3 text-sm leading-relaxed text-[var(--color-ink-600)]">{step.body}</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-ink-600)] sm:mt-3 sm:text-sm">{step.body}</p>
           </Card>
         ))}
       </div>
 
-      <div className="mt-6 grid gap-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-5 py-4 sm:grid-cols-3 sm:px-6">
-        <div className="flex items-start gap-3">
-          <Undo2 size={20} className="mt-0.5 shrink-0 text-[var(--color-accent-700)]" />
+      <div className="mt-4 grid gap-3 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-4 py-3.5 sm:mt-6 sm:gap-4 sm:grid-cols-3 sm:px-6 sm:py-4">
+        <div className="flex items-start gap-2.5 sm:gap-3">
+          <Undo2 size={18} className="mt-0.5 shrink-0 text-[var(--color-accent-700)] sm:size-5" />
           <div>
-            <p className="text-sm font-semibold text-[var(--color-ink-900)]">
+            <p className="text-[13px] font-semibold text-[var(--color-ink-900)] sm:text-sm">
               15-day moneyback guarantee
             </p>
             <p className="text-xs text-[var(--color-ink-600)]">
@@ -424,10 +424,10 @@ function HowItWorksSection() {
             </p>
           </div>
         </div>
-        <div className="flex items-start gap-3">
-          <Banknote size={20} className="mt-0.5 shrink-0 text-[var(--color-accent-700)]" />
+        <div className="flex items-start gap-2.5 sm:gap-3">
+          <Banknote size={18} className="mt-0.5 shrink-0 text-[var(--color-accent-700)] sm:size-5" />
           <div>
-            <p className="text-sm font-semibold text-[var(--color-ink-900)]">
+            <p className="text-[13px] font-semibold text-[var(--color-ink-900)] sm:text-sm">
               Pay full by bank transfer — 5% off
             </p>
             <p className="text-xs text-[var(--color-ink-600)]">
@@ -435,10 +435,10 @@ function HowItWorksSection() {
             </p>
           </div>
         </div>
-        <div className="flex items-start gap-3">
-          <MapPin size={20} className="mt-0.5 shrink-0 text-[var(--color-accent-700)]" />
+        <div className="flex items-start gap-2.5 sm:gap-3">
+          <MapPin size={18} className="mt-0.5 shrink-0 text-[var(--color-accent-700)] sm:size-5" />
           <div>
-            <p className="text-sm font-semibold text-[var(--color-ink-900)]">
+            <p className="text-[13px] font-semibold text-[var(--color-ink-900)] sm:text-sm">
               Visit the store, verify in person
             </p>
             <p className="text-xs text-[var(--color-ink-600)]">
@@ -453,18 +453,18 @@ function HowItWorksSection() {
 
 function GradesSection() {
   return (
-    <section className="bg-[var(--color-ink-900)] py-20 text-[var(--color-canvas)]">
+    <section className="bg-[var(--color-ink-900)] py-10 text-[var(--color-canvas)] sm:py-14 md:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-10 lg:grid-cols-[1fr_2fr] lg:gap-16">
-          <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-400)]">
+        <div className="grid gap-6 sm:gap-10 lg:grid-cols-[1fr_2fr] lg:gap-16">
+          <div className="space-y-3 sm:space-y-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-400)] sm:text-xs">
               How we grade
             </p>
-            <h2 className="font-semibold text-4xl tracking-tight sm:text-5xl">
+            <h2 className="font-semibold text-2xl tracking-tight sm:text-4xl lg:text-5xl">
               Honest grades.<br />
               <span className="italic text-[var(--color-accent-300)]">No</span> surprises.
             </h2>
-            <p className="text-base text-[var(--color-ink-300)]">
+            <p className="text-[13px] text-[var(--color-ink-300)] sm:text-sm lg:text-base">
               Our 32-point inspection covers cosmetic condition, battery health, screen, cameras
               and every button. Then we assign one of four grades — and stand behind it.
             </p>
@@ -510,15 +510,15 @@ interface SectionHeaderProps {
 
 function SectionHeader({ eyebrow, title, description, ctaHref, ctaLabel }: SectionHeaderProps) {
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
       <div className="max-w-2xl">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)]">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)] sm:text-xs">
           {eyebrow}
         </p>
-        <h2 className="font-semibold mt-2 text-4xl tracking-tight text-[var(--color-ink-900)] sm:text-5xl">
+        <h2 className="font-semibold mt-1.5 text-2xl tracking-tight text-[var(--color-ink-900)] sm:mt-2 sm:text-4xl lg:text-5xl">
           {title}
         </h2>
-        <p className="mt-2 text-sm text-[var(--color-ink-600)] sm:text-base">{description}</p>
+        <p className="mt-1.5 text-[13px] text-[var(--color-ink-600)] sm:mt-2 sm:text-sm lg:text-base">{description}</p>
       </div>
       {ctaHref && ctaLabel && (
         <Link

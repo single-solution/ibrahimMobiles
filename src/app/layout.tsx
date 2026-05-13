@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { StorefrontChrome } from "@/components/layout/StorefrontChrome";
 import { SITE_NAME, SITE_TAGLINE } from "@/lib/constants";
@@ -16,6 +16,13 @@ export const metadata: Metadata = {
     template: `%s · ${SITE_NAME}`,
   },
   description: SITE_TAGLINE,
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#ffffff",
 };
 
 interface RootLayoutProps {

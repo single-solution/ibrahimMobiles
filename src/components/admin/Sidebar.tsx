@@ -27,19 +27,19 @@ import { classNames } from "@/lib/utils";
 import { SITE_NAME } from "@/lib/constants";
 import { ADMIN_SESSION_KEY, ADMIN_USER } from "@/components/admin/adminSession";
 
-interface SidebarSection {
+export interface SidebarSection {
   title: string;
   items: SidebarItem[];
 }
 
-interface SidebarItem {
+export interface SidebarItem {
   href: string;
   label: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
   exact?: boolean;
 }
 
-const SIDEBAR_SECTIONS: SidebarSection[] = [
+export const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     title: "Overview",
     items: [

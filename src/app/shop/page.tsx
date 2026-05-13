@@ -32,12 +32,14 @@ export default function ShopPage() {
   const allVariants = getAllVariants();
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
+    <div className="mx-auto max-w-7xl px-3 pt-4 pb-10 sm:px-6 sm:pt-10 lg:px-8">
+      <div className="grid gap-6 md:grid-cols-[260px_1fr] md:gap-8 lg:grid-cols-[280px_1fr]">
         <FilterSidebar />
 
-        <div className="space-y-6">
-          <ActiveFilters />
+        <div className="space-y-4 md:space-y-6">
+          <div className="hidden md:block">
+            <ActiveFilters />
+          </div>
           <ResultsToolbar resultCount={allVariants.length} modelCount={phones.length} />
           <VariantGrid variantPairs={allVariants} />
           <Pagination />
@@ -76,11 +78,14 @@ function ResultsToolbar({ resultCount, modelCount }: ResultsToolbarProps) {
     <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--color-ink-100)] py-3">
       <p className="text-sm text-[var(--color-ink-600)]">
         Showing <span className="font-semibold text-[var(--color-ink-900)]">{resultCount}</span>{" "}
-        units across {modelCount} models
+        <span className="hidden sm:inline">units across {modelCount} models</span>
+        <span className="sm:hidden">units</span>
       </p>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         <SortDropdown />
-        <ViewToggle />
+        <div className="hidden sm:block">
+          <ViewToggle />
+        </div>
       </div>
     </div>
   );
@@ -132,7 +137,7 @@ interface VariantGridProps {
 
 function VariantGrid({ variantPairs }: VariantGridProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:gap-5 xl:grid-cols-3">
+    <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
       {variantPairs.map(({ phone, variant }) => (
         <VariantCard key={variant.id} phone={phone} variant={variant} />
       ))}

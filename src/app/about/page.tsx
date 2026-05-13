@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-7 sm:px-6 sm:py-12 lg:px-8">
       <Hero />
       <InspectionProcess />
       <GradesExplained />
@@ -43,15 +43,15 @@ export default function AboutPage() {
 
 function Hero() {
   return (
-    <section className="space-y-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)]">
+    <section className="space-y-3 sm:space-y-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)] sm:text-xs">
         About {SITE_NAME}
       </p>
-      <h1 className="font-semibold text-balance text-5xl leading-[0.95] tracking-tight text-[var(--color-ink-900)] sm:text-6xl">
+      <h1 className="font-semibold text-balance text-3xl leading-[0.98] tracking-tight text-[var(--color-ink-900)] sm:text-5xl lg:text-6xl">
         Pre-owned phones,<br />
         <span className="italic text-[var(--color-accent-700)]">done properly.</span>
       </h1>
-      <p className="max-w-3xl text-pretty text-base text-[var(--color-ink-600)] sm:text-lg">
+      <p className="max-w-3xl text-pretty text-[13px] text-[var(--color-ink-600)] sm:text-base lg:text-lg">
         We started {SITE_NAME} on Hall Road, Lahore — Pakistan&apos;s biggest mobile market — with
         a simple idea. Most Pakistanis don&apos;t need a brand-new phone, they need a working one
         at a fair price, with someone standing behind it. We&apos;re a sales-only store —{" "}
@@ -98,34 +98,34 @@ function InspectionProcess() {
   ];
 
   return (
-    <section className="mt-16">
-      <h2 className="font-semibold text-4xl tracking-tight text-[var(--color-ink-900)] sm:text-5xl">
+    <section className="mt-10 sm:mt-16">
+      <h2 className="font-semibold text-2xl tracking-tight text-[var(--color-ink-900)] sm:text-4xl lg:text-5xl">
         Our 6-step process
       </h2>
-      <p className="mt-2 max-w-2xl text-[var(--color-ink-600)]">
+      <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-ink-600)] sm:mt-2 sm:text-base">
         From sourcing to delivery — here&apos;s exactly what every phone goes through before it
         reaches your doorstep.
       </p>
-      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 grid gap-3 sm:mt-8 sm:grid-cols-2 lg:grid-cols-3">
         {steps.map((step) => (
-          <Card key={step.number} className="p-5">
-            <span className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-accent-700)]">
+          <Card key={step.number} className="p-4 sm:p-5">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--color-accent-700)] sm:text-xs">
               {step.number}
             </span>
-            <h3 className="font-semibold mt-1 text-xl leading-tight text-[var(--color-ink-900)]">
+            <h3 className="font-semibold mt-1 text-base leading-tight text-[var(--color-ink-900)] sm:text-xl">
               {step.title}
             </h3>
-            <p className="mt-1.5 text-sm text-[var(--color-ink-600)]">{step.body}</p>
+            <p className="mt-1.5 text-[13px] text-[var(--color-ink-600)] sm:text-sm">{step.body}</p>
           </Card>
         ))}
       </div>
-      <div className="mt-5 flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-5 py-4">
-        <ShieldCheck size={18} className="mt-0.5 shrink-0 text-[var(--color-accent-700)]" />
+      <div className="mt-4 flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-4 py-3.5 sm:mt-5 sm:px-5 sm:py-4">
+        <ShieldCheck size={16} className="mt-0.5 shrink-0 text-[var(--color-accent-700)] sm:size-[18px]" />
         <div>
-          <p className="text-sm font-semibold text-[var(--color-ink-900)]">
+          <p className="text-[13px] font-semibold text-[var(--color-ink-900)] sm:text-sm">
             We don&apos;t repair phones for resale
           </p>
-          <p className="text-xs text-[var(--color-ink-600)]">
+          <p className="mt-0.5 text-xs text-[var(--color-ink-600)]">
             If a unit fails diagnostics, it&apos;s rejected — never patched up and put back on the
             shelf. After-sales service for genuine faults under warranty is a different thing,
             and we still take care of that.
@@ -140,32 +140,32 @@ function GradesExplained() {
   return (
     <section
       id="grades"
-      className="mt-16 rounded-[var(--radius-xl)] bg-[var(--color-ink-900)] p-8 text-[var(--color-canvas)] sm:p-12"
+      className="mt-10 rounded-[var(--radius-xl)] bg-[var(--color-ink-900)] p-5 text-[var(--color-canvas)] sm:mt-16 sm:p-8 lg:p-12"
     >
-      <div className="grid gap-8 lg:grid-cols-[1fr_2fr]">
-        <div className="space-y-3">
-          <BadgeCheck size={28} className="text-[var(--color-accent-400)]" />
-          <h2 className="font-semibold text-4xl tracking-tight sm:text-5xl">
+      <div className="grid gap-5 sm:gap-8 lg:grid-cols-[1fr_2fr]">
+        <div className="space-y-2.5 sm:space-y-3">
+          <BadgeCheck size={22} className="text-[var(--color-accent-400)] sm:size-7" />
+          <h2 className="font-semibold text-2xl tracking-tight sm:text-4xl lg:text-5xl">
             Four grades.<br />
             <span className="italic text-[var(--color-accent-300)]">No</span> grey areas.
           </h2>
-          <p className="text-[var(--color-ink-300)]">
+          <p className="text-[13px] text-[var(--color-ink-300)] sm:text-base">
             We pick a grade and stick to it — no &quot;mostly excellent&quot;, no &quot;A-minus-ish&quot;.
             What you see is what shows up at your door.
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-2.5 sm:gap-3 sm:grid-cols-2">
           {gradeDescriptors.map((descriptor) => (
             <div
               key={descriptor.grade}
-              className="rounded-[var(--radius-lg)] border border-white/10 bg-white/5 p-5"
+              className="rounded-[var(--radius-lg)] border border-white/10 bg-white/5 p-4 sm:p-5"
             >
               <div className="flex items-center gap-2.5">
                 <GradeBadge grade={descriptor.grade} size="md" />
-                <span className="text-sm font-medium">{descriptor.shortLabel}</span>
+                <span className="text-[13px] font-medium sm:text-sm">{descriptor.shortLabel}</span>
               </div>
-              <p className="mt-3 text-sm text-[var(--color-canvas)]">{descriptor.description}</p>
-              <p className="mt-2 text-xs text-[var(--color-ink-300)]">{descriptor.cosmeticNotes}</p>
+              <p className="mt-2.5 text-[13px] text-[var(--color-canvas)] sm:mt-3 sm:text-sm">{descriptor.description}</p>
+              <p className="mt-1.5 text-xs text-[var(--color-ink-300)] sm:mt-2">{descriptor.cosmeticNotes}</p>
             </div>
           ))}
         </div>
@@ -201,39 +201,39 @@ function BuyingProcessSection() {
   return (
     <section
       id="how-to-buy"
-      className="mt-16 grid gap-8 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-8 sm:p-12 lg:grid-cols-2 lg:gap-14"
+      className="mt-10 grid gap-6 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5 sm:mt-16 sm:gap-8 sm:p-8 lg:grid-cols-2 lg:gap-14 lg:p-12"
     >
-      <div className="space-y-3">
-        <Video size={28} className="text-[var(--color-accent-600)]" />
-        <h2 className="text-4xl font-semibold tracking-[-0.02em] text-[var(--color-ink-900)] sm:text-5xl">
+      <div className="space-y-2.5 sm:space-y-3">
+        <Video size={22} className="text-[var(--color-accent-600)] sm:size-7" />
+        <h2 className="text-2xl font-semibold tracking-[-0.02em] text-[var(--color-ink-900)] sm:text-4xl lg:text-5xl">
           How to order online
         </h2>
-        <p className="text-[var(--color-ink-600)]">
+        <p className="text-[13px] text-[var(--color-ink-600)] sm:text-base">
           We&apos;re a sales-only store — no trade-ins, no buy-back. Every online order is locked
           with an advance, then we send a real video of your exact unit before dispatch. Walk into
           our Hall Road outlet to skip the video and verify in person instead.
         </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] p-3">
-            <Banknote size={18} className="mt-0.5 shrink-0 text-[var(--color-accent-700)]" />
+        <div className="mt-3 grid gap-2.5 sm:mt-4 sm:gap-3 sm:grid-cols-2">
+          <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] p-2.5 sm:p-3">
+            <Banknote size={16} className="mt-0.5 shrink-0 text-[var(--color-accent-700)] sm:size-[18px]" />
             <div>
-              <p className="text-sm font-semibold text-[var(--color-ink-900)]">5% off on bank transfer</p>
+              <p className="text-[13px] font-semibold text-[var(--color-ink-900)] sm:text-sm">5% off on bank transfer</p>
               <p className="text-xs text-[var(--color-ink-600)]">Pay full upfront and save instantly.</p>
             </div>
           </div>
-          <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] p-3">
-            <MapPin size={18} className="mt-0.5 shrink-0 text-[var(--color-accent-700)]" />
+          <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] p-2.5 sm:p-3">
+            <MapPin size={16} className="mt-0.5 shrink-0 text-[var(--color-accent-700)] sm:size-[18px]" />
             <div>
-              <p className="text-sm font-semibold text-[var(--color-ink-900)]">Verify in store</p>
+              <p className="text-[13px] font-semibold text-[var(--color-ink-900)] sm:text-sm">Verify in store</p>
               <p className="text-xs text-[var(--color-ink-600)]">Hall Road, Lahore — pay only when satisfied.</p>
             </div>
           </div>
         </div>
       </div>
-      <ol className="space-y-4 text-sm">
+      <ol className="space-y-3.5 text-[13px] sm:space-y-4 sm:text-sm">
         {steps.map((step, stepIndex) => (
-          <li key={step.label} className="flex gap-4">
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--color-accent-100)] text-sm font-semibold text-[var(--color-accent-800)]">
+          <li key={step.label} className="flex gap-3 sm:gap-4">
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--color-accent-100)] text-[13px] font-semibold text-[var(--color-accent-800)] sm:size-8 sm:text-sm">
               {stepIndex + 1}
             </span>
             <div>
@@ -251,36 +251,36 @@ function WarrantySection() {
   return (
     <section
       id="warranty"
-      className="mt-16 grid gap-6 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-8 sm:p-12 lg:grid-cols-[1fr_1.4fr]"
+      className="mt-10 grid gap-5 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-5 sm:mt-16 sm:gap-6 sm:p-8 lg:grid-cols-[1fr_1.4fr] lg:p-12"
     >
-      <div className="space-y-3">
-        <ShieldCheck size={28} className="text-[var(--color-accent-700)]" />
-        <h2 className="text-4xl font-semibold tracking-[-0.02em] text-[var(--color-ink-900)] sm:text-5xl">
+      <div className="space-y-2.5 sm:space-y-3">
+        <ShieldCheck size={22} className="text-[var(--color-accent-700)] sm:size-7" />
+        <h2 className="text-2xl font-semibold tracking-[-0.02em] text-[var(--color-ink-900)] sm:text-4xl lg:text-5xl">
           15-day moneyback,<br />
           <span className="italic text-[var(--color-accent-700)]">life-long</span> service.
         </h2>
-        <p className="text-[var(--color-ink-600)]">
+        <p className="text-[13px] text-[var(--color-ink-600)] sm:text-base">
           You get a {MONEYBACK_DAYS}-day moneyback guarantee on every order — change your mind,
           we refund. After that, your unit is covered for 3–6 months under warranty depending on
           the variant. And once warranty ends, we still service genuine faults at our Hall Road
           outlet (excluding physical or liquid damage).
         </p>
-        <div className="mt-3 grid gap-2 text-sm">
-          <div className="rounded-[var(--radius-md)] bg-[var(--color-surface)] p-3">
+        <div className="mt-2.5 grid gap-2 text-[13px] sm:mt-3 sm:text-sm">
+          <div className="rounded-[var(--radius-md)] bg-[var(--color-surface)] p-2.5 sm:p-3">
             <p className="font-semibold text-[var(--color-ink-900)]">Brand-new</p>
             <p className="text-xs text-[var(--color-ink-600)]">12-month company warranty.</p>
           </div>
-          <div className="rounded-[var(--radius-md)] bg-[var(--color-surface)] p-3">
+          <div className="rounded-[var(--radius-md)] bg-[var(--color-surface)] p-2.5 sm:p-3">
             <p className="font-semibold text-[var(--color-ink-900)]">Genuine / box-open / refurbished</p>
             <p className="text-xs text-[var(--color-ink-600)]">6-month shop warranty.</p>
           </div>
-          <div className="rounded-[var(--radius-md)] bg-[var(--color-surface)] p-3">
+          <div className="rounded-[var(--radius-md)] bg-[var(--color-surface)] p-2.5 sm:p-3">
             <p className="font-semibold text-[var(--color-ink-900)]">China water pack / LCD shaded</p>
             <p className="text-xs text-[var(--color-ink-600)]">3-month shop warranty.</p>
           </div>
         </div>
       </div>
-      <ul className="grid gap-3 text-sm sm:grid-cols-2">
+      <ul className="grid gap-2.5 text-[13px] sm:gap-3 sm:text-sm sm:grid-cols-2">
         {[
           "Battery faults",
           "Charging port issues",
@@ -291,13 +291,13 @@ function WarrantySection() {
         ].map((coverage) => (
           <li
             key={coverage}
-            className="flex items-center gap-2.5 rounded-[var(--radius-md)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-ink-700)]"
+            className="flex items-center gap-2.5 rounded-[var(--radius-md)] bg-[var(--color-surface)] px-3.5 py-2.5 text-[var(--color-ink-700)] sm:px-4 sm:py-3"
           >
             <span className="size-1.5 shrink-0 rounded-full bg-[var(--color-accent-500)]" />
             <span>{coverage}</span>
           </li>
         ))}
-        <li className="rounded-[var(--radius-md)] bg-[var(--color-ink-900)] px-4 py-3 text-xs text-[var(--color-canvas)] sm:col-span-2">
+        <li className="rounded-[var(--radius-md)] bg-[var(--color-ink-900)] px-3.5 py-2.5 text-xs text-[var(--color-canvas)] sm:col-span-2 sm:px-4 sm:py-3">
           <span className="font-semibold">Not covered:</span> physical damage, liquid ingress,
           screen cracks from drops, unauthorised repairs.
         </li>
@@ -334,25 +334,25 @@ function ContactSection() {
     },
   ];
   return (
-    <section id="contact" className="mt-16">
-      <h2 className="font-semibold text-4xl tracking-tight text-[var(--color-ink-900)] sm:text-5xl">
+    <section id="contact" className="mt-10 sm:mt-16">
+      <h2 className="font-semibold text-2xl tracking-tight text-[var(--color-ink-900)] sm:text-4xl lg:text-5xl">
         Get in touch
       </h2>
-      <p className="mt-2 text-[var(--color-ink-600)]">
+      <p className="mt-1.5 text-[13px] text-[var(--color-ink-600)] sm:mt-2 sm:text-base">
         Open Mon–Sat, 11:00 — 21:00. Closed Friday afternoon for prayer.
       </p>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-5 grid gap-2.5 sm:mt-6 sm:gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {contacts.map((contact) => {
           const inner = (
-            <Card className="flex h-full items-start gap-3 p-5">
-              <span className="grid size-10 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-50)] text-[var(--color-accent-700)]">
+            <Card className="flex h-full items-start gap-3 p-4 sm:p-5">
+              <span className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-50)] text-[var(--color-accent-700)] sm:size-10">
                 {contact.icon}
               </span>
               <div>
-                <p className="text-xs uppercase tracking-wider text-[var(--color-ink-500)]">
+                <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-500)] sm:text-xs">
                   {contact.label}
                 </p>
-                <p className="mt-0.5 text-sm font-semibold text-[var(--color-ink-900)]">
+                <p className="mt-0.5 text-[13px] font-semibold text-[var(--color-ink-900)] sm:text-sm">
                   {contact.value}
                 </p>
               </div>
@@ -375,16 +375,16 @@ function ContactSection() {
         })}
       </div>
 
-      <div className="mt-10 grid gap-4 lg:grid-cols-2">
-        <Card className="p-6">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)]">
+      <div className="mt-7 grid gap-3 sm:mt-10 sm:gap-4 lg:grid-cols-2">
+        <Card className="p-4 sm:p-6">
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)] sm:text-xs">
             Payment we accept
           </h3>
-          <ul className="mt-4 grid grid-cols-2 gap-2 text-sm">
+          <ul className="mt-3 grid grid-cols-2 gap-2 text-[13px] sm:mt-4 sm:text-sm">
             {PAYMENT_METHODS.map((paymentMethod) => (
               <li
                 key={paymentMethod.id}
-                className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-2.5"
+                className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-2.5 py-2 sm:px-3 sm:py-2.5"
               >
                 <p className="font-semibold text-[var(--color-ink-900)]">{paymentMethod.label}</p>
                 <p className="text-xs text-[var(--color-ink-500)]">{paymentMethod.note}</p>
@@ -392,21 +392,21 @@ function ContactSection() {
             ))}
           </ul>
         </Card>
-        <Card className="p-6">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)]">
+        <Card className="p-4 sm:p-6">
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)] sm:text-xs">
             Delivering to
           </h3>
-          <div className="mt-4 flex flex-wrap gap-1.5">
+          <div className="mt-3 flex flex-wrap gap-1.5 sm:mt-4">
             {SERVICE_CITIES.map((cityName) => (
               <span
                 key={cityName}
-                className="rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-1.5 text-xs font-medium text-[var(--color-ink-700)]"
+                className="rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-ink-700)] sm:px-3 sm:py-1.5 sm:text-xs"
               >
                 {cityName}
               </span>
             ))}
           </div>
-          <p className="mt-4 text-sm text-[var(--color-ink-500)]">
+          <p className="mt-3 text-[13px] text-[var(--color-ink-500)] sm:mt-4 sm:text-sm">
             Delivery 1–3 days · Same-day in Lahore for orders before 2 PM.{" "}
             <ArrowRight size={12} className="inline" />
           </p>

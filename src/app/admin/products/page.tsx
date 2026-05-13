@@ -31,7 +31,7 @@ export default function AdminProductsPage() {
         }
       />
 
-      <section className="mt-10 grid gap-5 sm:grid-cols-3">
+      <section className="mt-6 grid gap-3 sm:mt-10 sm:gap-5 sm:grid-cols-3">
         <SummaryCard label="Models" value={phones.length} sub={`${featuredCount} featured`} />
         <SummaryCard
           label="Variants"
@@ -45,7 +45,7 @@ export default function AdminProductsPage() {
         />
       </section>
 
-      <section className="mt-8">
+      <section className="mt-5 sm:mt-8">
         <ProductsTable phones={phones} brands={brands} />
       </section>
     </AdminShell>
@@ -60,14 +60,14 @@ interface SummaryCardProps {
 
 function SummaryCard({ label, value, sub }: SummaryCardProps) {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-6">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-ink-500)]">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 sm:p-6">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-ink-500)] sm:text-[11px]">
         {label}
       </p>
-      <p className="mt-6 text-[30px] font-semibold leading-none tracking-[-0.025em] text-[var(--color-ink-900)]">
+      <p className="mt-3 text-[22px] font-semibold leading-none tracking-[-0.025em] text-[var(--color-ink-900)] sm:mt-6 sm:text-[30px]">
         {value}
       </p>
-      <p className="mt-4 text-xs text-[var(--color-ink-500)]">{sub}</p>
+      <p className="mt-2 text-[11px] text-[var(--color-ink-500)] sm:mt-4 sm:text-xs">{sub}</p>
     </div>
   );
 }

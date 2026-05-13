@@ -70,7 +70,7 @@ export function DataTable<TRow>({
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
       {(searchAccessor || toolbar) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-5 py-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-3 py-3 sm:px-5 sm:py-3.5">
           {searchAccessor ? (
             <label className="relative flex h-9 max-w-xs flex-1 items-center">
               <Search
@@ -107,7 +107,7 @@ export function DataTable<TRow>({
                     scope="col"
                     style={column.width ? { width: column.width } : undefined}
                     className={classNames(
-                      "px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.14em]",
+                      "px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] sm:px-5 sm:py-3 sm:text-[11px]",
                       column.align === "right" && "text-right",
                       column.align === "center" && "text-center",
                       column.align !== "right" && column.align !== "center" && "text-left",
@@ -133,7 +133,7 @@ export function DataTable<TRow>({
                     <td
                       key={column.id}
                       className={classNames(
-                        "px-5 py-4 align-middle text-[var(--color-ink-800)]",
+                        "px-3 py-3 align-middle text-[13px] text-[var(--color-ink-800)] sm:px-5 sm:py-4 sm:text-sm",
                         column.align === "right" && "text-right",
                         column.align === "center" && "text-center",
                         column.hideOnMobile && "hidden md:table-cell",
@@ -150,7 +150,7 @@ export function DataTable<TRow>({
       )}
 
       {filteredRows.length > pageSize && (
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--color-ink-100)] px-5 py-3 text-xs text-[var(--color-ink-500)]">
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--color-ink-100)] px-3 py-2.5 text-[11px] text-[var(--color-ink-500)] sm:px-5 sm:py-3 sm:text-xs">
           <span>
             Showing{" "}
             <span className="font-semibold text-[var(--color-ink-800)]">

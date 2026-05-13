@@ -49,7 +49,7 @@ const SOCIAL_BUTTONS = [
 
 export function Footer() {
   return (
-    <footer className="mt-24 border-t border-[var(--color-ink-100)] bg-[var(--color-ink-900)] text-[var(--color-ink-200)]">
+    <footer className="mt-24 hidden border-t border-[var(--color-ink-100)] bg-[var(--color-ink-900)] text-[var(--color-ink-200)] md:block">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4">

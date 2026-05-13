@@ -81,7 +81,7 @@ export function AiChatWidget({ onCollapse }: AiChatWidgetProps) {
     <div
       role="dialog"
       aria-label={`Chat with ${ASSISTANT_NAME}`}
-      className="flex h-[560px] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]"
+      className="fixed inset-0 z-50 flex h-[100dvh] w-screen flex-col overflow-hidden bg-[var(--color-surface)] md:static md:h-[560px] md:w-[min(380px,calc(100vw-2rem))] md:rounded-[var(--radius-xl)] md:border md:border-[var(--color-ink-100)] md:shadow-[var(--shadow-lg)]"
     >
       <ChatHeader onClose={onCollapse} />
       <MessageList messages={SAMPLE_CONVERSATION} />

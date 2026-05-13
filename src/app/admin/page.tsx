@@ -63,7 +63,7 @@ export default function AdminOverviewPage() {
         }
       />
 
-      <section className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mt-6 grid gap-3 sm:mt-10 sm:gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label="Units in stock"
           value={String(adminKpis.unitsInStock)}
@@ -96,14 +96,14 @@ export default function AdminOverviewPage() {
         />
       </section>
 
-      <section className="mt-8 grid gap-6 lg:grid-cols-3">
+      <section className="mt-5 grid gap-3 sm:mt-8 sm:gap-6 lg:grid-cols-3">
         <Panel
           eyebrow="Last 30 days"
           title="Daily revenue"
           subtitle={`Average ${formatPrice(Math.round(adminKpis.revenueThisMonthRupees / 30))} / day`}
           className="lg:col-span-2"
         >
-          <div className="px-7 pb-7 pt-3">
+          <div className="px-4 pb-5 pt-2 sm:px-7 sm:pb-7 sm:pt-3">
             <MiniBarChart
               values={revenueValues}
               labels={revenueLabels}
@@ -118,7 +118,7 @@ export default function AdminOverviewPage() {
           title="Stock by type"
           subtitle={`${adminKpis.unitsInStock} units across ${adminKpis.modelsListed} models`}
         >
-          <div className="px-7 pb-7 pt-3">
+          <div className="px-4 pb-5 pt-2 sm:px-7 sm:pb-7 sm:pt-3">
             <DonutChart
               segments={stockTypeDistribution}
               centerValue={String(adminKpis.unitsInStock)}
@@ -129,27 +129,27 @@ export default function AdminOverviewPage() {
       </section>
 
       <Panel
-        className="mt-8"
+        className="mt-5 sm:mt-8"
         eyebrow="Recent inquiries"
         title={`${adminKpis.openInquiries} open`}
         action={{ href: "/admin/inquiries", label: "View all" }}
       >
         <ul className="divide-y divide-[var(--color-ink-100)]">
           {recentInquiries.map((inquiry) => (
-            <li key={inquiry.id} className="flex items-center gap-3 px-7 py-4">
+            <li key={inquiry.id} className="flex items-center gap-3 px-4 py-3.5 sm:px-7 sm:py-4">
               <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[12px] font-semibold text-[var(--color-ink-700)]">
                 {getInitials(inquiry.customerName)}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <p className="truncate text-sm font-semibold text-[var(--color-ink-900)]">
+                  <p className="truncate text-[13px] font-semibold text-[var(--color-ink-900)] sm:text-sm">
                     {inquiry.customerName}
                   </p>
                   <StatusPill tone={STATUS_TONE[inquiry.status]}>
                     {getInquiryStatusLabel(inquiry.status)}
                   </StatusPill>
                 </div>
-                <p className="mt-0.5 truncate text-xs text-[var(--color-ink-500)]">
+                <p className="mt-0.5 truncate text-[11px] text-[var(--color-ink-500)] sm:text-xs">
                   {inquiry.modelName} · {getInquirySourceLabel(inquiry.source)} ·{" "}
                   {inquiry.customerCity}
                 </p>
@@ -184,18 +184,18 @@ function Panel({ eyebrow, title, subtitle, action, className, children }: PanelP
     <section
       className={`rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] ${className ?? ""}`}
     >
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-7 py-5">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-4 py-3.5 sm:px-7 sm:py-5">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-ink-500)]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-ink-500)] sm:text-[11px]">
             {eyebrow}
           </p>
-          <h2 className="mt-0.5 text-base font-semibold text-[var(--color-ink-900)]">{title}</h2>
-          {subtitle && <p className="mt-0.5 text-xs text-[var(--color-ink-500)]">{subtitle}</p>}
+          <h2 className="mt-0.5 text-[15px] font-semibold text-[var(--color-ink-900)] sm:text-base">{title}</h2>
+          {subtitle && <p className="mt-0.5 text-[11px] text-[var(--color-ink-500)] sm:text-xs">{subtitle}</p>}
         </div>
         {action && (
           <Link
             href={action.href}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-accent-700)] hover:underline"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--color-accent-700)] hover:underline sm:text-xs"
           >
             {action.label} <ArrowRight size={12} />
           </Link>

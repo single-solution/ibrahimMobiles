@@ -3,6 +3,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "@/components/admin/Sidebar";
+import { AdminMobileTopBar } from "@/components/admin/AdminMobileTopBar";
+import { AdminMobileMenu } from "@/components/admin/AdminMobileMenu";
 import { ADMIN_SESSION_KEY } from "@/components/admin/adminSession";
 
 interface AdminShellProps {
@@ -13,6 +15,7 @@ export function AdminShell({ children }: AdminShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -23,6 +26,10 @@ export function AdminShell({ children }: AdminShellProps) {
     }
     setIsHydrated(true);
   }, [router, pathname]);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   if (!isHydrated) {
     return (
@@ -35,16 +42,25 @@ export function AdminShell({ children }: AdminShellProps) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--color-canvas-deep)]">
-      <Sidebar
-        isCollapsed={isCollapsed}
-        onToggleCollapsed={() => setIsCollapsed((current) => !current)}
-      />
-      <main className="flex h-screen min-w-0 flex-1 flex-col overflow-y-auto">
-        <div className="mx-auto w-full max-w-[1400px] px-6 py-10 sm:px-8 lg:px-12 lg:py-12">
+    <div className="flex min-h-screen bg-[var(--color-canvas-deep)] md:h-screen md:overflow-hidden">
+      <div className="hidden md:flex">
+        <Sidebar
+          isCollapsed={isCollapsed}
+          onToggleCollapsed={() => setIsCollapsed((current) => !current)}
+        />
+      </div>
+
+      <main className="flex min-w-0 flex-1 flex-col md:h-screen md:overflow-y-auto">
+        <AdminMobileTopBar onOpenMenu={() => setIsMobileMenuOpen(true)} />
+        <div className="mx-auto w-full max-w-[1400px] px-4 py-5 sm:px-6 sm:py-8 md:px-8 md:py-10 lg:px-12 lg:py-12">
           {children}
         </div>
       </main>
+
+      <AdminMobileMenu
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
     </div>
   );
 }
