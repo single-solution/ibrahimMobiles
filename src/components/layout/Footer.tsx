@@ -23,22 +23,6 @@ import {
   SUPPORT_PHONE,
   buildWhatsAppLink,
 } from "@/lib/constants";
-import { brands } from "@/data/brands";
-
-const SHOP_LINKS = [
-  { href: "/shop", label: "All phones" },
-  { href: "/shop?grade=A%2B", label: "Grade A+" },
-  { href: "/shop?hasOffer=1", label: "On sale" },
-  { href: "/shop?pta=1", label: "PTA approved" },
-  { href: "/deals", label: "Today's deals" },
-];
-
-const COMPANY_LINKS = [
-  { href: "/about", label: "About us" },
-  { href: "/about#how-to-buy", label: "How to buy" },
-  { href: "/about#warranty", label: "Warranty" },
-  { href: "/about#contact", label: "Contact" },
-];
 
 const SOCIAL_BUTTONS = [
   { href: SOCIAL_LINKS.facebook, label: "Facebook", icon: <Facebook size={15} /> },
@@ -51,7 +35,7 @@ export function Footer() {
   return (
     <footer className="mt-24 hidden border-t border-[var(--color-ink-100)] bg-[var(--color-ink-900)] text-[var(--color-ink-200)] md:block">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2.5 text-white">
               <span className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
@@ -76,12 +60,6 @@ export function Footer() {
                 label={SUPPORT_EMAIL}
                 href={`mailto:${SUPPORT_EMAIL}`}
               />
-              <ContactRow
-                icon={<MapPin size={14} />}
-                label={`${STORE_ADDRESS_LINE_1}, ${STORE_ADDRESS_LINE_2}`}
-                href={SOCIAL_LINKS.googleMaps}
-                isExternal
-              />
             </div>
 
             <div className="flex flex-wrap gap-2 pt-2">
@@ -100,18 +78,6 @@ export function Footer() {
             </div>
           </div>
 
-          <FooterColumn title="Shop" links={SHOP_LINKS} />
-          <FooterColumn
-            title="Brands"
-            links={brands.slice(0, 6).map((brand) => ({
-              href: `/shop?brand=${brand.slug}`,
-              label: brand.name,
-            }))}
-          />
-          <FooterColumn title="Company" links={COMPANY_LINKS} />
-        </div>
-
-        <div className="mt-12 grid gap-8 border-t border-[var(--color-ink-700)] pt-8 lg:grid-cols-3">
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-ink-400)]">
               Visit our store
@@ -131,6 +97,7 @@ export function Footer() {
               Open in Google Maps →
             </a>
           </div>
+
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-ink-400)]">
               Payment methods
@@ -146,6 +113,7 @@ export function Footer() {
               ))}
             </div>
           </div>
+
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-ink-400)]">
               Delivering across Pakistan
@@ -156,39 +124,12 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col gap-3 border-t border-[var(--color-ink-700)] pt-6 text-xs text-[var(--color-ink-400)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-12 flex flex-col gap-3 border-t border-[var(--color-ink-700)] pt-6 text-xs text-[var(--color-ink-400)] sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} {SITE_NAME}. All rights reserved.</span>
           <span>Pre-owned phones, graded honestly. Warranty on every device.</span>
         </div>
       </div>
     </footer>
-  );
-}
-
-interface FooterColumnProps {
-  title: string;
-  links: { href: string; label: string }[];
-}
-
-function FooterColumn({ title, links }: FooterColumnProps) {
-  return (
-    <div className="space-y-3">
-      <h4 className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-ink-400)]">
-        {title}
-      </h4>
-      <ul className="space-y-2 text-sm">
-        {links.map((link) => (
-          <li key={link.href}>
-            <Link
-              href={link.href}
-              className="text-[var(--color-ink-300)] transition-colors hover:text-[var(--color-accent-300)]"
-            >
-              {link.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 

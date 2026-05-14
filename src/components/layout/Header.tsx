@@ -53,7 +53,7 @@ export function Header() {
           <span className="font-semibold text-2xl leading-none tracking-tight">{SITE_NAME}</span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden items-center gap-1 md:flex">
           {NAV_LINKS.map((navLink) => (
             <Link
               key={navLink.href}
@@ -100,7 +100,7 @@ export function Header() {
             type="button"
             aria-label={isMobileNavOpen ? "Close menu" : "Open menu"}
             onClick={handleMobileNavToggle}
-            className="grid size-10 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-700)] hover:bg-[var(--color-surface-muted)] lg:hidden"
+            className="grid size-10 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-700)] hover:bg-[var(--color-surface-muted)] md:hidden"
           >
             {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -175,7 +175,7 @@ function MobileNav({ isOpen, onLinkClick }: MobileNavProps) {
   return (
     <div
       className={classNames(
-        "overflow-hidden border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] transition-all duration-200 lg:hidden",
+        "overflow-hidden border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] transition-all duration-200 md:hidden",
         isOpen ? "max-h-96" : "max-h-0",
       )}
     >

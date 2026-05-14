@@ -19,15 +19,15 @@ export function FilterSidebar() {
 
   return (
     <>
-      <div className="md:hidden">
+      <div className="flex-1 md:hidden">
         <button
           type="button"
           onClick={() => setIsMobileOpen(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-[var(--radius-full)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-4 py-3 text-sm font-semibold text-[var(--color-ink-800)] active:bg-[var(--color-canvas-deep)]"
+          className="flex h-9 w-full items-center justify-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-ink-800)] active:bg-[var(--color-canvas-deep)]"
         >
-          <SlidersHorizontal size={16} />
-          Filter & sort
-          <span className="ml-1 grid size-5 place-items-center rounded-full bg-[var(--color-accent-700)] text-[10px] font-bold text-white">
+          <SlidersHorizontal size={13} />
+          Filters
+          <span className="ml-0.5 grid size-4 place-items-center rounded-full bg-[var(--color-accent-700)] text-[10px] font-bold text-white">
             3
           </span>
         </button>

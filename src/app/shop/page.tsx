@@ -32,20 +32,46 @@ export default function ShopPage() {
   const allVariants = getAllVariants();
 
   return (
-    <div className="mx-auto max-w-7xl px-3 pt-4 pb-10 sm:px-6 sm:pt-10 lg:px-8">
-      <div className="grid gap-6 md:grid-cols-[260px_1fr] md:gap-8 lg:grid-cols-[280px_1fr]">
-        <FilterSidebar />
+    <>
+      {/* Mobile only — native */}
+      <div className="app-page pb-6 pt-3 md:hidden">
+        <section className="app-section flex flex-col items-center text-center">
+          <h1 className="text-[22px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)]">
+            Shop pre-owned phones
+          </h1>
+          <p className="mt-1.5 text-[13px] leading-snug text-[var(--color-ink-500)]">
+            {allVariants.length} units across {phones.length} models — graded A+ to C, tagged by stock type.
+          </p>
+        </section>
 
-        <div className="space-y-4 md:space-y-6">
-          <div className="hidden md:block">
-            <ActiveFilters />
+        <div className="app-section">
+          <div className="flex items-center gap-2">
+            <FilterSidebar />
+            <SortDropdown />
           </div>
-          <ResultsToolbar resultCount={allVariants.length} modelCount={phones.length} />
+        </div>
+        <div className="app-section">
           <VariantGrid variantPairs={allVariants} />
+        </div>
+        <div className="app-section">
           <Pagination />
         </div>
       </div>
-    </div>
+
+      {/* Desktop — single layout */}
+      <div className="mx-auto hidden max-w-7xl px-6 pb-12 pt-10 md:block">
+        <div className="grid grid-cols-[260px_1fr] gap-8">
+          <FilterSidebar />
+
+          <div className="space-y-6">
+            <ActiveFilters />
+            <ResultsToolbar resultCount={allVariants.length} modelCount={phones.length} />
+            <VariantGrid variantPairs={allVariants} />
+            <Pagination />
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -77,15 +103,12 @@ function ResultsToolbar({ resultCount, modelCount }: ResultsToolbarProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[var(--color-ink-100)] py-3">
       <p className="text-sm text-[var(--color-ink-600)]">
-        Showing <span className="font-semibold text-[var(--color-ink-900)]">{resultCount}</span>{" "}
-        <span className="hidden sm:inline">units across {modelCount} models</span>
-        <span className="sm:hidden">units</span>
+        <span className="font-semibold text-[var(--color-ink-900)]">{resultCount}</span>{" "}
+        <span>units across {modelCount} models</span>
       </p>
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-3">
         <SortDropdown />
-        <div className="hidden sm:block">
-          <ViewToggle />
-        </div>
+        <ViewToggle />
       </div>
     </div>
   );
@@ -95,11 +118,11 @@ function SortDropdown() {
   return (
     <button
       type="button"
-      className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3.5 py-2 text-sm font-medium text-[var(--color-ink-800)] hover:border-[var(--color-ink-300)]"
+      className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-ink-800)] hover:border-[var(--color-ink-300)] md:h-auto md:flex-none md:gap-2 md:rounded-[var(--radius-md)] md:px-3.5 md:py-2 md:text-sm"
     >
-      <span className="text-[var(--color-ink-500)]">Sort:</span>
+      <span className="text-[var(--color-ink-500)]">Sort</span>
       <span>Recommended</span>
-      <ChevronDown size={14} />
+      <ChevronDown size={13} />
     </button>
   );
 }
@@ -137,7 +160,7 @@ interface VariantGridProps {
 
 function VariantGrid({ variantPairs }: VariantGridProps) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
+    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 md:gap-5 xl:grid-cols-4">
       {variantPairs.map(({ phone, variant }) => (
         <VariantCard key={variant.id} phone={phone} variant={variant} />
       ))}
@@ -178,8 +201,8 @@ function PageButton({ label, isActive = false, disabled = false }: PageButtonPro
       aria-current={isActive ? "page" : undefined}
       className={
         isActive
-          ? "h-9 rounded-[var(--radius-md)] bg-[var(--color-accent-700)] px-3 text-sm font-semibold text-white"
-          : "h-9 rounded-[var(--radius-md)] px-3 text-sm font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-surface-muted)] disabled:opacity-40 disabled:hover:bg-transparent"
+          ? "h-8 rounded-[var(--radius-md)] bg-[var(--color-accent-700)] px-2.5 text-[13px] font-semibold text-white md:h-9 md:px-3 md:text-sm"
+          : "h-8 rounded-[var(--radius-md)] px-2.5 text-[13px] font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-surface-muted)] disabled:opacity-40 disabled:hover:bg-transparent md:h-9 md:px-3 md:text-sm"
       }
     >
       {label}

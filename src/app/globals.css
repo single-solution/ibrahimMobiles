@@ -3,6 +3,40 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
+  /* Mobile UI < 640px, desktop UI >= 640px. Collapsed onto the `sm:` width so
+     that all tablets (iPad mini 6, iPad 6th gen, iPad Pro 11", Galaxy Z Fold
+     unfolded, etc.) and phones in landscape get the desktop UI. */
+  --breakpoint-md: 40rem;
+
+  /* ---- Fluid type scale ----
+     Each clamp(min, fluid, max):
+       - fluid hits the original Tailwind size at viewport 1440px ("perfect")
+       - mobile (<~880px) clamps to MIN ≈ 90% of original (slightly smaller per request)
+       - 4K (~2560px+) clamps to MAX ≈ 125% of original (so content doesn't look tiny)
+     Slope = V / 4480 in vw units. Intercept = 0.6786 * V in px. */
+  --text-xs: clamp(11px, calc(8.1px + 0.27vw), 15px);
+  --text-xs--line-height: 1.4;
+  --text-sm: clamp(13px, calc(9.5px + 0.31vw), 17.5px);
+  --text-sm--line-height: 1.45;
+  --text-base: clamp(14.4px, calc(10.9px + 0.36vw), 20px);
+  --text-base--line-height: 1.55;
+  --text-lg: clamp(16px, calc(12.2px + 0.4vw), 22.5px);
+  --text-lg--line-height: 1.55;
+  --text-xl: clamp(18px, calc(13.6px + 0.45vw), 25px);
+  --text-xl--line-height: 1.5;
+  --text-2xl: clamp(22px, calc(16.3px + 0.54vw), 30px);
+  --text-2xl--line-height: 1.35;
+  --text-3xl: clamp(27px, calc(20.4px + 0.67vw), 37.5px);
+  --text-3xl--line-height: 1.25;
+  --text-4xl: clamp(32px, calc(24.4px + 0.8vw), 45px);
+  --text-4xl--line-height: 1.15;
+  --text-5xl: clamp(43px, calc(32.6px + 1.07vw), 60px);
+  --text-5xl--line-height: 1.1;
+  --text-6xl: clamp(54px, calc(40.7px + 1.34vw), 75px);
+  --text-6xl--line-height: 1.05;
+  --text-7xl: clamp(65px, calc(48.9px + 1.61vw), 90px);
+  --text-7xl--line-height: 1.05;
+
   --color-ink-50: #f8fafc;
   --color-ink-100: #eef2f4;
   --color-ink-200: #dde4e7;
@@ -67,6 +101,19 @@
   --mobile-header-h: 56px;
 }
 
+/* Fluid spacing — desktop only.
+   Mobile keeps Tailwind's default --spacing (0.25rem) so tap targets, gaps,
+   and the mobile UI stay exactly as-is. From 640px upward, every numeric
+   p-*, m-*, gap-*, w-*, h-*, etc. scales fluidly:
+     - 640–767:  ~15% smaller than current (fixes "too large at 768")
+     - 1440:     current 4px (perfect)
+     - 2560+:    ~25% larger (fixes "too small at 2560") */
+@media (min-width: 40rem) {
+  :root {
+    --spacing: clamp(0.213rem, calc(0.17rem + 0.089vw), 0.313rem);
+  }
+}
+
 html,
 body {
   background-color: var(--color-canvas);
@@ -84,11 +131,22 @@ html {
   box-sizing: border-box;
 }
 
+/* Prevent iOS Safari from zooming on focus when an input's font-size is
+   below 16px (caused by the fluid type scale at mobile widths). Only apply
+   on mobile; desktop keeps the Tailwind text-* size on inputs. */
+@media (max-width: 39.99rem) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 .app-shell-pad {
   padding-bottom: calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px));
 }
 
-@media (min-width: 768px) {
+@media (min-width: 40rem) {
   .app-shell-pad {
     padding-bottom: 0;
   }
@@ -165,7 +223,7 @@ html {
   bottom: calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px) + 12px);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 40rem) {
   .floating-dock {
     bottom: 28px;
   }
@@ -183,4 +241,76 @@ html {
 ::selection {
   background: var(--color-accent-200);
   color: var(--color-ink-900);
+}
+
+/* --------- Mobile/tablet native-app utilities --------- */
+
+.app-page {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+@media (min-width: 40rem) {
+  .app-page {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+.app-section {
+  margin-top: 28px;
+}
+
+.app-section:first-child {
+  margin-top: 0;
+}
+
+@media (min-width: 40rem) {
+  .app-section {
+    margin-top: 0;
+  }
+}
+
+.app-section-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-500);
+  margin-bottom: 10px;
+}
+
+.app-section-eyebrow a,
+.app-section-eyebrow button {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  color: var(--color-accent-700);
+}
+
+.app-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border-radius: 14px;
+  border: 1px solid var(--color-ink-100);
+  overflow: hidden;
+}
+
+.app-list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.app-list-row + .app-list-row {
+  border-top: 1px solid var(--color-ink-100);
 }

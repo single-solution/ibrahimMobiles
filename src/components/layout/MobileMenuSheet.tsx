@@ -54,52 +54,59 @@ export function MobileMenuSheet({ isOpen, onClose }: MobileMenuSheetProps) {
       height="auto"
       contentClassName="pb-3"
     >
-      <section className="space-y-1.5">
-        {QUICK_LINKS.map((link) => {
-          const Icon = link.icon;
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={onClose}
-              className="flex items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-canvas-deep)] px-4 py-3.5 text-[15px] font-medium text-[var(--color-ink-900)] active:scale-[0.99] active:bg-[var(--color-surface-muted)]"
-            >
-              <span className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-50)] text-[var(--color-accent-700)]">
-                <Icon size={18} />
-              </span>
-              <span className="flex-1">{link.label}</span>
-            </Link>
-          );
-        })}
+      <section>
+        <h3 className="px-1 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+          Browse
+        </h3>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {QUICK_LINKS.map((link) => {
+            const Icon = link.icon;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={onClose}
+                className="flex flex-col items-start gap-2 rounded-[12px] bg-[var(--color-canvas-deep)] p-2.5 active:scale-[0.99] active:bg-[var(--color-surface-muted)]"
+              >
+                <span className="grid size-7 place-items-center rounded-md bg-[var(--color-accent-50)] text-[var(--color-accent-700)]">
+                  <Icon size={14} />
+                </span>
+                <span className="line-clamp-1 text-[13px] font-semibold leading-tight text-[var(--color-ink-900)]">
+                  {link.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
       </section>
 
-      <section className="mt-6">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
+      <section className="mt-5">
+        <h3 className="px-1 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
           Talk to us
         </h3>
-        <div className="mt-2 space-y-1.5">
-          <ContactRow
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <ContactTile
             href={buildWhatsAppLink("Salam!")}
-            icon={<MessageCircle size={16} />}
+            icon={<MessageCircle size={14} />}
             label="WhatsApp"
-            sub="Reply within minutes"
+            sub="Reply in mins"
             external
           />
-          <ContactRow
+          <ContactTile
             href={`tel:${SUPPORT_PHONE.replace(/\s+/g, "")}`}
-            icon={<Phone size={16} />}
+            icon={<Phone size={14} />}
             label={SUPPORT_PHONE}
-            sub="Call us · 11am–10pm"
+            sub="11am – 10pm"
           />
-          <ContactRow
+          <ContactTile
             href={`mailto:${SUPPORT_EMAIL}`}
-            icon={<Mail size={16} />}
-            label={SUPPORT_EMAIL}
-            sub="Email"
+            icon={<Mail size={14} />}
+            label="Email"
+            sub={SUPPORT_EMAIL}
           />
-          <ContactRow
+          <ContactTile
             href={SOCIAL_LINKS.googleMaps}
-            icon={<MapPin size={16} />}
+            icon={<MapPin size={14} />}
             label={STORE_ADDRESS_LINE_1}
             sub={STORE_ADDRESS_LINE_2}
             external
@@ -107,11 +114,11 @@ export function MobileMenuSheet({ isOpen, onClose }: MobileMenuSheetProps) {
         </div>
       </section>
 
-      <section className="mt-6">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
+      <section className="mt-5">
+        <h3 className="px-1 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
           Follow
         </h3>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-2 grid grid-cols-4 gap-2">
           {SOCIAL_BUTTONS.map((social) => (
             <a
               key={social.label}
@@ -119,7 +126,7 @@ export function MobileMenuSheet({ isOpen, onClose }: MobileMenuSheetProps) {
               target="_blank"
               rel="noopener noreferrer"
               aria-label={social.label}
-              className="grid size-11 place-items-center rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] text-[var(--color-ink-700)] active:bg-[var(--color-surface-muted)]"
+              className="flex h-10 items-center justify-center rounded-[10px] bg-[var(--color-canvas-deep)] text-[var(--color-ink-700)] active:bg-[var(--color-surface-muted)]"
             >
               {social.icon}
             </a>
@@ -127,13 +134,13 @@ export function MobileMenuSheet({ isOpen, onClose }: MobileMenuSheetProps) {
         </div>
       </section>
 
-      <section className="mt-6">
+      <section className="mt-5">
         <Link
           href="/admin"
           onClick={onClose}
-          className="flex items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-4 py-3 text-sm font-semibold text-[var(--color-ink-800)]"
+          className="flex h-10 items-center justify-center gap-2 rounded-[10px] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-4 text-[13px] font-semibold text-[var(--color-ink-800)]"
         >
-          <LayoutDashboard size={16} />
+          <LayoutDashboard size={14} />
           Open admin dashboard
         </Link>
       </section>
@@ -141,7 +148,7 @@ export function MobileMenuSheet({ isOpen, onClose }: MobileMenuSheetProps) {
   );
 }
 
-interface ContactRowProps {
+interface ContactTileProps {
   href: string;
   icon: React.ReactNode;
   label: string;
@@ -149,20 +156,20 @@ interface ContactRowProps {
   external?: boolean;
 }
 
-function ContactRow({ href, icon, label, sub, external }: ContactRowProps) {
+function ContactTile({ href, icon, label, sub, external }: ContactTileProps) {
   return (
     <a
       href={href}
       target={external ? "_blank" : undefined}
       rel={external ? "noopener noreferrer" : undefined}
-      className="flex items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-canvas-deep)] px-4 py-3 active:bg-[var(--color-surface-muted)]"
+      className="flex flex-col items-start gap-1.5 rounded-[12px] bg-[var(--color-canvas-deep)] p-2.5 active:bg-[var(--color-surface-muted)]"
     >
-      <span className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-surface)] text-[var(--color-accent-700)] shadow-[var(--shadow-sm)]">
+      <span className="grid size-7 place-items-center rounded-md bg-[var(--color-surface)] text-[var(--color-accent-700)] shadow-[var(--shadow-sm)]">
         {icon}
       </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-[var(--color-ink-900)]">{label}</p>
-        {sub && <p className="truncate text-xs text-[var(--color-ink-500)]">{sub}</p>}
+      <div className="min-w-0 w-full">
+        <p className="truncate text-[12.5px] font-semibold leading-tight text-[var(--color-ink-900)]">{label}</p>
+        {sub && <p className="truncate text-[11px] leading-tight text-[var(--color-ink-500)] mt-0.5">{sub}</p>}
       </div>
     </a>
   );

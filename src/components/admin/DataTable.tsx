@@ -107,7 +107,7 @@ export function DataTable<TRow>({
                     scope="col"
                     style={column.width ? { width: column.width } : undefined}
                     className={classNames(
-                      "px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] sm:px-5 sm:py-3 sm:text-[11px]",
+                      "px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] md:px-5 md:py-3 md:text-[11px]",
                       column.align === "right" && "text-right",
                       column.align === "center" && "text-center",
                       column.align !== "right" && column.align !== "center" && "text-left",
@@ -133,7 +133,7 @@ export function DataTable<TRow>({
                     <td
                       key={column.id}
                       className={classNames(
-                        "px-3 py-3 align-middle text-[13px] text-[var(--color-ink-800)] sm:px-5 sm:py-4 sm:text-sm",
+                        "px-3 py-3 align-middle text-[13px] text-[var(--color-ink-800)] md:px-5 md:py-4 md:text-sm",
                         column.align === "right" && "text-right",
                         column.align === "center" && "text-center",
                         column.hideOnMobile && "hidden md:table-cell",

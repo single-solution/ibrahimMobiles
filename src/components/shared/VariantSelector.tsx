@@ -11,12 +11,13 @@ import {
   Palette,
   ShoppingBag,
 } from "lucide-react";
-import { Button, ButtonLink } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { CompareVariantsModal } from "@/components/shared/CompareVariantsModal";
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { PtaBadge } from "@/components/shared/PtaBadge";
 import { StockTypeBadge } from "@/components/shared/StockTypeBadge";
+import { useVariantSelection } from "@/components/shared/VariantContext";
 import { getStockTypeDescriptor } from "@/data/stockTypes";
 import { buildWhatsAppLink } from "@/lib/constants";
 import {
@@ -31,11 +32,10 @@ import type { Phone, PhoneVariant } from "@/types";
 interface VariantSelectorProps {
   phone: Phone;
   brandName: string;
-  initialVariantId: string;
 }
 
-export function VariantSelector({ phone, brandName, initialVariantId }: VariantSelectorProps) {
-  const [selectedVariantId, setSelectedVariantId] = useState(initialVariantId);
+export function VariantSelector({ phone, brandName }: VariantSelectorProps) {
+  const { selectedVariantId, setSelectedVariantId } = useVariantSelection();
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const selected =
     phone.variants.find((variant) => variant.id === selectedVariantId) ?? phone.variants[0];
@@ -53,27 +53,11 @@ export function VariantSelector({ phone, brandName, initialVariantId }: VariantS
   )}, ${selected.colorName}) for ${formatPrice(selected.priceRupees)}.`;
 
   return (
-    <div className="space-y-5 sm:space-y-7">
-      <div className="space-y-2.5 sm:space-y-3">
-        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          <GradeBadge grade={selected.grade} size="md" showLabel />
-          <StockTypeBadge stockType={selected.stockType} size="md" />
-          {selected.isPtaApproved && <PtaBadge size="md" showLabel />}
-          {!selected.isInStock && (
-            <Pill tone="danger" size="md">
-              Sold out
-            </Pill>
-          )}
-        </div>
-        <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-500)]">
-          {brandName}
-        </p>
-        <h1 className="text-3xl font-semibold leading-[1] tracking-[-0.03em] text-[var(--color-ink-900)] sm:text-5xl lg:text-6xl">
+    <div className="space-y-4 md:space-y-7">
+      <div>
+        <h1 className="text-xl font-semibold leading-tight tracking-tight text-[var(--color-ink-900)] sm:text-2xl md:text-6xl md:leading-[1] md:tracking-[-0.03em]">
           {phone.modelName}
         </h1>
-        <p className="text-[13px] text-[var(--color-ink-600)] sm:text-base">
-          {selected.colorName} · {formatStorage(selected.storageGb)} · {selected.ramGb} GB RAM
-        </p>
       </div>
 
       <PriceBlock
@@ -92,13 +76,7 @@ export function VariantSelector({ phone, brandName, initialVariantId }: VariantS
         onOpenCompare={showCompare ? () => setIsCompareOpen(true) : undefined}
       />
 
-      <StockTypeInfo
-        label={stockTypeDescriptor.label}
-        description={stockTypeDescriptor.description}
-        notes={selected.notes}
-      />
-
-      <PurchaseActions isInStock={selected.isInStock} whatsappMessage={whatsappMessage} />
+      <PurchaseActions isInStock={selected.isInStock} />
 
       <MobileStickyCta
         priceRupees={selected.priceRupees}
@@ -128,18 +106,18 @@ interface MobileStickyCtaProps {
 function MobileStickyCta({ priceRupees, isInStock, whatsappMessage }: MobileStickyCtaProps) {
   return (
     <div
-      className="fixed inset-x-0 z-30 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)]/95 px-4 pt-3 backdrop-blur md:hidden"
+      className="fixed inset-x-0 z-30 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)]/95 px-3 pt-2.5 backdrop-blur md:hidden"
       style={{
         bottom: "calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px))",
-        paddingBottom: "12px",
+        paddingBottom: "10px",
       }}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--color-ink-500)]">
+          <p className="text-[10px] uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
             Your selection
           </p>
-          <p className="text-lg font-semibold leading-tight tracking-[-0.01em] text-[var(--color-ink-900)]">
+          <p className="text-base font-semibold leading-tight tracking-tight text-[var(--color-ink-900)]">
             {formatPrice(priceRupees)}
           </p>
         </div>
@@ -150,20 +128,20 @@ function MobileStickyCta({ priceRupees, isInStock, whatsappMessage }: MobileStic
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Inquire on WhatsApp"
-              className="grid size-11 shrink-0 place-items-center rounded-[var(--radius-full)] bg-[var(--color-whatsapp)] text-white shadow-[var(--shadow-sm)] active:bg-[var(--color-whatsapp-dark)]"
+              className="grid size-10 shrink-0 place-items-center rounded-[var(--radius-full)] bg-[var(--color-whatsapp)] text-white shadow-[var(--shadow-sm)] active:bg-[var(--color-whatsapp-dark)]"
             >
-              <MessageCircle size={18} className="fill-white" />
+              <MessageCircle size={16} className="fill-white" />
             </a>
             <button
               type="button"
-              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-[var(--radius-full)] bg-[var(--color-accent-700)] px-5 text-sm font-semibold text-white active:bg-[var(--color-accent-800)]"
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-[var(--radius-full)] bg-[var(--color-accent-700)] px-4 text-[13px] font-semibold text-white active:bg-[var(--color-accent-800)]"
             >
-              <ShoppingBag size={15} />
-              Reserve
+              <ShoppingBag size={14} />
+              Add to cart
             </button>
           </>
         ) : (
-          <span className="inline-flex h-11 shrink-0 items-center rounded-[var(--radius-full)] bg-[var(--color-ink-100)] px-5 text-sm font-semibold text-[var(--color-ink-500)]">
+          <span className="inline-flex h-10 shrink-0 items-center rounded-[var(--radius-full)] bg-[var(--color-ink-100)] px-4 text-[13px] font-semibold text-[var(--color-ink-500)]">
             Sold out
           </span>
         )}
@@ -187,28 +165,28 @@ function PriceBlock({
 }: PriceBlockProps) {
   const bankTransferPrice = Math.round(priceRupees * 0.95);
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 sm:p-5">
-      <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
-        <span className="text-3xl font-semibold leading-none tracking-[-0.03em] text-[var(--color-ink-900)] sm:text-5xl">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3.5 md:p-5">
+      <div className="flex flex-wrap items-baseline gap-2 md:gap-3">
+        <span className="text-xl font-semibold leading-none tracking-tight text-[var(--color-ink-900)] sm:text-2xl md:text-5xl md:tracking-[-0.03em]">
           {formatPrice(priceRupees)}
         </span>
         {hasDiscount && (
           <>
-            <span className="text-sm text-[var(--color-ink-400)] line-through sm:text-base">
+            <span className="text-[13px] text-[var(--color-ink-400)] line-through md:text-base">
               {formatPrice(originalPriceRupees)}
             </span>
-            <Pill tone="accent" size="md">
-              You save {discountPercent}%
+            <Pill tone="accent" size="sm">
+              {discountPercent}% off
             </Pill>
           </>
         )}
       </div>
-      <p className="mt-2 text-[13px] text-[var(--color-ink-600)] sm:text-sm">
+      <p className="mt-1.5 text-[13px] text-[var(--color-ink-600)] md:mt-2 md:text-sm">
         Or{" "}
         <span className="font-semibold text-[var(--color-accent-700)]">
           {formatPrice(bankTransferPrice)}
         </span>{" "}
-        with full bank transfer (5% off)
+        with bank transfer (5% off)
       </p>
     </div>
   );
@@ -220,23 +198,23 @@ interface SpecGridProps {
 
 function SpecGrid({ variant }: SpecGridProps) {
   const specs = [
-    { icon: <HardDrive size={16} />, label: "Storage", value: formatStorage(variant.storageGb) },
-    { icon: <BatteryMedium size={16} />, label: "Battery (range)", value: formatBatteryRange(variant.batteryHealthRange) },
-    { icon: <Palette size={16} />, label: "Colour", value: variant.colorName },
-    { icon: <Info size={16} />, label: "Warranty", value: `${variant.warrantyMonths} months` },
+    { icon: <HardDrive size={14} />, label: "Storage", value: formatStorage(variant.storageGb) },
+    { icon: <BatteryMedium size={14} />, label: "Battery", value: formatBatteryRange(variant.batteryHealthRange) },
+    { icon: <Palette size={14} />, label: "Colour", value: variant.colorName },
+    { icon: <Info size={14} />, label: "Warranty", value: `${variant.warrantyMonths}-mo` },
   ];
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
       {specs.map((spec) => (
         <div
           key={spec.label}
-          className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3"
+          className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2.5 md:p-3"
         >
-          <div className="flex items-center gap-1.5 text-xs text-[var(--color-ink-500)]">
+          <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-ink-500)] md:text-xs">
             {spec.icon}
             <span>{spec.label}</span>
           </div>
-          <p className="mt-1 text-sm font-semibold text-[var(--color-ink-900)]">{spec.value}</p>
+          <p className="mt-0.5 text-[13px] font-semibold text-[var(--color-ink-900)] md:mt-1 md:text-sm">{spec.value}</p>
         </div>
       ))}
     </div>
@@ -254,21 +232,21 @@ function VariantList({ variants, selectedVariantId, onSelect, onOpenCompare }: V
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--color-ink-700)]">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[var(--color-ink-700)] md:text-sm">
           Available variants
         </h2>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[var(--color-ink-500)]">
+          <span className="text-[11px] text-[var(--color-ink-500)] md:text-xs">
             {variants.length} {variants.length === 1 ? "option" : "options"}
           </span>
           {onOpenCompare && (
             <button
               type="button"
               onClick={onOpenCompare}
-              className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2.5 py-1.5 text-xs font-semibold text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-ink-900)] hover:text-[var(--color-ink-900)]"
+              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-ink-900)] hover:text-[var(--color-ink-900)] md:gap-1.5 md:px-2.5 md:py-1.5 md:text-xs"
             >
-              <GitCompare size={12} />
-              Compare all
+              <GitCompare size={11} />
+              Compare
             </button>
           )}
         </div>
@@ -306,7 +284,7 @@ function VariantRow({ variant, isSelected, onSelect }: VariantRowProps) {
         disabled={!variant.isInStock}
         aria-pressed={isSelected}
         className={classNames(
-          "group flex w-full flex-col gap-3 rounded-[var(--radius-lg)] border p-4 text-left transition-all sm:flex-row sm:items-center sm:gap-4",
+          "group flex w-full items-center gap-2.5 rounded-[var(--radius-lg)] border p-3 text-left transition-all md:gap-4 md:p-4",
           isSelected
             ? "border-[var(--color-ink-900)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]"
             : "border-[var(--color-ink-100)] bg-[var(--color-surface)] hover:border-[var(--color-ink-300)]",
@@ -316,17 +294,17 @@ function VariantRow({ variant, isSelected, onSelect }: VariantRowProps) {
         <span
           aria-hidden
           className={classNames(
-            "grid size-5 shrink-0 place-items-center rounded-full border-2 transition-colors",
+            "grid size-4 shrink-0 place-items-center rounded-full border-2 transition-colors md:size-5",
             isSelected
               ? "border-[var(--color-accent-700)] bg-[var(--color-accent-700)] text-white"
               : "border-[var(--color-ink-300)] bg-[var(--color-surface)]",
           )}
         >
-          {isSelected && <Check size={12} strokeWidth={3} />}
+          {isSelected && <Check size={10} strokeWidth={3} className="md:size-3" />}
         </span>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex min-w-0 flex-1 flex-col gap-1 md:gap-2">
+          <div className="flex flex-wrap items-center gap-1 md:gap-1.5">
             <GradeBadge grade={variant.grade} size="sm" />
             <StockTypeBadge stockType={variant.stockType} size="sm" />
             {variant.isPtaApproved && <PtaBadge size="sm" />}
@@ -336,27 +314,27 @@ function VariantRow({ variant, isSelected, onSelect }: VariantRowProps) {
               </Pill>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--color-ink-600)]">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--color-ink-600)] md:gap-x-3 md:gap-y-1 md:text-xs">
             <span>{formatStorage(variant.storageGb)}</span>
             <span className="text-[var(--color-ink-300)]">·</span>
-            <span>{variant.colorName}</span>
-            <span className="text-[var(--color-ink-300)]">·</span>
-            <span className="inline-flex items-center gap-1">
+            <span className="line-clamp-1">{variant.colorName}</span>
+            <span className="hidden text-[var(--color-ink-300)] md:inline">·</span>
+            <span className="hidden items-center gap-1 md:inline-flex">
               <BatteryMedium size={12} />
               {formatBatteryRange(variant.batteryHealthRange)}
             </span>
           </div>
           {variant.notes && (
-            <p className="text-xs text-[var(--color-ink-500)]">{variant.notes}</p>
+            <p className="hidden text-xs text-[var(--color-ink-500)] md:block">{variant.notes}</p>
           )}
         </div>
 
-        <div className="flex flex-row items-center gap-3 sm:flex-col sm:items-end sm:gap-1">
-          <p className="text-base font-semibold tracking-[-0.01em] text-[var(--color-ink-900)] sm:text-lg">
+        <div className="flex shrink-0 flex-col items-end gap-0.5">
+          <p className="text-sm font-semibold tracking-tight text-[var(--color-ink-900)] md:text-lg">
             {formatPrice(variant.priceRupees)}
           </p>
           {discountPercent > 0 && (
-            <p className="text-xs text-[var(--color-ink-400)] line-through">
+            <p className="text-[11px] text-[var(--color-ink-400)] line-through md:text-xs">
               {formatPrice(variant.originalPriceRupees)}
             </p>
           )}
@@ -366,58 +344,22 @@ function VariantRow({ variant, isSelected, onSelect }: VariantRowProps) {
   );
 }
 
-interface StockTypeInfoProps {
-  label: string;
-  description: string;
-  notes?: string;
-}
-
-function StockTypeInfo({ label, description, notes }: StockTypeInfoProps) {
-  return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-5">
-      <div className="flex items-center gap-2 text-[var(--color-accent-700)]">
-        <Info size={16} />
-        <h3 className="text-xs font-semibold uppercase tracking-[0.18em]">About {label}</h3>
-      </div>
-      <p className="mt-3 text-sm text-[var(--color-ink-700)]">{description}</p>
-      {notes && (
-        <p className="mt-2 text-sm font-medium text-[var(--color-ink-900)]">
-          On this unit: <span className="font-normal text-[var(--color-ink-700)]">{notes}</span>
-        </p>
-      )}
-    </div>
-  );
-}
-
 interface PurchaseActionsProps {
   isInStock: boolean;
-  whatsappMessage: string;
 }
 
-function PurchaseActions({ isInStock, whatsappMessage }: PurchaseActionsProps) {
+function PurchaseActions({ isInStock }: PurchaseActionsProps) {
   return (
-    <div className="space-y-3">
+    <div className="hidden space-y-2.5 md:block md:space-y-3">
       <Button
         variant="primary"
-        size="lg"
+        size="md"
         leadingIcon={<ShoppingBag size={16} />}
-        className="w-full"
+        className="w-full md:h-13 md:px-7 md:text-base"
         disabled={!isInStock}
       >
-        {isInStock ? "Reserve & checkout" : "Currently sold out"}
+        {isInStock ? "Add to cart" : "Currently sold out"}
       </Button>
-      {isInStock && (
-        <ButtonLink
-          href={buildWhatsAppLink(whatsappMessage)}
-          target="_blank"
-          rel="noopener noreferrer"
-          variant="secondary"
-          size="lg"
-          className="w-full !bg-[var(--color-whatsapp)] hover:!bg-[var(--color-whatsapp-dark)]"
-        >
-          Order this variant on WhatsApp
-        </ButtonLink>
-      )}
     </div>
   );
 }

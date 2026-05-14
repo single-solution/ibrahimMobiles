@@ -2,22 +2,22 @@ import { ButtonLink } from "@/components/ui/Button";
 
 export default function NotFoundPage() {
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center px-4 py-16 text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-accent-700)]">
+    <div className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center px-4 py-12 text-center sm:py-16">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--color-accent-700)] sm:text-xs">
         404
       </p>
-      <h1 className="font-semibold mt-3 text-5xl leading-[0.95] tracking-tight text-[var(--color-ink-900)] sm:text-6xl">
+      <h1 className="font-semibold mt-2 text-3xl leading-[0.95] tracking-tight text-[var(--color-ink-900)] sm:mt-3 sm:text-5xl lg:text-6xl">
         We can&apos;t find that page.
       </h1>
-      <p className="mt-3 max-w-md text-[var(--color-ink-600)]">
+      <p className="mt-2.5 max-w-md text-[13px] text-[var(--color-ink-600)] sm:mt-3 sm:text-base">
         It may have moved, or the link could be wrong. Head back to the shop and we&apos;ll help
         you find a phone.
       </p>
-      <div className="mt-7 flex flex-wrap gap-3">
-        <ButtonLink href="/" variant="primary" size="md">
+      <div className="mt-5 flex flex-wrap justify-center gap-2 sm:mt-7 sm:gap-3">
+        <ButtonLink href="/" variant="primary" size="sm" className="md:h-11 md:px-5 md:text-sm">
           Go home
         </ButtonLink>
-        <ButtonLink href="/shop" variant="outline" size="md">
+        <ButtonLink href="/shop" variant="outline" size="sm" className="md:h-11 md:px-5 md:text-sm">
           Browse phones
         </ButtonLink>
       </div>

@@ -74,7 +74,7 @@ export default function AdminLoginPage() {
             <Button
               type="submit"
               variant="primary"
-              size="lg"
+              size="md"
               className="w-full"
               isLoading={isSubmitting}
               trailingIcon={!isSubmitting ? <ArrowRight size={14} /> : undefined}

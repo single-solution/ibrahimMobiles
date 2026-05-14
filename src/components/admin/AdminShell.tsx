@@ -52,7 +52,7 @@ export function AdminShell({ children }: AdminShellProps) {
 
       <main className="flex min-w-0 flex-1 flex-col md:h-screen md:overflow-y-auto">
         <AdminMobileTopBar onOpenMenu={() => setIsMobileMenuOpen(true)} />
-        <div className="mx-auto w-full max-w-[1400px] px-4 py-5 sm:px-6 sm:py-8 md:px-8 md:py-10 lg:px-12 lg:py-12">
+        <div className="mx-auto w-full max-w-[1400px] px-4 py-3 md:px-10 md:py-10">
           {children}
         </div>
       </main>
