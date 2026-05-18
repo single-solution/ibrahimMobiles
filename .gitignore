@@ -10,6 +10,9 @@ coverage
 .next
 out
 
+# Turborepo
+.turbo
+
 # Production
 build
 dist

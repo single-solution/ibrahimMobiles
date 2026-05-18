@@ -1,0 +1,738 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-bricolage), "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-anton), "Anton", "Bebas Neue", "Oswald", sans-serif;
+  --font-headline: var(--font-oswald), "Oswald", "Bebas Neue", "Bricolage Grotesque", sans-serif;
+  --font-accent: var(--font-barlow-condensed), "Barlow Condensed", "Roboto Condensed", sans-serif;
+
+  /* Mobile UI < 640px, desktop UI >= 640px. Collapsed onto the `sm:` width so
+     that all tablets (iPad mini 6, iPad 6th gen, iPad Pro 11", Galaxy Z Fold
+     unfolded, etc.) and phones in landscape get the desktop UI. */
+  --breakpoint-md: 40rem;
+
+  /* ---- Fluid type scale ----
+     Each clamp(min, fluid, max):
+       - fluid hits the original Tailwind size at viewport 1440px ("perfect")
+       - mobile (<~880px) clamps to MIN ≈ 90% of original (slightly smaller per request)
+       - 4K (~2560px+) clamps to MAX ≈ 125% of original (so content doesn't look tiny)
+     Slope = V / 4480 in vw units. Intercept = 0.6786 * V in px. */
+  --text-xs: clamp(11px, calc(8.1px + 0.27vw), 15px);
+  --text-xs--line-height: 1.4;
+  --text-sm: clamp(13px, calc(9.5px + 0.31vw), 17.5px);
+  --text-sm--line-height: 1.45;
+  --text-base: clamp(14.4px, calc(10.9px + 0.36vw), 20px);
+  --text-base--line-height: 1.55;
+  --text-lg: clamp(16px, calc(12.2px + 0.4vw), 22.5px);
+  --text-lg--line-height: 1.55;
+  --text-xl: clamp(18px, calc(13.6px + 0.45vw), 25px);
+  --text-xl--line-height: 1.5;
+  --text-2xl: clamp(22px, calc(16.3px + 0.54vw), 30px);
+  --text-2xl--line-height: 1.35;
+  --text-3xl: clamp(27px, calc(20.4px + 0.67vw), 37.5px);
+  --text-3xl--line-height: 1.25;
+  --text-4xl: clamp(32px, calc(24.4px + 0.8vw), 45px);
+  --text-4xl--line-height: 1.15;
+  --text-5xl: clamp(43px, calc(32.6px + 1.07vw), 60px);
+  --text-5xl--line-height: 1.1;
+  --text-6xl: clamp(54px, calc(40.7px + 1.34vw), 75px);
+  --text-6xl--line-height: 1.05;
+  --text-7xl: clamp(65px, calc(48.9px + 1.61vw), 90px);
+  --text-7xl--line-height: 1.05;
+
+  --color-ink-50: #f8fafc;
+  --color-ink-100: #eef2f4;
+  --color-ink-200: #dde4e7;
+  --color-ink-300: #c1cbcf;
+  --color-ink-400: #8b969b;
+  --color-ink-500: #5b6669;
+  --color-ink-600: #3f4a4c;
+  --color-ink-700: #2d3537;
+  --color-ink-800: #1a1f20;
+  --color-ink-900: #0d1213;
+
+  --color-canvas: #ffffff;
+  --color-canvas-deep: #eef5f5;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f3f7f7;
+
+  /* Amber accent — warm watch-dial yellow-orange. Pops against black. */
+  --color-accent-50: #fffbeb;
+  --color-accent-100: #fef3c7;
+  --color-accent-200: #fde68a;
+  --color-accent-300: #fcd34d;
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #d97706;
+  --color-accent-700: #b45309;
+  --color-accent-800: #92400e;
+
+  --color-saffron-50: #fff7ed;
+  --color-saffron-100: #ffedd5;
+  --color-saffron-200: #fed7aa;
+  --color-saffron-300: #fdba74;
+  --color-saffron-400: #fb923c;
+  --color-saffron-500: #f97316;
+  --color-saffron-600: #ea580c;
+  --color-saffron-700: #c2410c;
+  --color-saffron-800: #9a3412;
+
+  --color-pak-green: #064e3b;
+
+  --color-warn-500: #d97706;
+  --color-danger-500: #e11d48;
+  --color-info-500: #0284c7;
+
+  /* Grade scale — best-to-worst stock category. */
+  --color-grade-brand-new: #0f172a;
+  --color-grade-genuine: #d97706;
+  --color-grade-box-open: #0284c7;
+  --color-grade-refurbished: #64748b;
+  --color-grade-china-water: #ea580c;
+  --color-grade-lcd-shaded: #dc2626;
+
+  --color-whatsapp: #25d366;
+  --color-whatsapp-dark: #128c7e;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.25rem;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(28 25 23 / 0.04);
+  --shadow-md: 0 4px 14px -4px rgb(28 25 23 / 0.07);
+  --shadow-lg: 0 14px 36px -10px rgb(28 25 23 / 0.12);
+
+  --mobile-tabbar-h: 64px;
+  --mobile-header-h: 56px;
+
+  /* Desktop header height = 64px nav row. */
+  --desktop-header-h: 64px;
+
+  /* ----- Motion design tokens -----
+     Durations are tuned for native-feel: 120ms for tap reactions,
+     200ms for layout transitions, 360ms for entrances.
+     Easings:
+       - ease-out-quart: confident decel for entrances/reveals
+       - ease-ios:       Apple-style critical-damping for sheets/dialogs
+       - ease-spring:    overshoot for delightful confirmations (cart, save, qty)
+   */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 360ms;
+  --motion-stagger: 60ms;
+
+  --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Fluid spacing — desktop only.
+   Mobile keeps Tailwind's default --spacing (0.25rem) so tap targets, gaps,
+   and the mobile UI stay exactly as-is. From 640px upward, every numeric
+   p-*, m-*, gap-*, w-*, h-*, etc. scales fluidly:
+     - 640–767:  ~15% smaller than current (fixes "too large at 768")
+     - 1440:     current 4px (perfect)
+     - 2560+:    ~25% larger (fixes "too small at 2560") */
+@media (min-width: 40rem) {
+  :root {
+    --spacing: clamp(0.213rem, calc(0.17rem + 0.089vw), 0.313rem);
+  }
+}
+
+html,
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink-800);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Prevent iOS Safari from zooming on focus when an input's font-size is
+   below 16px (caused by the fluid type scale at mobile widths). Only apply
+   on mobile; desktop keeps the Tailwind text-* size on inputs. */
+@media (max-width: 39.99rem) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+.app-shell-pad {
+  padding-bottom: calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px) + 24px);
+}
+
+@media (min-width: 40rem) {
+  .app-shell-pad {
+    padding-bottom: 0;
+  }
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes flyout-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes flyout-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-sheet-up {
+  animation: sheet-up 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.animate-sheet-fade {
+  animation: sheet-fade 180ms ease-out;
+}
+
+.animate-flyout-right {
+  animation: flyout-in-right 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.animate-flyout-left {
+  animation: flyout-in-left 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ----- Reveal-on-scroll (driven by IntersectionObserver) -----
+   Add the `.reveal` (or `.reveal-fade`) class to any element you want to
+   animate in. The global `RevealRoot` finds it via the class selector,
+   observes it, and sets `data-reveal="visible"` once it enters the
+   viewport — at which point the rules below complete the transition.
+   Use `--reveal-delay` to stagger children.
+
+   We deliberately do **not** set `data-reveal="hidden"` from SSR — the
+   default styles below already hide the element, and rendering the
+   attribute server-side would race against React 19's progressive
+   hydration in Next 16 and produce hydration-mismatch warnings.
+*/
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  transition:
+    opacity var(--motion-slow) var(--ease-out-quart),
+    transform var(--motion-slow) var(--ease-out-quart);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+.reveal[data-reveal="visible"] {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+.reveal-fade {
+  opacity: 0;
+  transform: none;
+  transition: opacity var(--motion-slow) var(--ease-out-quart);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal-fade[data-reveal="visible"] {
+  opacity: 1;
+}
+
+/* Auto-stagger up to 8 children when parent has .reveal-stagger.
+   Children should also carry the `.reveal` class — RevealRoot finds
+   them by class selector and adds `data-reveal="visible"` on intersect. */
+.reveal-stagger > *:nth-child(1) { --reveal-delay: 0ms; }
+.reveal-stagger > *:nth-child(2) { --reveal-delay: calc(var(--motion-stagger) * 1); }
+.reveal-stagger > *:nth-child(3) { --reveal-delay: calc(var(--motion-stagger) * 2); }
+.reveal-stagger > *:nth-child(4) { --reveal-delay: calc(var(--motion-stagger) * 3); }
+.reveal-stagger > *:nth-child(5) { --reveal-delay: calc(var(--motion-stagger) * 4); }
+.reveal-stagger > *:nth-child(6) { --reveal-delay: calc(var(--motion-stagger) * 5); }
+.reveal-stagger > *:nth-child(7) { --reveal-delay: calc(var(--motion-stagger) * 6); }
+.reveal-stagger > *:nth-child(8) { --reveal-delay: calc(var(--motion-stagger) * 7); }
+
+/* Tap feedback — apply on any interactive element to get a soft press. */
+.tap {
+  transition:
+    transform var(--motion-fast) var(--ease-out-quart),
+    box-shadow var(--motion-base) var(--ease-out-quart);
+}
+.tap:active {
+  transform: scale(0.97);
+}
+
+/* Hover lift — cards, tiles. Pairs with default hover styles. */
+.lift {
+  transition:
+    transform var(--motion-base) var(--ease-out-quart),
+    box-shadow var(--motion-base) var(--ease-out-quart),
+    border-color var(--motion-base) var(--ease-out-quart);
+}
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+/* Sticky desktop header that gains a shadow + denser background once you scroll. */
+.scroll-header {
+  transition:
+    box-shadow var(--motion-base) var(--ease-out-quart),
+    background-color var(--motion-base) var(--ease-out-quart),
+    border-color var(--motion-base) var(--ease-out-quart),
+    backdrop-filter var(--motion-base) var(--ease-out-quart);
+}
+.scroll-header[data-scrolled="true"] {
+  box-shadow: var(--shadow-md);
+  background-color: color-mix(in srgb, var(--color-canvas) 92%, transparent);
+}
+
+/* Image fade-in — works with next/image's onLoad handler that flips the
+   data-loaded attribute. */
+[data-img-fade="false"] {
+  opacity: 0;
+  transform: scale(1.02);
+}
+[data-img-fade="true"] {
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity var(--motion-base) var(--ease-out-quart),
+    transform var(--motion-slow) var(--ease-out-quart);
+}
+
+/* Skeleton shimmer — placeholders while data/images load. */
+@keyframes shimmer {
+  from { background-position: -180% 0; }
+  to { background-position: 180% 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-ink-100) 0%,
+    var(--color-ink-50) 45%,
+    var(--color-ink-100) 90%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  border-radius: var(--radius-md);
+}
+
+/* Badge pop — for cart count, save heart, qty changes. */
+@keyframes badge-pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.animate-badge-pop {
+  animation: badge-pop 360ms var(--ease-spring);
+}
+
+/* Heart pop — wishlist save toggle. */
+@keyframes heart-pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  60% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+.animate-heart-pop {
+  animation: heart-pop 480ms var(--ease-spring);
+}
+
+/* List item exit — works with the React "pending remove" pattern.
+   Add data-state="removing" to collapse height + fade out. */
+@keyframes item-out {
+  0% { opacity: 1; transform: translateX(0) scale(1); max-height: 280px; margin-bottom: var(--mb, 12px); }
+  60% { opacity: 0; transform: translateX(8px) scale(0.98); }
+  100% { opacity: 0; transform: translateX(8px) scale(0.98); max-height: 0; margin-bottom: 0; padding-top: 0; padding-bottom: 0; border-width: 0; }
+}
+[data-item-state="removing"] {
+  animation: item-out 320ms var(--ease-out-quart) forwards;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* List item enter — when an item appears, soft slide-up. */
+@keyframes item-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+[data-item-state="entering"] {
+  animation: item-in 280ms var(--ease-out-quart);
+}
+
+/* Page mount fade — applied at the route segment level. */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: page-in 320ms var(--ease-out-quart);
+}
+
+/* ----- Top navigation progress bar -----
+   Driven by `NavigationProgress`. Width is set inline (percent), this rule
+   only controls the in/out fade and the width-tween easing so the bar feels
+   weightless on tap. Sits above all surfaces (z-100) but `pointer-events:
+   none` so it never blocks taps on the elements below. */
+.nav-progress {
+  opacity: 0;
+  transition: opacity 160ms var(--ease-out-quart);
+}
+.nav-progress[data-visible="true"] {
+  opacity: 1;
+}
+.nav-progress-bar {
+  transition: width 200ms var(--ease-out-quart);
+  box-shadow: 0 0 8px 0 var(--color-accent-500);
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress-bar {
+    transition: none;
+  }
+}
+
+/* ----- CTA arrow nudge -----
+   Any link/button with `.cta-arrow` class will translate its trailing icon
+   right on hover. Works on group hover or self hover. */
+.cta-arrow svg:last-child,
+.cta-arrow .lucide:last-child {
+  transition: transform var(--motion-base) var(--ease-out-quart);
+}
+@media (hover: hover) {
+  .cta-arrow:hover svg:last-child,
+  .cta-arrow:hover .lucide:last-child,
+  .group:hover .cta-arrow svg:last-child {
+    transform: translate3d(3px, -1px, 0);
+  }
+}
+
+/* ----- Animated underline on hover -----
+   Use on inline links. The underline draws in from the left under hover. */
+.link-underline {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: auto;
+  bottom: -2px;
+  height: 1px;
+  width: 100%;
+  background: currentColor;
+  transform-origin: left;
+  transform: scaleX(0);
+  transition: transform var(--motion-base) var(--ease-out-quart);
+}
+@media (hover: hover) {
+  .link-underline:hover::after {
+    transform: scaleX(1);
+  }
+}
+
+/* ----- Logo lockup hover -----
+   The brand mark in the header — soft tilt + saturate on hover. */
+.brand-lockup {
+  transition: transform var(--motion-base) var(--ease-out-quart);
+}
+@media (hover: hover) {
+  .brand-lockup:hover {
+    transform: translateY(-1px);
+  }
+  .brand-lockup:hover > span:first-child {
+    transform: rotate(-6deg) scale(1.05);
+  }
+}
+.brand-lockup > span:first-child {
+  transition: transform var(--motion-base) var(--ease-spring);
+}
+
+/* ----- Hero scroll cue -----
+   Fades + slides down as the user scrolls past the first ~30vh. Falls back
+   to a static, pulsing cue on browsers without scroll-timeline. */
+.hero-scroll-cue {
+  transition: opacity var(--motion-base) var(--ease-out-quart);
+}
+@supports (animation-timeline: scroll()) {
+  .hero-scroll-cue {
+    animation: hero-cue-fade linear forwards;
+    animation-timeline: scroll(root);
+    animation-range: 0 40vh;
+  }
+}
+@keyframes hero-cue-fade {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+}
+
+/* ----- Hero gallery tile lift -----
+   Each tile rises slightly on hover and the image inside zooms; the dark
+   gradient caption rises into view. */
+.gallery-tile {
+  transition:
+    transform var(--motion-base) var(--ease-out-quart),
+    box-shadow var(--motion-base) var(--ease-out-quart);
+}
+@media (hover: hover) {
+  .gallery-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+/* ----- Pagination + ViewToggle slider -----
+   Active backgrounds animate position via transform on the inner pill, but
+   for the simpler implementation we just transition all background props. */
+.toggle-track button {
+  transition:
+    color var(--motion-base) var(--ease-out-quart),
+    background-color var(--motion-base) var(--ease-out-quart);
+}
+
+/* ----- Filter chip remove pop -----
+   Apply data-chip-state="removing" to a chip and it scales to 0 + fades. */
+[data-chip-state="removing"] {
+  animation: chip-out 220ms var(--ease-out-quart) forwards;
+  pointer-events: none;
+}
+@keyframes chip-out {
+  to {
+    opacity: 0;
+    transform: scale(0.7);
+    margin-right: -4px;
+    max-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+/* ----- BottomSheet content stagger -----
+   Children of `.sheet-stagger > *` fade-up on sheet open. */
+.sheet-stagger > * {
+  animation: sheet-child-in 320ms var(--ease-out-quart) backwards;
+}
+.sheet-stagger > *:nth-child(1) { animation-delay: 60ms; }
+.sheet-stagger > *:nth-child(2) { animation-delay: 110ms; }
+.sheet-stagger > *:nth-child(3) { animation-delay: 160ms; }
+.sheet-stagger > *:nth-child(4) { animation-delay: 210ms; }
+.sheet-stagger > *:nth-child(5) { animation-delay: 260ms; }
+.sheet-stagger > *:nth-child(6) { animation-delay: 310ms; }
+.sheet-stagger > *:nth-child(7) { animation-delay: 360ms; }
+@keyframes sheet-child-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.floating-dock {
+  bottom: calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px) + 24px);
+}
+
+@media (min-width: 40rem) {
+  .floating-dock {
+    bottom: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal,
+  .reveal-fade {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  [data-img-fade="false"] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  [data-item-state="removing"],
+  [data-item-state="entering"],
+  [data-chip-state="removing"],
+  .sheet-stagger > * {
+    animation: none !important;
+  }
+  .cta-arrow:hover svg:last-child {
+    transform: none !important;
+  }
+  .hero-scroll-cue {
+    animation: none !important;
+  }
+}
+
+/* If JavaScript is disabled, never hide content waiting for IntersectionObserver. */
+.no-js .reveal,
+.no-js .reveal-fade {
+  opacity: 1;
+  transform: none;
+}
+
+::selection {
+  background: var(--color-accent-200);
+  color: var(--color-ink-900);
+}
+
+/* --------- Mobile/tablet native-app utilities --------- */
+
+.app-page {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+@media (min-width: 40rem) {
+  .app-page {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+.app-section {
+  margin-top: 80px;
+}
+
+.app-section:first-child {
+  margin-top: 0;
+}
+
+@media (min-width: 40rem) {
+  .app-section {
+    margin-top: 0;
+  }
+}
+
+.app-section-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-500);
+  margin-bottom: 16px;
+}
+
+.app-section-eyebrow a,
+.app-section-eyebrow button {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  color: var(--color-accent-700);
+}
+
+.app-list {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border-radius: 14px;
+  border: 1px solid var(--color-ink-100);
+  overflow: hidden;
+}
+
+.app-list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  text-align: left;
+  width: 100%;
+}
+
+.app-list-row + .app-list-row {
+  border-top: 1px solid var(--color-ink-100);
+}
+
+/* ----- Scrollbar styling -----
+   Thin, rounded, brand-matched scrollbars site-wide. Track is transparent
+   so it blends into whatever surface is scrolling; thumb uses accent-100 —
+   the same warm amber tone applied to a checked filter row in the shop
+   sidebar. Hover deepens to accent-300 for a clearer affordance. Padding-
+   box clip on the thumb gives it air on both sides for a soft capsule look. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-accent-100) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-accent-100);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  transition: background-color var(--motion-base) var(--ease-out-quart);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-accent-300);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
