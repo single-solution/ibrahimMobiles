@@ -10,17 +10,22 @@
  *     more, split into per-category sitemaps via `generateSitemaps`.
  *
  * Cached by Next at the edge based on the page's revalidation policy.
+ *
+ * Build-time resilience: the dynamic portion (categories/brands/products)
+ * is wrapped in a single try/catch so that if Mongo is unreachable during
+ * `next build` — typical on Vercel when Atlas blocks the build sandbox's
+ * IP — we still emit a valid sitemap containing the static marketing URLs
+ * instead of failing the entire build. The first runtime revalidation
+ * (≤ 1h later) will populate the full sitemap.
  */
 import type { MetadataRoute } from "next";
 
 import { Brand, Product, connectDB, type CategoryId } from "@store/db";
+import { logger } from "@store/shared";
 
 import { getStorefrontBaseUrl } from "@/lib/storefront/baseUrl";
 import { getStorefrontCategories } from "@/lib/storefront/queries";
 
-// Regenerate the sitemap at most once an hour. Crawlers don't need
-// instant freshness and a fully-dynamic regeneration on every request is
-// expensive — it lists every product.
 export const revalidate = 3600;
 
 const MAX_PRODUCT_URLS = 5_000;
@@ -36,6 +41,36 @@ const STATIC_PATHS: ReadonlyArray<{
   { path: "/about", changeFrequency: "yearly", priority: 0.3 },
 ];
 
+interface DynamicSitemapData {
+  categories: Awaited<ReturnType<typeof getStorefrontCategories>>;
+  brands: Array<{ slug: string }>;
+  products: Array<{ slug: string; category: CategoryId; updatedAt?: Date }>;
+}
+
+async function loadDynamicData(): Promise<DynamicSitemapData | null> {
+  try {
+    await connectDB();
+    const [categories, brands, products] = await Promise.all([
+      getStorefrontCategories(),
+      Brand.find({ isActive: true })
+        .select({ slug: 1 })
+        .lean<Array<{ slug: string }>>(),
+      Product.find({ isActive: true, isArchived: { $ne: true } })
+        .select({ slug: 1, category: 1, updatedAt: 1 })
+        .sort({ updatedAt: -1 })
+        .limit(MAX_PRODUCT_URLS)
+        .lean<Array<{ slug: string; category: CategoryId; updatedAt?: Date }>>(),
+    ]);
+    return { categories, brands, products };
+  } catch (error) {
+    logger.error(
+      { error },
+      "sitemap: dynamic load failed, emitting static-only sitemap this generation",
+    );
+    return null;
+  }
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = getStorefrontBaseUrl();
   const now = new Date();
@@ -47,19 +82,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: staticPath.priority,
   }));
 
-  await connectDB();
+  const data = await loadDynamicData();
+  if (!data) {
+    return entries;
+  }
 
-  const [categories, brands, products] = await Promise.all([
-    getStorefrontCategories(),
-    Brand.find({ isActive: true })
-      .select({ slug: 1 })
-      .lean<Array<{ slug: string }>>(),
-    Product.find({ isActive: true, isArchived: { $ne: true } })
-      .select({ slug: 1, category: 1, updatedAt: 1 })
-      .sort({ updatedAt: -1 })
-      .limit(MAX_PRODUCT_URLS)
-      .lean<Array<{ slug: string; category: CategoryId; updatedAt?: Date }>>(),
-  ]);
+  const { categories, brands, products } = data;
 
   for (const category of categories) {
     if (!category.isActive) {

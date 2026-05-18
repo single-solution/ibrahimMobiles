@@ -1,11 +1,33 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "stream",
+  "globalEnv": [
+    "NODE_ENV",
+    "LOG_LEVEL"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["src/**", "package.json", "tsconfig.json", "next.config.ts"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "MONGODB_URI",
+        "AUTH_SECRET",
+        "AUTH_URL",
+        "AUTH_TRUST_HOST",
+        "STOREFRONT_BASE_URL",
+        "NEXT_PUBLIC_SITE_URL",
+        "OTP_PROVIDER",
+        "OTP_DISABLE_WHATSAPP",
+        "OTP_DISABLE_SMS",
+        "TWILIO_ACCOUNT_SID",
+        "TWILIO_AUTH_TOKEN",
+        "TWILIO_WHATSAPP_FROM",
+        "TWILIO_SMS_FROM",
+        "VERCEL_URL",
+        "VERCEL_PROJECT_PRODUCTION_URL",
+        "VERCEL_ENV"
+      ]
     },
     "dev": {
       "cache": false,

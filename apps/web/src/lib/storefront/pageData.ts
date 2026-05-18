@@ -24,6 +24,8 @@
  * lookups inside the same section don't serialize.
  */
 
+import { logger } from "@store/shared";
+
 import { type StorefrontCategory } from "@/lib/storefront";
 import {
   getHeroPhonesCached,
@@ -64,40 +66,65 @@ export interface HomePageCategory {
  * Hero-section data. Two parallel cached reads — the section unblocks
  * the instant the slower of the two lands, independent of every other
  * homepage section.
+ *
+ * Build-time resilience: if Mongo is unreachable (e.g. during a Vercel
+ * build with a misconfigured Atlas allowlist), we return empty arrays
+ * so the page still prerenders. ISR (`revalidate: 30`) means the first
+ * request after deploy will retry the read and populate the cache, so
+ * the degradation lasts at most one render cycle.
  */
 export async function getHomeHeroData(): Promise<HomeHeroData> {
-  const [recentPhones, brands] = await Promise.all([
-    getHeroPhonesCached(HERO_PHONES_LIMIT),
-    getStorefrontBrandsCached(),
-  ]);
+  try {
+    const [recentPhones, brands] = await Promise.all([
+      getHeroPhonesCached(HERO_PHONES_LIMIT),
+      getStorefrontBrandsCached(),
+    ]);
 
-  const heroPhones = recentPhones
-    .filter((product): product is Phone => product.category === "phone")
-    .slice(0, HERO_PHONES_LIMIT);
+    const heroPhones = recentPhones
+      .filter((product): product is Phone => product.category === "phone")
+      .slice(0, HERO_PHONES_LIMIT);
 
-  return { heroPhones, brands };
+    return { heroPhones, brands };
+  } catch (error) {
+    logger.error(
+      { error },
+      "home: hero data load failed, falling back to empty hero this render",
+    );
+    return { heroPhones: [], brands: [] };
+  }
 }
 
 /**
  * Shop-types section data. Two parallel cached reads, then a cheap
  * in-memory join. Independent of every other homepage section.
+ *
+ * Build-time resilience: same contract as `getHomeHeroData` — empty
+ * array on read failure so the page still prerenders.
  */
 export async function getHomeShopTypesData(): Promise<HomePageCategory[]> {
-  const [liveCategories, countsByCategory] = await Promise.all([
-    getStorefrontCategoriesCached(),
-    getStorefrontProductCountsByCategoryCached(),
-  ]);
+  try {
+    const [liveCategories, countsByCategory] = await Promise.all([
+      getStorefrontCategoriesCached(),
+      getStorefrontProductCountsByCategoryCached(),
+    ]);
 
-  return liveCategories.map((category) => ({
-    id: category.id,
-    label: category.label,
-    pluralLabel: category.pluralLabel,
-    pathSegment: category.pathSegment,
-    isActive: category.isActive,
-    tagline: category.tagline,
-    applicableGrades: category.applicableGrades,
-    trustChips: category.trustChips,
-    emptyHint: category.emptyHint,
-    itemCount: countsByCategory.get(category.id) ?? 0,
-  }));
+    return liveCategories.map((category) => ({
+      id: category.id,
+      label: category.label,
+      pluralLabel: category.pluralLabel,
+      pathSegment: category.pathSegment,
+      isActive: category.isActive,
+      tagline: category.tagline,
+      applicableGrades: category.applicableGrades,
+      trustChips: category.trustChips,
+      emptyHint: category.emptyHint,
+      itemCount: countsByCategory.get(category.id) ?? 0,
+    }));
+  } catch (error) {
+    logger.error(
+      { error },
+      "home: shop-types data load failed, falling back to empty list this render",
+    );
+    return [];
+  }
 }

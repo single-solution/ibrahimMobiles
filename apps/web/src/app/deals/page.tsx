@@ -8,7 +8,40 @@ import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getStorefrontOffersCached } from "@/lib/storefront/cached";
 import { getStorefrontProductsOnOffer } from "@/lib/storefront";
-import { formatRelativeDate } from "@store/shared";
+import { formatRelativeDate, logger, type Offer, type Product } from "@store/shared";
+
+/**
+ * Safe wrappers around the two reads this page consumes.
+ *
+ * Build-time resilience: when Mongo is unreachable during prerender,
+ * the page should still emit a valid (empty) deals layout rather than
+ * crash the entire build. ISR (`revalidate: 60`) means the first
+ * request after deploy retries the reads and populates the cache,
+ * so degradation is brief.
+ */
+async function loadOffers(): Promise<Offer[]> {
+  try {
+    return await getStorefrontOffersCached();
+  } catch (error) {
+    logger.error(
+      { error },
+      "deals: offers load failed, falling back to empty list this render",
+    );
+    return [];
+  }
+}
+
+async function loadProductsOnSale(limit: number): Promise<Product[]> {
+  try {
+    return await getStorefrontProductsOnOffer(limit);
+  } catch (error) {
+    logger.error(
+      { error },
+      "deals: products-on-sale load failed, falling back to empty list this render",
+    );
+    return [];
+  }
+}
 
 export const metadata: Metadata = {
   title: "Today's deals",
@@ -103,7 +136,7 @@ export default function DealsPage() {
 /* ─────────────────────── Mobile data slots ─────────────────────── */
 
 async function MobileOffers() {
-  const offers = await getStorefrontOffersCached();
+  const offers = await loadOffers();
   if (offers.length === 0) {
     return null;
   }
@@ -141,7 +174,7 @@ async function MobileOffers() {
 }
 
 async function MobileProductsOnSale() {
-  const offeredProducts = await getStorefrontProductsOnOffer(PRODUCTS_ON_OFFER_LIMIT);
+  const offeredProducts = await loadProductsOnSale(PRODUCTS_ON_OFFER_LIMIT);
   return (
     <>
       <div className="app-section-eyebrow">
@@ -166,7 +199,7 @@ async function MobileProductsOnSale() {
 /* ─────────────────────── Desktop data slots ─────────────────────── */
 
 async function DesktopOffers() {
-  const offers = await getStorefrontOffersCached();
+  const offers = await loadOffers();
   if (offers.length === 0) {
     return null;
   }
@@ -183,7 +216,7 @@ async function DesktopOffers() {
 
 async function DesktopProductsSection() {
   // Single fetch — header (count) and grid both need the same list.
-  const offeredProducts = await getStorefrontProductsOnOffer(PRODUCTS_ON_OFFER_LIMIT);
+  const offeredProducts = await loadProductsOnSale(PRODUCTS_ON_OFFER_LIMIT);
   return (
     <>
       <div className="flex items-end justify-between gap-3">
