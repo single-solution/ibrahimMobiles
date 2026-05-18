@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -47,7 +47,18 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
   return (
     <div className="app-shell-pad">
       <RevealRoot />
-      <NavigationProgress />
+      {/*
+       * `NavigationProgress` reads `useSearchParams()` to detect query-only
+       * route changes. In Next 16 any component that calls
+       * `useSearchParams()` must sit inside a Suspense boundary on routes
+       * that are statically prerendered — otherwise the build bails on
+       * `/_not-found` with "missing-suspense-with-csr-bailout". The
+       * progress bar has no SSR-visible state worth showing (it's a 2px
+       * accent line that appears on click), so a null fallback is correct.
+       */}
+      <Suspense fallback={null}>
+        <NavigationProgress />
+      </Suspense>
       <Header onOpenSearch={() => setIsSearchOpen(true)} />
       <MobileHeader onOpenSearch={() => setIsSearchOpen(true)} />
       <main
