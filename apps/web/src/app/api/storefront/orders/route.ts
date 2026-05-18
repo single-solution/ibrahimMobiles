@@ -304,7 +304,7 @@ export async function POST(request: Request) {
   // transition — so a non-member becoming a member later doesn't backfill.
   // Using `subtotalRupees` so a payment discount doesn't shrink the reward.
   const pointsEarned = customerDoc.isLoyaltyMember
-    ? pointsEarnedFor(subtotalRupees)
+    ? pointsEarnedFor(subtotalRupees, settings.loyaltyEarnPercent)
     : 0;
 
   try {

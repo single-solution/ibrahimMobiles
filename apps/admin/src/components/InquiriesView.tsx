@@ -189,6 +189,7 @@ function InquiryDrawer({ inquiry, onClose, onSaved, onCallTapped }: InquiryDrawe
   const [status, setStatus] = useState(inquiry.status);
   const [notes, setNotes] = useState(inquiry.notes ?? "");
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -207,6 +208,24 @@ function InquiryDrawer({ inquiry, onClose, onSaved, onCallTapped }: InquiryDrawe
     }
   }
 
+  async function handleDelete() {
+    const ok = window.confirm(
+      `Delete the inquiry from ${inquiry.customerName}? This cannot be undone.`,
+    );
+    if (!ok) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await adminFetch(`/api/inquiries/${inquiry.id}`, { method: "DELETE" });
+      toast.success("Inquiry deleted");
+      onSaved();
+    } catch (error) {
+      toast.danger(error instanceof Error ? error.message : "Failed to delete inquiry");
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <Drawer
       isOpen
@@ -216,14 +235,27 @@ function InquiryDrawer({ inquiry, onClose, onSaved, onCallTapped }: InquiryDrawe
       width="lg"
       footer={
         <div className="flex items-center justify-between gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            leadingIcon={<Phone size={12} />}
-            onClick={() => onCallTapped(inquiry.phoneNumber)}
-          >
-            Call
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              leadingIcon={<Phone size={12} />}
+              onClick={() => onCallTapped(inquiry.phoneNumber)}
+              disabled={isDeleting}
+            >
+              Call
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              type="button"
+              onClick={handleDelete}
+              isLoading={isDeleting}
+              disabled={isSaving}
+            >
+              Delete
+            </Button>
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" type="button" onClick={onClose}>
               Cancel
@@ -234,6 +266,7 @@ function InquiryDrawer({ inquiry, onClose, onSaved, onCallTapped }: InquiryDrawe
               type="submit"
               form="inquiry-form"
               isLoading={isSaving}
+              disabled={isDeleting}
               leadingIcon={<Send size={12} />}
             >
               Save changes

@@ -37,8 +37,20 @@
   --color-accent-700: #b45309;
   --color-accent-800: #92400e;
 
+  --color-warn-50: #fff7ed;
+  --color-warn-100: #ffedd5;
+  --color-warn-200: #fed7aa;
   --color-warn-500: #d97706;
+  --color-warn-700: #b45309;
+  --color-warn-800: #9a3412;
+
+  --color-danger-50: #fff1f2;
+  --color-danger-100: #ffe4e6;
+  --color-danger-200: #fecdd3;
   --color-danger-500: #e11d48;
+  --color-danger-700: #be123c;
+  --color-danger-800: #9f1239;
+
   --color-info-500: #0284c7;
 
   --color-whatsapp: #25d366;

@@ -3,6 +3,7 @@ import {
   badRequest,
   FIELD_LIMITS,
   isValidId,
+  noContent,
   notFound,
   ok,
   parseBody,
@@ -141,6 +142,67 @@ export async function PUT(request: Request, { params }: RouteContext) {
     bustAdminCaches();
 
     return ok(toOrderResponse(order.toObject() as OrderLean));
+  } catch (error) {
+    return handleMongoError(error);
+  }
+}
+
+/**
+ * Hard-delete an order. Used by the admin to clear out test / legacy /
+ * accidentally-created orders.
+ *
+ * Side-effect handling: if the order is currently `confirmed` (i.e. stock
+ * is reserved against its variant) or `delivered` (loyalty already credited),
+ * we first transition it through `cancelled` so stock returns to the pool
+ * and loyalty points are reversed. Then we hard-delete the document. This
+ * keeps the catalog and customer balances accurate after a cleanup.
+ *
+ * Gated by `order_delete` — only `owner` role today.
+ */
+export async function DELETE(_request: Request, { params }: RouteContext) {
+  const { actor, response } = await requireSession("order_delete");
+  if (response) {
+    return response;
+  }
+
+  const { id } = await params;
+  if (!isValidId(id)) {
+    return badRequest("Invalid ID.");
+  }
+
+  await connectDB();
+  try {
+    const order = await Order.findById(id);
+    if (!order) {
+      return notFound("Order not found");
+    }
+
+    const orderNumber = order.orderNumber;
+    const previousStatus = order.status;
+    if (previousStatus !== "cancelled" && previousStatus !== "refunded") {
+      // Run the same side-effect ledger we'd run on a normal cancel so we
+      // don't leak reserved stock or strand loyalty credits.
+      await applyOrderTransition({
+        order,
+        previousStatus,
+        nextStatus: "cancelled",
+        actor,
+      });
+    }
+
+    await order.deleteOne();
+
+    await recordActivity({
+      actor,
+      action: "deleted",
+      resourceType: "order",
+      resourceId: id,
+      resourceLabel: orderNumber,
+      detail: `was ${previousStatus}`,
+    });
+    bustAdminCaches();
+
+    return noContent();
   } catch (error) {
     return handleMongoError(error);
   }

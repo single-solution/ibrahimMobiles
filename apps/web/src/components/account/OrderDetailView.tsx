@@ -8,8 +8,8 @@ import {
   formatPrice,
   formatStorefrontDate,
   formatStorefrontDateTime,
+  getPaymentMethods,
   LOYALTY_PROGRAM_NAME,
-  PAYMENT_METHODS,
 } from "@store/shared";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 import {
@@ -81,7 +81,10 @@ interface OrderDetailViewProps {
 export function OrderDetailView({ order }: OrderDetailViewProps) {
   const tone = TONE[order.status];
   const isCancelled = order.status === "cancelled" || order.status === "refunded";
-  const paymentLabel = PAYMENT_METHODS.find((method) => method.id === order.payment)?.label;
+  const settings = useStoreSettings();
+  const paymentLabel = getPaymentMethods(settings).find(
+    (method) => method.id === order.payment,
+  )?.label;
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">

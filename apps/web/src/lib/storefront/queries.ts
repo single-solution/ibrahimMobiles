@@ -21,6 +21,7 @@ import { Types, type PipelineStage } from "mongoose";
 import {
   Brand,
   Category,
+  Grade,
   Offer,
   Product,
   connectDB,
@@ -28,11 +29,13 @@ import {
   type CategoryAttributes,
   type ConditionGrade,
   type ConnectorType,
+  type GradeAttributes,
 } from "@store/db";
 import {
   escapeRegex,
   logger,
   type Brand as StorefrontBrand,
+  type GradeDescriptor,
   type Offer as StorefrontOffer,
   type Product as StorefrontProduct,
   type ProductCategory,
@@ -516,6 +519,32 @@ export async function getStorefrontCategories(): Promise<StorefrontCategoryShape
     trustChips: category.trustChips,
     emptyHint: category.emptyHint,
     sortOrder: category.sortOrder,
+  }));
+}
+
+/**
+ * DB-backed condition grade descriptors — drives the grade chip on every
+ * `ProductCard`, the filter sidebar's "Grade" block, the homepage grade band,
+ * and the variant selector's grade hint. Replaces the hardcoded
+ * `apps/web/src/data/grades.ts` so editing a grade's copy in admin
+ * (`PUT /api/grades/:id`) is reflected on the storefront within the cache TTL.
+ */
+export async function getStorefrontGrades(): Promise<GradeDescriptor[]> {
+  await connectDB();
+  const grades = await Grade.find().sort({ sortOrder: 1 }).lean<GradeAttributes[]>();
+  if (grades.length === 0) {
+    logger.warn(
+      "getStorefrontGrades: no grades in DB; storefront grade UI will render empty",
+    );
+  }
+  return grades.map((doc) => ({
+    grade: doc.grade,
+    label: doc.label,
+    shortLabel: doc.shortLabel,
+    description: doc.description,
+    cosmeticNotes: doc.cosmeticNotes,
+    functionalNotes: doc.functionalNotes,
+    tone: doc.tone,
   }));
 }
 

@@ -15,14 +15,18 @@ export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") {
     return;
   }
-  const [{ assertServerEnv }, { connectDB }] = await Promise.all([
+  const [{ assertServerEnv }, db] = await Promise.all([
     import("@store/shared"),
     import("@store/db"),
   ]);
   assertServerEnv({ appName: "admin" });
 
-  void connectDB().catch(() => {
+  void db.connectDB().catch(() => {
     // Logged inside connectDB itself; swallow here so a transient boot blip
     // doesn't unhandled-reject the worker.
   });
+
+  // Ensure the Grade + Category reference docs exist (fire-and-forget, safe
+  // to run concurrently with the web app — every upsert is `$setOnInsert`).
+  void db.ensureReferenceData();
 }

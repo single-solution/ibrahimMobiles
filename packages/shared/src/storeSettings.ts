@@ -51,6 +51,12 @@ export interface StoreSettings {
   bankTransferDiscountPercent: number;
   /** Number of days the moneyback window stays open. */
   moneybackDays: number;
+  /** % of order total returned as loyalty points (e.g. 1 → 1% back). */
+  loyaltyEarnPercent: number;
+  /** Loyalty bonus awarded for posting a post-delivery review. */
+  loyaltyReviewBonusPoints: number;
+  /** Loyalty bonus awarded to each side of a successful referral. */
+  loyaltyReferralBonusPoints: number;
 }
 
 export const STORE_SETTING_DEFAULTS: StoreSettings = {
@@ -76,6 +82,9 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
   defaultWarrantyMonths: 6,
   bankTransferDiscountPercent: 5,
   moneybackDays: 15,
+  loyaltyEarnPercent: 1,
+  loyaltyReviewBonusPoints: 200,
+  loyaltyReferralBonusPoints: 1_500,
 };
 
 /** Prefix used on every `Setting.key` that backs a `StoreSettings` field. */
@@ -104,6 +113,11 @@ export const STORE_SETTING_GROUPS = {
     "defaultWarrantyMonths",
     "bankTransferDiscountPercent",
     "moneybackDays",
+  ] as const,
+  loyalty: [
+    "loyaltyEarnPercent",
+    "loyaltyReviewBonusPoints",
+    "loyaltyReferralBonusPoints",
   ] as const,
 } satisfies Record<string, ReadonlyArray<keyof StoreSettings>>;
 

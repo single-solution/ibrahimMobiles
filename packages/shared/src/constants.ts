@@ -15,12 +15,43 @@ export function buildWhatsAppLink(message: string, whatsappNumber: string): stri
 
 // ─── Storefront UI options ──────────────────────────────────────────────────
 
-export const PAYMENT_METHODS = [
-  { id: "bank", label: "Bank Transfer", note: "Pay full → 5% off" },
-  { id: "easypaisa", label: "Easypaisa", note: "Advance to confirm order" },
-  { id: "jazzcash", label: "JazzCash", note: "Advance to confirm order" },
-  { id: "cod", label: "Cash on Delivery", note: "Lahore only · in-person verify" },
-] as const;
+/** Stable IDs / labels for every checkout payment chip. The `note` strings
+ *  that reference admin-managed values (like the bank-transfer discount)
+ *  are computed at runtime by `getPaymentMethods(settings)` below — never
+ *  hardcoded so a settings change is reflected in the UI immediately. */
+export const PAYMENT_METHOD_IDS = ["bank", "easypaisa", "jazzcash", "cod"] as const;
+export type PaymentMethodId = (typeof PAYMENT_METHOD_IDS)[number];
+
+export interface PaymentMethodOption {
+  id: PaymentMethodId;
+  label: string;
+  note: string;
+}
+
+/**
+ * Build the checkout's payment-method options with admin-managed copy.
+ * The bank-transfer chip's "Pay full → N% off" note tracks the live
+ * `bankTransferDiscountPercent` setting so changing it in admin doesn't
+ * leave the storefront advertising a stale discount.
+ */
+export function getPaymentMethods(settings: {
+  bankTransferDiscountPercent: number;
+}): readonly PaymentMethodOption[] {
+  const discount = Math.max(0, settings.bankTransferDiscountPercent);
+  return [
+    {
+      id: "bank",
+      label: "Bank Transfer",
+      note:
+        discount > 0
+          ? `Pay full → ${discount}% off`
+          : "Bank transfer pre-payment",
+    },
+    { id: "easypaisa", label: "Easypaisa", note: "Advance to confirm order" },
+    { id: "jazzcash", label: "JazzCash", note: "Advance to confirm order" },
+    { id: "cod", label: "Cash on Delivery", note: "Lahore only · in-person verify" },
+  ];
+}
 
 export const STORAGE_OPTIONS = [64, 128, 256, 512, 1024] as const;
 

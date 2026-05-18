@@ -7,7 +7,7 @@ import {
   classNames,
   formatPrice,
   formatStorefrontDate,
-  LOYALTY_EARN_RULES,
+  getLoyaltyEarnRules,
   LOYALTY_MAX_REDEEM_PERCENT,
   LOYALTY_PROGRAM_NAME,
 } from "@store/shared";
@@ -91,18 +91,23 @@ export default async function AccountPage() {
     redirect("/account/sign-in?next=/account");
   }
 
-  const overview = await getAccountOverview(session.user.customerId);
+  const [overview, settings] = await Promise.all([
+    getAccountOverview(session.user.customerId),
+    getStoreSettings(),
+  ]);
   if (!overview) {
     // Customer record was deleted under a still-valid session — sign them out.
     redirect("/account/sign-in?next=/account");
   }
+
+  const earnRules = getLoyaltyEarnRules(settings);
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">
       <AccountHeader name={overview.customer.name} joinedAt={overview.customer.joinedAt} />
 
       {overview.loyalty ? (
-        <LoyaltyCard loyalty={overview.loyalty} />
+        <LoyaltyCard loyalty={overview.loyalty} earnRules={earnRules} />
       ) : (
         <NotALoyaltyMember />
       )}
@@ -186,7 +191,13 @@ function AccountHeader({ name, joinedAt }: { name: string; joinedAt: string }) {
   );
 }
 
-function LoyaltyCard({ loyalty }: { loyalty: { balance: number; lifetimeEarned: number; pendingFromShipping: number } }) {
+function LoyaltyCard({
+  loyalty,
+  earnRules,
+}: {
+  loyalty: { balance: number; lifetimeEarned: number; pendingFromShipping: number };
+  earnRules: ReturnType<typeof getLoyaltyEarnRules>;
+}) {
   const { balance, lifetimeEarned, pendingFromShipping } = loyalty;
   return (
     <div className="mt-5 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-200)] bg-gradient-to-br from-[var(--color-accent-100)] via-[var(--color-accent-50)] to-[var(--color-canvas)] shadow-[var(--shadow-sm)] md:mt-8">
@@ -246,7 +257,7 @@ function LoyaltyCard({ loyalty }: { loyalty: { balance: number; lifetimeEarned: 
             Ways to earn more
           </p>
           <ul className="mt-3 space-y-2">
-            {LOYALTY_EARN_RULES.map((rule) => (
+            {earnRules.map((rule) => (
               <li
                 key={rule.id}
                 className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]/85 p-3"

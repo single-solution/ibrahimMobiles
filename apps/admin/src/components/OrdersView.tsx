@@ -186,6 +186,7 @@ function OrderDrawer({ orderId, onClose }: OrderDrawerProps) {
   const [estimatedDeliveryAt, setEstimatedDeliveryAt] = useState("");
   const [timelineNote, setTimelineNote] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     let isCancelled = false;
@@ -245,6 +246,31 @@ function OrderDrawer({ orderId, onClose }: OrderDrawerProps) {
     }
   }
 
+  async function handleDelete() {
+    if (!order) {
+      return;
+    }
+    // window.confirm is intentional — destructive actions deserve a hard
+    // stop, and we don't have a confirm-dialog primitive in the admin
+    // toolkit yet. Stock + loyalty side-effects are reversed server-side.
+    const ok = window.confirm(
+      `Delete order ${order.orderNumber}? This permanently removes the record. Stock and loyalty will be reversed if applicable.`,
+    );
+    if (!ok) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await adminFetch<undefined>(`/api/orders/${order.id}`, { method: "DELETE" });
+      toast.success(`Order ${order.orderNumber} deleted`);
+      router.refresh();
+      onClose();
+    } catch (error) {
+      toast.danger(error instanceof Error ? error.message : "Failed to delete order");
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <Drawer
       isOpen
@@ -257,20 +283,32 @@ function OrderDrawer({ orderId, onClose }: OrderDrawerProps) {
       }
       width="xl"
       footer={
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" size="md" type="button" onClick={onClose}>
-            Close
-          </Button>
+        <div className="flex items-center justify-between gap-2">
           <Button
-            variant="primary"
+            variant="danger"
             size="md"
-            type="submit"
-            form="order-form"
-            isLoading={isSaving}
-            disabled={!order}
+            type="button"
+            onClick={handleDelete}
+            isLoading={isDeleting}
+            disabled={!order || isSaving}
           >
-            Save changes
+            Delete
           </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="md" type="button" onClick={onClose}>
+              Close
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              type="submit"
+              form="order-form"
+              isLoading={isSaving}
+              disabled={!order || isDeleting}
+            >
+              Save changes
+            </Button>
+          </div>
         </div>
       }
     >

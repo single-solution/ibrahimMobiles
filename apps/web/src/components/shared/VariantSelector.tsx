@@ -27,10 +27,10 @@ import { CompareVariantsModal } from "@/components/shared/CompareVariantsModal";
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { PtaBadge } from "@/components/shared/PtaBadge";
 import { useVariantSelection } from "@/components/shared/VariantContext";
-import { getGradeDescriptor } from "@/data/grades";
 
 import { useCart } from "@/lib/cart/useCart";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useGrade } from "@/lib/storefront/storefrontReferenceContext";
 
 const ADD_TO_CART_FLASH_MS = 1_500;
 
@@ -53,10 +53,11 @@ export function VariantSelector({ phone, brandName }: VariantSelectorProps) {
     selected.priceRupees,
   );
   const hasDiscount = discountPercent > 0;
-  const gradeDescriptor = getGradeDescriptor(selected.grade);
+  const gradeDescriptor = useGrade(selected.grade);
+  const gradeLabelForCopy = gradeDescriptor?.label ?? selected.grade;
   const showCompare = phone.variants.length > 1;
 
-  const whatsappMessage = `Salam! I'd like to order the ${brandName} ${phone.modelName} — Grade ${gradeDescriptor.label} (${formatStorage(
+  const whatsappMessage = `Salam! I'd like to order the ${brandName} ${phone.modelName} — Grade ${gradeLabelForCopy} (${formatStorage(
     selected.storageGb,
   )}, ${selected.colorName}) for ${formatPrice(selected.priceRupees)}.`;
 

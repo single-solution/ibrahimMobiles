@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   BadgeCheck,
@@ -13,8 +15,11 @@ import {
 } from "lucide-react";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { WishlistButton } from "@/components/shared/WishlistButton";
-import { isAccessory, isPhone, productHref } from "@/data/products";
-import { getGradeDescriptor } from "@/data/grades";
+import { isAccessory, isPhone } from "@/data/products";
+import {
+  useGrade,
+  useProductHref,
+} from "@/lib/storefront/storefrontReferenceContext";
 import {
   getDefaultVariant,
   hasAnyOffer,
@@ -73,7 +78,8 @@ const ACCESSORY_TYPE_ICON: Record<
 export function ProductCard({ product }: ProductCardProps) {
   const brandName = product.brandName ?? product.brandSlug;
   const defaultVariant = getDefaultVariant(product);
-  const gradeDescriptor = getGradeDescriptor(defaultVariant.grade);
+  const gradeDescriptor = useGrade(defaultVariant.grade);
+  const href = useProductHref(product);
   const inStock = isProductInStock(product);
   const offered = hasAnyOffer(product);
   const discountPercent = calculateDiscountPercent(
@@ -84,7 +90,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const isMultiVariant = variantCount > 1;
 
   return (
-    <Link href={productHref(product)} className="group block focus:outline-none">
+    <Link href={href} className="group block focus:outline-none">
       <div className="lift flex h-full flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] hover:border-[var(--color-ink-200)]">
         <div className="relative aspect-square overflow-hidden bg-[var(--color-canvas-deep)]">
           <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.04]">
@@ -114,7 +120,7 @@ export function ProductCard({ product }: ProductCardProps) {
               className="inline-flex h-5 items-center rounded-[var(--radius-full)] px-2 text-[10px] font-bold uppercase tracking-[0.04em] text-white shadow-[var(--shadow-sm)] md:h-6 md:px-2.5 md:text-[11px]"
               style={{ backgroundColor: GRADE_BG[defaultVariant.grade] }}
             >
-              {gradeDescriptor.shortLabel}
+              {gradeDescriptor?.shortLabel ?? defaultVariant.grade}
             </span>
             <CategoryTopBadge product={product} variant={defaultVariant} />
           </div>

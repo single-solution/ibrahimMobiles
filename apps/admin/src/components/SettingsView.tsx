@@ -9,6 +9,7 @@ import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
 import { SaveBar } from "@/components/forms/SaveBar";
+import { SettingsCleanup } from "@/components/SettingsCleanup";
 import { useToast } from "@/components/Toast";
 
 interface SettingsViewProps {
@@ -97,6 +98,23 @@ export function SettingsView({ initialSettings }: SettingsViewProps) {
               onSaved={setSavedSettings}
             />
           ),
+        },
+        {
+          id: "loyalty",
+          label: "Loyalty",
+          content: (
+            <LoyaltySettings
+              draft={draft}
+              saved={savedSettings}
+              setField={setField}
+              onSaved={setSavedSettings}
+            />
+          ),
+        },
+        {
+          id: "cleanup",
+          label: "Cleanup",
+          content: <SettingsCleanup />,
         },
       ]}
     />
@@ -277,6 +295,41 @@ function SocialSettings({ draft, saved, setField, onSaved }: SectionProps) {
           value={draft.socialGoogleMaps}
           onChange={(event) => setField("socialGoogleMaps", event.target.value)}
         />
+      </FormSection>
+    </SaveableSection>
+  );
+}
+
+function LoyaltySettings({ draft, saved, setField, onSaved }: SectionProps) {
+  return (
+    <SaveableSection
+      fields={STORE_SETTING_GROUPS.loyalty}
+      draft={draft}
+      saved={saved}
+      onSaved={onSaved}
+    >
+      <FormSection
+        title="Loyalty programme"
+        description="Edit the earn rate and bonus values shown to customers on the account dashboard and checkout 'you'll earn' chip."
+      >
+        <NumberField
+          label="Earn rate (% of order total)"
+          value={draft.loyaltyEarnPercent}
+          onChange={(value) => setField("loyaltyEarnPercent", value)}
+          trailingAddon="%"
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <NumberField
+            label="Review bonus (pts)"
+            value={draft.loyaltyReviewBonusPoints}
+            onChange={(value) => setField("loyaltyReviewBonusPoints", value)}
+          />
+          <NumberField
+            label="Referral bonus per side (pts)"
+            value={draft.loyaltyReferralBonusPoints}
+            onChange={(value) => setField("loyaltyReferralBonusPoints", value)}
+          />
+        </div>
       </FormSection>
     </SaveableSection>
   );

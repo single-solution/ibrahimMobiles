@@ -18,7 +18,7 @@ import { GradeShowcase } from "@/components/shared/GradeShowcase";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { VariantProvider, useVariantSelection } from "@/components/shared/VariantContext";
-import { getGradeDescriptor } from "@/data/grades";
+import { useGrade } from "@/lib/storefront/storefrontReferenceContext";
 import {
   buildWhatsAppLink,
   calculateDiscountPercent,
@@ -226,7 +226,7 @@ interface VariantTileProps {
 }
 
 function VariantTile({ variant, isSelected, onSelect }: VariantTileProps) {
-  const descriptor = getGradeDescriptor(variant.grade);
+  const descriptor = useGrade(variant.grade);
   return (
     <button
       type="button"
@@ -243,7 +243,7 @@ function VariantTile({ variant, isSelected, onSelect }: VariantTileProps) {
       <div className="flex items-center gap-1.5">
         <GradeBadge grade={variant.grade} size="sm" />
         <span className="text-[12px] font-medium text-[var(--color-ink-900)]">
-          {descriptor.shortLabel}
+          {descriptor?.shortLabel ?? variant.grade}
         </span>
         {variant.isGenuine && (
           <span className="ml-auto inline-flex items-center gap-0.5 rounded-[var(--radius-md)] bg-[var(--color-ink-900)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.05em] text-white">

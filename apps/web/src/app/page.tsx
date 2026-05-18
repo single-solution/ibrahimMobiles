@@ -25,17 +25,19 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { ProductImage } from "@/components/shared/ProductImage";
 import {
-  PAYMENT_METHODS,
+  getPaymentMethods,
   type Brand,
   type Phone as PhoneType,
   type ProductCategory,
   type StoreSettings,
 } from "@store/shared";
 
-import { gradeDescriptors } from "@/data/grades";
 import { productHref } from "@/data/products";
 import { getDefaultVariant } from "@/lib/productSummary";
-import { getStoreSettingsCached } from "@/lib/storefront/cached";
+import {
+  getStorefrontGradesCached,
+  getStoreSettingsCached,
+} from "@/lib/storefront/cached";
 import {
   getHomeHeroData,
   getHomeShopTypesData,
@@ -165,7 +167,9 @@ export default function HomePage() {
         <Suspense fallback={<MobileProcessFallback />}>
           <MobileProcessData />
         </Suspense>
-        <MobileGradesSection />
+        <Suspense fallback={<MobileGradesFallback />}>
+          <MobileGradesSection />
+        </Suspense>
         <Suspense fallback={<MobileVisitStoreFallback />}>
           <MobileVisitStoreData />
         </Suspense>
@@ -184,7 +188,9 @@ export default function HomePage() {
         <Suspense fallback={<DesktopProcessFallback />}>
           <DesktopProcessData />
         </Suspense>
-        <DesktopGrades />
+        <Suspense fallback={<DesktopGradesFallback />}>
+          <DesktopGrades />
+        </Suspense>
         <Suspense fallback={<DesktopVisitStoreFallback />}>
           <DesktopVisitStoreData />
         </Suspense>
@@ -347,6 +353,31 @@ function MobileProcessFallback() {
   );
 }
 
+/** Six tile placeholders for the dark "Honest grades" band on mobile. */
+function MobileGradesFallback() {
+  return (
+    <section className="-mx-4 mt-20 bg-[var(--color-ink-900)] px-4 py-14 text-[var(--color-canvas)]">
+      <div className="space-y-3 text-center">
+        <Skeleton shape="text" className="mx-auto h-3 w-32 bg-white/20" />
+        <Skeleton shape="text" className="mx-auto h-12 w-3/4 bg-white/15" />
+        <Skeleton shape="text" className="mx-auto h-3 w-2/3 bg-white/15" />
+      </div>
+      <ul className="mt-8 grid grid-cols-2 gap-2.5">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <li
+            key={index}
+            className="flex flex-col gap-2 rounded-[14px] border border-white/10 bg-white/[0.06] p-3"
+          >
+            <Skeleton shape="pill" className="h-5 w-20 bg-white/15" />
+            <Skeleton shape="text" className="h-3 w-full bg-white/10" />
+            <Skeleton shape="text" className="h-3 w-2/3 bg-white/10" />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function MobileVisitStoreFallback() {
   return (
     <section id="contact" className="app-section">
@@ -457,6 +488,35 @@ function DesktopProcessFallback() {
             </ol>
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+/** Six tile placeholders for the dark "Honest grades" band on desktop. */
+function DesktopGradesFallback() {
+  return (
+    <section className="bg-[var(--color-ink-900)] py-24 text-[var(--color-canvas)]">
+      <div className="mx-auto max-w-[1440px] px-6">
+        <div className="grid grid-cols-[1fr_2fr] gap-12">
+          <div className="space-y-4">
+            <Skeleton shape="text" className="h-3 w-32 bg-white/15" />
+            <Skeleton shape="text" className="h-16 w-3/4 bg-white/15" />
+            <Skeleton shape="text" className="h-3 w-2/3 bg-white/10" />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={index}
+                className="flex flex-col gap-2.5 rounded-[var(--radius-lg)] border border-white/10 bg-white/5 p-5"
+              >
+                <Skeleton shape="pill" className="h-5 w-20 bg-white/15" />
+                <Skeleton shape="text" className="h-3 w-full bg-white/10" />
+                <Skeleton shape="text" className="h-3 w-2/3 bg-white/10" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -748,7 +808,16 @@ function MobileProcessSection({ flows }: ProcessSectionProps) {
  * Full-bleed via `-mx-4` so the dark band runs edge-to-edge on mobile
  * (the parent `.app-page` has 16px horizontal padding we need to escape).
  */
-function MobileGradesSection() {
+async function MobileGradesSection() {
+  // Hard-failing the homepage if the Grade collection is unreachable would
+  // be a terrible UX — render an empty grid (the surrounding section copy
+  // is still useful) instead of throwing.
+  let gradeDescriptors: Awaited<ReturnType<typeof getStorefrontGradesCached>> = [];
+  try {
+    gradeDescriptors = await getStorefrontGradesCached();
+  } catch {
+    gradeDescriptors = [];
+  }
   return (
     <section className="-mx-4 mt-20 bg-[var(--color-ink-900)] px-4 py-14 text-[var(--color-canvas)]">
       <div className="reveal space-y-3 text-center">
@@ -834,7 +903,7 @@ function MobileVisitStoreSection({ settings }: VisitStoreSectionProps) {
               Payment we accept
             </p>
             <ul className="mt-1.5 flex flex-wrap gap-1">
-              {PAYMENT_METHODS.map((paymentMethod) => (
+              {getPaymentMethods(settings).map((paymentMethod) => (
                 <li
                   key={paymentMethod.id}
                   className="rounded-full border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-2 py-0.5 text-[11px] text-[var(--color-ink-700)]"
@@ -1276,7 +1345,13 @@ function DesktopProcessSection({ flows }: ProcessSectionProps) {
   );
 }
 
-function DesktopGrades() {
+async function DesktopGrades() {
+  let gradeDescriptors: Awaited<ReturnType<typeof getStorefrontGradesCached>> = [];
+  try {
+    gradeDescriptors = await getStorefrontGradesCached();
+  } catch {
+    gradeDescriptors = [];
+  }
   return (
     <section className="bg-[var(--color-ink-900)] py-24 text-[var(--color-canvas)]">
       <div className="mx-auto max-w-[1440px] px-6">
@@ -1368,7 +1443,7 @@ function DesktopVisitStore({ settings }: VisitStoreSectionProps) {
                   Payment we accept
                 </p>
                 <ul className="mt-2 flex flex-wrap gap-1.5">
-                  {PAYMENT_METHODS.map((paymentMethod) => (
+                  {getPaymentMethods(settings).map((paymentMethod) => (
                     <li
                       key={paymentMethod.id}
                       className="rounded-full border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-2.5 py-1 text-[11.5px] text-[var(--color-ink-700)]"

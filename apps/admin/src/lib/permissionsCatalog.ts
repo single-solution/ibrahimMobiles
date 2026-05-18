@@ -18,6 +18,7 @@ const PERMISSION_KEYS = [
   "order_update",
   "order_cancel",
   "order_refund",
+  "order_delete",
 
   "customer_view",
   "customer_update",
@@ -47,6 +48,10 @@ const PERMISSION_KEYS = [
 
   "activity_view",
   "ai_view",
+
+  // Destructive bulk-data tooling lives behind its own permission so it
+  // can't be accidentally granted to a manager via permission inheritance.
+  "data_cleanup",
 ] as const;
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];

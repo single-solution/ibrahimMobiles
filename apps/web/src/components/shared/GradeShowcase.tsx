@@ -3,7 +3,7 @@
 import { Camera, PlayCircle, Sparkles, ShieldCheck, Wrench } from "lucide-react";
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { useSelectedVariantId } from "@/components/shared/VariantContext";
-import { getGradeDescriptor } from "@/data/grades";
+import { useGrade } from "@/lib/storefront/storefrontReferenceContext";
 import type { AnyVariant, ConditionGrade, Phone, Product } from "@store/shared";
 
 /**
@@ -60,13 +60,20 @@ const GRADE_ACCENT: Record<ConditionGrade, GradeAccent> = {
 export function GradeShowcase({ phone, product, variant = "desktop" }: GradeShowcaseProps) {
   const selectedVariantId = useSelectedVariantId();
   const source = product ?? phone;
-  if (!source) {
+  // Resolve the visible variant before any conditional returns so the
+  // grade hook below always runs in the same order, per react-hooks/rules.
+  const variants: AnyVariant[] = source?.variants ?? [];
+  const fallback = (variants[0]?.grade ?? "genuine") as ConditionGrade;
+  const selected =
+    variants.find((variantCandidate) => variantCandidate.id === selectedVariantId) ??
+    variants[0];
+  const descriptor = useGrade(selected?.grade ?? fallback);
+  if (!source || !selected || !descriptor) {
+    // Either we have no source data (parent forgot to pass a product),
+    // grades are still hydrating, or the DB doesn't carry this grade yet.
+    // Render nothing rather than dump raw slugs into the UI.
     return null;
   }
-  const variants: AnyVariant[] = source.variants;
-  const selected =
-    variants.find((variant) => variant.id === selectedVariantId) ?? variants[0];
-  const descriptor = getGradeDescriptor(selected.grade);
   const accent = GRADE_ACCENT[selected.grade];
 
   if (variant === "mobile") {

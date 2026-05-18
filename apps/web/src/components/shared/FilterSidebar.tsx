@@ -5,8 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { Check, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { gradeDescriptors } from "@/data/grades";
-import { getCategoryById } from "@/data/products";
 import {
 	RAM_OPTIONS,
 	STORAGE_OPTIONS,
@@ -19,6 +17,10 @@ import {
 
 import { FILTER_PARAM_KEYS } from "@/lib/storefront/filterParams";
 import { useFilterParams } from "@/lib/storefront/useFilterParams";
+import {
+	useCategory,
+	useGrades,
+} from "@/lib/storefront/storefrontReferenceContext";
 
 interface FilterSidebarProps {
   /** Active category — drives which spec-specific filter blocks render. */
@@ -143,6 +145,9 @@ function FilterPanel({ isMobile = false, category, brands }: FilterPanelProps) {
   const filterApi = useFilterParams();
   const router = useRouter();
   const pathname = usePathname();
+  const allGrades = useGrades();
+  const categoryMeta = useCategory(category === "all" ? "phone" : category);
+  const isCategoryAll = category === "all";
 
   const grades = filterApi.getMulti(FILTER_PARAM_KEYS.grades);
   const brandSlugs = filterApi.getMulti(FILTER_PARAM_KEYS.brands);
@@ -165,14 +170,17 @@ function FilterPanel({ isMobile = false, category, brands }: FilterPanelProps) {
   const showGadgetFilters = category === "all" || category === "gadget";
 
   // Per-shop grade list. When viewing "all" we show every grade; when viewing
-  // a specific shop, only the grades that apply to it.
+  // a specific shop, only the grades that apply to it (per the admin-edited
+  // `Category.applicableGrades` field).
   const visibleGrades = useMemo<ConditionGrade[]>(() => {
-    if (category === "all") {
-      return gradeDescriptors.map((descriptor) => descriptor.grade);
+    if (isCategoryAll) {
+      return allGrades.map((descriptor) => descriptor.grade);
     }
-    const meta = getCategoryById(category);
-    return meta?.applicableGrades ?? gradeDescriptors.map((descriptor) => descriptor.grade);
-  }, [category]);
+    return (
+      categoryMeta?.applicableGrades ??
+      allGrades.map((descriptor) => descriptor.grade)
+    );
+  }, [allGrades, categoryMeta, isCategoryAll]);
 
   const applyPriceRange = () => {
     const next = new URLSearchParams(filterApi.params.toString());
@@ -195,7 +203,7 @@ function FilterPanel({ isMobile = false, category, brands }: FilterPanelProps) {
     <div className={isMobile ? "sheet-stagger space-y-6" : "space-y-3 p-2.5"}>
       <FilterGroup title="Grade">
         <div className="space-y-0.5">
-          {gradeDescriptors
+          {allGrades
             .filter((descriptor) => visibleGrades.includes(descriptor.grade))
             .map((descriptor) => (
               <FilterCheckRow

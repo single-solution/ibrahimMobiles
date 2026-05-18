@@ -15,25 +15,12 @@ import { ButtonLink } from "@/components/ui/Button";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { useCart } from "@/lib/cart/useCart";
 import type { CartItem } from "@/lib/cart/types";
+import { useCategorySegment } from "@/lib/storefront/storefrontReferenceContext";
 import { classNames, formatPrice, formatStorage } from "@store/shared";
 
 interface CartDropdownProps {
   open: boolean;
   onClose: () => void;
-}
-
-/** Map a stored cart item's category to its URL segment (`phones` etc). */
-function categorySegmentFor(category: CartItem["category"]): string {
-  switch (category) {
-    case "phone":
-      return "phones";
-    case "accessory":
-      return "accessories";
-    case "gadget":
-      return "gadgets";
-    default:
-      return "phones";
-  }
 }
 
 export function CartDropdown({ open, onClose }: CartDropdownProps) {
@@ -190,7 +177,8 @@ function CartDropdownLine({
 }: CartDropdownLineProps) {
   const { quantity, productName, colorName, storageGb, brandSlug, imageUrl } = line;
   const lineTotal = line.unitPriceRupees * quantity;
-  const productHref = `/shop/${categorySegmentFor(line.category)}/${line.productSlug}`;
+  const segment = useCategorySegment(line.category);
+  const productHref = `/shop/${segment}/${line.productSlug}`;
 
   return (
     <li className="flex gap-3 px-3 py-3">

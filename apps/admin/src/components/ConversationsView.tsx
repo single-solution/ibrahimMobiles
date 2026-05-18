@@ -41,6 +41,7 @@ export function ConversationsView({ conversations }: ConversationsViewProps) {
   const [detail, setDetail] = useState<AdminConversation | null>(null);
   const [reply, setReply] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Closing the drawer is a single user action — clear every dependent piece
   // of state in one place so the effect below only owns the "load detail on
@@ -95,6 +96,28 @@ export function ConversationsView({ conversations }: ConversationsViewProps) {
       refresh();
     } catch (error) {
       toast.danger(error instanceof Error ? error.message : "Failed to update status");
+    }
+  }
+
+  async function handleDelete() {
+    if (!active) {
+      return;
+    }
+    const ok = window.confirm(
+      `Delete the conversation with ${active.customerName}? This permanently removes all messages.`,
+    );
+    if (!ok) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await adminFetch(`/api/conversations/${active.id}`, { method: "DELETE" });
+      toast.success("Conversation deleted");
+      closeActive();
+      refresh();
+    } catch (error) {
+      toast.danger(error instanceof Error ? error.message : "Failed to delete conversation");
+      setIsDeleting(false);
     }
   }
 
@@ -207,19 +230,32 @@ export function ConversationsView({ conversations }: ConversationsViewProps) {
         width="lg"
         footer={
           <div className="flex items-center justify-between gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              leadingIcon={<UserCog size={12} />}
-              onClick={() => handleStatusChange("waiting")}
-            >
-              Mark waiting
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                leadingIcon={<UserCog size={12} />}
+                onClick={() => handleStatusChange("waiting")}
+                disabled={isDeleting}
+              >
+                Mark waiting
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                type="button"
+                onClick={handleDelete}
+                isLoading={isDeleting}
+              >
+                Delete
+              </Button>
+            </div>
             <Button
               variant="primary"
               size="sm"
               leadingIcon={<MessageSquare size={12} />}
               onClick={() => handleStatusChange("resolved")}
+              disabled={isDeleting}
             >
               Resolve
             </Button>

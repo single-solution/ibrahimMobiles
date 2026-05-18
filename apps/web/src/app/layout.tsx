@@ -7,8 +7,17 @@ import {
 } from "next/font/google";
 import { StorefrontChrome } from "@/components/layout/StorefrontChrome";
 import { getStorefrontBaseUrl } from "@/lib/storefront/baseUrl";
-import { getStoreSettingsCached } from "@/lib/storefront/cached";
+import {
+  getStorefrontCategoriesCached,
+  getStorefrontGradesCached,
+  getStoreSettingsCached,
+} from "@/lib/storefront/cached";
 import { StoreSettingsProvider } from "@/lib/storefront/storeSettingsContext";
+import {
+  StorefrontReferenceProvider,
+  type StorefrontCategoryReference,
+  type StorefrontReferenceData,
+} from "@/lib/storefront/storefrontReferenceContext";
 import "./globals.css";
 
 const bricolageGrotesque = Bricolage_Grotesque({
@@ -90,8 +99,41 @@ interface RootLayoutProps {
   children: React.ReactNode;
 }
 
+async function loadStorefrontReference(): Promise<StorefrontReferenceData> {
+  // Both reads are short, fully cached, and tag-revalidated by admin
+  // mutations. Fetch in parallel — they're independent.
+  try {
+    const [grades, rawCategories] = await Promise.all([
+      getStorefrontGradesCached(),
+      getStorefrontCategoriesCached(),
+    ]);
+    const categories: StorefrontCategoryReference[] = rawCategories.map(
+      (category) => ({
+        id: category.id,
+        label: category.label,
+        pluralLabel: category.pluralLabel,
+        pathSegment: category.pathSegment,
+        isActive: category.isActive,
+        tagline: category.tagline,
+        applicableGrades: category.applicableGrades,
+        trustChips: category.trustChips,
+        emptyHint: category.emptyHint,
+        sortOrder: category.sortOrder,
+      }),
+    );
+    return { grades, categories };
+  } catch {
+    // Atlas hiccup at boot must not crash the root layout — the page can
+    // still render with empty grades/categories and a skeleton UI.
+    return { grades: [], categories: [] };
+  }
+}
+
 export default async function RootLayout({ children }: RootLayoutProps) {
-  const settings = await getStoreSettingsCached();
+  const [settings, reference] = await Promise.all([
+    getStoreSettingsCached(),
+    loadStorefrontReference(),
+  ]);
   return (
     <html
       lang="en"
@@ -126,7 +168,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         suppressHydrationWarning
       >
         <StoreSettingsProvider value={settings}>
-          <StorefrontChrome>{children}</StorefrontChrome>
+          <StorefrontReferenceProvider value={reference}>
+            <StorefrontChrome>{children}</StorefrontChrome>
+          </StorefrontReferenceProvider>
         </StoreSettingsProvider>
       </body>
     </html>

@@ -22,10 +22,10 @@ import {
   LOYALTY_MAX_REDEEM_PERCENT,
   LOYALTY_MIN_REDEEM,
   LOYALTY_PROGRAM_NAME,
-  PAYMENT_METHODS,
   classNames,
   formatPoints,
   formatPrice,
+  getPaymentMethods,
   maxRedeemable,
   pointsEarnedFor,
   pointsToRupees,
@@ -129,7 +129,10 @@ export function CheckoutView() {
     settings.freeDeliveryThresholdRupees,
   ]);
 
-  const pointsEarnedOnThisOrder = pointsEarnedFor(totals.totalRupees);
+  const pointsEarnedOnThisOrder = pointsEarnedFor(
+    totals.totalRupees,
+    settings.loyaltyEarnPercent,
+  );
 
   const isAddressValid =
     delivery === "pickup" ||
@@ -514,6 +517,9 @@ interface PaymentPanelProps {
 }
 
 function PaymentPanel({ payment, onChange }: PaymentPanelProps) {
+  const settings = useStoreSettings();
+  const paymentMethods = getPaymentMethods(settings);
+  const bankDiscount = Math.max(0, settings.bankTransferDiscountPercent);
   return (
     <Card className="p-4 md:p-5">
       <PanelHeader
@@ -522,13 +528,13 @@ function PaymentPanel({ payment, onChange }: PaymentPanelProps) {
         title="How would you like to pay?"
       />
       <div className="mt-4 grid gap-2 md:grid-cols-2">
-        {PAYMENT_METHODS.map((method) => (
+        {paymentMethods.map((method) => (
           <ChoiceTile
             key={method.id}
             icon={<Building2 size={15} />}
             title={method.label}
             subtitle={method.note}
-            tag={method.id === "bank" ? "−5%" : undefined}
+            tag={method.id === "bank" && bankDiscount > 0 ? `−${bankDiscount}%` : undefined}
             tagTone="success"
             isSelected={payment === method.id}
             onSelect={() => onChange(method.id)}
@@ -666,6 +672,8 @@ function OrderSummaryPanel({
   pointsRedeemed,
   errorMessage,
 }: OrderSummaryPanelProps) {
+  const settings = useStoreSettings();
+  const paymentMethods = getPaymentMethods(settings);
   return (
     <Card className="overflow-hidden">
       <div className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 p-4 md:p-5">
@@ -675,7 +683,7 @@ function OrderSummaryPanel({
         <p className="mt-1 text-[13px] text-[var(--color-ink-700)]">
           {totals.itemCount} {totals.itemCount === 1 ? "phone" : "phones"} · paying with{" "}
           <span className="font-semibold text-[var(--color-ink-900)]">
-            {PAYMENT_METHODS.find((method) => method.id === payment)?.label}
+            {paymentMethods.find((method) => method.id === payment)?.label}
           </span>
         </p>
       </div>

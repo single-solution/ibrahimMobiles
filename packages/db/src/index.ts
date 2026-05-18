@@ -8,6 +8,7 @@
  */
 
 export { connectDB } from "./connection";
+export { ensureReferenceData } from "./bootstrap";
 export { handleMongoError, isMongoDuplicateKeyError } from "./mongoErrors";
 export { nextOrderNumberForYear, createWithUniqueOrderNumber } from "./orderNumber";
 export { getStoreSettings, invalidateStoreSettingsCache } from "./storeSettings";

@@ -27,6 +27,7 @@ import {
   getStorefrontBrands as getStorefrontBrandsRaw,
   getStorefrontCategories as getStorefrontCategoriesRaw,
   getStorefrontCategoryByPathSegment as getStorefrontCategoryByPathSegmentRaw,
+  getStorefrontGrades as getStorefrontGradesRaw,
   getStorefrontOffers as getStorefrontOffersRaw,
   getStorefrontProductBySlug as getStorefrontProductBySlugRaw,
   getStorefrontProductCountsByCategory as getStorefrontProductCountsByCategoryRaw,
@@ -80,6 +81,18 @@ export const hasAnyProductsCached = unstable_cache(
 export const getStorefrontCategoriesCached = unstable_cache(
   () => getStorefrontCategoriesRaw(),
   ["storefront-categories"],
+  { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+/**
+ * Cached grade descriptors. Drives every `<GradeBadge>` / filter sidebar /
+ * `<GradeShowcase>` instance on the storefront. Tagged with
+ * `STOREFRONT_CACHE_TAG` so admin edits via `PUT /api/grades/:id` (which
+ * calls `bustAdminCaches()` → `revalidateTag`) surface immediately.
+ */
+export const getStorefrontGradesCached = unstable_cache(
+  () => getStorefrontGradesRaw(),
+  ["storefront-grades"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 

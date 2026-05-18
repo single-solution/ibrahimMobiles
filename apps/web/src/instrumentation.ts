@@ -21,7 +21,7 @@ export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") {
     return;
   }
-  const [{ assertServerEnv }, { connectDB }] = await Promise.all([
+  const [{ assertServerEnv }, db] = await Promise.all([
     import("@store/shared"),
     import("@store/db"),
   ]);
@@ -30,8 +30,14 @@ export async function register(): Promise<void> {
   // Kick off the Mongo connection in the background — don't await; we don't
   // want a slow DB to block server boot. The first query that lands will
   // hit the already-warm pool and skip the TLS handshake cost.
-  void connectDB().catch(() => {
+  void db.connectDB().catch(() => {
     // The connection helper logs its own errors; swallow here so an
     // intermittent boot-time blip doesn't unhandled-reject the worker.
   });
+
+  // Ensure the Grade + Category reference docs exist so the storefront has
+  // something to render and the admin has rows to edit. Idempotent via
+  // `$setOnInsert` — existing admin edits are never overwritten. Fire-and-
+  // forget so a slow Atlas connect can't slow down boot.
+  void db.ensureReferenceData();
 }
