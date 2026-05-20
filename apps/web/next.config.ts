@@ -28,7 +28,7 @@ const baseSecurityHeaders = [
       "object-src 'none'",
       "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' blob: data: https://images.unsplash.com https://cdn.simpleicons.org",
+      "img-src 'self' blob: data: https://images.unsplash.com https://cdn.simpleicons.org https://*.public.blob.vercel-storage.com",
       "font-src 'self' data:",
       "connect-src 'self'",
       "media-src 'self'",
@@ -70,6 +70,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "cdn.simpleicons.org" },
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
     // Some seed records reference Unsplash URLs that 404 on the upstream
     // CDN. Cache the (negative) response for an hour so the optimizer

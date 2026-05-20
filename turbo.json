@@ -3,7 +3,9 @@
   "ui": "stream",
   "globalEnv": [
     "NODE_ENV",
-    "LOG_LEVEL"
+    "LOG_LEVEL",
+    "STORAGE_PROVIDER",
+    "BLOB_READ_WRITE_TOKEN"
   ],
   "tasks": {
     "build": {
