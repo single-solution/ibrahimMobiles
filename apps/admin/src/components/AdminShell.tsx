@@ -48,7 +48,7 @@ export function AdminShell({ children }: AdminShellProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--color-canvas-deep)] md:h-screen md:gap-3 md:overflow-hidden md:p-3">
+    <div className="flex min-h-screen flex-col bg-[var(--color-canvas-deep)] md:h-screen md:gap-2 md:overflow-hidden md:p-2">
       <div className="md:hidden">
         <AdminMobileTopBar onOpenMenu={() => setIsMobileMenuOpen(true)} />
       </div>
@@ -58,19 +58,21 @@ export function AdminShell({ children }: AdminShellProps) {
         onToggleCollapsed={() => setIsCollapsed((current) => !current)}
       />
 
-      <div className="flex min-h-0 flex-1 md:gap-3">
+      <div className="flex min-h-0 flex-1 md:gap-2">
         <div className="hidden md:flex">
           <Sidebar isCollapsed={isCollapsed} />
         </div>
 
-        <main className="flex min-w-0 flex-1 flex-col overflow-hidden md:rounded-[var(--radius-lg)] md:border md:border-[var(--color-ink-100)] md:bg-[var(--color-surface)] md:shadow-[var(--shadow-sm)]">
-          <div className="flex-1 overflow-y-auto px-4 py-3 md:px-8 md:py-8">
-            {children}
-          </div>
-        </main>
-      </div>
+        <div className="flex min-w-0 flex-1 flex-col md:gap-2">
+          <main className="flex flex-1 flex-col overflow-hidden md:rounded-[var(--radius-lg)] md:border md:border-[var(--color-ink-100)] md:bg-[var(--color-surface)] md:shadow-[var(--shadow-sm)]">
+            <div className="flex-1 overflow-y-auto px-4 py-3 md:px-5 md:py-4">
+              {children}
+            </div>
+          </main>
 
-      <AdminFooter />
+          <AdminFooter />
+        </div>
+      </div>
 
       <AdminMobileMenu
         isOpen={isMobileMenuOpen}
