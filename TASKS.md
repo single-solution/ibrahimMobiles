@@ -65,7 +65,7 @@ RUN_MIGRATIONS=true npm run migrate -w @store/db   # one-shot data migration
 | Phase | Scope | Tasks | Risk | Status |
 |-------|-------|-------|------|--------|
 | 0 | Quick wins — visuals, naming, file cleanup (no schema, no API) | 6 | Low | ☑ shipped on `phase-0-quick-wins` (7 commits, 2026-05-20; both apps build, lint+typecheck green) |
-| 1 | Data-model alignment + universal `StoredImage` audit (Variant/Category icon/Offer banner/Settings logo+favicon+OG/Inquiry attachment shape) + catalog wipe + Inquiry restructure | 24 | High | ☐ |
+| 1 | Data-model alignment + universal `StoredImage` audit (Variant/Category icon/Offer banner/Settings logo+favicon+OG/Inquiry attachment shape) + catalog wipe + Inquiry restructure | 24 | High | ⧖ Group A complete (T1.1 – T1.11, 10 commits on `phase-1-data-model`, `db typecheck` + image lint guardrails green; app workspaces intentionally red per Group A → Group B contract); Group B (T1.12 – T1.18) in progress |
 | 2 | Image / video uploads — pre-generated variants + StorageProvider abstraction + single `<ImageGallery>` / `<ImageUpload>` reused everywhere | 6 | Low | ☐ |
 | 3 | Categories workspace (Flow A) + shared storefront visuals + multi-tile `<PreviewMatrix>` per entity (always-on, real-data context) | 11 | Medium | ☐ |
 | 4 | Product creation page (`/products/new`) with product card + PDP hero previews | 8 | Low | ☐ |
@@ -220,6 +220,8 @@ RUN_MIGRATIONS=true npm run migrate -w @store/db   # one-shot data migration
 
 ### Group A — Schemas
 
+> **Group A status (2026-05-20):** ☑ COMPLETE. All 12 schema-level tasks shipped on `phase-1-data-model` across 10 commits. `npm run typecheck -w @store/db` is green; `lint:image-fields` and `lint:no-raw-image-urls` are green. App workspaces (`@store/admin`, `@store/web`) are intentionally red — Group B (T1.12 – T1.18) sweeps the consumers. Approx. 35 files / ~125 typecheck errors await consumer surgery: 25 admin (serializers + API routes + UI), 10 web (storefront serializers + queries + layout reference loader + sitemap).
+
 #### T1.1 New Attribute model
 
 - **Goal:** Create `packages/db/src/models/Attribute.ts` as the canonical attribute model (already exists per git status — confirm and align with PLAN.md §10).
@@ -283,7 +285,7 @@ RUN_MIGRATIONS=true npm run migrate -w @store/db   # one-shot data migration
   7. Remove the export of `CONDITION_GRADES` from this file (it moves to Grade as enum source-of-truth — see T1.4).
 - **Done when:** `typecheck -w @store/db` passes; no caller in the codebase imports the removed fields (run `rg "applicableGrades|pathSegment|pluralLabel|trustChips|emptyHint"` and expect zero hits in `packages/db` and only consumer-update hits in apps/); `rg "icon\\?: string" packages/db/src/models/Category.ts` returns zero (the single string field is gone).
 - **PLAN ref:** §10 (Category), T1.1.5 (universal `StoredImage`).
-- **Resume note:** —
+- **Resume note:** **Shipped 2026-05-20.** Final shape per PLAN §10: `(slug, label, description, iconKind, iconEmoji?, iconImage?, sortOrder, isActive)`. Pre-validate hook handles both slug auto-gen (`slugify(label, 64)`) and the icon discriminator (nulls the inactive side) in one pass. Caveat: `CONDITION_GRADES` / `ConditionGrade` / `CATEGORY_IDS` / `CategoryId` kept as `@deprecated` re-exports from Category.ts purely to keep apps' imports resolving until Group B sweeps them; will be removed at the end of Group A. `packages/db/src/bootstrap.ts` was neutered (no more category/grade pre-seed) but then re-introduced in T1.11 for chat.* settings.
 
 #### T1.3 Brand model cut
 
@@ -294,7 +296,7 @@ RUN_MIGRATIONS=true npm run migrate -w @store/db   # one-shot data migration
   2. Confirm slug auto-generation hook is in place; add one if not.
 - **Done when:** `typecheck -w @store/db` passes.
 - **PLAN ref:** §10 (Brand), Appendix C § Brand collection.
-- **Resume note:** —
+- **Resume note:** **Shipped 2026-05-20.** Final shape: `(slug, name, categorySlugs[], sortOrder, isActive)`. `categorySlugs` is required, ≥1 element — drives the inline brand chips on category cards (Flow A), the per-category brand picker on product-create (Phase 4), and the storefront brand filter on category landing pages. Slug auto-gen via pre-validate (`slugify(name, 64)`). Indexes: `{ categorySlugs, isActive, sortOrder, name }` (dominant per-category lookup) + `{ sortOrder, name }` (admin all-brands grid). `createdAt`/`updatedAt` dropped from the interface per the framework-managed-fields rule.
 
 #### T1.4 Grade model rewrite
 
@@ -309,7 +311,7 @@ RUN_MIGRATIONS=true npm run migrate -w @store/db   # one-shot data migration
   6. **Caveat:** during migration `video` will be empty. Make the validator allow empty during migration window via a flag, OR keep `video` non-required at the schema level and enforce required in API validation. Choose API-level enforcement to keep schema migration simple.
 - **Done when:** `typecheck -w @store/db` passes; no consumer file imports `cosmeticNotes` / `functionalNotes` / `tone` / `inspectionVideoUrl` from `@store/db`.
 - **PLAN ref:** §10 (Grade), §4 (Flow B).
-- **Resume note:** —
+- **Resume note:** **Shipped 2026-05-20.** Final shape per PLAN §10: `(categorySlug, slug, label, notes, color, video)`. Drops `shortLabel`/`cosmeticNotes`/`functionalNotes`/`description`/`tone`/`sortOrder`/`inspectionVideoUrl`. `notes` (≤1200) is the single combined long-text field; `color` is hex `/^#[0-9a-f]{6}$/i` (default `#1f2937`); `video` is required at the API layer (T1.14) but **schema-optional** to make the migration window legal (legacy grades have no video URL). Slug auto-gen via `slugify(label, 64)`. Unique compound `{ categorySlug, slug }`.
 
 #### T1.5 Product model rewrite
 
@@ -322,7 +324,7 @@ RUN_MIGRATIONS=true npm run migrate -w @store/db   # one-shot data migration
   4. Index: `{ categorySlug: 1, isActive: 1, isFeatured: -1 }`, `{ slug: 1 }` unique.
 - **Done when:** `typecheck -w @store/db` passes.
 - **PLAN ref:** §10 (Product).
-- **Resume note:** —
+- **Resume note:** **Shipped 2026-05-20** as a combined T1.5 + T1.6 commit (variant subdocument lives in the same file). Product final shape: `(slug, name, brandSlug, categorySlug, isActive, isArchived, isFeatured, variants[])`. Dropped: `modelName`(→`name`), `imageUrl`, `galleryUrls`, `highlights`, product-level `attributes`, `accessoryType`, `gadgetType`, `releaseYear`. Slug auto-gen via `slugify(name, 96)`. Indexes rebuilt around `(categorySlug, isActive, isArchived, *)` since that's the dominant storefront query path; `{ brandSlug, name }` kept for brand landing; admin all-products keeps `{ isArchived, createdAt }`.
 
 #### T1.6 Variant subdocument rewrite
 
@@ -347,6 +349,7 @@ RUN_MIGRATIONS=true npm run migrate -w @store/db   # one-shot data migration
   6. Keep: `gradeSlug`, `priceRupees`, `quantity`, `warrantyMonths?`, `images: StoredImage[]`, `attributes: Record<string, string>`.
   7. No enum constraint on `gradeSlug` at the schema level — API-level validation against the `Grade` collection (T1.14).
   8. **For Phase 1 only**, the `StoredImage` interface lives in `packages/shared/src/storage/types.ts` as a forward-declared type. T2.1.5 wires it up fully (with the runtime `StorageProvider` interface alongside). Phase 1 just needs the shape.
+- **Resume note (T1.6):** **Shipped 2026-05-20** in the same commit as T1.5. Variant final shape per PLAN §10: `(gradeSlug, priceRupees, quantity, warrantyMonths?, images: StoredImage[] (≥1), attributes: Record<string,string>)`. `isInStock` boolean is derived from `quantity > 0` at serializer time (not stored). No schema-level enum on `gradeSlug` — API validates against `Grade.find({ categorySlug })` at T1.14. Image entries use the shared `storedImageSchema` sub-sub-schema (4 pre-rendered WebP variants + blurhash + dims + alt) from day one. Lint guardrails `lint:image-fields` + `lint:no-raw-image-urls` both green after this commit — no raw `imageUrl: string` anywhere in `packages/db/src/`.
 - **Done when:** `typecheck -w @store/db` passes; the variant sub-schema is < 45 lines; `Variant.images[0]` is typed as `StoredImage` (TypeScript can resolve every field including `variants.thumb`).
 - **PLAN ref:** §10 (StoredImage + Variant), §5 (Flow C), §13.2, Appendix D § D.2 (Phase 2 risks).
 - **Resume note:** Downstream consequences: T2.2 (upload route generates + returns `StoredImage`), T2.3 (ImageGallery operates on `StoredImage[]`, renders `variants.thumb`), T4.5 (CreateProduct stores `StoredImage[]`), T6.2 (storefront gallery picks the right variant per surface + uses `blurDataURL`), T7.8 (OG image route reads `variants.detail`), all serializers re-emit the new shape.
