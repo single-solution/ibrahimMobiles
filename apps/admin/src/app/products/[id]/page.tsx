@@ -1,18 +1,33 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
 
 import { AdminShell } from "@/components/AdminShell";
-import { PageTitle } from "@/components/PageTitle";
-import { Brand, connectDB, Product } from "@store/db";
+import { ProductEditor } from "@/components/products/ProductEditor";
 
-import { requirePageSession } from "@/lib/server/requirePageSession";
+import {
+  Attribute,
+  Brand,
+  Category,
+  connectDB,
+  Grade,
+  Product,
+} from "@store/db";
 import { isValidId } from "@store/shared";
+
+import {
+  toAttributeResponse,
+  type AttributeLean,
+} from "@/lib/serializers/attribute";
+import { toBrandResponse, type BrandLean } from "@/lib/serializers/brand";
+import {
+  toCategoryResponse,
+  type CategoryLean,
+} from "@/lib/serializers/category";
+import { toGradeResponse, type GradeLean } from "@/lib/serializers/grade";
 import {
   toProductResponse,
   type ProductLean,
 } from "@/lib/serializers/product";
-import { type BrandLean } from "@/lib/serializers/brand";
+import { requirePageSession } from "@/lib/server/requirePageSession";
 
 interface ProductEditPageProps {
   params: Promise<{ id: string }>;
@@ -20,13 +35,6 @@ interface ProductEditPageProps {
 
 export const dynamic = "force-dynamic";
 
-/**
- * Product detail (admin). The full inline editor + variant workspace
- * lands in Phase 5 of PLAN.md — see PHASE 5, "Product editor + variant
- * list refactor". For now, this page renders only the canonical header
- * so the admin sidebar nav into `/products/{id}` resolves cleanly while
- * the data-model migration finishes.
- */
 export default async function ProductEditPage({ params }: ProductEditPageProps) {
   const { id } = await params;
   await requirePageSession(`/products/${id}`);
@@ -41,39 +49,36 @@ export default async function ProductEditPage({ params }: ProductEditPageProps) 
     notFound();
   }
 
-  const brand = await Brand.findOne({ slug: productDoc.brandSlug }).lean<BrandLean>();
-  const product = toProductResponse(productDoc, brand ?? undefined);
+  const [brandDoc, categoryDoc, gradesDocs, attributesDocs, categoryBrandsDocs] =
+    await Promise.all([
+      Brand.findOne({ slug: productDoc.brandSlug }).lean<BrandLean>(),
+      Category.findOne({ slug: productDoc.categorySlug }).lean<CategoryLean>(),
+      Grade.find({ categorySlug: productDoc.categorySlug })
+        .sort({ label: 1 })
+        .lean<GradeLean[]>(),
+      Attribute.find({ categorySlug: productDoc.categorySlug })
+        .sort({ label: 1 })
+        .lean<AttributeLean[]>(),
+      Brand.find({ categorySlugs: productDoc.categorySlug, isActive: true })
+        .sort({ name: 1 })
+        .lean<BrandLean[]>(),
+    ]);
+
+  const product = toProductResponse(productDoc, brandDoc ?? undefined);
+  const category = categoryDoc ? toCategoryResponse(categoryDoc) : null;
+  const brands = categoryBrandsDocs.map(toBrandResponse);
+  const grades = gradesDocs.map(toGradeResponse);
+  const attributes = attributesDocs.map(toAttributeResponse);
 
   return (
     <AdminShell>
-      <Link
-        href="/products"
-        className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-ink-500)] transition-colors hover:text-[var(--color-ink-900)]"
-      >
-        <ChevronLeft size={12} />
-        Back to products
-      </Link>
-
-      <div className="mt-4">
-        <PageTitle
-          eyebrow={product.brand.name || product.brand.slug}
-          title={product.name}
-          description={`${product.variantCount} variants · ${product.id}`}
-        />
-      </div>
-
-      <section className="mt-8 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface)] p-8 text-sm text-[var(--color-ink-500)]">
-        <p className="font-semibold text-[var(--color-ink-700)]">
-          The inline product editor is being rebuilt (Phase 5).
-        </p>
-        <p className="mt-2 max-w-prose">
-          Variant authoring with the new <code>StoredImage[]</code> pipeline +
-          dynamic per-category attributes lands as part of the product
-          editor refactor. The schema underneath this page (
-          <code>category → brand → grades → attributes → variants</code>) is
-          already in place — see PLAN.md §10.
-        </p>
-      </section>
+      <ProductEditor
+        product={product}
+        category={category}
+        brands={brands}
+        grades={grades}
+        attributes={attributes}
+      />
     </AdminShell>
   );
 }
