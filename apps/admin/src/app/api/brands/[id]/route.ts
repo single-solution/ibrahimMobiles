@@ -20,7 +20,7 @@ import { requireSession } from "@/lib/api/requireSession";
 import { bustAdminCaches } from "@/lib/cached";
 import { toBrandResponse, type BrandLean } from "@/lib/serializers/brand";
 import { recordActivity } from "@/lib/services/activityLog";
-import { slugify } from "@/lib/services/slug";
+import { slugify } from "@store/shared";
 import { BRAND_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 
 interface RouteContext {

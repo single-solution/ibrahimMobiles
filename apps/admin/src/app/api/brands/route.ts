@@ -14,7 +14,7 @@ import { Brand, connectDB, handleMongoError } from "@store/db";
 
 import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
-import { slugify } from "@/lib/services/slug";
+import { slugify } from "@store/shared";
 
 import { toBrandResponse, type BrandLean } from "@/lib/serializers/brand";
 import type { AdminBrand } from "@/types/admin";

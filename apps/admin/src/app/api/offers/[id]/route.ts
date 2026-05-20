@@ -19,7 +19,7 @@ import { requireSession } from "@/lib/api/requireSession";
 import { bustAdminCaches } from "@/lib/cached";
 import { toOfferResponse, type OfferLean } from "@/lib/serializers/offer";
 import { recordActivity } from "@/lib/services/activityLog";
-import { slugify } from "@/lib/services/slug";
+import { slugify } from "@store/shared";
 import { OFFER_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 
 interface RouteContext {

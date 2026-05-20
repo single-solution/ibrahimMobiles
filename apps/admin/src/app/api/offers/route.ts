@@ -20,7 +20,7 @@ import {
 
 import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
-import { slugify } from "@/lib/services/slug";
+import { slugify } from "@store/shared";
 
 import { toOfferResponse, type OfferLean } from "@/lib/serializers/offer";
 import type { AdminOffer } from "@/types/admin";

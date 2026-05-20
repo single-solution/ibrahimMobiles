@@ -28,7 +28,7 @@ import {
 
 import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
-import { slugify } from "@/lib/services/slug";
+import { slugify } from "@store/shared";
 
 import { summariseProduct, type ProductLean } from "@/lib/serializers/product";
 import { type BrandLean } from "@/lib/serializers/brand";

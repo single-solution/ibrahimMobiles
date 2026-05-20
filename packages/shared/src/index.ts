@@ -16,6 +16,7 @@ export * from "./phone";
 export * from "./rateLimit";
 export * from "./responseHelpers";
 export * from "./serverEnv";
+export * from "./slug";
 export * from "./storeSettings";
 export * from "./types";
 export * from "./validation";

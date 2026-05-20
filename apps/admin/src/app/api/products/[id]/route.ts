@@ -28,7 +28,7 @@ import { bustAdminCaches } from "@/lib/cached";
 import { type BrandLean } from "@/lib/serializers/brand";
 import { toProductResponse, type ProductLean } from "@/lib/serializers/product";
 import { recordActivity } from "@/lib/services/activityLog";
-import { slugify } from "@/lib/services/slug";
+import { slugify } from "@store/shared";
 import { PRODUCT_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 
 interface RouteContext {

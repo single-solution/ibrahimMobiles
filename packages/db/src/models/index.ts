@@ -5,6 +5,7 @@
  */
 
 export * from "./ActivityEntry";
+export * from "./Attribute";
 export * from "./Brand";
 export * from "./Category";
 export * from "./Conversation";
