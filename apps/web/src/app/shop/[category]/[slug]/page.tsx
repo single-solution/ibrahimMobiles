@@ -4,12 +4,12 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronRight } from "lucide-react";
 
-import type { Product, StoredImage } from "@store/shared";
+import type { Product } from "@store/shared";
 
 import { GradeShowcase } from "@/components/shared/GradeShowcase";
+import { VariantAwareGallery } from "@/components/shared/PdpGallery";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
-import { ProductImage } from "@/components/shared/ProductImage";
 import { VariantProvider } from "@/components/shared/VariantContext";
 import { VariantSelector } from "@/components/shared/VariantSelector";
 import { getDefaultVariant } from "@/lib/productSummary";
@@ -106,18 +106,15 @@ export default async function ProductDetailPage({
   const brand = await getStorefrontBrandBySlugCached(product.brandSlug);
   const brandName = brand?.name ?? product.brandSlug;
   const brandFilterHref = `/shop/${categoryMeta.slug}?brand=${product.brandSlug}`;
-  const heroImage = initialVariant.images?.[0];
-  const galleryImages = initialVariant.images ?? [];
 
   return (
     <VariantProvider initialVariantId={initialVariant.id}>
       {/* Mobile */}
       <div className="pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-2 md:hidden">
-        <MobileGallery
-          images={galleryImages}
-          name={product.name}
+        <VariantAwareGallery
+          product={product}
           brandName={brandName}
-          brandSlug={product.brandSlug}
+          layout="mobile"
         />
 
         <div className="app-page">
@@ -150,12 +147,10 @@ export default async function ProductDetailPage({
         />
 
         <div className="mt-6 grid grid-cols-[1.1fr_1fr] gap-12">
-          <PhotoGallery
-            images={galleryImages}
-            hero={heroImage}
-            name={product.name}
+          <VariantAwareGallery
+            product={product}
             brandName={brandName}
-            brandSlug={product.brandSlug}
+            layout="desktop"
           />
 
           <div>
@@ -248,98 +243,6 @@ function DesktopRelatedRailSkeleton() {
 }
 
 /* ─────────────────────── Static layout pieces ─────────────────────── */
-
-interface GalleryProps {
-  images: StoredImage[];
-  name: string;
-  brandName: string;
-  brandSlug: string;
-}
-
-function MobileGallery({ images, name, brandName, brandSlug }: GalleryProps) {
-  const hero = images[0];
-  return (
-    <>
-      <div className="relative aspect-square w-full bg-[var(--color-canvas-deep)]">
-        <ProductImage
-          image={hero}
-          variant="detail"
-          name={name}
-          brandName={brandName}
-          brandSlug={brandSlug}
-          sizes="100vw"
-          priority
-        />
-      </div>
-      {images.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto px-4 py-2.5 no-scrollbar">
-          {images.slice(0, 6).map((image, index) => (
-            <div
-              key={`${image.variants.thumb}-${index}`}
-              className="relative aspect-square w-14 shrink-0 overflow-hidden rounded-md border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]"
-            >
-              <ProductImage
-                image={image}
-                variant="thumb"
-                name={name}
-                brandName={brandName}
-                brandSlug={brandSlug}
-                sizes="64px"
-              />
-            </div>
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
-
-interface PhotoGalleryProps {
-  images: StoredImage[];
-  hero: StoredImage | undefined;
-  name: string;
-  brandName: string;
-  brandSlug: string;
-}
-
-function PhotoGallery({ images, hero, name, brandName, brandSlug }: PhotoGalleryProps) {
-  return (
-    <div className="space-y-3">
-      <div className="relative aspect-square overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]">
-        <ProductImage
-          image={hero}
-          variant="detail"
-          name={name}
-          brandName={brandName}
-          brandSlug={brandSlug}
-          sizes="(max-width: 1024px) 50vw, 50vw"
-          priority
-        />
-      </div>
-      {images.length > 1 && (
-        <div className="grid grid-cols-4 gap-3">
-          {images.slice(0, 4).map((image, index) => (
-            <button
-              key={`${image.variants.thumb}-${index}`}
-              type="button"
-              aria-label={`Photo ${index + 1}`}
-              className="relative aspect-square w-full overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] transition-colors hover:border-[var(--color-ink-300)]"
-            >
-              <ProductImage
-                image={image}
-                variant="thumb"
-                name={name}
-                brandName={brandName}
-                brandSlug={brandSlug}
-                sizes="120px"
-              />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 interface BreadcrumbsProps {
   categorySlug: string;
