@@ -1,96 +1,112 @@
-import mongoose, { Schema, type Model } from "mongoose";
+import mongoose, {
+  Schema,
+  type HydratedDocument,
+  type Model,
+} from "mongoose";
 
-import { MAX_PRODUCT_RELEASE_YEAR, MIN_PRODUCT_RELEASE_YEAR } from "@store/shared";
+import { slugify } from "@store/shared";
+import type { StoredImage } from "@store/shared";
 
-import { CATEGORY_IDS, CONDITION_GRADES, type CategoryId, type ConditionGrade } from "./Category";
+import { storedImageSchema } from "../schemas/storedImageSchema";
 
-export const ACCESSORY_TYPES = [
-  "charger",
-  "cable",
-  "case",
-  "earbuds",
-  "screen-protector",
-  "power-bank",
-  "other",
-] as const;
-export type AccessoryType = (typeof ACCESSORY_TYPES)[number];
+/**
+ * A catalogue listing. After the Phase 1 refactor a `Product` is a thin
+ * shell: an identity (name + slug), a category + brand assignment, some
+ * flags, and a list of variants. **All content lives on the variants** —
+ * imagery, pricing, stock, grade, and the category's dynamic attribute
+ * values are variant-level. The product-level imagery / highlights /
+ * hardcoded category-specific fields are gone.
+ *
+ * Removed at the product level (T1.5 / PLAN §10):
+ *   - `modelName` → renamed `name`.
+ *   - `imageUrl`, `galleryUrls` → all imagery moves to `variants[i].images`
+ *     as `StoredImage[]`. The PDP picks variant[0].images for the hero
+ *     pile and lets the variant selector swap it.
+ *   - `highlights` → not used by the new storefront PDP design.
+ *   - `attributes` (product-level dict) → all attributes are variant-scoped now.
+ *   - `accessoryType`, `gadgetType`, `releaseYear` → hardcoded category-
+ *     specific fields. Replaced by category-defined `Attribute` rows.
+ *
+ * The variant subdocument is rewritten in lockstep (T1.6 — see
+ * `variantSchema` below).
+ */
 
-export const CONNECTOR_TYPES = [
-  "usb-c",
-  "lightning",
-  "micro-usb",
-  "wireless",
-  "n-a",
-] as const;
-export type ConnectorType = (typeof CONNECTOR_TYPES)[number];
-
+/**
+ * Variant — the unit of inventory + imagery + dynamic attributes. Every
+ * stock change happens at the variant level. Image entries are full
+ * `StoredImage` records (4 pre-rendered WebP variants + blurhash + dims
+ * + alt) from day one; see `@store/shared/storage/types`.
+ *
+ * Removed at the variant level (T1.6 / PLAN §10):
+ *   - `grade` (legacy ConditionGrade enum) → `gradeSlug: string`. Validated
+ *     at the API layer against the `Grade` collection for the product's
+ *     `categorySlug` (T1.14). No schema-level enum because admins
+ *     create grades per category.
+ *   - `imageUrls: string[]` → `images: StoredImage[]` (≥1, index 0 = hero).
+ *   - `isInStock: boolean` → derived from `quantity > 0` at serializer time.
+ *     `quantity: number` is the source of truth (integer ≥ 0).
+ *   - Hardcoded typed fields (`storageGb`, `ramGb`, `batteryHealthMin/Max`,
+ *     `isPtaApproved`, `connector`, `wattage`, `lengthMeters`, `isGenuine`,
+ *     `colorName`) → all become rows in `Attribute` with `options`.
+ *     Variant's `attributes: Record<string, string>` is the per-row chosen
+ *     option value (single-select only — see PLAN §15 for the rationale).
+ *   - `originalPriceRupees`, `notes` → unused on the storefront after the
+ *     refactor.
+ */
 export interface VariantAttributes {
   /** Mongoose-generated when pushing into the parent doc. */
   _id?: mongoose.Types.ObjectId;
-  grade: ConditionGrade;
-  colorName: string;
+  gradeSlug: string;
   priceRupees: number;
-  originalPriceRupees: number;
-  isInStock: boolean;
-  warrantyMonths: number;
-  notes?: string;
-
-  // Phone fields (optional — present only when category = phone).
-  storageGb?: number;
-  ramGb?: number;
-  batteryHealthMinPercent?: number;
-  batteryHealthMaxPercent?: number;
-  isPtaApproved?: boolean;
-
-  // Accessory fields.
-  connector?: ConnectorType;
-  wattage?: number;
-  lengthMeters?: number;
-  isGenuine?: boolean;
+  quantity: number;
+  warrantyMonths?: number;
+  images: StoredImage[];
+  /**
+   * Per-attribute chosen option value. Keys are `Attribute.slug` (per the
+   * product's category); values are option `value` strings from
+   * `Attribute.options[].value`. Single-select; multi-select is out of
+   * scope for this iteration (PLAN §15).
+   */
+  attributes: Record<string, string>;
 }
 
 export interface ProductAttributes {
   slug: string;
-  modelName: string;
-  brandId: mongoose.Types.ObjectId;
-  category: CategoryId;
-  /** Required when category = "accessory". */
-  accessoryType?: AccessoryType;
-  /** Required when category = "gadget". Free-form short label
-   *  (e.g. "Console", "Smart watch", "Drone"). */
-  gadgetType?: string;
-  imageUrl: string;
-  galleryUrls: string[];
-  releaseYear: number;
-  highlights: string[];
-  isFeatured: boolean;
+  name: string;
+  brandSlug: string;
+  categorySlug: string;
   isActive: boolean;
   isArchived: boolean;
+  isFeatured: boolean;
   variants: VariantAttributes[];
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 const variantSchema = new Schema<VariantAttributes>(
   {
-    grade: { type: String, enum: CONDITION_GRADES, required: true },
-    colorName: { type: String, required: true, trim: true, maxlength: 60 },
+    gradeSlug: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+      maxlength: 64,
+    },
     priceRupees: { type: Number, required: true, min: 0 },
-    originalPriceRupees: { type: Number, required: true, min: 0 },
-    isInStock: { type: Boolean, required: true, default: true },
-    warrantyMonths: { type: Number, required: true, min: 0, default: 6 },
-    notes: { type: String, trim: true, maxlength: 500 },
-
-    storageGb: { type: Number, min: 1 },
-    ramGb: { type: Number, min: 0 },
-    batteryHealthMinPercent: { type: Number, min: 0, max: 100 },
-    batteryHealthMaxPercent: { type: Number, min: 0, max: 100 },
-    isPtaApproved: { type: Boolean },
-
-    connector: { type: String, enum: CONNECTOR_TYPES },
-    wattage: { type: Number, min: 0 },
-    lengthMeters: { type: Number, min: 0 },
-    isGenuine: { type: Boolean },
+    quantity: { type: Number, required: true, min: 0, default: 0 },
+    warrantyMonths: { type: Number, min: 0 },
+    images: {
+      type: [storedImageSchema],
+      required: true,
+      validate: {
+        validator: (value: StoredImage[]) =>
+          Array.isArray(value) && value.length > 0,
+        message: "Variant must have at least one image.",
+      },
+    },
+    attributes: {
+      type: Schema.Types.Mixed,
+      required: true,
+      default: {} as Record<string, string>,
+    },
   },
   { _id: true, timestamps: false },
 );
@@ -106,25 +122,22 @@ const productSchema = new Schema<ProductAttributes>(
       maxlength: 96,
       index: true,
     },
-    modelName: { type: String, required: true, trim: true, maxlength: 120 },
-    brandId: { type: Schema.Types.ObjectId, ref: "Brand", required: true, index: true },
-    category: { type: String, enum: CATEGORY_IDS, required: true, index: true },
-    accessoryType: { type: String, enum: ACCESSORY_TYPES },
-    gadgetType: { type: String, trim: true, maxlength: 60 },
-    imageUrl: { type: String, required: true, trim: true, maxlength: 500 },
-    galleryUrls: {
-      type: [{ type: String, trim: true, maxlength: 500 }],
-      default: [],
-    },
-    releaseYear: {
-      type: Number,
+    name: { type: String, required: true, trim: true, maxlength: 120 },
+    brandSlug: {
+      type: String,
       required: true,
-      min: MIN_PRODUCT_RELEASE_YEAR,
-      max: MAX_PRODUCT_RELEASE_YEAR,
+      lowercase: true,
+      trim: true,
+      maxlength: 64,
+      index: true,
     },
-    highlights: {
-      type: [{ type: String, trim: true, maxlength: 200 }],
-      default: [],
+    categorySlug: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+      maxlength: 64,
+      index: true,
     },
     isFeatured: { type: Boolean, required: true, default: false },
     isActive: { type: Boolean, required: true, default: true },
@@ -137,22 +150,33 @@ const productSchema = new Schema<ProductAttributes>(
   { timestamps: true },
 );
 
+productSchema.pre<HydratedDocument<ProductAttributes>>(
+  "validate",
+  async function productSlugAutogen() {
+    if ((!this.slug || this.slug.length === 0) && this.name) {
+      this.slug = slugify(this.name, 96);
+    }
+  },
+);
+
 // Storefront list/sort coverage:
-//   • `modelName` index supports the legacy `name-asc` sort path.
-//   • `createdAt:-1` covers the dominant "newest first" path used by the
-//     home page and the default `/shop/[category]` sort. Without this, a
-//     50k-product catalog forced an in-memory sort on every shop hit.
-//   • `releaseYear:-1, createdAt:-1` covers the hero rail + "Just released".
-productSchema.index({ category: 1, isActive: 1, isArchived: 1, modelName: 1 });
-productSchema.index({ category: 1, isActive: 1, isArchived: 1, createdAt: -1 });
-productSchema.index({ category: 1, isActive: 1, isArchived: 1, releaseYear: -1, createdAt: -1 });
-productSchema.index({ brandId: 1, modelName: 1 });
-// Admin list coverage:
-//   The admin /products page does `find({ isArchived: { $ne: true } })
-//   .sort({ createdAt: -1 })` across ALL categories. The storefront's
-//   compound indexes don't cover this because their leading key is
-//   `category`. A dedicated `{ isArchived, createdAt }` index keeps the
-//   admin grid snappy as the catalog grows.
+//   • `{ categorySlug, isActive, isArchived, name }` supports name-asc sort.
+//   • `{ categorySlug, isActive, isArchived, createdAt:-1 }` covers the
+//     dominant "newest first" path used by home + default /shop/[slug].
+//   • `{ categorySlug, isActive, isArchived, isFeatured:-1, createdAt:-1 }`
+//     covers the featured rail.
+//   • `{ brandSlug, name }` for the brand landing path.
+productSchema.index({ categorySlug: 1, isActive: 1, isArchived: 1, name: 1 });
+productSchema.index({ categorySlug: 1, isActive: 1, isArchived: 1, createdAt: -1 });
+productSchema.index({
+  categorySlug: 1,
+  isActive: 1,
+  isArchived: 1,
+  isFeatured: -1,
+  createdAt: -1,
+});
+productSchema.index({ brandSlug: 1, name: 1 });
+// Admin list coverage: cross-category "all products" sort by recency.
 productSchema.index({ isArchived: 1, createdAt: -1 });
 
 export const Product: Model<ProductAttributes> =
