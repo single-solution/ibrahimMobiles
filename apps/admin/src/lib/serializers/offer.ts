@@ -1,21 +1,10 @@
 import type { Types } from "mongoose";
+import type { OfferAttributes, WithTimestamps } from "@store/db";
 import type { AdminOffer } from "@/types/admin";
-import type { OfferAccentColor } from "@store/db";
 
-export interface OfferLean {
+export type OfferLean = WithTimestamps<OfferAttributes> & {
   _id: Types.ObjectId;
-  slug: string;
-  title: string;
-  description: string;
-  discountLabel: string;
-  badgeLabel: string;
-  accentColor: OfferAccentColor;
-  expiresAt?: Date | null;
-  isActive: boolean;
-  sortOrder: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+};
 
 export function toOfferResponse(doc: OfferLean): AdminOffer {
   return {
@@ -25,8 +14,11 @@ export function toOfferResponse(doc: OfferLean): AdminOffer {
     description: doc.description,
     discountLabel: doc.discountLabel,
     badgeLabel: doc.badgeLabel,
-    accentColor: doc.accentColor,
-    expiresAt: doc.expiresAt ? new Date(doc.expiresAt).toISOString() : undefined,
+    color: doc.color,
+    bannerImage: doc.bannerImage ?? null,
+    expiresAt: doc.expiresAt
+      ? new Date(doc.expiresAt).toISOString()
+      : undefined,
     isActive: doc.isActive,
     sortOrder: doc.sortOrder,
     createdAt: doc.createdAt.toISOString(),

@@ -1,32 +1,46 @@
 /**
  * Wire types shared between admin API routes and admin client components.
- * Kept separate from the storefront `@store/shared` types so the admin schema
- * can evolve (extra fields, looser nullability) without leaking through to
- * the public-facing contract.
+ * Mirrors PLAN.md §10 1:1 — when the Mongoose schema changes, this file
+ * changes; when this file changes, the serializers under
+ * `apps/admin/src/lib/serializers/` and the components under
+ * `apps/admin/src/components/` change in lockstep.
+ *
+ * Phase 1 (this commit) brings every entity onto the new shape:
+ *   - Categories, brands, grades, attributes are admin-authored,
+ *     slug-keyed, and per-category.
+ *   - Products are thin shells; all content lives on variants.
+ *   - Variants carry `StoredImage[]` (universal 4-variant pipeline) +
+ *     dynamic `attributes: Record<string, string>` (no more hardcoded
+ *     phone / accessory fields).
+ *   - Inquiries are threaded chats; the legacy flat-snapshot shape is
+ *     gone.
+ *   - Offers use hex `color` (matching Grade); accentColor enum gone.
+ *   - User role enum trimmed to the modern five.
  */
+import type { StoredImage } from "@store/shared";
 
 export interface AdminBrand {
   id: string;
   slug: string;
   name: string;
-  tagline: string;
+  categorySlugs: string[];
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }
 
+export type AdminCategoryIconKind = "emoji" | "image";
+
 export interface AdminCategory {
   id: string;
-  categoryId: "phone" | "accessory" | "gadget";
+  slug: string;
   label: string;
-  pluralLabel: string;
-  pathSegment: string;
+  description: string;
+  iconKind: AdminCategoryIconKind;
+  iconEmoji?: string;
+  iconImage?: StoredImage;
   isActive: boolean;
-  tagline: string;
-  applicableGrades: string[];
-  trustChips: string[];
-  emptyHint: string;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -34,14 +48,34 @@ export interface AdminCategory {
 
 export interface AdminGrade {
   id: string;
-  grade: string;
+  categorySlug: string;
+  slug: string;
   label: string;
-  shortLabel: string;
-  description: string;
-  cosmeticNotes: string;
-  functionalNotes: string;
-  tone: "accent" | "neutral" | "info" | "warn" | "danger" | "dark";
-  sortOrder: number;
+  notes: string;
+  color: string;
+  video: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AdminAttributeCardPosition =
+  | "image-overlay"
+  | "title-chips"
+  | "none";
+
+export interface AdminAttributeOption {
+  value: string;
+  label: string;
+}
+
+export interface AdminAttribute {
+  id: string;
+  categorySlug: string;
+  slug: string;
+  label: string;
+  options: AdminAttributeOption[];
+  cardPosition: AdminAttributeCardPosition;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,49 +86,37 @@ export interface AdminGrade {
 
 export interface AdminVariant {
   id: string;
-  grade: string;
-  colorName: string;
+  gradeSlug: string;
   priceRupees: number;
-  originalPriceRupees: number;
-  isInStock: boolean;
-  warrantyMonths: number;
-  notes?: string;
-
-  storageGb?: number;
-  ramGb?: number;
-  batteryHealthMinPercent?: number;
-  batteryHealthMaxPercent?: number;
-  isPtaApproved?: boolean;
-
-  connector?: string;
-  wattage?: number;
-  lengthMeters?: number;
-  isGenuine?: boolean;
+  quantity: number;
+  warrantyMonths?: number;
+  images: StoredImage[];
+  /**
+   * Per-attribute chosen option value. Keys are `Attribute.slug` (per the
+   * product's category); values are option `value` strings.
+   */
+  attributes: Record<string, string>;
 }
 
 export interface AdminProductSummary {
   id: string;
   slug: string;
-  modelName: string;
-  category: "phone" | "accessory" | "gadget";
-  accessoryType?: string;
-  gadgetType?: string;
-  brand: { id: string; slug: string; name: string };
-  imageUrl: string;
-  releaseYear: number;
+  name: string;
+  brand: { slug: string; name: string };
+  categorySlug: string;
   isFeatured: boolean;
   isActive: boolean;
   isArchived: boolean;
   variantCount: number;
   inStockCount: number;
   minPriceRupees?: number;
+  /** First image of the first variant, or null when the catalogue is empty. */
+  heroImage: StoredImage | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface AdminProduct extends AdminProductSummary {
-  galleryUrls: string[];
-  highlights: string[];
   variants: AdminVariant[];
 }
 
@@ -192,26 +214,59 @@ export interface AdminOrder extends AdminOrderSummary {
 }
 
 // ============================================================================
-// Inquiries
+// Inquiries (threaded chat — PLAN §12)
 // ============================================================================
 
-export interface AdminInquiry {
+export type AdminInquiryStatus = "open" | "awaiting-customer" | "resolved";
+export type AdminInquiryMessageAuthor = "customer" | "agent";
+
+export interface AdminInquiryImageAttachment {
+  kind: "image";
+  image: StoredImage;
+}
+export interface AdminInquiryFileAttachment {
+  kind: "file";
+  url: string;
+  mime: string;
+  sizeBytes: number;
+  filename: string;
+}
+export type AdminInquiryAttachment =
+  | AdminInquiryImageAttachment
+  | AdminInquiryFileAttachment;
+
+export interface AdminInquiryMessage {
   id: string;
-  customerName: string;
-  customerCity: string;
-  phoneNumber: string;
-  modelName: string;
-  variantSummary?: string;
-  expectedRupees?: number;
-  source: string;
-  status: string;
-  receivedAt: string;
-  lastMessage: string;
-  notes?: string;
-  productId?: string;
+  author: AdminInquiryMessageAuthor;
+  authorName?: string;
+  authorUserId?: string;
+  body: string;
+  attachments?: AdminInquiryAttachment[];
+  createdAt: string;
+  readByCustomerAt?: string;
+}
+
+export interface AdminInquirySummary {
+  id: string;
   customerId?: string;
+  customerName: string;
+  phoneNumber: string;
+  subjectProductId?: string;
+  subjectProductName?: string;
+  status: AdminInquiryStatus;
+  assignedToUserId?: string;
+  lastMessageAt: string;
+  lastMessagePreview: string;
+  lastMessageAuthor: AdminInquiryMessageAuthor;
+  unreadByCustomer: number;
+  unreadByTeam: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AdminInquiry extends AdminInquirySummary {
+  internalNotes?: string;
+  messages: AdminInquiryMessage[];
 }
 
 // ============================================================================
@@ -250,7 +305,8 @@ export interface AdminOffer {
   description: string;
   discountLabel: string;
   badgeLabel: string;
-  accentColor: "emerald" | "amber" | "rose" | "sky";
+  color: string;
+  bannerImage: StoredImage | null;
   expiresAt?: string;
   isActive: boolean;
   sortOrder: number;
@@ -277,12 +333,19 @@ export interface AdminSetting {
 // Team & users
 // ============================================================================
 
+export type AdminUserRole =
+  | "owner"
+  | "business_manager"
+  | "product_manager"
+  | "marketing_manager"
+  | "support_staff";
+
 export interface AdminUser {
   id: string;
   name: string;
   email: string;
   phoneNumber?: string;
-  role: "owner" | "manager" | "staff";
+  role: AdminUserRole;
   isSuperAdmin: boolean;
   isActive: boolean;
   lastSignInAt?: string;
@@ -294,13 +357,28 @@ export interface AdminUser {
 // Activity log
 // ============================================================================
 
+export type AdminActivityResourceType =
+  | "product"
+  | "brand"
+  | "category"
+  | "grade"
+  | "attribute"
+  | "order"
+  | "customer"
+  | "loyalty"
+  | "inquiry"
+  | "offer"
+  | "team"
+  | "settings"
+  | "auth";
+
 export interface AdminActivityEntry {
   id: string;
   actorUserId?: string;
   actorName: string;
   actorRole: string;
   action: string;
-  resourceType: string;
+  resourceType: AdminActivityResourceType;
   resourceId?: string;
   resourceLabel: string;
   detail?: string;

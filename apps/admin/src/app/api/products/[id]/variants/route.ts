@@ -1,16 +1,17 @@
 import { requireSession } from "@/lib/api/requireSession";
 import { badRequest, created, isValidId, notFound, parseBody } from "@store/shared";
-import {
-  Brand,
-  connectDB,
-  handleMongoError,
-  Product,
-} from "@store/db";
+import { Brand, connectDB, handleMongoError, Product } from "@store/db";
 
 import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
-import { validateVariant, type VariantInput } from "@/lib/api/variantValidation";
-import { toProductResponse, type ProductLean } from "@/lib/serializers/product";
+import {
+  validateVariant,
+  type VariantInput,
+} from "@/lib/api/variantValidation";
+import {
+  toProductResponse,
+  type ProductLean,
+} from "@/lib/serializers/product";
 import { type BrandLean } from "@/lib/serializers/brand";
 
 interface RouteContext {
@@ -33,12 +34,23 @@ export async function POST(request: Request, { params }: RouteContext) {
     return body;
   }
 
-  const result = validateVariant(body, true);
+  await connectDB();
+  // Read the parent product first so the variant validator can scope its
+  // grade + attribute lookups by `categorySlug`.
+  const product = await Product.findById(id)
+    .select("categorySlug brandSlug")
+    .lean<{ categorySlug: string; brandSlug: string }>();
+  if (!product) {
+    return notFound("Product not found");
+  }
+
+  const result = await validateVariant(body, true, {
+    categorySlug: product.categorySlug,
+  });
   if (!result.ok) {
     return badRequest(result.error);
   }
 
-  await connectDB();
   try {
     const updated = await Product.findByIdAndUpdate(
       id,
@@ -49,13 +61,13 @@ export async function POST(request: Request, { params }: RouteContext) {
       return notFound("Product not found");
     }
 
-    const brand = await Brand.findById(updated.brandId).lean<BrandLean>();
+    const brand = await Brand.findOne({ slug: updated.brandSlug }).lean<BrandLean>();
     await recordActivity({
       actor,
       action: "updated",
       resourceType: "product",
       resourceId: id,
-      resourceLabel: updated.modelName,
+      resourceLabel: updated.name,
       detail: "Variant added",
     });
     bustAdminCaches();

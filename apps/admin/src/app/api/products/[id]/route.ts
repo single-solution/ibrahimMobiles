@@ -1,7 +1,6 @@
 import {
-  ACCESSORY_TYPES,
   Brand,
-  CATEGORY_IDS,
+  Category,
   connectDB,
   handleMongoError,
   Order,
@@ -10,25 +9,24 @@ import {
 import {
   badRequest,
   conflict,
-  FIELD_LIMITS,
   isValidId,
   isValidationError,
-  MAX_PRODUCT_RELEASE_YEAR,
-  MIN_PRODUCT_RELEASE_YEAR,
   noContent,
   notFound,
   ok,
   parseBody,
-  toUnknownArray,
+  slugify,
   validateString,
 } from "@store/shared";
 
 import { requireSession } from "@/lib/api/requireSession";
 import { bustAdminCaches } from "@/lib/cached";
 import { type BrandLean } from "@/lib/serializers/brand";
-import { toProductResponse, type ProductLean } from "@/lib/serializers/product";
+import {
+  toProductResponse,
+  type ProductLean,
+} from "@/lib/serializers/product";
 import { recordActivity } from "@/lib/services/activityLog";
-import { slugify } from "@store/shared";
 import { PRODUCT_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 
 interface RouteContext {
@@ -52,28 +50,19 @@ export async function GET(_request: Request, { params }: RouteContext) {
     return notFound("Product not found");
   }
 
-  const brand = await Brand.findById(doc.brandId).lean<BrandLean>();
+  const brand = await Brand.findOne({ slug: doc.brandSlug }).lean<BrandLean>();
   return ok(toProductResponse(doc, brand ?? undefined));
 }
 
 interface ProductUpdateInput {
-  modelName?: unknown;
+  name?: unknown;
   slug?: unknown;
-  brandId?: unknown;
-  category?: unknown;
-  accessoryType?: unknown;
-  gadgetType?: unknown;
-  imageUrl?: unknown;
-  galleryUrls?: unknown;
-  releaseYear?: unknown;
-  highlights?: unknown;
+  brandSlug?: unknown;
+  categorySlug?: unknown;
   isFeatured?: unknown;
   isActive?: unknown;
   isArchived?: unknown;
 }
-
-const ALLOWED_CATEGORIES = new Set(CATEGORY_IDS as readonly string[]);
-const ALLOWED_ACCESSORY_TYPES = new Set(ACCESSORY_TYPES as readonly string[]);
 
 export async function PUT(request: Request, { params }: RouteContext) {
   const { actor, response } = await requireSession("product_update");
@@ -93,71 +82,34 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   const update: Record<string, unknown> = {};
 
-  if (body.modelName !== undefined) {
-    const result = validateString(body.modelName, {
-      label: "Model name",
-      max: PRODUCT_FIELD_LIMITS.modelName,
+  if (body.name !== undefined) {
+    const result = validateString(body.name, {
+      label: "Name",
+      max: PRODUCT_FIELD_LIMITS.name,
     });
     if (isValidationError(result)) {
       return badRequest(result.error);
     }
-    update.modelName = result;
+    update.name = result;
   }
   if (typeof body.slug === "string" && body.slug.trim().length > 0) {
     update.slug = slugify(body.slug, PRODUCT_FIELD_LIMITS.slug);
   }
-  if (typeof body.brandId === "string" && isValidId(body.brandId)) {
-    update.brandId = body.brandId;
-  }
-  if (typeof body.category === "string") {
-    if (!ALLOWED_CATEGORIES.has(body.category)) {
-      return badRequest(`category must be one of: ${Array.from(ALLOWED_CATEGORIES).join(", ")}`);
+  if (typeof body.brandSlug === "string" && body.brandSlug.length > 0) {
+    const slug = slugify(body.brandSlug, 64);
+    await connectDB();
+    if (!(await Brand.exists({ slug }))) {
+      return badRequest(`Brand '${slug}' does not exist.`);
     }
-    update.category = body.category;
+    update.brandSlug = slug;
   }
-  if (body.accessoryType !== undefined) {
-    if (typeof body.accessoryType === "string" && ALLOWED_ACCESSORY_TYPES.has(body.accessoryType)) {
-      update.accessoryType = body.accessoryType;
-    } else if (body.accessoryType === null) {
-      update.accessoryType = undefined;
+  if (typeof body.categorySlug === "string" && body.categorySlug.length > 0) {
+    const slug = slugify(body.categorySlug, 64);
+    await connectDB();
+    if (!(await Category.exists({ slug }))) {
+      return badRequest(`Category '${slug}' does not exist.`);
     }
-  }
-  if (typeof body.gadgetType === "string") {
-    update.gadgetType = body.gadgetType.trim().slice(0, FIELD_LIMITS.shortLabel);
-  }
-  if (body.imageUrl !== undefined) {
-    const result = validateString(body.imageUrl, {
-      label: "Image URL",
-      max: PRODUCT_FIELD_LIMITS.imageUrl,
-    });
-    if (isValidationError(result)) {
-      return badRequest(result.error);
-    }
-    update.imageUrl = result;
-  }
-  if (Array.isArray(body.galleryUrls)) {
-    update.galleryUrls = toUnknownArray(body.galleryUrls)
-      .filter((url): url is string => typeof url === "string" && url.length <= PRODUCT_FIELD_LIMITS.imageUrl);
-  }
-  if (body.releaseYear !== undefined) {
-    const releaseYear = Number(body.releaseYear);
-    if (
-      !Number.isFinite(releaseYear) ||
-      releaseYear < MIN_PRODUCT_RELEASE_YEAR ||
-      releaseYear > MAX_PRODUCT_RELEASE_YEAR
-    ) {
-      return badRequest(
-        `Release year must be between ${MIN_PRODUCT_RELEASE_YEAR} and ${MAX_PRODUCT_RELEASE_YEAR}.`,
-      );
-    }
-    update.releaseYear = releaseYear;
-  }
-  if (Array.isArray(body.highlights)) {
-    update.highlights = toUnknownArray(body.highlights)
-      .filter((highlight): highlight is string => typeof highlight === "string")
-      .map((highlight) => highlight.trim())
-      .filter((highlight) => highlight.length > 0 && highlight.length <= FIELD_LIMITS.shortText)
-      .slice(0, PRODUCT_FIELD_LIMITS.highlightCount);
+    update.categorySlug = slug;
   }
   if (body.isFeatured !== undefined) {
     update.isFeatured = Boolean(body.isFeatured);
@@ -175,22 +127,23 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   await connectDB();
   try {
-    const doc = await Product.findByIdAndUpdate(id, { $set: update }, {
-      new: true,
-      runValidators: true,
-    }).lean<ProductLean>();
+    const doc = await Product.findByIdAndUpdate(
+      id,
+      { $set: update },
+      { new: true, runValidators: true },
+    ).lean<ProductLean>();
     if (!doc) {
       return notFound("Product not found");
     }
 
-    const brand = await Brand.findById(doc.brandId).lean<BrandLean>();
+    const brand = await Brand.findOne({ slug: doc.brandSlug }).lean<BrandLean>();
 
     await recordActivity({
       actor,
       action: update.isArchived === true ? "archived" : "updated",
       resourceType: "product",
       resourceId: id,
-      resourceLabel: doc.modelName,
+      resourceLabel: doc.name,
     });
     bustAdminCaches();
     return ok(toProductResponse(doc, brand ?? undefined));
@@ -231,7 +184,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       action: "deleted",
       resourceType: "product",
       resourceId: id,
-      resourceLabel: doc.modelName,
+      resourceLabel: doc.name,
     });
     bustAdminCaches();
     return noContent();

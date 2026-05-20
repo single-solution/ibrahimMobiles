@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare, Phone, Send } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -12,46 +12,51 @@ import { TextArea } from "@/components/forms/TextArea";
 import { useToast } from "@/components/Toast";
 import { adminFetch } from "@/lib/adminApi";
 import { getInitials } from "@/lib/initials";
-import { formatPrice } from "@store/shared";
-import type { AdminInquiry } from "@/types/admin";
+import type {
+  AdminInquiry,
+  AdminInquiryStatus,
+  AdminInquirySummary,
+} from "@/types/admin";
 
-const STATUS_TONE: Record<string, StatusTone> = {
-  new: "info",
-  "in-progress": "neutral",
+/**
+ * Threaded-chat inquiries (PLAN §12).
+ *
+ * The full chat UI (send messages, attachments, polling/WebSocket
+ * transport) lands in Phase 8 — see PHASE 8 "Chat plugin". This list
+ * + drawer surface the metadata an admin needs to triage threads today:
+ * status, assignee, customer / subject / last message preview, and the
+ * full message log (read-only for now).
+ */
+
+const STATUS_TONE: Record<AdminInquiryStatus, StatusTone> = {
+  open: "info",
   "awaiting-customer": "warn",
-  won: "success",
-  lost: "danger",
+  resolved: "success",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  new: "New",
-  "in-progress": "In progress",
+const STATUS_LABELS: Record<AdminInquiryStatus, string> = {
+  open: "Open",
   "awaiting-customer": "Awaiting customer",
-  won: "Won",
-  lost: "Lost",
+  resolved: "Resolved",
 };
 
-const STATUS_OPTIONS = ["new", "in-progress", "awaiting-customer", "won", "lost"] as const;
-
-const SOURCE_LABELS: Record<string, string> = {
-  whatsapp: "WhatsApp",
-  phone: "Phone",
-  facebook: "Facebook",
-  instagram: "Instagram",
-  "walk-in": "Walk-in",
-  website: "Website",
-  other: "Other",
-};
+const STATUS_OPTIONS: readonly AdminInquiryStatus[] = [
+  "open",
+  "awaiting-customer",
+  "resolved",
+];
 
 interface InquiriesProps {
-  inquiries: AdminInquiry[];
+  inquiries: AdminInquirySummary[];
 }
 
 export function Inquiries({ inquiries }: InquiriesProps) {
   const router = useRouter();
   const toast = useToast();
-  const [statusFilter, setStatusFilter] = useState<"all" | string>("all");
-  const [activeInquiry, setActiveInquiry] = useState<AdminInquiry | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | AdminInquiryStatus>(
+    "all",
+  );
+  const [activeInquiryId, setActiveInquiryId] = useState<string | null>(null);
 
   const filteredInquiries = useMemo(() => {
     if (statusFilter === "all") {
@@ -64,12 +69,15 @@ export function Inquiries({ inquiries }: InquiriesProps) {
     const map = new Map<string, number>();
     map.set("all", inquiries.length);
     for (const status of STATUS_OPTIONS) {
-      map.set(status, inquiries.filter((inquiry) => inquiry.status === status).length);
+      map.set(
+        status,
+        inquiries.filter((inquiry) => inquiry.status === status).length,
+      );
     }
     return map;
   }, [inquiries]);
 
-  const columns: DataTableColumn<AdminInquiry>[] = [
+  const columns: DataTableColumn<AdminInquirySummary>[] = [
     {
       id: "customer",
       header: "Customer",
@@ -83,49 +91,54 @@ export function Inquiries({ inquiries }: InquiriesProps) {
               {inquiry.customerName}
             </p>
             <p className="truncate text-[11px] text-[var(--color-ink-500)]">
-              {inquiry.customerCity} · {inquiry.phoneNumber}
+              {inquiry.phoneNumber}
             </p>
           </div>
         </div>
       ),
     },
     {
-      id: "model",
-      header: "Variant",
+      id: "subject",
+      header: "Subject",
       hideOnMobile: true,
       cell: (inquiry) => (
-        <div>
-          <p className="text-sm font-semibold text-[var(--color-ink-900)]">{inquiry.modelName}</p>
+        <p className="text-sm font-semibold text-[var(--color-ink-900)]">
+          {inquiry.subjectProductName ?? "General"}
+        </p>
+      ),
+    },
+    {
+      id: "lastMessage",
+      header: "Last message",
+      hideOnMobile: true,
+      cell: (inquiry) => (
+        <div className="max-w-[36ch]">
+          <p className="truncate text-xs text-[var(--color-ink-700)]">
+            {inquiry.lastMessagePreview}
+          </p>
           <p className="text-[11px] text-[var(--color-ink-500)]">
-            {inquiry.variantSummary ?? "—"}
+            {new Date(inquiry.lastMessageAt).toLocaleString()}
           </p>
         </div>
       ),
     },
     {
-      id: "amount",
-      header: "Expected",
+      id: "unread",
+      header: "Unread",
       align: "right",
-      cell: (inquiry) => (
-        <span className="text-sm font-semibold text-[var(--color-ink-900)]">
-          {inquiry.expectedRupees ? formatPrice(inquiry.expectedRupees) : "—"}
-        </span>
-      ),
-    },
-    {
-      id: "source",
-      header: "Source",
-      hideOnMobile: true,
-      cell: (inquiry) => (
-        <StatusPill tone="neutral">{SOURCE_LABELS[inquiry.source] ?? inquiry.source}</StatusPill>
-      ),
+      cell: (inquiry) =>
+        inquiry.unreadByTeam > 0 ? (
+          <StatusPill tone="danger">{inquiry.unreadByTeam}</StatusPill>
+        ) : (
+          <span className="text-xs text-[var(--color-ink-400)]">0</span>
+        ),
     },
     {
       id: "status",
       header: "Status",
       cell: (inquiry) => (
-        <StatusPill tone={STATUS_TONE[inquiry.status] ?? "neutral"}>
-          {STATUS_LABELS[inquiry.status] ?? inquiry.status}
+        <StatusPill tone={STATUS_TONE[inquiry.status]}>
+          {STATUS_LABELS[inquiry.status]}
         </StatusPill>
       ),
     },
@@ -143,7 +156,7 @@ export function Inquiries({ inquiries }: InquiriesProps) {
         {STATUS_OPTIONS.map((status) => (
           <FilterChip
             key={status}
-            label={STATUS_LABELS[status] ?? status}
+            label={STATUS_LABELS[status]}
             count={counts.get(status) ?? 0}
             isActive={statusFilter === status}
             onClick={() => setStatusFilter(status)}
@@ -156,18 +169,20 @@ export function Inquiries({ inquiries }: InquiriesProps) {
         columns={columns}
         rowKey={(inquiry) => inquiry.id}
         searchAccessor={(inquiry) =>
-          `${inquiry.customerName} ${inquiry.customerCity} ${inquiry.modelName} ${inquiry.variantSummary ?? ""} ${inquiry.lastMessage}`
+          `${inquiry.customerName} ${inquiry.phoneNumber} ${
+            inquiry.subjectProductName ?? ""
+          } ${inquiry.lastMessagePreview}`
         }
         searchPlaceholder="Search inquiries…"
-        onRowClick={(inquiry) => setActiveInquiry(inquiry)}
+        onRowClick={(inquiry) => setActiveInquiryId(inquiry.id)}
       />
 
-      {activeInquiry ? (
+      {activeInquiryId ? (
         <InquiryDrawer
-          inquiry={activeInquiry}
-          onClose={() => setActiveInquiry(null)}
+          inquiryId={activeInquiryId}
+          onClose={() => setActiveInquiryId(null)}
           onSaved={() => {
-            setActiveInquiry(null);
+            setActiveInquiryId(null);
             router.refresh();
           }}
           onCallTapped={(phoneNumber) => toast.info(`Calling ${phoneNumber}`)}
@@ -178,52 +193,104 @@ export function Inquiries({ inquiries }: InquiriesProps) {
 }
 
 interface InquiryDrawerProps {
-  inquiry: AdminInquiry;
+  inquiryId: string;
   onClose: () => void;
   onSaved: () => void;
   onCallTapped: (phoneNumber: string) => void;
 }
 
-function InquiryDrawer({ inquiry, onClose, onSaved, onCallTapped }: InquiryDrawerProps) {
+function InquiryDrawer({
+  inquiryId,
+  onClose,
+  onSaved,
+  onCallTapped,
+}: InquiryDrawerProps) {
   const toast = useToast();
-  const [status, setStatus] = useState(inquiry.status);
-  const [notes, setNotes] = useState(inquiry.notes ?? "");
+  const [inquiry, setInquiry] = useState<AdminInquiry | null>(null);
+  const [status, setStatus] = useState<AdminInquiryStatus>("open");
+  const [internalNotes, setInternalNotes] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    // Fetch inquiry detail (with full message thread) on mount / id change.
+    let cancelled = false;
+    async function load() {
+      try {
+        const detail = await adminFetch<AdminInquiry>(
+          `/api/inquiries/${inquiryId}`,
+        );
+        if (cancelled) return;
+        setInquiry(detail);
+        setStatus(detail.status);
+        setInternalNotes(detail.internalNotes ?? "");
+      } catch (error) {
+        toast.danger(
+          error instanceof Error ? error.message : "Failed to load inquiry",
+        );
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [inquiryId, toast]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
     try {
-      await adminFetch(`/api/inquiries/${inquiry.id}`, {
+      await adminFetch(`/api/inquiries/${inquiryId}`, {
         method: "PUT",
-        json: { status, notes },
+        json: { status, internalNotes },
       });
       toast.success("Inquiry updated");
       onSaved();
     } catch (error) {
-      toast.danger(error instanceof Error ? error.message : "Failed to update inquiry");
+      toast.danger(
+        error instanceof Error ? error.message : "Failed to update inquiry",
+      );
     } finally {
       setIsSaving(false);
     }
   }
 
   async function handleDelete() {
-    const ok = window.confirm(
+    if (!inquiry) return;
+    const confirmed = window.confirm(
       `Delete the inquiry from ${inquiry.customerName}? This cannot be undone.`,
     );
-    if (!ok) {
+    if (!confirmed) {
       return;
     }
     setIsDeleting(true);
     try {
-      await adminFetch(`/api/inquiries/${inquiry.id}`, { method: "DELETE" });
+      await adminFetch(`/api/inquiries/${inquiryId}`, { method: "DELETE" });
       toast.success("Inquiry deleted");
       onSaved();
     } catch (error) {
-      toast.danger(error instanceof Error ? error.message : "Failed to delete inquiry");
+      toast.danger(
+        error instanceof Error ? error.message : "Failed to delete inquiry",
+      );
       setIsDeleting(false);
     }
+  }
+
+  if (isLoading || !inquiry) {
+    return (
+      <Drawer
+        isOpen
+        onClose={onClose}
+        title="Loading…"
+        description=""
+        width="lg"
+      >
+        <p className="text-sm text-[var(--color-ink-500)]">Loading thread…</p>
+      </Drawer>
+    );
   }
 
   return (
@@ -231,7 +298,9 @@ function InquiryDrawer({ inquiry, onClose, onSaved, onCallTapped }: InquiryDrawe
       isOpen
       onClose={onClose}
       title={inquiry.customerName}
-      description={`${SOURCE_LABELS[inquiry.source] ?? inquiry.source} · ${inquiry.customerCity}`}
+      description={
+        inquiry.subjectProductName ? `Re: ${inquiry.subjectProductName}` : ""
+      }
       width="lg"
       footer={
         <div className="flex items-center justify-between gap-2">
@@ -276,43 +345,56 @@ function InquiryDrawer({ inquiry, onClose, onSaved, onCallTapped }: InquiryDrawe
       }
     >
       <form id="inquiry-form" onSubmit={handleSubmit} className="space-y-5">
-        <div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-3 text-xs text-[var(--color-ink-700)]">
-          <p>
-            <span className="font-semibold text-[var(--color-ink-900)]">{inquiry.modelName}</span>
-            {inquiry.variantSummary ? ` · ${inquiry.variantSummary}` : ""}
-          </p>
-          {inquiry.expectedRupees ? (
-            <p className="mt-1 text-[var(--color-ink-500)]">
-              Expected price · {formatPrice(inquiry.expectedRupees)}
-            </p>
-          ) : null}
-        </div>
-
         <div className="space-y-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-            Last message
+            Message thread ({inquiry.messages.length})
           </p>
-          <div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3 text-sm text-[var(--color-ink-800)]">
-            <MessageSquare size={12} className="mb-1 inline text-[var(--color-ink-400)]" />{" "}
-            {inquiry.lastMessage}
+          <div className="max-h-72 space-y-2 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3">
+            {inquiry.messages.length === 0 ? (
+              <p className="text-xs text-[var(--color-ink-500)]">
+                No messages yet.
+              </p>
+            ) : (
+              inquiry.messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={
+                    message.author === "customer"
+                      ? "rounded-[var(--radius-sm)] bg-[var(--color-canvas-deep)] p-2 text-xs text-[var(--color-ink-800)]"
+                      : "rounded-[var(--radius-sm)] bg-[var(--color-accent-100)]/40 p-2 text-xs text-[var(--color-ink-900)]"
+                  }
+                >
+                  <p className="font-semibold">
+                    <MessageSquare
+                      size={11}
+                      className="mr-1 inline text-[var(--color-ink-400)]"
+                    />
+                    {message.authorName ?? message.author}
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap">{message.body}</p>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         <SelectField
           label="Update status"
           value={status}
-          onChange={(event) => setStatus(event.target.value)}
+          onChange={(event) =>
+            setStatus(event.target.value as AdminInquiryStatus)
+          }
           options={STATUS_OPTIONS.map((option) => ({
             value: option,
-            label: STATUS_LABELS[option] ?? option,
+            label: STATUS_LABELS[option],
           }))}
         />
 
         <TextArea
-          label="Private note"
-          placeholder="e.g. Customer prefers China pack, agreed Rs 122,000…"
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
+          label="Internal note (not visible to customer)"
+          placeholder="e.g. Promised callback at 4pm; waiting on grade C stock…"
+          value={internalNotes}
+          onChange={(event) => setInternalNotes(event.target.value)}
           rows={4}
           maxLength={4_000}
         />

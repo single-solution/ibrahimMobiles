@@ -1,5 +1,12 @@
 import type { DefaultSession } from "next-auth";
 
+type AdminRole =
+  | "owner"
+  | "business_manager"
+  | "product_manager"
+  | "marketing_manager"
+  | "support_staff";
+
 declare module "next-auth" {
   /**
    * Admin sessions only ever represent an admin user. Customer sessions
@@ -9,13 +16,13 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string;
-      role: "owner" | "manager" | "staff";
+      role: AdminRole;
       isSuperAdmin: boolean;
     } & DefaultSession["user"];
   }
 
   interface User {
-    role: "owner" | "manager" | "staff";
+    role: AdminRole;
     isSuperAdmin: boolean;
   }
 }
@@ -23,7 +30,7 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string;
-    role: "owner" | "manager" | "staff";
+    role: AdminRole;
     isSuperAdmin: boolean;
   }
 }

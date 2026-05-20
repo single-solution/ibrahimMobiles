@@ -36,14 +36,18 @@ interface TeamProps {
 
 const ROLE_LABEL: Record<UserRole, string> = {
   owner: "Owner",
-  manager: "Manager",
-  staff: "Staff",
+  business_manager: "Business manager",
+  product_manager: "Product manager",
+  marketing_manager: "Marketing manager",
+  support_staff: "Support staff",
 };
 
 const ROLE_TONE: Record<UserRole, "dark" | "accent" | "neutral"> = {
   owner: "dark",
-  manager: "accent",
-  staff: "neutral",
+  business_manager: "accent",
+  product_manager: "accent",
+  marketing_manager: "accent",
+  support_staff: "neutral",
 };
 
 const ROLE_OPTIONS = (Object.keys(ROLE_LABEL) as UserRole[]).map((role) => ({
@@ -255,7 +259,7 @@ function TeamDrawer({ state, isCurrentUserSuperAdmin, onClose, onSaved }: TeamDr
   const [name, setName] = useState(initial?.name ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
   const [phoneNumber, setPhoneNumber] = useState(initial?.phoneNumber ?? "");
-  const [role, setRole] = useState<UserRole>(initial?.role ?? "staff");
+  const [role, setRole] = useState<UserRole>(initial?.role ?? "support_staff");
   const [password, setPassword] = useState("");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(initial?.isSuperAdmin ?? false);

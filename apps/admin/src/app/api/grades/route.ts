@@ -10,6 +10,8 @@ export async function GET() {
   }
 
   await connectDB();
-  const docs = await Grade.find().sort({ sortOrder: 1 }).lean<GradeLean[]>();
+  const docs = await Grade.find()
+    .sort({ categorySlug: 1, label: 1 })
+    .lean<GradeLean[]>();
   return ok({ items: docs.map(toGradeResponse) });
 }

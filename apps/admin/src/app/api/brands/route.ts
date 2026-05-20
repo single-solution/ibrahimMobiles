@@ -51,10 +51,24 @@ export async function GET(request: Request) {
 
 interface BrandInput {
   name?: unknown;
-  tagline?: unknown;
+  categorySlugs?: unknown;
   slug?: unknown;
   isActive?: unknown;
   sortOrder?: unknown;
+}
+
+function validateCategorySlugs(input: unknown): string[] | { error: string } {
+  if (!Array.isArray(input) || input.length === 0) {
+    return { error: "Brand must reference at least one category." };
+  }
+  const out: string[] = [];
+  for (const raw of input) {
+    if (typeof raw !== "string" || raw.trim().length === 0) {
+      return { error: "Each category slug must be a non-empty string." };
+    }
+    out.push(slugify(raw, 64));
+  }
+  return out;
 }
 
 export async function POST(request: Request) {
@@ -73,9 +87,9 @@ export async function POST(request: Request) {
     return badRequest(nameResult.error);
   }
 
-  const taglineResult = validateString(body.tagline, { label: "Tagline", max: BRAND_FIELD_LIMITS.tagline });
-  if (isValidationError(taglineResult)) {
-    return badRequest(taglineResult.error);
+  const categorySlugsResult = validateCategorySlugs(body.categorySlugs);
+  if ("error" in categorySlugsResult) {
+    return badRequest(categorySlugsResult.error);
   }
 
   const slug =
@@ -91,7 +105,7 @@ export async function POST(request: Request) {
     const doc = await Brand.create({
       slug,
       name: nameResult,
-      tagline: taglineResult,
+      categorySlugs: categorySlugsResult,
       isActive: body.isActive !== false,
       sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : 0,
     });
@@ -103,7 +117,7 @@ export async function POST(request: Request) {
       resourceLabel: doc.name,
     });
     bustAdminCaches();
-    return created(toBrandResponse(doc.toObject() as BrandLean));
+    return created(toBrandResponse(doc.toObject() as unknown as BrandLean));
   } catch (error) {
     return handleMongoError(error);
   }

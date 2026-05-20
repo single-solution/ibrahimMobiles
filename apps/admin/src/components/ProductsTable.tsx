@@ -24,7 +24,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
   const [archiveTarget, setArchiveTarget] = useState<AdminProductSummary | null>(null);
 
   function searchAccessor(product: AdminProductSummary) {
-    return [product.modelName, product.brand.name, product.slug].join(" ");
+    return [product.name, product.brand.name, product.slug].join(" ");
   }
 
   async function handleArchive() {
@@ -36,7 +36,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
         method: "PUT",
         json: { isArchived: true, isActive: false },
       });
-      toast.warn(`Archived "${archiveTarget.modelName}"`);
+      toast.warn(`Archived "${archiveTarget.name}"`);
       setArchiveTarget(null);
       router.refresh();
     } catch (error) {
@@ -58,7 +58,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
           </span>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-[var(--color-ink-900)]">
-              {product.modelName}
+              {product.name}
             </p>
             <p className="truncate text-xs text-[var(--color-ink-500)]">
               {product.brand.name || product.brand.slug} · {product.slug}
@@ -73,9 +73,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
       hideOnMobile: true,
       cell: (product) => (
         <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-600)]">
-          {product.category}
-          {product.accessoryType ? ` · ${product.accessoryType}` : ""}
-          {product.gadgetType ? ` · ${product.gadgetType}` : ""}
+          {product.categorySlug}
         </span>
       ),
     },
@@ -182,7 +180,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
         title="Archive product?"
         message={
           <>
-            Archiving will hide <strong>{archiveTarget?.modelName}</strong> and its variants from
+            Archiving will hide <strong>{archiveTarget?.name}</strong> and its variants from
             the storefront. You can unarchive it later from the archived view.
           </>
         }

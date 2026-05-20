@@ -4,23 +4,16 @@ import { PRODUCT_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import {
   badRequest,
   created,
-  FIELD_LIMITS,
   isValidationError,
-  isValidId,
-  MAX_PRODUCT_RELEASE_YEAR,
-  MIN_PRODUCT_RELEASE_YEAR,
   ok,
   parseBody,
-  toUnknownArray,
+  slugify,
   validateString,
 } from "@store/shared";
 
 import {
-  ACCESSORY_TYPES,
-  type AccessoryType,
   Brand,
-  CATEGORY_IDS,
-  type CategoryId,
+  Category,
   connectDB,
   handleMongoError,
   Product,
@@ -28,7 +21,6 @@ import {
 
 import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
-import { slugify } from "@store/shared";
 
 import { summariseProduct, type ProductLean } from "@/lib/serializers/product";
 import { type BrandLean } from "@/lib/serializers/brand";
@@ -49,47 +41,42 @@ export async function GET(request: Request) {
   const filter: Record<string, unknown> = {};
   if (search) {
     filter.$or = [
-      { modelName: { $regex: searchPattern, $options: "i" } },
+      { name: { $regex: searchPattern, $options: "i" } },
       { slug: { $regex: searchPattern, $options: "i" } },
     ];
   }
-  if (categoryFilter && (CATEGORY_IDS as readonly string[]).includes(categoryFilter)) {
-    filter.category = categoryFilter;
+  if (categoryFilter) {
+    filter.categorySlug = categoryFilter;
   }
   if (!includeArchived) {
     filter.isArchived = { $ne: true };
   }
 
   const [docs, total, brandDocs] = await Promise.all([
-    Product.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean<ProductLean[]>(),
+    Product.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean<ProductLean[]>(),
     Product.countDocuments(filter),
     Brand.find().lean<BrandLean[]>(),
   ]);
 
-  const brandsById = new Map(brandDocs.map((brand) => [brand._id.toString(), brand]));
-  const items = docs.map((doc) => summariseProduct(doc, brandsById));
+  const brandsBySlug = new Map(brandDocs.map((brand) => [brand.slug, brand]));
+  const items = docs.map((doc) => summariseProduct(doc, brandsBySlug));
 
   const payload: ListResponse<AdminProductSummary> = { items, total, page, limit };
   return ok(payload);
 }
 
 interface ProductCreateInput {
-  modelName?: unknown;
+  name?: unknown;
   slug?: unknown;
-  brandId?: unknown;
-  category?: unknown;
-  accessoryType?: unknown;
-  gadgetType?: unknown;
-  imageUrl?: unknown;
-  galleryUrls?: unknown;
-  releaseYear?: unknown;
-  highlights?: unknown;
+  brandSlug?: unknown;
+  categorySlug?: unknown;
   isFeatured?: unknown;
   isActive?: unknown;
 }
-
-const ALLOWED_CATEGORIES = new Set(CATEGORY_IDS as readonly string[]);
-const ALLOWED_ACCESSORY_TYPES = new Set(ACCESSORY_TYPES as readonly string[]);
 
 export async function POST(request: Request) {
   const { actor, response } = await requireSession("product_create");
@@ -102,88 +89,45 @@ export async function POST(request: Request) {
     return body;
   }
 
-  const modelNameResult = validateString(body.modelName, {
-    label: "Model name",
-    max: PRODUCT_FIELD_LIMITS.modelName,
+  const nameResult = validateString(body.name, {
+    label: "Name",
+    max: PRODUCT_FIELD_LIMITS.name,
   });
-  if (isValidationError(modelNameResult)) {
-    return badRequest(modelNameResult.error);
+  if (isValidationError(nameResult)) {
+    return badRequest(nameResult.error);
   }
 
-  const imageUrlResult = validateString(body.imageUrl, {
-    label: "Image URL",
-    max: PRODUCT_FIELD_LIMITS.imageUrl,
-  });
-  if (isValidationError(imageUrlResult)) {
-    return badRequest(imageUrlResult.error);
+  if (typeof body.brandSlug !== "string" || body.brandSlug.length === 0) {
+    return badRequest("brandSlug is required.");
   }
-
-  if (!isValidId(body.brandId)) {
-    return badRequest("Brand ID must be a valid Mongo ObjectId.");
+  if (typeof body.categorySlug !== "string" || body.categorySlug.length === 0) {
+    return badRequest("categorySlug is required.");
   }
-  if (typeof body.category !== "string" || !ALLOWED_CATEGORIES.has(body.category)) {
-    return badRequest(`category must be one of: ${Array.from(ALLOWED_CATEGORIES).join(", ")}`);
-  }
-  const category = body.category as CategoryId;
-
-  let accessoryType: AccessoryType | undefined;
-  if (category === "accessory") {
-    if (typeof body.accessoryType !== "string" || !ALLOWED_ACCESSORY_TYPES.has(body.accessoryType)) {
-      return badRequest(`accessoryType must be one of: ${Array.from(ALLOWED_ACCESSORY_TYPES).join(", ")}`);
-    }
-    accessoryType = body.accessoryType as AccessoryType;
-  }
-
-  let gadgetType: string | undefined;
-  if (category === "gadget" && typeof body.gadgetType === "string") {
-    gadgetType = body.gadgetType.trim().slice(0, FIELD_LIMITS.shortLabel);
-  }
-
-  const releaseYear = typeof body.releaseYear === "number" ? body.releaseYear : Number(body.releaseYear);
-  if (
-    !Number.isFinite(releaseYear) ||
-    releaseYear < MIN_PRODUCT_RELEASE_YEAR ||
-    releaseYear > MAX_PRODUCT_RELEASE_YEAR
-  ) {
-    return badRequest(
-      `Release year must be between ${MIN_PRODUCT_RELEASE_YEAR} and ${MAX_PRODUCT_RELEASE_YEAR}.`,
-    );
-  }
+  const brandSlug = slugify(body.brandSlug, 64);
+  const categorySlug = slugify(body.categorySlug, 64);
 
   const slug =
     typeof body.slug === "string" && body.slug.trim().length > 0
       ? slugify(body.slug, PRODUCT_FIELD_LIMITS.slug)
-      : slugify(modelNameResult, PRODUCT_FIELD_LIMITS.slug);
+      : slugify(nameResult, PRODUCT_FIELD_LIMITS.slug);
   if (slug.length === 0) {
-    return badRequest("Slug could not be derived from model name.");
+    return badRequest("Slug could not be derived from name.");
   }
-
-  const galleryUrls = toUnknownArray(body.galleryUrls)
-    .filter((url): url is string => typeof url === "string" && url.length <= PRODUCT_FIELD_LIMITS.imageUrl);
-  const highlights = toUnknownArray(body.highlights)
-    .filter((highlight): highlight is string => typeof highlight === "string")
-    .map((highlight) => highlight.trim())
-    .filter((highlight) => highlight.length > 0 && highlight.length <= FIELD_LIMITS.shortText)
-    .slice(0, PRODUCT_FIELD_LIMITS.highlightCount);
 
   await connectDB();
   try {
-    const brandExists = await Brand.findById(body.brandId).lean();
-    if (!brandExists) {
-      return badRequest("Brand not found.");
-    }
+    const [brandExists, categoryExists] = await Promise.all([
+      Brand.exists({ slug: brandSlug }),
+      Category.exists({ slug: categorySlug }),
+    ]);
+    if (!brandExists) return badRequest(`Brand '${brandSlug}' not found.`);
+    if (!categoryExists) return badRequest(`Category '${categorySlug}' not found.`);
 
     const doc = await Product.create({
       slug,
-      modelName: modelNameResult,
-      brandId: body.brandId,
-      category,
-      accessoryType,
-      gadgetType,
-      imageUrl: imageUrlResult,
-      galleryUrls,
-      releaseYear,
-      highlights,
+      name: nameResult,
+      brandSlug,
+      categorySlug,
       isFeatured: body.isFeatured === true,
       isActive: body.isActive !== false,
       isArchived: false,
@@ -195,17 +139,18 @@ export async function POST(request: Request) {
       action: "created",
       resourceType: "product",
       resourceId: doc._id.toString(),
-      resourceLabel: doc.modelName,
+      resourceLabel: doc.name,
     });
-    // New product is now visible to customers — flush both the
-    // admin dashboard cache (so models-listed / unitsInStock updates)
-    // and the storefront cache (so listings, counts, hero phones
-    // reflect the new SKU immediately).
+    // New product is now visible to customers — flush both the admin
+    // dashboard cache (so models-listed / unitsInStock updates) and the
+    // storefront cache (so listings reflect the new SKU immediately).
     bustAdminCaches();
 
     const brandDocs = await Brand.find().lean<BrandLean[]>();
-    const brandsById = new Map(brandDocs.map((brand) => [brand._id.toString(), brand]));
-    return created(summariseProduct(doc.toObject() as ProductLean, brandsById));
+    const brandsBySlug = new Map(brandDocs.map((brand) => [brand.slug, brand]));
+    return created(
+      summariseProduct(doc.toObject() as unknown as ProductLean, brandsBySlug),
+    );
   } catch (error) {
     return handleMongoError(error);
   }

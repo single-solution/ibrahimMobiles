@@ -10,13 +10,7 @@ import {
   validateString,
 } from "@store/shared";
 
-import {
-  connectDB,
-  handleMongoError,
-  Offer,
-  OFFER_ACCENT_COLORS,
-  type OfferAccentColor,
-} from "@store/db";
+import { connectDB, handleMongoError, Offer } from "@store/db";
 
 import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
@@ -67,17 +61,21 @@ interface OfferInput {
   description?: unknown;
   discountLabel?: unknown;
   badgeLabel?: unknown;
-  accentColor?: unknown;
+  color?: unknown;
+  bannerImage?: unknown;
   expiresAt?: unknown;
   isActive?: unknown;
   sortOrder?: unknown;
 }
 
-function parseAccentColor(value: unknown): OfferAccentColor {
-  if (typeof value === "string" && (OFFER_ACCENT_COLORS as readonly string[]).includes(value)) {
-    return value as OfferAccentColor;
+const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/i;
+const DEFAULT_OFFER_COLOR = "#f59e0b";
+
+function parseColor(value: unknown): string {
+  if (typeof value === "string" && HEX_COLOR_REGEX.test(value)) {
+    return value;
   }
-  return "amber";
+  return DEFAULT_OFFER_COLOR;
 }
 
 export async function POST(request: Request) {
@@ -135,7 +133,11 @@ export async function POST(request: Request) {
       description: descriptionResult,
       discountLabel: discountResult,
       badgeLabel: badgeResult,
-      accentColor: parseAccentColor(body.accentColor),
+      color: parseColor(body.color),
+      bannerImage:
+        body.bannerImage && typeof body.bannerImage === "object"
+          ? body.bannerImage
+          : undefined,
       expiresAt,
       isActive: body.isActive !== false,
       sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : 0,
@@ -148,7 +150,7 @@ export async function POST(request: Request) {
       resourceLabel: doc.title,
     });
     bustAdminCaches();
-    return created(toOfferResponse(doc.toObject() as OfferLean));
+    return created(toOfferResponse(doc.toObject() as unknown as OfferLean));
   } catch (error) {
     return handleMongoError(error);
   }

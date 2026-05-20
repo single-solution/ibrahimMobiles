@@ -1,9 +1,6 @@
-import {
-  connectDB,
-  handleMongoError,
-  Offer,
-  OFFER_ACCENT_COLORS,
-} from "@store/db";
+import { connectDB, handleMongoError, Offer } from "@store/db";
+
+const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/i;
 import {
   badRequest,
   isValidId,
@@ -52,7 +49,8 @@ interface OfferUpdateInput {
   description?: unknown;
   discountLabel?: unknown;
   badgeLabel?: unknown;
-  accentColor?: unknown;
+  color?: unknown;
+  bannerImage?: unknown;
   expiresAt?: unknown;
   isActive?: unknown;
   sortOrder?: unknown;
@@ -104,14 +102,17 @@ export async function PUT(request: Request, { params }: RouteContext) {
     }
     update.badgeLabel = result;
   }
-  if (body.accentColor !== undefined) {
-    if (
-      typeof body.accentColor !== "string" ||
-      !(OFFER_ACCENT_COLORS as readonly string[]).includes(body.accentColor)
-    ) {
-      return badRequest("Invalid accent color.");
+  if (body.color !== undefined) {
+    if (typeof body.color !== "string" || !HEX_COLOR_REGEX.test(body.color)) {
+      return badRequest("Color must be a #RRGGBB hex value.");
     }
-    update.accentColor = body.accentColor;
+    update.color = body.color;
+  }
+  if (body.bannerImage !== undefined) {
+    if (body.bannerImage !== null && typeof body.bannerImage !== "object") {
+      return badRequest("bannerImage must be a StoredImage payload or null.");
+    }
+    update.bannerImage = body.bannerImage;
   }
   if (body.slug !== undefined && typeof body.slug === "string") {
     const slug = slugify(body.slug);

@@ -77,7 +77,7 @@ function parseRole(value: unknown): UserRole {
   if (typeof value === "string" && (USER_ROLES as readonly string[]).includes(value)) {
     return value as UserRole;
   }
-  return "staff";
+  return "support_staff";
 }
 
 export async function POST(request: Request) {
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
       resourceLabel: doc.name,
       detail: `Role: ${role}`,
     });
-    return created(toUserResponse(doc.toObject() as UserLean));
+    return created(toUserResponse(doc.toObject() as unknown as UserLean));
   } catch (error) {
     return handleMongoError(error);
   }

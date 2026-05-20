@@ -1,8 +1,5 @@
 import { FIELD_LIMITS } from "@store/shared";
-import { CONDITION_GRADES, CONNECTOR_TYPES } from "@store/db";
-
-const ALLOWED_GRADES = new Set<string>(CONDITION_GRADES);
-const ALLOWED_CONNECTORS = new Set<string>(CONNECTOR_TYPES);
+import { Attribute, Grade, connectDB } from "@store/db";
 
 /**
  * Hard upper bound on any rupee field. Even ultra-luxury phones top out
@@ -15,58 +12,85 @@ const DEFAULT_WARRANTY_MONTHS = 6;
 /** Hard upper bound on warranty months — we don't sell anything covered for
  *  more than 5 years, so bigger values are typos. */
 const MAX_WARRANTY_MONTHS = 60;
-/** Phone storage upper bound — covers every commercially-sold tier. */
-const MAX_STORAGE_GB = 8_192;
-/** RAM upper bound — covers desktops as well as phones in case we list them. */
-const MAX_RAM_GB = 256;
-/** Battery health values are integer percentages. */
-const MIN_BATTERY_HEALTH_PERCENT = 0;
-const MAX_BATTERY_HEALTH_PERCENT = 100;
+/** Hard upper bound on variant quantity. Anything past 100k is a typo. */
+const MAX_QUANTITY = 100_000;
+/** Maximum images allowed per variant — mirrors the gallery UI cap. */
+const MAX_VARIANT_IMAGES = 24;
 
 export interface VariantInput {
-  grade?: unknown;
-  colorName?: unknown;
+  gradeSlug?: unknown;
   priceRupees?: unknown;
-  originalPriceRupees?: unknown;
-  isInStock?: unknown;
+  quantity?: unknown;
   warrantyMonths?: unknown;
-  notes?: unknown;
-  storageGb?: unknown;
-  ramGb?: unknown;
-  batteryHealthMinPercent?: unknown;
-  batteryHealthMaxPercent?: unknown;
-  isPtaApproved?: unknown;
-  connector?: unknown;
-  wattage?: unknown;
-  lengthMeters?: unknown;
-  isGenuine?: unknown;
+  images?: unknown;
+  attributes?: unknown;
 }
 
 type VariantValidationResult =
   | { ok: true; value: Record<string, unknown> }
   | { ok: false; error: string };
 
+interface ValidationContext {
+  /** Required so grade + attribute validation can scope by category. */
+  categorySlug: string;
+}
+
 /**
- * Coerce + validate a variant payload. Accepts partial input — caller decides
- * which fields are required by checking presence on the returned object.
- *
- * Returns a Mongo-safe document patch suitable for direct $push or $set.
+ * Quick shape-check for a `StoredImage`. The full pipeline (sharp resize,
+ * blurhash, etc.) lands in Phase 2; this function only confirms the
+ * payload coming back from the upload route has the universal shape so
+ * we never persist a half-structured image.
  */
-export function validateVariant(input: VariantInput, requireAll: boolean): VariantValidationResult {
+function isStoredImageShape(value: unknown): boolean {
+  if (value === null || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  if (typeof v.blurDataURL !== "string") return false;
+  if (typeof v.width !== "number" || typeof v.height !== "number") return false;
+  if (typeof v.alt !== "string") return false;
+  const variants = v.variants;
+  if (variants === null || typeof variants !== "object") return false;
+  const vv = variants as Record<string, unknown>;
+  return (
+    typeof vv.thumb === "string" &&
+    typeof vv.card === "string" &&
+    typeof vv.detail === "string" &&
+    typeof vv.full === "string"
+  );
+}
+
+/**
+ * Coerce + validate a variant payload against the per-category Grade
+ * and Attribute collections. Asynchronous because the grade + attribute
+ * lookups touch MongoDB; callers are already inside an `await connectDB()`
+ * scope on every authoring path.
+ *
+ * Accepts partial input — caller decides which fields are required by
+ * passing `requireAll`.
+ */
+export async function validateVariant(
+  input: VariantInput,
+  requireAll: boolean,
+  context: ValidationContext,
+): Promise<VariantValidationResult> {
+  await connectDB();
   const value: Record<string, unknown> = {};
 
-  if (input.grade !== undefined || requireAll) {
-    if (typeof input.grade !== "string" || !ALLOWED_GRADES.has(input.grade)) {
-      return { ok: false, error: `Grade must be one of: ${CONDITION_GRADES.join(", ")}` };
+  // Grade — validated against Grade.find({ categorySlug }).
+  if (input.gradeSlug !== undefined || requireAll) {
+    if (typeof input.gradeSlug !== "string" || input.gradeSlug.length === 0) {
+      return { ok: false, error: "Grade is required." };
     }
-    value.grade = input.grade;
-  }
-
-  if (input.colorName !== undefined || requireAll) {
-    if (typeof input.colorName !== "string" || input.colorName.trim().length === 0) {
-      return { ok: false, error: "Color name is required." };
+    const exists = await Grade.exists({
+      categorySlug: context.categorySlug,
+      slug: input.gradeSlug,
+    });
+    if (!exists) {
+      return {
+        ok: false,
+        error: `Grade '${input.gradeSlug}' does not exist in category '${context.categorySlug}'.`,
+      };
     }
-    value.colorName = input.colorName.trim().slice(0, FIELD_LIMITS.shortLabel);
+    value.gradeSlug = input.gradeSlug;
   }
 
   if (input.priceRupees !== undefined || requireAll) {
@@ -77,105 +101,105 @@ export function validateVariant(input: VariantInput, requireAll: boolean): Varia
     value.priceRupees = price;
   }
 
-  if (input.originalPriceRupees !== undefined || requireAll) {
-    const original = Number(input.originalPriceRupees);
-    if (!Number.isFinite(original) || original < 0 || original > MAX_RUPEE_AMOUNT) {
-      return { ok: false, error: "Original price must be a non-negative number." };
+  if (input.quantity !== undefined || requireAll) {
+    const quantity = Number(input.quantity ?? 0);
+    if (
+      !Number.isInteger(quantity) ||
+      quantity < 0 ||
+      quantity > MAX_QUANTITY
+    ) {
+      return {
+        ok: false,
+        error: `Quantity must be a non-negative integer ≤ ${MAX_QUANTITY}.`,
+      };
     }
-    value.originalPriceRupees = original;
+    value.quantity = quantity;
   }
 
-  if (input.isInStock !== undefined) {
-    value.isInStock = Boolean(input.isInStock);
-  } else if (requireAll) {
-    value.isInStock = true;
-  }
-
-  if (input.warrantyMonths !== undefined || requireAll) {
+  if (input.warrantyMonths !== undefined) {
     const months = Number(input.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS);
     if (!Number.isFinite(months) || months < 0 || months > MAX_WARRANTY_MONTHS) {
-      return { ok: false, error: `Warranty months must be 0–${MAX_WARRANTY_MONTHS}.` };
+      return {
+        ok: false,
+        error: `Warranty months must be 0–${MAX_WARRANTY_MONTHS}.`,
+      };
     }
     value.warrantyMonths = months;
+  } else if (requireAll) {
+    value.warrantyMonths = DEFAULT_WARRANTY_MONTHS;
   }
 
-  if (typeof input.notes === "string") {
-    value.notes = input.notes.trim().slice(0, FIELD_LIMITS.operatorNote);
+  // Images — required (≥1) when requireAll; each entry must be the
+  // universal `StoredImage` shape produced by POST /api/uploads.
+  if (input.images !== undefined || requireAll) {
+    if (!Array.isArray(input.images) || input.images.length === 0) {
+      return { ok: false, error: "At least one image is required." };
+    }
+    if (input.images.length > MAX_VARIANT_IMAGES) {
+      return {
+        ok: false,
+        error: `A variant cannot have more than ${MAX_VARIANT_IMAGES} images.`,
+      };
+    }
+    for (const image of input.images) {
+      if (!isStoredImageShape(image)) {
+        return {
+          ok: false,
+          error:
+            "One or more images is not a valid StoredImage payload. Upload through /api/uploads.",
+        };
+      }
+    }
+    value.images = input.images;
   }
 
-  if (input.storageGb !== undefined) {
-    const storage = Number(input.storageGb);
-    if (!Number.isFinite(storage) || storage < 1 || storage > MAX_STORAGE_GB) {
-      return { ok: false, error: "Storage must be a positive number of GB." };
+  // Dynamic per-category attribute map — keys = Attribute.slug, values =
+  // a valid option value for that attribute.
+  if (input.attributes !== undefined || requireAll) {
+    const attributes = (input.attributes ?? {}) as unknown;
+    if (
+      attributes === null ||
+      typeof attributes !== "object" ||
+      Array.isArray(attributes)
+    ) {
+      return { ok: false, error: "Attributes must be an object map." };
     }
-    value.storageGb = storage;
-  }
-  if (input.ramGb !== undefined) {
-    const ram = Number(input.ramGb);
-    if (!Number.isFinite(ram) || ram < 0 || ram > MAX_RAM_GB) {
-      return { ok: false, error: `RAM must be 0–${MAX_RAM_GB} GB.` };
-    }
-    value.ramGb = ram;
-  }
-  if (input.batteryHealthMinPercent !== undefined) {
-    const min = Number(input.batteryHealthMinPercent);
-    if (!Number.isFinite(min) || min < MIN_BATTERY_HEALTH_PERCENT || min > MAX_BATTERY_HEALTH_PERCENT) {
-      return { ok: false, error: `Battery health min must be ${MIN_BATTERY_HEALTH_PERCENT}–${MAX_BATTERY_HEALTH_PERCENT}.` };
-    }
-    value.batteryHealthMinPercent = min;
-  }
-  if (input.batteryHealthMaxPercent !== undefined) {
-    const max = Number(input.batteryHealthMaxPercent);
-    if (!Number.isFinite(max) || max < MIN_BATTERY_HEALTH_PERCENT || max > MAX_BATTERY_HEALTH_PERCENT) {
-      return { ok: false, error: `Battery health max must be ${MIN_BATTERY_HEALTH_PERCENT}–${MAX_BATTERY_HEALTH_PERCENT}.` };
-    }
-    value.batteryHealthMaxPercent = max;
-  }
-  if (input.isPtaApproved !== undefined) {
-    value.isPtaApproved = Boolean(input.isPtaApproved);
-  }
+    const map = attributes as Record<string, unknown>;
+    const validated: Record<string, string> = {};
 
-  // Cross-field invariants. Done last so we can compare numbers we've already
-  // coerced and bounded above.
-  if (
-    typeof value.batteryHealthMinPercent === "number" &&
-    typeof value.batteryHealthMaxPercent === "number" &&
-    value.batteryHealthMinPercent > value.batteryHealthMaxPercent
-  ) {
-    return {
-      ok: false,
-      error: "Battery health min must be less than or equal to max.",
-    };
-  }
-  if (
-    typeof value.priceRupees === "number" &&
-    typeof value.originalPriceRupees === "number" &&
-    value.originalPriceRupees > 0 &&
-    value.priceRupees > value.originalPriceRupees
-  ) {
-    return {
-      ok: false,
-      error: "Price cannot be higher than the original price.",
-    };
-  }
+    const defs = await Attribute.find({
+      categorySlug: context.categorySlug,
+      isActive: true,
+    })
+      .lean()
+      .exec();
+    const defsBySlug = new Map(defs.map((d) => [d.slug, d]));
 
-  if (typeof input.connector === "string" && ALLOWED_CONNECTORS.has(input.connector)) {
-    value.connector = input.connector;
-  }
-  if (input.wattage !== undefined) {
-    const wattage = Number(input.wattage);
-    if (Number.isFinite(wattage) && wattage >= 0) {
-      value.wattage = wattage;
+    for (const [slug, raw] of Object.entries(map)) {
+      const def = defsBySlug.get(slug);
+      if (!def) {
+        return {
+          ok: false,
+          error: `Unknown attribute '${slug}' for category '${context.categorySlug}'.`,
+        };
+      }
+      if (typeof raw !== "string" || raw.length === 0) {
+        return {
+          ok: false,
+          error: `Attribute '${slug}' must be a non-empty string value.`,
+        };
+      }
+      const optionValues = new Set(def.options.map((o) => o.value));
+      if (!optionValues.has(raw)) {
+        return {
+          ok: false,
+          error: `Attribute '${slug}' = '${raw}' is not one of the allowed options for this category.`,
+        };
+      }
+      validated[slug.slice(0, FIELD_LIMITS.shortLabel)] = raw;
     }
-  }
-  if (input.lengthMeters !== undefined) {
-    const length = Number(input.lengthMeters);
-    if (Number.isFinite(length) && length >= 0) {
-      value.lengthMeters = length;
-    }
-  }
-  if (input.isGenuine !== undefined) {
-    value.isGenuine = Boolean(input.isGenuine);
+
+    value.attributes = validated;
   }
 
   return { ok: true, value };

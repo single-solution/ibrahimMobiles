@@ -49,19 +49,15 @@ const RUPEES_PER_LAKH = 100_000;
 const RUPEES_PER_THOUSAND = 1_000;
 
 const INQUIRY_TONE: Record<InquiryStatus, StatusTone> = {
-  new: "info",
-  "in-progress": "neutral",
+  open: "info",
   "awaiting-customer": "warn",
-  won: "success",
-  lost: "danger",
+  resolved: "success",
 };
 
 const INQUIRY_LABEL: Record<InquiryStatus, string> = {
-  new: "New",
-  "in-progress": "In progress",
+  open: "Open",
   "awaiting-customer": "Awaiting customer",
-  won: "Won",
-  lost: "Lost",
+  resolved: "Resolved",
 };
 
 function compactRupees(rupees: number): string {
@@ -271,15 +267,17 @@ async function MobileRecentInquiries() {
                   </StatusPill>
                 </div>
                 <p className="mt-0.5 truncate text-[11.5px] text-[var(--color-ink-500)]">
-                  {inquiry.modelName}
+                  {inquiry.subjectProductName ?? inquiry.lastMessagePreview}
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-[12px] font-semibold text-[var(--color-ink-900)]">
-                  {inquiry.expectedRupees ? formatPrice(inquiry.expectedRupees) : "—"}
-                </p>
+                {inquiry.unreadByTeam > 0 ? (
+                  <StatusPill tone="danger">{inquiry.unreadByTeam}</StatusPill>
+                ) : (
+                  <span className="text-[10.5px] text-[var(--color-ink-400)]">—</span>
+                )}
                 <p className="mt-0.5 text-[10.5px] text-[var(--color-ink-400)]">
-                  {formatTimeAgo(inquiry.receivedAt, nowReferenceIso)}
+                  {formatTimeAgo(inquiry.lastMessageAt, nowReferenceIso)}
                 </p>
               </div>
             </li>

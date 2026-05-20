@@ -1,20 +1,20 @@
 import type { Types } from "mongoose";
-import type { GradeAttributes } from "@store/db";
+import type { GradeAttributes, WithTimestamps } from "@store/db";
 import type { AdminGrade } from "@/types/admin";
 
-export type GradeLean = GradeAttributes & { _id: Types.ObjectId };
+export type GradeLean = WithTimestamps<GradeAttributes> & {
+  _id: Types.ObjectId;
+};
 
 export function toGradeResponse(grade: GradeLean): AdminGrade {
   return {
     id: grade._id.toString(),
-    grade: grade.grade,
+    categorySlug: grade.categorySlug,
+    slug: grade.slug,
     label: grade.label,
-    shortLabel: grade.shortLabel,
-    description: grade.description,
-    cosmeticNotes: grade.cosmeticNotes,
-    functionalNotes: grade.functionalNotes,
-    tone: grade.tone,
-    sortOrder: grade.sortOrder ?? 0,
+    notes: grade.notes,
+    color: grade.color,
+    video: grade.video,
     createdAt: grade.createdAt.toISOString(),
     updatedAt: grade.updatedAt.toISOString(),
   };

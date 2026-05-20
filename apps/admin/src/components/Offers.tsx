@@ -19,19 +19,13 @@ import { formatRelativeDate, ISO_DATE_LENGTH } from "@store/shared";
 import type { AdminOffer } from "@/types/admin";
 
 const OFFER_SLUG_MAX_CHARS = 96;
-
-const ACCENT_SWATCHES: Record<AdminOffer["accentColor"], string> = {
-  emerald: "#10b981",
-  amber: "#f59e0b",
-  rose: "#f43f5e",
-  sky: "#0ea5e9",
-};
+const DEFAULT_OFFER_COLOR = "#f59e0b";
 
 const ACCENT_OPTIONS = [
-  { value: "emerald", label: "Emerald", swatch: ACCENT_SWATCHES.emerald },
-  { value: "amber", label: "Amber", swatch: ACCENT_SWATCHES.amber },
-  { value: "rose", label: "Rose", swatch: ACCENT_SWATCHES.rose },
-  { value: "sky", label: "Sky", swatch: ACCENT_SWATCHES.sky },
+  { value: "#10b981", label: "Emerald", swatch: "#10b981" },
+  { value: "#f59e0b", label: "Amber", swatch: "#f59e0b" },
+  { value: "#f43f5e", label: "Rose", swatch: "#f43f5e" },
+  { value: "#0ea5e9", label: "Sky", swatch: "#0ea5e9" },
 ];
 
 interface OffersProps {
@@ -72,7 +66,7 @@ export function Offers({ offers }: OffersProps) {
         <div className="flex items-center gap-3">
           <span
             className="size-9 shrink-0 rounded-[var(--radius-md)]"
-            style={{ backgroundColor: ACCENT_SWATCHES[offer.accentColor] }}
+            style={{ backgroundColor: offer.color }}
           />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -202,9 +196,7 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
   const [discountLabel, setDiscountLabel] = useState(initial?.discountLabel ?? "");
   const [badgeLabel, setBadgeLabel] = useState(initial?.badgeLabel ?? "Limited");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [accentColor, setAccentColor] = useState<AdminOffer["accentColor"]>(
-    initial?.accentColor ?? "amber",
-  );
+  const [color, setColor] = useState<string>(initial?.color ?? DEFAULT_OFFER_COLOR);
   const [expiresAt, setExpiresAt] = useState(initial?.expiresAt?.slice(0, ISO_DATE_LENGTH) ?? "");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
   const [isSaving, setIsSaving] = useState(false);
@@ -219,7 +211,7 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
         discountLabel,
         badgeLabel,
         description,
-        accentColor,
+        color,
         expiresAt: expiresAt || null,
         isActive,
       };
@@ -313,8 +305,8 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
         />
         <ColorChips
           label="Accent color"
-          value={accentColor}
-          onChange={(value) => setAccentColor(value as AdminOffer["accentColor"])}
+          value={color}
+          onChange={(value) => setColor(value)}
           options={ACCENT_OPTIONS}
         />
         <Switch

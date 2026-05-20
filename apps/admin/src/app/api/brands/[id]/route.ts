@@ -49,7 +49,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
 interface BrandUpdateInput {
   name?: unknown;
-  tagline?: unknown;
+  categorySlugs?: unknown;
   slug?: unknown;
   isActive?: unknown;
   sortOrder?: unknown;
@@ -80,12 +80,21 @@ export async function PUT(request: Request, { params }: RouteContext) {
     }
     update.name = result;
   }
-  if (body.tagline !== undefined) {
-    const result = validateString(body.tagline, { label: "Tagline", max: BRAND_FIELD_LIMITS.tagline });
-    if (isValidationError(result)) {
-      return badRequest(result.error);
+  if (body.categorySlugs !== undefined) {
+    if (
+      !Array.isArray(body.categorySlugs) ||
+      body.categorySlugs.length === 0
+    ) {
+      return badRequest("Brand must reference at least one category.");
     }
-    update.tagline = result;
+    const normalised: string[] = [];
+    for (const raw of body.categorySlugs) {
+      if (typeof raw !== "string" || raw.trim().length === 0) {
+        return badRequest("Each category slug must be a non-empty string.");
+      }
+      normalised.push(slugify(raw, 64));
+    }
+    update.categorySlugs = normalised;
   }
   if (body.slug !== undefined && typeof body.slug === "string") {
     const slug = slugify(body.slug);
@@ -139,8 +148,12 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
 
   await connectDB();
   // Referential integrity: a brand with products attached can't be hard-deleted
-  // — toggle `isActive` to hide it instead.
-  const productCount = await Product.countDocuments({ brandId: id });
+  // — toggle `isActive` to hide it instead. Products now reference brands by
+  // slug; resolve to slug first so the countDocuments uses the new column.
+  const brandForLookup = await Brand.findById(id).select("slug").lean<{ slug: string }>();
+  const productCount = brandForLookup
+    ? await Product.countDocuments({ brandSlug: brandForLookup.slug })
+    : 0;
   if (productCount > 0) {
     return conflict(
       `Cannot delete a brand with ${productCount} product${productCount === 1 ? "" : "s"}. Mark it inactive instead.`,

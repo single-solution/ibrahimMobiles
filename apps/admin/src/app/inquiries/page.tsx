@@ -7,7 +7,7 @@ import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
 import { connectDB, Inquiry } from "@store/db";
 
 import { requirePageSession } from "@/lib/server/requirePageSession";
-import { toInquiryResponse, type InquiryLean } from "@/lib/serializers/inquiry";
+import { summariseInquiry, type InquiryLean } from "@/lib/serializers/inquiry";
 
 export const dynamic = "force-dynamic";
 
@@ -40,9 +40,9 @@ export default async function AdminInquiriesPage() {
 async function InquiriesData() {
   await connectDB();
   const docs = await Inquiry.find()
-    .sort({ receivedAt: -1 })
+    .sort({ lastMessageAt: -1 })
     .limit(RECENT_INQUIRIES_LIMIT)
     .lean<InquiryLean[]>();
-  const inquiries = docs.map(toInquiryResponse);
+  const inquiries = docs.map(summariseInquiry);
   return <Inquiries inquiries={inquiries} />;
 }

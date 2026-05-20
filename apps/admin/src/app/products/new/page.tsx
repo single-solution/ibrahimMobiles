@@ -1,30 +1,22 @@
 import Link from "next/link";
-import { Suspense } from "react";
 import { ChevronLeft } from "lucide-react";
 
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle } from "@/components/PageTitle";
-import { NewProductForm } from "@/components/NewProductForm";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { Brand, connectDB } from "@store/db";
 
 import { requirePageSession } from "@/lib/server/requirePageSession";
-import { toBrandResponse, type BrandLean } from "@/lib/serializers/brand";
 
 export const dynamic = "force-dynamic";
 
-const BASIC_INFO_FIELDS = 4;
-const IMAGERY_FIELDS = 2;
-const HIGHLIGHT_FIELDS = 1;
-const SWITCH_ROWS = 2;
-
 /**
- * Admin "add a new product" form.
+ * Admin "add a new product" form — stub.
  *
- * Everything that doesn't depend on data — shell, back link, title —
- * renders synchronously. The form itself needs the active-brand list,
- * so it sits inside a Suspense boundary with a form-shaped skeleton
- * fallback.
+ * The single-page progressive create flow (category → brand → variants
+ * with the per-category attribute schema) lands in Phase 4 of PLAN.md
+ * (see PHASE 4, "Product creation page"). The database side is ready;
+ * this page renders the entry point so the sidebar nav and "+ New
+ * product" buttons throughout the admin still resolve without 404ing
+ * during the migration window.
  */
 export default async function NewProductPage() {
   await requirePageSession("/products/new");
@@ -43,114 +35,17 @@ export default async function NewProductPage() {
         <PageTitle eyebrow="New product" title="Add a model" />
       </div>
 
-      <div className="mt-8">
-        <Suspense fallback={<NewProductFormFallback />}>
-          <NewProductFormData />
-        </Suspense>
-      </div>
+      <section className="mt-8 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface)] p-8 text-sm text-[var(--color-ink-500)]">
+        <p className="font-semibold text-[var(--color-ink-700)]">
+          The product creation flow is being rebuilt (Phase 4).
+        </p>
+        <p className="mt-2 max-w-prose">
+          The new single-page form will adapt to the selected category — only
+          that category&rsquo;s brands, grades, and attributes will appear,
+          and the variant builder will use the universal{" "}
+          <code>StoredImage</code> upload pipeline.
+        </p>
+      </section>
     </AdminShell>
-  );
-}
-
-async function NewProductFormData() {
-  await connectDB();
-  const docs = await Brand.find({ isActive: true }).sort({ sortOrder: 1, name: 1 }).lean<BrandLean[]>();
-  const brands = docs.map(toBrandResponse);
-  return <NewProductForm brands={brands} />;
-}
-
-function NewProductFormFallback() {
-  return (
-    <div className="space-y-1 pt-3">
-      <FormSectionFallback
-        titleWidthClass="w-24"
-        fieldCount={BASIC_INFO_FIELDS}
-        switchCount={SWITCH_ROWS}
-      />
-      <FormSectionFallback
-        titleWidthClass="w-20"
-        fieldCount={IMAGERY_FIELDS}
-        includeTextarea
-      />
-      <FormSectionFallback
-        titleWidthClass="w-24"
-        fieldCount={HIGHLIGHT_FIELDS}
-        includeTextarea
-      />
-      <SaveBarFallback />
-    </div>
-  );
-}
-
-interface FormSectionFallbackProps {
-  titleWidthClass: string;
-  fieldCount: number;
-  switchCount?: number;
-  includeTextarea?: boolean;
-}
-
-function FormSectionFallback({
-  titleWidthClass,
-  fieldCount,
-  switchCount = 0,
-  includeTextarea = false,
-}: FormSectionFallbackProps) {
-  return (
-    <section className="grid gap-6 border-b border-[var(--color-ink-100)] py-6 md:grid-cols-[260px_1fr]">
-      <div className="space-y-2">
-        <Skeleton shape="text" className={`h-4 ${titleWidthClass}`} />
-        <Skeleton shape="text" className="h-3 w-full" />
-        <Skeleton shape="text" className="h-3 w-3/4" />
-      </div>
-      <div className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          {Array.from({ length: fieldCount }).map((_, index) => (
-            <FieldFallback key={index} />
-          ))}
-        </div>
-        {includeTextarea && (
-          <div className="space-y-1.5">
-            <Skeleton shape="text" className="h-3 w-24" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        )}
-        {Array.from({ length: switchCount }).map((_, index) => (
-          <SwitchFallback key={index} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function FieldFallback() {
-  return (
-    <div className="space-y-1.5">
-      <Skeleton shape="text" className="h-3 w-24" />
-      <Skeleton className="h-10 w-full" />
-    </div>
-  );
-}
-
-function SwitchFallback() {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3">
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <Skeleton shape="text" className="h-3.5 w-48" />
-        <Skeleton shape="text" className="h-3 w-2/3" />
-      </div>
-      <Skeleton shape="pill" className="h-6 w-11 shrink-0" />
-    </div>
-  );
-}
-
-function SaveBarFallback() {
-  return (
-    <div className="sticky bottom-0 mt-8 flex items-center justify-between gap-3 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)]/95 px-4 py-3 backdrop-blur md:px-6">
-      <Skeleton shape="text" className="h-3 w-64" />
-      <div className="flex gap-2">
-        <Skeleton shape="pill" className="h-9 w-24" />
-        <Skeleton shape="pill" className="h-9 w-36" />
-      </div>
-    </div>
   );
 }

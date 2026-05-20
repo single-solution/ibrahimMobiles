@@ -9,12 +9,7 @@ import {
   validateString,
 } from "@store/shared";
 
-import {
-  connectDB,
-  Grade,
-  GRADE_TONES,
-  handleMongoError,
-} from "@store/db";
+import { connectDB, Grade, handleMongoError } from "@store/db";
 
 import { recordActivity } from "@/lib/services/activityLog";
 
@@ -22,18 +17,22 @@ import { GRADE_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 
 import { toGradeResponse, type GradeLean } from "@/lib/serializers/grade";
 
+const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/i;
+
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+/**
+ * Patch surface for an existing grade. `categorySlug` is intentionally
+ * read-only (the URL identifies the grade, and re-parenting a grade is
+ * a destructive op better expressed as delete + create).
+ */
 interface GradeUpdateInput {
   label?: unknown;
-  shortLabel?: unknown;
-  description?: unknown;
-  cosmeticNotes?: unknown;
-  functionalNotes?: unknown;
-  tone?: unknown;
-  sortOrder?: unknown;
+  notes?: unknown;
+  color?: unknown;
+  video?: unknown;
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -55,49 +54,36 @@ export async function PUT(request: Request, { params }: RouteContext) {
   const update: Record<string, unknown> = {};
 
   if (body.label !== undefined) {
-    const result = validateString(body.label, { label: "Label", max: GRADE_FIELD_LIMITS.label });
+    const result = validateString(body.label, {
+      label: "Label",
+      max: GRADE_FIELD_LIMITS.label,
+    });
     if (isValidationError(result)) {
       return badRequest(result.error);
     }
     update.label = result;
   }
-  if (body.shortLabel !== undefined) {
-    const result = validateString(body.shortLabel, { label: "Short label", max: GRADE_FIELD_LIMITS.shortLabel });
+  if (body.notes !== undefined) {
+    const result = validateString(body.notes, {
+      label: "Notes",
+      max: GRADE_FIELD_LIMITS.notes,
+    });
     if (isValidationError(result)) {
       return badRequest(result.error);
     }
-    update.shortLabel = result;
+    update.notes = result;
   }
-  if (body.description !== undefined) {
-    const result = validateString(body.description, { label: "Description", max: GRADE_FIELD_LIMITS.description });
-    if (isValidationError(result)) {
-      return badRequest(result.error);
+  if (body.color !== undefined) {
+    if (typeof body.color !== "string" || !HEX_COLOR_REGEX.test(body.color)) {
+      return badRequest("Color must be a #RRGGBB hex value.");
     }
-    update.description = result;
+    update.color = body.color;
   }
-  if (body.cosmeticNotes !== undefined) {
-    const result = validateString(body.cosmeticNotes, { label: "Cosmetic notes", max: GRADE_FIELD_LIMITS.cosmeticNotes });
-    if (isValidationError(result)) {
-      return badRequest(result.error);
+  if (body.video !== undefined) {
+    if (typeof body.video !== "string") {
+      return badRequest("Video must be a URL string.");
     }
-    update.cosmeticNotes = result;
-  }
-  if (body.functionalNotes !== undefined) {
-    const result = validateString(body.functionalNotes, { label: "Functional notes", max: GRADE_FIELD_LIMITS.functionalNotes });
-    if (isValidationError(result)) {
-      return badRequest(result.error);
-    }
-    update.functionalNotes = result;
-  }
-  if (typeof body.tone === "string") {
-    const allowed = new Set<string>(GRADE_TONES);
-    if (!allowed.has(body.tone)) {
-      return badRequest(`Tone must be one of: ${GRADE_TONES.join(", ")}`);
-    }
-    update.tone = body.tone;
-  }
-  if (typeof body.sortOrder === "number") {
-    update.sortOrder = body.sortOrder;
+    update.video = body.video.trim();
   }
 
   if (Object.keys(update).length === 0) {
@@ -106,10 +92,11 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   await connectDB();
   try {
-    const doc = await Grade.findByIdAndUpdate(id, { $set: update }, {
-      new: true,
-      runValidators: true,
-    }).lean<GradeLean>();
+    const doc = await Grade.findByIdAndUpdate(
+      id,
+      { $set: update },
+      { new: true, runValidators: true },
+    ).lean<GradeLean>();
     if (!doc) {
       return notFound("Grade not found");
     }

@@ -17,7 +17,10 @@ import {
 } from "@store/shared";
 
 import { recordActivity } from "@/lib/services/activityLog";
-import { toInquiryResponse, type InquiryLean } from "@/lib/serializers/inquiry";
+import {
+  toInquiryResponse,
+  type InquiryLean,
+} from "@/lib/serializers/inquiry";
 
 const ALLOWED_STATUSES = new Set<string>(INQUIRY_STATUSES);
 
@@ -25,10 +28,15 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+/**
+ * Admin patch surface for a single chat thread. Sending messages is a
+ * separate route (Phase 8); this endpoint covers metadata: status,
+ * assignee, and internal notes that the customer never sees.
+ */
 interface InquiryUpdateInput {
   status?: unknown;
-  notes?: unknown;
-  lastMessage?: unknown;
+  assignedToUserId?: unknown;
+  internalNotes?: unknown;
 }
 
 export async function GET(_request: Request, { params }: RouteContext) {
@@ -48,7 +56,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     return notFound("Inquiry not found");
   }
 
-  return ok(toInquiryResponse(doc));
+  return ok(toInquiryResponse(doc, { includeInternal: true }));
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -76,11 +84,22 @@ export async function PUT(request: Request, { params }: RouteContext) {
     nextStatus = body.status as InquiryStatus;
     update.status = nextStatus;
   }
-  if (typeof body.notes === "string") {
-    update.notes = body.notes.trim().slice(0, FIELD_LIMITS.messageBody);
+  if (body.assignedToUserId !== undefined) {
+    if (body.assignedToUserId === null) {
+      update.assignedToUserId = null;
+    } else if (
+      typeof body.assignedToUserId === "string" &&
+      isValidId(body.assignedToUserId)
+    ) {
+      update.assignedToUserId = body.assignedToUserId;
+    } else {
+      return badRequest("assignedToUserId must be a Mongo ObjectId or null.");
+    }
   }
-  if (typeof body.lastMessage === "string") {
-    update.lastMessage = body.lastMessage.trim().slice(0, FIELD_LIMITS.crmNotes);
+  if (typeof body.internalNotes === "string") {
+    update.internalNotes = body.internalNotes
+      .trim()
+      .slice(0, FIELD_LIMITS.messageBody);
   }
 
   if (Object.keys(update).length === 0) {
@@ -97,15 +116,18 @@ export async function PUT(request: Request, { params }: RouteContext) {
       return notFound("Inquiry not found");
     }
 
+    const label = doc.subjectProductName
+      ? `${doc.customerName} · ${doc.subjectProductName}`
+      : doc.customerName;
     await recordActivity({
       actor,
       action: nextStatus ? "status_changed" : "updated",
       resourceType: "inquiry",
       resourceId: id,
-      resourceLabel: `${doc.customerName} · ${doc.modelName}`,
+      resourceLabel: label,
       detail: nextStatus ? `Status → ${nextStatus}` : undefined,
     });
-    return ok(toInquiryResponse(doc));
+    return ok(toInquiryResponse(doc, { includeInternal: true }));
   } catch (error) {
     return handleMongoError(error);
   }
@@ -129,12 +151,15 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       return notFound("Inquiry not found");
     }
 
+    const label = doc.subjectProductName
+      ? `${doc.customerName} · ${doc.subjectProductName}`
+      : doc.customerName;
     await recordActivity({
       actor,
       action: "deleted",
       resourceType: "inquiry",
       resourceId: id,
-      resourceLabel: `${doc.customerName} · ${doc.modelName}`,
+      resourceLabel: label,
     });
     return noContent();
   } catch (error) {

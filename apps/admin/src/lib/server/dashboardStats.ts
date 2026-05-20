@@ -256,10 +256,10 @@ export async function loadDashboardKpis(): Promise<DashboardKpis> {
       },
     ]),
     Inquiry.countDocuments({
-      status: { $in: ["new", "in-progress", "awaiting-customer"] },
+      status: { $in: ["open", "awaiting-customer"] },
     }),
     Inquiry.countDocuments({
-      status: { $in: ["new", "in-progress", "awaiting-customer"] },
+      status: { $in: ["open", "awaiting-customer"] },
       createdAt: { $lt: weekStart },
     }),
     Customer.countDocuments({}),
@@ -376,10 +376,10 @@ export async function loadDashboardDailyRevenue(): Promise<{ date: string; rupee
 export async function loadDashboardRecentInquiries(): Promise<AdminInquiry[]> {
   await connectDB();
   const docs = await Inquiry.find()
-    .sort({ createdAt: -1 })
+    .sort({ lastMessageAt: -1 })
     .limit(RECENT_INQUIRIES_LIMIT)
     .lean<InquiryLean[]>();
-  return docs.map(toInquiryResponse);
+  return docs.map((doc) => toInquiryResponse(doc));
 }
 
 export async function loadDashboardData(): Promise<DashboardData> {
@@ -492,10 +492,10 @@ export async function loadDashboardData(): Promise<DashboardData> {
       },
     ]),
     Inquiry.countDocuments({
-      status: { $in: ["new", "in-progress", "awaiting-customer"] },
+      status: { $in: ["open", "awaiting-customer"] },
     }),
     Inquiry.countDocuments({
-      status: { $in: ["new", "in-progress", "awaiting-customer"] },
+      status: { $in: ["open", "awaiting-customer"] },
       createdAt: { $lt: weekStart },
     }),
     Customer.countDocuments({}),
@@ -525,7 +525,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
       { $sort: { _id: 1 } },
     ]),
     Inquiry.find()
-      .sort({ createdAt: -1 })
+      .sort({ lastMessageAt: -1 })
       .limit(RECENT_INQUIRIES_LIMIT)
       .lean<InquiryLean[]>(),
   ]);
@@ -591,7 +591,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
     },
   };
 
-  const recentInquiries = recentInquiryDocs.map(toInquiryResponse);
+  const recentInquiries = recentInquiryDocs.map((doc) => toInquiryResponse(doc));
 
   return { kpis, dailyRevenue, recentInquiries };
 }
