@@ -199,6 +199,45 @@ html {
   border-radius: var(--radius-md);
 }
 
+/* Section wrappers — mirrors storefront `apps/web/src/app/globals.css` so the
+   admin's mobile dashboard renders the same stacked-card rhythm with uppercase
+   tracked eyebrows above each section header. */
+.app-section {
+  margin-top: 80px;
+}
+
+.app-section:first-child {
+  margin-top: 0;
+}
+
+@media (min-width: 40rem) {
+  .app-section {
+    margin-top: 0;
+  }
+}
+
+.app-section-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-500);
+  margin-bottom: 16px;
+}
+
+.app-section-eyebrow a,
+.app-section-eyebrow button {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  color: var(--color-accent-700);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
