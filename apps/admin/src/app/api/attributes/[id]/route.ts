@@ -10,31 +10,27 @@ import {
   validateString,
 } from "@store/shared";
 
-import { connectDB, Grade, handleMongoError } from "@store/db";
+import { Attribute, connectDB, handleMongoError } from "@store/db";
+import { ATTRIBUTE_CARD_POSITIONS } from "@store/db";
 
+import { ATTRIBUTE_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
-
-import { GRADE_FIELD_LIMITS } from "@/lib/api/fieldLimits";
-
-import { toGradeResponse, type GradeLean } from "@/lib/serializers/grade";
-
-const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/i;
+import {
+  toAttributeResponse,
+  type AttributeLean,
+} from "@/lib/serializers/attribute";
+import { parseAttributeOptions } from "@/lib/api/attributesPayload";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-/**
- * Patch surface for an existing grade. `categorySlug` is intentionally
- * read-only (the URL identifies the grade, and re-parenting a grade is
- * a destructive op better expressed as delete + create).
- */
-interface GradeUpdateInput {
+interface AttributeUpdateInput {
   label?: unknown;
-  notes?: unknown;
-  color?: unknown;
-  video?: unknown;
+  options?: unknown;
+  cardPosition?: unknown;
+  isActive?: unknown;
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -48,7 +44,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
     return badRequest("Invalid ID.");
   }
 
-  const body = await parseBody<GradeUpdateInput>(request);
+  const body = await parseBody<AttributeUpdateInput>(request);
   if (body instanceof Response) {
     return body;
   }
@@ -58,34 +54,33 @@ export async function PUT(request: Request, { params }: RouteContext) {
   if (body.label !== undefined) {
     const result = validateString(body.label, {
       label: "Label",
-      max: GRADE_FIELD_LIMITS.label,
+      max: ATTRIBUTE_FIELD_LIMITS.label,
     });
     if (isValidationError(result)) {
       return badRequest(result.error);
     }
     update.label = result;
   }
-  if (body.notes !== undefined) {
-    const result = validateString(body.notes, {
-      label: "Notes",
-      max: GRADE_FIELD_LIMITS.notes,
-    });
-    if (isValidationError(result)) {
-      return badRequest(result.error);
+  if (body.options !== undefined) {
+    const parsed = parseAttributeOptions(body.options);
+    if ("error" in parsed) {
+      return badRequest(parsed.error);
     }
-    update.notes = result;
+    update.options = parsed.options;
   }
-  if (body.color !== undefined) {
-    if (typeof body.color !== "string" || !HEX_COLOR_REGEX.test(body.color)) {
-      return badRequest("Color must be a #RRGGBB hex value.");
+  if (body.cardPosition !== undefined) {
+    if (
+      typeof body.cardPosition !== "string" ||
+      !(ATTRIBUTE_CARD_POSITIONS as readonly string[]).includes(body.cardPosition)
+    ) {
+      return badRequest(
+        `cardPosition must be one of: ${ATTRIBUTE_CARD_POSITIONS.join(", ")}.`,
+      );
     }
-    update.color = body.color;
+    update.cardPosition = body.cardPosition;
   }
-  if (body.video !== undefined) {
-    if (typeof body.video !== "string") {
-      return badRequest("Video must be a URL string.");
-    }
-    update.video = body.video.trim();
+  if (body.isActive !== undefined) {
+    update.isActive = body.isActive !== false;
   }
 
   if (Object.keys(update).length === 0) {
@@ -94,24 +89,23 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   await connectDB();
   try {
-    const doc = await Grade.findByIdAndUpdate(
+    const doc = await Attribute.findByIdAndUpdate(
       id,
       { $set: update },
       { new: true, runValidators: true },
-    ).lean<GradeLean>();
+    ).lean<AttributeLean>();
     if (!doc) {
-      return notFound("Grade not found");
+      return notFound("Attribute not found");
     }
-
     await recordActivity({
       actor,
       action: "updated",
-      resourceType: "grade",
+      resourceType: "attribute",
       resourceId: id,
       resourceLabel: doc.label,
     });
     bustAdminCaches();
-    return ok(toGradeResponse(doc));
+    return ok(toAttributeResponse(doc));
   } catch (error) {
     return handleMongoError(error);
   }
@@ -129,14 +123,14 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
 
   await connectDB();
   try {
-    const doc = await Grade.findByIdAndDelete(id).lean<GradeLean>();
+    const doc = await Attribute.findByIdAndDelete(id).lean<AttributeLean>();
     if (!doc) {
-      return notFound("Grade not found");
+      return notFound("Attribute not found");
     }
     await recordActivity({
       actor,
       action: "deleted",
-      resourceType: "grade",
+      resourceType: "attribute",
       resourceId: id,
       resourceLabel: doc.label,
     });
