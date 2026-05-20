@@ -9,7 +9,7 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import { VariantSelector } from "@/components/shared/VariantSelector";
 import { VariantProvider } from "@/components/shared/VariantContext";
 import { GradeShowcase } from "@/components/shared/GradeShowcase";
-import { AccessoryDetailView } from "@/components/shared/AccessoryDetailView";
+import { AccessoryDetail } from "@/components/shared/AccessoryDetail";
 import { formatStorage, type Phone } from "@store/shared";
 import { getStorefrontProducts } from "@/lib/storefront";
 import {
@@ -134,7 +134,7 @@ export default async function ProductDetailPage({
       )
       .slice(0, RELATED_PRODUCTS_DISPLAY_COUNT);
     return (
-      <AccessoryDetailView
+      <AccessoryDetail
         accessory={product}
         initialVariantId={initial.id}
         relatedAccessories={relatedAccessories}

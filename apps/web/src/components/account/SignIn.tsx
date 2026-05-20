@@ -24,7 +24,7 @@ const CODE_AUTOFOCUS_DELAY_MS = 80;
 /** Strip any non-digits typed/pasted into the verification input. */
 const NON_DIGIT_REGEX = /\D/g;
 
-export function SignInView() {
+export function SignIn() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { siteName } = useStoreSettings();

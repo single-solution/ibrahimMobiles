@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getStoreSettings } from "@store/db";
-import { OrdersListView } from "@/components/account/OrdersListView";
+import { OrderHistory } from "@/components/account/OrderHistory";
 import { auth } from "@/lib/auth";
 import { getAccountOrders } from "@/lib/storefront/account";
 
@@ -21,5 +21,5 @@ export default async function OrdersListPage() {
     redirect("/account/sign-in?next=/account/orders");
   }
   const orders = await getAccountOrders(session.user.customerId);
-  return <OrdersListView orders={orders} />;
+  return <OrderHistory orders={orders} />;
 }

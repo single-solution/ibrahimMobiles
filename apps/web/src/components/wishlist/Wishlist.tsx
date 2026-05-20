@@ -20,7 +20,7 @@ const CATEGORY_LABEL: Record<ProductCategory, string> = {
   gadget: "Gadget",
 };
 
-export function WishlistView() {
+export function Wishlist() {
   const wishlist = useWishlist();
 
   if (wishlist.itemCount === 0) {

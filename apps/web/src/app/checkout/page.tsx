@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CheckoutView } from "@/components/checkout/CheckoutView";
+import { Checkout } from "@/components/checkout/Checkout";
 
 export const metadata: Metadata = {
   title: "Checkout",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function CheckoutPage() {
-  return <CheckoutView />;
+  return <Checkout />;
 }

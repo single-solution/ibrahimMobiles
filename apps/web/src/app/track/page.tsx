@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { TrackView } from "@/components/account/TrackView";
+import { OrderTracking } from "@/components/account/OrderTracking";
 
 export const metadata: Metadata = {
   title: "Track your order",
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function TrackPage() {
   return (
     <Suspense fallback={null}>
-      <TrackView />
+      <OrderTracking />
     </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { SignInView } from "@/components/account/SignInView";
+import { SignIn } from "@/components/account/SignIn";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default function SignInPage() {
   return (
     <Suspense fallback={null}>
-      <SignInView />
+      <SignIn />
     </Suspense>
   );
 }

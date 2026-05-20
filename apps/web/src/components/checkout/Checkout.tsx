@@ -68,7 +68,7 @@ const EMPTY_ADDRESS: AddressFormState = {
   postalCode: "",
 };
 
-export function CheckoutView() {
+export function Checkout() {
   const router = useRouter();
   const cart = useCart();
   const settings = useStoreSettings();

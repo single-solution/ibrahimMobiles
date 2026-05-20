@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { DECIMAL_RADIX } from "@store/shared";
 
-import { CheckoutSuccessView } from "@/components/checkout/CheckoutSuccessView";
+import { CheckoutSuccess } from "@/components/checkout/CheckoutSuccess";
 
 export const metadata: Metadata = {
   title: "Order placed",
@@ -39,7 +39,7 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
   const pointsEarned = readNumberParam(params.earned);
   const pointsRedeemed = readNumberParam(params.redeemed);
   return (
-    <CheckoutSuccessView
+    <CheckoutSuccess
       orderNumber={orderNumber}
       pointsEarned={pointsEarned}
       pointsRedeemed={pointsRedeemed}

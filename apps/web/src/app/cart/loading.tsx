@@ -3,7 +3,7 @@ import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 const CART_LINE_COUNT = 3;
 
 /**
- * Exact-match skeleton for `CartView` (`@/components/cart/CartView.tsx`).
+ * Exact-match skeleton for `Cart` (`@/components/cart/Cart.tsx`).
  *
  *   ← back-to-shop link (tiny)
  *   ↳ "Your cart" headline + item-count subtitle
@@ -12,7 +12,7 @@ const CART_LINE_COUNT = 3;
  *   ↳ each cart line: 80px square thumbnail + brand chip + title + chips +
  *     quantity stepper + line total.
  *
- * `CartView` is a Client Component (it reads from `useCart()` /
+ * `Cart` is a Client Component (it reads from `useCart()` /
  * localStorage) — the loading.tsx only flashes during the brief moment
  * before hydration completes, then the real view takes over. Match the
  * empty-state path is intentionally skipped here: skeleton always shows

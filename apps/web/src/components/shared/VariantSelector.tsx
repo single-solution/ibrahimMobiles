@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
-import { CompareVariantsModal } from "@/components/shared/CompareVariantsModal";
+import { CompareVariants } from "@/components/shared/CompareVariants";
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { PtaBadge } from "@/components/shared/PtaBadge";
 import { useVariantSelection } from "@/components/shared/VariantContext";
@@ -117,7 +117,7 @@ export function VariantSelector({ phone, brandName }: VariantSelectorProps) {
       />
 
       {isCompareOpen && (
-        <CompareVariantsModal
+        <CompareVariants
           phone={phone}
           brandName={brandName}
           selectedVariantId={selected.id}

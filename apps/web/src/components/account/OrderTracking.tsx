@@ -70,7 +70,7 @@ const STATUS_TONE: Record<
 };
 
 
-export function TrackView() {
+export function OrderTracking() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { whatsappNumber } = useStoreSettings();

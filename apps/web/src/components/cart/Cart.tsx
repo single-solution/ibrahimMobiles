@@ -20,7 +20,7 @@ import { classNames, formatPrice, formatStorage } from "@store/shared";
  * when the customer hits `/cart` directly (e.g. from the wishlist or a deep
  * link). Hands off to `/checkout` for the actual purchase flow.
  */
-export function CartView() {
+export function Cart() {
   const cart = useCart();
 
   if (cart.isEmpty) {

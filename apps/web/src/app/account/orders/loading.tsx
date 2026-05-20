@@ -2,7 +2,7 @@ import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 
 /**
  * Orders list fallback — back link → header → filter pills → list of order
- * rows. Each row mirrors the live `OrdersListView` row anatomy (status
+ * rows. Each row mirrors the live `OrderHistory` row anatomy (status
  * header strip + body with title, totals, and chevron).
  */
 const ORDER_ROW_COUNT = 4;

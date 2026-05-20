@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { ProfileView } from "@/components/account/ProfileView";
+import { CustomerProfile } from "@/components/account/CustomerProfile";
 import { auth } from "@/lib/auth";
 import { getAccountCustomer } from "@/lib/storefront/account";
 
@@ -20,5 +20,5 @@ export default async function ProfilePage() {
   if (!customer) {
     redirect("/account/sign-in?next=/account/profile");
   }
-  return <ProfileView customer={customer} />;
+  return <CustomerProfile customer={customer} />;
 }

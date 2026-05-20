@@ -28,11 +28,11 @@ const FILTERS: { id: FilterId; label: string; matches: (order: StorefrontOrder) 
   { id: "cancelled", label: "Cancelled", matches: (order) => order.status === "cancelled" || order.status === "refunded" },
 ];
 
-interface OrdersListViewProps {
+interface OrderHistoryProps {
   orders: StorefrontOrder[];
 }
 
-export function OrdersListView({ orders }: OrdersListViewProps) {
+export function OrderHistory({ orders }: OrderHistoryProps) {
   const [filter, setFilter] = useState<FilterId>("all");
 
   const filtered = useMemo(() => {

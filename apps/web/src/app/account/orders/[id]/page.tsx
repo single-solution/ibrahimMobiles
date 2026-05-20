@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { OrderDetailView } from "@/components/account/OrderDetailView";
+import { OrderDetail } from "@/components/account/OrderDetail";
 import { auth } from "@/lib/auth";
 import { getAccountOrder } from "@/lib/storefront/account";
 
@@ -28,5 +28,5 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   if (!order) {
     notFound();
   }
-  return <OrderDetailView order={order} />;
+  return <OrderDetail order={order} />;
 }

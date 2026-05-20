@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CartView } from "@/components/cart/CartView";
+import { Cart } from "@/components/cart/Cart";
 
 export const metadata: Metadata = {
   title: "Cart",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function CartPage() {
-  return <CartView />;
+  return <Cart />;
 }

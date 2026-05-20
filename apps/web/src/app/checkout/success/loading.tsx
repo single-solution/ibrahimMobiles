@@ -2,7 +2,7 @@ import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 
 /**
  * Checkout success fallback — a single hero card with a confirmation
- * eyebrow, big order number, and primary CTA. Mirrors `CheckoutSuccessView`.
+ * eyebrow, big order number, and primary CTA. Mirrors `CheckoutSuccess`.
  */
 const LOYALTY_PILL_COUNT = 2;
 

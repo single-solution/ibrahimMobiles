@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { WishlistView } from "@/components/wishlist/WishlistView";
+import { Wishlist } from "@/components/wishlist/Wishlist";
 
 export const metadata: Metadata = {
   title: "Saved phones",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function WishlistPage() {
-  return <WishlistView />;
+  return <Wishlist />;
 }

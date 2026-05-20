@@ -13,7 +13,7 @@ import {
   type PhoneVariant,
 } from "@store/shared";
 
-interface CompareVariantsModalProps {
+interface CompareVariantsProps {
   phone: Phone;
   brandName: string;
   selectedVariantId: string;
@@ -21,13 +21,13 @@ interface CompareVariantsModalProps {
   onSelect: (variantId: string) => void;
 }
 
-export function CompareVariantsModal({
+export function CompareVariants({
   phone,
   brandName,
   selectedVariantId,
   onClose,
   onSelect,
-}: CompareVariantsModalProps) {
+}: CompareVariantsProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {

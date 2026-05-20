@@ -10,17 +10,17 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { LOYALTY_PROGRAM_NAME, formatPoints } from "@store/shared";
 
-interface CheckoutSuccessViewProps {
+interface CheckoutSuccessProps {
   orderNumber: string;
   pointsEarned: number;
   pointsRedeemed: number;
 }
 
-export function CheckoutSuccessView({
+export function CheckoutSuccess({
   orderNumber,
   pointsEarned,
   pointsRedeemed,
-}: CheckoutSuccessViewProps) {
+}: CheckoutSuccessProps) {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-var(--desktop-header-h)-160px)] max-w-3xl items-center px-4 pb-16 pt-8 md:px-6">
       <div className="w-full">

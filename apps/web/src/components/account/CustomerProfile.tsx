@@ -22,7 +22,7 @@ import type { AccountAddress, AccountCustomer } from "@/lib/storefront/account";
 
 const SAVED_FLASH_MS = 1_800;
 
-interface ProfileViewProps {
+interface CustomerProfileProps {
   customer: AccountCustomer;
 }
 
@@ -50,7 +50,7 @@ function toDraft(address: AccountAddress): AddressDraft {
   };
 }
 
-export function ProfileView({ customer }: ProfileViewProps) {
+export function CustomerProfile({ customer }: CustomerProfileProps) {
   const router = useRouter();
   const [fullName, setFullName] = useState(customer.name);
   const [email, setEmail] = useState(customer.email);

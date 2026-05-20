@@ -2,7 +2,7 @@ import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 
 /**
  * Order tracking fallback — header + lookup form. Covers the route-segment
- * transition before the client `TrackView` mounts.
+ * transition before the client `OrderTracking` mounts.
  */
 export default function TrackLoading() {
   return (

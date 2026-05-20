@@ -74,11 +74,11 @@ const TONE: Record<
   },
 };
 
-interface OrderDetailViewProps {
+interface OrderDetailProps {
   order: StorefrontOrder;
 }
 
-export function OrderDetailView({ order }: OrderDetailViewProps) {
+export function OrderDetail({ order }: OrderDetailProps) {
   const tone = TONE[order.status];
   const isCancelled = order.status === "cancelled" || order.status === "refunded";
   const settings = useStoreSettings();

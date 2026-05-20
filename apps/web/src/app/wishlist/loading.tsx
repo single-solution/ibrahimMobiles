@@ -3,7 +3,7 @@ import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 const WISHLIST_CARD_COUNT = 4;
 
 /**
- * Exact-match skeleton for `WishlistView` (`@/components/wishlist/WishlistView.tsx`).
+ * Exact-match skeleton for `Wishlist` (`@/components/wishlist/Wishlist.tsx`).
  *
  *   header band — "Saved for later" eyebrow / "Your wishlist · N" title /
  *   "Clear all" button, with a 1px ink-100 divider underneath

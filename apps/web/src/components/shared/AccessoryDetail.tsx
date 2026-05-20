@@ -39,7 +39,7 @@ const HIGHLIGHT_CHIPS_MAX = 3;
 /** Gallery thumbnails surfaced in both mobile and desktop strips. */
 const GALLERY_THUMB_COUNT = 6;
 
-interface AccessoryDetailViewProps {
+interface AccessoryDetailProps {
   accessory: Accessory;
   initialVariantId: string;
   /**
@@ -59,11 +59,11 @@ const ACCESSORY_TYPE_LABEL: Record<AccessoryType, string> = {
   other: "Accessory",
 };
 
-export function AccessoryDetailView({
+export function AccessoryDetail({
   accessory,
   initialVariantId,
   relatedAccessories,
-}: AccessoryDetailViewProps) {
+}: AccessoryDetailProps) {
   const brandName = accessory.brandName ?? accessory.brandSlug;
   const related = relatedAccessories ?? [];
 

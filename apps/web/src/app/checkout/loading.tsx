@@ -2,7 +2,7 @@ import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 
 /**
  * Checkout fallback — covers the brief route-segment transition before the
- * client `CheckoutView` mounts. Shape: back link → header → 2-column form
+ * client `Checkout` mounts. Shape: back link → header → 2-column form
  * (contact + delivery + payment on the left, order summary on the right).
  */
 const FORM_SECTION_COUNT = 4;
