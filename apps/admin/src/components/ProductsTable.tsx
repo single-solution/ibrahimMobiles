@@ -175,7 +175,6 @@ export function ProductsTable({ products }: ProductsTableProps) {
         rowKey={(product) => product.id}
         searchAccessor={searchAccessor}
         searchPlaceholder="Search by model, brand, slug…"
-        pageSize={10}
       />
 
       <ConfirmDialog

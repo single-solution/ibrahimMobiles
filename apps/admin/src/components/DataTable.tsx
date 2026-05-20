@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Search } from "lucide-react";
 import { classNames } from "@store/shared";
+
+type SortDirection = "asc" | "desc";
+type SortableValue = string | number;
 
 export interface DataTableColumn<TRow> {
   id: string;
@@ -11,6 +14,12 @@ export interface DataTableColumn<TRow> {
   align?: "left" | "right" | "center";
   width?: string;
   hideOnMobile?: boolean;
+  /** When true, the header becomes a button that toggles ascending/descending
+   *  sort on this column. Sorting is client-side. */
+  sortable?: boolean;
+  /** Required when `sortable` is true on a column whose `cell` returns a React
+   *  node rather than a primitive. Returns the value used for comparison. */
+  sortAccessor?: (row: TRow) => SortableValue;
 }
 
 interface DataTableProps<TRow> {
@@ -23,6 +32,20 @@ interface DataTableProps<TRow> {
   emptyState?: ReactNode;
   pageSize?: number;
   toolbar?: ReactNode;
+  /** Optional content rendered above the table (inside the same card) — used
+   *  for chip-style filters that share the table's chrome. */
+  filterBar?: ReactNode;
+}
+
+function deriveSortableValue<TRow>(row: TRow, column: DataTableColumn<TRow>): SortableValue {
+  if (column.sortAccessor) {
+    return column.sortAccessor(row);
+  }
+  const rendered = column.cell(row);
+  if (typeof rendered === "string" || typeof rendered === "number") {
+    return rendered;
+  }
+  return "";
 }
 
 export function DataTable<TRow>({
@@ -33,11 +56,13 @@ export function DataTable<TRow>({
   searchAccessor,
   onRowClick,
   emptyState,
-  pageSize = 10,
+  pageSize = 50,
   toolbar,
+  filterBar,
 }: DataTableProps<TRow>) {
   const [query, setQuery] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
+  const [sort, setSort] = useState<{ columnId: string; direction: SortDirection } | null>(null);
 
   const filteredRows = useMemo(() => {
     if (!query.trim() || !searchAccessor) {
@@ -47,12 +72,44 @@ export function DataTable<TRow>({
     return rows.filter((row) => searchAccessor(row).toLowerCase().includes(needle));
   }, [rows, query, searchAccessor]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+  const sortedRows = useMemo(() => {
+    if (!sort) {
+      return filteredRows;
+    }
+    const sortColumn = columns.find((column) => column.id === sort.columnId);
+    if (!sortColumn) {
+      return filteredRows;
+    }
+    const direction = sort.direction === "asc" ? 1 : -1;
+    return [...filteredRows].sort((rowA, rowB) => {
+      const valueA = deriveSortableValue(rowA, sortColumn);
+      const valueB = deriveSortableValue(rowB, sortColumn);
+      if (typeof valueA === "number" && typeof valueB === "number") {
+        return (valueA - valueB) * direction;
+      }
+      return String(valueA).localeCompare(String(valueB)) * direction;
+    });
+  }, [filteredRows, sort, columns]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
   const safePageIndex = Math.min(pageIndex, totalPages - 1);
-  const visibleRows = filteredRows.slice(
+  const visibleRows = sortedRows.slice(
     safePageIndex * pageSize,
     safePageIndex * pageSize + pageSize,
   );
+
+  function toggleSort(columnId: string) {
+    setSort((current) => {
+      if (!current || current.columnId !== columnId) {
+        return { columnId, direction: "asc" };
+      }
+      if (current.direction === "asc") {
+        return { columnId, direction: "desc" };
+      }
+      return null;
+    });
+    setPageIndex(0);
+  }
 
   function handlePrev() {
     setPageIndex((current) => Math.max(0, current - 1));
@@ -92,6 +149,12 @@ export function DataTable<TRow>({
         </div>
       )}
 
+      {filterBar && (
+        <div className="border-b border-[var(--color-ink-100)] px-3 py-2.5 sm:px-5 sm:py-3">
+          {filterBar}
+        </div>
+      )}
+
       {visibleRows.length === 0 ? (
         <div className="px-5 py-12 text-center text-sm text-[var(--color-ink-500)]">
           {emptyState ?? "No results."}
@@ -99,24 +162,52 @@ export function DataTable<TRow>({
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 text-[var(--color-ink-500)]">
-                {columns.map((column) => (
-                  <th
-                    key={column.id}
-                    scope="col"
-                    style={column.width ? { width: column.width } : undefined}
-                    className={classNames(
-                      "px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] md:px-5 md:py-3 md:text-[11px]",
-                      column.align === "right" && "text-right",
-                      column.align === "center" && "text-center",
-                      column.align !== "right" && column.align !== "center" && "text-left",
-                      column.hideOnMobile && "hidden md:table-cell",
-                    )}
-                  >
-                    {column.header}
-                  </th>
-                ))}
+            <thead className="sticky top-0 z-10 bg-[var(--color-canvas-deep)] shadow-[inset_0_-1px_0_var(--color-ink-100)]">
+              <tr className="text-[var(--color-ink-500)]">
+                {columns.map((column) => {
+                  const isSorted = sort?.columnId === column.id;
+                  return (
+                    <th
+                      key={column.id}
+                      scope="col"
+                      style={column.width ? { width: column.width } : undefined}
+                      aria-sort={
+                        isSorted ? (sort.direction === "asc" ? "ascending" : "descending") : undefined
+                      }
+                      className={classNames(
+                        "px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] md:px-5 md:py-2.5 md:text-[11px]",
+                        column.align === "right" && "text-right",
+                        column.align === "center" && "text-center",
+                        column.align !== "right" && column.align !== "center" && "text-left",
+                        column.hideOnMobile && "hidden md:table-cell",
+                      )}
+                    >
+                      {column.sortable ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleSort(column.id)}
+                          className={classNames(
+                            "inline-flex items-center gap-1.5 transition-colors hover:text-[var(--color-ink-800)]",
+                            column.align === "right" && "flex-row-reverse",
+                          )}
+                        >
+                          {column.header}
+                          {isSorted && sort.direction === "asc" && (
+                            <ChevronUp size={12} className="text-[var(--color-accent-700)]" />
+                          )}
+                          {isSorted && sort.direction === "desc" && (
+                            <ChevronDown size={12} className="text-[var(--color-accent-700)]" />
+                          )}
+                          {!isSorted && (
+                            <ChevronDown size={12} className="text-[var(--color-ink-300)]" />
+                          )}
+                        </button>
+                      ) : (
+                        column.header
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-ink-100)]">
@@ -133,7 +224,7 @@ export function DataTable<TRow>({
                     <td
                       key={column.id}
                       className={classNames(
-                        "px-3 py-3 align-middle text-[13px] text-[var(--color-ink-800)] md:px-5 md:py-4 md:text-sm",
+                        "px-3 py-2 align-middle text-[13px] text-[var(--color-ink-800)] md:px-5 md:py-3 md:text-sm",
                         column.align === "right" && "text-right",
                         column.align === "center" && "text-center",
                         column.hideOnMobile && "hidden md:table-cell",
@@ -149,15 +240,15 @@ export function DataTable<TRow>({
         </div>
       )}
 
-      {filteredRows.length > pageSize && (
+      {sortedRows.length > pageSize && (
         <div className="flex items-center justify-between gap-3 border-t border-[var(--color-ink-100)] px-3 py-2.5 text-[11px] text-[var(--color-ink-500)] sm:px-5 sm:py-3 sm:text-xs">
           <span>
             Showing{" "}
             <span className="font-semibold text-[var(--color-ink-800)]">
               {safePageIndex * pageSize + 1}–
-              {Math.min(filteredRows.length, (safePageIndex + 1) * pageSize)}
+              {Math.min(sortedRows.length, (safePageIndex + 1) * pageSize)}
             </span>{" "}
-            of {filteredRows.length}
+            of {sortedRows.length}
           </span>
           <div className="flex items-center gap-1">
             <button
