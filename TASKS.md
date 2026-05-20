@@ -64,7 +64,7 @@ RUN_MIGRATIONS=true npm run migrate -w @store/db   # one-shot data migration
 
 | Phase | Scope | Tasks | Risk | Status |
 |-------|-------|-------|------|--------|
-| 0 | Quick wins — visuals, naming, file cleanup (no schema, no API) | 6 | Low | ☐ |
+| 0 | Quick wins — visuals, naming, file cleanup (no schema, no API) | 6 | Low | ☑ shipped on `phase-0-quick-wins` (7 commits, 2026-05-20; both apps build, lint+typecheck green) |
 | 1 | Data-model alignment + universal `StoredImage` audit (Variant/Category icon/Offer banner/Settings logo+favicon+OG/Inquiry attachment shape) + catalog wipe + Inquiry restructure | 24 | High | ☐ |
 | 2 | Image / video uploads — pre-generated variants + StorageProvider abstraction + single `<ImageGallery>` / `<ImageUpload>` reused everywhere | 6 | Low | ☐ |
 | 3 | Categories workspace (Flow A) + shared storefront visuals + multi-tile `<PreviewMatrix>` per entity (always-on, real-data context) | 11 | Medium | ☐ |
