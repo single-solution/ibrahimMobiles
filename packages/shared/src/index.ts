@@ -17,6 +17,7 @@ export * from "./rateLimit";
 export * from "./responseHelpers";
 export * from "./serverEnv";
 export * from "./slug";
+export * from "./storage/types";
 export * from "./storeSettings";
 export * from "./types";
 export * from "./validation";

@@ -1,8 +1,10 @@
 import type { Types } from "mongoose";
-import type { CategoryAttributes } from "@store/db";
+import type { CategoryAttributes, WithTimestamps } from "@store/db";
 import type { AdminCategory } from "@/types/admin";
 
-export type CategoryLean = CategoryAttributes & { _id: Types.ObjectId };
+export type CategoryLean = WithTimestamps<CategoryAttributes> & {
+  _id: Types.ObjectId;
+};
 
 export function toCategoryResponse(category: CategoryLean): AdminCategory {
   return {

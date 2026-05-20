@@ -1,0 +1,39 @@
+import { Schema } from "mongoose";
+import type { StoredImage, StoredImageVariants } from "@store/shared";
+
+/**
+ * Mongoose embedded sub-schema for the universal `StoredImage` payload
+ * defined in `@store/shared/storage/types`. Every model that persists an
+ * image field reuses this exact sub-schema — Category (icon, when
+ * `iconKind === "image"`), Offer (banner), Variant (images[]), Inquiry
+ * (message attachments, Phase 8.5), Setting (logo, favicon, OG default,
+ * via the value blob).
+ *
+ * One definition, one shape, one validator — no per-model drift.
+ *
+ * `_id: false` because the parent document already has identity; nested
+ * image records don't need their own ObjectId churn (and dropping them
+ * keeps the on-disk payload small, which matters when a Variant has 8
+ * images × every product).
+ */
+
+const storedImageVariantsSchema = new Schema<StoredImageVariants>(
+  {
+    thumb: { type: String, required: true, trim: true },
+    card: { type: String, required: true, trim: true },
+    detail: { type: String, required: true, trim: true },
+    full: { type: String, required: true, trim: true },
+  },
+  { _id: false },
+);
+
+export const storedImageSchema = new Schema<StoredImage>(
+  {
+    variants: { type: storedImageVariantsSchema, required: true },
+    blurDataURL: { type: String, required: true, trim: true },
+    width: { type: Number, required: true, min: 1 },
+    height: { type: Number, required: true, min: 1 },
+    alt: { type: String, required: true, trim: true, maxlength: 240 },
+  },
+  { _id: false },
+);

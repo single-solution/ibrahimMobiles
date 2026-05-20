@@ -519,6 +519,9 @@ export async function getStorefrontCategories(): Promise<StorefrontCategoryShape
     trustChips: category.trustChips,
     emptyHint: category.emptyHint,
     sortOrder: category.sortOrder,
+    iconKind: category.iconKind ?? "emoji",
+    iconEmoji: category.iconEmoji,
+    iconImage: category.iconImage,
   }));
 }
 
@@ -569,6 +572,9 @@ export async function getStorefrontCategoryByPathSegment(
     trustChips: category.trustChips,
     emptyHint: category.emptyHint,
     sortOrder: category.sortOrder,
+    iconKind: category.iconKind ?? "emoji",
+    iconEmoji: category.iconEmoji,
+    iconImage: category.iconImage,
   };
 }
 

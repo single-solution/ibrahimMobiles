@@ -11,7 +11,9 @@
     "node": ">=22.0.0 <23.0.0"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint:image-fields": "tsx ./scripts/checkImageFields.ts",
+    "lint:no-raw-image-urls": "tsx ./scripts/checkNoRawImageUrls.ts"
   },
   "dependencies": {
     "@store/shared": "*",
@@ -19,6 +21,7 @@
     "next": "^16.2.6"
   },
   "devDependencies": {
+    "tsx": "^4.22.3",
     "typescript": "^6.0.3"
   }
 }

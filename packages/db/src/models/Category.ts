@@ -1,4 +1,6 @@
 import mongoose, { Schema, type Model } from "mongoose";
+import type { StoredImage } from "@store/shared";
+import { storedImageSchema } from "../schemas/storedImageSchema";
 
 export const CATEGORY_IDS = ["phone", "accessory", "gadget"] as const;
 export type CategoryId = (typeof CATEGORY_IDS)[number];
@@ -13,6 +15,9 @@ export const CONDITION_GRADES = [
 ] as const;
 export type ConditionGrade = (typeof CONDITION_GRADES)[number];
 
+export const CATEGORY_ICON_KINDS = ["emoji", "image"] as const;
+export type CategoryIconKind = (typeof CATEGORY_ICON_KINDS)[number];
+
 export interface CategoryAttributes {
   /** Stable identifier ("phone", "accessory", "gadget"). Doubles as the slug. */
   categoryId: CategoryId;
@@ -25,8 +30,15 @@ export interface CategoryAttributes {
   trustChips: string[];
   emptyHint: string;
   sortOrder: number;
-  createdAt: Date;
-  updatedAt: Date;
+  /**
+   * Discriminated icon union — exactly one of `iconEmoji` / `iconImage` is
+   * set per `iconKind`. The pre-validate hook nullifies the inactive side.
+   * Defaulted to `"emoji"` so existing records survive the schema bump
+   * until the Phase 1 catalog wipe (T1.21) recreates everything.
+   */
+  iconKind: CategoryIconKind;
+  iconEmoji?: string;
+  iconImage?: StoredImage;
 }
 
 const categorySchema = new Schema<CategoryAttributes>(
@@ -62,9 +74,25 @@ const categorySchema = new Schema<CategoryAttributes>(
     },
     emptyHint: { type: String, required: true, trim: true, maxlength: 280 },
     sortOrder: { type: Number, required: true, default: 0 },
+    iconKind: {
+      type: String,
+      enum: CATEGORY_ICON_KINDS,
+      required: true,
+      default: "emoji",
+    },
+    iconEmoji: { type: String, trim: true, maxlength: 8 },
+    iconImage: { type: storedImageSchema, required: false },
   },
   { timestamps: true },
 );
+
+categorySchema.pre("validate", async function categoryIconDiscriminator() {
+  if (this.iconKind === "emoji") {
+    this.iconImage = undefined;
+  } else if (this.iconKind === "image") {
+    this.iconEmoji = undefined;
+  }
+});
 
 categorySchema.index({ sortOrder: 1 });
 

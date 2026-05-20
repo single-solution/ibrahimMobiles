@@ -12,5 +12,15 @@ export { ensureReferenceData } from "./bootstrap";
 export { handleMongoError, isMongoDuplicateKeyError } from "./mongoErrors";
 export { nextOrderNumberForYear, createWithUniqueOrderNumber } from "./orderNumber";
 export { getStoreSettings, invalidateStoreSettingsCache } from "./storeSettings";
+export { storedImageSchema } from "./schemas/storedImageSchema";
+
+/**
+ * Augment a Mongoose document attributes type with the framework-managed
+ * timestamps. Model interfaces never declare `createdAt` / `updatedAt`
+ * (timestamps are a Mongoose concern, not an authored-field concern), but
+ * consumers that read .lean() documents and want to format timestamps
+ * back out can opt in via `WithTimestamps<MyModelAttributes>`.
+ */
+export type WithTimestamps<T> = T & { createdAt: Date; updatedAt: Date };
 
 export * from "./models";
