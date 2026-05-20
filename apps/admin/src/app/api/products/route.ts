@@ -22,9 +22,14 @@ import {
 import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
 
-import { summariseProduct, type ProductLean } from "@/lib/serializers/product";
+import {
+  summariseProduct,
+  toProductResponse,
+  type ProductLean,
+} from "@/lib/serializers/product";
 import { type BrandLean } from "@/lib/serializers/brand";
 import type { AdminProductSummary } from "@/types/admin";
+import { validateVariant, type VariantInput } from "@/lib/api/variantValidation";
 
 export async function GET(request: Request) {
   const { response } = await requireSession();
@@ -76,6 +81,7 @@ interface ProductCreateInput {
   categorySlug?: unknown;
   isFeatured?: unknown;
   isActive?: unknown;
+  variants?: unknown;
 }
 
 export async function POST(request: Request) {
@@ -123,6 +129,22 @@ export async function POST(request: Request) {
     if (!brandExists) return badRequest(`Brand '${brandSlug}' not found.`);
     if (!categoryExists) return badRequest(`Category '${categorySlug}' not found.`);
 
+    // Optional variants — the new `/products/new` flow posts everything in
+    // a single request. Each entry is validated against the category's
+    // grade + attribute catalog before insertion.
+    const variantPayload: Record<string, unknown>[] = [];
+    if (Array.isArray(body.variants)) {
+      for (const [index, raw] of body.variants.entries()) {
+        const result = await validateVariant(raw as VariantInput, true, {
+          categorySlug,
+        });
+        if (!result.ok) {
+          return badRequest(`Variant ${index + 1}: ${result.error}`);
+        }
+        variantPayload.push(result.value);
+      }
+    }
+
     const doc = await Product.create({
       slug,
       name: nameResult,
@@ -131,7 +153,7 @@ export async function POST(request: Request) {
       isFeatured: body.isFeatured === true,
       isActive: body.isActive !== false,
       isArchived: false,
-      variants: [],
+      variants: variantPayload,
     });
 
     await recordActivity({
@@ -146,6 +168,15 @@ export async function POST(request: Request) {
     // storefront cache (so listings reflect the new SKU immediately).
     bustAdminCaches();
 
+    // If variants came in with the initial POST the caller wants the
+    // full product back so it can redirect to the editor; otherwise the
+    // listing summary is enough.
+    if (variantPayload.length > 0) {
+      const brand = await Brand.findOne({ slug: brandSlug }).lean<BrandLean>();
+      return created(
+        toProductResponse(doc.toObject() as unknown as ProductLean, brand ?? undefined),
+      );
+    }
     const brandDocs = await Brand.find().lean<BrandLean[]>();
     const brandsBySlug = new Map(brandDocs.map((brand) => [brand.slug, brand]));
     return created(

@@ -3,23 +3,74 @@ import { ChevronLeft } from "lucide-react";
 
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle } from "@/components/PageTitle";
+import { CreateProduct } from "@/components/products/CreateProduct";
 
+import {
+  Attribute,
+  Brand,
+  Category,
+  connectDB,
+  Grade,
+} from "@store/db";
+import {
+  toAttributeResponse,
+  type AttributeLean,
+} from "@/lib/serializers/attribute";
+import { toBrandResponse, type BrandLean } from "@/lib/serializers/brand";
+import {
+  toCategoryResponse,
+  type CategoryLean,
+} from "@/lib/serializers/category";
+import { toGradeResponse, type GradeLean } from "@/lib/serializers/grade";
 import { requirePageSession } from "@/lib/server/requirePageSession";
+import type {
+  AdminAttribute,
+  AdminBrand,
+  AdminGrade,
+} from "@/types/admin";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Admin "add a new product" form — stub.
- *
- * The single-page progressive create flow (category → brand → variants
- * with the per-category attribute schema) lands in Phase 4 of PLAN.md
- * (see PHASE 4, "Product creation page"). The database side is ready;
- * this page renders the entry point so the sidebar nav and "+ New
- * product" buttons throughout the admin still resolve without 404ing
- * during the migration window.
- */
 export default async function NewProductPage() {
   await requirePageSession("/products/new");
+  await connectDB();
+
+  const [categoryDocs, brandDocs, gradeDocs, attributeDocs] = await Promise.all([
+    Category.find({ isActive: true })
+      .sort({ sortOrder: 1, label: 1 })
+      .lean<CategoryLean[]>(),
+    Brand.find({ isActive: true }).sort({ name: 1 }).lean<BrandLean[]>(),
+    Grade.find().sort({ categorySlug: 1, label: 1 }).lean<GradeLean[]>(),
+    Attribute.find({ isActive: true })
+      .sort({ categorySlug: 1, label: 1 })
+      .lean<AttributeLean[]>(),
+  ]);
+
+  const categories = categoryDocs.map(toCategoryResponse);
+  const brands = brandDocs.map(toBrandResponse);
+  const grades = gradeDocs.map(toGradeResponse);
+  const attributes = attributeDocs.map(toAttributeResponse);
+
+  const brandsByCategory: Record<string, AdminBrand[]> = {};
+  for (const brand of brands) {
+    for (const slug of brand.categorySlugs) {
+      const bucket = brandsByCategory[slug] ?? [];
+      bucket.push(brand);
+      brandsByCategory[slug] = bucket;
+    }
+  }
+  const gradesByCategory: Record<string, AdminGrade[]> = {};
+  for (const grade of grades) {
+    const bucket = gradesByCategory[grade.categorySlug] ?? [];
+    bucket.push(grade);
+    gradesByCategory[grade.categorySlug] = bucket;
+  }
+  const attributesByCategory: Record<string, AdminAttribute[]> = {};
+  for (const attribute of attributes) {
+    const bucket = attributesByCategory[attribute.categorySlug] ?? [];
+    bucket.push(attribute);
+    attributesByCategory[attribute.categorySlug] = bucket;
+  }
 
   return (
     <AdminShell>
@@ -32,19 +83,20 @@ export default async function NewProductPage() {
       </Link>
 
       <div className="mt-4">
-        <PageTitle eyebrow="New product" title="Add a model" />
+        <PageTitle
+          eyebrow="New product"
+          title="Add a product"
+          description="Pick a category to surface its brands, grades, and attributes. Variants carry images, price, and stock."
+        />
       </div>
 
-      <section className="mt-8 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface)] p-8 text-sm text-[var(--color-ink-500)]">
-        <p className="font-semibold text-[var(--color-ink-700)]">
-          The product creation flow is being rebuilt (Phase 4).
-        </p>
-        <p className="mt-2 max-w-prose">
-          The new single-page form will adapt to the selected category — only
-          that category&rsquo;s brands, grades, and attributes will appear,
-          and the variant builder will use the universal{" "}
-          <code>StoredImage</code> upload pipeline.
-        </p>
+      <section className="mt-6">
+        <CreateProduct
+          categories={categories}
+          brandsByCategory={brandsByCategory}
+          gradesByCategory={gradesByCategory}
+          attributesByCategory={attributesByCategory}
+        />
       </section>
     </AdminShell>
   );
