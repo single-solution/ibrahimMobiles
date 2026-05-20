@@ -232,7 +232,7 @@ RUN_MIGRATIONS=true npm run migrate -w @store/db   # one-shot data migration
   5. Export from `packages/db/src/models/index.ts`.
 - **Done when:** `npm run typecheck -w @store/db` passes; the model is importable as `import { Attribute } from "@store/db"`.
 - **PLAN ref:** §10 (Attribute).
-- **Resume note:** —
+- **Resume note:** **Shipped 2026-05-20** on `phase-1-data-model`. Per PLAN §10 final shape: `(categorySlug, slug, label, options[{value,label}], cardPosition, isActive)`. No `type/scope/unit/sortOrder/key`. Slug auto-generated via `pre("validate")` hook calling `slugify(label, 60)`. `(categorySlug, slug)` unique index. Slugify lifted out of `apps/admin/src/lib/services/slug.ts` (deleted) into `@store/shared/slug` so the db pre-hook can use it; six admin API routes updated to import from `@store/shared` instead.
 
 #### T1.1.5 Image-field audit — every image field becomes `StoredImage` (no `*Url: string` shortcuts)
 
@@ -267,7 +267,7 @@ RUN_MIGRATIONS=true npm run migrate -w @store/db   # one-shot data migration
   - `npm run lint:image-fields --workspace @store/db` exits 0.
   - Both new scripts are added to the root `npm run lint` chain so they run on every CI build.
 - **PLAN ref:** §1 ("Images are pre-generated … universal"), §10 (StoredImage + image-field inventory).
-- **Resume note:** Downstream consequences: T2.2 (upload route returns `StoredImage` for every consumer, not just product variants), T2.3 (the **single** `ImageGallery` component is reused by Category icon picker, Offer banner editor, Settings logo/favicon/OG picker), T3.4 (Category drawer's icon picker offers emoji + image, image goes through `<ImageUpload>`), T3.10 (Offer + StoreInfo editors consume `StoredImage`).
+- **Resume note:** **Shipped 2026-05-20** on `phase-1-data-model`. Foundation in place: `packages/shared/src/storage/types.ts` (`StoredImage`, `StoredImageVariants`, `isStoredImage` type guard), `packages/db/src/schemas/storedImageSchema.ts` (Mongoose embedded `_id: false` sub-schema). New helper type `WithTimestamps<T>` in `@store/db` lets serializers opt into `createdAt`/`updatedAt` without polluting model interfaces. Models touched: Category (added `iconKind`/`iconEmoji?`/`iconImage?` triplet with discriminator pre-validate hook; legacy fields untouched — T1.2 cuts them), Offer (added `bannerImage?`). **Inquiry attachments deferred to T1.7** (no `messages` array exists yet — T1.7 creates it from scratch with attachments baked in). **Setting model unchanged** (Mixed value already accepts StoredImage JSON; API validator change deferred to T1.11/T1.14). Lint guardrails (`lint:image-fields` structural, `lint:no-raw-image-urls` textual) added but **NOT yet wired to root `npm run lint`** — both intentionally fail on `Product.imageUrl: string` until T1.5/T1.6 replace it; wire-up happens at the end of Group A. `tsx` added as a `@store/db` devDep for the lint scripts. Downstream consequences (unchanged): T2.2 (upload route returns `StoredImage` for every consumer, not just product variants), T2.3 (the **single** `ImageGallery` component is reused by Category icon picker, Offer banner editor, Settings logo/favicon/OG picker), T3.4 (Category drawer's icon picker offers emoji + image, image goes through `<ImageUpload>`), T3.10 (Offer + StoreInfo editors consume `StoredImage`).
 
 #### T1.2 Category model cuts
 
