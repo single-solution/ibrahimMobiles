@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle } from "@/components/PageTitle";
-import { TeamView } from "@/components/TeamView";
+import { Team } from "@/components/Team";
 import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
 import { connectDB, User } from "@store/db";
 
@@ -54,7 +54,7 @@ async function TeamData({ currentUserId, isCurrentUserSuperAdmin }: TeamDataProp
   const docs = await User.find().sort({ name: 1 }).lean<UserLean[]>();
   const members = docs.map(toUserResponse);
   return (
-    <TeamView
+    <Team
       members={members}
       currentUserId={currentUserId}
       isCurrentUserSuperAdmin={isCurrentUserSuperAdmin}

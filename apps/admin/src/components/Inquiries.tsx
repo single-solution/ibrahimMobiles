@@ -43,11 +43,11 @@ const SOURCE_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-interface InquiriesViewProps {
+interface InquiriesProps {
   inquiries: AdminInquiry[];
 }
 
-export function InquiriesView({ inquiries }: InquiriesViewProps) {
+export function Inquiries({ inquiries }: InquiriesProps) {
   const router = useRouter();
   const toast = useToast();
   const [statusFilter, setStatusFilter] = useState<"all" | string>("all");

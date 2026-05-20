@@ -14,7 +14,7 @@ import { adminFetch } from "@/lib/adminApi";
 import { FIELD_LIMITS, formatPrice } from "@store/shared";
 import type { AdminLoyaltyAccount } from "@/types/admin";
 
-interface LoyaltyViewProps {
+interface LoyaltyProps {
   accounts: AdminLoyaltyAccount[];
   programmeRupeesPerPoint: number;
 }
@@ -32,7 +32,7 @@ const RECENT_TRANSACTIONS_PREVIEW = 8;
 /** Max characters accepted for the optional order-reference input. */
 const ORDER_REF_INPUT_MAX = 32;
 
-export function LoyaltyView({ accounts, programmeRupeesPerPoint }: LoyaltyViewProps) {
+export function Loyalty({ accounts, programmeRupeesPerPoint }: LoyaltyProps) {
   const [active, setActive] = useState<AdminLoyaltyAccount | null>(null);
 
   const totalBalance = accounts.reduce((sum, account) => sum + account.balance, 0);

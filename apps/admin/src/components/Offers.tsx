@@ -34,13 +34,13 @@ const ACCENT_OPTIONS = [
   { value: "sky", label: "Sky", swatch: ACCENT_SWATCHES.sky },
 ];
 
-interface OffersViewProps {
+interface OffersProps {
   offers: AdminOffer[];
 }
 
 type DrawerState = { mode: "new" } | { mode: "edit"; offer: AdminOffer } | null;
 
-export function OffersView({ offers }: OffersViewProps) {
+export function Offers({ offers }: OffersProps) {
   const router = useRouter();
   const toast = useToast();
   const [drawer, setDrawer] = useState<DrawerState>(null);

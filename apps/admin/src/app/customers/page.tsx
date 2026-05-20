@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle } from "@/components/PageTitle";
-import { CustomersView } from "@/components/CustomersView";
+import { Customers } from "@/components/Customers";
 import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
 import { connectDB, Customer, Order } from "@store/db";
 
@@ -100,5 +100,5 @@ async function CustomersData() {
     };
   });
 
-  return <CustomersView customers={customers} />;
+  return <Customers customers={customers} />;
 }

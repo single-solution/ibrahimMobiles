@@ -26,7 +26,7 @@ import { useToast } from "@/components/Toast";
  * to preserve the catalog while clearing the rest.
  */
 interface CleanupTargetConfig {
-  id: "orders" | "inquiries" | "customers" | "conversations";
+  id: "orders" | "inquiries" | "customers";
   title: string;
   description: string;
   cascadeWarning?: string;
@@ -47,13 +47,6 @@ const CLEANUP_TARGETS: ReadonlyArray<CleanupTargetConfig> = [
     description:
       "Permanently removes every inquiry — including 'Sell your phone' submissions, callback requests, and the notes attached to them.",
     confirmationPhrase: "DELETE ALL INQUIRIES",
-  },
-  {
-    id: "conversations",
-    title: "Delete all conversations",
-    description:
-      "Permanently removes every conversation and its messages. Use this to clear out AI-chat / agent transcripts you no longer need.",
-    confirmationPhrase: "DELETE ALL CONVERSATIONS",
   },
   {
     id: "customers",

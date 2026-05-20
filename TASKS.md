@@ -2055,7 +2055,7 @@ After all phases ship and a 7-day soak with no rollbacks:
 ### Lint / typecheck (PF.1)
 
 - `npm run typecheck` baseline errors: **0** across `@store/admin`, `@store/db`, `@store/shared`, `@store/web` (turbo cache hit on web + admin).
-- `npm run lint` baseline errors: **1** — `apps/web/src/app/page.tsx:1241` (`react-hooks/static-components`: `ShopTypeCard` derives an `Icon` component inside its render body via `shopTypeIconFor(meta.id)`; React 19 forbids creating components mid-render because they reset state on every re-render). Pre-existing; do not fix in this project unless a task touches `page.tsx` (the home redesign in Phase 3 / Phase 7 will rewrite this file and fold the fix in).
+- `npm run lint` baseline errors: **0** on `main` (the lint error noted during the wip-branch baseline was on a modified `page.tsx` that does not exist on `main`; phase-0 branches start clean).
 - Tool versions captured: node **v25.9.0** (engines pin `>=22 <23`; warning-only mismatch, lint+typecheck pass cleanly under 25.x), npm **11.12.1**, turbo **2.9.14**.
 
 ### Storefront First Load JS (PF.4)

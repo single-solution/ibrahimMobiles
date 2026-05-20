@@ -28,7 +28,7 @@ const PASSWORD_MIN_CHARS = 8;
 /** Full name in the team form — caps at the same upper bound the server uses. */
 const TEAM_NAME_MAX_CHARS = FIELD_LIMITS.shortText;
 
-interface TeamViewProps {
+interface TeamProps {
   members: AdminUser[];
   currentUserId?: string;
   isCurrentUserSuperAdmin?: boolean;
@@ -53,7 +53,7 @@ const ROLE_OPTIONS = (Object.keys(ROLE_LABEL) as UserRole[]).map((role) => ({
 
 type DrawerState = { mode: "new" } | { mode: "edit"; member: AdminUser } | null;
 
-export function TeamView({ members, currentUserId, isCurrentUserSuperAdmin }: TeamViewProps) {
+export function Team({ members, currentUserId, isCurrentUserSuperAdmin }: TeamProps) {
   const router = useRouter();
   const toast = useToast();
   const [drawer, setDrawer] = useState<DrawerState>(null);

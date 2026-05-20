@@ -12,11 +12,11 @@ import { SaveBar } from "@/components/forms/SaveBar";
 import { SettingsCleanup } from "@/components/SettingsCleanup";
 import { useToast } from "@/components/Toast";
 
-interface SettingsViewProps {
+interface SettingsProps {
   initialSettings: StoreSettings;
 }
 
-export function SettingsView({ initialSettings }: SettingsViewProps) {
+export function Settings({ initialSettings }: SettingsProps) {
   const [savedSettings, setSavedSettings] = useState<StoreSettings>(initialSettings);
   const [draft, setDraft] = useState<StoreSettings>(initialSettings);
 

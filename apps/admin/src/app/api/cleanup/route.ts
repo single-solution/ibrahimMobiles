@@ -26,7 +26,6 @@ import {
 } from "@store/shared";
 import {
   connectDB,
-  Conversation,
   Customer,
   handleMongoError,
   Inquiry,
@@ -38,12 +37,7 @@ import { bustAdminCaches } from "@/lib/cached";
 import { requireSession } from "@/lib/api/requireSession";
 import { recordActivity } from "@/lib/services/activityLog";
 
-const CLEANUP_TARGETS = [
-  "orders",
-  "inquiries",
-  "customers",
-  "conversations",
-] as const;
+const CLEANUP_TARGETS = ["orders", "inquiries", "customers"] as const;
 type CleanupTarget = (typeof CLEANUP_TARGETS)[number];
 
 /**
@@ -55,7 +49,6 @@ const CONFIRMATION_PHRASES: Record<CleanupTarget, string> = {
   orders: "DELETE ALL ORDERS",
   inquiries: "DELETE ALL INQUIRIES",
   customers: "DELETE ALL CUSTOMERS",
-  conversations: "DELETE ALL CONVERSATIONS",
 };
 
 interface CleanupBody {
@@ -122,10 +115,6 @@ async function runCleanup(target: CleanupTarget): Promise<number> {
       const result = await Inquiry.deleteMany({});
       return result.deletedCount ?? 0;
     }
-    case "conversations": {
-      const result = await Conversation.deleteMany({});
-      return result.deletedCount ?? 0;
-    }
     case "customers": {
       // Cascade — orphan orders + loyalty would leave dangling `customerId`
       // foreign keys and broken lifetime stats. Delete dependents first so
@@ -141,7 +130,7 @@ async function runCleanup(target: CleanupTarget): Promise<number> {
 /** Map a cleanup target to the closest `ActivityResourceType` value. */
 function targetActivityResource(
   target: CleanupTarget,
-): "order" | "inquiry" | "customer" | "conversation" {
+): "order" | "inquiry" | "customer" {
   switch (target) {
     case "orders":
       return "order";
@@ -149,7 +138,5 @@ function targetActivityResource(
       return "inquiry";
     case "customers":
       return "customer";
-    case "conversations":
-      return "conversation";
   }
 }

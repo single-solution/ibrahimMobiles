@@ -259,60 +259,6 @@ export interface AdminOffer {
 }
 
 // ============================================================================
-// Media library
-// ============================================================================
-
-export interface AdminMediaAsset {
-  id: string;
-  url: string;
-  kind: "image" | "video" | "document";
-  title: string;
-  alt?: string;
-  fileName?: string;
-  contentType?: string;
-  sizeBytes?: number;
-  width?: number;
-  height?: number;
-  tags: string[];
-  uploadedById?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// ============================================================================
-// Conversations (AI desk)
-// ============================================================================
-
-export interface AdminConversationMessage {
-  id: string;
-  author: "customer" | "agent" | "ai";
-  authorName?: string;
-  body: string;
-  createdAt: string;
-}
-
-export interface AdminConversationSummary {
-  id: string;
-  customerId?: string;
-  customerName: string;
-  customerHandle?: string;
-  channel: "chat" | "whatsapp" | "phone" | "email" | "instagram";
-  topic: string;
-  status: "open" | "waiting" | "resolved";
-  priority: "low" | "normal" | "high" | "urgent";
-  assignedToId?: string;
-  unreadCount: number;
-  lastMessageAt: string;
-  lastMessagePreview?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AdminConversation extends AdminConversationSummary {
-  messages: AdminConversationMessage[];
-}
-
-// ============================================================================
 // Settings & store config
 // ============================================================================
 

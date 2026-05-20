@@ -1,10 +1,5 @@
 import { AdminPageSkeleton } from "@/components/loading/AdminPageSkeleton";
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
-
-const CATEGORIES_COLUMN_COUNT = 4;
-const CATEGORIES_ROW_COUNT = 6;
-const GRADES_COLUMN_COUNT = 4;
-const GRADES_ROW_COUNT = 6;
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function CategoriesLoading() {
   return (
@@ -14,17 +9,12 @@ export default function CategoriesLoading() {
       titleWidthClass="w-36"
       hasDescription
     >
-      <div className="space-y-6">
-        <AdminTableSkeleton
-          columnCount={CATEGORIES_COLUMN_COUNT}
-          rowCount={CATEGORIES_ROW_COUNT}
-          hasFilterBar={false}
-        />
-        <AdminTableSkeleton
-          columnCount={GRADES_COLUMN_COUNT}
-          rowCount={GRADES_ROW_COUNT}
-          hasFilterBar={false}
-        />
+      <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface-muted)] px-6 py-10">
+        <div className="mx-auto max-w-prose space-y-2">
+          <Skeleton shape="text" className="h-3.5 w-full" />
+          <Skeleton shape="text" className="h-3.5 w-5/6" />
+          <Skeleton shape="text" className="h-3.5 w-3/4" />
+        </div>
       </div>
     </AdminPageSkeleton>
   );

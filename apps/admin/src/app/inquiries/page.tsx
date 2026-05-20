@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle } from "@/components/PageTitle";
-import { InquiriesView } from "@/components/InquiriesView";
+import { Inquiries } from "@/components/Inquiries";
 import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
 import { connectDB, Inquiry } from "@store/db";
 
@@ -44,5 +44,5 @@ async function InquiriesData() {
     .limit(RECENT_INQUIRIES_LIMIT)
     .lean<InquiryLean[]>();
   const inquiries = docs.map(toInquiryResponse);
-  return <InquiriesView inquiries={inquiries} />;
+  return <Inquiries inquiries={inquiries} />;
 }

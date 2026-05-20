@@ -3,7 +3,7 @@ import { getStoreSettings } from "@store/db";
 
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle } from "@/components/PageTitle";
-import { SettingsView } from "@/components/SettingsView";
+import { Settings } from "@/components/Settings";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +26,7 @@ export default async function AdminSettingsPage() {
 
 async function SettingsData() {
   const settings = await getStoreSettings();
-  return <SettingsView initialSettings={settings} />;
+  return <Settings initialSettings={settings} />;
 }
 
 function SettingsFallback() {

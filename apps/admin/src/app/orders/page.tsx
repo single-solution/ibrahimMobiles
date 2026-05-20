@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle } from "@/components/PageTitle";
-import { OrdersView } from "@/components/OrdersView";
+import { Orders } from "@/components/Orders";
 import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
 import { connectDB, Order } from "@store/db";
 
@@ -19,7 +19,7 @@ const ORDERS_ROW_COUNT = 12;
  * Admin orders index.
  *
  * Static-first rendering: the shell, page title, and section wrapper
- * render synchronously on navigation; the `OrdersView` (which does the
+ * render synchronously on navigation; the `Orders` (which does the
  * Mongo round-trip for the 200 most recent orders) streams in via
  * Suspense with a content-shaped fallback. The brief skeleton flash
  * only covers the data, never the chrome.
@@ -57,5 +57,5 @@ async function OrdersData() {
     .limit(RECENT_ORDERS_LIMIT)
     .lean<OrderLean[]>();
   const orders = docs.map(summariseOrder);
-  return <OrdersView orders={orders} />;
+  return <Orders orders={orders} />;
 }

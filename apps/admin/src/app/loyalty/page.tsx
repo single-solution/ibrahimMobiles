@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle } from "@/components/PageTitle";
-import { LoyaltyView } from "@/components/LoyaltyView";
+import { Loyalty } from "@/components/Loyalty";
 import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
 import { connectDB, Customer, LoyaltyAccount } from "@store/db";
 
@@ -58,5 +58,5 @@ async function LoyaltyData() {
     toLoyaltyAccountResponse(doc, customerNameById.get(doc.customerId.toString()) ?? "Unknown"),
   );
 
-  return <LoyaltyView accounts={accounts} programmeRupeesPerPoint={LOYALTY_POINT_TO_RUPEE} />;
+  return <Loyalty accounts={accounts} programmeRupeesPerPoint={LOYALTY_POINT_TO_RUPEE} />;
 }

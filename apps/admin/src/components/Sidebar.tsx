@@ -7,10 +7,8 @@ import {
   BadgePercent,
   Boxes,
   Heart,
-  Image as ImageIcon,
   Inbox,
   LayoutDashboard,
-  MessageSquare,
   Receipt,
   Settings,
   Smartphone,
@@ -58,15 +56,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
   {
-    title: "Storefront",
-    items: [
-      { href: "/media", label: "Media library", icon: ImageIcon },
-    ],
-  },
-  {
     title: "System",
     items: [
-      { href: "/conversations", label: "AI conversations", icon: MessageSquare },
       { href: "/activity", label: "Activity log", icon: Activity },
       { href: "/settings", label: "Settings", icon: Settings },
       { href: "/team", label: "Team & roles", icon: UsersRound },

@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle } from "@/components/PageTitle";
-import { OffersView } from "@/components/OffersView";
+import { Offers } from "@/components/Offers";
 import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
 import { connectDB, Offer } from "@store/db";
 
@@ -48,5 +48,5 @@ async function OffersData() {
     .limit(OFFERS_LIST_LIMIT)
     .lean<OfferLean[]>();
   const offers = docs.map(toOfferResponse);
-  return <OffersView offers={offers} />;
+  return <Offers offers={offers} />;
 }

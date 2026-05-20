@@ -1,19 +1,9 @@
-import { Suspense } from "react";
-
 import { AdminShell } from "@/components/AdminShell";
 import { PageTitle } from "@/components/PageTitle";
-import { CategoriesView } from "@/components/CategoriesView";
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
-import { Category, connectDB, Grade } from "@store/db";
 
 import { requirePageSession } from "@/lib/server/requirePageSession";
-import { toCategoryResponse, type CategoryLean } from "@/lib/serializers/category";
-import { toGradeResponse, type GradeLean } from "@/lib/serializers/grade";
 
 export const dynamic = "force-dynamic";
-
-const CATEGORIES_COLUMN_COUNT = 4;
-const CATEGORIES_ROW_COUNT = 6;
 
 export default async function AdminCategoriesPage() {
   await requirePageSession("/categories");
@@ -23,39 +13,17 @@ export default async function AdminCategoriesPage() {
       <PageTitle
         eyebrow="Catalog"
         title="Categories"
-        description="The three shop types and the condition grades that gate filtering."
+        description="Brands, grades, and attributes per category — being rebuilt in Phase 3 of the simplification refactor."
       />
       <section className="mt-8">
-        <Suspense
-          fallback={
-            <div className="space-y-6">
-              <AdminTableSkeleton
-                columnCount={CATEGORIES_COLUMN_COUNT}
-                rowCount={CATEGORIES_ROW_COUNT}
-                hasFilterBar={false}
-              />
-              <AdminTableSkeleton
-                columnCount={CATEGORIES_COLUMN_COUNT}
-                rowCount={CATEGORIES_ROW_COUNT}
-                hasFilterBar={false}
-              />
-            </div>
-          }
-        >
-          <CategoriesData />
-        </Suspense>
+        <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface-muted)] px-6 py-10 text-center">
+          <p className="mx-auto max-w-prose text-sm leading-relaxed text-[var(--color-ink-600)]">
+            The new card-grid workspace will mount here in Phase 3. Each card
+            will host the category&rsquo;s brands (inline chips), grades, and
+            attributes — see <code>PLAN.md</code> § 3 Flow A.
+          </p>
+        </div>
       </section>
     </AdminShell>
   );
-}
-
-async function CategoriesData() {
-  await connectDB();
-  const [categoryDocs, gradeDocs] = await Promise.all([
-    Category.find().sort({ sortOrder: 1 }).lean<CategoryLean[]>(),
-    Grade.find().sort({ sortOrder: 1 }).lean<GradeLean[]>(),
-  ]);
-  const categories = categoryDocs.map(toCategoryResponse);
-  const grades = gradeDocs.map(toGradeResponse);
-  return <CategoriesView categories={categories} grades={grades} />;
 }

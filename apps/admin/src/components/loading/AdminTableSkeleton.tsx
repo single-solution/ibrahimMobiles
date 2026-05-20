@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
  * across the top, then a card containing a header row and N data rows.
  *
  * The dimensions intentionally match the shipped table components
- * (`OrdersView`, `BrandsTable`, `CustomersView`, …) — they're all built
+ * (`Orders`, `BrandsTable`, `Customers`, …) — they're all built
  * on the same `rounded-[var(--radius-lg)] border + bg-[surface]` card,
  * a tabular header row, and rows separated by a 1px divider.
  */

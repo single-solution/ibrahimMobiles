@@ -41,11 +41,11 @@ const STATUS_OPTIONS = [
   "refunded",
 ] as const;
 
-interface OrdersViewProps {
+interface OrdersProps {
   orders: AdminOrderSummary[];
 }
 
-export function OrdersView({ orders }: OrdersViewProps) {
+export function Orders({ orders }: OrdersProps) {
   const [statusFilter, setStatusFilter] = useState<"all" | string>("all");
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
 

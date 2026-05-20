@@ -19,7 +19,7 @@ import type { AdminCustomer, AdminCustomerSummary } from "@/types/admin";
 /** RFC 5321 caps the local + domain parts at 320 chars combined. */
 const EMAIL_MAX_CHARS = 320;
 
-interface CustomersViewProps {
+interface CustomersProps {
   customers: AdminCustomerSummary[];
 }
 
@@ -28,7 +28,7 @@ type DrawerState =
   | { mode: "edit"; customer: AdminCustomerSummary | AdminCustomer }
   | null;
 
-export function CustomersView({ customers }: CustomersViewProps) {
+export function Customers({ customers }: CustomersProps) {
   const router = useRouter();
   const toast = useToast();
   const [drawer, setDrawer] = useState<DrawerState>(null);
