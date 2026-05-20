@@ -13,18 +13,31 @@ export const ACTIVITY_ACTIONS = [
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 
+/**
+ * Resource types the audit log can record. Phase 1 drops `"media"` and
+ * `"conversation"` (both features were removed in T0.6); adds
+ * `"attribute"` for the new per-category attribute authoring surface.
+ *
+ * Migration step T1.22 rewrites legacy `"media"` / `"conversation"`
+ * rows to `"settings"` (closest neutral bucket) and prefixes their
+ * `resourceLabel` with `[Legacy media]` / `[Legacy conversation]` so
+ * provenance is preserved without dragging a dead enum forward.
+ *
+ * Order constraint: deploying this schema before T1.22 runs would
+ * reject every legacy activity row with a mongoose enum validation
+ * error. The Phase 1 migration commit ships them together.
+ */
 export const ACTIVITY_RESOURCE_TYPES = [
   "product",
   "brand",
   "category",
   "grade",
+  "attribute",
   "order",
   "customer",
   "loyalty",
   "inquiry",
   "offer",
-  "media",
-  "conversation",
   "team",
   "settings",
   "auth",
@@ -40,8 +53,6 @@ interface ActivityEntryAttributes {
   resourceId?: string;
   resourceLabel: string;
   detail?: string;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 const activityEntrySchema = new Schema<ActivityEntryAttributes>(
