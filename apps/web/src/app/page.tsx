@@ -1198,13 +1198,20 @@ interface ShopTypeCardProps {
 }
 
 function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
-  const Icon = SHOP_TYPE_ICON[meta.id];
+  // Defensive fallback — `SHOP_TYPE_ICON` is a Record keyed by the legacy
+  // `ProductCategory` enum (phone / accessory / gadget), but the storefront
+  // now reads `categories` from MongoDB and admins can introduce new ids.
+  // Without this guard, a novel id renders `<undefined />` and crashes the
+  // home page prerender. Phase 3 rebuilds the category data model and this
+  // whole grid; until then, fall back to the phone visual.
+  const Icon = SHOP_TYPE_ICON[meta.id] ?? Smartphone;
+  const gradientClass = SHOP_TYPE_GRADIENT[meta.id] ?? SHOP_TYPE_GRADIENT.phone;
   const itemCount = meta.itemCount;
   const isActive = meta.isActive;
 
   const inner = (
     <div
-      className={`reveal lift relative flex h-full overflow-hidden rounded-[var(--radius-xl)] border bg-gradient-to-br ${SHOP_TYPE_GRADIENT[meta.id]} ${
+      className={`reveal lift relative flex h-full overflow-hidden rounded-[var(--radius-xl)] border bg-gradient-to-br ${gradientClass} ${
         isActive
           ? "border-[var(--color-ink-100)] hover:border-[var(--color-ink-200)]"
           : "cursor-not-allowed border-dashed border-[var(--color-ink-200)] opacity-80"
