@@ -1,70 +1,49 @@
 /**
  * Pure, dependency-free helpers that derive display-time values
- * (default variant, in-stock flag, offer flag) from a hydrated `Phone |
- * Accessory | Gadget`. They never touch the database, never import any
- * model, and never read from `src/data/*` — safe for both server and
- * client bundles.
+ * (default variant, in-stock flag) from a hydrated storefront `Product`.
+ * They never touch the database, never import any model, and never read
+ * from `src/data/*` — safe for both server and client bundles.
+ *
+ * Schema awareness (Phase 1, PLAN.md §10):
+ *   - Grades are dynamic per category, so the old hardcoded `GRADE_RANK`
+ *     is gone. Default variant selection now uses a single, universal
+ *     heuristic: cheapest in-stock first, falling back to cheapest
+ *     overall when the product is fully out of stock.
+ *   - Stock is the variant's `quantity > 0` (no separate `isInStock`).
+ *   - There is no `originalPriceRupees` on a variant anymore, so the
+ *     old "has any offer" helper is removed — offers are decoupled from
+ *     individual variants and live on the `Offer` collection.
  */
 
-import type {
-	AnyVariant,
-	ConditionGrade,
-	Phone,
-	PhoneVariant,
-	Product,
-} from "@store/shared";
+import type { Product, StorefrontVariant } from "@store/shared";
 
-const GRADE_RANK: Record<ConditionGrade, number> = {
-	"brand-new": 0,
-	genuine: 1,
-	"box-open": 2,
-	refurbished: 3,
-	"china-water": 4,
-	"lcd-shaded": 5,
-};
+const isVariantInStock = (variant: StorefrontVariant): boolean =>
+  (variant.quantity ?? 0) > 0;
 
 /**
- * Cheapest in-stock phone variant, falling back to the cheapest overall
- * when nothing is in stock. Grade is the primary sort key (a brand-new
- * variant always wins ties); price breaks the tie.
+ * Sensible "starting" variant for any product. Picks the cheapest in-stock
+ * variant; falls back to the overall cheapest when nothing is in stock.
+ * Stable across renders because we always pick from a deterministic order
+ * (price asc, ties broken by id) — no flicker when re-fetching.
  */
-function pickPhoneDefault(phone: Phone): PhoneVariant {
-	const inStock = phone.variants.filter((variant) => variant.isInStock);
-	const candidates = inStock.length > 0 ? inStock : phone.variants;
-	return [...candidates].sort((left, right) => {
-		const gradeDelta = GRADE_RANK[left.grade] - GRADE_RANK[right.grade];
-		if (gradeDelta !== 0) {
-			return gradeDelta;
-		}
-		return left.priceRupees - right.priceRupees;
-	})[0];
-}
-
-/**
- * Return a sensible "starting" variant for any product type. Phones use
- * grade-then-price ranking; accessories and gadgets fall back to the
- * cheapest in-stock variant. The overload preserves `PhoneVariant` for
- * callers that already hold a `Phone`-narrowed product.
- */
-export function getDefaultVariant(phone: Phone): PhoneVariant;
-export function getDefaultVariant(product: Product): AnyVariant;
-export function getDefaultVariant(product: Product): AnyVariant {
-	if (product.category === "phone") {
-		return pickPhoneDefault(product);
-	}
-	const inStock = product.variants.filter((variant) => variant.isInStock);
-	const pool = inStock.length > 0 ? inStock : product.variants;
-	return pool.reduce((cheapest, candidate) =>
-		candidate.priceRupees < cheapest.priceRupees ? candidate : cheapest,
-	);
+export function getDefaultVariant(product: Product): StorefrontVariant {
+  const variants = product.variants;
+  if (variants.length === 0) {
+    throw new Error(
+      `Product "${product.slug}" has no variants — refusing to pick a default.`,
+    );
+  }
+  const inStock = variants.filter(isVariantInStock);
+  const pool = inStock.length > 0 ? inStock : variants;
+  return [...pool].sort((a, b) => {
+    const priceDelta = a.priceRupees - b.priceRupees;
+    if (priceDelta !== 0) {
+      return priceDelta;
+    }
+    return a.id.localeCompare(b.id);
+  })[0];
 }
 
 export function isProductInStock(product: Product): boolean {
-	return product.variants.some((variant) => variant.isInStock);
-}
-
-export function hasAnyOffer(product: Product): boolean {
-	return product.variants.some(
-		(variant) => variant.originalPriceRupees > variant.priceRupees,
-	);
+  return product.variants.some(isVariantInStock);
 }

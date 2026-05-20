@@ -1,58 +1,56 @@
 /**
  * DB → public storefront shape converters.
  *
- * The admin side works with Mongoose documents (`AdminProduct`, `AdminBrand`,
- * …); the storefront works with the public catalog types (`Phone`,
- * `Accessory`, `Brand`, `Offer`, …) declared in `@store/shared`. This file is
- * the bridge — every component imports those public types, and every query
- * helper in this folder returns those same shapes.
+ * Every component in the web app imports the public catalog types
+ * (`Brand`, `Product`, `StorefrontVariant`, `Offer`, `GradeDescriptor`)
+ * from `@store/shared`. This file is the bridge — query helpers in this
+ * folder return those shapes and only those shapes.
  *
- * Important security/UX rules baked in here:
- *   - We strip admin-only fields (isArchived, isActive, internal flags) from
- *     the storefront output.
- *   - We never emit a product/variant the customer shouldn't see (hidden by
- *     the query layer using `isActive: true, isArchived: { $ne: true }`).
- *   - IDs are stringified Mongo ObjectIds; slugs are the public key used in
- *     URLs.
+ * Security/UX guarantees enforced here:
+ *   - Admin-only flags (`isArchived`, `isActive`) are stripped — the
+ *     query layer already filters them out, this file never re-emits.
+ *   - IDs are stringified Mongo ObjectIds; slugs are the public URL key.
+ *   - The output is JSON-safe (no Date / ObjectId in the response).
  */
 
 import type { Types } from "mongoose";
 
 import type {
   BrandAttributes,
+  GradeAttributes,
   OfferAttributes,
   ProductAttributes,
   VariantAttributes,
+  WithTimestamps,
 } from "@store/db";
 import type {
-  Accessory,
-  AccessoryVariant,
   Brand as StorefrontBrand,
-  Gadget,
-  GadgetVariant,
+  GradeDescriptor,
   Offer as StorefrontOffer,
-  Phone,
-  PhoneVariant,
   Product as StorefrontProduct,
+  StorefrontVariant,
 } from "@store/shared";
 
 /** Mongoose lean shape for a brand. */
-export type BrandLean = BrandAttributes & { _id: Types.ObjectId };
+export type BrandLean = WithTimestamps<BrandAttributes> & {
+  _id: Types.ObjectId;
+};
 /** Mongoose lean shape for a product. */
-export type ProductLean = ProductAttributes & { _id: Types.ObjectId };
+export type ProductLean = WithTimestamps<ProductAttributes> & {
+  _id: Types.ObjectId;
+};
 /** Mongoose lean shape for an offer. */
-export type OfferLean = OfferAttributes & { _id: Types.ObjectId };
+export type OfferLean = WithTimestamps<OfferAttributes> & {
+  _id: Types.ObjectId;
+};
+/** Mongoose lean shape for a grade. */
+export type GradeLean = WithTimestamps<GradeAttributes> & {
+  _id: Types.ObjectId;
+};
 
 /**
- * Default phone storage when an admin creates a phone variant without
- * explicitly setting `storageGb`. 128 is the most common modern entry-level
- * tier and matches the union member in `PhoneVariant["storageGb"]`.
- */
-const DEFAULT_PHONE_STORAGE_GB: PhoneVariant["storageGb"] = 128;
-
-/**
- * Brand → public Brand. `phoneCount` is supplied by the caller (computed via a
- * single aggregation across the catalogue rather than per-brand round trips).
+ * Brand → public Brand. `productCount` is supplied by the caller (we
+ * compute it via a single aggregation per page render, not per-brand).
  */
 export function toStorefrontBrand(
   brand: BrandLean,
@@ -61,112 +59,49 @@ export function toStorefrontBrand(
   return {
     slug: brand.slug,
     name: brand.name,
-    tagline: brand.tagline,
-    phoneCount: productCount,
+    productCount,
   };
 }
 
-function toPhoneVariant(variant: VariantAttributes): PhoneVariant {
+function toStorefrontVariant(variant: VariantAttributes): StorefrontVariant {
   return {
     id: variant._id?.toString() ?? "",
-    grade: variant.grade,
-    colorName: variant.colorName,
+    gradeSlug: variant.gradeSlug,
     priceRupees: variant.priceRupees,
-    originalPriceRupees: variant.originalPriceRupees,
-    isInStock: variant.isInStock,
+    quantity: variant.quantity ?? 0,
     warrantyMonths: variant.warrantyMonths,
-    notes: variant.notes,
-    storageGb: (variant.storageGb ?? DEFAULT_PHONE_STORAGE_GB) as PhoneVariant["storageGb"],
-    ramGb: variant.ramGb ?? 0,
-    batteryHealthRange: {
-      minPercent: variant.batteryHealthMinPercent ?? 0,
-      maxPercent: variant.batteryHealthMaxPercent ?? 100,
-    },
-    isPtaApproved: variant.isPtaApproved ?? false,
-  };
-}
-
-function toAccessoryVariant(variant: VariantAttributes): AccessoryVariant {
-  return {
-    id: variant._id?.toString() ?? "",
-    grade: variant.grade,
-    colorName: variant.colorName,
-    priceRupees: variant.priceRupees,
-    originalPriceRupees: variant.originalPriceRupees,
-    isInStock: variant.isInStock,
-    warrantyMonths: variant.warrantyMonths,
-    notes: variant.notes,
-    connector: variant.connector,
-    wattage: variant.wattage,
-    lengthMeters: variant.lengthMeters,
-    isGenuine: variant.isGenuine,
-  };
-}
-
-function toGadgetVariant(variant: VariantAttributes): GadgetVariant {
-  return {
-    id: variant._id?.toString() ?? "",
-    grade: variant.grade,
-    colorName: variant.colorName,
-    priceRupees: variant.priceRupees,
-    originalPriceRupees: variant.originalPriceRupees,
-    isInStock: variant.isInStock,
-    warrantyMonths: variant.warrantyMonths,
-    notes: variant.notes,
-    storageGb: variant.storageGb,
+    images: variant.images ?? [],
+    attributes: variant.attributes ?? {},
   };
 }
 
 /**
- * Product → public {Phone, Accessory, Gadget}. Caller supplies the
- * brand-id → brand-slug map so we don't issue an N+1.
+ * Product → public Product. Caller supplies the brand-slug → brand-name
+ * map so we don't issue an N+1 against the Brand collection.
+ *
+ * Returns `null` when the brand reference is broken — the storefront
+ * silently drops such rows rather than ship a card with an empty brand
+ * line. Admin tooling surfaces these dangling rows separately.
  */
 export function toStorefrontProduct(
   product: ProductLean,
-  brandsById: Map<string, { slug: string; name: string }>,
+  brandsBySlug: Map<string, { slug: string; name: string }>,
 ): StorefrontProduct | null {
-  const brand = brandsById.get(product.brandId.toString());
+  const brand = brandsBySlug.get(product.brandSlug);
   if (!brand) {
     return null;
   }
 
-  const base = {
+  return {
     id: product._id.toString(),
     slug: product.slug,
+    name: product.name,
     brandSlug: brand.slug,
     brandName: brand.name,
-    modelName: product.modelName,
-    imageUrl: product.imageUrl,
-    galleryUrls: product.galleryUrls ?? [],
-    releaseYear: product.releaseYear,
-    highlights: product.highlights ?? [],
+    categorySlug: product.categorySlug,
     isFeatured: product.isFeatured,
+    variants: (product.variants ?? []).map(toStorefrontVariant),
   };
-
-  if (product.category === "phone") {
-    const phone: Phone = {
-      ...base,
-      category: "phone",
-      variants: (product.variants ?? []).map(toPhoneVariant),
-    };
-    return phone;
-  }
-  if (product.category === "accessory") {
-    const accessory: Accessory = {
-      ...base,
-      category: "accessory",
-      accessoryType: product.accessoryType ?? "other",
-      variants: (product.variants ?? []).map(toAccessoryVariant),
-    };
-    return accessory;
-  }
-  const gadget: Gadget = {
-    ...base,
-    category: "gadget",
-    gadgetType: product.gadgetType ?? "gadget",
-    variants: (product.variants ?? []).map(toGadgetVariant),
-  };
-  return gadget;
 }
 
 export function toStorefrontOffer(offer: OfferLean): StorefrontOffer {
@@ -179,7 +114,19 @@ export function toStorefrontOffer(offer: OfferLean): StorefrontOffer {
     expiresAt: offer.expiresAt
       ? offer.expiresAt.toISOString()
       : new Date().toISOString(),
-    accentColor: offer.accentColor,
+    color: offer.color,
     badgeLabel: offer.badgeLabel,
+    bannerImage: offer.bannerImage,
+  };
+}
+
+export function toStorefrontGrade(grade: GradeLean): GradeDescriptor {
+  return {
+    categorySlug: grade.categorySlug,
+    slug: grade.slug,
+    label: grade.label,
+    notes: grade.notes,
+    color: grade.color,
+    video: grade.video || undefined,
   };
 }

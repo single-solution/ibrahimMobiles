@@ -2,12 +2,9 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
-import type {
-  ConditionGrade,
-  GradeDescriptor,
-  Product,
-  ProductCategory,
-} from "@store/shared";
+import type { GradeDescriptor, Product } from "@store/shared";
+
+import type { StorefrontCategory } from "@/lib/storefront";
 
 /**
  * Storefront reference data — the *taxonomy* the catalog is described by.
@@ -15,15 +12,13 @@ import type {
  * Two collections feed every product card, filter sidebar, grade chip,
  * cart line link, and homepage section:
  *
- *   - **Grades**: condition slug → `GradeDescriptor` (label, copy, tone).
- *   - **Categories**: stable id (`phone`/`accessory`/`gadget`) → admin-
- *     editable label, plural label, URL `pathSegment`, applicable grades,
- *     trust chips, etc.
+ *   - **Grades**: `(categorySlug, slug)` → `GradeDescriptor`.
+ *   - **Categories**: slug → admin-editable label, description, icon.
  *
  * Both are resolved server-side once in the root layout from MongoDB (via
  * `getStorefrontGradesCached` / `getStorefrontCategoriesCached`) and
  * passed down via this provider. Client components consume them through
- * the hooks below — never by re-importing the legacy hardcoded tables.
+ * the hooks below — never by re-importing legacy hardcoded tables.
  *
  * Defaults: empty arrays. The hooks have lookup helpers that return
  * `undefined` when the slug isn't known, so a UI rendered in isolation
@@ -41,15 +36,13 @@ export interface StorefrontReferenceData {
  * schema don't accidentally leak through the SSR boundary.
  */
 export interface StorefrontCategoryReference {
-  id: ProductCategory;
+  slug: string;
   label: string;
-  pluralLabel: string;
-  pathSegment: string;
+  description: string;
+  iconKind: StorefrontCategory["iconKind"];
+  iconEmoji?: string;
+  iconImage?: StorefrontCategory["iconImage"];
   isActive: boolean;
-  tagline: string;
-  applicableGrades: ConditionGrade[];
-  trustChips: string[];
-  emptyHint: string;
   sortOrder: number;
 }
 
@@ -58,7 +51,8 @@ const EMPTY_REFERENCE: StorefrontReferenceData = {
   categories: [],
 };
 
-const StorefrontReferenceContext = createContext<StorefrontReferenceData>(EMPTY_REFERENCE);
+const StorefrontReferenceContext =
+  createContext<StorefrontReferenceData>(EMPTY_REFERENCE);
 
 interface ProviderProps {
   value: StorefrontReferenceData;
@@ -80,16 +74,36 @@ export function useGrades(): GradeDescriptor[] {
 }
 
 /**
- * Lookup helper that returns the descriptor for a known grade slug, or
- * `undefined` when the grade isn't in the current set. Components should
- * fall back to a neutral label / no chip when this returns nothing — the
- * catalog enum can outpace admin edits in edge cases.
+ * Lookup helper that returns the descriptor for a `(categorySlug,
+ * gradeSlug)` pair, or `undefined` when the grade isn't in the current
+ * set. Components should fall back to a neutral label / no chip when
+ * this returns nothing — the catalog can outpace admin edits in edge
+ * cases.
  */
-export function useGrade(grade: ConditionGrade): GradeDescriptor | undefined {
+export function useGrade(
+  categorySlug: string,
+  gradeSlug: string,
+): GradeDescriptor | undefined {
   const grades = useGrades();
   return useMemo(
-    () => grades.find((descriptor) => descriptor.grade === grade),
-    [grades, grade],
+    () =>
+      grades.find(
+        (descriptor) =>
+          descriptor.categorySlug === categorySlug &&
+          descriptor.slug === gradeSlug,
+      ),
+    [grades, categorySlug, gradeSlug],
+  );
+}
+
+/** All grades that apply to a given category, in storefront display order. */
+export function useGradesForCategory(
+  categorySlug: string,
+): GradeDescriptor[] {
+  const grades = useGrades();
+  return useMemo(
+    () => grades.filter((descriptor) => descriptor.categorySlug === categorySlug),
+    [grades, categorySlug],
   );
 }
 
@@ -99,46 +113,29 @@ export function useCategories(): StorefrontCategoryReference[] {
   return useContext(StorefrontReferenceContext).categories;
 }
 
-export function useCategory(id: ProductCategory): StorefrontCategoryReference | undefined {
+export function useCategory(
+  slug: string,
+): StorefrontCategoryReference | undefined {
   const categories = useCategories();
   return useMemo(
-    () => categories.find((category) => category.id === id),
-    [categories, id],
+    () => categories.find((category) => category.slug === slug),
+    [categories, slug],
   );
 }
 
 /**
- * Resolve a category id to its current URL segment (`phones` / `accessories`
- * / `gadgets`, or whatever the admin renamed it to). Used by the cart
- * dropdown, cart view, and any other place that builds a product link
- * outside a `<ProductCard>`.
+ * Resolve a category slug to its URL segment. With the Phase 1 schema
+ * `pathSegment` is gone — the slug *is* the URL segment, so this is now
+ * a thin identity wrapper kept for API stability across the storefront.
  */
-export function useCategorySegment(id: ProductCategory): string {
-  const category = useCategory(id);
-  return category?.pathSegment ?? defaultPathSegmentFor(id);
+export function useCategorySegment(categorySlug: string): string {
+  return categorySlug;
 }
 
 /** Build a `/shop/<category>/<slug>` link for a product, from context. */
 export function useProductHref(
-  product: Pick<Product, "category" | "slug">,
+  product: Pick<Product, "categorySlug" | "slug">,
 ): string {
-  const segment = useCategorySegment(product.category);
+  const segment = useCategorySegment(product.categorySlug);
   return `/shop/${segment}/${product.slug}`;
-}
-
-/**
- * Fallback path segment when categories haven't loaded yet (Storybook,
- * the brief window before hydration on a CSR-only render, etc.). Mirrors
- * the historical hardcoded mapping so a missing context never breaks
- * navigation — it just renders the canonical fallback URLs.
- */
-function defaultPathSegmentFor(id: ProductCategory): string {
-  switch (id) {
-    case "phone":
-      return "phones";
-    case "accessory":
-      return "accessories";
-    case "gadget":
-      return "gadgets";
-  }
 }

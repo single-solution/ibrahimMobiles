@@ -15,8 +15,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { useCart } from "@/lib/cart/useCart";
 import type { CartItem } from "@/lib/cart/types";
-import { useCategorySegment } from "@/lib/storefront/storefrontReferenceContext";
-import { classNames, formatPrice, formatStorage } from "@store/shared";
+import { classNames, formatPrice } from "@store/shared";
 
 interface CartDropdownProps {
   open: boolean;
@@ -175,10 +174,10 @@ function CartDropdownLine({
   onDecrement,
   onRemove,
 }: CartDropdownLineProps) {
-  const { quantity, productName, colorName, storageGb, brandSlug, imageUrl } = line;
+  const { quantity, productName, brandName, brandSlug, image } = line;
   const lineTotal = line.unitPriceRupees * quantity;
-  const segment = useCategorySegment(line.category);
-  const productHref = `/shop/${segment}/${line.productSlug}`;
+  const productHref = `/shop/${line.categorySlug}/${line.productSlug}`;
+  const attributeEntries = Object.entries(line.attributes ?? {});
 
   return (
     <li className="flex gap-3 px-3 py-3">
@@ -188,10 +187,10 @@ function CartDropdownLine({
         className="relative aspect-square w-16 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
       >
         <ProductImage
-          imageUrl={imageUrl}
-          brandName={brandSlug}
-          modelName={productName}
-          colorName={colorName}
+          image={image}
+          variant="thumb"
+          name={productName}
+          brandName={brandName}
           brandSlug={brandSlug}
           objectFit="cover"
           sizes="64px"
@@ -201,7 +200,7 @@ function CartDropdownLine({
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="line-clamp-1 text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
-              {brandSlug}
+              {brandName}
             </p>
             <Link
               href={productHref}
@@ -221,14 +220,14 @@ function CartDropdownLine({
           </button>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-[var(--color-ink-700)]">
-          {typeof storageGb === "number" && (
-            <span className="inline-flex items-center rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px]">
-              {formatStorage(storageGb)}
+          {attributeEntries.map(([attrKey, value]) => (
+            <span
+              key={attrKey}
+              className="inline-flex items-center rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px]"
+            >
+              {value}
             </span>
-          )}
-          <span className="inline-flex items-center rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px]">
-            {colorName}
-          </span>
+          ))}
         </div>
         <div className="mt-2 flex items-center justify-between gap-2">
           <QuantityStepper

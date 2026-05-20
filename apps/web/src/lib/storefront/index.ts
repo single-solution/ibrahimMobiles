@@ -14,10 +14,10 @@ export {
   getStorefrontProductsPage,
   getStorefrontProductBySlug,
   getStorefrontProductsOnOffer,
-  getStorefrontProductCountsByCategory,
   getStorefrontOffers,
   getStorefrontCategories,
-  getStorefrontCategoryByPathSegment,
+  getStorefrontCategoryBySlug,
+  getStorefrontGrades,
   hasAnyProducts,
 } from "@/lib/storefront/queries";
 

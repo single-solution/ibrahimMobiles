@@ -1,28 +1,44 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
-import { BadgeCheck, Check, Minus, X } from "lucide-react";
+import { useEffect, useMemo } from "react";
+import { Check, X } from "lucide-react";
+
+import { classNames, formatPrice, type Product, type StorefrontVariant } from "@store/shared";
+
 import { GradeBadge } from "@/components/shared/GradeBadge";
-import {
-  calculateDiscountPercent,
-  classNames,
-  formatBatteryRange,
-  formatPrice,
-  formatStorage,
-  type Phone,
-  type PhoneVariant,
-} from "@store/shared";
+
+/**
+ * Side-by-side variant comparison modal.
+ *
+ * Schema awareness (Phase 1, PLAN.md §10):
+ *   - Variants now carry generic `attributes: Record<string, string>`
+ *     (admin-defined per category). The comparison table dynamically
+ *     surfaces the union of all attribute keys present across variants,
+ *     plus the universal axes (grade, warranty, stock, price).
+ *   - There is no `originalPriceRupees` on a variant anymore — discount
+ *     strikethrough goes with offers (Phase 7), so the price cell shows
+ *     a single number.
+ */
 
 interface CompareVariantsProps {
-  phone: Phone;
+  product: Product;
   brandName: string;
   selectedVariantId: string;
   onClose: () => void;
   onSelect: (variantId: string) => void;
 }
 
+const HUMANISE_ATTR = (slug: string): string =>
+  slug
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const isVariantInStock = (variant: StorefrontVariant): boolean =>
+  (variant.quantity ?? 0) > 0;
+
 export function CompareVariants({
-  phone,
+  product,
   brandName,
   selectedVariantId,
   onClose,
@@ -48,36 +64,27 @@ export function CompareVariants({
     onClose();
   }
 
-  const rows: Array<{ label: string; getValue: (variant: PhoneVariant) => ReactNode }> = [
-    { label: "Color", getValue: (variant) => variant.colorName },
-    { label: "Storage", getValue: (variant) => formatStorage(variant.storageGb) },
-    { label: "RAM", getValue: (variant) => `${variant.ramGb} GB` },
-    { label: "Battery (range)", getValue: (variant) => formatBatteryRange(variant.batteryHealthRange) },
-    {
-      label: "PTA approved",
-      getValue: (variant) => (variant.isPtaApproved ? <YesCell /> : <NoCell />),
-    },
-    { label: "Warranty", getValue: (variant) => `${variant.warrantyMonths} months` },
-    {
-      label: "In stock",
-      getValue: (variant) => (variant.isInStock ? <YesCell /> : <NoCell />),
-    },
-    {
-      label: "Notes",
-      getValue: (variant) =>
-        variant.notes ? (
-          <span className="text-xs leading-relaxed">{variant.notes}</span>
-        ) : (
-          <span className="text-[var(--color-ink-400)]">—</span>
-        ),
-    },
-  ];
+  // Union of all attribute keys observed across variants — preserves the
+  // order of first appearance so the table layout is stable.
+  const attributeKeys = useMemo(() => {
+    const seen = new Set<string>();
+    const ordered: string[] = [];
+    for (const variant of product.variants) {
+      for (const key of Object.keys(variant.attributes ?? {})) {
+        if (!seen.has(key)) {
+          seen.add(key);
+          ordered.push(key);
+        }
+      }
+    }
+    return ordered;
+  }, [product.variants]);
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={`Compare options of ${phone.modelName}`}
+      aria-label={`Compare options of ${product.name}`}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
     >
       <button
@@ -93,10 +100,10 @@ export function CompareVariants({
               Compare options
             </p>
             <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-[var(--color-ink-900)]">
-              {brandName} {phone.modelName}
+              {brandName} {product.name}
             </h2>
             <p className="mt-1 text-xs text-[var(--color-ink-500)]">
-              {phone.variants.length} options · scroll horizontally to see them all
+              {product.variants.length} options · scroll horizontally to see them all
             </p>
           </div>
           <button
@@ -119,7 +126,7 @@ export function CompareVariants({
                 >
                   Spec
                 </th>
-                {phone.variants.map((variant) => (
+                {product.variants.map((variant) => (
                   <th
                     key={variant.id}
                     scope="col"
@@ -129,9 +136,11 @@ export function CompareVariants({
                     )}
                   >
                     <div className="flex flex-col gap-1.5">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <GradeBadge grade={variant.grade} size="sm" />
-                      </div>
+                      <GradeBadge
+                        categorySlug={product.categorySlug}
+                        gradeSlug={variant.gradeSlug}
+                        size="sm"
+                      />
                       {variant.id === selectedVariantId && (
                         <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
                           Currently viewing
@@ -143,15 +152,15 @@ export function CompareVariants({
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-ink-100)]">
-              {rows.map((row) => (
-                <tr key={row.label}>
+              {attributeKeys.map((attrKey) => (
+                <tr key={attrKey}>
                   <th
                     scope="row"
                     className="sticky left-0 z-10 w-40 bg-[var(--color-surface)] px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.15em] text-[var(--color-ink-500)]"
                   >
-                    {row.label}
+                    {HUMANISE_ATTR(attrKey)}
                   </th>
-                  {phone.variants.map((variant) => (
+                  {product.variants.map((variant) => (
                     <td
                       key={variant.id}
                       className={classNames(
@@ -159,11 +168,53 @@ export function CompareVariants({
                         variant.id === selectedVariantId && "bg-[var(--color-canvas-deep)]",
                       )}
                     >
-                      {row.getValue(variant)}
+                      {variant.attributes?.[attrKey] ?? (
+                        <span className="text-[var(--color-ink-400)]">—</span>
+                      )}
                     </td>
                   ))}
                 </tr>
               ))}
+
+              <tr>
+                <th
+                  scope="row"
+                  className="sticky left-0 z-10 w-40 bg-[var(--color-surface)] px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.15em] text-[var(--color-ink-500)]"
+                >
+                  Warranty
+                </th>
+                {product.variants.map((variant) => (
+                  <td
+                    key={variant.id}
+                    className={classNames(
+                      "px-4 py-3 align-top text-[var(--color-ink-700)]",
+                      variant.id === selectedVariantId && "bg-[var(--color-canvas-deep)]",
+                    )}
+                  >
+                    {variant.warrantyMonths ? `${variant.warrantyMonths} months` : "—"}
+                  </td>
+                ))}
+              </tr>
+
+              <tr>
+                <th
+                  scope="row"
+                  className="sticky left-0 z-10 w-40 bg-[var(--color-surface)] px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.15em] text-[var(--color-ink-500)]"
+                >
+                  In stock
+                </th>
+                {product.variants.map((variant) => (
+                  <td
+                    key={variant.id}
+                    className={classNames(
+                      "px-4 py-3 align-top text-[var(--color-ink-700)]",
+                      variant.id === selectedVariantId && "bg-[var(--color-canvas-deep)]",
+                    )}
+                  >
+                    {isVariantInStock(variant) ? `${variant.quantity} available` : "Sold out"}
+                  </td>
+                ))}
+              </tr>
 
               <tr className="bg-[var(--color-canvas-deep)]">
                 <th
@@ -172,11 +223,7 @@ export function CompareVariants({
                 >
                   Price
                 </th>
-                {phone.variants.map((variant) => {
-                  const discountPercent = calculateDiscountPercent(
-                    variant.originalPriceRupees,
-                    variant.priceRupees,
-                  );
+                {product.variants.map((variant) => {
                   const isSelected = variant.id === selectedVariantId;
                   return (
                     <td
@@ -186,16 +233,9 @@ export function CompareVariants({
                         isSelected && "bg-[var(--color-surface)]",
                       )}
                     >
-                      <div className="flex flex-col">
-                        <span className="text-base font-semibold tracking-[-0.01em] text-[var(--color-ink-900)]">
-                          {formatPrice(variant.priceRupees)}
-                        </span>
-                        {discountPercent > 0 && (
-                          <span className="text-xs text-[var(--color-ink-400)] line-through">
-                            {formatPrice(variant.originalPriceRupees)}
-                          </span>
-                        )}
-                      </div>
+                      <span className="text-base font-semibold tracking-[-0.01em] text-[var(--color-ink-900)]">
+                        {formatPrice(variant.priceRupees)}
+                      </span>
                     </td>
                   );
                 })}
@@ -206,8 +246,9 @@ export function CompareVariants({
                   scope="row"
                   className="sticky left-0 z-10 w-40 bg-[var(--color-surface)] px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.15em] text-[var(--color-ink-500)]"
                 />
-                {phone.variants.map((variant) => {
+                {product.variants.map((variant) => {
                   const isSelected = variant.id === selectedVariantId;
+                  const inStock = isVariantInStock(variant);
                   return (
                     <td
                       key={variant.id}
@@ -219,7 +260,7 @@ export function CompareVariants({
                       <button
                         type="button"
                         onClick={() => handleSelect(variant.id)}
-                        disabled={!variant.isInStock}
+                        disabled={!inStock}
                         className={classNames(
                           "inline-flex items-center gap-1 rounded-[var(--radius-md)] px-3 py-1.5 text-xs font-semibold tracking-tight transition-colors disabled:cursor-not-allowed disabled:opacity-50",
                           isSelected
@@ -232,7 +273,7 @@ export function CompareVariants({
                             <Check size={12} strokeWidth={3} />
                             Selected
                           </>
-                        ) : variant.isInStock ? (
+                        ) : inStock ? (
                           "Pick this one"
                         ) : (
                           "Sold out"
@@ -247,23 +288,5 @@ export function CompareVariants({
         </div>
       </div>
     </div>
-  );
-}
-
-function YesCell() {
-  return (
-    <span className="inline-flex items-center gap-1 text-[var(--color-accent-700)]">
-      <BadgeCheck size={14} strokeWidth={2.4} />
-      Yes
-    </span>
-  );
-}
-
-function NoCell() {
-  return (
-    <span className="inline-flex items-center gap-1 text-[var(--color-ink-400)]">
-      <Minus size={14} />
-      No
-    </span>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Search, TrendingUp, X } from "lucide-react";
-import { classNames, formatPrice, type Product } from "@store/shared";
+import { classNames, formatPrice, type StoredImage } from "@store/shared";
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -14,10 +14,11 @@ interface SearchOverlayProps {
 interface SearchResult {
   id: string;
   slug: string;
-  category: Product["category"];
-  modelName: string;
+  categorySlug: string;
+  name: string;
   brandSlug: string;
-  imageUrl: string;
+  brandName: string;
+  image: StoredImage | null;
   variantCount: number;
   fromPriceRupees: number;
 }
@@ -122,9 +123,9 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       return;
     }
     onClose();
-    // Land on the phones shop with the search query — phones are the most
-    // common search target. The user can switch shops once there.
-    router.push(`/shop/phones?q=${encodeURIComponent(trimmed)}`);
+    // Land on the global shop view with the search query. The shop index
+    // page renders results across every active category.
+    router.push(`/shop?q=${encodeURIComponent(trimmed)}`);
   }
 
   if (!isOpen) {
@@ -210,20 +211,9 @@ interface SearchHitProps {
   onNavigate: () => void;
 }
 
-const CATEGORY_PATH: Record<Product["category"], string> = {
-  phone: "phones",
-  accessory: "accessories",
-  gadget: "gadgets",
-};
-
-const CATEGORY_LABEL: Record<Product["category"], string> = {
-  phone: "Phone",
-  accessory: "Accessory",
-  gadget: "Gadget",
-};
-
 function SearchHit({ result, onNavigate }: SearchHitProps) {
-  const href = `/shop/${CATEGORY_PATH[result.category]}/${result.slug}`;
+  const href = `/shop/${result.categorySlug}/${result.slug}`;
+  const thumb = result.image?.variants.thumb ?? null;
   return (
     <li>
       <Link
@@ -232,25 +222,25 @@ function SearchHit({ result, onNavigate }: SearchHitProps) {
         className="flex items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-canvas-deep)] px-3 py-3 active:bg-[var(--color-surface-muted)]"
       >
         <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-surface)] text-xs font-semibold uppercase text-[var(--color-ink-500)]">
-          {result.imageUrl ? (
+          {thumb ? (
             // eslint-disable-next-line @next/next/no-img-element -- search thumbnail, no need for next/image
             <img
-              src={result.imageUrl}
+              src={thumb}
               alt=""
               className="size-full object-cover"
               loading="lazy"
             />
           ) : (
-            (result.brandSlug || result.modelName).charAt(0).toUpperCase()
+            (result.brandName || result.name).charAt(0).toUpperCase()
           )}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <p className="truncate text-sm font-semibold text-[var(--color-ink-900)]">
-              {result.modelName}
+              {result.name}
             </p>
             <span className="shrink-0 rounded-[var(--radius-md)] bg-[var(--color-canvas)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-[var(--color-ink-500)]">
-              {CATEGORY_LABEL[result.category]}
+              {result.brandName}
             </span>
           </div>
           <p className="truncate text-xs text-[var(--color-ink-500)]">

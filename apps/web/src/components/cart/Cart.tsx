@@ -12,8 +12,7 @@ import {
 import { ProductImage } from "@/components/shared/ProductImage";
 import { useCart } from "@/lib/cart/useCart";
 import type { CartItem } from "@/lib/cart/types";
-import { useCategorySegment } from "@/lib/storefront/storefrontReferenceContext";
-import { classNames, formatPrice, formatStorage } from "@store/shared";
+import { classNames, formatPrice } from "@store/shared";
 
 /**
  * Full-page cart. Mirrors the cart drawer's content but at full width — used
@@ -104,8 +103,8 @@ export function Cart() {
 function CartLine({ line }: { line: CartItem }) {
   const cart = useCart();
   const lineTotal = line.unitPriceRupees * line.quantity;
-  const segment = useCategorySegment(line.category);
-  const productHref = `/shop/${segment}/${line.productSlug}`;
+  const productHref = `/shop/${line.categorySlug}/${line.productSlug}`;
+  const attributeEntries = Object.entries(line.attributes ?? {});
   return (
     <li className="flex gap-4 p-4">
       <Link
@@ -113,10 +112,10 @@ function CartLine({ line }: { line: CartItem }) {
         className="relative aspect-square w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
       >
         <ProductImage
-          imageUrl={line.imageUrl}
-          brandName={line.brandSlug}
-          modelName={line.productName}
-          colorName={line.colorName}
+          image={line.image}
+          variant="thumb"
+          name={line.productName}
+          brandName={line.brandName}
           brandSlug={line.brandSlug}
           objectFit="cover"
           sizes="80px"
@@ -126,7 +125,7 @@ function CartLine({ line }: { line: CartItem }) {
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="text-[10.5px] font-medium uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
-              {line.brandSlug}
+              {line.brandName}
             </p>
             <Link
               href={productHref}
@@ -145,10 +144,9 @@ function CartLine({ line }: { line: CartItem }) {
           </button>
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-[var(--color-ink-700)]">
-          {typeof line.storageGb === "number" && (
-            <Chip>{formatStorage(line.storageGb)}</Chip>
-          )}
-          <Chip>{line.colorName}</Chip>
+          {attributeEntries.map(([attrKey, value]) => (
+            <Chip key={attrKey}>{value}</Chip>
+          ))}
         </div>
         <div className="mt-3 flex items-center justify-between gap-2">
           <QuantityStepper

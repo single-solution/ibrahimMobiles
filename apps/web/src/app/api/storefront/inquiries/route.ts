@@ -133,20 +133,44 @@ export async function POST(request: Request) {
 
   await connectDB();
   try {
+    // Phase 1: Inquiry is now a threaded chat. The structured form fields
+    // (city, model, variant, expected price) are folded into a single
+    // first message so admin still sees them — Phase 8 will replace this
+    // legacy POST with `/storefront/inquiries/start` which collects only
+    // full-name + body + optional `subjectProductId`.
+    const messageLines = [
+      `City: ${cityResult}`,
+      `Subject: ${modelResult}`,
+      variantSummary ? `Variant: ${variantSummary}` : undefined,
+      typeof expectedRupees === "number"
+        ? `Expected price: ${expectedRupees}`
+        : undefined,
+      "",
+      messageResult,
+    ].filter(Boolean) as string[];
+    const messageBody = messageLines.join("\n");
+    const now = new Date();
     const doc = await Inquiry.create({
       customerName: nameResult,
-      customerCity: cityResult,
       phoneNumber: phoneResult,
-      modelName: modelResult,
-      variantSummary,
-      expectedRupees,
-      source: "website",
-      status: "new",
-      receivedAt: new Date(),
-      lastMessage: messageResult,
-      productId,
+      subjectProductId: productId,
+      subjectProductName: modelResult,
+      status: "open",
+      lastMessageAt: now,
+      lastMessagePreview: messageBody.slice(0, 280),
+      lastMessageAuthor: "customer",
+      unreadByCustomer: 0,
+      unreadByTeam: 1,
+      messages: [
+        {
+          author: "customer",
+          authorName: nameResult,
+          body: messageBody,
+          createdAt: now,
+        },
+      ],
     });
-    return created({ id: doc._id.toString() });
+    return created({ id: (doc._id as { toString(): string }).toString() });
   } catch (error) {
     logger.error({ error }, "Failed to create public inquiry");
     return serverError("Could not submit your inquiry. Please try again.");

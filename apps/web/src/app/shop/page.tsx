@@ -21,35 +21,35 @@ export async function generateMetadata(): Promise<Metadata> {
 // of a fresh Mongo round-trip on every navigation.
 export const revalidate = 300;
 
-/** Fallback target when the categories collection is unreadable. `phones`
- *  is the default category seeded by `packages/db` and renders correctly
- *  even when its DB row hasn't loaded yet, so this redirect always
- *  produces a valid landing page. */
-const DEFAULT_CATEGORY_PATH_SEGMENT = "phones";
+/** Fallback target when the categories collection is empty / unreadable.
+ *  Resolves at runtime — Phase 1 has no hardcoded category slugs. We
+ *  redirect to the home page so the visitor never lands on a 404 even
+ *  when admin hasn't created any categories yet. */
+const FALLBACK_REDIRECT = "/";
 
 /**
  * `/shop` is a redirector — it forwards the visitor to the first active
- * category's listing (defaulting to phones if none is configured). The
- * in-page category selector then lets them switch sections without a
- * second navigation hop.
+ * category's listing. With Phase 1's dynamic catalog there are no
+ * hardcoded categories, so the fallback simply sends visitors home if
+ * admin hasn't created any categories yet.
  *
  * Build-time resilience: if the categories read fails (Mongo unreachable
- * during prerender), we redirect to the default category. ISR cycles
- * will retry the read, so the fallback is only ever served briefly.
+ * during prerender), we redirect to the fallback. ISR cycles will retry
+ * the read, so the fallback is only ever served briefly.
  */
 export default async function ShopIndexPage() {
-  let pathSegment = DEFAULT_CATEGORY_PATH_SEGMENT;
+  let redirectTo = FALLBACK_REDIRECT;
   try {
     const categories = await getStorefrontCategoriesCached();
     const first = categories.find((category) => category.isActive);
     if (first) {
-      pathSegment = first.pathSegment;
+      redirectTo = `/shop/${first.slug}`;
     }
   } catch (error) {
     logger.error(
       { error },
-      `shop: categories load failed, redirecting to /${DEFAULT_CATEGORY_PATH_SEGMENT}`,
+      `shop: categories load failed, redirecting to ${FALLBACK_REDIRECT}`,
     );
   }
-  redirect(`/shop/${pathSegment}`);
+  redirect(redirectTo);
 }

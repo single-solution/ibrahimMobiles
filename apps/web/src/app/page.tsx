@@ -5,15 +5,12 @@ import {
   ArrowUpRight,
   BadgeCheck,
   Banknote,
-  Cable,
   ChevronDown,
-  Gamepad2,
   MapPin,
   PackageOpen,
   Recycle,
   ShieldCheck,
   ShoppingBag,
-  Smartphone,
   Sparkles,
   Undo2,
   Video,
@@ -27,8 +24,7 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import {
   getPaymentMethods,
   type Brand,
-  type Phone as PhoneType,
-  type ProductCategory,
+  type Product as StorefrontProductType,
   type StoreSettings,
 } from "@store/shared";
 
@@ -208,8 +204,8 @@ export default function HomePage() {
 // for a fetch it doesn't actually use.
 
 async function MobileHeroData() {
-  const { heroPhones, brands } = await getHomeHeroData();
-  return <MobileHero heroPhones={heroPhones} brands={brands} />;
+  const { heroProducts, brands } = await getHomeHeroData();
+  return <MobileHero heroProducts={heroProducts} brands={brands} />;
 }
 
 async function MobileShopTypesData() {
@@ -230,8 +226,8 @@ async function MobileVisitStoreData() {
 /* ─────────────────────────── Desktop data slots ─────────────────────────── */
 
 async function DesktopHeroData() {
-  const { heroPhones, brands } = await getHomeHeroData();
-  return <DesktopHero heroPhones={heroPhones} brands={brands} />;
+  const { heroProducts, brands } = await getHomeHeroData();
+  return <DesktopHero heroProducts={heroProducts} brands={brands} />;
 }
 
 async function DesktopShopTypesData() {
@@ -551,11 +547,11 @@ function DesktopVisitStoreFallback() {
  *     so the visual identity is consistent across breakpoints.
  */
 interface HeroProps {
-  heroPhones: PhoneType[];
+  heroProducts: StorefrontProductType[];
   brands: Brand[];
 }
 
-function MobileHero({ heroPhones, brands }: HeroProps) {
+function MobileHero({ heroProducts, brands }: HeroProps) {
   return (
     <section
       className="relative -mx-4 flex items-center border-b border-[var(--color-ink-100)] bg-gradient-to-b from-[var(--color-canvas-deep)] to-[var(--color-canvas)]"
@@ -584,7 +580,7 @@ function MobileHero({ heroPhones, brands }: HeroProps) {
           className="reveal w-full pt-1"
           style={{ ["--reveal-delay" as string]: "240ms" }}
         >
-          <MobileHeroGallery heroPhones={heroPhones} brands={brands} />
+          <MobileHeroGallery heroProducts={heroProducts} brands={brands} />
         </div>
 
         <Link
@@ -641,28 +637,28 @@ function MobileHero({ heroPhones, brands }: HeroProps) {
  * Source is the same 5 hero phones the desktop layout uses, sliced to
  * the middle three for a balanced composition at one-thumb width.
  */
-function MobileHeroGallery({ heroPhones, brands }: HeroProps) {
+function MobileHeroGallery({ heroProducts, brands }: HeroProps) {
   // When we have a full hero set, drop the flanking edge tile from each side
-  // so the centre phone sits between two visually similar siblings; otherwise
+  // so the centre tile sits between two visually similar siblings; otherwise
   // we fall back to whatever the data layer returned.
-  const heroFull = heroPhones.length >= MOBILE_HERO_TILE_COUNT + 2;
+  const heroFull = heroProducts.length >= MOBILE_HERO_TILE_COUNT + 2;
   const trimStart = heroFull ? 1 : 0;
-  const phones = heroFull
-    ? heroPhones.slice(trimStart, trimStart + MOBILE_HERO_TILE_COUNT)
-    : heroPhones.slice(0, MOBILE_HERO_TILE_COUNT);
-  if (phones.length === 0) {
+  const products = heroFull
+    ? heroProducts.slice(trimStart, trimStart + MOBILE_HERO_TILE_COUNT)
+    : heroProducts.slice(0, MOBILE_HERO_TILE_COUNT);
+  if (products.length === 0) {
     return <HeroGalleryEmpty variant="mobile" />;
   }
   return (
     <div className="grid grid-cols-3 items-center gap-1.5">
-      {phones.map((phone, index) => {
+      {products.map((product, index) => {
         const isCenter = index === 1;
         const tilt = index === 0 ? "-rotate-6" : index === 2 ? "rotate-6" : "";
         const tone = isCenter ? "z-10 scale-105 shadow-[var(--shadow-md)]" : "";
         return (
-          <div key={phone.slug} className={isCenter ? "" : tilt}>
+          <div key={product.slug} className={isCenter ? "" : tilt}>
             <HeroGalleryTile
-              phone={phone}
+              product={product}
               brands={brands}
               className={`aspect-[3/4] ${tone}`}
               imageSizes="(max-width: 640px) 30vw, 200px"
@@ -726,7 +722,7 @@ function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
       <div className="space-y-2.5">
         {categories.map((meta, index) => (
           <ShopTypeCard
-            key={meta.id}
+            key={meta.slug}
             meta={meta}
             variant="mobile"
             delayMs={(index + 1) * MOBILE_CATEGORY_STAGGER_MS}
@@ -835,15 +831,16 @@ async function MobileGradesSection() {
       <ul className="reveal-stagger mt-8 grid grid-cols-2 gap-2.5">
         {gradeDescriptors.map((descriptor) => (
           <li
-            key={descriptor.grade}
+            key={`${descriptor.categorySlug}:${descriptor.slug}`}
             className="reveal flex flex-col gap-2 rounded-[14px] border border-white/10 bg-white/[0.06] p-3"
           >
-            <GradeBadge grade={descriptor.grade} size="sm" />
+            <GradeBadge
+              categorySlug={descriptor.categorySlug}
+              gradeSlug={descriptor.slug}
+              size="sm"
+            />
             <p className="text-[12.5px] leading-snug text-[var(--color-canvas)]">
-              {descriptor.description}
-            </p>
-            <p className="text-[11px] leading-snug text-[var(--color-ink-300)]">
-              {descriptor.functionalNotes}
+              {descriptor.notes}
             </p>
           </li>
         ))}
@@ -972,7 +969,7 @@ function StoreMapEmbed({ className = "", settings }: StoreMapEmbedProps) {
 
 /* ─────────────────────────── Desktop (preserved) ─────────────────────────── */
 
-function DesktopHero({ heroPhones, brands }: HeroProps) {
+function DesktopHero({ heroProducts, brands }: HeroProps) {
   return (
     <section className="relative flex min-h-[calc(100dvh-var(--desktop-header-h))] items-center border-b border-[var(--color-ink-100)] bg-gradient-to-b from-[var(--color-canvas-deep)] to-[var(--color-canvas)]">
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 px-6 py-16 text-center">
@@ -995,7 +992,7 @@ function DesktopHero({ heroPhones, brands }: HeroProps) {
           className="reveal w-full pt-2"
           style={{ ["--reveal-delay" as string]: "260ms" }}
         >
-          <HeroGallery heroPhones={heroPhones} brands={brands} />
+          <HeroGallery heroProducts={heroProducts} brands={brands} />
         </div>
         <div
           className="reveal flex flex-wrap items-center justify-center gap-3 pt-2"
@@ -1050,7 +1047,7 @@ function DesktopHero({ heroPhones, brands }: HeroProps) {
 /* ─────── Hero gallery — 5-tile stage with center emphasis ─────── */
 
 interface GalleryTileProps {
-  phone: PhoneType;
+  product: StorefrontProductType;
   brands: Brand[];
   className?: string;
   imageSizes?: string;
@@ -1060,7 +1057,7 @@ interface GalleryTileProps {
 }
 
 function HeroGalleryTile({
-  phone,
+  product,
   brands,
   className = "",
   imageSizes = "(max-width: 1024px) 30vw, 280px",
@@ -1068,26 +1065,31 @@ function HeroGalleryTile({
   showCaption = true,
   showGrade = true,
 }: GalleryTileProps) {
-  const brand = brands.find((candidate) => candidate.slug === phone.brandSlug);
-  const brandName = brand?.name ?? phone.brandSlug;
-  const defaultVariant = getDefaultVariant(phone);
+  const brand = brands.find((candidate) => candidate.slug === product.brandSlug);
+  const brandName = brand?.name ?? product.brandSlug;
+  const defaultVariant = getDefaultVariant(product);
+  const heroImage = defaultVariant.images?.[0];
   return (
     <Link
-      href={productHref(phone)}
+      href={productHref(product)}
       className={`gallery-tile group relative block overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] ${className}`}
     >
       <ProductImage
-        imageUrl={phone.imageUrl}
+        image={heroImage}
+        variant="card"
+        name={product.name}
         brandName={brandName}
-        modelName={phone.modelName}
-        colorName={defaultVariant.colorName}
-        brandSlug={phone.brandSlug}
+        brandSlug={product.brandSlug}
         sizes={imageSizes}
         objectFit={objectFit}
       />
       {showGrade && (
         <span className="absolute right-2 top-2 z-10">
-          <GradeBadge grade={defaultVariant.grade} size="sm" />
+          <GradeBadge
+            categorySlug={product.categorySlug}
+            gradeSlug={defaultVariant.gradeSlug}
+            size="sm"
+          />
         </span>
       )}
       {showCaption && (
@@ -1096,7 +1098,7 @@ function HeroGalleryTile({
             {brandName}
           </p>
           <p className="line-clamp-1 text-[12.5px] font-semibold text-white">
-            {phone.modelName}
+            {product.name}
           </p>
         </div>
       )}
@@ -1117,20 +1119,20 @@ const HERO_GALLERY_TILT_BY_INDEX: Record<number, string> = {
   4: "rotate-6",
 };
 
-function HeroGallery({ heroPhones, brands }: HeroProps) {
-  if (heroPhones.length === 0) {
+function HeroGallery({ heroProducts, brands }: HeroProps) {
+  if (heroProducts.length === 0) {
     return <HeroGalleryEmpty variant="desktop" />;
   }
   return (
     <div className="grid grid-cols-5 items-center gap-2">
-      {heroPhones.map((phone, index) => {
+      {heroProducts.map((product, index) => {
         const isCenter = index === 2;
         const tilt = HERO_GALLERY_TILT_BY_INDEX[index] ?? "";
         const tone = isCenter ? "z-10 scale-105 shadow-[var(--shadow-lg)]" : "";
         return (
-          <div key={phone.slug} className={isCenter ? "" : tilt}>
+          <div key={product.slug} className={isCenter ? "" : tilt}>
             <HeroGalleryTile
-              phone={phone}
+              product={product}
               brands={brands}
               className={`aspect-[3/4] ${tone}`}
               imageSizes="(max-width: 1024px) 18vw, 200px"
@@ -1165,7 +1167,7 @@ function DesktopShopTypesSection({ categories }: ShopTypesSectionProps) {
       >
         {categories.map((meta, index) => (
           <ShopTypeCard
-            key={meta.id}
+            key={meta.slug}
             meta={meta}
             variant="desktop"
             delayMs={(index + 1) * DESKTOP_CATEGORY_STAGGER_MS}
@@ -1176,20 +1178,14 @@ function DesktopShopTypesSection({ categories }: ShopTypesSectionProps) {
   );
 }
 
-const SHOP_TYPE_ICON: Record<
-  ProductCategory,
-  ComponentType<{ size?: number; strokeWidth?: number }>
-> = {
-  phone: Smartphone,
-  accessory: Cable,
-  gadget: Gamepad2,
-};
-
-const SHOP_TYPE_GRADIENT: Record<ProductCategory, string> = {
-  phone: "from-[var(--color-accent-100)] via-[var(--color-accent-50)] to-[var(--color-canvas)]",
-  accessory: "from-[#E8F4FF] via-[#F4FAFF] to-[var(--color-canvas)]",
-  gadget: "from-[#F4F0FF] via-[#FAF7FF] to-[var(--color-canvas)]",
-};
+/**
+ * Default gradient applied to category cards. Phase 3 (Categories
+ * workspace) will let admins author a per-category gradient or accent
+ * colour; for now every card shares the same warm gradient so the home
+ * page reads as a single design system rather than ad-hoc per-id swatches.
+ */
+const SHOP_TYPE_DEFAULT_GRADIENT =
+  "from-[var(--color-accent-100)] via-[var(--color-accent-50)] to-[var(--color-canvas)]";
 
 interface ShopTypeCardProps {
   meta: HomePageCategory;
@@ -1198,20 +1194,11 @@ interface ShopTypeCardProps {
 }
 
 function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
-  // Defensive fallback — `SHOP_TYPE_ICON` is a Record keyed by the legacy
-  // `ProductCategory` enum (phone / accessory / gadget), but the storefront
-  // now reads `categories` from MongoDB and admins can introduce new ids.
-  // Without this guard, a novel id renders `<undefined />` and crashes the
-  // home page prerender. Phase 3 rebuilds the category data model and this
-  // whole grid; until then, fall back to the phone visual.
-  const Icon = SHOP_TYPE_ICON[meta.id] ?? Smartphone;
-  const gradientClass = SHOP_TYPE_GRADIENT[meta.id] ?? SHOP_TYPE_GRADIENT.phone;
-  const itemCount = meta.itemCount;
   const isActive = meta.isActive;
 
   const inner = (
     <div
-      className={`reveal lift relative flex h-full overflow-hidden rounded-[var(--radius-xl)] border bg-gradient-to-br ${gradientClass} ${
+      className={`reveal lift relative flex h-full overflow-hidden rounded-[var(--radius-xl)] border bg-gradient-to-br ${SHOP_TYPE_DEFAULT_GRADIENT} ${
         isActive
           ? "border-[var(--color-ink-100)] hover:border-[var(--color-ink-200)]"
           : "cursor-not-allowed border-dashed border-[var(--color-ink-200)] opacity-80"
@@ -1219,11 +1206,12 @@ function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
       style={{ ["--reveal-delay" as string]: `${delayMs}ms` }}
     >
       <span
-        className={`grid shrink-0 place-items-center rounded-[var(--radius-lg)] bg-[var(--color-surface)] text-[var(--color-ink-900)] shadow-[var(--shadow-sm)] ${
+        className={`grid shrink-0 place-items-center rounded-[var(--radius-lg)] bg-[var(--color-surface)] text-[var(--color-ink-900)] shadow-[var(--shadow-sm)] text-[20px] md:text-[22px] ${
           variant === "desktop" ? "size-12" : "size-11"
         }`}
+        aria-hidden
       >
-        <Icon size={variant === "desktop" ? 22 : 20} strokeWidth={2} />
+        <ShopTypeIcon category={meta} />
       </span>
 
       <div className={variant === "desktop" ? "mt-4 flex-1 flex flex-col" : "min-w-0 flex-1"}>
@@ -1233,13 +1221,9 @@ function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
               variant === "desktop" ? "text-2xl" : "text-[16px]"
             }`}
           >
-            {meta.pluralLabel}
+            {meta.label}
           </h3>
-          {isActive ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-700)]">
-              {itemCount}
-            </span>
-          ) : (
+          {!isActive && (
             <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)]/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-500)]">
               <Sparkles size={10} /> Soon
             </span>
@@ -1250,22 +1234,8 @@ function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
             variant === "desktop" ? "text-[14px]" : "line-clamp-2 text-[12.5px]"
           }`}
         >
-          {meta.tagline}
+          {meta.description}
         </p>
-
-        {variant === "desktop" && (
-          <ul className="mt-4 space-y-1">
-            {meta.trustChips.slice(0, DESKTOP_TRUST_CHIP_COUNT).map((chip) => (
-              <li
-                key={chip}
-                className="flex items-center gap-1.5 text-[12.5px] text-[var(--color-ink-700)]"
-              >
-                <ShieldCheck size={11} className="text-[var(--color-accent-700)]" />
-                {chip}
-              </li>
-            ))}
-          </ul>
-        )}
 
         <div className={variant === "desktop" ? "mt-auto pt-4" : "mt-1.5"}>
           <span
@@ -1275,7 +1245,7 @@ function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
                 : "text-[var(--color-ink-500)]"
             } ${variant === "desktop" ? "text-[12.5px]" : "text-[12px]"}`}
           >
-            {isActive ? `Browse ${meta.pluralLabel.toLowerCase()}` : "Notify me"}
+            {isActive ? `Browse ${meta.label.toLowerCase()}` : "Notify me"}
             <ArrowUpRight size={12} strokeWidth={2.4} />
           </span>
         </div>
@@ -1287,10 +1257,24 @@ function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
     return inner;
   }
   return (
-    <Link href={`/shop/${meta.pathSegment}`} className="group block focus:outline-none">
+    <Link href={`/shop/${meta.slug}`} className="group block focus:outline-none">
       {inner}
     </Link>
   );
+}
+
+function ShopTypeIcon({ category }: { category: HomePageCategory }) {
+  if (category.iconKind === "image" && category.iconImage) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- small icon, no need for next/image
+      <img
+        src={category.iconImage.variants.thumb}
+        alt=""
+        className="size-full rounded-md object-cover"
+      />
+    );
+  }
+  return <>{category.iconEmoji || "📦"}</>;
 }
 
 function DesktopProcessSection({ flows }: ProcessSectionProps) {
@@ -1385,12 +1369,15 @@ async function DesktopGrades() {
           <div className="reveal-stagger grid grid-cols-3 gap-3">
             {gradeDescriptors.map((descriptor) => (
               <div
-                key={descriptor.grade}
+                key={`${descriptor.categorySlug}:${descriptor.slug}`}
                 className="reveal flex flex-col gap-2.5 rounded-[var(--radius-lg)] border border-white/10 bg-white/5 p-5"
               >
-                <GradeBadge grade={descriptor.grade} size="sm" />
-                <p className="text-sm text-[var(--color-canvas)]">{descriptor.description}</p>
-                <p className="text-xs text-[var(--color-ink-300)]">{descriptor.functionalNotes}</p>
+                <GradeBadge
+                  categorySlug={descriptor.categorySlug}
+                  gradeSlug={descriptor.slug}
+                  size="sm"
+                />
+                <p className="text-sm text-[var(--color-canvas)]">{descriptor.notes}</p>
               </div>
             ))}
           </div>

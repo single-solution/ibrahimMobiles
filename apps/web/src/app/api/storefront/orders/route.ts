@@ -250,10 +250,15 @@ export async function POST(request: Request) {
       (candidate) => candidate._id?.toString() === line.variantId,
     );
     if (!variant) {
-      return conflict(`Variant not found on ${product.modelName}.`);
+      return conflict(`Variant not found on ${product.name}.`);
     }
-    if (!variant.isInStock) {
-      return conflict(`${product.modelName} (${variant.colorName}) is out of stock.`);
+    if ((variant.quantity ?? 0) <= 0) {
+      return conflict(`${product.name} is out of stock.`);
+    }
+    if (variant.quantity < line.quantity) {
+      return conflict(
+        `${product.name} has only ${variant.quantity} in stock.`,
+      );
     }
     // Mongoose's `lean()` returns embedded subdocs without `_id` typed as
     // ObjectId; the variant just came back from the same query as the parent
@@ -321,7 +326,7 @@ export async function POST(request: Request) {
         items: resolvedItems.map((line) => ({
           productId: line.productDoc._id,
           variantId: line.variant._id,
-          productName: line.productDoc.modelName,
+          productName: line.productDoc.name,
           variantSummary: buildVariantSummary(line.variant),
           unitPriceRupees: line.variant.priceRupees,
           quantity: line.quantity,
@@ -458,34 +463,34 @@ function parseAddress(input: AddressBody | undefined): ResolvedAddress {
 /**
  * Build a human-readable variant summary for the order item — admins read
  * this in the admin order list, customers see it on their receipt.
+ *
+ * Phase 1: variant differentiators live on the generic `attributes` map
+ * (admin-defined per category). We join the attribute *values* in
+ * insertion order followed by the grade slug; the storefront has the
+ * actual `Grade.label` cached and uses it on the order detail page.
  */
 function buildVariantSummary(variant: VariantAttributes): string {
   const parts: string[] = [];
-  if (variant.colorName) {
-    parts.push(variant.colorName);
+  const attributes = variant.attributes ?? {};
+  for (const value of Object.values(attributes)) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      parts.push(value);
+    }
   }
-  if (typeof variant.storageGb === "number") {
-    parts.push(formatStorage(variant.storageGb));
+  if (variant.gradeSlug) {
+    parts.push(humaniseSlug(variant.gradeSlug));
   }
-  parts.push(humaniseGrade(variant.grade));
   return parts.join(" · ").slice(0, FIELD_LIMITS.shortText);
 }
 
-function humaniseGrade(grade: string): string {
-  switch (grade) {
-    case "brand-new":
-      return "Brand new";
-    case "genuine":
-      return "Genuine";
-    case "box-open":
-      return "Box-open";
-    case "refurbished":
-      return "Refurbished";
-    case "china-water":
-      return "China/Water";
-    case "lcd-shaded":
-      return "LCD-shaded";
-    default:
-      return grade;
+function humaniseSlug(slug: string): string {
+  if (!slug) {
+    return slug;
   }
+  return slug
+    .split("-")
+    .map((segment) =>
+      segment.length === 0 ? segment : segment[0].toUpperCase() + segment.slice(1),
+    )
+    .join(" ");
 }

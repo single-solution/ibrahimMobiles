@@ -7,7 +7,6 @@ import type { StorefrontSort } from "@/lib/storefront/queries";
 
 const SORT_LABELS: Record<StorefrontSort, string> = {
   newest: "Recommended",
-  release: "Newest releases",
   "price-asc": "Price: low to high",
   "price-desc": "Price: high to low",
   "name-asc": "Name (A–Z)",
@@ -15,7 +14,6 @@ const SORT_LABELS: Record<StorefrontSort, string> = {
 
 const SORT_OPTIONS: StorefrontSort[] = [
   "newest",
-  "release",
   "price-asc",
   "price-desc",
   "name-asc",

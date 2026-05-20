@@ -15,22 +15,29 @@
  *
  * RSC pages / layouts / metadata generators must consume these wrappers
  * instead of the raw helpers, otherwise we leak work onto the hot path.
+ *
+ * Schema awareness (Phase 1, PLAN.md §10):
+ *   - Categories are admin-authored and identified by `slug`. The legacy
+ *     "path segment" lookup is replaced by `getStorefrontCategoryBySlug`.
+ *   - Hero phones used to be a hardcoded `category === "phone"` filter.
+ *     Phase 6 will replace this with an admin-flagged "homepage hero"
+ *     category selector; for now, the hero strip surfaces the newest
+ *     featured products across all categories.
  */
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
 import { getStoreSettings as getStoreSettingsRaw } from "@store/db";
-import type { Phone, ProductCategory } from "@store/shared";
+import type { Product as StorefrontProduct } from "@store/shared";
 
 import {
   getStorefrontBrandBySlug as getStorefrontBrandBySlugRaw,
   getStorefrontBrands as getStorefrontBrandsRaw,
   getStorefrontCategories as getStorefrontCategoriesRaw,
-  getStorefrontCategoryByPathSegment as getStorefrontCategoryByPathSegmentRaw,
+  getStorefrontCategoryBySlug as getStorefrontCategoryBySlugRaw,
   getStorefrontGrades as getStorefrontGradesRaw,
   getStorefrontOffers as getStorefrontOffersRaw,
   getStorefrontProductBySlug as getStorefrontProductBySlugRaw,
-  getStorefrontProductCountsByCategory as getStorefrontProductCountsByCategoryRaw,
   getStorefrontProducts as getStorefrontProductsRaw,
   getStorefrontProductsPage as getStorefrontProductsPageRaw,
   hasAnyProducts as hasAnyProductsRaw,
@@ -51,10 +58,9 @@ const STOREFRONT_CACHE_TTL_SECONDS = 30;
 export const getStoreSettingsCached = cache(getStoreSettingsRaw);
 
 /** Per-render dedupe — `generateMetadata` and the page body both call this
- *  with the same `segment` on `/shop/[category]`. React `cache()` collapses
- *  the second call to a no-op for the same render pass. */
-export const getStorefrontCategoryByPathSegmentCached = cache(
-  getStorefrontCategoryByPathSegmentRaw,
+ *  with the same `slug` on `/shop/[category]`. */
+export const getStorefrontCategoryBySlugCached = cache(
+  getStorefrontCategoryBySlugRaw,
 );
 
 /** Per-render dedupe — `generateMetadata` and the page body on
@@ -109,44 +115,27 @@ export const getStorefrontOffersCached = unstable_cache(
 );
 
 /**
- * Homepage hero gallery — newest phones, capped at `limit`. The limit
- * becomes part of the cache key so different callers (mobile vs desktop)
- * don't poison each other's cache entry.
+ * Homepage hero — newest featured products, capped at `limit`. Surfacing
+ * featured products across all categories (rather than the legacy
+ * "phones only" hero) keeps the hero relevant after admins add new
+ * categories. The limit becomes part of the cache key so different
+ * callers (mobile vs desktop) don't poison each other's entry.
  */
-const getHeroPhonesCachedInner = unstable_cache(
-  async (limit: number): Promise<Phone[]> => {
-    const products = await getStorefrontProductsRaw({
-      category: "phone",
+const getHomeHeroProductsInner = unstable_cache(
+  async (limit: number): Promise<StorefrontProduct[]> => {
+    return getStorefrontProductsRaw({
+      isFeatured: true,
       limit,
-      sort: "release",
     });
-    return products.filter((p): p is Phone => p.category === "phone");
   },
-  ["storefront-hero-phones"],
+  ["storefront-hero-products"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
-export function getHeroPhonesCached(limit: number): Promise<Phone[]> {
-  return getHeroPhonesCachedInner(limit);
-}
-
-// `Map` doesn't survive JSON serialisation, so we cache the entries array and
-// rehydrate at the call site. Two-line indirection, one network round-trip
-// saved per shop visit.
-const getStorefrontProductCountEntriesCached = unstable_cache(
-  async (): Promise<[ProductCategory, number][]> => {
-    const counts = await getStorefrontProductCountsByCategoryRaw();
-    return Array.from(counts.entries());
-  },
-  ["storefront-product-counts"],
-  { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
-);
-
-export async function getStorefrontProductCountsByCategoryCached(): Promise<
-  Map<ProductCategory, number>
-> {
-  const entries = await getStorefrontProductCountEntriesCached();
-  return new Map(entries);
+export function getHomeHeroProductsCached(
+  limit: number,
+): Promise<StorefrontProduct[]> {
+  return getHomeHeroProductsInner(limit);
 }
 
 /**

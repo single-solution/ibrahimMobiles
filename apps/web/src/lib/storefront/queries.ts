@@ -11,12 +11,15 @@
  *   - Return the public catalog types from `@store/shared` so storefront
  *     components only ever see customer-safe shapes.
  *
- * Caching: pages that import these helpers should add `export const dynamic
- * = "force-dynamic"` (or per-request `revalidate = 0`) when they need the
- * freshest data — e.g. price changes from admin should appear immediately.
+ * Schema awareness (Phase 1, PLAN.md §10):
+ *   - The catalog is fully admin-authored. Categories, brands, grades, and
+ *     attributes are all slug-keyed strings — there is no hardcoded enum.
+ *   - Filters expose only the universal axes (brand, grade, price, search)
+ *     plus a generic `attributes` map that the Phase 6 storefront filter
+ *     sidebar will use to surface per-category options dynamically.
  */
 
-import { Types, type PipelineStage } from "mongoose";
+import { type PipelineStage } from "mongoose";
 
 import {
   Brand,
@@ -25,11 +28,6 @@ import {
   Offer,
   Product,
   connectDB,
-  type AccessoryType,
-  type CategoryAttributes,
-  type ConditionGrade,
-  type ConnectorType,
-  type GradeAttributes,
 } from "@store/db";
 import {
   escapeRegex,
@@ -38,14 +36,15 @@ import {
   type GradeDescriptor,
   type Offer as StorefrontOffer,
   type Product as StorefrontProduct,
-  type ProductCategory,
 } from "@store/shared";
 
 import {
   toStorefrontBrand,
+  toStorefrontGrade,
   toStorefrontOffer,
   toStorefrontProduct,
   type BrandLean,
+  type GradeLean,
   type OfferLean,
   type ProductLean,
 } from "@/lib/storefront/serializers";
@@ -68,48 +67,39 @@ const MAX_PAGE_NUMBER = 10_000;
 const DEFAULT_OFFER_LIMIT = 12;
 
 /**
- * Public sort modes. Mapped to a Mongo sort spec by `buildSort`. Includes
- * "price-asc" / "price-desc" which require an aggregation pipeline (see
- * `getStorefrontProducts` below) because variant prices live inside an array.
+ * Public sort modes. Includes "price-asc" / "price-desc" which require an
+ * aggregation pipeline (see `getStorefrontProductsPage`) because variant
+ * prices live inside an array.
  */
 export type StorefrontSort =
   | "newest"
-  | "release"
   | "price-asc"
   | "price-desc"
   | "name-asc";
 
 export interface StorefrontProductFilters {
-  /** Single category — drives URL routing. Use `categories` for multi. */
-  category?: ProductCategory;
+  /** Single category slug — drives URL routing. Use `categorySlugs` for multi. */
+  categorySlug?: string;
   /** Multi-category — used by global search. */
-  categories?: ProductCategory[];
-  /** Brand slugs — caller passes one or many; an empty/missing array means "any brand". */
+  categorySlugs?: string[];
+  /** Brand slugs — caller passes one or many; empty/missing = "any brand". */
   brandSlugs?: string[];
-  /** Multi-grade — at least one variant must match. */
-  grades?: ConditionGrade[];
+  /** Grade slugs — at least one variant must match. */
+  gradeSlugs?: string[];
   /** Inclusive variant price bounds in rupees. */
   minPriceRupees?: number;
   maxPriceRupees?: number;
-  /** Phone storage in GB — at least one variant must match. */
-  storageGb?: number[];
-  /** Phone RAM in GB. */
-  ramGb?: number[];
-  /** Phone battery health floor (e.g. 90 means at-least-90% bucket). */
-  minBatteryHealthPercent?: number;
-  /** PTA approval. true = PTA-only, false = non-PTA only, undefined = either. */
-  isPtaApproved?: boolean;
-  /** Accessory sub-types. */
-  accessoryTypes?: AccessoryType[];
-  connectors?: ConnectorType[];
-  wattages?: number[];
-  /** Gadget free-form types. */
-  gadgetTypes?: string[];
+  /**
+   * Generic per-category attribute filter. Keys are `Attribute.slug`,
+   * values are one or more allowed option strings. A product matches when
+   * at least one variant satisfies every attribute axis.
+   */
+  attributes?: Record<string, string[]>;
   /** Featured-only filter for the homepage strip. */
   isFeatured?: boolean;
-  /** Only return products with at least one in-stock variant. */
+  /** Only return products with at least one in-stock variant (`quantity > 0`). */
   inStockOnly?: boolean;
-  /** Free-text search across modelName + highlights. */
+  /** Free-text search across name. */
   search?: string;
   /** Cap result size; default 24. */
   limit?: number;
@@ -129,31 +119,16 @@ export interface StorefrontProductPage {
 }
 
 /**
- * Build a brand-id → `{ slug, name }` lookup. Used by the product serializer
- * to turn ObjectId references into URL-friendly slugs **and** display names
- * without an N+1 round-trip.
+ * Build a brand-slug → `{ slug, name }` lookup. Used by the product
+ * serializer to fill in `brandName` without an N+1 round-trip.
  */
 async function buildBrandLookup(): Promise<
   Map<string, { slug: string; name: string }>
 > {
-  const brands = await Brand.find().select("_id slug name").lean<BrandLean[]>();
+  const brands = await Brand.find().select("slug name").lean<BrandLean[]>();
   return new Map(
-    brands.map((brand) => [
-      brand._id.toString(),
-      { slug: brand.slug, name: brand.name },
-    ]),
+    brands.map((brand) => [brand.slug, { slug: brand.slug, name: brand.name }]),
   );
-}
-
-/** Resolve multiple brand slugs to ObjectIds. Inactive brands are dropped. */
-async function brandIdsForSlugs(slugs: string[]): Promise<Types.ObjectId[]> {
-  if (slugs.length === 0) {
-    return [];
-  }
-  const brands = await Brand.find({ slug: { $in: slugs }, isActive: true })
-    .select("_id")
-    .lean<{ _id: Types.ObjectId }[]>();
-  return brands.map((brand) => brand._id);
 }
 
 /**
@@ -167,17 +142,15 @@ export async function getStorefrontBrands(): Promise<StorefrontBrand[]> {
     Brand.find({ isActive: true })
       .sort({ sortOrder: 1, name: 1 })
       .lean<BrandLean[]>(),
-    Product.aggregate<{ _id: import("mongoose").Types.ObjectId; count: number }>([
+    Product.aggregate<{ _id: string; count: number }>([
       { $match: PUBLIC_PRODUCT_FILTER },
-      { $group: { _id: "$brandId", count: { $sum: 1 } } },
+      { $group: { _id: "$brandSlug", count: { $sum: 1 } } },
     ]),
   ]);
-  const countByBrandId = new Map(
-    counts.map((row) => [row._id.toString(), row.count]),
-  );
+  const countByBrandSlug = new Map(counts.map((row) => [row._id, row.count]));
 
   return brands.map((brand) =>
-    toStorefrontBrand(brand, countByBrandId.get(brand._id.toString()) ?? 0),
+    toStorefrontBrand(brand, countByBrandSlug.get(brand.slug) ?? 0),
   );
 }
 
@@ -194,7 +167,7 @@ export async function getStorefrontBrandBySlug(
   }
   const count = await Product.countDocuments({
     ...PUBLIC_PRODUCT_FILTER,
-    brandId: brand._id,
+    brandSlug: brand.slug,
   });
   return toStorefrontBrand(brand, count);
 }
@@ -203,137 +176,105 @@ type SortSpec = Record<string, 1 | -1>;
 
 function buildSort(sort: StorefrontSort | undefined): SortSpec {
   switch (sort) {
-    case "release":
-      return { releaseYear: -1, createdAt: -1 };
     case "price-asc":
       return { _minPrice: 1, createdAt: -1 };
     case "price-desc":
       return { _minPrice: -1, createdAt: -1 };
     case "name-asc":
-      return { modelName: 1 };
+      return { name: 1 };
     case "newest":
     default:
       return { createdAt: -1 };
   }
 }
 
-/**
- * Whether the requested sort actually needs the synthesized `_minPrice`
- * field. Skipping the `$addFields` stage when it's not needed saves a
- * non-trivial per-document cost on the dominant "newest" / "release"
- * sort paths.
- */
 function sortNeedsMinPrice(sort: StorefrontSort | undefined): boolean {
   return sort === "price-asc" || sort === "price-desc";
 }
 
 /**
- * Build the variant-level $elemMatch clause from a filter set. Returns
- * `null` if the caller didn't supply any variant-level constraints, so we
- * can skip the elemMatch and fall back to the cheaper top-level match.
+ * Variant-level `$elemMatch` clause. Returns `null` if the caller didn't
+ * supply any variant-level constraints, so we can skip the elemMatch and
+ * fall back to the cheaper top-level match.
  *
- * Co-locating all variant filters in a single `$elemMatch` is critical: it
- * forces Mongo to find a *single variant* that satisfies every condition
- * — otherwise filtering by `priceRupees: 50000` AND `storageGb: 256` would
- * match a product with a cheap-and-small variant + a separate
- * expensive-and-large variant, which is not what the customer expects.
+ * Co-locating all variant filters in a single `$elemMatch` is critical:
+ * it forces Mongo to find a *single variant* that satisfies every
+ * condition — otherwise filtering by `priceRupees: 50000` AND
+ * `attributes.storage: "256GB"` would match a product with a cheap-and-
+ * small variant + a separate expensive-and-large variant, which is not
+ * what the customer expects.
  */
 function buildVariantElemMatch(
   filters: StorefrontProductFilters,
 ): Record<string, unknown> | null {
   const clause: Record<string, unknown> = {};
 
-  if (filters.grades && filters.grades.length > 0) {
-    clause.grade = { $in: filters.grades };
+  if (filters.gradeSlugs && filters.gradeSlugs.length > 0) {
+    clause.gradeSlug = { $in: filters.gradeSlugs };
   }
 
   const priceClause: Record<string, number> = {};
-  if (typeof filters.minPriceRupees === "number" && Number.isFinite(filters.minPriceRupees)) {
+  if (
+    typeof filters.minPriceRupees === "number" &&
+    Number.isFinite(filters.minPriceRupees)
+  ) {
     priceClause.$gte = filters.minPriceRupees;
   }
-  if (typeof filters.maxPriceRupees === "number" && Number.isFinite(filters.maxPriceRupees)) {
+  if (
+    typeof filters.maxPriceRupees === "number" &&
+    Number.isFinite(filters.maxPriceRupees)
+  ) {
     priceClause.$lte = filters.maxPriceRupees;
   }
   if (Object.keys(priceClause).length > 0) {
     clause.priceRupees = priceClause;
   }
 
-  if (filters.storageGb && filters.storageGb.length > 0) {
-    clause.storageGb = { $in: filters.storageGb };
+  if (filters.attributes) {
+    for (const [slug, values] of Object.entries(filters.attributes)) {
+      if (values.length > 0) {
+        clause[`attributes.${slug}`] = { $in: values };
+      }
+    }
   }
-  if (filters.ramGb && filters.ramGb.length > 0) {
-    clause.ramGb = { $in: filters.ramGb };
-  }
-  if (typeof filters.minBatteryHealthPercent === "number") {
-    clause.batteryHealthMinPercent = { $gte: filters.minBatteryHealthPercent };
-  }
-  if (typeof filters.isPtaApproved === "boolean") {
-    clause.isPtaApproved = filters.isPtaApproved;
-  }
-  if (filters.connectors && filters.connectors.length > 0) {
-    clause.connector = { $in: filters.connectors };
-  }
-  if (filters.wattages && filters.wattages.length > 0) {
-    clause.wattage = { $in: filters.wattages };
-  }
+
   if (filters.inStockOnly) {
-    clause.isInStock = true;
+    clause.quantity = { $gt: 0 };
   }
 
   return Object.keys(clause).length > 0 ? clause : null;
 }
 
-/**
- * Build the top-level $match. Variants are handled separately via $elemMatch.
- */
-async function buildTopLevelMatch(
+/** Top-level `$match`. Variants are handled separately via `$elemMatch`. */
+function buildTopLevelMatch(
   filters: StorefrontProductFilters,
-): Promise<Record<string, unknown> | null> {
+): Record<string, unknown> {
   const match: Record<string, unknown> = { ...PUBLIC_PRODUCT_FILTER };
 
-  if (filters.category) {
-    match.category = filters.category;
+  if (filters.categorySlug) {
+    match.categorySlug = filters.categorySlug;
   }
-  if (filters.categories && filters.categories.length > 0) {
-    match.category = { $in: filters.categories };
+  if (filters.categorySlugs && filters.categorySlugs.length > 0) {
+    match.categorySlug = { $in: filters.categorySlugs };
   }
   if (filters.isFeatured !== undefined) {
     match.isFeatured = filters.isFeatured;
   }
-  if (filters.accessoryTypes && filters.accessoryTypes.length > 0) {
-    match.accessoryType = { $in: filters.accessoryTypes };
-  }
-  if (filters.gadgetTypes && filters.gadgetTypes.length > 0) {
-    match.gadgetType = { $in: filters.gadgetTypes };
-  }
 
   if (filters.brandSlugs && filters.brandSlugs.length > 0) {
-    const ids = await brandIdsForSlugs(Array.from(new Set(filters.brandSlugs)));
-    if (ids.length === 0) {
-      return null;
-    }
-    match.brandId = { $in: ids };
+    match.brandSlug = { $in: Array.from(new Set(filters.brandSlugs)) };
   }
 
   if (filters.search) {
     const pattern = escapeRegex(filters.search.trim());
     if (pattern) {
-      const regex = new RegExp(pattern, "i");
-      match.$or = [
-        { modelName: regex },
-        { highlights: { $elemMatch: { $regex: regex } } },
-      ];
+      match.name = { $regex: new RegExp(pattern, "i") };
     }
   }
 
   return match;
 }
 
-/**
- * Generic product list with the public visibility filter applied. Supports
- * brand / grade / price / spec filtering, free-text search, sort modes and
- * pagination via `getStorefrontProductsPage`. Returns just the items array.
- */
 export async function getStorefrontProducts(
   options: StorefrontProductFilters = {},
 ): Promise<StorefrontProduct[]> {
@@ -341,11 +282,6 @@ export async function getStorefrontProducts(
   return page.products;
 }
 
-/**
- * Same as `getStorefrontProducts` but returns the full pagination envelope
- * (items + total + page metadata). Use this for shop list pages so the UI
- * can show "12 results" and a real Next/Prev paginator.
- */
 export async function getStorefrontProductsPage(
   options: StorefrontProductFilters = {},
 ): Promise<StorefrontProductPage> {
@@ -356,13 +292,14 @@ export async function getStorefrontProductsPage(
     MAX_PRODUCT_PAGE_SIZE,
     DEFAULT_PRODUCT_PAGE_SIZE,
   );
-  const page = clampInt(options.page, MIN_PAGE_NUMBER, MAX_PAGE_NUMBER, MIN_PAGE_NUMBER);
+  const page = clampInt(
+    options.page,
+    MIN_PAGE_NUMBER,
+    MAX_PAGE_NUMBER,
+    MIN_PAGE_NUMBER,
+  );
 
-  const topMatch = await buildTopLevelMatch(options);
-  if (!topMatch) {
-    return { products: [], total: 0, page, pageSize, pageCount: 0 };
-  }
-
+  const topMatch = buildTopLevelMatch(options);
   const variantMatch = buildVariantElemMatch(options);
   const matchStage: Record<string, unknown> = { ...topMatch };
   if (variantMatch) {
@@ -374,10 +311,6 @@ export async function getStorefrontProductsPage(
 
   type Row = ProductLean & { _minPrice?: number };
 
-  // Build the pipeline incrementally so we only pay the `$addFields` cost
-  // when the sort key actually needs the synthesized `_minPrice` field.
-  // For the dominant "newest" / "release" / "name-asc" paths that's a
-  // full per-document computation we skip entirely.
   const itemsStages: PipelineStage.FacetPipelineStage[] = [];
   if (needsMinPrice) {
     itemsStages.push({
@@ -400,9 +333,6 @@ export async function getStorefrontProductsPage(
     },
   ];
 
-  // Run the aggregation and the brand lookup in parallel — `buildBrandLookup`
-  // is a separate collection scan, so issuing both concurrently shaves one
-  // round-trip's worth of latency off every shop visit.
   const [aggregateResult, brandLookup] = await Promise.all([
     Product.aggregate<{ items: Row[]; meta: { total: number }[] }>(pipeline),
     buildBrandLookup(),
@@ -413,7 +343,13 @@ export async function getStorefrontProductsPage(
   const total = result?.meta?.[0]?.total ?? 0;
 
   if (items.length === 0) {
-    return { products: [], total, page, pageSize, pageCount: Math.ceil(total / pageSize) };
+    return {
+      products: [],
+      total,
+      page,
+      pageSize,
+      pageCount: Math.ceil(total / pageSize),
+    };
   }
 
   const products: StorefrontProduct[] = [];
@@ -452,11 +388,7 @@ function clampInt(
   return truncated;
 }
 
-/**
- * One product by URL slug. Caller is responsible for matching the URL
- * `category` (we still allow returning the product if the slug exists in a
- * different category — the page-level helper checks consistency).
- */
+/** One product by URL slug. */
 export async function getStorefrontProductBySlug(
   slug: string,
 ): Promise<StorefrontProduct | null> {
@@ -473,8 +405,8 @@ export async function getStorefrontProductBySlug(
 }
 
 /**
- * Active offers in display order. Filters out offers whose `expiresAt` is in
- * the past so stale promos don't keep rendering on the home page.
+ * Active offers in display order. Filters out offers whose `expiresAt`
+ * is in the past so stale promos don't keep rendering on the home page.
  */
 export async function getStorefrontOffers(): Promise<StorefrontOffer[]> {
   await connectDB();
@@ -490,91 +422,92 @@ export async function getStorefrontOffers(): Promise<StorefrontOffer[]> {
 }
 
 /**
- * DB-backed category shape exposed to the storefront. Drives the homepage
- * category tiles, the top nav, and the `/shop/[category]` landing pages.
+ * DB-backed category shape exposed to the storefront. Drives the
+ * homepage category tiles, the top nav, and the `/shop/[category]`
+ * landing pages.
  */
-export interface StorefrontCategory extends CategoryAttributes {
-  /** Stable category key (`phone` | `accessory` | `gadget`) used by the UI. */
-  id: ProductCategory;
+export interface StorefrontCategory {
+  slug: string;
+  label: string;
+  description: string;
+  iconKind: "emoji" | "image";
+  iconEmoji?: string;
+  iconImage?: {
+    variants: {
+      thumb: string;
+      card: string;
+      detail: string;
+      full: string;
+    };
+    blurDataURL: string;
+    width: number;
+    height: number;
+    alt: string;
+  };
+  isActive: boolean;
+  sortOrder: number;
 }
-type StorefrontCategoryShape = Omit<StorefrontCategory, "createdAt" | "updatedAt">;
 
-export async function getStorefrontCategories(): Promise<StorefrontCategoryShape[]> {
+export async function getStorefrontCategories(): Promise<StorefrontCategory[]> {
   await connectDB();
   const categories = await Category.find()
-    .sort({ sortOrder: 1 })
-    .lean<CategoryAttributes[]>();
+    .sort({ sortOrder: 1, label: 1 })
+    .lean();
   if (categories.length === 0) {
-    logger.warn("getStorefrontCategories: no categories in DB; storefront may render empty");
+    logger.warn(
+      "getStorefrontCategories: no categories in DB; storefront may render empty",
+    );
   }
   return categories.map((category) => ({
-    id: category.categoryId,
-    categoryId: category.categoryId,
+    slug: category.slug,
     label: category.label,
-    pluralLabel: category.pluralLabel,
-    pathSegment: category.pathSegment,
-    isActive: category.isActive,
-    tagline: category.tagline,
-    applicableGrades: category.applicableGrades,
-    trustChips: category.trustChips,
-    emptyHint: category.emptyHint,
-    sortOrder: category.sortOrder,
-    iconKind: category.iconKind ?? "emoji",
+    description: category.description,
+    iconKind: category.iconKind,
     iconEmoji: category.iconEmoji,
     iconImage: category.iconImage,
+    isActive: category.isActive,
+    sortOrder: category.sortOrder ?? 0,
   }));
 }
 
 /**
- * DB-backed condition grade descriptors — drives the grade chip on every
- * `ProductCard`, the filter sidebar's "Grade" block, the homepage grade band,
- * and the variant selector's grade hint. Replaces the hardcoded
- * `apps/web/src/data/grades.ts` so editing a grade's copy in admin
- * (`PUT /api/grades/:id`) is reflected on the storefront within the cache TTL.
+ * DB-backed grade descriptors — drives the grade chip on every
+ * `ProductCard`, the filter sidebar's "Grade" block, and the variant
+ * selector's grade hint. Replaces the old hardcoded `apps/web/src/data/
+ * grades.ts` so editing a grade's copy in admin (`PUT /api/grades/:id`)
+ * is reflected on the storefront within the cache TTL.
  */
 export async function getStorefrontGrades(): Promise<GradeDescriptor[]> {
   await connectDB();
-  const grades = await Grade.find().sort({ sortOrder: 1 }).lean<GradeAttributes[]>();
+  const grades = await Grade.find()
+    .sort({ categorySlug: 1, label: 1 })
+    .lean<GradeLean[]>();
   if (grades.length === 0) {
     logger.warn(
       "getStorefrontGrades: no grades in DB; storefront grade UI will render empty",
     );
   }
-  return grades.map((doc) => ({
-    grade: doc.grade,
-    label: doc.label,
-    shortLabel: doc.shortLabel,
-    description: doc.description,
-    cosmeticNotes: doc.cosmeticNotes,
-    functionalNotes: doc.functionalNotes,
-    tone: doc.tone,
-  }));
+  return grades.map(toStorefrontGrade);
 }
 
-/** Resolve a URL `pathSegment` (`phones` / `accessories`) to a category. */
-export async function getStorefrontCategoryByPathSegment(
-  segment: string,
-): Promise<StorefrontCategoryShape | null> {
+/** Resolve a URL category segment (the category `slug`) to a category. */
+export async function getStorefrontCategoryBySlug(
+  slug: string,
+): Promise<StorefrontCategory | null> {
   await connectDB();
-  const category = await Category.findOne({ pathSegment: segment }).lean<CategoryAttributes>();
+  const category = await Category.findOne({ slug, isActive: true }).lean();
   if (!category) {
     return null;
   }
   return {
-    id: category.categoryId,
-    categoryId: category.categoryId,
+    slug: category.slug,
     label: category.label,
-    pluralLabel: category.pluralLabel,
-    pathSegment: category.pathSegment,
-    isActive: category.isActive,
-    tagline: category.tagline,
-    applicableGrades: category.applicableGrades,
-    trustChips: category.trustChips,
-    emptyHint: category.emptyHint,
-    sortOrder: category.sortOrder,
-    iconKind: category.iconKind ?? "emoji",
+    description: category.description,
+    iconKind: category.iconKind,
     iconEmoji: category.iconEmoji,
     iconImage: category.iconImage,
+    isActive: category.isActive,
+    sortOrder: category.sortOrder ?? 0,
   };
 }
 
@@ -586,58 +519,20 @@ export async function hasAnyProducts(): Promise<boolean> {
 }
 
 /**
- * Products that currently have at least one variant where the customer
- * pays less than the list price. Used by the /deals page.
+ * Products that an admin-flagged offer applies to. After Phase 1 the
+ * `originalPriceRupees` field is gone, so "on offer" is reduced to "any
+ * featured product" until the Phase 7 `Offer.appliesTo` linking lands.
  */
 export async function getStorefrontProductsOnOffer(
   limit: number = DEFAULT_PRODUCT_PAGE_SIZE,
 ): Promise<StorefrontProduct[]> {
-  await connectDB();
-  const docs = await Product.aggregate<ProductLean & { _id: Types.ObjectId }>([
-    { $match: PUBLIC_PRODUCT_FILTER },
-    {
-      $match: {
-        $expr: {
-          $anyElementTrue: {
-            $map: {
-              input: "$variants",
-              as: "variant",
-              in: { $gt: ["$$variant.originalPriceRupees", "$$variant.priceRupees"] },
-            },
-          },
-        },
-      },
-    },
-    { $sort: { createdAt: -1 } },
-    { $limit: Math.max(MIN_PAGE_NUMBER, Math.min(MAX_PRODUCT_PAGE_SIZE, limit)) },
-  ]);
-
-  if (docs.length === 0) {
-    return [];
-  }
-  const brandLookup = await buildBrandLookup();
-  const products: StorefrontProduct[] = [];
-  for (const doc of docs) {
-    const converted = toStorefrontProduct(doc, brandLookup);
-    if (converted) {
-      products.push(converted);
-    }
-  }
-  return products;
-}
-
-/**
- * Live counts per category. Returns a `Map<ProductCategory, number>` covering
- * every active category — `undefined` is mapped to 0. One aggregation, no
- * fan-out.
- */
-export async function getStorefrontProductCountsByCategory(): Promise<
-  Map<ProductCategory, number>
-> {
-  await connectDB();
-  const rows = await Product.aggregate<{ _id: ProductCategory; count: number }>([
-    { $match: PUBLIC_PRODUCT_FILTER },
-    { $group: { _id: "$category", count: { $sum: 1 } } },
-  ]);
-  return new Map(rows.map((row) => [row._id, row.count]));
+  const capped = Math.max(
+    MIN_PAGE_NUMBER,
+    Math.min(MAX_PRODUCT_PAGE_SIZE, limit),
+  );
+  const page = await getStorefrontProductsPage({
+    isFeatured: true,
+    limit: capped,
+  });
+  return page.products;
 }

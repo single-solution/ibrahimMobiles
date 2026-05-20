@@ -3,51 +3,29 @@
  *
  * Lives in its own module so the shop list page (server) and the filter
  * sidebar (client) both read/write the exact same param keys without one
- * accidentally drifting from the other. The keys are short on purpose so
- * shareable URLs stay clean.
+ * accidentally drifting from the other.
+ *
+ * Schema awareness (Phase 1, PLAN.md §10):
+ *   - The catalog is admin-authored — there is no hardcoded enum for
+ *     categories / brands / grades / attributes anymore. This adapter
+ *     therefore exposes only the universal filter axes (brand, grade,
+ *     price, search) plus a *generic* per-attribute axis encoded as
+ *     `attr.<attribute-slug>=value,value`. The Phase 3 filter sidebar
+ *     will introspect the active category's `Attribute` collection and
+ *     wire UI to these keys.
+ *   - `categorySlug` is *not* read from the query string — the URL path
+ *     segment carries it.
  */
 
 import type {
   StorefrontProductFilters,
   StorefrontSort,
 } from "@/lib/storefront/queries";
-import { DECIMAL_RADIX, type ProductCategory } from "@store/shared";
+import { DECIMAL_RADIX } from "@store/shared";
 
 const SEARCH_QUERY_MAX_CHARS = 100;
-
-// Inlined enum literals — pulling them from `@store/db` would drag the
-// Mongoose runtime into client bundles. Keep these in sync with the model
-// schemas (see `packages/db/src/models/Category.ts` and
-// `packages/db/src/models/Product.ts`).
-const CONDITION_GRADES = [
-  "brand-new",
-  "genuine",
-  "box-open",
-  "refurbished",
-  "china-water",
-  "lcd-shaded",
-] as const;
-type ConditionGrade = (typeof CONDITION_GRADES)[number];
-
-const ACCESSORY_TYPES = [
-  "charger",
-  "cable",
-  "case",
-  "earbuds",
-  "screen-protector",
-  "power-bank",
-  "other",
-] as const;
-type AccessoryType = (typeof ACCESSORY_TYPES)[number];
-
-const CONNECTOR_TYPES = [
-  "usb-c",
-  "lightning",
-  "micro-usb",
-  "wireless",
-  "n-a",
-] as const;
-type ConnectorType = (typeof CONNECTOR_TYPES)[number];
+/** Prefix on URL keys that carry a generic attribute filter. */
+const ATTRIBUTE_PARAM_PREFIX = "attr.";
 
 /** Public URL keys. Keep these short and stable — they're shareable links. */
 export const FILTER_PARAM_KEYS = {
@@ -55,14 +33,6 @@ export const FILTER_PARAM_KEYS = {
   grades: "grade",
   minPrice: "min",
   maxPrice: "max",
-  storage: "storage",
-  ram: "ram",
-  battery: "battery",
-  pta: "pta",
-  accessoryTypes: "type",
-  connectors: "conn",
-  wattages: "watt",
-  gadgetTypes: "gtype",
   inStock: "stock",
   sort: "sort",
   page: "page",
@@ -71,29 +41,13 @@ export const FILTER_PARAM_KEYS = {
 
 const VALID_SORTS: readonly StorefrontSort[] = [
   "newest",
-  "release",
   "price-asc",
   "price-desc",
   "name-asc",
 ];
 
-const VALID_GRADES = new Set<string>(CONDITION_GRADES);
-const VALID_ACCESSORY_TYPES = new Set<string>(ACCESSORY_TYPES);
-const VALID_CONNECTORS = new Set<string>(CONNECTOR_TYPES);
-
-/** Type predicates around the union enums above — using these in `.filter`
- *  lets TypeScript narrow the result without an explicit `as Foo[]` cast. */
-const isConditionGrade = (value: string): value is ConditionGrade =>
-  VALID_GRADES.has(value);
-const isAccessoryType = (value: string): value is AccessoryType =>
-  VALID_ACCESSORY_TYPES.has(value);
-const isConnectorType = (value: string): value is ConnectorType =>
-  VALID_CONNECTORS.has(value);
 const isStorefrontSort = (value: string): value is StorefrontSort =>
   (VALID_SORTS as readonly string[]).includes(value);
-
-/** Battery health is reported as a percentage; 100% is the upper bound. */
-const MAX_BATTERY_HEALTH_PERCENT = 100;
 
 /**
  * Read either a `URLSearchParams` instance or a server-provided
@@ -112,8 +66,9 @@ function readMulti(
     const value = source[key];
     if (Array.isArray(value)) {
       raw = value;
+    } else if (typeof value === "string") {
+      raw = [value];
     }
-    else if (typeof value === "string") raw = [value];
   }
   const collected: string[] = [];
   for (const entry of raw) {
@@ -149,29 +104,44 @@ function readPositiveInt(value: string | undefined): number | undefined {
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
+function entries(
+  source: URLSearchParams | Record<string, string | string[] | undefined>,
+): Array<[string, string | string[]]> {
+  if (source instanceof URLSearchParams) {
+    const result: Array<[string, string | string[]]> = [];
+    for (const key of new Set(source.keys())) {
+      const all = source.getAll(key);
+      result.push([key, all.length === 1 ? all[0] : all]);
+    }
+    return result;
+  }
+  return Object.entries(source).filter((entry): entry is [string, string | string[]] => entry[1] !== undefined);
+}
+
 /**
- * Parse search params into a `StorefrontProductFilters`. Bad/unknown values
- * are dropped silently — the rule is "best effort, never 500".
+ * Parse search params into a `StorefrontProductFilters`. Bad/unknown
+ * values are dropped silently — the rule is "best effort, never 500".
  *
- * `category` is *not* read from query — it comes from the URL path segment
- * — so the caller is expected to set it explicitly.
+ * `categorySlug` is *not* read from query — it comes from the URL path
+ * segment — so the caller is expected to set it explicitly.
  */
 export function parseFiltersFromSearchParams(
   source: URLSearchParams | Record<string, string | string[] | undefined>,
-  defaults: { category?: ProductCategory } = {},
+  defaults: { categorySlug?: string } = {},
 ): StorefrontProductFilters {
-  const filters: StorefrontProductFilters = {
-    category: defaults.category,
-  };
+  const filters: StorefrontProductFilters = {};
+  if (defaults.categorySlug) {
+    filters.categorySlug = defaults.categorySlug;
+  }
 
   const brandSlugs = readMulti(source, FILTER_PARAM_KEYS.brands);
   if (brandSlugs.length > 0) {
     filters.brandSlugs = brandSlugs;
   }
 
-  const grades = readMulti(source, FILTER_PARAM_KEYS.grades).filter(isConditionGrade);
-  if (grades.length > 0) {
-    filters.grades = grades;
+  const gradeSlugs = readMulti(source, FILTER_PARAM_KEYS.grades);
+  if (gradeSlugs.length > 0) {
+    filters.gradeSlugs = gradeSlugs;
   }
 
   const minPrice = readPositiveInt(readSingle(source, FILTER_PARAM_KEYS.minPrice));
@@ -183,52 +153,22 @@ export function parseFiltersFromSearchParams(
     filters.maxPriceRupees = maxPrice;
   }
 
-  const storage = readMulti(source, FILTER_PARAM_KEYS.storage)
-    .map((value) => Number.parseInt(value, DECIMAL_RADIX))
-    .filter((parsed) => Number.isFinite(parsed) && parsed > 0);
-  if (storage.length > 0) {
-    filters.storageGb = storage;
+  const attributes: Record<string, string[]> = {};
+  for (const [key] of entries(source)) {
+    if (!key.startsWith(ATTRIBUTE_PARAM_PREFIX)) {
+      continue;
+    }
+    const slug = key.slice(ATTRIBUTE_PARAM_PREFIX.length);
+    if (!slug) {
+      continue;
+    }
+    const values = readMulti(source, key);
+    if (values.length > 0) {
+      attributes[slug] = values;
+    }
   }
-
-  const ram = readMulti(source, FILTER_PARAM_KEYS.ram)
-    .map((value) => Number.parseInt(value, DECIMAL_RADIX))
-    .filter((parsed) => Number.isFinite(parsed) && parsed > 0);
-  if (ram.length > 0) {
-    filters.ramGb = ram;
-  }
-
-  const battery = readPositiveInt(readSingle(source, FILTER_PARAM_KEYS.battery));
-  if (battery !== undefined && battery > 0 && battery <= MAX_BATTERY_HEALTH_PERCENT) {
-    filters.minBatteryHealthPercent = battery;
-  }
-
-  const pta = readSingle(source, FILTER_PARAM_KEYS.pta);
-  if (pta === "1" || pta === "pta" || pta === "true") {
-    filters.isPtaApproved = true;
-  } else if (pta === "0" || pta === "non-pta" || pta === "false") {
-    filters.isPtaApproved = false;
-  }
-
-  const accessoryTypes = readMulti(source, FILTER_PARAM_KEYS.accessoryTypes).filter(isAccessoryType);
-  if (accessoryTypes.length > 0) {
-    filters.accessoryTypes = accessoryTypes;
-  }
-
-  const connectors = readMulti(source, FILTER_PARAM_KEYS.connectors).filter(isConnectorType);
-  if (connectors.length > 0) {
-    filters.connectors = connectors;
-  }
-
-  const wattages = readMulti(source, FILTER_PARAM_KEYS.wattages)
-    .map((value) => Number.parseInt(value, DECIMAL_RADIX))
-    .filter((parsed) => Number.isFinite(parsed) && parsed > 0);
-  if (wattages.length > 0) {
-    filters.wattages = wattages;
-  }
-
-  const gadgetTypes = readMulti(source, FILTER_PARAM_KEYS.gadgetTypes);
-  if (gadgetTypes.length > 0) {
-    filters.gadgetTypes = gadgetTypes;
+  if (Object.keys(attributes).length > 0) {
+    filters.attributes = attributes;
   }
 
   if (readSingle(source, FILTER_PARAM_KEYS.inStock) === "1") {
@@ -258,10 +198,10 @@ export function parseFiltersFromSearchParams(
  * values are omitted so the URL stays minimal.
  */
 export function buildSearchParamsFromFilters(
-  filters: Omit<StorefrontProductFilters, "category" | "categories">,
+  filters: Omit<StorefrontProductFilters, "categorySlug" | "categorySlugs">,
 ): URLSearchParams {
   const params = new URLSearchParams();
-  const setMulti = (key: string, values?: readonly (string | number)[]) => {
+  const setMulti = (key: string, values?: readonly string[]) => {
     if (!values || values.length === 0) {
       return;
     }
@@ -269,28 +209,21 @@ export function buildSearchParamsFromFilters(
   };
 
   setMulti(FILTER_PARAM_KEYS.brands, filters.brandSlugs);
-  setMulti(FILTER_PARAM_KEYS.grades, filters.grades);
+  setMulti(FILTER_PARAM_KEYS.grades, filters.gradeSlugs);
   if (typeof filters.minPriceRupees === "number" && filters.minPriceRupees > 0) {
     params.set(FILTER_PARAM_KEYS.minPrice, String(filters.minPriceRupees));
   }
   if (typeof filters.maxPriceRupees === "number" && filters.maxPriceRupees > 0) {
     params.set(FILTER_PARAM_KEYS.maxPrice, String(filters.maxPriceRupees));
   }
-  setMulti(FILTER_PARAM_KEYS.storage, filters.storageGb);
-  setMulti(FILTER_PARAM_KEYS.ram, filters.ramGb);
-  if (typeof filters.minBatteryHealthPercent === "number") {
-    params.set(FILTER_PARAM_KEYS.battery, String(filters.minBatteryHealthPercent));
+  if (filters.attributes) {
+    for (const [slug, values] of Object.entries(filters.attributes)) {
+      if (values.length === 0) {
+        continue;
+      }
+      params.set(`${ATTRIBUTE_PARAM_PREFIX}${slug}`, values.join(","));
+    }
   }
-  if (filters.isPtaApproved === true) {
-    params.set(FILTER_PARAM_KEYS.pta, "1");
-  }
-  if (filters.isPtaApproved === false) {
-    params.set(FILTER_PARAM_KEYS.pta, "0");
-  }
-  setMulti(FILTER_PARAM_KEYS.accessoryTypes, filters.accessoryTypes);
-  setMulti(FILTER_PARAM_KEYS.connectors, filters.connectors);
-  setMulti(FILTER_PARAM_KEYS.wattages, filters.wattages);
-  setMulti(FILTER_PARAM_KEYS.gadgetTypes, filters.gadgetTypes);
   if (filters.inStockOnly) {
     params.set(FILTER_PARAM_KEYS.inStock, "1");
   }

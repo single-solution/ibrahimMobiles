@@ -3,25 +3,40 @@
  * without re-fetching every product. Server still re-validates pricing and
  * stock on order submission, so a stale snapshot is a UX issue, not a
  * security one.
+ *
+ * Schema awareness (Phase 1, PLAN.md §10):
+ *   - Categories are admin-authored strings (`categorySlug`).
+ *   - Hero image is a full `StoredImage` so the cart row can render the
+ *     right resolution without falling back to `next/image` runtime
+ *     optimisation.
+ *   - Per-category typed fields (storage GB / connector / wattage) are
+ *     gone — anything the cart needs to display about a variant beyond
+ *     price + grade lives under the generic `attributes` record.
  */
 
-import type { ProductCategory } from "@store/shared";
+import type { StoredImage } from "@store/shared";
 
 export interface CartItem {
   /** Stable id used for React keys (`productId:variantId`). */
   id: string;
   productId: string;
   variantId: string;
+  /** Display name (`Product.name`). */
   productName: string;
   brandSlug: string;
-  imageUrl: string;
-  colorName: string;
+  /** Brand display name — denormalised for the cart row. */
+  brandName: string;
+  /** Multi-resolution hero image. */
+  image: StoredImage;
   /** Price at time of add — re-validated server-side on order placement. */
   unitPriceRupees: number;
-  category: ProductCategory;
+  /** URL category segment (`Product.categorySlug`). */
+  categorySlug: string;
   /** Slug used to build a link back to the product page. */
   productSlug: string;
-  /** Storage in GB — only present for phones / some gadgets. */
-  storageGb?: number;
+  /** Variant grade slug — used to render the grade chip in the cart row. */
+  gradeSlug: string;
+  /** Generic per-attribute selection (e.g. `{ storage: "256GB", colour: "Titanium" }`). */
+  attributes: Record<string, string>;
   quantity: number;
 }

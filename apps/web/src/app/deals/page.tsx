@@ -58,12 +58,6 @@ const MOBILE_PRODUCT_SKELETON_COUNT = 6;
 const DESKTOP_PRODUCT_SKELETON_COUNT = 8;
 const OFFER_SKELETON_COUNT = 2;
 
-const ACCENT_BG: Record<string, string> = {
-  emerald: "#0f766e",
-  amber: "#ea580c",
-  rose: "#e11d48",
-  sky: "#0f172a",
-};
 
 /**
  * Deals page.
@@ -151,7 +145,7 @@ async function MobileOffers() {
             <Link href={`/deals#${offer.slug}`} className="app-list-row">
               <span
                 className="grid size-9 shrink-0 place-items-center rounded-full text-[11px] font-bold uppercase text-white"
-                style={{ backgroundColor: ACCENT_BG[offer.accentColor] }}
+                style={{ backgroundColor: offer.color }}
               >
                 {offer.discountLabel.split(" ")[0]}
               </span>

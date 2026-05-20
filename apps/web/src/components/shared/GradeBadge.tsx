@@ -1,46 +1,54 @@
 "use client";
 
-import type { ConditionGrade } from "@store/shared";
-import { Badge } from "@/components/ui/Badge";
 import { useGrade } from "@/lib/storefront/storefrontReferenceContext";
 
 interface GradeBadgeProps {
-  grade: ConditionGrade;
+  /** Owning category slug — `Variant.gradeSlug` is unique only within this scope. */
+  categorySlug: string;
+  /** The variant's grade slug. */
+  gradeSlug: string;
   size?: "sm" | "md" | "lg";
   className?: string;
 }
 
-const GRADE_TONE_MAP = {
-  "brand-new": "grade-brand-new",
-  genuine: "grade-genuine",
-  "box-open": "grade-box-open",
-  refurbished: "grade-refurbished",
-  "china-water": "grade-china-water",
-  "lcd-shaded": "grade-lcd-shaded",
+const SIZE_CLASSES = {
+  sm: "h-5 min-w-5 px-1.5 text-[10px]",
+  md: "h-6 min-w-6 px-2 text-[11px]",
+  lg: "h-7 min-w-7 px-2.5 text-xs",
 } as const;
 
 /**
- * Fallback labels used when the descriptor for a grade can't be resolved
- * from the storefront reference context — e.g. during the brief window
- * before hydration on a CSR-only render. Keeps the badge readable instead
- * of showing the raw slug.
+ * Renders a coloured chip for the variant's grade, using the admin-authored
+ * label + hex colour from the `Grade` collection. Falls back gracefully to
+ * the raw slug when the descriptor can't be resolved (storybook, brief
+ * pre-hydration window) — the badge stays readable even with no data.
  */
-const GRADE_FALLBACK_LABEL: Record<ConditionGrade, string> = {
-  "brand-new": "Brand new",
-  genuine: "Genuine",
-  "box-open": "Box-open",
-  refurbished: "Refurbished",
-  "china-water": "China-pack",
-  "lcd-shaded": "LCD shaded",
-};
+export function GradeBadge({
+  categorySlug,
+  gradeSlug,
+  size = "md",
+  className,
+}: GradeBadgeProps) {
+  const descriptor = useGrade(categorySlug, gradeSlug);
+  const label = descriptor?.label ?? gradeSlug;
+  const color = descriptor?.color ?? "#1f2937";
 
-export function GradeBadge({ grade, size = "md", className }: GradeBadgeProps) {
-  const descriptor = useGrade(grade);
-  const shortLabel = descriptor?.shortLabel ?? GRADE_FALLBACK_LABEL[grade];
-  const fullLabel = descriptor?.label ?? GRADE_FALLBACK_LABEL[grade];
+  const sizeClass = SIZE_CLASSES[size];
+  const classes = [
+    "inline-flex items-center justify-center rounded-[var(--radius-md)] font-bold uppercase tracking-tight leading-none text-white shadow-[var(--shadow-sm)]",
+    sizeClass,
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <Badge tone={GRADE_TONE_MAP[grade]} size={size} className={className}>
-      <span aria-label={`Grade ${fullLabel}`}>{shortLabel}</span>
-    </Badge>
+    <span
+      className={classes}
+      style={{ backgroundColor: color }}
+      aria-label={`Grade ${label}`}
+    >
+      {label}
+    </span>
   );
 }

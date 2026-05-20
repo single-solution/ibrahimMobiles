@@ -1,65 +1,71 @@
 /**
  * Page-level data loaders.
  *
- * The homepage renders five independently-streaming sections via Suspense,
- * so we expose one loader per section instead of a single bundled
- * "everything the homepage needs" function. Each loader awaits only the
- * data its section actually consumes:
+ * The homepage renders multiple independently-streaming sections via
+ * Suspense, so we expose one loader per section instead of a single
+ * bundled "everything the homepage needs" function. Each loader awaits
+ * only the data its section actually consumes:
  *
- *   - Hero: hero phones + brands         → `getHomeHeroData`
- *   - Shop types: categories + counts    → `getHomeShopTypesData`
+ *   - Hero: featured products + brands → `getHomeHeroData`
+ *   - Shop categories tiles            → `getHomeShopTypesData`
  *
  * Process and visit-store sections only need `getStoreSettingsCached`,
  * which they call directly.
  *
  * Why one loader per section, not one for the whole page? With a bundled
  * loader, every Suspense boundary that awaited it would have to wait for
- * the slowest read in the bundle (e.g. hero phones), even sections that
- * don't use that data. Splitting means the brands-only section can light
- * up the moment brands lands, regardless of how long hero-phones takes.
+ * the slowest read in the bundle, even sections that don't use that data.
+ * Splitting means the brands-only section can light up the moment brands
+ * lands, regardless of how long hero products takes.
  *
  * All reads still go through `cached.ts` — `unstable_cache` (30s TTL,
  * tagged) for cross-request dedupe so a hot homepage doesn't replay six
  * Mongo round-trips per visitor, and parallel `Promise.all` so two
  * lookups inside the same section don't serialize.
+ *
+ * Schema awareness (Phase 1, PLAN.md §10):
+ *   - The hero strip is now generic (featured products, any category)
+ *     since the legacy "phones only" carve-out is gone.
+ *   - Category tiles surface only what the dynamic Category schema
+ *     exposes (`slug`, `label`, `description`, `iconKind`, `iconEmoji`,
+ *     `iconImage`). Per-category copy like "trustChips" lived on the
+ *     old hardcoded shape and is no longer part of the data model;
+ *     storefront landing pages compose their own copy from the
+ *     description plus the category's grades/attributes.
  */
 
 import { logger } from "@store/shared";
 
-import { type StorefrontCategory } from "@/lib/storefront";
+import type { StorefrontCategory } from "@/lib/storefront";
 import {
-  getHeroPhonesCached,
+  getHomeHeroProductsCached,
   getStorefrontBrandsCached,
   getStorefrontCategoriesCached,
-  getStorefrontProductCountsByCategoryCached,
 } from "@/lib/storefront/cached";
 import type {
   Brand as StorefrontBrand,
-  Phone,
-  ProductCategory,
+  Product as StorefrontProduct,
 } from "@store/shared";
 
-/** Phones surfaced in the homepage hero gallery. */
-const HERO_PHONES_LIMIT = 5;
+/** Featured products surfaced in the homepage hero gallery. */
+const HERO_PRODUCTS_LIMIT = 5;
 
 export interface HomeHeroData {
-  /** Most-recent phones for the hero gallery, capped at `HERO_PHONES_LIMIT`. */
-  heroPhones: Phone[];
+  /** Featured products for the hero gallery, capped at `HERO_PRODUCTS_LIMIT`. */
+  heroProducts: StorefrontProduct[];
   brands: StorefrontBrand[];
 }
 
 export interface HomePageCategory {
-  id: ProductCategory;
+  /** Stable URL slug. */
+  slug: string;
   label: string;
-  pluralLabel: string;
-  pathSegment: string;
+  description: string;
+  iconKind: StorefrontCategory["iconKind"];
+  iconEmoji?: string;
+  iconImage?: StorefrontCategory["iconImage"];
   isActive: boolean;
-  tagline: string;
-  applicableGrades: StorefrontCategory["applicableGrades"];
-  trustChips: string[];
-  emptyHint: string;
-  /** Live count of products available in this category. */
-  itemCount: number;
+  sortOrder: number;
 }
 
 /**
@@ -75,51 +81,41 @@ export interface HomePageCategory {
  */
 export async function getHomeHeroData(): Promise<HomeHeroData> {
   try {
-    const [recentPhones, brands] = await Promise.all([
-      getHeroPhonesCached(HERO_PHONES_LIMIT),
+    const [heroProducts, brands] = await Promise.all([
+      getHomeHeroProductsCached(HERO_PRODUCTS_LIMIT),
       getStorefrontBrandsCached(),
     ]);
-
-    const heroPhones = recentPhones
-      .filter((product): product is Phone => product.category === "phone")
-      .slice(0, HERO_PHONES_LIMIT);
-
-    return { heroPhones, brands };
+    return { heroProducts: heroProducts.slice(0, HERO_PRODUCTS_LIMIT), brands };
   } catch (error) {
     logger.error(
       { error },
       "home: hero data load failed, falling back to empty hero this render",
     );
-    return { heroPhones: [], brands: [] };
+    return { heroProducts: [], brands: [] };
   }
 }
 
 /**
- * Shop-types section data. Two parallel cached reads, then a cheap
- * in-memory join. Independent of every other homepage section.
+ * Shop-categories section data. Single cached read.
  *
  * Build-time resilience: same contract as `getHomeHeroData` — empty
  * array on read failure so the page still prerenders.
  */
 export async function getHomeShopTypesData(): Promise<HomePageCategory[]> {
   try {
-    const [liveCategories, countsByCategory] = await Promise.all([
-      getStorefrontCategoriesCached(),
-      getStorefrontProductCountsByCategoryCached(),
-    ]);
-
-    return liveCategories.map((category) => ({
-      id: category.id,
-      label: category.label,
-      pluralLabel: category.pluralLabel,
-      pathSegment: category.pathSegment,
-      isActive: category.isActive,
-      tagline: category.tagline,
-      applicableGrades: category.applicableGrades,
-      trustChips: category.trustChips,
-      emptyHint: category.emptyHint,
-      itemCount: countsByCategory.get(category.id) ?? 0,
-    }));
+    const liveCategories = await getStorefrontCategoriesCached();
+    return liveCategories
+      .filter((category) => category.isActive)
+      .map((category) => ({
+        slug: category.slug,
+        label: category.label,
+        description: category.description,
+        iconKind: category.iconKind,
+        iconEmoji: category.iconEmoji,
+        iconImage: category.iconImage,
+        isActive: category.isActive,
+        sortOrder: category.sortOrder,
+      }));
   } catch (error) {
     logger.error(
       { error },

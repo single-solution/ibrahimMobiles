@@ -109,15 +109,13 @@ async function loadStorefrontReference(): Promise<StorefrontReferenceData> {
     ]);
     const categories: StorefrontCategoryReference[] = rawCategories.map(
       (category) => ({
-        id: category.id,
+        slug: category.slug,
         label: category.label,
-        pluralLabel: category.pluralLabel,
-        pathSegment: category.pathSegment,
+        description: category.description,
+        iconKind: category.iconKind,
+        iconEmoji: category.iconEmoji,
+        iconImage: category.iconImage,
         isActive: category.isActive,
-        tagline: category.tagline,
-        applicableGrades: category.applicableGrades,
-        trustChips: category.trustChips,
-        emptyHint: category.emptyHint,
         sortOrder: category.sortOrder,
       }),
     );

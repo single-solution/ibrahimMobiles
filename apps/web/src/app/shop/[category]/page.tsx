@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Cable, Gamepad2, Smartphone } from "lucide-react";
-import type { ComponentType } from "react";
+
+import { classNames, type Product } from "@store/shared";
+
 import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { FilterSidebar } from "@/components/shared/FilterSidebar";
@@ -11,15 +12,30 @@ import { SortDropdown } from "@/components/shared/SortDropdown";
 import { ResultsCountBar } from "@/components/shared/ResultsCountBar";
 import { ShopPagination } from "@/components/shared/ShopPagination";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { classNames, type Product, type ProductCategory } from "@store/shared";
-import { parseFiltersFromSearchParams, type StorefrontProductFilters } from "@/lib/storefront";
+import {
+  parseFiltersFromSearchParams,
+  type StorefrontCategory,
+  type StorefrontProductFilters,
+} from "@/lib/storefront";
 import {
   getStorefrontBrandsCached,
   getStorefrontCategoriesCached,
-  getStorefrontCategoryByPathSegmentCached,
-  getStorefrontProductCountsByCategoryCached,
+  getStorefrontCategoryBySlugCached,
   getStorefrontProductsPageCached,
 } from "@/lib/storefront/cached";
+
+/**
+ * Category listing page.
+ *
+ * Schema awareness (Phase 1, PLAN.md §10):
+ *   - The URL contract is `/shop/<categorySlug>` — admin-authored slug
+ *     is the URL segment (no separate `pathSegment` field).
+ *   - The "category selector" rail just lists every active category by
+ *     slug — no hardcoded phone/accessory/gadget icon table.
+ *   - Per-category product counts come from the same paged aggregation
+ *     used to render the listing (filtered by `categorySlug`) — no
+ *     separate "counts by category" lookup is needed.
+ */
 
 // ISR on a 60s window: catalog edits from the admin propagate within a
 // minute, but customers don't pay the cost of a 30-stage aggregation on
@@ -39,61 +55,43 @@ const FILTER_ROWS_PER_GROUP = 4;
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const { category } = await params;
-  // React `cache()` makes this call free if the page body already ran it
-  // for the same `category`, or vice versa — one DB lookup per render.
-  const meta = await getStorefrontCategoryByPathSegmentCached(category);
+  const meta = await getStorefrontCategoryBySlugCached(category);
   if (!meta) {
     return { title: "Shop" };
   }
   return {
-    title: `Shop ${meta.pluralLabel}`,
-    description: meta.tagline,
+    title: `Shop ${meta.label}`,
+    description: meta.description,
   };
 }
 
-/**
- * Category listing page.
- *
- * Render strategy (static-first):
- *   1. Resolve `params` + look up the category meta — both required
- *      before we know if this is even a valid page (notFound).
- *   2. Render the page chrome synchronously: mobile / desktop frames,
- *      sort dropdown, layout grids, section spacing.
- *   3. Each data-dependent block has its own `<Suspense>` boundary so
- *      it streams in independently:
- *        • CategorySelector — needs categories + per-category counts
- *        • FilterSidebar     — needs brand list
- *        • ProductGrid+Pagination — needs the heavy products aggregation
- *      All three boundaries paint as soon as their data lands, no
- *      ordering dependency between them.
- */
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const [{ category }, rawSearchParams] = await Promise.all([params, searchParams]);
-  const meta = await getStorefrontCategoryByPathSegmentCached(category);
+  const meta = await getStorefrontCategoryBySlugCached(category);
 
   if (!meta) {
     notFound();
   }
 
   if (!meta.isActive) {
-    return <ComingSoon segment={meta.pluralLabel} tagline={meta.tagline} />;
+    return <ComingSoon label={meta.label} description={meta.description} />;
   }
 
-  const filters = parseFiltersFromSearchParams(rawSearchParams, { category: meta.id });
+  const filters = parseFiltersFromSearchParams(rawSearchParams, {
+    categorySlug: meta.slug,
+  });
 
   return (
     <>
       {/* Mobile only — native */}
       <div className="app-page pb-6 pt-4 md:hidden">
         <Suspense fallback={<CategorySelectorSkeleton />}>
-          <CategorySelectorData active={meta.id} />
+          <CategorySelectorData activeSlug={meta.slug} />
         </Suspense>
 
         <div className="mt-4 flex items-center gap-2">
-          <Suspense
-            fallback={<Skeleton shape="pill" className="h-10 w-24" />}
-          >
-            <FilterSidebarData category={meta.id} />
+          <Suspense fallback={<Skeleton shape="pill" className="h-10 w-24" />}>
+            <FilterSidebarData categorySlug={meta.slug} />
           </Suspense>
           <SortDropdown />
         </div>
@@ -107,12 +105,12 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       <div className="mx-auto hidden max-w-[1440px] px-6 pb-16 pt-8 md:block">
         <div className="grid grid-cols-[260px_1fr] gap-8">
           <Suspense fallback={<DesktopFilterSidebarSkeleton />}>
-            <FilterSidebarData category={meta.id} />
+            <FilterSidebarData categorySlug={meta.slug} />
           </Suspense>
 
           <div className="space-y-6">
             <Suspense fallback={<CategorySelectorSkeleton />}>
-              <CategorySelectorData active={meta.id} />
+              <CategorySelectorData activeSlug={meta.slug} />
             </Suspense>
 
             <Suspense fallback={<DesktopProductsAreaSkeleton />}>
@@ -128,28 +126,25 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 /* ─────────────────────── Data-bound async slots ─────────────────────── */
 
 interface CategorySelectorDataProps {
-  active: ProductCategory;
+  activeSlug: string;
 }
 
-async function CategorySelectorData({ active }: CategorySelectorDataProps) {
-  const [categories, countById] = await Promise.all([
-    getStorefrontCategoriesCached(),
-    getStorefrontProductCountsByCategoryCached(),
-  ]);
-  return <CategorySelector active={active} categories={categories} countById={countById} />;
+async function CategorySelectorData({ activeSlug }: CategorySelectorDataProps) {
+  const categories = await getStorefrontCategoriesCached();
+  return <CategorySelector activeSlug={activeSlug} categories={categories} />;
 }
 
 interface FilterSidebarDataProps {
-  category: ProductCategory;
+  categorySlug: string;
 }
 
-async function FilterSidebarData({ category }: FilterSidebarDataProps) {
+async function FilterSidebarData({ categorySlug }: FilterSidebarDataProps) {
   const brands = await getStorefrontBrandsCached();
-  return <FilterSidebar category={category} brands={brands} />;
+  return <FilterSidebar categorySlug={categorySlug} brands={brands} />;
 }
 
 interface ProductsAreaProps {
-  meta: { id: ProductCategory; pluralLabel: string; pathSegment: string };
+  meta: StorefrontCategory;
   filters: StorefrontProductFilters;
 }
 
@@ -159,13 +154,13 @@ async function MobileProductsArea({ meta, filters }: ProductsAreaProps) {
     <>
       <ResultsCountBar total={page.total} page={page.page} pageSize={page.pageSize} />
       <div className="app-section">
-        <ProductGrid products={page.products} categoryLabel={meta.pluralLabel} />
+        <ProductGrid products={page.products} categoryLabel={meta.label} />
       </div>
       <div className="app-section">
         <ShopPagination
           page={page.page}
           pageCount={page.pageCount}
-          basePath={`/shop/${meta.pathSegment}`}
+          basePath={`/shop/${meta.slug}`}
         />
       </div>
     </>
@@ -185,11 +180,11 @@ async function DesktopProductsArea({ meta, filters }: ProductsAreaProps) {
         />
         <SortDropdown />
       </div>
-      <ProductGrid products={page.products} categoryLabel={meta.pluralLabel} />
+      <ProductGrid products={page.products} categoryLabel={meta.label} />
       <ShopPagination
         page={page.page}
         pageCount={page.pageCount}
-        basePath={`/shop/${meta.pathSegment}`}
+        basePath={`/shop/${meta.slug}`}
       />
     </>
   );
@@ -291,38 +286,17 @@ function PaginationSkeleton() {
 
 /* ─────────────────────── Static, data-free pieces ─────────────────────── */
 
-/**
- * Top-of-page category selector — replaces both the slim pill row and the
- * standalone `/shop` landing. Each card represents one of the three
- * storefront categories. The active card is highlighted in accent; the
- * others are clickable to switch sections without leaving the listing.
- * Categories flagged `isActive: false` render as a disabled tile with
- * "Coming soon" copy instead of being clickable.
- */
-const CATEGORY_ICON: Record<
-  ProductCategory,
-  ComponentType<{ size?: number; strokeWidth?: number; className?: string }>
-> = {
-  phone: Smartphone,
-  accessory: Cable,
-  gadget: Gamepad2,
-};
-
 interface CategorySelectorProps {
-  active: ProductCategory;
-  categories: { id: ProductCategory; pluralLabel: string; tagline: string; isActive: boolean; pathSegment: string }[];
-  countById: Map<ProductCategory, number>;
+  activeSlug: string;
+  categories: StorefrontCategory[];
 }
 
-function CategorySelector({ active, categories, countById }: CategorySelectorProps) {
+function CategorySelector({ activeSlug, categories }: CategorySelectorProps) {
   return (
     <div className="grid grid-cols-3 items-start gap-2 md:gap-4">
-      {categories.map((meta) => {
-        const isActive = meta.id === active;
-        const isAvailable = meta.isActive;
-        const Icon = CATEGORY_ICON[meta.id];
-        const count = countById.get(meta.id) ?? 0;
-
+      {categories.map((category) => {
+        const isActive = category.slug === activeSlug;
+        const isAvailable = category.isActive;
         const inner = (
           <div
             className={classNames(
@@ -334,43 +308,20 @@ function CategorySelector({ active, categories, countById }: CategorySelectorPro
                   : "cursor-not-allowed border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]/40 opacity-70",
             )}
           >
-            <Icon
-              size={18}
-              strokeWidth={2}
-              className={classNames(
-                "shrink-0 md:mt-0.5 md:size-[22px]",
-                isActive
-                  ? "text-[var(--color-accent-700)]"
-                  : "text-[var(--color-ink-700)]",
-              )}
-            />
+            <CategoryIcon category={category} isActive={isActive} />
             <div className="min-w-0 flex-1">
-              <div className="flex items-baseline justify-between gap-2">
-                <p
-                  className={classNames(
-                    "truncate text-[13px] font-semibold tracking-tight md:text-[16px]",
-                    isActive
-                      ? "text-[var(--color-accent-800)]"
-                      : "text-[var(--color-ink-900)]",
-                  )}
-                >
-                  {meta.pluralLabel}
-                </p>
-                <span
-                  className={classNames(
-                    "shrink-0 text-[11px] font-semibold tabular-nums md:text-[12.5px]",
-                    isAvailable
-                      ? isActive
-                        ? "text-[var(--color-accent-700)]"
-                        : "text-[var(--color-ink-500)]"
-                      : "text-[10px] uppercase tracking-[0.08em] text-[var(--color-ink-400)] md:text-[10.5px]",
-                  )}
-                >
-                  {isAvailable ? count : "Soon"}
-                </span>
-              </div>
+              <p
+                className={classNames(
+                  "truncate text-[13px] font-semibold tracking-tight md:text-[16px]",
+                  isActive
+                    ? "text-[var(--color-accent-800)]"
+                    : "text-[var(--color-ink-900)]",
+                )}
+              >
+                {category.label}
+              </p>
               <p className="mt-0.5 hidden text-[12px] leading-snug text-[var(--color-ink-600)] md:line-clamp-2 md:block">
-                {meta.tagline}
+                {category.description}
               </p>
             </div>
           </div>
@@ -378,15 +329,15 @@ function CategorySelector({ active, categories, countById }: CategorySelectorPro
 
         if (!isAvailable) {
           return (
-            <div key={meta.id} aria-disabled>
+            <div key={category.slug} aria-disabled>
               {inner}
             </div>
           );
         }
         return (
           <Link
-            key={meta.id}
-            href={`/shop/${meta.pathSegment}`}
+            key={category.slug}
+            href={`/shop/${category.slug}`}
             scroll={false}
             className="block focus:outline-none"
             aria-current={isActive ? "page" : undefined}
@@ -396,6 +347,37 @@ function CategorySelector({ active, categories, countById }: CategorySelectorPro
         );
       })}
     </div>
+  );
+}
+
+function CategoryIcon({
+  category,
+  isActive,
+}: {
+  category: StorefrontCategory;
+  isActive: boolean;
+}) {
+  if (category.iconKind === "image" && category.iconImage) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- 32×32 icon, no need for next/image
+      <img
+        src={category.iconImage.variants.thumb}
+        alt=""
+        className="size-[22px] shrink-0 rounded-md object-cover"
+      />
+    );
+  }
+  const emoji = category.iconEmoji?.trim() || "📦";
+  return (
+    <span
+      aria-hidden
+      className={classNames(
+        "shrink-0 text-[20px] md:text-[22px]",
+        isActive ? "opacity-100" : "opacity-90",
+      )}
+    >
+      {emoji}
+    </span>
   );
 }
 
@@ -423,17 +405,17 @@ function ProductGrid({ products: productList, categoryLabel }: ProductGridProps)
   );
 }
 
-function ComingSoon({ segment, tagline }: { segment: string; tagline: string }) {
+function ComingSoon({ label, description }: { label: string; description: string }) {
   return (
     <div className="mx-auto max-w-2xl px-6 pb-24 pt-16 text-center md:pt-24">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)]">
         Coming soon
       </p>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--color-ink-900)] md:text-4xl">
-        {segment}
+        {label}
       </h1>
       <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-[var(--color-ink-600)]">
-        {tagline}
+        {description}
       </p>
       <Link
         href="/shop"

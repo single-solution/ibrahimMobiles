@@ -1,19 +1,25 @@
 "use client";
 
 import { Heart } from "lucide-react";
+
+import { classNames, type StoredImage } from "@store/shared";
+
 import { useWishlist } from "@/lib/wishlist/useWishlist";
-import { classNames, type ProductCategory } from "@store/shared";
 
 interface WishlistButtonProps {
   productId: string;
   productSlug: string;
-  modelName: string;
+  /** Display name (`Product.name`). */
+  name: string;
   brandSlug: string;
   brandName: string;
-  imageUrl: string;
-  category: ProductCategory;
+  /** Multi-resolution hero image — stored on the wishlist row so we can
+   *  render the wishlist page without re-fetching every product. */
+  image: StoredImage;
+  /** URL category segment — matches `Product.categorySlug`. */
+  categorySlug: string;
   fromPriceRupees: number;
-  /** Visual variant — `card` is for floating on a product card, `inline` for action rows. */
+  /** Visual variant — `card` floats on a product card, `inline` is for action rows. */
   variant?: "card" | "inline";
   size?: "sm" | "md";
 }
@@ -26,11 +32,11 @@ interface WishlistButtonProps {
 export function WishlistButton({
   productId,
   productSlug,
-  modelName,
+  name,
   brandSlug,
   brandName,
-  imageUrl,
-  category,
+  image,
+  categorySlug,
   fromPriceRupees,
   variant = "card",
   size = "sm",
@@ -62,18 +68,18 @@ export function WishlistButton({
     <button
       type="button"
       aria-pressed={saved}
-      aria-label={saved ? `Remove ${modelName} from wishlist` : `Save ${modelName} to wishlist`}
+      aria-label={saved ? `Remove ${name} from wishlist` : `Save ${name} to wishlist`}
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();
         wishlist.toggle({
           productId,
           productSlug,
-          modelName,
+          name,
           brandSlug,
           brandName,
-          imageUrl,
-          category,
+          image,
+          categorySlug,
           fromPriceRupees,
         });
       }}

@@ -3,7 +3,17 @@ import {
 	MINUTES_PER_HOUR,
 	MS_PER_MINUTE,
 } from "./constants";
-import type { BatteryRange } from "./types";
+
+/**
+ * Legacy shape kept for `formatBatteryRange` only. Phase 1 dropped the
+ * hardcoded battery-health fields from the public catalog types — UIs
+ * that still want to render a range simply pass `{ minPercent, maxPercent }`
+ * by hand (e.g. parsed from a `Variant.attributes.batteryHealth` value).
+ */
+export interface BatteryRange {
+	minPercent: number;
+	maxPercent: number;
+}
 
 /** GB → TB threshold: storage at or above this is rendered in terabytes. */
 const STORAGE_GB_PER_TB = 1024;

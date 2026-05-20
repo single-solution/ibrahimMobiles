@@ -1,31 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
-	buildWhatsAppLink,
-	calculateDiscountPercent,
-	classNames,
-	formatBatteryRange,
-	formatPrice,
-	formatStorage,
-	type Phone,
-	type PhoneVariant,
-} from "@store/shared";
-import {
-  BatteryMedium,
   Check,
   GitCompare,
-  HardDrive,
   Info,
   MessageCircle,
-  Palette,
   ShoppingBag,
 } from "lucide-react";
+
+import {
+  buildWhatsAppLink,
+  classNames,
+  formatPrice,
+  type Product,
+  type StorefrontVariant,
+} from "@store/shared";
+
 import { Button } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { CompareVariants } from "@/components/shared/CompareVariants";
 import { GradeBadge } from "@/components/shared/GradeBadge";
-import { PtaBadge } from "@/components/shared/PtaBadge";
 import { useVariantSelection } from "@/components/shared/VariantContext";
 
 import { useCart } from "@/lib/cart/useCart";
@@ -34,45 +29,80 @@ import { useGrade } from "@/lib/storefront/storefrontReferenceContext";
 
 const ADD_TO_CART_FLASH_MS = 1_500;
 
+const isVariantInStock = (variant: StorefrontVariant): boolean =>
+  (variant.quantity ?? 0) > 0;
+
+const HUMANISE_ATTR = (slug: string): string =>
+  slug
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
 interface VariantSelectorProps {
-  phone: Phone;
+  product: Product;
   brandName: string;
 }
 
-export function VariantSelector({ phone, brandName }: VariantSelectorProps) {
+/**
+ * Product detail variant picker (Phase 1 generic shape).
+ *
+ * Schema awareness (PLAN.md §10):
+ *   - Variant differentiators (`storage`, `colour`, `RAM`, `connector`,
+ *     etc.) live in `Variant.attributes` as a free-form `Record<string,
+ *     string>`. The PDP renders that record as a generic spec grid so
+ *     any category — phones, accessories, gadgets, future ones — picks
+ *     up correctly without a code change.
+ *   - The price-strikethrough and "discount" UI is gone (no
+ *     `originalPriceRupees` on a variant). Promotions surface via the
+ *     `Offer` collection (Phase 7).
+ *   - Cart lines carry the full `StoredImage` + `gradeSlug` so the cart
+ *     drawer can render the right resolution and the grade chip without
+ *     a re-fetch.
+ */
+export function VariantSelector({ product, brandName }: VariantSelectorProps) {
   const { selectedVariantId, setSelectedVariantId } = useVariantSelection();
   const [isCompareOpen, setIsCompareOpen] = useState(false);
   const cart = useCart();
   const [hasJustBeenAdded, setHasJustBeenAdded] = useState(false);
 
   const selected =
-    phone.variants.find((variant) => variant.id === selectedVariantId) ?? phone.variants[0];
+    product.variants.find((variant) => variant.id === selectedVariantId) ??
+    product.variants[0];
 
-  const discountPercent = calculateDiscountPercent(
-    selected.originalPriceRupees,
-    selected.priceRupees,
-  );
-  const hasDiscount = discountPercent > 0;
-  const gradeDescriptor = useGrade(selected.grade);
-  const gradeLabelForCopy = gradeDescriptor?.label ?? selected.grade;
-  const showCompare = phone.variants.length > 1;
+  const inStock = isVariantInStock(selected);
+  const gradeDescriptor = useGrade(product.categorySlug, selected.gradeSlug);
+  const gradeLabelForCopy = gradeDescriptor?.label ?? selected.gradeSlug;
+  const showCompare = product.variants.length > 1;
+  const heroImage = selected.images?.[0];
 
-  const whatsappMessage = `Salam! I'd like to order the ${brandName} ${phone.modelName} — Grade ${gradeLabelForCopy} (${formatStorage(
-    selected.storageGb,
-  )}, ${selected.colorName}) for ${formatPrice(selected.priceRupees)}.`;
+  const attributeSummary = useMemo(() => {
+    const entries = Object.entries(selected.attributes ?? {});
+    if (entries.length === 0) {
+      return "";
+    }
+    return entries.map(([, value]) => value).join(", ");
+  }, [selected.attributes]);
+
+  const whatsappMessage = `Salam! I'd like to order the ${brandName} ${product.name} — Grade ${gradeLabelForCopy}${
+    attributeSummary ? ` (${attributeSummary})` : ""
+  } for ${formatPrice(selected.priceRupees)}.`;
 
   const handleAddToCart = () => {
+    if (!heroImage) {
+      return;
+    }
     cart.addItem({
-      productId: phone.id,
+      productId: product.id,
       variantId: selected.id,
-      productName: phone.modelName,
-      brandSlug: phone.brandSlug,
-      imageUrl: phone.imageUrl,
-      colorName: selected.colorName,
+      productName: product.name,
+      brandSlug: product.brandSlug,
+      brandName,
+      image: heroImage,
       unitPriceRupees: selected.priceRupees,
-      category: "phone",
-      productSlug: phone.slug,
-      storageGb: selected.storageGb,
+      categorySlug: product.categorySlug,
+      productSlug: product.slug,
+      gradeSlug: selected.gradeSlug,
+      attributes: selected.attributes ?? {},
     });
     setHasJustBeenAdded(true);
     window.setTimeout(() => setHasJustBeenAdded(false), ADD_TO_CART_FLASH_MS);
@@ -82,28 +112,24 @@ export function VariantSelector({ phone, brandName }: VariantSelectorProps) {
     <div className="space-y-4 md:space-y-7">
       <div>
         <h1 className="text-xl font-semibold leading-tight tracking-tight text-[var(--color-ink-900)] sm:text-2xl md:text-6xl md:leading-[1] md:tracking-[-0.03em]">
-          {phone.modelName}
+          {product.name}
         </h1>
       </div>
 
-      <PriceBlock
-        priceRupees={selected.priceRupees}
-        originalPriceRupees={selected.originalPriceRupees}
-        discountPercent={discountPercent}
-        hasDiscount={hasDiscount}
-      />
+      <PriceBlock priceRupees={selected.priceRupees} />
 
       <SpecGrid variant={selected} />
 
       <VariantList
-        variants={phone.variants}
+        variants={product.variants}
+        categorySlug={product.categorySlug}
         selectedVariantId={selected.id}
         onSelect={setSelectedVariantId}
         onOpenCompare={showCompare ? () => setIsCompareOpen(true) : undefined}
       />
 
       <PurchaseActions
-        isInStock={selected.isInStock}
+        isInStock={inStock}
         onAddToCart={handleAddToCart}
         hasJustBeenAdded={hasJustBeenAdded}
       />
@@ -112,13 +138,13 @@ export function VariantSelector({ phone, brandName }: VariantSelectorProps) {
         onAddToCart={handleAddToCart}
         hasJustBeenAdded={hasJustBeenAdded}
         priceRupees={selected.priceRupees}
-        isInStock={selected.isInStock}
+        isInStock={inStock}
         whatsappMessage={whatsappMessage}
       />
 
       {isCompareOpen && (
         <CompareVariants
-          phone={phone}
+          product={product}
           brandName={brandName}
           selectedVariantId={selected.id}
           onClose={() => setIsCompareOpen(false)}
@@ -195,17 +221,9 @@ function MobileStickyCta({
 
 interface PriceBlockProps {
   priceRupees: number;
-  originalPriceRupees: number;
-  discountPercent: number;
-  hasDiscount: boolean;
 }
 
-function PriceBlock({
-  priceRupees,
-  originalPriceRupees,
-  discountPercent,
-  hasDiscount,
-}: PriceBlockProps) {
+function PriceBlock({ priceRupees }: PriceBlockProps) {
   const bankTransferPrice = Math.round(priceRupees * 0.95);
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3.5 md:p-5">
@@ -213,16 +231,6 @@ function PriceBlock({
         <span className="text-xl font-semibold leading-none tracking-tight text-[var(--color-ink-900)] sm:text-2xl md:text-5xl md:tracking-[-0.03em]">
           {formatPrice(priceRupees)}
         </span>
-        {hasDiscount && (
-          <>
-            <span className="text-[13px] text-[var(--color-ink-400)] line-through md:text-base">
-              {formatPrice(originalPriceRupees)}
-            </span>
-            <Pill tone="accent" size="sm">
-              {discountPercent}% off
-            </Pill>
-          </>
-        )}
       </div>
       <p className="mt-1.5 text-[13px] text-[var(--color-ink-600)] md:mt-2 md:text-sm">
         Or{" "}
@@ -236,16 +244,20 @@ function PriceBlock({
 }
 
 interface SpecGridProps {
-  variant: PhoneVariant;
+  variant: StorefrontVariant;
 }
 
 function SpecGrid({ variant }: SpecGridProps) {
-  const specs = [
-    { icon: <HardDrive size={14} />, label: "Storage", value: formatStorage(variant.storageGb) },
-    { icon: <BatteryMedium size={14} />, label: "Battery", value: formatBatteryRange(variant.batteryHealthRange) },
-    { icon: <Palette size={14} />, label: "Colour", value: variant.colorName },
-    { icon: <Info size={14} />, label: "Warranty", value: `${variant.warrantyMonths}-mo` },
-  ];
+  const attributeEntries = Object.entries(variant.attributes ?? {});
+  const specs: Array<{ label: string; value: string }> = attributeEntries.map(
+    ([slug, value]) => ({ label: HUMANISE_ATTR(slug), value }),
+  );
+  if (variant.warrantyMonths) {
+    specs.push({ label: "Warranty", value: `${variant.warrantyMonths}-mo` });
+  }
+  if (specs.length === 0) {
+    return null;
+  }
   return (
     <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
       {specs.map((spec) => (
@@ -254,10 +266,12 @@ function SpecGrid({ variant }: SpecGridProps) {
           className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2.5 md:p-3"
         >
           <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-ink-500)] md:text-xs">
-            {spec.icon}
+            <Info size={14} />
             <span>{spec.label}</span>
           </div>
-          <p className="mt-0.5 text-[13px] font-semibold text-[var(--color-ink-900)] md:mt-1 md:text-sm">{spec.value}</p>
+          <p className="mt-0.5 text-[13px] font-semibold text-[var(--color-ink-900)] md:mt-1 md:text-sm">
+            {spec.value}
+          </p>
         </div>
       ))}
     </div>
@@ -265,13 +279,20 @@ function SpecGrid({ variant }: SpecGridProps) {
 }
 
 interface VariantListProps {
-  variants: PhoneVariant[];
+  variants: StorefrontVariant[];
+  categorySlug: string;
   selectedVariantId: string;
   onSelect: (variantId: string) => void;
   onOpenCompare?: () => void;
 }
 
-function VariantList({ variants, selectedVariantId, onSelect, onOpenCompare }: VariantListProps) {
+function VariantList({
+  variants,
+  categorySlug,
+  selectedVariantId,
+  onSelect,
+  onOpenCompare,
+}: VariantListProps) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -299,6 +320,7 @@ function VariantList({ variants, selectedVariantId, onSelect, onOpenCompare }: V
           <VariantRow
             key={variant.id}
             variant={variant}
+            categorySlug={categorySlug}
             isSelected={variant.id === selectedVariantId}
             onSelect={() => onSelect(variant.id)}
           />
@@ -309,29 +331,35 @@ function VariantList({ variants, selectedVariantId, onSelect, onOpenCompare }: V
 }
 
 interface VariantRowProps {
-  variant: PhoneVariant;
+  variant: StorefrontVariant;
+  categorySlug: string;
   isSelected: boolean;
   onSelect: () => void;
 }
 
-function VariantRow({ variant, isSelected, onSelect }: VariantRowProps) {
-  const discountPercent = calculateDiscountPercent(
-    variant.originalPriceRupees,
-    variant.priceRupees,
-  );
+function VariantRow({
+  variant,
+  categorySlug,
+  isSelected,
+  onSelect,
+}: VariantRowProps) {
+  const inStock = isVariantInStock(variant);
+  const attributeSummary = Object.entries(variant.attributes ?? {})
+    .map(([, value]) => value)
+    .join(" · ");
   return (
     <li>
       <button
         type="button"
         onClick={onSelect}
-        disabled={!variant.isInStock}
+        disabled={!inStock}
         aria-pressed={isSelected}
         className={classNames(
           "group flex w-full items-center gap-2.5 rounded-[var(--radius-lg)] border p-3 text-left transition-all md:gap-4 md:p-4",
           isSelected
             ? "border-[var(--color-ink-900)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]"
             : "border-[var(--color-ink-100)] bg-[var(--color-surface)] hover:border-[var(--color-ink-300)]",
-          !variant.isInStock && "opacity-60",
+          !inStock && "opacity-60",
         )}
       >
         <span
@@ -348,26 +376,21 @@ function VariantRow({ variant, isSelected, onSelect }: VariantRowProps) {
 
         <div className="flex min-w-0 flex-1 flex-col gap-1 md:gap-2">
           <div className="flex flex-wrap items-center gap-1 md:gap-1.5">
-            <GradeBadge grade={variant.grade} size="sm" />
-            {variant.isPtaApproved && <PtaBadge size="sm" />}
-            {!variant.isInStock && (
+            <GradeBadge
+              categorySlug={categorySlug}
+              gradeSlug={variant.gradeSlug}
+              size="sm"
+            />
+            {!inStock && (
               <Pill tone="danger" size="sm">
                 Sold out
               </Pill>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--color-ink-600)] md:gap-x-3 md:gap-y-1 md:text-xs">
-            <span>{formatStorage(variant.storageGb)}</span>
-            <span className="text-[var(--color-ink-300)]">·</span>
-            <span className="line-clamp-1">{variant.colorName}</span>
-            <span className="hidden text-[var(--color-ink-300)] md:inline">·</span>
-            <span className="hidden items-center gap-1 md:inline-flex">
-              <BatteryMedium size={12} />
-              {formatBatteryRange(variant.batteryHealthRange)}
-            </span>
-          </div>
-          {variant.notes && (
-            <p className="hidden text-xs text-[var(--color-ink-500)] md:block">{variant.notes}</p>
+          {attributeSummary && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[var(--color-ink-600)] md:gap-x-3 md:gap-y-1 md:text-xs">
+              <span className="line-clamp-1">{attributeSummary}</span>
+            </div>
           )}
         </div>
 
@@ -375,11 +398,6 @@ function VariantRow({ variant, isSelected, onSelect }: VariantRowProps) {
           <p className="text-sm font-semibold tracking-tight text-[var(--color-ink-900)] md:text-lg">
             {formatPrice(variant.priceRupees)}
           </p>
-          {discountPercent > 0 && (
-            <p className="text-[11px] text-[var(--color-ink-400)] line-through md:text-xs">
-              {formatPrice(variant.originalPriceRupees)}
-            </p>
-          )}
         </div>
       </button>
     </li>

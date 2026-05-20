@@ -22,7 +22,7 @@ import {
   ok,
   PER_MINUTE_WINDOW_MS,
   serverError,
-  type Product,
+  type StoredImage,
 } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
@@ -42,10 +42,11 @@ const SEARCHES_PER_MINUTE = 60;
 interface SearchResult {
   id: string;
   slug: string;
-  category: Product["category"];
-  modelName: string;
+  categorySlug: string;
+  name: string;
   brandSlug: string;
-  imageUrl: string;
+  brandName: string;
+  image: StoredImage | null;
   variantCount: number;
   fromPriceRupees: number;
 }
@@ -82,13 +83,15 @@ export async function GET(request: Request) {
       const minPrice = product.variants.length
         ? Math.min(...product.variants.map((variant) => variant.priceRupees))
         : 0;
+      const heroImage = product.variants[0]?.images?.[0] ?? null;
       return {
         id: product.id,
         slug: product.slug,
-        category: product.category,
-        modelName: product.modelName,
+        categorySlug: product.categorySlug,
+        name: product.name,
         brandSlug: product.brandSlug,
-        imageUrl: product.imageUrl,
+        brandName: product.brandName,
+        image: heroImage,
         variantCount: product.variants.length,
         fromPriceRupees: minPrice,
       };

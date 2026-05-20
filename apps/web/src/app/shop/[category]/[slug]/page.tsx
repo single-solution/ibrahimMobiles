@@ -3,22 +3,38 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ChevronRight } from "lucide-react";
+
+import type { Product, StoredImage } from "@store/shared";
+
+import { GradeShowcase } from "@/components/shared/GradeShowcase";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { ProductImage } from "@/components/shared/ProductImage";
-import { VariantSelector } from "@/components/shared/VariantSelector";
 import { VariantProvider } from "@/components/shared/VariantContext";
-import { GradeShowcase } from "@/components/shared/GradeShowcase";
-import { AccessoryDetail } from "@/components/shared/AccessoryDetail";
-import { formatStorage, type Phone } from "@store/shared";
+import { VariantSelector } from "@/components/shared/VariantSelector";
+import { getDefaultVariant } from "@/lib/productSummary";
 import { getStorefrontProducts } from "@/lib/storefront";
 import {
   getStorefrontBrandBySlugCached,
-  getStorefrontCategoryByPathSegmentCached,
+  getStorefrontCategoryBySlugCached,
   getStorefrontProductBySlugCached,
 } from "@/lib/storefront/cached";
 import { productHref } from "@/data/products";
-import { getDefaultVariant } from "@/lib/productSummary";
+
+/**
+ * Generic product detail page.
+ *
+ * Schema awareness (Phase 1, PLAN.md §10):
+ *   - One PDP serves every category. The previous phone/accessory fork
+ *     is gone — variants carry generic `attributes` and `images`, so the
+ *     single `<VariantSelector>` renders them all.
+ *   - The URL contract is `/shop/<categorySlug>/<productSlug>` — the
+ *     category slug *is* the URL segment (no separate `pathSegment`
+ *     field anymore).
+ *   - Phase 6 (Storefront PDP alignment) refines the layout per-category
+ *     using `Category.heroLayout` settings. For Phase 1 the layout is
+ *     a single template, kept intentionally lean.
+ */
 
 // Live pricing + stock change frequently — never cache the detail page.
 export const dynamic = "force-dynamic";
@@ -30,20 +46,14 @@ interface ProductDetailPageProps {
 
 /** Pool size we fetch when looking for "related" items — over-fetched so we
  *  can drop the current product before slicing to the display cap. */
-const RELATED_PHONES_POOL = 8;
-const RELATED_ACCESSORIES_POOL = 12;
+const RELATED_PRODUCTS_POOL = 8;
 /** Final number of related items rendered next to the product detail view. */
 const RELATED_PRODUCTS_DISPLAY_COUNT = 4;
-/** Thumbnail strip caps in the photo galleries. Mobile shows the strip
- *  scrolling, desktop shows a 4-column grid. */
-const MOBILE_GALLERY_THUMB_COUNT = 6;
-const DESKTOP_GALLERY_THUMB_COUNT = 4;
 
 export async function generateMetadata({
   params,
-  searchParams,
 }: ProductDetailPageProps): Promise<Metadata> {
-  const [{ slug }, search] = await Promise.all([params, searchParams]);
+  const { slug } = await params;
   // React `cache()` makes this lookup free if the page body has already
   // fetched the same product in this render — or vice versa.
   const product = await getStorefrontProductBySlugCached(slug);
@@ -51,39 +61,13 @@ export async function generateMetadata({
     return { title: "Not found" };
   }
   const brand = await getStorefrontBrandBySlugCached(product.brandSlug);
-  const requestedVariantId =
-    typeof search.variant === "string" ? search.variant : undefined;
-  if (product.category === "phone") {
-    const initialVariant =
-      (requestedVariantId
-        ? product.variants.find((variant) => variant.id === requestedVariantId)
-        : undefined) ?? getDefaultVariant(product);
-    return {
-      title: `${brand?.name ?? ""} ${product.modelName} (${formatStorage(initialVariant.storageGb)})`,
-      description: product.highlights.join(" · "),
-    };
-  }
+  const brandName = brand?.name ?? product.brandSlug;
   return {
-    title: `${brand?.name ?? ""} ${product.modelName}`,
-    description: product.highlights.join(" · "),
+    title: `${brandName} ${product.name}`,
+    description: `${brandName} ${product.name} on ibrahimMobiles.`,
   };
 }
 
-/**
- * Product detail page.
- *
- * Render strategy:
- *   1. Two top-level awaits are unavoidable — we need the category meta
- *      and the product itself to decide notFound / redirect / render.
- *      Both are React-`cache()`-deduped lookups, so the cost is paid
- *      once even though `generateMetadata` also calls them.
- *   2. Once the product is in hand, the primary detail content
- *      (gallery, variant selector, grade showcase) renders
- *      synchronously — this is the page's reason for existing.
- *   3. The "More from {brand}" related rail is a secondary read and
- *      sits behind a Suspense boundary so it streams in independently
- *      with its own product-card skeleton fallback.
- */
 export default async function ProductDetailPage({
   params,
   searchParams,
@@ -93,7 +77,7 @@ export default async function ProductDetailPage({
   // Two independent reads — fire them in parallel. React `cache()` makes the
   // product lookup free for `generateMetadata` (same render).
   const [categoryMeta, product] = await Promise.all([
-    getStorefrontCategoryByPathSegmentCached(category),
+    getStorefrontCategoryBySlugCached(category),
     getStorefrontProductBySlugCached(slug),
   ]);
 
@@ -108,74 +92,40 @@ export default async function ProductDetailPage({
   // If a product is opened under the wrong category segment, 308-redirect to
   // its canonical URL — keeps every link in the codebase a single source of
   // truth via productHref().
-  if (product.category !== categoryMeta.id) {
+  if (product.categorySlug !== categoryMeta.slug) {
     redirect(productHref(product));
   }
 
   const requestedVariantId =
     typeof search.variant === "string" ? search.variant : undefined;
-
-  // Accessories use a focused, self-contained view.
-  if (product.category === "accessory") {
-    const initial =
-      (requestedVariantId
-        ? product.variants.find((variant) => variant.id === requestedVariantId)
-        : undefined) ?? getDefaultVariant(product);
-    const sameTypeRaw = await getStorefrontProducts({
-      category: "accessory",
-      limit: RELATED_ACCESSORIES_POOL,
-    });
-    const relatedAccessories = sameTypeRaw
-      .filter(
-        (candidate) =>
-          candidate.id !== product.id &&
-          candidate.category === "accessory" &&
-          candidate.accessoryType === product.accessoryType,
-      )
-      .slice(0, RELATED_PRODUCTS_DISPLAY_COUNT);
-    return (
-      <AccessoryDetail
-        accessory={product}
-        initialVariantId={initial.id}
-        relatedAccessories={relatedAccessories}
-      />
-    );
-  }
-
-  if (product.category !== "phone") {
-    notFound();
-  }
-
-  const phone: Phone = product;
   const initialVariant =
     (requestedVariantId
-      ? phone.variants.find((variant) => variant.id === requestedVariantId)
-      : undefined) ?? getDefaultVariant(phone);
-  // Brand is needed for the breadcrumb + variant selector heading; await it
-  // before the page chrome renders.
-  const brand = await getStorefrontBrandBySlugCached(phone.brandSlug);
-  const brandName = brand?.name ?? phone.brandSlug;
-  const brandFilterHref = `/shop/${categoryMeta.pathSegment}?brand=${phone.brandSlug}`;
+      ? product.variants.find((variant) => variant.id === requestedVariantId)
+      : undefined) ?? getDefaultVariant(product);
+
+  const brand = await getStorefrontBrandBySlugCached(product.brandSlug);
+  const brandName = brand?.name ?? product.brandSlug;
+  const brandFilterHref = `/shop/${categoryMeta.slug}?brand=${product.brandSlug}`;
+  const heroImage = initialVariant.images?.[0];
+  const galleryImages = initialVariant.images ?? [];
 
   return (
     <VariantProvider initialVariantId={initialVariant.id}>
-      {/* Mobile only — native */}
+      {/* Mobile */}
       <div className="pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-2 md:hidden">
         <MobileGallery
-          imageUrl={phone.imageUrl}
-          galleryUrls={phone.galleryUrls}
+          images={galleryImages}
+          name={product.name}
           brandName={brandName}
-          modelName={phone.modelName}
-          colorName={initialVariant.colorName}
-          brandSlug={phone.brandSlug}
+          brandSlug={product.brandSlug}
         />
 
         <div className="app-page">
           <div className="app-section">
-            <VariantSelector phone={phone} brandName={brandName} />
+            <VariantSelector product={product} brandName={brandName} />
           </div>
 
-          <GradeShowcase phone={phone} variant="mobile" />
+          <GradeShowcase product={product} variant="mobile" />
 
           <section className="app-section">
             <div className="app-section-eyebrow">
@@ -183,36 +133,37 @@ export default async function ProductDetailPage({
               <Link href={brandFilterHref}>See all</Link>
             </div>
             <Suspense fallback={<MobileRelatedRailSkeleton />}>
-              <MobileRelatedRail phone={phone} />
+              <MobileRelatedRail product={product} />
             </Suspense>
           </section>
         </div>
       </div>
 
-      {/* Desktop — single layout */}
+      {/* Desktop */}
       <div className="mx-auto hidden max-w-[1440px] px-6 pb-12 pt-8 md:block">
         <Breadcrumbs
+          categorySlug={categoryMeta.slug}
+          categoryLabel={categoryMeta.label}
           brandName={brandName}
           brandFilterHref={brandFilterHref}
-          modelName={phone.modelName}
+          modelName={product.name}
         />
 
         <div className="mt-6 grid grid-cols-[1.1fr_1fr] gap-12">
           <PhotoGallery
-            imageUrl={phone.imageUrl}
-            galleryUrls={phone.galleryUrls}
+            images={galleryImages}
+            hero={heroImage}
+            name={product.name}
             brandName={brandName}
-            modelName={phone.modelName}
-            colorName={initialVariant.colorName}
-            brandSlug={phone.brandSlug}
+            brandSlug={product.brandSlug}
           />
 
           <div>
-            <VariantSelector phone={phone} brandName={brandName} />
+            <VariantSelector product={product} brandName={brandName} />
           </div>
         </div>
 
-        <GradeShowcase phone={phone} />
+        <GradeShowcase product={product} />
 
         <section className="mt-20">
           <div className="flex items-end justify-between gap-3">
@@ -227,7 +178,7 @@ export default async function ProductDetailPage({
             </Link>
           </div>
           <Suspense fallback={<DesktopRelatedRailSkeleton />}>
-            <DesktopRelatedRail phone={phone} />
+            <DesktopRelatedRail product={product} />
           </Suspense>
         </section>
       </div>
@@ -237,40 +188,40 @@ export default async function ProductDetailPage({
 
 /* ─────────────────────── Related-products slots ─────────────────────── */
 
-async function loadRelatedPhones(phone: Phone): Promise<Phone[]> {
+async function loadRelatedProducts(product: Product): Promise<Product[]> {
   const relatedRaw = await getStorefrontProducts({
-    category: "phone",
-    brandSlugs: [phone.brandSlug],
-    limit: RELATED_PHONES_POOL,
+    categorySlug: product.categorySlug,
+    brandSlugs: [product.brandSlug],
+    limit: RELATED_PRODUCTS_POOL,
   });
   return relatedRaw
-    .filter((candidate): candidate is Phone => candidate.category === "phone" && candidate.id !== phone.id)
+    .filter((candidate) => candidate.id !== product.id)
     .slice(0, RELATED_PRODUCTS_DISPLAY_COUNT);
 }
 
-async function MobileRelatedRail({ phone }: { phone: Phone }) {
-  const related = await loadRelatedPhones(phone);
+async function MobileRelatedRail({ product }: { product: Product }) {
+  const related = await loadRelatedProducts(product);
   if (related.length === 0) {
     return null;
   }
   return (
     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
-      {related.map((relatedPhone) => (
-        <ProductCard key={relatedPhone.id} product={relatedPhone} />
+      {related.map((relatedProduct) => (
+        <ProductCard key={relatedProduct.id} product={relatedProduct} />
       ))}
     </div>
   );
 }
 
-async function DesktopRelatedRail({ phone }: { phone: Phone }) {
-  const related = await loadRelatedPhones(phone);
+async function DesktopRelatedRail({ product }: { product: Product }) {
+  const related = await loadRelatedProducts(product);
   if (related.length === 0) {
     return null;
   }
   return (
     <div className="mt-6 grid grid-cols-4 gap-5">
-      {related.map((relatedPhone) => (
-        <ProductCard key={relatedPhone.id} product={relatedPhone} />
+      {related.map((relatedProduct) => (
+        <ProductCard key={relatedProduct.id} product={relatedProduct} />
       ))}
     </div>
   );
@@ -298,67 +249,113 @@ function DesktopRelatedRailSkeleton() {
 
 /* ─────────────────────── Static layout pieces ─────────────────────── */
 
-interface MobileGalleryProps {
-  imageUrl: string;
-  galleryUrls: string[];
+interface GalleryProps {
+  images: StoredImage[];
+  name: string;
   brandName: string;
-  modelName: string;
-  colorName: string;
   brandSlug: string;
 }
 
-function MobileGallery({
-  imageUrl,
-  galleryUrls,
-  brandName,
-  modelName,
-  colorName,
-  brandSlug,
-}: MobileGalleryProps) {
-  const thumbnails = galleryUrls.length > 0 ? galleryUrls : [imageUrl];
+function MobileGallery({ images, name, brandName, brandSlug }: GalleryProps) {
+  const hero = images[0];
   return (
     <>
       <div className="relative aspect-square w-full bg-[var(--color-canvas-deep)]">
         <ProductImage
-          imageUrl={imageUrl}
+          image={hero}
+          variant="detail"
+          name={name}
           brandName={brandName}
-          modelName={modelName}
-          colorName={colorName}
           brandSlug={brandSlug}
           sizes="100vw"
           priority
         />
       </div>
-      <div className="flex gap-2 overflow-x-auto px-4 py-2.5 no-scrollbar">
-        {thumbnails.slice(0, MOBILE_GALLERY_THUMB_COUNT).map((thumbUrl, thumbIndex) => (
-          <button
-            key={`${thumbUrl}-${thumbIndex}`}
-            type="button"
-            aria-label={`Photo ${thumbIndex + 1}`}
-            className="relative aspect-square w-14 shrink-0 overflow-hidden rounded-md border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]"
-          >
-            <ProductImage
-              imageUrl={thumbUrl}
-              brandName={brandName}
-              modelName={modelName}
-              colorName={colorName}
-              brandSlug={brandSlug}
-              sizes="64px"
-            />
-          </button>
-        ))}
-      </div>
+      {images.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto px-4 py-2.5 no-scrollbar">
+          {images.slice(0, 6).map((image, index) => (
+            <div
+              key={`${image.variants.thumb}-${index}`}
+              className="relative aspect-square w-14 shrink-0 overflow-hidden rounded-md border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]"
+            >
+              <ProductImage
+                image={image}
+                variant="thumb"
+                name={name}
+                brandName={brandName}
+                brandSlug={brandSlug}
+                sizes="64px"
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }
 
+interface PhotoGalleryProps {
+  images: StoredImage[];
+  hero: StoredImage | undefined;
+  name: string;
+  brandName: string;
+  brandSlug: string;
+}
+
+function PhotoGallery({ images, hero, name, brandName, brandSlug }: PhotoGalleryProps) {
+  return (
+    <div className="space-y-3">
+      <div className="relative aspect-square overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]">
+        <ProductImage
+          image={hero}
+          variant="detail"
+          name={name}
+          brandName={brandName}
+          brandSlug={brandSlug}
+          sizes="(max-width: 1024px) 50vw, 50vw"
+          priority
+        />
+      </div>
+      {images.length > 1 && (
+        <div className="grid grid-cols-4 gap-3">
+          {images.slice(0, 4).map((image, index) => (
+            <button
+              key={`${image.variants.thumb}-${index}`}
+              type="button"
+              aria-label={`Photo ${index + 1}`}
+              className="relative aspect-square w-full overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] transition-colors hover:border-[var(--color-ink-300)]"
+            >
+              <ProductImage
+                image={image}
+                variant="thumb"
+                name={name}
+                brandName={brandName}
+                brandSlug={brandSlug}
+                sizes="120px"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface BreadcrumbsProps {
+  categorySlug: string;
+  categoryLabel: string;
   brandName: string;
   brandFilterHref: string;
   modelName: string;
 }
 
-function Breadcrumbs({ brandName, brandFilterHref, modelName }: BreadcrumbsProps) {
+function Breadcrumbs({
+  categorySlug,
+  categoryLabel,
+  brandName,
+  brandFilterHref,
+  modelName,
+}: BreadcrumbsProps) {
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm text-[var(--color-ink-500)]">
       <Link href="/" className="hover:text-[var(--color-ink-800)]">
@@ -369,8 +366,11 @@ function Breadcrumbs({ brandName, brandFilterHref, modelName }: BreadcrumbsProps
         Shop
       </Link>
       <ChevronRight size={14} />
-      <Link href="/shop/phones" className="hover:text-[var(--color-ink-800)]">
-        Phones
+      <Link
+        href={`/shop/${categorySlug}`}
+        className="hover:text-[var(--color-ink-800)]"
+      >
+        {categoryLabel}
       </Link>
       <ChevronRight size={14} />
       <Link href={brandFilterHref} className="hover:text-[var(--color-ink-800)]">
@@ -379,60 +379,5 @@ function Breadcrumbs({ brandName, brandFilterHref, modelName }: BreadcrumbsProps
       <ChevronRight size={14} />
       <span className="text-[var(--color-ink-800)]">{modelName}</span>
     </nav>
-  );
-}
-
-interface PhotoGalleryProps {
-  imageUrl: string;
-  galleryUrls: string[];
-  brandName: string;
-  modelName: string;
-  colorName: string;
-  brandSlug: string;
-}
-
-function PhotoGallery({
-  imageUrl,
-  galleryUrls,
-  brandName,
-  modelName,
-  colorName,
-  brandSlug,
-}: PhotoGalleryProps) {
-  const thumbnails = galleryUrls.length > 0 ? galleryUrls : [imageUrl];
-
-  return (
-    <div className="space-y-3">
-      <div className="relative aspect-square overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]">
-        <ProductImage
-          imageUrl={imageUrl}
-          brandName={brandName}
-          modelName={modelName}
-          colorName={colorName}
-          brandSlug={brandSlug}
-          sizes="(max-width: 1024px) 50vw, 50vw"
-          priority
-        />
-      </div>
-      <div className="grid grid-cols-4 gap-3">
-        {thumbnails.slice(0, DESKTOP_GALLERY_THUMB_COUNT).map((thumbUrl, thumbIndex) => (
-          <button
-            key={`${thumbUrl}-${thumbIndex}`}
-            type="button"
-            aria-label={`Photo ${thumbIndex + 1}`}
-            className="relative aspect-square w-full overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] transition-colors hover:border-[var(--color-ink-300)]"
-          >
-            <ProductImage
-              imageUrl={thumbUrl}
-              brandName={brandName}
-              modelName={modelName}
-              colorName={colorName}
-              brandSlug={brandSlug}
-              sizes="120px"
-            />
-          </button>
-        ))}
-      </div>
-    </div>
   );
 }
