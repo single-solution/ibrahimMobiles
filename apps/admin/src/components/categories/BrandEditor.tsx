@@ -1,8 +1,12 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import type { SeoMeta } from "@store/shared";
+
+import { slugify } from "@store/shared";
 
 import { Drawer } from "@/components/Drawer";
+import { CatalogSeoPanel } from "@/components/seo/CatalogSeoPanel";
 import { useToast } from "@/components/Toast";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
 import { BRAND_FIELD_LIMITS } from "@/lib/api/fieldLimits";
@@ -30,15 +34,19 @@ interface BrandEditorProps {
 interface FormState {
   name: string;
   isActive: boolean;
-  sortOrder: number;
+  seo: SeoMeta;
 }
 
 function emptyForm(): FormState {
-  return { name: "", isActive: true, sortOrder: 0 };
+  return { name: "", isActive: true, seo: {} };
 }
 
 function formFromBrand(brand: AdminBrand): FormState {
-  return { name: brand.name, isActive: brand.isActive, sortOrder: brand.sortOrder };
+  return {
+    name: brand.name,
+    isActive: brand.isActive,
+    seo: brand.seo ?? {},
+  };
 }
 
 export function BrandEditor({
@@ -93,7 +101,7 @@ export function BrandEditor({
             name: form.name.trim(),
             categorySlugs,
             isActive: form.isActive,
-            sortOrder: form.sortOrder,
+            seo: form.seo,
           },
         });
         toast.success("Brand updated.");
@@ -104,7 +112,7 @@ export function BrandEditor({
             name: form.name.trim(),
             categorySlugs: [category.slug],
             isActive: form.isActive,
-            sortOrder: form.sortOrder,
+            seo: form.seo,
           },
         });
         toast.success("Brand created.");
@@ -177,28 +185,9 @@ export function BrandEditor({
               className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[14px] text-[var(--color-ink-900)] focus:border-[var(--color-accent-500)] focus:outline-none"
             />
           </div>
-          <div>
-            <label
-              htmlFor="brand-sort-order"
-              className="mb-1 block text-[11.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-700)]"
-            >
-              Sort order
-            </label>
-            <input
-              id="brand-sort-order"
-              type="number"
-              value={form.sortOrder}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  sortOrder: Number.isFinite(e.target.valueAsNumber)
-                    ? e.target.valueAsNumber
-                    : 0,
-                }))
-              }
-              className="block w-32 rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[14px] focus:border-[var(--color-accent-500)] focus:outline-none"
-            />
-          </div>
+          <p className="rounded-md bg-[var(--color-canvas-deep)] px-3 py-2 text-[12px] text-[var(--color-ink-500)]">
+            Brands list alphabetically on the storefront and in the admin — no manual sort order.
+          </p>
           <label className="flex items-center gap-2 text-[13px] text-[var(--color-ink-800)]">
             <input
               type="checkbox"
@@ -215,6 +204,18 @@ export function BrandEditor({
               categories. Editing here updates all of them.
             </p>
           )}
+          <CatalogSeoPanel
+            value={form.seo}
+            onChange={(seo) => setForm((prev) => ({ ...prev, seo }))}
+            contextLabel={form.name ? `Brand · ${form.name}` : "Brand"}
+            entity={{
+              type: "brand",
+              entity: {
+                slug: brand?.slug ?? (slugify(form.name) || "preview"),
+                name: form.name,
+              },
+            }}
+          />
         </form>
         <PreviewPanel
           tiles={[

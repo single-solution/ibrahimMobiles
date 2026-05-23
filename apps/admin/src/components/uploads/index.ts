@@ -1,5 +1,5 @@
 /**
- * Barrel export for the universal upload components. Anywhere an admin
+ * Barrel export for shared upload components. Anywhere an admin
  * surface needs an image / video input, it imports from here — there
  * is no other upload entrypoint in the app.
  */

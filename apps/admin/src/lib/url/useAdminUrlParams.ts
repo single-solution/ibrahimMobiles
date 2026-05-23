@@ -1,0 +1,67 @@
+"use client";
+
+import { useCallback, useMemo, type MutableRefObject } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+
+export type UrlParamPatch = Record<string, string | null | undefined>;
+
+export interface AdminUrlReplaceOptions {
+  scroll?: boolean;
+  /**
+   * Update the address bar without Next.js navigation — avoids RSC refetch on
+   * high-frequency workspace params (e.g. variant `vgrade` / `vuid`).
+   */
+  historyOnly?: boolean;
+}
+
+/**
+ * Push admin list/workspace state into the URL (shareable, back-button friendly).
+ * See docs/audit/url-state-sync-race.md for pending-ref pairing.
+ */
+export function useAdminUrlParams() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const params = useMemo(
+    () => new URLSearchParams(searchParams?.toString() ?? ""),
+    [searchParams],
+  );
+
+  const replace = useCallback(
+    (patch: UrlParamPatch, options?: AdminUrlReplaceOptions) => {
+      const next = new URLSearchParams(params.toString());
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === null || value === undefined || value === "") {
+          next.delete(key);
+        } else {
+          next.set(key, String(value));
+        }
+      }
+      const query = next.toString();
+      const url = query ? `${pathname}?${query}` : pathname;
+      if (options?.historyOnly && typeof window !== "undefined") {
+        window.history.replaceState(window.history.state, "", url);
+        return;
+      }
+      router.replace(url, { scroll: options?.scroll ?? false });
+    },
+    [params, pathname, router],
+  );
+
+  return { params, searchParams, replace, pathname };
+}
+
+/** Skip URL→local sync until router.replace catches up (optimistic selection). */
+export function syncAfterPendingUrl(
+  pending: MutableRefObject<string | null>,
+  urlValue: string | null,
+): boolean {
+  const expected = pending.current;
+  if (expected === null) return true;
+  if (urlValue === expected) {
+    pending.current = null;
+    return true;
+  }
+  return false;
+}

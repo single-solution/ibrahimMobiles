@@ -15,11 +15,7 @@ const FIELDS_PER_GROUP = 4;
  */
 export default function SettingsLoading() {
   return (
-    <AdminPageSkeleton
-      label="Loading settings"
-      eyebrowWidthClass="w-10"
-      titleWidthClass="w-32"
-    >
+    <AdminPageSkeleton label="Loading settings">
       <div className="space-y-6">
         {Array.from({ length: SETTINGS_GROUP_COUNT }).map((_, groupIndex) => (
           <section

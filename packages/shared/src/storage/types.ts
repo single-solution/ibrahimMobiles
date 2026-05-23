@@ -1,7 +1,7 @@
 /**
  * `@store/shared/storage/types`
  *
- * Universal types for the storage / image pipeline. Phase 1 forward-declares
+ * Shared types for the storage / image pipeline. Phase 1 forward-declares
  * the **`StoredImage`** shape so every Mongoose model can reference it from
  * day one (Category icon, Offer banner, Setting logo/favicon/OG, Variant
  * images, future Inquiry attachments). The runtime upload pipeline that
@@ -57,27 +57,65 @@ export interface StoredImage {
  */
 export type StoredImageVariantKey = keyof StoredImageVariants;
 
+function readFiniteDimension(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
+/**
+ * Normalise a persisted / wire image payload into a strict `StoredImage`.
+ * More lenient than `isStoredImage` — used when reading Mongo lean docs
+ * where numeric fields may arrive as strings.
+ */
+export function coerceStoredImage(value: unknown): StoredImage | null {
+  if (value === null || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const rawVariants = raw.variants;
+  if (rawVariants === null || typeof rawVariants !== "object") return null;
+  const variants = rawVariants as Record<string, unknown>;
+  const thumb = typeof variants.thumb === "string" ? variants.thumb.trim() : "";
+  const card = typeof variants.card === "string" ? variants.card.trim() : "";
+  const detail = typeof variants.detail === "string" ? variants.detail.trim() : "";
+  const full = typeof variants.full === "string" ? variants.full.trim() : "";
+  if (!thumb || !card || !detail || !full) return null;
+
+  const blurDataURL =
+    typeof raw.blurDataURL === "string" ? raw.blurDataURL.trim() : "";
+  const alt = typeof raw.alt === "string" ? raw.alt.trim() : "";
+  const width = readFiniteDimension(raw.width);
+  const height = readFiniteDimension(raw.height);
+  if (
+    !blurDataURL ||
+    !alt ||
+    width === null ||
+    height === null ||
+    width < 1 ||
+    height < 1
+  ) {
+    return null;
+  }
+
+  return {
+    variants: { thumb, card, detail, full },
+    blurDataURL,
+    width: Math.trunc(width),
+    height: Math.trunc(height),
+    alt,
+  };
+}
+
 /**
  * Type guard to detect a `StoredImage` at runtime. Useful when deserialising
  * a `Setting.value` blob whose shape is `unknown` until we know its `key`.
  */
 export function isStoredImage(value: unknown): value is StoredImage {
-  if (value === null || typeof value !== "object") return false;
-  const v = value as Partial<StoredImage>;
-  if (
-    typeof v.blurDataURL !== "string" ||
-    typeof v.width !== "number" ||
-    typeof v.height !== "number" ||
-    typeof v.alt !== "string"
-  ) {
-    return false;
-  }
-  if (v.variants === null || typeof v.variants !== "object") return false;
-  const variants = v.variants as Partial<StoredImageVariants>;
-  return (
-    typeof variants.thumb === "string" &&
-    typeof variants.card === "string" &&
-    typeof variants.detail === "string" &&
-    typeof variants.full === "string"
-  );
+  return coerceStoredImage(value) !== null;
 }

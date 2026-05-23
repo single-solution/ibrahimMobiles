@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Generic image lightbox. Renders one image at a time from a list of
+ * Admin image lightbox. Renders one image at a time from a list of
  * URLs with keyboard navigation (← / → / Esc) and click-outside close.
  *
  * Used by `<ImageGallery>` (multi-image fields) and the `<ImageUpload>`

@@ -3,6 +3,7 @@ import type {
   CustomerAttributes,
   CustomerAddressAttributes,
 } from "@store/db";
+import { asArray, asNumber, asString, objectIdString, toIsoDate } from "@store/shared";
 import type { AdminCustomer, AdminCustomerAddress } from "@/types/admin";
 
 export type CustomerLean = CustomerAttributes & { _id: Types.ObjectId };
@@ -15,15 +16,15 @@ interface CustomerStats {
 
 function toAddress(address: CustomerAddressAttributes): AdminCustomerAddress {
   return {
-    id: address._id?.toString() ?? "",
+    id: objectIdString(address._id),
     label: address.label,
-    recipientName: address.recipientName,
-    phoneNumber: address.phoneNumber,
-    city: address.city,
+    recipientName: asString(address.recipientName),
+    phoneNumber: asString(address.phoneNumber),
+    city: asString(address.city),
     area: address.area,
     street: address.street,
     postalCode: address.postalCode,
-    isDefault: address.isDefault,
+    isDefault: address.isDefault ?? false,
   };
 }
 
@@ -32,18 +33,18 @@ export function toCustomerResponse(
   stats: CustomerStats = { orderCount: 0, lifetimeSpendRupees: 0 },
 ): AdminCustomer {
   return {
-    id: customer._id.toString(),
-    name: customer.name,
+    id: objectIdString(customer._id),
+    name: asString(customer.name, "Unknown customer"),
     email: customer.email,
-    phoneNumber: customer.phoneNumber,
-    city: customer.city,
-    isLoyaltyMember: customer.isLoyaltyMember,
-    orderCount: stats.orderCount,
-    lifetimeSpendRupees: stats.lifetimeSpendRupees,
-    lastOrderAt: stats.lastOrderAt?.toISOString(),
+    phoneNumber: asString(customer.phoneNumber),
+    city: asString(customer.city),
+    isLoyaltyMember: customer.isLoyaltyMember ?? false,
+    orderCount: asNumber(stats.orderCount),
+    lifetimeSpendRupees: asNumber(stats.lifetimeSpendRupees),
+    lastOrderAt: stats.lastOrderAt ? toIsoDate(stats.lastOrderAt) : undefined,
     notes: customer.notes,
-    addresses: (customer.addresses ?? []).map(toAddress),
-    createdAt: customer.createdAt.toISOString(),
-    updatedAt: customer.updatedAt.toISOString(),
+    addresses: asArray<CustomerAddressAttributes>(customer.addresses).map(toAddress),
+    createdAt: toIsoDate(customer.createdAt),
+    updatedAt: toIsoDate(customer.updatedAt),
   };
 }

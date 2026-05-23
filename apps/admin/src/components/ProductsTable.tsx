@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Archive, MoreHorizontal, Pencil } from "lucide-react";
-import { DataTable, type DataTableColumn } from "@/components/DataTable";
+import { AdminTable, type AdminTableColumn } from "@/components/AdminTable";
 import { StatusPill } from "@/components/StatusPill";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
@@ -24,7 +25,9 @@ export function ProductsTable({ products }: ProductsTableProps) {
   const [archiveTarget, setArchiveTarget] = useState<AdminProductSummary | null>(null);
 
   function searchAccessor(product: AdminProductSummary) {
-    return [product.name, product.brand.name, product.slug].join(" ");
+    return [product.name, product.brand.name, product.brand.slug, product.slug]
+      .filter(Boolean)
+      .join(" ");
   }
 
   async function handleArchive() {
@@ -44,7 +47,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
     }
   }
 
-  const columns: DataTableColumn<AdminProductSummary>[] = [
+  const columns: AdminTableColumn<AdminProductSummary>[] = [
     {
       id: "product",
       header: "Product",
@@ -53,15 +56,14 @@ export function ProductsTable({ products }: ProductsTableProps) {
           href={`/products/${product.id}`}
           className="flex items-center gap-3 hover:text-[var(--color-ink-900)]"
         >
-          <span className="grid size-10 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-            {getInitials(product.brand.name)}
-          </span>
+          <ProductThumb product={product} />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-[var(--color-ink-900)]">
-              {product.name}
+              {product.name || "Untitled product"}
             </p>
             <p className="truncate text-xs text-[var(--color-ink-500)]">
-              {product.brand.name || product.brand.slug} · {product.slug}
+              {product.brand.name || product.brand.slug || "No brand"} ·{" "}
+              {product.slug || "no-slug"}
             </p>
           </div>
         </Link>
@@ -73,7 +75,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
       hideOnMobile: true,
       cell: (product) => (
         <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-600)]">
-          {product.categorySlug}
+          {product.categorySlug || "uncategorized"}
         </span>
       ),
     },
@@ -167,7 +169,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
 
   return (
     <>
-      <DataTable
+      <AdminTable
         rows={products}
         columns={columns}
         rowKey={(product) => product.id}
@@ -190,5 +192,24 @@ export function ProductsTable({ products }: ProductsTableProps) {
         onCancel={() => setArchiveTarget(null)}
       />
     </>
+  );
+}
+
+function ProductThumb({ product }: { product: AdminProductSummary }) {
+  if (product.heroImage) {
+    return (
+      <Image
+        src={product.heroImage.variants.thumb}
+        alt={product.heroImage.alt || product.name || "Product image"}
+        width={40}
+        height={40}
+        className="size-10 shrink-0 rounded-[var(--radius-md)] object-cover"
+      />
+    );
+  }
+  return (
+    <span className="grid size-10 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+      {getInitials(product.brand.name || product.name || "Product")}
+    </span>
   );
 }

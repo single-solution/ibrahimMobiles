@@ -1,6 +1,7 @@
 "use client";
 
 import { useGrade } from "@/lib/storefront/storefrontReferenceContext";
+import { ColoredPill } from "@/components/shared/ColoredPill";
 
 interface GradeBadgeProps {
   /** Owning category slug — `Variant.gradeSlug` is unique only within this scope. */
@@ -35,7 +36,7 @@ export function GradeBadge({
 
   const sizeClass = SIZE_CLASSES[size];
   const classes = [
-    "inline-flex items-center justify-center rounded-[var(--radius-md)] font-bold uppercase tracking-tight leading-none text-white shadow-[var(--shadow-sm)]",
+    "justify-center rounded-[var(--radius-md)] font-bold uppercase tracking-tight leading-none shadow-[var(--shadow-sm)]",
     sizeClass,
     className,
   ]
@@ -43,12 +44,12 @@ export function GradeBadge({
     .join(" ");
 
   return (
-    <span
+    <ColoredPill
+      backgroundColor={color}
       className={classes}
-      style={{ backgroundColor: color }}
       aria-label={`Grade ${label}`}
     >
       {label}
-    </span>
+    </ColoredPill>
   );
 }

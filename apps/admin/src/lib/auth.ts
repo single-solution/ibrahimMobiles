@@ -112,13 +112,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id as string;
         token.email = (user.email as string | undefined) ?? "";
         token.name = (user.name as string | undefined) ?? "";
         token.role = user.role;
         token.isSuperAdmin = user.isSuperAdmin === true;
+      }
+      if (trigger === "update" && session?.user) {
+        if (session.user.name) {
+          token.name = session.user.name;
+        }
+        if (session.user.email) {
+          token.email = session.user.email;
+        }
       }
       return token;
     },

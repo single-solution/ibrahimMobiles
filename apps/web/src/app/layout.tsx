@@ -8,10 +8,15 @@ import {
 import { StorefrontChrome } from "@/components/layout/StorefrontChrome";
 import { getStorefrontBaseUrl } from "@/lib/storefront/baseUrl";
 import {
+  getStorefrontAttributesCached,
   getStorefrontCategoriesCached,
   getStorefrontGradesCached,
   getStoreSettingsCached,
 } from "@/lib/storefront/cached";
+import { getChatSettings } from "@/lib/chat/chatSettings";
+import { ChatSettingsProvider } from "@/lib/chat/chatSettingsContext";
+import { getSeoSettings } from "@/lib/seo/seoSettings";
+import { getGoogleSiteVerification } from "@/lib/seo/googleVerification";
 import { StoreSettingsProvider } from "@/lib/storefront/storeSettingsContext";
 import {
   StorefrontReferenceProvider,
@@ -50,7 +55,13 @@ const barlowCondensed = Barlow_Condensed({
 const STOREFRONT_BASE_URL = getStorefrontBaseUrl();
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { siteName, siteTagline } = await getStoreSettingsCached();
+  const [{ siteName, siteTagline }, seoSettings, googleVerification] =
+    await Promise.all([
+      getStoreSettingsCached(),
+      getSeoSettings(),
+      getGoogleSiteVerification(),
+    ]);
+  const defaultOg = seoSettings.defaultOgImageUrl || undefined;
   return {
     metadataBase: new URL(STOREFRONT_BASE_URL),
     title: {
@@ -69,11 +80,13 @@ export async function generateMetadata(): Promise<Metadata> {
       description: siteTagline,
       url: STOREFRONT_BASE_URL,
       locale: "en_PK",
+      images: defaultOg ? [defaultOg] : undefined,
     },
     twitter: {
       card: "summary_large_image",
       title: `${siteName} — ${siteTagline}`,
       description: siteTagline,
+      images: defaultOg ? [defaultOg] : undefined,
     },
     robots: {
       index: true,
@@ -85,6 +98,7 @@ export async function generateMetadata(): Promise<Metadata> {
     formatDetection: {
       telephone: false,
     },
+    verification: googleVerification ? { google: googleVerification } : undefined,
   };
 }
 
@@ -103,8 +117,9 @@ async function loadStorefrontReference(): Promise<StorefrontReferenceData> {
   // Both reads are short, fully cached, and tag-revalidated by admin
   // mutations. Fetch in parallel — they're independent.
   try {
-    const [grades, rawCategories] = await Promise.all([
+    const [grades, attributes, rawCategories] = await Promise.all([
       getStorefrontGradesCached(),
+      getStorefrontAttributesCached(),
       getStorefrontCategoriesCached(),
     ]);
     const categories: StorefrontCategoryReference[] = rawCategories.map(
@@ -112,25 +127,24 @@ async function loadStorefrontReference(): Promise<StorefrontReferenceData> {
         slug: category.slug,
         label: category.label,
         description: category.description,
-        iconKind: category.iconKind,
-        iconEmoji: category.iconEmoji,
-        iconImage: category.iconImage,
+        icon: category.icon,
         isActive: category.isActive,
         sortOrder: category.sortOrder,
       }),
     );
-    return { grades, categories };
+    return { grades, attributes, categories };
   } catch {
     // Atlas hiccup at boot must not crash the root layout — the page can
     // still render with empty grades/categories and a skeleton UI.
-    return { grades: [], categories: [] };
+    return { grades: [], attributes: [], categories: [] };
   }
 }
 
 export default async function RootLayout({ children }: RootLayoutProps) {
-  const [settings, reference] = await Promise.all([
+  const [settings, reference, chatSettings] = await Promise.all([
     getStoreSettingsCached(),
     loadStorefrontReference(),
+    getChatSettings(),
   ]);
   return (
     <html
@@ -166,9 +180,11 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         suppressHydrationWarning
       >
         <StoreSettingsProvider value={settings}>
-          <StorefrontReferenceProvider value={reference}>
-            <StorefrontChrome>{children}</StorefrontChrome>
-          </StorefrontReferenceProvider>
+          <ChatSettingsProvider value={chatSettings}>
+            <StorefrontReferenceProvider value={reference}>
+              <StorefrontChrome>{children}</StorefrontChrome>
+            </StorefrontReferenceProvider>
+          </ChatSettingsProvider>
         </StoreSettingsProvider>
       </body>
     </html>

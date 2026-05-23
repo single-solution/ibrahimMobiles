@@ -1,7 +1,7 @@
 /**
  * Typed bulk read/write for the canonical `StoreSettings` shape (siteName,
  * support contacts, social links, policy thresholds). Sits alongside the
- * generic `/api/settings` endpoint — that one keeps stretching to anything
+ * key-value `/api/settings` endpoint — that one keeps stretching to anything
  * key-value, this one is what the admin UI actually drives.
  *
  * GET   → returns merged settings (DB overrides layered on factory defaults).

@@ -2,7 +2,7 @@
  * Dynamic sitemap.
  *
  * We list:
- *   - Static marketing routes (home, deals, sell-to-us, etc.).
+ *   - Static marketing routes (home, deals, account sign-in, etc.).
  *   - Each active category landing page.
  *   - Each active brand landing page (per category, as a query param).
  *   - Each visible product page (capped to MAX_PRODUCT_URLS so a runaway DB
@@ -20,15 +20,16 @@
  */
 import type { MetadataRoute } from "next";
 
-import { Brand, Product, connectDB } from "@store/db";
 import { logger } from "@store/shared";
 
 import { getStorefrontBaseUrl } from "@/lib/storefront/baseUrl";
-import { getStorefrontCategories } from "@/lib/storefront/queries";
+import {
+  getStorefrontCategoriesCached,
+  getStorefrontSitemapBrandsCached,
+  getStorefrontSitemapProductsCached,
+} from "@/lib/storefront/cached";
 
 export const revalidate = 3600;
-
-const MAX_PRODUCT_URLS = 5_000;
 
 const STATIC_PATHS: ReadonlyArray<{
   path: string;
@@ -37,29 +38,21 @@ const STATIC_PATHS: ReadonlyArray<{
 }> = [
   { path: "/", changeFrequency: "daily", priority: 1.0 },
   { path: "/deals", changeFrequency: "daily", priority: 0.9 },
-  { path: "/sell-to-us", changeFrequency: "monthly", priority: 0.5 },
-  { path: "/about", changeFrequency: "yearly", priority: 0.3 },
+  { path: "/account/sign-in", changeFrequency: "yearly", priority: 0.3 },
 ];
 
 interface DynamicSitemapData {
-  categories: Awaited<ReturnType<typeof getStorefrontCategories>>;
+  categories: Awaited<ReturnType<typeof getStorefrontCategoriesCached>>;
   brands: Array<{ slug: string }>;
   products: Array<{ slug: string; categorySlug: string; updatedAt?: Date }>;
 }
 
 async function loadDynamicData(): Promise<DynamicSitemapData | null> {
   try {
-    await connectDB();
     const [categories, brands, products] = await Promise.all([
-      getStorefrontCategories(),
-      Brand.find({ isActive: true })
-        .select({ slug: 1 })
-        .lean<Array<{ slug: string }>>(),
-      Product.find({ isActive: true, isArchived: { $ne: true } })
-        .select({ slug: 1, categorySlug: 1, updatedAt: 1 })
-        .sort({ updatedAt: -1 })
-        .limit(MAX_PRODUCT_URLS)
-        .lean<Array<{ slug: string; categorySlug: string; updatedAt?: Date }>>(),
+      getStorefrontCategoriesCached(),
+      getStorefrontSitemapBrandsCached(),
+      getStorefrontSitemapProductsCached(),
     ]);
     return { categories, brands, products };
   } catch (error) {

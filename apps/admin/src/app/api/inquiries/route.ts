@@ -23,15 +23,24 @@ const ALLOWED_STATUSES = new Set<string>(INQUIRY_STATUSES);
  * widget exists; this list is the only admin-side read surface today.
  */
 export async function GET(request: Request) {
-  const { response } = await requireSession();
+  const { actor, response } = await requireSession("inquiry_view");
   if (response) {
     return response;
   }
 
   await connectDB();
-  const { page, limit, skip, search, searchPattern } = readListOptions(request);
   const url = new URL(request.url);
+  if (url.searchParams.get("summary") === "1") {
+    const unreadByTeam = await Inquiry.countDocuments({
+      status: { $ne: "resolved" },
+      unreadByTeam: { $gt: 0 },
+    });
+    return ok({ unreadByTeam });
+  }
+
+  const { page, limit, skip, search, searchPattern } = readListOptions(request);
   const statusFilter = url.searchParams.get("status");
+  const inboxFilter = url.searchParams.get("filter");
 
   const filter: Record<string, unknown> = {};
   if (search) {
@@ -44,6 +53,14 @@ export async function GET(request: Request) {
   }
   if (statusFilter && ALLOWED_STATUSES.has(statusFilter)) {
     filter.status = statusFilter as InquiryStatus;
+  }
+  if (inboxFilter === "mine") {
+    filter.assignedToUserId = actor.id;
+    filter.status = { $ne: "resolved" };
+  }
+  if (inboxFilter === "unassigned") {
+    filter.assignedToUserId = { $exists: false };
+    filter.status = { $ne: "resolved" };
   }
 
   const [docs, total] = await Promise.all([

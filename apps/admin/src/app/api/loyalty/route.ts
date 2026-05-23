@@ -14,7 +14,7 @@ interface SearchedCustomer {
 }
 
 export async function GET(request: Request) {
-  const { response } = await requireSession();
+  const { response } = await requireSession("loyalty_view");
   if (response) {
     return response;
   }

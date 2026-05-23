@@ -135,23 +135,30 @@ export function subscribeToCart(listener: Listener): () => void {
 export function addCartItem(item: Omit<CartItem, "id" | "quantity"> & { quantity?: number }) {
   hydrateOnce();
   const id = `${item.productId}:${item.variantId}`;
-  const quantityToAdd = clampQuantity(item.quantity ?? 1);
+  const maxQuantity = item.maxQuantity;
+  const quantityToAdd = clampLineQuantity(item.quantity ?? 1, maxQuantity);
 
   const existingIndex = cachedState.items.findIndex((line) => line.id === id);
   let nextItems: CartItem[];
   if (existingIndex >= 0) {
-    nextItems = cachedState.items.map((line, index) =>
-      index === existingIndex
-        ? { ...line, quantity: clampQuantity(line.quantity + quantityToAdd) }
-        : line,
-    );
+    nextItems = cachedState.items.map((line, index) => {
+      if (index !== existingIndex) {
+        return line;
+      }
+      const lineMax = maxQuantity ?? line.maxQuantity;
+      return {
+        ...line,
+        maxQuantity: lineMax,
+        quantity: clampLineQuantity(line.quantity + quantityToAdd, lineMax),
+      };
+    });
   } else {
     if (cachedState.items.length >= MAX_LINES) {
       return;
     }
     nextItems = [
       ...cachedState.items,
-      { ...item, id, quantity: quantityToAdd },
+      { ...item, id, quantity: quantityToAdd, maxQuantity },
     ];
   }
   setState({ items: nextItems });
@@ -166,14 +173,15 @@ export function removeCartItem(id: string) {
 /** Set a line's quantity; passing `0` (or any non-finite value) removes the line. */
 export function updateCartItemQuantity(id: string, quantity: number) {
   hydrateOnce();
-  const clamped = clampQuantity(quantity);
+  const line = cachedState.items.find((entry) => entry.id === id);
+  const clamped = clampLineQuantity(quantity, line?.maxQuantity);
   if (clamped === 0) {
     removeCartItem(id);
     return;
   }
   setState({
-    items: cachedState.items.map((line) =>
-      line.id === id ? { ...line, quantity: clamped } : line,
+    items: cachedState.items.map((entry) =>
+      entry.id === id ? { ...entry, quantity: clamped } : entry,
     ),
   });
 }
@@ -183,9 +191,13 @@ export function clearCart() {
   setState({ items: [] });
 }
 
-function clampQuantity(quantity: number): number {
+function clampLineQuantity(quantity: number, maxQuantity?: number): number {
   if (!Number.isFinite(quantity) || quantity < 0) {
     return 0;
   }
-  return Math.min(MAX_QUANTITY, Math.floor(quantity));
+  const cap =
+    typeof maxQuantity === "number" && maxQuantity > 0
+      ? maxQuantity
+      : MAX_QUANTITY;
+  return Math.min(cap, Math.floor(quantity));
 }

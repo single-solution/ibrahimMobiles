@@ -3,16 +3,12 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  Minus,
-  Plus,
-  ShoppingBag,
-  Trash2,
-  X,
-} from "lucide-react";
+import { ArrowUpRight, ShoppingBag, Trash2, X } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
+import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
+import { productHref } from "@/lib/catalog/productPaths";
 import { useCart } from "@/lib/cart/useCart";
 import type { CartItem } from "@/lib/cart/types";
 import { classNames, formatPrice } from "@store/shared";
@@ -118,9 +114,8 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
                   key={line.id}
                   line={line}
                   onClose={onClose}
-                  onIncrement={() => cart.updateQuantity(line.id, line.quantity + 1)}
-                  onDecrement={() => cart.updateQuantity(line.id, line.quantity - 1)}
                   onRemove={() => cart.removeItem(line.id)}
+                  onQuantityChange={(next) => cart.updateQuantity(line.id, next)}
                 />
               ))}
             </ul>
@@ -162,27 +157,40 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
 interface CartDropdownLineProps {
   line: CartItem;
   onClose: () => void;
-  onIncrement: () => void;
-  onDecrement: () => void;
+  onQuantityChange: (quantity: number) => void;
   onRemove: () => void;
 }
 
 function CartDropdownLine({
   line,
   onClose,
-  onIncrement,
-  onDecrement,
+  onQuantityChange,
   onRemove,
 }: CartDropdownLineProps) {
   const { quantity, productName, brandName, brandSlug, image } = line;
   const lineTotal = line.unitPriceRupees * quantity;
-  const productHref = `/shop/${line.categorySlug}/${line.productSlug}`;
+  const cartSelection: Record<string, string> = {
+    [GRADE_DIMENSION_KEY]: line.gradeSlug,
+  };
+  for (const [slug, value] of Object.entries(line.attributes ?? {})) {
+    const resolved = Array.isArray(value) ? value[0] : value;
+    if (resolved) {
+      cartSelection[slug] = resolved;
+    }
+  }
+  const lineProductHref =
+    line.categorySlug && line.productSlug
+      ? productHref(
+          { categorySlug: line.categorySlug, slug: line.productSlug },
+          { selection: cartSelection },
+        )
+      : "/shop";
   const attributeEntries = Object.entries(line.attributes ?? {});
 
   return (
     <li className="flex gap-3 px-3 py-3">
       <Link
-        href={productHref}
+        href={lineProductHref}
         onClick={onClose}
         className="relative aspect-square w-16 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
       >
@@ -203,7 +211,7 @@ function CartDropdownLine({
               {brandName}
             </p>
             <Link
-              href={productHref}
+              href={lineProductHref}
               onClick={onClose}
               className="line-clamp-1 text-[13.5px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)] hover:text-[var(--color-accent-800)]"
             >
@@ -232,8 +240,9 @@ function CartDropdownLine({
         <div className="mt-2 flex items-center justify-between gap-2">
           <QuantityStepper
             quantity={quantity}
-            onDecrement={onDecrement}
-            onIncrement={onIncrement}
+            max={line.maxQuantity ?? 10}
+            onChange={onQuantityChange}
+            size="sm"
           />
           <p className="text-[13.5px] font-semibold leading-none tracking-tight tabular-nums text-[var(--color-ink-900)]">
             {formatPrice(lineTotal)}
@@ -244,44 +253,3 @@ function CartDropdownLine({
   );
 }
 
-function QuantityStepper({
-  quantity,
-  onDecrement,
-  onIncrement,
-}: {
-  quantity: number;
-  onDecrement: () => void;
-  onIncrement: () => void;
-}) {
-  return (
-    <div className="inline-flex h-7 items-center overflow-hidden rounded-full border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
-      <button
-        type="button"
-        onClick={onDecrement}
-        disabled={quantity <= 1}
-        aria-label="Decrease quantity"
-        className={classNames(
-          "tap grid h-full w-7 place-items-center text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]",
-          "disabled:cursor-not-allowed disabled:text-[var(--color-ink-300)] disabled:hover:bg-transparent",
-        )}
-      >
-        <Minus size={12} />
-      </button>
-      <span className="grid h-full min-w-[22px] place-items-center text-[12px] font-semibold tabular-nums text-[var(--color-ink-900)]">
-        {quantity}
-      </span>
-      <button
-        type="button"
-        onClick={onIncrement}
-        disabled={quantity >= 5}
-        aria-label="Increase quantity"
-        className={classNames(
-          "tap grid h-full w-7 place-items-center text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]",
-          "disabled:cursor-not-allowed disabled:text-[var(--color-ink-300)] disabled:hover:bg-transparent",
-        )}
-      >
-        <Plus size={12} />
-      </button>
-    </div>
-  );
-}

@@ -17,6 +17,13 @@ import {
   type LoyaltyAccountAttributes,
   type OrderAttributes,
 } from "@store/db";
+import {
+  asArray,
+  asNumber,
+  asString,
+  objectIdString,
+  toIsoDate,
+} from "@store/shared";
 
 import { toStorefrontOrder, type StorefrontOrder } from "@/lib/storefront/orderSerializer";
 
@@ -63,23 +70,27 @@ export async function getAccountCustomer(customerId: string): Promise<AccountCus
   }
 
   return {
-    id: customer._id.toString(),
-    name: customer.name,
+    id: objectIdString(customer._id),
+    name: asString(customer.name, "Customer"),
     email: customer.email ?? "",
-    phoneNumber: customer.phoneNumber,
-    city: customer.city,
-    isLoyaltyMember: customer.isLoyaltyMember,
-    joinedAt: customer.createdAt.toISOString(),
-    addresses: (customer.addresses ?? []).map((address) => ({
-      id: address._id?.toString() ?? `${customer._id.toString()}:${address.recipientName}`,
+    phoneNumber: asString(customer.phoneNumber),
+    city: asString(customer.city),
+    isLoyaltyMember: customer.isLoyaltyMember ?? false,
+    joinedAt: toIsoDate(customer.createdAt),
+    addresses: asArray<NonNullable<CustomerAttributes["addresses"]>[number]>(
+      customer.addresses,
+    ).map((address) => ({
+      id:
+        objectIdString(address?._id) ||
+        `${objectIdString(customer._id)}:${asString(address?.recipientName)}`,
       label: address.label,
-      recipientName: address.recipientName,
-      phoneNumber: address.phoneNumber,
-      city: address.city,
+      recipientName: asString(address.recipientName),
+      phoneNumber: asString(address.phoneNumber),
+      city: asString(address.city),
       area: address.area,
       street: address.street,
       postalCode: address.postalCode,
-      isDefault: address.isDefault,
+      isDefault: address.isDefault ?? false,
     })),
   };
 }
@@ -126,9 +137,9 @@ async function getAccountLoyalty(customerId: string): Promise<AccountLoyalty | n
     return null;
   }
   return {
-    balance: account.balance,
-    lifetimeEarned: account.lifetimeEarned,
-    pendingFromShipping: account.pendingFromShipping,
+    balance: asNumber(account.balance),
+    lifetimeEarned: asNumber(account.lifetimeEarned),
+    pendingFromShipping: asNumber(account.pendingFromShipping),
   };
 }
 
@@ -164,11 +175,13 @@ export async function getAccountOverview(customerId: string): Promise<AccountOve
     getAccountLoyalty(customerId),
   ]);
 
-  const recent = orders.slice(0, RECENT_ORDERS_DISPLAY_COUNT).map(toStorefrontOrder);
+  const recent = asArray<OrderAttributes & { _id: Types.ObjectId }>(orders)
+    .slice(0, RECENT_ORDERS_DISPLAY_COUNT)
+    .map(toStorefrontOrder);
   const activeCount = orders.filter((order) => ACTIVE_STATUSES.has(order.status)).length;
   const totalSpent = orders
     .filter((order) => order.status !== "cancelled" && order.status !== "refunded")
-    .reduce((sum, order) => sum + order.totals.totalRupees, 0);
+    .reduce((sum, order) => sum + asNumber(order.totals?.totalRupees), 0);
 
   return {
     customer,

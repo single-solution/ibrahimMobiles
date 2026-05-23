@@ -60,10 +60,20 @@ async function generateVariant(
   keyPrefix: string,
   storage: StorageProvider,
 ): Promise<{ name: ImageVariantName; key: string; url: string }> {
+  const resize =
+    name === "thumb"
+      ? {
+          width,
+          height: width,
+          fit: "cover" as const,
+          position: "centre" as const,
+          withoutEnlargement: true,
+        }
+      : { width, withoutEnlargement: true };
   const out = await sharp(source)
     // Auto-orient based on EXIF and strip the EXIF block in the same step.
     .rotate()
-    .resize({ width, withoutEnlargement: true })
+    .resize(resize)
     .webp({ quality: WEBP_QUALITY, effort: WEBP_EFFORT })
     .toBuffer();
   const key = `${keyPrefix}/${name}-${shortId()}.webp`;

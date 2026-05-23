@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
 import type { StoredImage, StoredImageVariantKey } from "@store/shared";
@@ -19,6 +19,7 @@ interface ProductImageProps {
   sizes?: string;
   priority?: boolean;
   objectFit?: "cover" | "contain";
+  onLoadComplete?: () => void;
 }
 
 /**
@@ -39,9 +40,19 @@ export function ProductImage({
   sizes = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw",
   priority = false,
   objectFit = "cover",
+  onLoadComplete,
 }: ProductImageProps) {
   const [hasFailed, setHasFailed] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const src = image?.variants[variant] ?? image?.variants.card ?? "";
+  const showLoadFade = !priority;
+
+  useEffect(() => {
+    setHasFailed(false);
+    if (showLoadFade) {
+      setHasLoaded(false);
+    }
+  }, [src, showLoadFade]);
 
   if (hasFailed || !image) {
     return (
@@ -55,7 +66,6 @@ export function ProductImage({
     );
   }
 
-  const src = image.variants[variant] ?? image.variants.card;
   const altText = image.alt || `${brandName} ${name}`;
 
   return (
@@ -67,9 +77,12 @@ export function ProductImage({
       priority={priority}
       placeholder={image.blurDataURL ? "blur" : undefined}
       blurDataURL={image.blurDataURL || undefined}
-      data-img-fade={hasLoaded ? "true" : "false"}
+      data-img-fade={showLoadFade && !hasLoaded ? "false" : "true"}
       className={objectFit === "contain" ? "object-contain" : "object-cover"}
-      onLoad={() => setHasLoaded(true)}
+      onLoad={() => {
+        setHasLoaded(true);
+        onLoadComplete?.();
+      }}
       onError={() => setHasFailed(true)}
     />
   );

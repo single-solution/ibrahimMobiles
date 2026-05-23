@@ -1,7 +1,15 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { GripVertical, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
+import {
+  ATTRIBUTE_VISIBILITY_ALWAYS,
+  compareAlphabetically,
+  compactAttributeOptionValue,
+  formatAttributeOptionLabel,
+  type AttributeVisibility,
+  type AttributeVisibilityType,
+} from "@store/shared";
 
 import { Drawer } from "@/components/Drawer";
 import { useToast } from "@/components/Toast";
@@ -11,7 +19,9 @@ import type {
   AdminAttribute,
   AdminAttributeCardPosition,
   AdminAttributeOption,
+  AdminBrand,
   AdminCategory,
+  AdminGrade,
 } from "@/types/admin";
 
 import { PreviewPanel } from "./previewPanel";
@@ -27,6 +37,9 @@ interface AttributeEditorProps {
   onClose: () => void;
   attribute: AdminAttribute | null;
   category: AdminCategory;
+  siblingAttributes: AdminAttribute[];
+  brands: AdminBrand[];
+  grades: AdminGrade[];
   onSaved: () => void;
 }
 
@@ -36,31 +49,139 @@ const CARD_POSITIONS: { value: AdminAttributeCardPosition; label: string }[] = [
   { value: "none", label: "Hidden on cards" },
 ];
 
+interface OptionFormRow {
+  label: string;
+  backgroundColor: string;
+}
+
 interface FormState {
   label: string;
+  unit: string;
   cardPosition: AdminAttributeCardPosition;
-  isActive: boolean;
-  options: AdminAttributeOption[];
+  visibilityType: AttributeVisibilityType;
+  brandSlugs: string[];
+  gradeSlugs: string[];
+  parentAttributeSlug: string;
+  parentOptionValues: string[];
+  options: OptionFormRow[];
 }
 
 function emptyForm(): FormState {
   return {
     label: "",
+    unit: "",
     cardPosition: "title-chips",
-    isActive: true,
-    options: [{ value: "", label: "" }],
+    visibilityType: "always",
+    brandSlugs: [],
+    gradeSlugs: [],
+    parentAttributeSlug: "",
+    parentOptionValues: [],
+    options: [{ label: "", backgroundColor: "" }],
   };
+}
+
+function visibilityFromAttribute(
+  visibility: AttributeVisibility | undefined,
+): Pick<
+  FormState,
+  "visibilityType" | "brandSlugs" | "gradeSlugs" | "parentAttributeSlug" | "parentOptionValues"
+> {
+  const rule = visibility ?? ATTRIBUTE_VISIBILITY_ALWAYS;
+  if (rule.type === "brand") {
+    return {
+      visibilityType: "brand",
+      brandSlugs: rule.brandSlugs ?? [],
+      gradeSlugs: [],
+      parentAttributeSlug: "",
+      parentOptionValues: [],
+    };
+  }
+  if (rule.type === "grade") {
+    return {
+      visibilityType: "grade",
+      brandSlugs: [],
+      gradeSlugs: rule.gradeSlugs ?? [],
+      parentAttributeSlug: "",
+      parentOptionValues: [],
+    };
+  }
+  if (rule.type === "attribute") {
+    return {
+      visibilityType: "attribute",
+      brandSlugs: [],
+      gradeSlugs: [],
+      parentAttributeSlug: rule.attributeSlug ?? "",
+      parentOptionValues: rule.optionValues ?? [],
+    };
+  }
+  return {
+    visibilityType: "always",
+    brandSlugs: [],
+    gradeSlugs: [],
+    parentAttributeSlug: "",
+    parentOptionValues: [],
+  };
+}
+
+function buildVisibilityPayload(form: FormState): AttributeVisibility {
+  if (form.visibilityType === "brand") {
+    return { type: "brand", brandSlugs: form.brandSlugs };
+  }
+  if (form.visibilityType === "grade") {
+    return { type: "grade", gradeSlugs: form.gradeSlugs };
+  }
+  if (form.visibilityType === "attribute") {
+    return {
+      type: "attribute",
+      attributeSlug: form.parentAttributeSlug,
+      optionValues: form.parentOptionValues,
+    };
+  }
+  return ATTRIBUTE_VISIBILITY_ALWAYS;
+}
+
+function optionFromStored(option: AdminAttributeOption): OptionFormRow {
+  return {
+    label: option.label,
+    backgroundColor: option.backgroundColor ?? "",
+  };
+}
+
+function sortOptionRows(rows: OptionFormRow[]): OptionFormRow[] {
+  return [...rows].sort((left, right) =>
+    compareAlphabetically(left.label, right.label),
+  );
 }
 
 function formFromAttribute(attribute: AdminAttribute): FormState {
   return {
     label: attribute.label,
+    unit: attribute.unit ?? "",
     cardPosition: attribute.cardPosition,
-    isActive: attribute.isActive,
-    options: attribute.options.length > 0
-      ? attribute.options.map((o) => ({ ...o }))
-      : [{ value: "", label: "" }],
+    ...visibilityFromAttribute(attribute.visibility),
+    options:
+      attribute.options.length > 0
+        ? sortOptionRows(attribute.options.map(optionFromStored))
+        : [{ label: "", backgroundColor: "" }],
   };
+}
+
+function previewOptionsFromRows(
+  rows: OptionFormRow[],
+  unit: string,
+): AdminAttributeOption[] {
+  const unitTrimmed = unit.trim();
+  return rows
+    .filter((row) => row.label.trim().length > 0)
+    .map((row) => {
+      const label = row.label.trim();
+      const value = compactAttributeOptionValue(label, unitTrimmed);
+      return {
+        value: value || "preview",
+        label,
+        ...(row.backgroundColor ? { backgroundColor: row.backgroundColor } : {}),
+      };
+    });
 }
 
 export function AttributeEditor({
@@ -68,6 +189,9 @@ export function AttributeEditor({
   onClose,
   attribute,
   category,
+  siblingAttributes,
+  brands,
+  grades,
   onSaved,
 }: AttributeEditorProps) {
   const toast = useToast();
@@ -86,14 +210,14 @@ export function AttributeEditor({
   const draft: AttributeDraft = useMemo(
     () => ({
       label: deferredForm.label,
+      unit: deferredForm.unit,
       cardPosition: deferredForm.cardPosition,
-      isActive: deferredForm.isActive,
-      options: deferredForm.options.filter((o) => o.label.trim().length > 0),
+      options: previewOptionsFromRows(deferredForm.options, deferredForm.unit),
     }),
     [deferredForm],
   );
 
-  function updateOption(index: number, patch: Partial<AdminAttributeOption>) {
+  function updateOption(index: number, patch: Partial<OptionFormRow>) {
     setForm((prev) => {
       const next = prev.options.slice();
       next[index] = { ...next[index], ...patch };
@@ -105,7 +229,7 @@ export function AttributeEditor({
       if (prev.options.length >= ATTRIBUTE_FIELD_LIMITS.optionCount) return prev;
       return {
         ...prev,
-        options: [...prev.options, { value: "", label: "" }],
+        options: [...prev.options, { label: "", backgroundColor: "" }],
       };
     });
   }
@@ -128,8 +252,8 @@ export function AttributeEditor({
     }
     const cleanedOptions = form.options
       .map((opt) => ({
-        value: opt.value.trim(),
         label: opt.label.trim(),
+        backgroundColor: opt.backgroundColor,
       }))
       .filter((opt) => opt.label.length > 0);
     if (cleanedOptions.length === 0) {
@@ -138,15 +262,17 @@ export function AttributeEditor({
     }
     setSubmitting(true);
     try {
+      const payload = {
+        label: form.label.trim(),
+        unit: form.unit.trim(),
+        options: cleanedOptions,
+        cardPosition: form.cardPosition,
+        visibility: buildVisibilityPayload(form),
+      };
       if (attribute) {
         await adminFetch<AdminAttribute>(`/api/attributes/${attribute.id}`, {
           method: "PUT",
-          json: {
-            label: form.label.trim(),
-            options: cleanedOptions,
-            cardPosition: form.cardPosition,
-            isActive: form.isActive,
-          },
+          json: payload,
         });
         toast.success("Attribute updated.");
       } else {
@@ -154,10 +280,7 @@ export function AttributeEditor({
           method: "POST",
           json: {
             categorySlug: category.slug,
-            label: form.label.trim(),
-            options: cleanedOptions,
-            cardPosition: form.cardPosition,
-            isActive: form.isActive,
+            ...payload,
           },
         });
         toast.success("Attribute created.");
@@ -180,11 +303,11 @@ export function AttributeEditor({
   const previewTiles = useMemo(() => {
     const tiles: { surfaceLabel: string; body: React.ReactNode }[] = [
       {
-        surfaceLabel: "Appears on: PDP spec strip",
+        surfaceLabel: "Storefront · PDP spec strip",
         body: <AttributeSpecStripPreview attribute={draft} />,
       },
       {
-        surfaceLabel: "Appears on: Filter sidebar",
+        surfaceLabel: "Storefront · Shop filter sidebar",
         body: <AttributeFilterGroupPreview attribute={draft} />,
       },
     ];
@@ -192,20 +315,28 @@ export function AttributeEditor({
       tiles.push({
         surfaceLabel:
           draft.cardPosition === "image-overlay"
-            ? "Appears on: Product card (image overlay)"
-            : "Appears on: Product card (title chip)",
+            ? "Storefront · Product card (image overlay)"
+            : "Storefront · Product card (title chip)",
         body: <AttributeCardChipPreview attribute={draft} />,
       });
     }
     return tiles;
   }, [draft]);
 
+  const attributeUnit = form.unit.trim();
+  const parentCandidates = siblingAttributes.filter(
+    (row) => row.id !== attribute?.id,
+  );
+  const parentAttribute = parentCandidates.find(
+    (row) => row.slug === form.parentAttributeSlug,
+  );
+
   return (
     <Drawer
       isOpen={isOpen}
       onClose={onClose}
       title={attribute ? `Edit · ${attribute.label}` : `New attribute · ${category.label}`}
-      description="Attributes power filters and dynamic specs. Options are single-select per variant."
+      description="Global options are templates for variants and filters. Shop filters only show values that exist on products in the current listing. Product-only values (e.g. a one-off color) are added on each variant, not here."
       width="xl"
       footer={
         <div className="flex items-center justify-end gap-2">
@@ -239,7 +370,7 @@ export function AttributeEditor({
               htmlFor="attribute-label"
               className="mb-1 block text-[11.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-700)]"
             >
-              Label
+              Attribute label
             </label>
             <input
               id="attribute-label"
@@ -248,14 +379,190 @@ export function AttributeEditor({
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, label: e.target.value }))
               }
+              placeholder="e.g. Storage"
               maxLength={ATTRIBUTE_FIELD_LIMITS.label}
               required
               className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[14px] focus:border-[var(--color-accent-500)] focus:outline-none"
             />
+            <p className="mt-1 text-[11.5px] text-[var(--color-ink-500)]">
+              Slug is generated from this label when you save (used in variant data
+              and filter URLs).
+            </p>
           </div>
           <div>
+            <label
+              htmlFor="attribute-unit"
+              className="mb-1 block text-[11.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-700)]"
+            >
+              Unit
+            </label>
+            <input
+              id="attribute-unit"
+              type="text"
+              value={form.unit}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, unit: e.target.value }))
+              }
+              placeholder="e.g. gb (optional)"
+              maxLength={ATTRIBUTE_FIELD_LIMITS.unit}
+              className="block w-full max-w-xs rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[14px] focus:border-[var(--color-accent-500)] focus:outline-none"
+            />
+            <p className="mt-1 text-[11.5px] text-[var(--color-ink-500)]">
+              Shared by all options. Leave empty for unitless attributes (e.g. Color).
+            </p>
+          </div>
+          <fieldset className="rounded-md border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3">
+            <legend className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">
+              Show when
+            </legend>
+            <p className="mb-2 text-[11.5px] text-[var(--color-ink-500)]">
+              Controls when this attribute appears in shop filters and on variants.
+              Child attributes unlock after a parent option is selected.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["always", "Always"],
+                  ["brand", "Brand"],
+                  ["grade", "Grade"],
+                  ["attribute", "Parent attribute"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() =>
+                    setForm((prev) => ({ ...prev, visibilityType: value }))
+                  }
+                  className={
+                    "rounded-md border px-2.5 py-1.5 text-[12.5px] font-semibold transition " +
+                    (form.visibilityType === value
+                      ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
+                      : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)]")
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {form.visibilityType === "brand" && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {brands.map((brand) => {
+                  const selected = form.brandSlugs.includes(brand.slug);
+                  return (
+                    <button
+                      key={brand.id}
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          brandSlugs: selected
+                            ? prev.brandSlugs.filter((slug) => slug !== brand.slug)
+                            : [...prev.brandSlugs, brand.slug],
+                        }))
+                      }
+                      className={
+                        "rounded-full border px-2.5 py-1 text-[12px] font-medium " +
+                        (selected
+                          ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
+                          : "border-[var(--color-ink-200)] text-[var(--color-ink-700)]")
+                      }
+                    >
+                      {brand.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {form.visibilityType === "grade" && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {grades.map((grade) => {
+                  const selected = form.gradeSlugs.includes(grade.slug);
+                  return (
+                    <button
+                      key={grade.id}
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          gradeSlugs: selected
+                            ? prev.gradeSlugs.filter((slug) => slug !== grade.slug)
+                            : [...prev.gradeSlugs, grade.slug],
+                        }))
+                      }
+                      className={
+                        "rounded-full border px-2.5 py-1 text-[12px] font-medium " +
+                        (selected
+                          ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
+                          : "border-[var(--color-ink-200)] text-[var(--color-ink-700)]")
+                      }
+                    >
+                      {grade.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {form.visibilityType === "attribute" && (
+              <div className="mt-2 space-y-2">
+                <select
+                  value={form.parentAttributeSlug}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      parentAttributeSlug: event.target.value,
+                      parentOptionValues: [],
+                    }))
+                  }
+                  className="w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[13px]"
+                >
+                  <option value="">Select parent attribute</option>
+                  {parentCandidates.map((row) => (
+                    <option key={row.id} value={row.slug}>
+                      {row.label}
+                    </option>
+                  ))}
+                </select>
+                {parentAttribute && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {parentAttribute.options.map((option) => {
+                      const selected = form.parentOptionValues.includes(option.value);
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() =>
+                            setForm((prev) => ({
+                              ...prev,
+                              parentOptionValues: selected
+                                ? prev.parentOptionValues.filter(
+                                    (value) => value !== option.value,
+                                  )
+                                : [...prev.parentOptionValues, option.value],
+                            }))
+                          }
+                          className={
+                            "rounded-full border px-2.5 py-1 text-[12px] font-medium " +
+                            (selected
+                              ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
+                              : "border-[var(--color-ink-200)] text-[var(--color-ink-700)]")
+                          }
+                        >
+                          {formatAttributeOptionLabel(
+                            option.label,
+                            parentAttribute.unit,
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </fieldset>
+          <div>
             <span className="mb-1 block text-[11.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-700)]">
-              Card surface
+              Product card placement
             </span>
             <div className="flex flex-wrap gap-2">
               {CARD_POSITIONS.map((position) => (
@@ -281,47 +588,71 @@ export function AttributeEditor({
             <legend className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">
               Options
             </legend>
+            <p className="mb-2 text-[11.5px] text-[var(--color-ink-500)]">
+              Each row is one value (e.g. 128, 256). Options are saved in alphabetical
+              order. Slugs combine label + unit{attributeUnit ? ` (${attributeUnit})` : ""}.
+            </p>
             <ul className="space-y-2">
-              {form.options.map((option, index) => (
-                <li
-                  key={index}
-                  className="flex items-center gap-2 rounded-md border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-2 py-1.5"
-                >
-                  <GripVertical
-                    size={14}
-                    className="shrink-0 text-[var(--color-ink-400)]"
-                    aria-hidden
-                  />
-                  <input
-                    type="text"
-                    value={option.label}
-                    onChange={(e) =>
-                      updateOption(index, { label: e.target.value })
-                    }
-                    placeholder="Label (e.g. 128 GB)"
-                    maxLength={ATTRIBUTE_FIELD_LIMITS.optionLabel}
-                    className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-2 py-1 text-[13px] focus:border-[var(--color-accent-500)] focus:bg-[var(--color-surface)] focus:outline-none"
-                  />
-                  <input
-                    type="text"
-                    value={option.value}
-                    onChange={(e) =>
-                      updateOption(index, { value: e.target.value })
-                    }
-                    placeholder="value-slug"
-                    maxLength={ATTRIBUTE_FIELD_LIMITS.optionValue}
-                    className="w-28 rounded border border-transparent bg-transparent px-2 py-1 text-[12px] text-[var(--color-ink-600)] focus:border-[var(--color-accent-500)] focus:bg-[var(--color-surface)] focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeOption(index)}
-                    aria-label="Remove option"
-                    className="rounded p-1 text-[var(--color-ink-500)] hover:bg-[var(--color-rose-100)] hover:text-[var(--color-rose-700)]"
+              {form.options.map((option, index) => {
+                const slugPreview = compactAttributeOptionValue(
+                  option.label,
+                  attributeUnit,
+                );
+                return (
+                  <li
+                    key={index}
+                    className="rounded-md border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-2 py-2"
                   >
-                    <X size={14} />
-                  </button>
-                </li>
-              ))}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={option.label}
+                        onChange={(e) =>
+                          updateOption(index, { label: e.target.value })
+                        }
+                        placeholder="Value (e.g. 256)"
+                        maxLength={ATTRIBUTE_FIELD_LIMITS.optionLabel}
+                        className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-2 py-1 text-[13px] focus:border-[var(--color-accent-500)] focus:bg-[var(--color-surface)] focus:outline-none"
+                      />
+                      <ColorSwatchPicker
+                        value={option.backgroundColor}
+                        onChange={(backgroundColor) =>
+                          updateOption(index, { backgroundColor })
+                        }
+                        ariaLabel={`Option ${index + 1} chip color`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeOption(index)}
+                        aria-label="Remove option"
+                        className="rounded p-1 text-[var(--color-ink-500)] hover:bg-[var(--color-rose-100)] hover:text-[var(--color-rose-700)]"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    {slugPreview && (
+                      <p className="mt-1 text-[10.5px] text-[var(--color-ink-500)]">
+                        Slug{" "}
+                        <code className="rounded bg-[var(--color-surface)] px-1 py-0.5 font-mono text-[10px] text-[var(--color-ink-700)]">
+                          {slugPreview}
+                        </code>
+                        {attributeUnit && (
+                          <>
+                            {" "}
+                            · displays as{" "}
+                            <span className="text-[var(--color-ink-700)]">
+                              {formatAttributeOptionLabel(
+                                option.label,
+                                attributeUnit,
+                              )}
+                            </span>
+                          </>
+                        )}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
             <button
               type="button"
@@ -332,19 +663,38 @@ export function AttributeEditor({
               <Plus size={12} /> Add option
             </button>
           </fieldset>
-          <label className="flex items-center gap-2 text-[13px] text-[var(--color-ink-800)]">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, isActive: e.target.checked }))
-              }
-            />
-            Surface in storefront filters
-          </label>
         </form>
         <PreviewPanel tiles={previewTiles} />
       </div>
     </Drawer>
+  );
+}
+
+function ColorSwatchPicker({
+  value,
+  onChange,
+  ariaLabel,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => onChange("")}
+        className="rounded border border-[var(--color-ink-200)] px-1.5 py-1 text-[10px] font-semibold text-[var(--color-ink-500)] hover:bg-[var(--color-surface)]"
+      >
+        None
+      </button>
+      <input
+        type="color"
+        value={value || "#eff6ff"}
+        onChange={(event) => onChange(event.target.value)}
+        aria-label={ariaLabel}
+        className="size-7 cursor-pointer rounded border border-[var(--color-ink-200)] bg-transparent"
+      />
+    </div>
   );
 }

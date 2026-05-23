@@ -4,6 +4,8 @@ import mongoose, {
   type Model,
 } from "mongoose";
 import { slugify } from "@store/shared";
+import type { SeoMeta } from "@store/shared";
+import { seoSchema } from "../schemas/seoSchema";
 
 /**
  * Manufacturer / vendor that produces one or more products. After the
@@ -23,8 +25,9 @@ export interface BrandAttributes {
   slug: string;
   name: string;
   categorySlugs: string[];
-  sortOrder: number;
   isActive: boolean;
+  /** Optional per-brand SEO overrides (auto-filled when absent). */
+  seo?: SeoMeta;
 }
 
 const brandSchema = new Schema<BrandAttributes>(
@@ -32,7 +35,6 @@ const brandSchema = new Schema<BrandAttributes>(
     slug: {
       type: String,
       required: true,
-      unique: true,
       lowercase: true,
       trim: true,
       maxlength: 64,
@@ -56,7 +58,7 @@ const brandSchema = new Schema<BrandAttributes>(
       },
     },
     isActive: { type: Boolean, required: true, default: true },
-    sortOrder: { type: Number, required: true, default: 0 },
+    seo: { type: seoSchema, default: () => ({}) },
   },
   { timestamps: true },
 );
@@ -70,8 +72,9 @@ brandSchema.pre<HydratedDocument<BrandAttributes>>(
   },
 );
 
-brandSchema.index({ categorySlugs: 1, isActive: 1, sortOrder: 1, name: 1 });
-brandSchema.index({ sortOrder: 1, name: 1 });
+brandSchema.index({ categorySlugs: 1, isActive: 1, name: 1 });
+brandSchema.index({ categorySlugs: 1, slug: 1 }, { unique: true });
+brandSchema.index({ name: 1 });
 
 export const Brand: Model<BrandAttributes> =
   (mongoose.models.Brand as Model<BrandAttributes>) ??

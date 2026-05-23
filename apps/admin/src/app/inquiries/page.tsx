@@ -21,7 +21,7 @@ export default async function AdminInquiriesPage() {
   return (
     <AdminShell>
       <PageTitle eyebrow="Operations" title="Inquiries" />
-      <section className="mt-8">
+      <section>
         <Suspense
           fallback={
             <AdminTableSkeleton

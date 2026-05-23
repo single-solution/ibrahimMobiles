@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { DataTable, type DataTableColumn } from "@/components/DataTable";
+import { AdminTable, type AdminTableColumn } from "@/components/AdminTable";
 import { Drawer } from "@/components/Drawer";
 import { StatusPill, type StatusTone } from "@/components/StatusPill";
 import { SelectField } from "@/components/forms/SelectField";
@@ -65,7 +65,7 @@ export function Orders({ orders }: OrdersProps) {
     return map;
   }, [orders]);
 
-  const columns: DataTableColumn<AdminOrderSummary>[] = [
+  const columns: AdminTableColumn<AdminOrderSummary>[] = [
     {
       id: "order",
       header: "Order",
@@ -151,7 +151,7 @@ export function Orders({ orders }: OrdersProps) {
         ))}
       </div>
 
-      <DataTable
+      <AdminTable
         rows={filtered}
         columns={columns}
         rowKey={(order) => order.id}

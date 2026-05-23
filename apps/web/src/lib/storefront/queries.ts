@@ -14,8 +14,8 @@
  * Schema awareness (Phase 1, PLAN.md §10):
  *   - The catalog is fully admin-authored. Categories, brands, grades, and
  *     attributes are all slug-keyed strings — there is no hardcoded enum.
- *   - Filters expose only the universal axes (brand, grade, price, search)
- *     plus a generic `attributes` map that the Phase 6 storefront filter
+ *   - Filters expose only shared catalog axes (brand, grade, price, search)
+ *     plus an admin-defined `attributes` map that the storefront filter
  *     sidebar will use to surface per-category options dynamically.
  */
 
@@ -24,6 +24,7 @@ import { type PipelineStage } from "mongoose";
 import {
   Brand,
   Category,
+  Attribute,
   Grade,
   Offer,
   Product,
@@ -31,19 +32,28 @@ import {
 } from "@store/db";
 import {
   escapeRegex,
+  hasStructuredContent,
   logger,
+  normalizeIconName,
+  normalizeStructuredContent,
+  slugify,
   type Brand as StorefrontBrand,
+  type AttributeDescriptor,
+  type IconName,
   type GradeDescriptor,
   type Offer as StorefrontOffer,
   type Product as StorefrontProduct,
+  type StructuredContent,
 } from "@store/shared";
 
 import {
   toStorefrontBrand,
+  toStorefrontAttribute,
   toStorefrontGrade,
   toStorefrontOffer,
   toStorefrontProduct,
   type BrandLean,
+  type AttributeLean,
   type GradeLean,
   type OfferLean,
   type ProductLean,
@@ -73,6 +83,7 @@ const DEFAULT_OFFER_LIMIT = 12;
  */
 export type StorefrontSort =
   | "newest"
+  | "recently-updated"
   | "price-asc"
   | "price-desc"
   | "name-asc";
@@ -90,7 +101,7 @@ export interface StorefrontProductFilters {
   minPriceRupees?: number;
   maxPriceRupees?: number;
   /**
-   * Generic per-category attribute filter. Keys are `Attribute.slug`,
+   * Admin-defined per-category attribute filter. Keys are `Attribute.slug`,
    * values are one or more allowed option strings. A product matches when
    * at least one variant satisfies every attribute axis.
    */
@@ -119,15 +130,22 @@ export interface StorefrontProductPage {
 }
 
 /**
- * Build a brand-slug → `{ slug, name }` lookup. Used by the product
+ * Build a category+brand → `{ slug, name }` lookup. Used by the product
  * serializer to fill in `brandName` without an N+1 round-trip.
  */
 async function buildBrandLookup(): Promise<
   Map<string, { slug: string; name: string }>
 > {
-  const brands = await Brand.find().select("slug name").lean<BrandLean[]>();
+  const brands = await Brand.find()
+    .select("slug name categorySlugs")
+    .lean<BrandLean[]>();
   return new Map(
-    brands.map((brand) => [brand.slug, { slug: brand.slug, name: brand.name }]),
+    brands.flatMap((brand) =>
+      brand.categorySlugs.map((categorySlug) => [
+        `${categorySlug}:${brand.slug}`,
+        { slug: brand.slug, name: brand.name },
+      ] as const),
+    ),
   );
 }
 
@@ -135,15 +153,24 @@ async function buildBrandLookup(): Promise<
  * All active brands with the live product count for each. Used by the
  * homepage brand strip and the brand select on shop pages.
  */
-export async function getStorefrontBrands(): Promise<StorefrontBrand[]> {
+export async function getStorefrontBrands(
+  categorySlug?: string,
+): Promise<StorefrontBrand[]> {
   await connectDB();
 
+  const brandFilter: Record<string, unknown> = { isActive: true };
+  const productFilter: Record<string, unknown> = { ...PUBLIC_PRODUCT_FILTER };
+  if (categorySlug) {
+    brandFilter.categorySlugs = categorySlug;
+    productFilter.categorySlug = categorySlug;
+  }
+
   const [brands, counts] = await Promise.all([
-    Brand.find({ isActive: true })
-      .sort({ sortOrder: 1, name: 1 })
+    Brand.find(brandFilter)
+      .sort({ name: 1 })
       .lean<BrandLean[]>(),
     Product.aggregate<{ _id: string; count: number }>([
-      { $match: PUBLIC_PRODUCT_FILTER },
+      { $match: productFilter },
       { $group: { _id: "$brandSlug", count: { $sum: 1 } } },
     ]),
   ]);
@@ -155,13 +182,49 @@ export async function getStorefrontBrands(): Promise<StorefrontBrand[]> {
 }
 
 /**
+ * Product counts per grade slug within a category (one count per product
+ * that has at least one variant in that grade).
+ */
+export async function getStorefrontGradeCounts(
+  categorySlug: string,
+): Promise<Record<string, number>> {
+  await connectDB();
+  const rows = await Product.aggregate<{ _id: string; count: number }>([
+    {
+      $match: {
+        ...PUBLIC_PRODUCT_FILTER,
+        categorySlug,
+      },
+    },
+    { $unwind: "$variants" },
+    {
+      $group: {
+        _id: { productId: "$_id", gradeSlug: "$variants.gradeSlug" },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id.gradeSlug",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+  return Object.fromEntries(rows.map((row) => [row._id, row.count]));
+}
+
+/**
  * One brand, by slug. Returns null if it doesn't exist or has been deactivated.
  */
 export async function getStorefrontBrandBySlug(
   slug: string,
+  categorySlug?: string,
 ): Promise<StorefrontBrand | null> {
   await connectDB();
-  const brand = await Brand.findOne({ slug, isActive: true }).lean<BrandLean>();
+  const filter: Record<string, unknown> = { slug, isActive: true };
+  if (categorySlug) {
+    filter.categorySlugs = categorySlug;
+  }
+  const brand = await Brand.findOne(filter).lean<BrandLean>();
   if (!brand) {
     return null;
   }
@@ -182,6 +245,8 @@ function buildSort(sort: StorefrontSort | undefined): SortSpec {
       return { _minPrice: -1, createdAt: -1 };
     case "name-asc":
       return { name: 1 };
+    case "recently-updated":
+      return { updatedAt: -1, createdAt: -1 };
     case "newest":
     default:
       return { createdAt: -1 };
@@ -204,7 +269,7 @@ function sortNeedsMinPrice(sort: StorefrontSort | undefined): boolean {
  * small variant + a separate expensive-and-large variant, which is not
  * what the customer expects.
  */
-function buildVariantElemMatch(
+export function buildVariantElemMatch(
   filters: StorefrontProductFilters,
 ): Record<string, unknown> | null {
   const clause: Record<string, unknown> = {};
@@ -246,7 +311,7 @@ function buildVariantElemMatch(
 }
 
 /** Top-level `$match`. Variants are handled separately via `$elemMatch`. */
-function buildTopLevelMatch(
+export function buildTopLevelMatch(
   filters: StorefrontProductFilters,
 ): Record<string, unknown> {
   const match: Record<string, unknown> = { ...PUBLIC_PRODUCT_FILTER };
@@ -430,22 +495,20 @@ export interface StorefrontCategory {
   slug: string;
   label: string;
   description: string;
-  iconKind: "emoji" | "image";
-  iconEmoji?: string;
-  iconImage?: {
-    variants: {
-      thumb: string;
-      card: string;
-      detail: string;
-      full: string;
-    };
-    blurDataURL: string;
-    width: number;
-    height: number;
-    alt: string;
-  };
+  icon: IconName;
   isActive: boolean;
   sortOrder: number;
+  /** Optional structured copy (summary + icon-tagged bullets). */
+  content?: StructuredContent;
+}
+
+function resolveCategorySlug(category: { slug?: string; label?: string }): string | null {
+  const slug = category.slug?.trim();
+  if (slug) {
+    return slug;
+  }
+  const fallback = slugify(category.label ?? "", 64);
+  return fallback || null;
 }
 
 export async function getStorefrontCategories(): Promise<StorefrontCategory[]> {
@@ -458,16 +521,22 @@ export async function getStorefrontCategories(): Promise<StorefrontCategory[]> {
       "getStorefrontCategories: no categories in DB; storefront may render empty",
     );
   }
-  return categories.map((category) => ({
-    slug: category.slug,
-    label: category.label,
-    description: category.description,
-    iconKind: category.iconKind,
-    iconEmoji: category.iconEmoji,
-    iconImage: category.iconImage,
-    isActive: category.isActive,
-    sortOrder: category.sortOrder ?? 0,
-  }));
+  return categories.flatMap((category) => {
+    const slug = resolveCategorySlug(category);
+    if (!slug) {
+      return [];
+    }
+    const content = normalizeStructuredContent(category.content, category.description);
+    return {
+      slug,
+      label: category.label,
+      description: category.description,
+      icon: normalizeIconName(category.icon),
+      isActive: category.isActive,
+      sortOrder: category.sortOrder ?? 0,
+      content: hasStructuredContent(content) ? content : undefined,
+    };
+  });
 }
 
 /**
@@ -490,6 +559,14 @@ export async function getStorefrontGrades(): Promise<GradeDescriptor[]> {
   return grades.map(toStorefrontGrade);
 }
 
+export async function getStorefrontAttributes(): Promise<AttributeDescriptor[]> {
+  await connectDB();
+  const attributes = await Attribute.find()
+    .sort({ categorySlug: 1, label: 1 })
+    .lean<AttributeLean[]>();
+  return attributes.map(toStorefrontAttribute);
+}
+
 /** Resolve a URL category segment (the category `slug`) to a category. */
 export async function getStorefrontCategoryBySlug(
   slug: string,
@@ -499,15 +576,19 @@ export async function getStorefrontCategoryBySlug(
   if (!category) {
     return null;
   }
+  const resolvedSlug = resolveCategorySlug(category);
+  if (!resolvedSlug) {
+    return null;
+  }
+  const content = normalizeStructuredContent(category.content, category.description);
   return {
-    slug: category.slug,
+    slug: resolvedSlug,
     label: category.label,
     description: category.description,
-    iconKind: category.iconKind,
-    iconEmoji: category.iconEmoji,
-    iconImage: category.iconImage,
+    icon: normalizeIconName(category.icon),
     isActive: category.isActive,
     sortOrder: category.sortOrder ?? 0,
+    content: hasStructuredContent(content) ? content : undefined,
   };
 }
 

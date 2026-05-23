@@ -22,6 +22,12 @@ export function noContent() {
   return new NextResponse(null, { status: 204 });
 }
 
+/** 304 Not Modified — polling clients send If-None-Match / ?since. */
+export function notModified(etag?: string) {
+  const headers = etag ? { ETag: etag } : undefined;
+  return new NextResponse(null, { status: 304, headers });
+}
+
 /** 400 Bad Request — caller-fixable problem with the request payload. */
 export function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });

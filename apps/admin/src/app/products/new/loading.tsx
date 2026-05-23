@@ -10,7 +10,6 @@ const SWITCH_ROWS = 2;
  * Exact-match skeleton for `app/products/new/page.tsx`:
  *
  *   ← Back-to-products link (tiny)
- *   ↳ PageTitle  ("New product" / "Add a model")
  *   ↳ form with FormSection blocks:
  *       1. Basic info — 4 fields in a 2×2 grid + 2 switch rows
  *       2. Imagery   — 1 text field + 1 textarea (gallery URLs)
@@ -23,12 +22,7 @@ export default function NewProductLoading() {
       <AdminShell>
         <Skeleton shape="text" className="h-3 w-32" />
 
-        <header className="mt-4 space-y-2">
-          <Skeleton shape="text" className="h-2.5 w-24" />
-          <Skeleton shape="text" className="h-8 w-44" />
-        </header>
-
-        <div className="mt-8 space-y-1 pt-3">
+        <div className="mt-4 space-y-1 pt-3">
           <FormSectionSkeleton
             titleWidthClass="w-24"
             fieldCount={BASIC_INFO_FIELDS}

@@ -2,12 +2,11 @@ import { Schema } from "mongoose";
 import type { StoredImage, StoredImageVariants } from "@store/shared";
 
 /**
- * Mongoose embedded sub-schema for the universal `StoredImage` payload
+ * Mongoose embedded sub-schema for the shared `StoredImage` payload
  * defined in `@store/shared/storage/types`. Every model that persists an
- * image field reuses this exact sub-schema — Category (icon, when
- * `iconKind === "image"`), Offer (banner), Variant (images[]), Inquiry
- * (message attachments, Phase 8.5), Setting (logo, favicon, OG default,
- * via the value blob).
+ * image field reuses this exact sub-schema — Offer (banner), Variant
+ * (images[]), Inquiry (message attachments), Setting (logo, favicon,
+ * OG default, via the value blob).
  *
  * One definition, one shape, one validator — no per-model drift.
  *

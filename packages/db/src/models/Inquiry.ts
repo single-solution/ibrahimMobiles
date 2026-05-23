@@ -7,7 +7,7 @@ import { storedImageSchema } from "../schemas/storedImageSchema";
  * snapshot" Inquiry into a proper threaded conversation per PLAN §12.
  * The model is durable storage; the live transport (polling default,
  * WebSocket opt-in via `Setting.chat.*`) lands in Phase 8, attachments
- * (universal `StoredImage` for images, raw url+mime for files) land in
+ * (shared `StoredImage` for images, raw url+mime for files) land in
  * Phase 8.5.
  *
  * Identity: `phoneNumber` is the canonical anchor. `customerId` is
@@ -47,7 +47,7 @@ export const INQUIRY_ATTACHMENT_KINDS = ["image", "file"] as const;
 export type InquiryAttachmentKind = (typeof INQUIRY_ATTACHMENT_KINDS)[number];
 
 /**
- * Per-message attachment. Image attachments funnel through the universal
+ * Per-message attachment. Image attachments funnel through the shared
  * `StoredImage` pipeline (T1.1.5 / Phase 2 upload route) so the chat
  * bubble renders the `thumb` variant inline and the lightbox renders
  * `full`. Non-image attachments stay as raw URL + mime metadata — there

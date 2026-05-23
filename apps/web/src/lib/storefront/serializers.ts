@@ -16,6 +16,7 @@
 import type { Types } from "mongoose";
 
 import type {
+  AttributeAttributes,
   BrandAttributes,
   GradeAttributes,
   OfferAttributes,
@@ -24,11 +25,29 @@ import type {
   WithTimestamps,
 } from "@store/db";
 import type {
+  AttributeDescriptor,
   Brand as StorefrontBrand,
   GradeDescriptor,
   Offer as StorefrontOffer,
   Product as StorefrontProduct,
+  ProductGradeImagesEntry,
   StorefrontVariant,
+  StoredImage,
+} from "@store/shared";
+import { resolveWarrantyDays } from "@store/shared";
+import {
+  asArray,
+  asNumber,
+  asString,
+  coerceStoredImage,
+  deriveGradeImagesFromVariants,
+  hasStructuredContent,
+  imagesForProductGrade,
+  isStoredImage,
+  normalizeStructuredContent,
+  objectIdString,
+  sortAttributeOptions,
+  toIsoDate,
 } from "@store/shared";
 
 /** Mongoose lean shape for a brand. */
@@ -47,6 +66,9 @@ export type OfferLean = WithTimestamps<OfferAttributes> & {
 export type GradeLean = WithTimestamps<GradeAttributes> & {
   _id: Types.ObjectId;
 };
+export type AttributeLean = WithTimestamps<AttributeAttributes> & {
+  _id: Types.ObjectId;
+};
 
 /**
  * Brand → public Brand. `productCount` is supplied by the caller (we
@@ -57,26 +79,84 @@ export function toStorefrontBrand(
   productCount: number,
 ): StorefrontBrand {
   return {
-    slug: brand.slug,
-    name: brand.name,
-    productCount,
+    slug: asString(brand.slug),
+    name: asString(brand.name),
+    productCount: asNumber(productCount),
+    seo: brand.seo,
   };
 }
 
-function toStorefrontVariant(variant: VariantAttributes): StorefrontVariant {
+export function toStorefrontAttribute(
+  attribute: AttributeLean,
+): AttributeDescriptor {
   return {
-    id: variant._id?.toString() ?? "",
-    gradeSlug: variant.gradeSlug,
-    priceRupees: variant.priceRupees,
+    categorySlug: asString(attribute.categorySlug),
+    slug: asString(attribute.slug),
+    label: asString(attribute.label),
+    unit: asString(attribute.unit) || undefined,
+    options: sortAttributeOptions(
+      asArray<AttributeAttributes["options"][number]>(attribute.options).map(
+        (option) => ({
+          value: asString(option?.value),
+          label: asString(option?.label),
+          backgroundColor: option?.backgroundColor,
+        }),
+      ),
+      asString(attribute.unit) || undefined,
+    ),
+    visibility: attribute.visibility
+      ? {
+          type: attribute.visibility.type,
+          ...(attribute.visibility.brandSlugs
+            ? { brandSlugs: attribute.visibility.brandSlugs }
+            : {}),
+          ...(attribute.visibility.gradeSlugs
+            ? { gradeSlugs: attribute.visibility.gradeSlugs }
+            : {}),
+          ...(attribute.visibility.attributeSlug
+            ? { attributeSlug: attribute.visibility.attributeSlug }
+            : {}),
+          ...(attribute.visibility.optionValues
+            ? { optionValues: attribute.visibility.optionValues }
+            : {}),
+        }
+      : undefined,
+    cardPosition: attribute.cardPosition ?? "title-chips",
+  };
+}
+
+function legacyVariantImagesFromLean(product: ProductLean) {
+  return asArray<VariantAttributes>(product.variants).map((variant) => {
+    const raw = variant as VariantAttributes & { images?: unknown };
+    return {
+      gradeSlug: asString(variant.gradeSlug),
+      images: asArray<unknown>(raw.images)
+        .map(coerceStoredImage)
+        .filter((image): image is StoredImage => image !== null),
+    };
+  });
+}
+
+function toStorefrontVariant(
+  variant: VariantAttributes,
+  gradeImages: ProductGradeImagesEntry[],
+  legacyVariants: ReturnType<typeof legacyVariantImagesFromLean>,
+): StorefrontVariant {
+  const gradeSlug = asString(variant.gradeSlug);
+  return {
+    id: objectIdString(variant._id),
+    gradeSlug,
+    priceRupees: asNumber(variant.priceRupees),
     quantity: variant.quantity ?? 0,
-    warrantyMonths: variant.warrantyMonths,
-    images: variant.images ?? [],
+    warrantyDays: resolveWarrantyDays(variant),
+    images: imagesForProductGrade(gradeSlug, gradeImages, legacyVariants),
     attributes: variant.attributes ?? {},
+    attributeDisplay: variant.attributeDisplay,
   };
 }
 
 /**
- * Product → public Product. Caller supplies the brand-slug → brand-name
+ * Product → public Product. Caller supplies the category+brand → brand-name
  * map so we don't issue an N+1 against the Brand collection.
  *
  * Returns `null` when the brand reference is broken — the storefront
@@ -85,48 +165,79 @@ function toStorefrontVariant(variant: VariantAttributes): StorefrontVariant {
  */
 export function toStorefrontProduct(
   product: ProductLean,
-  brandsBySlug: Map<string, { slug: string; name: string }>,
+  brandsByCategoryAndSlug: Map<string, { slug: string; name: string }>,
 ): StorefrontProduct | null {
-  const brand = brandsBySlug.get(product.brandSlug);
+  const categorySlug = asString(product.categorySlug);
+  const brand = brandsByCategoryAndSlug.get(
+    `${categorySlug}:${asString(product.brandSlug)}`,
+  );
   if (!brand) {
     return null;
   }
 
+  const persistedGradeImages = asArray<
+    NonNullable<ProductAttributes["gradeImages"]>[number]
+  >(product.gradeImages)
+    .map((entry) => ({
+      gradeSlug: asString(entry?.gradeSlug),
+      images: asArray<unknown>(entry?.images)
+        .map(coerceStoredImage)
+        .filter((image): image is StoredImage => image !== null),
+    }))
+    .filter((entry) => entry.gradeSlug.length > 0 && entry.images.length > 0);
+
+  const legacyVariants = legacyVariantImagesFromLean(product);
+  const gradeImages =
+    persistedGradeImages.length > 0
+      ? persistedGradeImages
+      : deriveGradeImagesFromVariants(legacyVariants);
+
   return {
-    id: product._id.toString(),
-    slug: product.slug,
-    name: product.name,
+    id: objectIdString(product._id),
+    slug: asString(product.slug),
+    name: asString(product.name),
     brandSlug: brand.slug,
     brandName: brand.name,
-    categorySlug: product.categorySlug,
-    isFeatured: product.isFeatured,
-    variants: (product.variants ?? []).map(toStorefrontVariant),
+    categorySlug,
+    isFeatured: product.isFeatured ?? false,
+    gradeImages,
+    variants: asArray<VariantAttributes>(product.variants).map((variant) =>
+      toStorefrontVariant(variant, gradeImages, legacyVariants),
+    ),
+    seo: product.seo,
   };
 }
 
 export function toStorefrontOffer(offer: OfferLean): StorefrontOffer {
+  const description = asString(offer.description);
+  const content = normalizeStructuredContent(offer.content, description);
   return {
-    id: offer._id.toString(),
-    slug: offer.slug,
-    title: offer.title,
-    description: offer.description,
-    discountLabel: offer.discountLabel,
+    id: objectIdString(offer._id),
+    slug: asString(offer.slug),
+    title: asString(offer.title),
+    description,
+    discountLabel: asString(offer.discountLabel),
     expiresAt: offer.expiresAt
-      ? offer.expiresAt.toISOString()
-      : new Date().toISOString(),
-    color: offer.color,
-    badgeLabel: offer.badgeLabel,
-    bannerImage: offer.bannerImage,
+      ? toIsoDate(offer.expiresAt)
+      : toIsoDate(new Date()),
+    color: asString(offer.color, "#f59e0b"),
+    badgeLabel: asString(offer.badgeLabel),
+    bannerImage: isStoredImage(offer.bannerImage) ? offer.bannerImage : undefined,
+    content: hasStructuredContent(content) ? content : undefined,
+    seo: offer.seo,
   };
 }
 
 export function toStorefrontGrade(grade: GradeLean): GradeDescriptor {
+  const notes = asString(grade.notes);
+  const content = normalizeStructuredContent(grade.content, notes);
   return {
-    categorySlug: grade.categorySlug,
-    slug: grade.slug,
-    label: grade.label,
-    notes: grade.notes,
-    color: grade.color,
+    categorySlug: asString(grade.categorySlug),
+    slug: asString(grade.slug),
+    label: asString(grade.label),
+    notes,
+    color: asString(grade.color),
     video: grade.video || undefined,
+    content: hasStructuredContent(content) ? content : undefined,
   };
 }

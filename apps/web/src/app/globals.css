@@ -679,6 +679,50 @@ html {
   color: var(--color-accent-700);
 }
 
+/* Product detail — warmer page shell; tighter rhythm than default app-section gaps. */
+.pdp-shell {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-canvas-deep) 50%, var(--color-canvas)) 0%,
+    var(--color-canvas) 22%,
+    var(--color-canvas) 100%
+  );
+}
+
+.pdp-content > .app-section,
+.pdp-content .app-section {
+  margin-top: 0;
+}
+
+.pdp-content > * + * {
+  margin-top: 1.25rem;
+}
+
+@media (min-width: 48rem) {
+  .pdp-content > * + * {
+    margin-top: 2rem;
+  }
+}
+
+.pdp-related-panel {
+  border: 1px solid var(--color-ink-100);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--color-accent-50) 70%, var(--color-surface)) 0%,
+    var(--color-surface) 45%,
+    color-mix(in srgb, var(--color-canvas-deep) 35%, var(--color-surface)) 100%
+  );
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 48rem) {
+  .pdp-related-panel {
+    padding: 1.5rem 1.75rem;
+  }
+}
+
 .app-list {
   display: flex;
   flex-direction: column;

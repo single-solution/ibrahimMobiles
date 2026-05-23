@@ -28,13 +28,14 @@ import {
 } from "@/lib/serializers/product";
 import { recordActivity } from "@/lib/services/activityLog";
 import { PRODUCT_FIELD_LIMITS } from "@/lib/api/fieldLimits";
+import { parseSeoPayload } from "@/lib/api/seoPayload";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const { response } = await requireSession();
+  const { response } = await requireSession("product_view");
   if (response) {
     return response;
   }
@@ -50,7 +51,10 @@ export async function GET(_request: Request, { params }: RouteContext) {
     return notFound("Product not found");
   }
 
-  const brand = await Brand.findOne({ slug: doc.brandSlug }).lean<BrandLean>();
+  const brand = await Brand.findOne({
+    slug: doc.brandSlug,
+    categorySlugs: doc.categorySlug,
+  }).lean<BrandLean>();
   return ok(toProductResponse(doc, brand ?? undefined));
 }
 
@@ -62,6 +66,7 @@ interface ProductUpdateInput {
   isFeatured?: unknown;
   isActive?: unknown;
   isArchived?: unknown;
+  seo?: unknown;
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -97,18 +102,10 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
   if (typeof body.brandSlug === "string" && body.brandSlug.length > 0) {
     const slug = slugify(body.brandSlug, 64);
-    await connectDB();
-    if (!(await Brand.exists({ slug }))) {
-      return badRequest(`Brand '${slug}' does not exist.`);
-    }
     update.brandSlug = slug;
   }
   if (typeof body.categorySlug === "string" && body.categorySlug.length > 0) {
     const slug = slugify(body.categorySlug, 64);
-    await connectDB();
-    if (!(await Category.exists({ slug }))) {
-      return badRequest(`Category '${slug}' does not exist.`);
-    }
     update.categorySlug = slug;
   }
   if (body.isFeatured !== undefined) {
@@ -120,6 +117,15 @@ export async function PUT(request: Request, { params }: RouteContext) {
   if (body.isArchived !== undefined) {
     update.isArchived = Boolean(body.isArchived);
   }
+  if (body.seo !== undefined) {
+    const parsed = parseSeoPayload(body.seo);
+    if ("response" in parsed) {
+      return parsed.response;
+    }
+    if ("seo" in parsed) {
+      update.seo = parsed.seo;
+    }
+  }
 
   if (Object.keys(update).length === 0) {
     return badRequest("No fields to update.");
@@ -127,6 +133,29 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   await connectDB();
   try {
+    const current = await Product.findById(id)
+      .select("categorySlug brandSlug")
+      .lean<{ categorySlug: string; brandSlug: string }>();
+    if (!current) {
+      return notFound("Product not found");
+    }
+    const categorySlug = typeof update.categorySlug === "string"
+      ? update.categorySlug
+      : current.categorySlug;
+    const brandSlug = typeof update.brandSlug === "string"
+      ? update.brandSlug
+      : current.brandSlug;
+    const [categoryExists, brandExists] = await Promise.all([
+      Category.exists({ slug: categorySlug }),
+      Brand.exists({ slug: brandSlug, categorySlugs: categorySlug }),
+    ]);
+    if (!categoryExists) {
+      return badRequest(`Category '${categorySlug}' does not exist.`);
+    }
+    if (!brandExists) {
+      return badRequest(`Brand '${brandSlug}' is not linked to this category.`);
+    }
+
     const doc = await Product.findByIdAndUpdate(
       id,
       { $set: update },
@@ -136,7 +165,10 @@ export async function PUT(request: Request, { params }: RouteContext) {
       return notFound("Product not found");
     }
 
-    const brand = await Brand.findOne({ slug: doc.brandSlug }).lean<BrandLean>();
+    const brand = await Brand.findOne({
+      slug: doc.brandSlug,
+      categorySlugs: doc.categorySlug,
+    }).lean<BrandLean>();
 
     await recordActivity({
       actor,

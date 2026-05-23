@@ -3,9 +3,11 @@ import {
   badRequest,
   created,
   isValidationError,
+  normalizeStructuredContent,
   ok,
   parseBody,
   slugify,
+  normalizeIconName,
   validateString,
 } from "@store/shared";
 import { Category, connectDB, handleMongoError } from "@store/db";
@@ -17,9 +19,10 @@ import {
   toCategoryResponse,
   type CategoryLean,
 } from "@/lib/serializers/category";
+import { parseSeoPayload } from "@/lib/api/seoPayload";
 
 export async function GET() {
-  const { response } = await requireSession();
+  const { response } = await requireSession("product_view");
   if (response) {
     return response;
   }
@@ -35,11 +38,11 @@ interface CategoryCreateInput {
   label?: unknown;
   description?: unknown;
   slug?: unknown;
-  iconKind?: unknown;
-  iconEmoji?: unknown;
-  iconImage?: unknown;
+  icon?: unknown;
   isActive?: unknown;
   sortOrder?: unknown;
+  content?: unknown;
+  seo?: unknown;
 }
 
 export async function POST(request: Request) {
@@ -77,36 +80,41 @@ export async function POST(request: Request) {
     return badRequest("Slug could not be derived from label.");
   }
 
-  // Icon — exactly one of `iconEmoji` or `iconImage` (StoredImage payload).
-  const iconKind = body.iconKind === "image" ? "image" : "emoji";
-  if (iconKind === "emoji") {
-    if (typeof body.iconEmoji !== "string" || body.iconEmoji.length === 0) {
-      return badRequest("Emoji is required when iconKind is 'emoji'.");
+  const icon = normalizeIconName(body.icon);
+
+  let seo: Record<string, unknown> | undefined;
+  if (body.seo !== undefined) {
+    const parsed = parseSeoPayload(body.seo);
+    if ("response" in parsed) {
+      return parsed.response;
     }
-  } else {
-    if (
-      body.iconImage === null ||
-      typeof body.iconImage !== "object" ||
-      body.iconImage === undefined
-    ) {
-      return badRequest("iconImage is required when iconKind is 'image'.");
+    if ("seo" in parsed) {
+      seo = parsed.seo as Record<string, unknown>;
     }
   }
 
   await connectDB();
   try {
+    const lastCategory = await Category.findOne()
+      .sort({ sortOrder: -1 })
+      .select("sortOrder")
+      .lean<{ sortOrder?: number }>();
+    const nextSortOrder =
+      typeof lastCategory?.sortOrder === "number"
+        ? lastCategory.sortOrder + 1
+        : 0;
+    const content = normalizeStructuredContent(body.content, descriptionResult);
     const payload: Record<string, unknown> = {
       slug,
       label: labelResult,
-      description: descriptionResult,
-      iconKind,
+      description: content.summary || descriptionResult,
+      icon,
       isActive: body.isActive !== false,
-      sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : 0,
+      sortOrder: nextSortOrder,
+      content,
     };
-    if (iconKind === "emoji") {
-      payload.iconEmoji = body.iconEmoji;
-    } else {
-      payload.iconImage = body.iconImage;
+    if (seo) {
+      payload.seo = seo;
     }
     const doc = await Category.create(payload);
 

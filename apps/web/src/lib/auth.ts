@@ -23,6 +23,7 @@ import {
 
 import { authConfig } from "@/lib/authConfig";
 import { verifyCode } from "@/lib/otp/service";
+import { claimInquiriesForCustomer } from "@/lib/server/inquiryClaim";
 
 const OTP_RATE_LIMIT_SCOPE = "auth:customer-otp";
 /**
@@ -96,6 +97,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           },
           { new: true, upsert: true },
         );
+        await claimInquiriesForCustomer({
+          customerId: customer._id,
+          phoneNumber: customer.phoneNumber,
+        });
 
         clearRateLimit(OTP_RATE_LIMIT_SCOPE, `${ip}:${fingerprint}`);
 

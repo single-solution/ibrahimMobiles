@@ -1,0 +1,82 @@
+import type { Product, StorefrontVariant } from "@store/shared";
+
+import {
+  GRADE_DIMENSION_KEY,
+  resolveProductVariantFromSearch,
+  resolveProductVariantFromSelection,
+  selectionFromVariant,
+} from "@/lib/catalog/pdpSelection";
+import { getDefaultVariant } from "@/lib/productSummary";
+
+/**
+ * Build `/shop/<categorySlug>/<slug>` with human-readable configuration params
+ * (`?grade=…&storage=…`) instead of opaque variant ids.
+ */
+export function productHref(
+  product: Pick<Product, "categorySlug" | "slug">,
+  options?: {
+    selection?: Record<string, string>;
+    variant?: StorefrontVariant;
+  },
+): string {
+  const base = `/shop/${product.categorySlug}/${product.slug}`;
+  const selection =
+    options?.selection ??
+    (options?.variant ? selectionFromVariant(options.variant) : undefined);
+  if (!selection || !hasSelectionValues(selection)) {
+    return base;
+  }
+  const params = new URLSearchParams();
+  const grade = selection[GRADE_DIMENSION_KEY];
+  if (grade) {
+    params.set("grade", grade);
+  }
+  for (const [key, value] of Object.entries(selection)) {
+    if (key === GRADE_DIMENSION_KEY || !value) {
+      continue;
+    }
+    params.set(key, value);
+  }
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
+}
+
+function hasSelectionValues(selection: Record<string, string>): boolean {
+  return Object.values(selection).some((value) => Boolean(value));
+}
+
+/** Resolve the active variant from URL search params (server or client). */
+export function resolveProductVariant(
+  product: Product,
+  search: { [key: string]: string | string[] | undefined },
+  categoryAttributeSlugs: string[],
+): StorefrontVariant {
+  return resolveProductVariantFromSearch(product, search, categoryAttributeSlugs);
+}
+
+/** Absolute PDP URL for metadata, JSON-LD, and breadcrumbs. */
+export function productAbsoluteUrl(
+  siteUrl: string,
+  product: Pick<Product, "categorySlug" | "slug">,
+  options?: {
+    selection?: Record<string, string>;
+    variant?: StorefrontVariant;
+  },
+): string {
+  const path = productHref(product, options);
+  const origin = siteUrl.replace(/\/$/, "");
+  return `${origin}${path}`;
+}
+
+/** Build href + resolved variant from a partial or full configuration. */
+export function productHrefForSelection(
+  product: Product,
+  selection: Record<string, string>,
+): { href: string; variant: StorefrontVariant } {
+  const variant = resolveProductVariantFromSelection(product, selection);
+  const normalized = selectionFromVariant(variant);
+  return {
+    href: productHref(product, { selection: normalized }),
+    variant,
+  };
+}

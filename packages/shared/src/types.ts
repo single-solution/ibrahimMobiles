@@ -11,7 +11,10 @@
  * reference collections loaded through `storefrontReferenceContext`.
  */
 
+import type { ProductGradeImagesEntry } from "./catalog/gradeImages";
+import type { SeoMeta } from "./seo/seoMeta";
 import type { StoredImage } from "./storage/types";
+import type { StructuredContent } from "./structuredContent";
 
 // ============================================================================
 // Brands
@@ -22,6 +25,8 @@ export interface Brand {
   name: string;
   /** Number of in-stock products that reference this brand. */
   productCount: number;
+  /** Optional admin SEO overrides (auto-filled when absent). */
+  seo?: SeoMeta;
 }
 
 // ============================================================================
@@ -43,6 +48,32 @@ export interface GradeDescriptor {
   color: string;
   /** Optional inspection video URL (Vercel Blob). */
   video?: string;
+  /** Optional structured copy (summary + icon-tagged bullets). */
+  content?: StructuredContent;
+}
+
+export interface AttributeOptionDescriptor {
+  value: string;
+  label: string;
+  backgroundColor?: string;
+}
+
+export type AttributeCardPosition = "image-overlay" | "title-chips" | "none";
+
+import type { AttributeVisibility } from "./attributeVisibility";
+
+export type { AttributeVisibility, AttributeVisibilityType } from "./attributeVisibility";
+
+export interface AttributeDescriptor {
+  categorySlug: string;
+  slug: string;
+  label: string;
+  /** Shared unit for all options (e.g. "gb"). */
+  unit?: string;
+  options: AttributeOptionDescriptor[];
+  visibility?: AttributeVisibility;
+  backgroundColor?: string;
+  cardPosition: AttributeCardPosition;
 }
 
 // ============================================================================
@@ -56,15 +87,20 @@ export interface StorefrontVariant {
   priceRupees: number;
   /** Current in-stock count. `>0` is "available". */
   quantity: number;
+  /** Warranty length in whole days (authoring + storefront). */
+  warrantyDays?: number;
+  /** @deprecated Read via {@link resolveWarrantyDays}; new data uses `warrantyDays`. */
   warrantyMonths?: number;
-  /** Ordered gallery — index `0` is the hero. */
+  /** Ordered gallery — index `0` is the hero. Derived from product `gradeImages`. */
   images: StoredImage[];
   /**
    * Per-attribute chosen option value. Keys are `Attribute.slug`
    * (scoped by the product's category); values are the option `value`
    * string. Render labels by joining against the Attribute collection.
    */
-  attributes: Record<string, string>;
+  attributes: Record<string, string | string[]>;
+  /** Display labels for product-only custom attribute values (keyed by attribute slug). */
+  attributeDisplay?: Record<string, string>;
 }
 
 export interface Product {
@@ -75,11 +111,12 @@ export interface Product {
   brandName: string;
   categorySlug: string;
   isFeatured: boolean;
+  /** One gallery per grade; source of truth for PDP photos. */
+  gradeImages?: ProductGradeImagesEntry[];
   variants: StorefrontVariant[];
+  /** Optional admin SEO overrides (auto-filled when absent). */
+  seo?: SeoMeta;
 }
-
-/** Loose alias used by cart lines, order items, and similar carriers. */
-export type AnyVariant = StorefrontVariant;
 
 // ============================================================================
 // Offers
@@ -96,4 +133,8 @@ export interface Offer {
   color: string;
   badgeLabel: string;
   bannerImage?: StoredImage;
+  /** Optional structured copy (summary + icon-tagged bullets). */
+  content?: StructuredContent;
+  /** Optional admin SEO overrides (auto-filled when absent). */
+  seo?: SeoMeta;
 }

@@ -34,10 +34,4 @@ export async function register(): Promise<void> {
     // The connection helper logs its own errors; swallow here so an
     // intermittent boot-time blip doesn't unhandled-reject the worker.
   });
-
-  // Ensure the Grade + Category reference docs exist so the storefront has
-  // something to render and the admin has rows to edit. Idempotent via
-  // `$setOnInsert` — existing admin edits are never overwritten. Fire-and-
-  // forget so a slow Atlas connect can't slow down boot.
-  void db.ensureReferenceData();
 }

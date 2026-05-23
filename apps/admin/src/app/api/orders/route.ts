@@ -13,7 +13,7 @@ import {
 const ALLOWED_STATUSES = new Set<string>(ORDER_STATUSES);
 
 export async function GET(request: Request) {
-  const { response } = await requireSession();
+  const { response } = await requireSession("order_view");
   if (response) {
     return response;
   }

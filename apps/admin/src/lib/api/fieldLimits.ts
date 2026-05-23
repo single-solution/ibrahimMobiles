@@ -38,8 +38,8 @@ export const GRADE_FIELD_LIMITS = {
 
 export const ATTRIBUTE_FIELD_LIMITS = {
   label: 80,
-  optionValue: 60,
   optionLabel: 80,
+  unit: 20,
   /** Cap on number of options stored per attribute — mirrors UI list cap. */
   optionCount: 32,
 } as const;

@@ -1,5 +1,5 @@
 /**
- * Public order placement.
+ * Authenticated storefront order placement.
  *
  * Critical security/UX rules:
  *
@@ -9,13 +9,12 @@
  *   - **Never trust stock state.** Every variant must currently be
  *     `isInStock: true`; otherwise the whole order is rejected with 409.
  *     Reserving stock is admin's responsibility once they confirm payment.
- *   - **Customer dedup is by phone.** Same phone → same Customer document,
- *     regardless of name capitalisation differences. Address lines are kept
- *     fresh on the existing customer record when the caller supplies one.
+ *   - **Customer identity comes from the session.** The client can submit a
+ *     display name/address, but never chooses the customer record.
  *   - **Order numbers are unique even under contention.** A retry loop
  *     handles the rare same-second collision.
  *   - **Body & rate limits.** parseBody enforces a fixed body cap;
- *     enforcePublicRateLimit caps placements per IP+phone within the
+ *     enforcePublicRateLimit caps placements per signed-in customer within the
  *     short-burst window (see SHORT_BURST_WINDOW_MS).
  *
  * Loyalty points are earned only when the order transitions to `delivered`,
@@ -30,9 +29,12 @@ import {
   connectDB,
   createWithUniqueOrderNumber,
   Customer,
+  LoyaltyAccount,
   Order,
   Product,
   getStoreSettings,
+  type CustomerAddressAttributes,
+  type CustomerAttributes,
   type DeliveryMethod,
   type PaymentMethod,
   type ProductAttributes,
@@ -47,14 +49,19 @@ import {
   isValidId,
   isValidationError,
   logger,
+  maxRedeemable,
   parseBody,
   pointsEarnedFor,
+  pointsToRupees,
   serverError,
   SHORT_BURST_WINDOW_MS,
+  unauthorized,
   validateString,
 } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
+import { enforceSameOrigin } from "@/lib/api/sameOrigin";
+import { auth } from "@/lib/auth";
 
 const ALLOWED_DELIVERY: ReadonlyArray<DeliveryMethod> = ["pickup", "courier"];
 const ALLOWED_PAYMENT: ReadonlyArray<PaymentMethod> = [
@@ -81,11 +88,11 @@ const PERCENT_DENOMINATOR = 100;
 
 /** Inclusive minimum length for the customer's full name on checkout. */
 const MIN_NAME_CHARS = 2;
-/** Inclusive minimum length for the customer's city on checkout. */
-const MIN_CITY_CHARS = 2;
 /** Inclusive minimum length for a customer phone number — short enough to
  *  accept landline-style sequences while rejecting obvious typos. */
 const MIN_PHONE_CHARS = 7;
+const DEFAULT_CUSTOMER_CITY = "Pakistan";
+const PLACEHOLDER_CUSTOMER_NAME_PATTERN = /^Customer\s+\d{4}$/;
 
 interface OrderItemBody {
   productId?: unknown;
@@ -95,8 +102,6 @@ interface OrderItemBody {
 
 interface AddressBody {
   recipientName?: unknown;
-  phoneNumber?: unknown;
-  city?: unknown;
   area?: unknown;
   street?: unknown;
   postalCode?: unknown;
@@ -104,8 +109,6 @@ interface AddressBody {
 
 interface CustomerBody {
   name?: unknown;
-  phoneNumber?: unknown;
-  city?: unknown;
 }
 
 interface OrderBody {
@@ -114,6 +117,9 @@ interface OrderBody {
   delivery?: unknown;
   payment?: unknown;
   address?: AddressBody;
+  loyalty?: {
+    redeemPoints?: unknown;
+  };
 }
 
 interface ResolvedItem {
@@ -123,51 +129,33 @@ interface ResolvedItem {
 }
 
 export async function POST(request: Request) {
+  const csrf = enforceSameOrigin(request);
+  if (csrf) {
+    return csrf;
+  }
+
+  const session = await auth();
+  if (!session?.user || session.user.role !== "customer" || !session.user.customerId) {
+    return unauthorized();
+  }
+  if (!isValidId(session.user.customerId)) {
+    return unauthorized();
+  }
+
   const parsed = await parseBody<OrderBody>(request);
   if (parsed instanceof Response) {
     return parsed;
   }
   const body = parsed;
 
-  const phoneRaw =
-    typeof body.customer?.phoneNumber === "string"
-      ? body.customer.phoneNumber.trim()
-      : "";
   const limited = enforcePublicRateLimit(request, {
     scope: "storefront-order",
-    identifier: phoneRaw || undefined,
+    identifier: session.user.phoneNumber ?? session.user.customerId,
     max: MAX_ORDERS_PER_WINDOW,
     windowMs: SHORT_BURST_WINDOW_MS,
   });
   if (limited) {
     return limited;
-  }
-
-  // Customer block.
-  const customer = body.customer ?? {};
-  const nameResult = validateString(customer.name, {
-    label: "Name",
-    min: MIN_NAME_CHARS,
-    max: FIELD_LIMITS.personName,
-  });
-  if (isValidationError(nameResult)) {
-    return badRequest(nameResult.error);
-  }
-  const phoneResult = validateString(customer.phoneNumber, {
-    label: "Phone",
-    min: MIN_PHONE_CHARS,
-    max: FIELD_LIMITS.phoneNumber,
-  });
-  if (isValidationError(phoneResult)) {
-    return badRequest(phoneResult.error);
-  }
-  const cityResult = validateString(customer.city, {
-    label: "City",
-    min: MIN_CITY_CHARS,
-    max: FIELD_LIMITS.city,
-  });
-  if (isValidationError(cityResult)) {
-    return badRequest(cityResult.error);
   }
 
   if (!isDeliveryMethod(body.delivery)) {
@@ -179,15 +167,6 @@ export async function POST(request: Request) {
   }
   const payment = body.payment;
 
-  // Address required for courier deliveries — we never ship without one.
-  let addressInput: ResolvedAddress | undefined;
-  if (delivery === "courier") {
-    addressInput = parseAddress(body.address);
-    if ("error" in addressInput) {
-      return badRequest(addressInput.error);
-    }
-  }
-
   // Items: at least one, at most MAX_LINES_PER_ORDER.
   if (!Array.isArray(body.items) || body.items.length === 0) {
     return badRequest("Cart cannot be empty.");
@@ -197,6 +176,53 @@ export async function POST(request: Request) {
   }
 
   await connectDB();
+
+  const existingCustomer = await Customer.findById(session.user.customerId).lean<
+    CustomerAttributes & { _id: Types.ObjectId }
+  >();
+  if (!existingCustomer) {
+    return unauthorized();
+  }
+
+  const customerNameInput =
+    typeof body.customer?.name === "string" && body.customer.name.trim().length > 0
+      ? body.customer.name
+      : existingCustomer.name;
+  const nameResult = validateString(customerNameInput, {
+    label: "Name",
+    min: MIN_NAME_CHARS,
+    max: FIELD_LIMITS.personName,
+  });
+  if (isValidationError(nameResult)) {
+    return badRequest(nameResult.error);
+  }
+  if (PLACEHOLDER_CUSTOMER_NAME_PATTERN.test(nameResult)) {
+    return badRequest("Please enter your full name before placing the order.");
+  }
+
+  const phoneResult = validateString(existingCustomer.phoneNumber, {
+    label: "Phone",
+    min: MIN_PHONE_CHARS,
+    max: FIELD_LIMITS.phoneNumber,
+  });
+  if (isValidationError(phoneResult)) {
+    return badRequest(phoneResult.error);
+  }
+
+  const cityResult = resolveCustomerCity(existingCustomer.city);
+
+  // Address required for courier deliveries — we never ship without one.
+  let addressInput: ResolvedAddress | undefined;
+  if (delivery === "courier") {
+    addressInput = parseAddress(body.address, {
+      fallbackName: nameResult,
+      fallbackPhone: phoneResult,
+      fallbackCity: cityResult,
+    });
+    if ("error" in addressInput) {
+      return badRequest(addressInput.error);
+    }
+  }
 
   // Validate each cart line and collect IDs in one pass so we can run a
   // single `find($in)` round-trip below instead of N per-line queries.
@@ -253,7 +279,7 @@ export async function POST(request: Request) {
       return conflict(`Variant not found on ${product.name}.`);
     }
     if ((variant.quantity ?? 0) <= 0) {
-      return conflict(`${product.name} is out of stock.`);
+      return conflict(`${product.name} is sold out.`);
     }
     if (variant.quantity < line.quantity) {
       return conflict(
@@ -287,16 +313,45 @@ export async function POST(request: Request) {
         ? 0
         : COURIER_FLAT_FEE_RUPEES
       : 0;
-  const totalRupees = Math.max(0, subtotalRupees - discountRupees + shippingRupees);
+  const requestedRedeemPoints = Number(body.loyalty?.redeemPoints ?? 0);
+  if (!Number.isFinite(requestedRedeemPoints) || requestedRedeemPoints < 0) {
+    return badRequest("Redeemed points must be a positive number.");
+  }
+  const loyaltyAccount =
+    requestedRedeemPoints > 0
+      ? await LoyaltyAccount.findOne({ customerId: existingCustomer._id })
+      : null;
+  if (requestedRedeemPoints > 0 && !loyaltyAccount) {
+    return badRequest("No loyalty balance is available for this customer.");
+  }
+  const pointsRedeemed = requestedRedeemPoints
+    ? Math.floor(requestedRedeemPoints)
+    : 0;
+  const maxRedeemablePoints = loyaltyAccount
+    ? maxRedeemable(subtotalRupees, loyaltyAccount.balance)
+    : 0;
+  if (pointsRedeemed > maxRedeemablePoints) {
+    return badRequest(`You can redeem up to ${maxRedeemablePoints} points on this order.`);
+  }
+  const pointsRedeemedRupees = pointsToRupees(pointsRedeemed);
+  const totalRupees = Math.max(
+    0,
+    subtotalRupees - discountRupees + shippingRupees - pointsRedeemedRupees,
+  );
 
-  // Customer dedup. Same phone always maps to the same Customer record.
-  const customerDoc = await Customer.findOneAndUpdate(
-    { phoneNumber: phoneResult },
+  const nextAddresses =
+    addressInput && "value" in addressInput
+      ? mergeCheckoutAddress(existingCustomer.addresses ?? [], addressInput.value)
+      : existingCustomer.addresses ?? [];
+
+  const customerDoc = await Customer.findByIdAndUpdate(
+    existingCustomer._id,
     {
-      $setOnInsert: { phoneNumber: phoneResult, addresses: [], isLoyaltyMember: false },
-      $set: { name: nameResult, city: cityResult },
+      name: nameResult,
+      city: cityResult,
+      ...(addressInput && "value" in addressInput ? { addresses: nextAddresses } : {}),
     },
-    { new: true, upsert: true, setDefaultsOnInsert: true },
+    { new: true, runValidators: true },
   ).lean<{ _id: Types.ObjectId; isLoyaltyMember: boolean }>();
 
   if (!customerDoc) {
@@ -348,17 +403,30 @@ export async function POST(request: Request) {
           },
         ],
         pointsEarned,
-        pointsRedeemed: 0,
+        pointsRedeemed,
         placedAt: new Date(),
       });
       return doc;
     });
+
+    if (pointsRedeemed > 0 && loyaltyAccount) {
+      loyaltyAccount.balance -= pointsRedeemed;
+      loyaltyAccount.transactions.push({
+        kind: "redeem",
+        amount: pointsRedeemed,
+        occurredAt: new Date(),
+        reason: "Redeemed during storefront checkout.",
+        orderRef: createdOrder.orderNumber,
+      });
+      await loyaltyAccount.save();
+    }
 
     return created({
       id: createdOrder._id.toString(),
       orderNumber: createdOrder.orderNumber,
       totalRupees,
       pointsEarned,
+      pointsRedeemed,
     });
   } catch (error) {
     logger.error({ error }, "Failed to create storefront order");
@@ -382,33 +450,26 @@ interface ResolvedAddressError {
 }
 type ResolvedAddress = ResolvedAddressOk | ResolvedAddressError;
 
-function parseAddress(input: AddressBody | undefined): ResolvedAddress {
+interface AddressFallbacks {
+  fallbackName: string;
+  fallbackPhone: string;
+  fallbackCity: string;
+}
+
+function parseAddress(
+  input: AddressBody | undefined,
+  fallbacks: AddressFallbacks,
+): ResolvedAddress {
   if (!input) {
     return { error: "Delivery address is required for courier orders." };
   }
-  const recipient = validateString(input.recipientName, {
+  const recipient = validateString(input.recipientName || fallbacks.fallbackName, {
     label: "Recipient name",
     min: 2,
     max: FIELD_LIMITS.recipientName,
   });
   if (isValidationError(recipient)) {
     return { error: recipient.error };
-  }
-  const phone = validateString(input.phoneNumber, {
-    label: "Address phone",
-    min: 7,
-    max: FIELD_LIMITS.phoneNumber,
-  });
-  if (isValidationError(phone)) {
-    return { error: phone.error };
-  }
-  const city = validateString(input.city, {
-    label: "Address city",
-    min: 2,
-    max: FIELD_LIMITS.city,
-  });
-  if (isValidationError(city)) {
-    return { error: city.error };
   }
 
   let area: string | undefined;
@@ -451,8 +512,8 @@ function parseAddress(input: AddressBody | undefined): ResolvedAddress {
   return {
     value: {
       recipientName: recipient,
-      phoneNumber: phone,
-      city,
+      phoneNumber: fallbacks.fallbackPhone,
+      city: fallbacks.fallbackCity,
       area,
       street,
       postalCode,
@@ -460,11 +521,43 @@ function parseAddress(input: AddressBody | undefined): ResolvedAddress {
   };
 }
 
+function resolveCustomerCity(city: string | undefined): string {
+  const trimmed = city?.trim();
+  if (!trimmed || trimmed === "—") {
+    return DEFAULT_CUSTOMER_CITY;
+  }
+  return trimmed.slice(0, FIELD_LIMITS.city);
+}
+
+function mergeCheckoutAddress(
+  addresses: CustomerAddressAttributes[],
+  checkoutAddress: ResolvedAddressOk["value"],
+): CustomerAddressAttributes[] {
+  const nextAddress: CustomerAddressAttributes = {
+    ...checkoutAddress,
+    label: "Checkout",
+    isDefault: true,
+  };
+  if (addresses.length === 0) {
+    return [nextAddress];
+  }
+  const defaultIndex = addresses.findIndex((address) => address.isDefault);
+  const replaceIndex = defaultIndex >= 0 ? defaultIndex : 0;
+  return addresses.map((address, index) =>
+    index === replaceIndex
+      ? nextAddress
+      : {
+          ...address,
+          isDefault: false,
+        },
+  );
+}
+
 /**
  * Build a human-readable variant summary for the order item — admins read
  * this in the admin order list, customers see it on their receipt.
  *
- * Phase 1: variant differentiators live on the generic `attributes` map
+ * Phase 1: variant differentiators live on the admin-defined `attributes` map
  * (admin-defined per category). We join the attribute *values* in
  * insertion order followed by the grade slug; the storefront has the
  * actual `Grade.label` cached and uses it on the order detail page.

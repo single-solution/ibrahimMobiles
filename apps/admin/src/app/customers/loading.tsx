@@ -6,12 +6,7 @@ const CUSTOMERS_ROW_COUNT = 12;
 
 export default function CustomersLoading() {
   return (
-    <AdminPageSkeleton
-      label="Loading customers"
-      eyebrowWidthClass="w-12"
-      titleWidthClass="w-36"
-      hasDescription
-    >
+    <AdminPageSkeleton label="Loading customers">
       <AdminTableSkeleton
         columnCount={CUSTOMERS_COLUMN_COUNT}
         rowCount={CUSTOMERS_ROW_COUNT}

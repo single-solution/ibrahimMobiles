@@ -7,12 +7,18 @@
  */
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import type { StoredImage } from "@store/shared";
+
+import { coloredPillStyle } from "@store/shared";
 
 import { Drawer } from "@/components/Drawer";
 import { PreviewPanel } from "@/components/categories/previewPanel";
 import { useToast } from "@/components/Toast";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import {
+  getImageDraftKey,
+  getImageDraftUrl,
+  type ImageDraft,
+} from "@/components/uploads/imageDraft";
 import type {
   AdminAttribute,
   AdminCategory,
@@ -23,10 +29,14 @@ import type {
 
 import { VariantCard } from "./VariantCard";
 import {
+  adminVariantToDraft,
   emptyVariantDraft,
   errorsByPath,
+  mergeVariantDraftAttributes,
+  validateVariantDrafts,
   type VariantDraft,
   type ProductValidationError,
+  type CategorySurface,
 } from "./productFormState";
 
 interface VariantEditorProps {
@@ -39,18 +49,6 @@ interface VariantEditorProps {
   mode: "create" | "edit";
   variant: AdminVariant | null;
   onSaved: (product: AdminProduct) => void;
-}
-
-function variantToDraft(variant: AdminVariant): VariantDraft {
-  return {
-    uid: variant.id,
-    gradeSlug: variant.gradeSlug,
-    priceRupees: variant.priceRupees,
-    quantity: variant.quantity,
-    warrantyMonths: variant.warrantyMonths ?? null,
-    images: variant.images,
-    attributes: { ...variant.attributes },
-  };
 }
 
 export function VariantEditor({
@@ -66,7 +64,7 @@ export function VariantEditor({
 }: VariantEditorProps) {
   const toast = useToast();
   const [draft, setDraft] = useState<VariantDraft>(() =>
-    variant ? variantToDraft(variant) : emptyVariantDraft(),
+    variant ? adminVariantToDraft(variant) : emptyVariantDraft(),
   );
   const [errors, setErrors] = useState<ProductValidationError[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -74,65 +72,43 @@ export function VariantEditor({
   useEffect(() => {
     if (!isOpen) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset form on drawer open; the drawer is the external system here
-    setDraft(variant ? variantToDraft(variant) : emptyVariantDraft());
+    setDraft(variant ? adminVariantToDraft(variant) : emptyVariantDraft());
     setErrors([]);
   }, [isOpen, variant]);
 
   const deferredDraft = useDeferredValue(draft);
   const errorMap = useMemo(() => errorsByPath(errors), [errors]);
-  const activeAttributes = useMemo(
-    () => attributes.filter((attr) => attr.isActive),
-    [attributes],
-  );
-
-  function validate(current: VariantDraft): ProductValidationError[] {
-    const local: ProductValidationError[] = [];
-    if (!current.gradeSlug) {
-      local.push({ path: "variants.0.gradeSlug", message: "Pick a grade." });
-    }
-    if (current.images.length === 0) {
-      local.push({
-        path: "variants.0.images",
-        message: "Add at least one image.",
-      });
-    }
-    if (!Number.isInteger(current.priceRupees) || current.priceRupees < 0) {
-      local.push({
-        path: "variants.0.priceRupees",
-        message: "Price must be a non-negative whole number.",
-      });
-    }
-    if (!Number.isInteger(current.quantity) || current.quantity < 0) {
-      local.push({
-        path: "variants.0.quantity",
-        message: "Quantity must be a non-negative whole number.",
-      });
-    }
-    if (
-      current.warrantyMonths !== null &&
-      (!Number.isInteger(current.warrantyMonths) || current.warrantyMonths < 0)
-    ) {
-      local.push({
-        path: "variants.0.warrantyMonths",
-        message: "Warranty months must be a non-negative whole number.",
-      });
-    }
-    for (const attr of activeAttributes) {
-      if (!current.attributes[attr.slug]) {
-        local.push({
-          path: `variants.0.attributes.${attr.slug}`,
-          message: `Select a ${attr.label.toLowerCase()}.`,
-        });
+  const gradePreviewImages = useMemo(() => {
+    if (!draft.gradeSlug) return [];
+    return (
+      product.gradeImages.find((row) => row.gradeSlug === draft.gradeSlug)
+        ?.images ?? []
+    );
+  }, [product.gradeImages, draft.gradeSlug]);
+  const surface: CategorySurface | null = category
+    ? {
+        category,
+        brands: [],
+        grades,
+        attributes,
       }
-    }
-    return local;
-  }
+    : null;
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (submitting) return;
-    const localErrors = validate(draft);
-    if (localErrors.length > 0) {
+    if (!surface) {
+      toast.danger("Category context is missing.");
+      return;
+    }
+    const validation = validateVariantDrafts(
+      [draft],
+      surface,
+      product.brand.slug,
+      () => "variants.0",
+    );
+    if (!validation.ok) {
+      const localErrors = validation.errors;
       setErrors(localErrors);
       toast.danger(
         localErrors.length === 1
@@ -143,17 +119,19 @@ export function VariantEditor({
     }
     setErrors([]);
     setSubmitting(true);
-    const payload: Record<string, unknown> = {
-      gradeSlug: draft.gradeSlug,
-      priceRupees: draft.priceRupees,
-      quantity: draft.quantity,
-      images: draft.images,
-      attributes: draft.attributes,
-    };
-    if (draft.warrantyMonths !== null) {
-      payload.warrantyMonths = draft.warrantyMonths;
-    }
     try {
+      const payload: Record<string, unknown> = {
+        gradeSlug: draft.gradeSlug,
+        priceRupees: draft.priceRupees,
+        quantity: draft.quantity,
+        attributes: mergeVariantDraftAttributes(draft),
+      };
+      if (draft.warrantyDays !== null) {
+        payload.warrantyDays = draft.warrantyDays;
+      }
+      if (draft.attributeDisplay && Object.keys(draft.attributeDisplay).length > 0) {
+        payload.attributeDisplay = draft.attributeDisplay;
+      }
       const updated =
         mode === "edit" && variant
           ? await adminFetch<AdminProduct>(
@@ -180,7 +158,7 @@ export function VariantEditor({
   }
 
   const grade = grades.find((g) => g.slug === deferredDraft.gradeSlug);
-  const hero = deferredDraft.images[0];
+  const hero = gradePreviewImages[0];
 
   return (
     <Drawer
@@ -223,10 +201,16 @@ export function VariantEditor({
           index={0}
           variant={draft}
           grades={grades}
-          attributes={activeAttributes}
+          attributes={attributes}
+          brandSlug={product.brand.slug}
           errorByPath={errorMap}
-          productNameForAlt={product.name}
-          onChange={setDraft}
+          allowMultiAttributeSelect
+          onChange={(next) => {
+            setDraft(next);
+            setErrors((prev) =>
+              prev.filter((row) => !row.path.startsWith("variants.0")),
+            );
+          }}
           onRemove={() => {
             /* removal happens from the parent variant list */
           }}
@@ -241,11 +225,7 @@ export function VariantEditor({
                     className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11.5px] font-semibold"
                     style={
                       grade
-                        ? {
-                            borderColor: grade.color,
-                            color: grade.color,
-                            backgroundColor: `${grade.color}15`,
-                          }
+                        ? coloredPillStyle(grade.color)
                         : undefined
                     }
                   >
@@ -264,7 +244,7 @@ export function VariantEditor({
             },
             {
               surfaceLabel: "Appears on: PDP gallery thumb strip",
-              body: <ThumbStripPreview images={deferredDraft.images} />,
+              body: <ThumbStripPreview images={gradePreviewImages as ImageDraft[]} />,
             },
             {
               surfaceLabel: "Appears on: Lightbox zoom",
@@ -277,7 +257,7 @@ export function VariantEditor({
   );
 }
 
-function ThumbStripPreview({ images }: { images: StoredImage[] }) {
+function ThumbStripPreview({ images }: { images: ImageDraft[] }) {
   if (images.length === 0) {
     return (
       <p className="p-3 text-[11.5px] italic text-[var(--color-ink-400)]">
@@ -289,12 +269,12 @@ function ThumbStripPreview({ images }: { images: StoredImage[] }) {
     <div className="flex gap-1.5 overflow-x-auto p-3">
       {images.slice(0, 8).map((image, index) => (
         <span
-          key={`${image.variants.thumb}-${index}`}
+          key={`${getImageDraftKey(image)}-${index}`}
           className="block size-14 shrink-0 overflow-hidden rounded-md border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]"
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- variant thumb preview */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- local/remote variant thumb preview */}
           <img
-            src={image.variants.thumb}
+            src={getImageDraftUrl(image, "thumb")}
             alt={image.alt}
             className="size-full object-cover"
           />
@@ -304,7 +284,7 @@ function ThumbStripPreview({ images }: { images: StoredImage[] }) {
   );
 }
 
-function LightboxPreview({ hero }: { hero: StoredImage | null }) {
+function LightboxPreview({ hero }: { hero: ImageDraft | null }) {
   if (!hero) {
     return (
       <p className="p-3 text-[11.5px] italic text-[var(--color-ink-400)]">
@@ -314,12 +294,12 @@ function LightboxPreview({ hero }: { hero: StoredImage | null }) {
   }
   return (
     <div className="bg-[var(--color-ink-900)] p-3">
-      <div className="aspect-[4/3] overflow-hidden rounded-md">
-        {/* eslint-disable-next-line @next/next/no-img-element -- lightbox preview */}
+      <div className="aspect-square overflow-hidden rounded-md">
+        {/* eslint-disable-next-line @next/next/no-img-element -- local/remote lightbox preview */}
         <img
-          src={hero.variants.full}
+          src={getImageDraftUrl(hero, "full")}
           alt={hero.alt}
-          className="size-full object-contain"
+          className="size-full object-cover"
         />
       </div>
     </div>

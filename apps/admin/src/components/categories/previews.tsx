@@ -12,18 +12,27 @@
  * typing doesn't stall the editor.
  */
 
-import Image from "next/image";
 import type { ReactNode } from "react";
-import type { StoredImage } from "@store/shared";
+import {
+  formatAttributeOptionLabel,
+  type IconName,
+  type StructuredContent,
+} from "@store/shared";
+import { ColoredPill } from "@/components/ColoredPill";
 
 import type {
   AdminAttribute,
   AdminAttributeOption,
   AdminBrand,
   AdminCategory,
-  AdminCategoryIconKind,
   AdminGrade,
 } from "@/types/admin";
+import { LucideIconRenderer } from "@/components/icons/LucideIconRenderer";
+import {
+  StructuredContentCompactPreview,
+  StructuredContentFullPreview,
+} from "@/components/forms/StructuredContentRenderer";
+import { formatRelativeDate } from "@store/shared";
 
 /* --------------------------------------------------------------------------
  * CategoryCardPreview — homepage category grid tile
@@ -32,29 +41,94 @@ import type {
 interface CategoryDraft {
   label: string;
   description: string;
-  iconKind: AdminCategoryIconKind;
-  iconEmoji?: string;
-  iconImage?: StoredImage;
+  icon: IconName;
   isActive: boolean;
+  content: StructuredContent;
 }
 
 export function CategoryCardPreview({ category }: { category: CategoryDraft }) {
+  const summary =
+    category.content?.summary?.trim() ||
+    category.description ||
+    "Describe the category so customers know what to expect.";
+  const bullets = category.content?.bullets ?? [];
   return (
-    <div className="flex items-center gap-3 rounded-md border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-3">
-      <CategoryIcon category={category} size={42} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[14px] font-semibold text-[var(--color-ink-900)]">
-          {category.label || "Untitled category"}
-        </p>
-        <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-[var(--color-ink-600)]">
-          {category.description || "Describe the category so customers know what to expect."}
+    <div className="relative flex min-h-[200px] flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-canvas-deep)] p-5">
+      <span
+        className="grid size-12 shrink-0 place-items-center rounded-[var(--radius-lg)] bg-[var(--color-surface)] text-[var(--color-ink-900)] shadow-[var(--shadow-sm)]"
+        aria-hidden
+      >
+        <LucideIconRenderer
+          name={category.icon}
+          size={22}
+          strokeWidth={2.2}
+        />
+      </span>
+      <div className="mt-4 flex flex-1 flex-col">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[20px] font-semibold tracking-tight text-[var(--color-ink-900)]">
+            {category.label || "Untitled category"}
+          </h3>
+          {!category.isActive && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)]/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-500)]">
+              Soon
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-[14px] leading-snug text-[var(--color-ink-700)]">{summary}</p>
+        {bullets.length > 0 && (
+          <StructuredContentFullPreview
+            content={{ summary: "", bullets }}
+            maxBullets={3}
+            iconColor="var(--color-accent-700)"
+            iconSizeClass="size-3"
+            iconSize={11}
+            className="mt-4"
+            bulletItemClassName="text-[12.5px] text-[var(--color-ink-700)]"
+          />
+        )}
+        <p className="mt-auto pt-4 text-[12.5px] font-semibold text-[var(--color-accent-700)]">
+          Browse {(category.label || "category").toLowerCase()} →
         </p>
       </div>
-      {!category.isActive && (
-        <span className="rounded-full bg-[var(--color-ink-100)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-500)]">
-          Hidden
-        </span>
-      )}
+    </div>
+  );
+}
+
+/** Compact shop-selector tile preview — icon, label, description (no bullets). */
+export function CategoryShopSelectorPreview({
+  category,
+}: {
+  category: CategoryDraft;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-2 p-3">
+      <div className="relative flex items-center gap-2.5 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3">
+        <LucideIconRenderer
+          name={category.icon}
+          size={22}
+          strokeWidth={2.2}
+          aria-hidden
+          className="shrink-0"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-semibold tracking-tight text-[var(--color-ink-900)]">
+            {category.label || "Category"}
+          </p>
+          <StructuredContentCompactPreview
+            content={category.content}
+            fallback={category.description || "Short category description."}
+            clampLines={2}
+            className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-[var(--color-ink-600)]"
+          />
+        </div>
+      </div>
+      <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]/40 p-3 text-[11px] italic text-[var(--color-ink-400)]">
+        sibling
+      </div>
+      <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]/40 p-3 text-[11px] italic text-[var(--color-ink-400)]">
+        sibling
+      </div>
     </div>
   );
 }
@@ -70,9 +144,16 @@ export function CategoryHeaderPreview({ category }: { category: CategoryDraft })
         <h1 className="text-[18px] font-semibold text-[var(--color-ink-900)]">
           {category.label || "Untitled"}
         </h1>
-        <p className="mt-0.5 text-[11.5px] text-[var(--color-ink-600)]">
-          {category.description || "Storefront tagline appears here."}
-        </p>
+        <StructuredContentFullPreview
+          content={category.content}
+          fallback={category.description || "Storefront tagline appears here."}
+          iconColor="var(--color-accent-700)"
+          iconSize={12}
+          iconSizeClass="size-3"
+          className="mt-0.5 text-[11.5px] text-[var(--color-ink-600)]"
+          bulletItemClassName="text-[11px] text-[var(--color-ink-700)]"
+          maxBullets={4}
+        />
       </div>
     </div>
   );
@@ -101,40 +182,20 @@ function CategoryIcon({
   size: number;
   compact?: boolean;
 }) {
-  const isImage = category.iconKind === "image" && category.iconImage;
-  if (isImage && category.iconImage) {
-    return (
-      <span
-        className="inline-block overflow-hidden rounded-md bg-[var(--color-surface)]"
-        style={{ width: size, height: size }}
-      >
-        <Image
-          src={category.iconImage.variants.thumb}
-          alt={category.iconImage.alt || category.label || "Category icon"}
-          width={category.iconImage.width}
-          height={category.iconImage.height}
-          placeholder={
-            category.iconImage.blurDataURL ? "blur" : "empty"
-          }
-          blurDataURL={category.iconImage.blurDataURL || undefined}
-          className="size-full object-cover"
-        />
-      </span>
-    );
-  }
-  const emoji = category.iconEmoji && category.iconEmoji.length > 0
-    ? category.iconEmoji
-    : "📦";
   return (
     <span
       className={
-        "inline-flex items-center justify-center rounded-md bg-[var(--color-surface)]" +
+        "inline-flex items-center justify-center rounded-md bg-[var(--color-surface)] text-[var(--color-ink-700)]" +
         (compact ? "" : " shadow-[var(--shadow-sm)]")
       }
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.55) }}
+      style={{ width: size, height: size }}
       aria-hidden
     >
-      {emoji}
+      <LucideIconRenderer
+        name={category.icon}
+        size={Math.round(size * 0.52)}
+        strokeWidth={2.2}
+      />
     </span>
   );
 }
@@ -204,19 +265,121 @@ interface GradeDraft {
   notes: string;
   color: string;
   video: string;
+  content: StructuredContent;
 }
 
 export function GradeBadgePreview({ grade }: { grade: GradeDraft }) {
   return (
     <div className="p-3">
-      <span
-        className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold uppercase tracking-[0.1em] text-white shadow-sm"
-        style={{ backgroundColor: grade.color }}
+      <ColoredPill
+        backgroundColor={grade.color || "#1f2937"}
+        className="gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold uppercase tracking-[0.1em] shadow-sm"
       >
         {grade.label || "Grade"}
-      </span>
+      </ColoredPill>
     </div>
   );
+}
+
+interface OfferDraft {
+  title: string;
+  discountLabel: string;
+  badgeLabel: string;
+  color: string;
+  expiresAt: string;
+  content: StructuredContent;
+}
+
+/** Mirrors `OfferCard` compact (`sm`) — homepage / list strip. */
+export function OfferCardCompactPreview({ offer }: { offer: OfferDraft }) {
+  const background = `linear-gradient(135deg, ${offer.color}, ${darkenHex(offer.color, 0.22)})`;
+  return (
+    <div
+      className="relative flex min-h-32 flex-col justify-between overflow-hidden rounded-[var(--radius-lg)] p-3.5 text-white"
+      style={{ background }}
+    >
+      <div className="relative flex items-center justify-between">
+        <span className="inline-flex rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white backdrop-blur">
+          {offer.badgeLabel || "Limited"}
+        </span>
+        <span className="text-[10px] text-white/85">
+          {offer.expiresAt ? formatRelativeDate(offer.expiresAt) : "No expiry"}
+        </span>
+      </div>
+      <div className="relative space-y-1">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-white/85">
+          {offer.discountLabel || "Up to 22% off"}
+        </p>
+        <h3 className="text-sm font-semibold leading-tight tracking-tight">
+          {offer.title || "Offer title"}
+        </h3>
+        <StructuredContentCompactPreview
+          content={offer.content}
+          fallback={offer.content.summary}
+          clampLines={2}
+          className="text-[12px] leading-snug text-white/85"
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Mirrors `OfferCard` full (`lg`) — deals page grid. */
+export function OfferCardFullPreview({ offer }: { offer: OfferDraft }) {
+  const background = `linear-gradient(135deg, ${offer.color}, ${darkenHex(offer.color, 0.22)})`;
+  return (
+    <div
+      className="relative flex min-h-52 flex-col justify-between overflow-hidden rounded-[var(--radius-lg)] p-6 text-white md:min-h-72"
+      style={{ background }}
+    >
+      <div className="relative flex items-center justify-between">
+        <span className="inline-flex rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white backdrop-blur">
+          {offer.badgeLabel || "Limited"}
+        </span>
+        <span className="inline-flex items-center gap-1 text-xs text-white/85">
+          {offer.expiresAt ? formatRelativeDate(offer.expiresAt) : "No expiry"}
+        </span>
+      </div>
+      <div className="relative space-y-2">
+        <p className="text-xs uppercase tracking-[0.18em] text-white/85">
+          {offer.discountLabel || "Up to 22% off"}
+        </p>
+        <h3 className="text-xl font-semibold leading-tight tracking-tight md:text-3xl">
+          {offer.title || "Offer title"}
+        </h3>
+        <StructuredContentCompactPreview
+          content={offer.content}
+          fallback={offer.content.summary}
+          clampLines={3}
+          className="max-w-md text-sm leading-snug text-white/85"
+        />
+        {offer.content.bullets.length > 0 && (
+          <StructuredContentFullPreview
+            content={{ summary: "", bullets: offer.content.bullets }}
+            maxBullets={3}
+            iconColor="rgba(255,255,255,0.95)"
+            bulletItemClassName="text-[12.5px] text-white/90"
+            className="max-w-md pt-1"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function darkenHex(hex: string | undefined, amount: number): string {
+  if (!hex || typeof hex !== "string") {
+    return "#f59e0b";
+  }
+  const match = /^#([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!match) {
+    return hex;
+  }
+  const num = Number.parseInt(match[1], 16);
+  const r = Math.max(0, Math.round(((num >> 16) & 0xff) * (1 - amount)));
+  const g = Math.max(0, Math.round(((num >> 8) & 0xff) * (1 - amount)));
+  const b = Math.max(0, Math.round((num & 0xff) * (1 - amount)));
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
 }
 
 export function GradeShowcasePreview({ grade }: { grade: GradeDraft }) {
@@ -235,9 +398,15 @@ export function GradeShowcasePreview({ grade }: { grade: GradeDraft }) {
         >
           {grade.label || "Grade"}
         </p>
-        <p className="mt-1 text-[12.5px] leading-snug text-[var(--color-ink-700)]">
-          {grade.notes || "Grade notes will appear here."}
-        </p>
+        <StructuredContentFullPreview
+          content={grade.content}
+          fallback={grade.notes || "Grade notes will appear here."}
+          iconColor={grade.color}
+          iconSize={13}
+          iconSizeClass="size-[13px]"
+          className="mt-1 text-[12.5px] leading-snug text-[var(--color-ink-700)]"
+          bulletItemClassName="text-[12px] text-[var(--color-ink-700)]"
+        />
         {grade.video ? (
           <p className="mt-2 text-[10.5px] text-[var(--color-ink-500)]">
             Inspection video attached
@@ -258,9 +427,16 @@ export function GradeShowcasePreview({ grade }: { grade: GradeDraft }) {
 
 interface AttributeDraft {
   label: string;
+  unit?: string;
   cardPosition: AdminAttribute["cardPosition"];
   options: AdminAttributeOption[];
-  isActive: boolean;
+}
+
+function optionDisplayLabel(
+  option: AdminAttributeOption,
+  attributeUnit?: string,
+): string {
+  return formatAttributeOptionLabel(option.label, attributeUnit);
 }
 
 export function AttributeSpecStripPreview({ attribute }: { attribute: AttributeDraft }) {
@@ -275,14 +451,24 @@ export function AttributeSpecStripPreview({ attribute }: { attribute: AttributeD
             Add an option to preview.
           </span>
         )}
-        {attribute.options.slice(0, 5).map((opt) => (
-          <span
-            key={opt.value}
-            className="inline-flex items-center rounded-full border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-2 py-0.5 text-[11.5px] text-[var(--color-ink-800)]"
-          >
-            {opt.label}
-          </span>
-        ))}
+        {attribute.options.slice(0, 5).map((opt) =>
+          opt.backgroundColor ? (
+            <ColoredPill
+              key={opt.value}
+              backgroundColor={opt.backgroundColor}
+              className="rounded-full px-2 py-0.5 text-[11.5px] font-semibold"
+            >
+              {optionDisplayLabel(opt, attribute.unit)}
+            </ColoredPill>
+          ) : (
+            <span
+              key={opt.value}
+              className="inline-flex items-center rounded-full border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-2 py-0.5 text-[11.5px] text-[var(--color-ink-800)]"
+            >
+              {optionDisplayLabel(opt, attribute.unit)}
+            </span>
+          ),
+        )}
       </div>
     </div>
   );
@@ -310,7 +496,18 @@ export function AttributeFilterGroupPreview({
             className="flex items-center gap-2 text-[12px] text-[var(--color-ink-700)]"
           >
             <span className="inline-block size-3 rounded border border-[var(--color-ink-300)] bg-[var(--color-surface)]" />
-            <span className="truncate">{opt.label}</span>
+            {opt.backgroundColor ? (
+              <ColoredPill
+                backgroundColor={opt.backgroundColor}
+                className="truncate rounded-full px-1.5 py-0.5 text-[12px] font-medium"
+              >
+                {optionDisplayLabel(opt, attribute.unit)}
+              </ColoredPill>
+            ) : (
+              <span className="truncate rounded-full px-1.5 py-0.5 text-[12px] text-[var(--color-ink-700)]">
+                {optionDisplayLabel(opt, attribute.unit)}
+              </span>
+            )}
           </li>
         ))}
       </ul>
@@ -326,18 +523,26 @@ export function AttributeCardChipPreview({
   const first = attribute.options[0];
   return (
     <div className="flex items-center gap-2 p-3">
-      <div className="aspect-[3/4] w-14 rounded-md bg-[var(--color-ink-100)]" />
+      <div className="aspect-square w-14 rounded-md bg-[var(--color-ink-100)]" />
       <div className="flex-1">
         <p className="text-[12px] font-semibold text-[var(--color-ink-900)]">
           Sample product
         </p>
         <p className="text-[11px] text-[var(--color-ink-500)]">Brand · Rs 0</p>
         <div className="mt-1.5 flex flex-wrap gap-1">
-          {first && (
-            <span className="inline-flex items-center rounded-full bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--color-accent-800)]">
-              {first.label}
-            </span>
-          )}
+          {first &&
+            (first.backgroundColor ? (
+              <ColoredPill
+                backgroundColor={first.backgroundColor}
+                className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+              >
+                {optionDisplayLabel(first, attribute.unit)}
+              </ColoredPill>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--color-accent-800)]">
+                {optionDisplayLabel(first, attribute.unit)}
+              </span>
+            ))}
           {!first && (
             <span className="text-[10.5px] italic text-[var(--color-ink-400)]">
               Add an option to preview.
@@ -362,17 +567,16 @@ export function NeighborSlot({ children }: { children: ReactNode }) {
 }
 
 /* --------------------------------------------------------------------------
- * Helpers used by parent components when projecting models → draft shapes
+ * Draft mappers used by parent components when projecting models
  * ------------------------------------------------------------------------ */
 
 export function categoryToDraft(category: AdminCategory): CategoryDraft {
   return {
     label: category.label,
     description: category.description,
-    iconKind: category.iconKind,
-    iconEmoji: category.iconEmoji,
-    iconImage: category.iconImage,
+    icon: category.icon,
     isActive: category.isActive,
+    content: category.content,
   };
 }
 
@@ -386,16 +590,17 @@ export function gradeToDraft(grade: AdminGrade): GradeDraft {
     notes: grade.notes,
     color: grade.color,
     video: grade.video,
+    content: grade.content,
   };
 }
 
 export function attributeToDraft(attribute: AdminAttribute): AttributeDraft {
   return {
     label: attribute.label,
+    unit: attribute.unit,
     cardPosition: attribute.cardPosition,
     options: attribute.options,
-    isActive: attribute.isActive,
   };
 }
 
-export type { AttributeDraft, BrandDraft, CategoryDraft, GradeDraft };
+export type { AttributeDraft, BrandDraft, CategoryDraft, GradeDraft, OfferDraft };

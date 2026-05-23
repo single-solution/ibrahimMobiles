@@ -34,7 +34,7 @@ interface CustomerInput {
 }
 
 export async function GET(request: Request) {
-  const { response } = await requireSession();
+  const { response } = await requireSession("customer_view");
   if (response) {
     return response;
   }

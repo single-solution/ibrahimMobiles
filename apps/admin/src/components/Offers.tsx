@@ -1,22 +1,39 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useDeferredValue, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarClock, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { DataTable, type DataTableColumn } from "@/components/DataTable";
+import { AdminTable, type AdminTableColumn } from "@/components/AdminTable";
 import { Drawer } from "@/components/Drawer";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { StatusPill } from "@/components/StatusPill";
 import { TextField } from "@/components/forms/TextField";
-import { TextArea } from "@/components/forms/TextArea";
 import { ColorChips } from "@/components/forms/ColorChips";
+import { StructuredContentEditor } from "@/components/forms/StructuredContentEditor";
 import { Switch } from "@/components/forms/Switch";
 import { useToast } from "@/components/Toast";
 import { adminFetch } from "@/lib/adminApi";
 import { OFFER_FIELD_LIMITS } from "@/lib/api/fieldLimits";
-import { formatRelativeDate, ISO_DATE_LENGTH } from "@store/shared";
+import {
+  emptyStructuredContent,
+  formatRelativeDate,
+  ISO_DATE_LENGTH,
+  normalizeStructuredContent,
+} from "@store/shared";
+import type { SeoMeta, StructuredContent } from "@store/shared";
+import { CatalogSeoPanel } from "@/components/seo/CatalogSeoPanel";
+import { ImageUpload } from "@/components/uploads/ImageUpload";
+import {
+  type ImageDraft,
+  uploadImageDrafts,
+} from "@/components/uploads/imageDraft";
 import type { AdminOffer } from "@/types/admin";
+import { PreviewPanel } from "@/components/categories/previewPanel";
+import {
+  OfferCardCompactPreview,
+  OfferCardFullPreview,
+} from "@/components/categories/previews";
 
 const OFFER_SLUG_MAX_CHARS = 96;
 const DEFAULT_OFFER_COLOR = "#f59e0b";
@@ -58,7 +75,7 @@ export function Offers({ offers }: OffersProps) {
     }
   }
 
-  const columns: DataTableColumn<AdminOffer>[] = [
+  const columns: AdminTableColumn<AdminOffer>[] = [
     {
       id: "title",
       header: "Offer",
@@ -134,7 +151,7 @@ export function Offers({ offers }: OffersProps) {
 
   return (
     <>
-      <DataTable
+      <AdminTable
         rows={offers}
         columns={columns}
         rowKey={(offer) => offer.id}
@@ -195,25 +212,56 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [discountLabel, setDiscountLabel] = useState(initial?.discountLabel ?? "");
   const [badgeLabel, setBadgeLabel] = useState(initial?.badgeLabel ?? "Limited");
-  const [description, setDescription] = useState(initial?.description ?? "");
+  const [content, setContent] = useState<StructuredContent>(() =>
+    initial
+      ? normalizeStructuredContent(initial.content, initial.description)
+      : emptyStructuredContent(),
+  );
+  const description = content.summary;
   const [color, setColor] = useState<string>(initial?.color ?? DEFAULT_OFFER_COLOR);
+  const [bannerImage, setBannerImage] = useState<ImageDraft | null>(
+    initial?.bannerImage ?? null,
+  );
   const [expiresAt, setExpiresAt] = useState(initial?.expiresAt?.slice(0, ISO_DATE_LENGTH) ?? "");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
+  const [seo, setSeo] = useState<SeoMeta>(initial?.seo ?? {});
   const [isSaving, setIsSaving] = useState(false);
+
+  const deferredContent = useDeferredValue(content);
+  const previewOffer = useMemo(
+    () => ({
+      title,
+      discountLabel,
+      badgeLabel,
+      color,
+      expiresAt: expiresAt ? new Date(expiresAt).toISOString() : new Date().toISOString(),
+      content: deferredContent,
+    }),
+    [title, discountLabel, badgeLabel, color, expiresAt, deferredContent],
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
     try {
+      const [storedBannerImage] = bannerImage
+        ? await uploadImageDrafts([bannerImage], {
+            subjectKind: "offers",
+            subjectId: slug || title || initial?.id,
+          })
+        : [];
       const payload = {
         title,
         slug: slug || undefined,
         discountLabel,
         badgeLabel,
         description,
+        content,
         color,
+        bannerImage: storedBannerImage ?? null,
         expiresAt: expiresAt || null,
         isActive,
+        seo,
       };
       if (isEdit && initial) {
         await adminFetch(`/api/offers/${initial.id}`, { method: "PUT", json: payload });
@@ -235,7 +283,7 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
       isOpen
       onClose={onClose}
       title={isEdit ? "Edit offer" : "Create offer"}
-      width="lg"
+      width="xl"
       footer={
         <div className="flex items-center justify-end gap-2">
           <Button variant="ghost" size="md" type="button" onClick={onClose}>
@@ -253,6 +301,7 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
         </div>
       }
     >
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
       <form id="offer-form" onSubmit={handleSubmit} className="space-y-4">
         <TextField
           label="Title"
@@ -288,20 +337,27 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
             placeholder="Limited"
           />
         </div>
-        <TextArea
-          label="Description"
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          required
-          rows={4}
-          maxLength={OFFER_FIELD_LIMITS.description}
-          placeholder="Buy any Brand-new iPhone and get…"
+        <StructuredContentEditor
+          value={content}
+          onChange={setContent}
+          summaryLabel="Description"
+          summaryPlaceholder="Buy any Brand-new iPhone and get…"
+          summaryRows={4}
+          maxSummaryLength={OFFER_FIELD_LIMITS.description}
+          bulletsHint="Optional bullets surfaced on the deals page below the offer headline."
         />
         <TextField
           label="Expires"
           type="date"
           value={expiresAt}
           onChange={(event) => setExpiresAt(event.target.value)}
+        />
+        <ImageUpload
+          label="Offer banner"
+          value={bannerImage}
+          onChange={setBannerImage}
+          aspect="wide"
+          hint="Used on the deals page and homepage feature cards when present."
         />
         <ColorChips
           label="Accent color"
@@ -315,7 +371,34 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
           checked={isActive}
           onCheckedChange={setIsActive}
         />
+        <CatalogSeoPanel
+          value={seo}
+          onChange={setSeo}
+          contextLabel={title ? `Offer · ${title}` : "Offer"}
+          entity={{
+            type: "offer",
+            entity: {
+              slug,
+              title,
+              description,
+            },
+          }}
+        />
       </form>
+      <PreviewPanel
+        hint="Updates as you type. Mirrors offer cards on the deals page."
+        tiles={[
+          {
+            surfaceLabel: "Appears on: Offer card (compact)",
+            body: <OfferCardCompactPreview offer={previewOffer} />,
+          },
+          {
+            surfaceLabel: "Appears on: Deals page (large card)",
+            body: <OfferCardFullPreview offer={previewOffer} />,
+          },
+        ]}
+      />
+      </div>
     </Drawer>
   );
 }

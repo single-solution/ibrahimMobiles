@@ -27,7 +27,7 @@ export default async function AdminLoyaltyPage() {
         title="Loyalty"
         description="Members, balances and lifetime value across the Loyalty Points programme."
       />
-      <section className="mt-8">
+      <section>
         <Suspense
           fallback={
             <AdminTableSkeleton

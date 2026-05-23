@@ -9,11 +9,15 @@ import {
 import {
   badRequest,
   FIELD_LIMITS,
+  isThreadUnchangedForPoll,
   isValidId,
   noContent,
   notFound,
+  notModified,
   ok,
   parseBody,
+  parsePollSince,
+  threadPollEtag,
 } from "@store/shared";
 
 import { recordActivity } from "@/lib/services/activityLog";
@@ -39,8 +43,8 @@ interface InquiryUpdateInput {
   internalNotes?: unknown;
 }
 
-export async function GET(_request: Request, { params }: RouteContext) {
-  const { response } = await requireSession();
+export async function GET(request: Request, { params }: RouteContext) {
+  const { response } = await requireSession("inquiry_view");
   if (response) {
     return response;
   }
@@ -56,7 +60,24 @@ export async function GET(_request: Request, { params }: RouteContext) {
     return notFound("Inquiry not found");
   }
 
-  return ok(toInquiryResponse(doc, { includeInternal: true }));
+  const url = new URL(request.url);
+  const since = parsePollSince(url.searchParams.get("since"));
+  const etag = threadPollEtag(doc.lastMessageAt);
+  if (
+    since &&
+    isThreadUnchangedForPoll({
+      lastMessageAt: doc.lastMessageAt,
+      updatedAt: doc.updatedAt,
+      since,
+      ifNoneMatch: request.headers.get("If-None-Match"),
+    })
+  ) {
+    return notModified(etag);
+  }
+
+  const res = ok(toInquiryResponse(doc, { includeInternal: true }));
+  res.headers.set("ETag", etag);
+  return res;
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {

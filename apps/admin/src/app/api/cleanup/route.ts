@@ -9,8 +9,8 @@
  *   - Requires a typed confirmation phrase that exactly matches the target.
  *     This makes accidental requests from a misclick impossible — the body
  *     literally has to contain the words the UI shows the operator.
- *   - Products are deliberately NOT a valid target. The product catalog is
- *     the only collection the user explicitly asked us to preserve.
+ *   - Catalog cleanup is explicit and cascades products, brands, grades,
+ *     attributes, and categories so admins can rebuild the catalog manually.
  *   - Customer cleanup cascades to their orders + loyalty accounts to keep
  *     referential integrity, otherwise we'd leak `customerId` foreign keys.
  *
@@ -27,17 +27,22 @@ import {
 import {
   connectDB,
   Customer,
+  Attribute,
+  Brand,
+  Category,
+  Grade,
   handleMongoError,
   Inquiry,
   LoyaltyAccount,
   Order,
+  Product,
 } from "@store/db";
 
 import { bustAdminCaches } from "@/lib/cached";
 import { requireSession } from "@/lib/api/requireSession";
 import { recordActivity } from "@/lib/services/activityLog";
 
-const CLEANUP_TARGETS = ["orders", "inquiries", "customers"] as const;
+const CLEANUP_TARGETS = ["catalog", "orders", "inquiries", "customers"] as const;
 type CleanupTarget = (typeof CLEANUP_TARGETS)[number];
 
 /**
@@ -46,6 +51,7 @@ type CleanupTarget = (typeof CLEANUP_TARGETS)[number];
  * "type 'yes' to confirm" muscle memory from causing real damage.
  */
 const CONFIRMATION_PHRASES: Record<CleanupTarget, string> = {
+  catalog: "DELETE ALL CATALOG",
   orders: "DELETE ALL ORDERS",
   inquiries: "DELETE ALL INQUIRIES",
   customers: "DELETE ALL CUSTOMERS",
@@ -107,6 +113,22 @@ export async function POST(request: Request): Promise<NextResponse> {
 
 async function runCleanup(target: CleanupTarget): Promise<number> {
   switch (target) {
+    case "catalog": {
+      const [products, brands, grades, attributes, categories] = await Promise.all([
+        Product.deleteMany({}),
+        Brand.deleteMany({}),
+        Grade.deleteMany({}),
+        Attribute.deleteMany({}),
+        Category.deleteMany({}),
+      ]);
+      return (
+        (products.deletedCount ?? 0) +
+        (brands.deletedCount ?? 0) +
+        (grades.deletedCount ?? 0) +
+        (attributes.deletedCount ?? 0) +
+        (categories.deletedCount ?? 0)
+      );
+    }
     case "orders": {
       const result = await Order.deleteMany({});
       return result.deletedCount ?? 0;
@@ -130,8 +152,10 @@ async function runCleanup(target: CleanupTarget): Promise<number> {
 /** Map a cleanup target to the closest `ActivityResourceType` value. */
 function targetActivityResource(
   target: CleanupTarget,
-): "order" | "inquiry" | "customer" {
+): "order" | "inquiry" | "customer" | "product" {
   switch (target) {
+    case "catalog":
+      return "product";
     case "orders":
       return "order";
     case "inquiries":

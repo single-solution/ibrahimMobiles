@@ -1,6 +1,7 @@
 import { requireSession } from "@/lib/api/requireSession";
 import {
   badRequest,
+  conflict,
   created,
   isValidationError,
   ok,
@@ -19,10 +20,23 @@ import {
   toAttributeResponse,
   type AttributeLean,
 } from "@/lib/serializers/attribute";
-import { parseAttributeOptions } from "@/lib/api/attributesPayload";
+import {
+  detectVisibilityCycle,
+  parseAttributeOptions,
+  parseAttributeUnit,
+  parseAttributeVisibilityInput,
+} from "@/lib/api/attributesPayload";
+
+async function hasAttributeCategoryConflict(
+  categorySlug: string,
+  slug: string,
+): Promise<boolean> {
+  const existing = await Attribute.exists({ categorySlug, slug });
+  return Boolean(existing);
+}
 
 export async function GET(request: Request) {
-  const { response } = await requireSession();
+  const { response } = await requireSession("product_view");
   if (response) {
     return response;
   }
@@ -43,10 +57,11 @@ export async function GET(request: Request) {
 interface AttributeCreateInput {
   categorySlug?: unknown;
   label?: unknown;
+  unit?: unknown;
   options?: unknown;
   cardPosition?: unknown;
-  isActive?: unknown;
   slug?: unknown;
+  visibility?: unknown;
 }
 
 export async function POST(request: Request) {
@@ -72,7 +87,12 @@ export async function POST(request: Request) {
     return badRequest(labelResult.error);
   }
 
-  const optionsResult = parseAttributeOptions(body.options);
+  const unitResult = parseAttributeUnit(body.unit);
+  if (typeof unitResult === "object" && "error" in unitResult) {
+    return badRequest(unitResult.error);
+  }
+
+  const optionsResult = parseAttributeOptions(body.options, unitResult);
   if ("error" in optionsResult) {
     return badRequest(optionsResult.error);
   }
@@ -90,16 +110,42 @@ export async function POST(request: Request) {
   if (slug.length === 0) {
     return badRequest("Slug could not be derived from label.");
   }
+  const categorySlug = slugify(body.categorySlug, 64);
+
+  let visibility: import("@store/shared").AttributeVisibility = {
+    type: "always",
+  };
+  if (body.visibility !== undefined) {
+    const visibilityResult = parseAttributeVisibilityInput(body.visibility);
+    if ("error" in visibilityResult) {
+      return badRequest(visibilityResult.error);
+    }
+    visibility = visibilityResult;
+  }
 
   await connectDB();
+  if (await hasAttributeCategoryConflict(categorySlug, slug)) {
+    return conflict("An attribute with this label already exists in this category.");
+  }
+
+  const siblings = await Attribute.find({ categorySlug })
+    .select("slug visibility")
+    .lean<Array<{ slug: string; visibility?: import("@store/shared").AttributeVisibility }>>();
+  const cycleError = detectVisibilityCycle(slug, visibility, siblings);
+  if (cycleError) {
+    return badRequest(cycleError);
+  }
+
   try {
     const doc = await Attribute.create({
-      categorySlug: slugify(body.categorySlug, 64),
+      categorySlug,
       slug,
       label: labelResult,
+      ...(unitResult ? { unit: unitResult } : {}),
       options: optionsResult.options,
+      visibility,
       cardPosition,
-      isActive: body.isActive !== false,
+      isActive: true,
     });
     await recordActivity({
       actor,

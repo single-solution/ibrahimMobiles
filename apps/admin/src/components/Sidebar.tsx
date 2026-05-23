@@ -5,18 +5,20 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   BadgePercent,
-  Boxes,
-  Heart,
-  Inbox,
+  FolderTree,
+  Gift,
   LayoutDashboard,
-  Receipt,
+  MessageSquare,
+  Package,
   Settings,
-  Smartphone,
-  Tags,
-  Users,
-  UsersRound,
+  ShieldCheck,
+  ShoppingCart,
+  UserCircle,
 } from "lucide-react";
 import { classNames } from "@store/shared";
+
+import { InquiriesUnreadBadge } from "@/components/InquiriesUnreadBadge";
+import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
 
 interface SidebarSection {
   title: string;
@@ -40,18 +42,17 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     title: "Sales",
     items: [
-      { href: "/orders", label: "Orders", icon: Receipt },
-      { href: "/inquiries", label: "Inquiries", icon: Inbox },
-      { href: "/customers", label: "Customers", icon: Users },
-      { href: "/loyalty", label: "Loyalty", icon: Heart },
+      { href: "/orders", label: "Orders", icon: ShoppingCart },
+      { href: "/inquiries", label: "Inquiries", icon: MessageSquare },
+      { href: "/customers", label: "Customers", icon: UserCircle },
+      { href: "/loyalty", label: "Loyalty", icon: Gift },
     ],
   },
   {
     title: "Catalog",
     items: [
-      { href: "/products", label: "Products", icon: Smartphone },
-      { href: "/categories", label: "Categories", icon: Boxes },
-      { href: "/brands", label: "Brands", icon: Tags },
+      { href: "/products", label: "Products", icon: Package },
+      { href: "/categories", label: "Categories", icon: FolderTree },
       { href: "/offers", label: "Offers", icon: BadgePercent },
     ],
   },
@@ -60,7 +61,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { href: "/activity", label: "Activity log", icon: Activity },
       { href: "/settings", label: "Settings", icon: Settings },
-      { href: "/team", label: "Team & roles", icon: UsersRound },
+      { href: "/team", label: "Team & roles", icon: ShieldCheck },
     ],
   },
 ];
@@ -71,23 +72,24 @@ interface SidebarProps {
 
 export function Sidebar({ isCollapsed }: SidebarProps) {
   const pathname = usePathname() ?? "";
+  const storefrontUrl = getPublicSiteUrl();
 
   return (
     <aside
       className={classNames(
         "flex shrink-0 flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] text-[var(--color-ink-700)] shadow-[var(--shadow-sm)] transition-[width] duration-200",
-        isCollapsed ? "w-16" : "w-60",
+        isCollapsed ? "w-11" : "w-44",
       )}
     >
-      <nav className="flex-1 overflow-y-auto py-3">
+      <nav className="flex-1 overflow-y-auto py-2">
         {SIDEBAR_SECTIONS.map((section) => (
-          <div key={section.title} className="mb-3">
+          <div key={section.title} className="mb-2">
             {!isCollapsed && (
-              <p className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-400)]">
+              <p className="px-2.5 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-400)]">
                 {section.title}
               </p>
             )}
-            <ul className="space-y-0.5 px-2">
+            <ul className="space-y-0.5 px-1">
               {section.items.map((link) => {
                 const isActive = link.exact
                   ? pathname === link.href
@@ -99,15 +101,18 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
                       href={link.href}
                       title={isCollapsed ? link.label : undefined}
                       className={classNames(
-                        "flex h-9 items-center gap-2.5 rounded-[var(--radius-md)] text-sm transition-colors",
-                        isCollapsed ? "justify-center px-0" : "px-3",
+                        "relative flex h-8 items-center gap-2 rounded-[var(--radius-md)] text-xs transition-colors",
+                        isCollapsed ? "justify-center px-0" : "px-2",
                         isActive
                           ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
                           : "font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
                       )}
                     >
-                      <Icon size={15} strokeWidth={isActive ? 2.4 : 2} />
-                      {!isCollapsed && <span>{link.label}</span>}
+                      <Icon size={14} strokeWidth={isActive ? 2.4 : 2} />
+                      {!isCollapsed && (
+                        <span className="truncate">{link.label}</span>
+                      )}
+                      {link.href === "/inquiries" && <InquiriesUnreadBadge />}
                     </Link>
                   </li>
                 );
@@ -116,6 +121,28 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
           </div>
         ))}
       </nav>
+
+      <footer className="shrink-0 border-t border-[var(--color-ink-100)] p-1.5">
+        <Link
+          href={storefrontUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="View storefront"
+          className={classNames(
+            "flex items-center gap-1.5 border border-[var(--color-ink-100)] bg-[var(--color-surface)] text-[11px] font-medium text-[var(--color-ink-700)] shadow-[var(--shadow-sm)] transition-colors hover:border-[var(--color-ink-200)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
+            isCollapsed
+              ? "mx-auto size-8 shrink-0 justify-center rounded-[var(--radius-md)]"
+              : "h-8 w-full rounded-[var(--radius-md)] px-2.5",
+          )}
+        >
+          <span className="shrink-0 text-[13px] leading-none" aria-hidden>
+            ↗
+          </span>
+          {!isCollapsed ? (
+            <span className="min-w-0 truncate">View storefront</span>
+          ) : null}
+        </Link>
+      </footer>
     </aside>
   );
 }

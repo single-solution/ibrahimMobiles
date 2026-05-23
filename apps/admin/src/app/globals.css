@@ -75,6 +75,12 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Lucide icons in flex rows — keep a stable box so strokes stay visible. */
+svg.lucide {
+  display: block;
+  flex-shrink: 0;
+}
+
 html,
 body {
   background-color: var(--color-canvas);

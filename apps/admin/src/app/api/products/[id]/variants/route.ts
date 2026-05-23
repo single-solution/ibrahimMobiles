@@ -46,6 +46,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   const result = await validateVariant(body, true, {
     categorySlug: product.categorySlug,
+    brandSlug: product.brandSlug,
   });
   if (!result.ok) {
     return badRequest(result.error);
@@ -61,7 +62,10 @@ export async function POST(request: Request, { params }: RouteContext) {
       return notFound("Product not found");
     }
 
-    const brand = await Brand.findOne({ slug: updated.brandSlug }).lean<BrandLean>();
+    const brand = await Brand.findOne({
+      slug: updated.brandSlug,
+      categorySlugs: updated.categorySlug,
+    }).lean<BrandLean>();
     await recordActivity({
       actor,
       action: "updated",

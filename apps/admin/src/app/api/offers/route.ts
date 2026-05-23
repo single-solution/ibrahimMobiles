@@ -5,6 +5,7 @@ import {
   badRequest,
   created,
   isValidationError,
+  normalizeStructuredContent,
   ok,
   parseBody,
   validateString,
@@ -18,9 +19,10 @@ import { slugify } from "@store/shared";
 
 import { toOfferResponse, type OfferLean } from "@/lib/serializers/offer";
 import type { AdminOffer } from "@/types/admin";
+import { parseSeoPayload } from "@/lib/api/seoPayload";
 
 export async function GET(request: Request) {
-  const { response } = await requireSession();
+  const { response } = await requireSession("product_view");
   if (response) {
     return response;
   }
@@ -66,6 +68,8 @@ interface OfferInput {
   expiresAt?: unknown;
   isActive?: unknown;
   sortOrder?: unknown;
+  content?: unknown;
+  seo?: unknown;
 }
 
 const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/i;
@@ -125,12 +129,25 @@ export async function POST(request: Request) {
     expiresAt = parsed;
   }
 
+  let seo: Record<string, unknown> | undefined;
+  if (body.seo !== undefined) {
+    const parsed = parseSeoPayload(body.seo);
+    if ("response" in parsed) {
+      return parsed.response;
+    }
+    if ("seo" in parsed) {
+      seo = parsed.seo as Record<string, unknown>;
+    }
+  }
+
+  const content = normalizeStructuredContent(body.content, descriptionResult);
+
   await connectDB();
   try {
     const doc = await Offer.create({
       slug,
       title: titleResult,
-      description: descriptionResult,
+      description: content.summary || descriptionResult,
       discountLabel: discountResult,
       badgeLabel: badgeResult,
       color: parseColor(body.color),
@@ -141,6 +158,8 @@ export async function POST(request: Request) {
       expiresAt,
       isActive: body.isActive !== false,
       sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : 0,
+      content,
+      ...(seo ? { seo } : {}),
     });
     await recordActivity({
       actor,

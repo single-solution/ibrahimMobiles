@@ -212,7 +212,10 @@ interface SearchHitProps {
 }
 
 function SearchHit({ result, onNavigate }: SearchHitProps) {
-  const href = `/shop/${result.categorySlug}/${result.slug}`;
+  const href =
+    result.categorySlug && result.slug
+      ? `/shop/${result.categorySlug}/${result.slug}`
+      : "/shop";
   const thumb = result.image?.variants.thumb ?? null;
   return (
     <li>

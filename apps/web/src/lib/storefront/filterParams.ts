@@ -8,8 +8,8 @@
  * Schema awareness (Phase 1, PLAN.md §10):
  *   - The catalog is admin-authored — there is no hardcoded enum for
  *     categories / brands / grades / attributes anymore. This adapter
- *     therefore exposes only the universal filter axes (brand, grade,
- *     price, search) plus a *generic* per-attribute axis encoded as
+ *     therefore exposes only shared filter axes (brand, grade,
+ *     price, search) plus an admin-defined attribute axis encoded as
  *     `attr.<attribute-slug>=value,value`. The Phase 3 filter sidebar
  *     will introspect the active category's `Attribute` collection and
  *     wire UI to these keys.
@@ -24,7 +24,7 @@ import type {
 import { DECIMAL_RADIX } from "@store/shared";
 
 const SEARCH_QUERY_MAX_CHARS = 100;
-/** Prefix on URL keys that carry a generic attribute filter. */
+/** Prefix on URL keys that carry an admin-defined attribute filter. */
 const ATTRIBUTE_PARAM_PREFIX = "attr.";
 
 /** Public URL keys. Keep these short and stable — they're shareable links. */
@@ -35,6 +35,8 @@ export const FILTER_PARAM_KEYS = {
   maxPrice: "max",
   inStock: "stock",
   sort: "sort",
+  /** `0` = one card per product; omitted = separate card per variant (default). */
+  expandVariants: "variants",
   page: "page",
   search: "q",
 } as const;
@@ -237,4 +239,50 @@ export function buildSearchParamsFromFilters(
     params.set(FILTER_PARAM_KEYS.search, filters.search);
   }
   return params;
+}
+
+/** Separate listing card per variant when true (default). */
+export function isExpandVariantsView(
+  source: URLSearchParams | Record<string, string | string[] | undefined>,
+): boolean {
+  return readSingle(source, FILTER_PARAM_KEYS.expandVariants) !== "0";
+}
+
+/** True when grade, brand, price, stock, or attribute filters are set in the URL. */
+export function hasActiveListingFilters(
+  params: URLSearchParams | Record<string, string | string[] | undefined>,
+): boolean {
+  const searchParams =
+    params instanceof URLSearchParams
+      ? params
+      : new URLSearchParams(
+          Object.entries(params).flatMap(([key, value]) => {
+            if (value === undefined) {
+              return [];
+            }
+            if (Array.isArray(value)) {
+              return value.map((entry) => [key, entry]);
+            }
+            return [[key, value]];
+          }),
+        );
+
+  for (const key of Object.values(FILTER_PARAM_KEYS)) {
+    if (
+      key === FILTER_PARAM_KEYS.sort ||
+      key === FILTER_PARAM_KEYS.page ||
+      key === FILTER_PARAM_KEYS.search
+    ) {
+      continue;
+    }
+    if (searchParams.get(key)) {
+      return true;
+    }
+  }
+  for (const key of Array.from(searchParams.keys())) {
+    if (key.startsWith(ATTRIBUTE_PARAM_PREFIX) && searchParams.get(key)) {
+      return true;
+    }
+  }
+  return false;
 }

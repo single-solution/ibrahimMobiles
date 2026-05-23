@@ -5,53 +5,32 @@ import mongoose, {
 } from "mongoose";
 
 import { slugify } from "@store/shared";
-import type { StoredImage } from "@store/shared";
+import type { SeoMeta, StoredImage, ProductGradeImagesEntry } from "@store/shared";
 
+import { seoSchema } from "../schemas/seoSchema";
 import { storedImageSchema } from "../schemas/storedImageSchema";
 
 /**
- * A catalogue listing. After the Phase 1 refactor a `Product` is a thin
+ * A catalog listing. A `Product` is a thin
  * shell: an identity (name + slug), a category + brand assignment, some
- * flags, and a list of variants. **All content lives on the variants** —
- * imagery, pricing, stock, grade, and the category's dynamic attribute
- * values are variant-level. The product-level imagery / highlights /
- * hardcoded category-specific fields are gone.
+ * flags, and a list of variants. **Pricing, stock, grade, and attributes
+ * live on variants; product photos are keyed by grade** (`gradeImages`).
  *
- * Removed at the product level (T1.5 / PLAN §10):
+ * Product-level fields intentionally stay small:
  *   - `modelName` → renamed `name`.
- *   - `imageUrl`, `galleryUrls` → all imagery moves to `variants[i].images`
- *     as `StoredImage[]`. The PDP picks variant[0].images for the hero
- *     pile and lets the variant selector swap it.
+ *   - `gradeImages[]` — one ordered gallery per grade (Brand New, Used, …).
+ *   - Photos are never stored on variants (see `gradeImages` only).
  *   - `highlights` → not used by the new storefront PDP design.
  *   - `attributes` (product-level dict) → all attributes are variant-scoped now.
- *   - `accessoryType`, `gadgetType`, `releaseYear` → hardcoded category-
- *     specific fields. Replaced by category-defined `Attribute` rows.
+ *   - Category-specific details live on category-defined `Attribute` rows.
  *
  * The variant subdocument is rewritten in lockstep (T1.6 — see
  * `variantSchema` below).
  */
 
 /**
- * Variant — the unit of inventory + imagery + dynamic attributes. Every
- * stock change happens at the variant level. Image entries are full
- * `StoredImage` records (4 pre-rendered WebP variants + blurhash + dims
- * + alt) from day one; see `@store/shared/storage/types`.
- *
- * Removed at the variant level (T1.6 / PLAN §10):
- *   - `grade` (legacy ConditionGrade enum) → `gradeSlug: string`. Validated
- *     at the API layer against the `Grade` collection for the product's
- *     `categorySlug` (T1.14). No schema-level enum because admins
- *     create grades per category.
- *   - `imageUrls: string[]` → `images: StoredImage[]` (≥1, index 0 = hero).
- *   - `isInStock: boolean` → derived from `quantity > 0` at serializer time.
- *     `quantity: number` is the source of truth (integer ≥ 0).
- *   - Hardcoded typed fields (`storageGb`, `ramGb`, `batteryHealthMin/Max`,
- *     `isPtaApproved`, `connector`, `wattage`, `lengthMeters`, `isGenuine`,
- *     `colorName`) → all become rows in `Attribute` with `options`.
- *     Variant's `attributes: Record<string, string>` is the per-row chosen
- *     option value (single-select only — see PLAN §15 for the rationale).
- *   - `originalPriceRupees`, `notes` → unused on the storefront after the
- *     refactor.
+ * Variant — the unit of inventory + dynamic attributes. Every stock change
+ * happens at the variant level. Photos are on `Product.gradeImages`.
  */
 export interface VariantAttributes {
   /** Mongoose-generated when pushing into the parent doc. */
@@ -59,15 +38,27 @@ export interface VariantAttributes {
   gradeSlug: string;
   priceRupees: number;
   quantity: number;
+  /** Whole days; storefront formats as months + days when ≥ 30. */
+  warrantyDays?: number;
+  /** @deprecated Migrated to product `gradeImages`; kept for legacy reads. */
   warrantyMonths?: number;
-  images: StoredImage[];
   /**
    * Per-attribute chosen option value. Keys are `Attribute.slug` (per the
    * product's category); values are option `value` strings from
-   * `Attribute.options[].value`. Single-select; multi-select is out of
-   * scope for this iteration (PLAN §15).
+   * `Attribute.options[].value`. Usually one string per slug; multiple
+   * global options on the same variant use a string array (e.g. three colors).
    */
-  attributes: Record<string, string>;
+  attributes: Record<string, string | string[]>;
+  /**
+   * Display labels for product-only custom attribute values (not in global
+   * Attribute.options). Keys match `attributes` keys.
+   */
+  attributeDisplay?: Record<string, string>;
+}
+
+export interface ProductGradeImagesAttributes {
+  gradeSlug: string;
+  images: StoredImage[];
 }
 
 export interface ProductAttributes {
@@ -78,8 +69,38 @@ export interface ProductAttributes {
   isActive: boolean;
   isArchived: boolean;
   isFeatured: boolean;
+  /** One ordered gallery per grade slug. */
+  gradeImages?: ProductGradeImagesAttributes[];
   variants: VariantAttributes[];
+  /**
+   * Optional per-product SEO overrides. When fields are absent the
+   * storefront falls back to auto-generated values built from the
+   * product + brand + category + Settings.
+   */
+  seo?: SeoMeta;
 }
+
+const gradeImagesEntrySchema = new Schema<ProductGradeImagesAttributes>(
+  {
+    gradeSlug: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+      maxlength: 64,
+    },
+    images: {
+      type: [storedImageSchema],
+      required: true,
+      validate: {
+        validator: (value: StoredImage[]) =>
+          Array.isArray(value) && value.length > 0,
+        message: "Each grade gallery must have at least one image.",
+      },
+    },
+  },
+  { _id: false },
+);
 
 const variantSchema = new Schema<VariantAttributes>(
   {
@@ -92,20 +113,16 @@ const variantSchema = new Schema<VariantAttributes>(
     },
     priceRupees: { type: Number, required: true, min: 0 },
     quantity: { type: Number, required: true, min: 0, default: 0 },
+    warrantyDays: { type: Number, min: 0 },
     warrantyMonths: { type: Number, min: 0 },
-    images: {
-      type: [storedImageSchema],
-      required: true,
-      validate: {
-        validator: (value: StoredImage[]) =>
-          Array.isArray(value) && value.length > 0,
-        message: "Variant must have at least one image.",
-      },
-    },
     attributes: {
       type: Schema.Types.Mixed,
       required: true,
       default: {} as Record<string, string>,
+    },
+    attributeDisplay: {
+      type: Schema.Types.Mixed,
+      default: undefined,
     },
   },
   { _id: true, timestamps: false },
@@ -142,10 +159,15 @@ const productSchema = new Schema<ProductAttributes>(
     isFeatured: { type: Boolean, required: true, default: false },
     isActive: { type: Boolean, required: true, default: true },
     isArchived: { type: Boolean, required: true, default: false },
+    gradeImages: {
+      type: [gradeImagesEntrySchema],
+      default: [],
+    },
     variants: {
       type: [variantSchema],
       default: [],
     },
+    seo: { type: seoSchema, default: () => ({}) },
   },
   { timestamps: true },
 );

@@ -5,10 +5,12 @@ import {
   isValidationError,
   isValidId,
   noContent,
+  normalizeStructuredContent,
   notFound,
   ok,
   parseBody,
   slugify,
+  normalizeIconName,
   validateString,
 } from "@store/shared";
 
@@ -26,11 +28,17 @@ import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
 
 import { CATEGORY_FIELD_LIMITS } from "@/lib/api/fieldLimits";
+import { parseSeoPayload } from "@/lib/api/seoPayload";
 
 import {
   toCategoryResponse,
   type CategoryLean,
 } from "@/lib/serializers/category";
+import {
+  cascadeCategorySlugChange,
+  categorySlugTaken,
+  slugFromCatalogLabel,
+} from "@/lib/services/catalogSlugSync";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -40,15 +48,15 @@ interface CategoryUpdateInput {
   label?: unknown;
   description?: unknown;
   slug?: unknown;
-  iconKind?: unknown;
-  iconEmoji?: unknown;
-  iconImage?: unknown;
+  icon?: unknown;
   isActive?: unknown;
   sortOrder?: unknown;
+  content?: unknown;
+  seo?: unknown;
 }
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const { response } = await requireSession();
+  const { response } = await requireSession("product_view");
   if (response) {
     return response;
   }
@@ -104,36 +112,48 @@ export async function PUT(request: Request, { params }: RouteContext) {
     }
     update.description = result;
   }
-  if (body.slug !== undefined && typeof body.slug === "string") {
-    const slug = slugify(body.slug);
+  const explicitSlug =
+    body.slug !== undefined && typeof body.slug === "string" ? body.slug : undefined;
+
+  if (explicitSlug !== undefined) {
+    const slug = slugify(explicitSlug);
     if (slug.length === 0) {
       return badRequest("Slug cannot be empty.");
     }
     update.slug = slug;
+  } else if (typeof update.label === "string") {
+    update.slug = slugFromCatalogLabel(update.label as string, 64);
   }
-  if (body.iconKind !== undefined) {
-    if (body.iconKind !== "emoji" && body.iconKind !== "image") {
-      return badRequest("iconKind must be 'emoji' or 'image'.");
-    }
-    update.iconKind = body.iconKind;
-  }
-  if (body.iconEmoji !== undefined) {
-    if (typeof body.iconEmoji !== "string") {
-      return badRequest("iconEmoji must be a string.");
-    }
-    update.iconEmoji = body.iconEmoji;
-  }
-  if (body.iconImage !== undefined) {
-    if (body.iconImage !== null && typeof body.iconImage !== "object") {
-      return badRequest("iconImage must be a StoredImage payload or null.");
-    }
-    update.iconImage = body.iconImage;
+  if (body.icon !== undefined) {
+    update.icon = normalizeIconName(body.icon);
   }
   if (body.isActive !== undefined) {
     update.isActive = Boolean(body.isActive);
   }
   if (typeof body.sortOrder === "number") {
     update.sortOrder = body.sortOrder;
+  }
+  if (body.content !== undefined) {
+    const fallbackSummary =
+      typeof update.description === "string"
+        ? (update.description as string)
+        : typeof body.description === "string"
+          ? body.description
+          : "";
+    const content = normalizeStructuredContent(body.content, fallbackSummary);
+    update.content = content;
+    if (content.summary) {
+      update.description = content.summary.slice(0, CATEGORY_FIELD_LIMITS.description);
+    }
+  }
+  if (body.seo !== undefined) {
+    const parsed = parseSeoPayload(body.seo);
+    if ("response" in parsed) {
+      return parsed.response;
+    }
+    if ("seo" in parsed) {
+      update.seo = parsed.seo;
+    }
   }
 
   if (Object.keys(update).length === 0) {
@@ -142,12 +162,29 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   await connectDB();
   try {
+    const current = await Category.findById(id)
+      .select("slug")
+      .lean<{ slug: string }>();
+    if (!current) {
+      return notFound("Category not found");
+    }
+
+    if (typeof update.slug === "string") {
+      if (await categorySlugTaken(update.slug as string, id)) {
+        return conflict("A category with this slug already exists.");
+      }
+    }
+
     const doc = await Category.findByIdAndUpdate(id, { $set: update }, {
       new: true,
       runValidators: true,
     }).lean<CategoryLean>();
     if (!doc) {
       return notFound("Category not found");
+    }
+
+    if (typeof update.slug === "string" && update.slug !== current.slug) {
+      await cascadeCategorySlugChange(current.slug, update.slug as string);
     }
 
     await recordActivity({

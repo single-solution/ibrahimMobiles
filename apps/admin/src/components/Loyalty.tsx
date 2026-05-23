@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { DataTable, type DataTableColumn } from "@/components/DataTable";
+import { AdminTable, type AdminTableColumn } from "@/components/AdminTable";
 import { Drawer } from "@/components/Drawer";
 import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
@@ -38,7 +38,7 @@ export function Loyalty({ accounts, programmeRupeesPerPoint }: LoyaltyProps) {
   const totalBalance = accounts.reduce((sum, account) => sum + account.balance, 0);
   const totalLifetime = accounts.reduce((sum, account) => sum + account.lifetimeEarned, 0);
 
-  const columns: DataTableColumn<AdminLoyaltyAccount>[] = [
+  const columns: AdminTableColumn<AdminLoyaltyAccount>[] = [
     {
       id: "customer",
       header: "Member",
@@ -115,7 +115,7 @@ export function Loyalty({ accounts, programmeRupeesPerPoint }: LoyaltyProps) {
         />
       </section>
 
-      <DataTable
+      <AdminTable
         rows={accounts}
         columns={columns}
         rowKey={(account) => account.id}

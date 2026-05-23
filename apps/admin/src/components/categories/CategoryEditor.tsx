@@ -7,21 +7,30 @@
  */
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import type { StoredImage } from "@store/shared";
+import type { IconName, SeoMeta, StructuredContent } from "@store/shared";
+
+import {
+  DEFAULT_ICON,
+  emptyStructuredContent,
+  normalizeStructuredContent,
+  slugify,
+} from "@store/shared";
 
 import { Drawer } from "@/components/Drawer";
-import { ImageUpload } from "@/components/uploads";
+import { StructuredContentEditor } from "@/components/forms/StructuredContentEditor";
+import { LucideIconPicker } from "@/components/icons/LucideIconPicker";
+import { CatalogSeoPanel } from "@/components/seo/CatalogSeoPanel";
 import { useToast } from "@/components/Toast";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
 import { CATEGORY_FIELD_LIMITS } from "@/lib/api/fieldLimits";
-import type { AdminCategory, AdminCategoryIconKind } from "@/types/admin";
+import type { AdminCategory } from "@/types/admin";
 
 import { PreviewPanel } from "./previewPanel";
 import {
   CategoryCardPreview,
   CategoryHeaderPreview,
   CategoryNavChipPreview,
-  categoryToDraft,
+  CategoryShopSelectorPreview,
   type CategoryDraft,
 } from "./previews";
 
@@ -36,22 +45,20 @@ interface CategoryEditorProps {
 interface FormState {
   label: string;
   description: string;
-  iconKind: AdminCategoryIconKind;
-  iconEmoji: string;
-  iconImage: StoredImage | null;
+  icon: IconName;
   isActive: boolean;
-  sortOrder: number;
+  content: StructuredContent;
+  seo: SeoMeta;
 }
 
 function emptyForm(): FormState {
   return {
     label: "",
     description: "",
-    iconKind: "emoji",
-    iconEmoji: "📦",
-    iconImage: null,
+    icon: DEFAULT_ICON,
     isActive: true,
-    sortOrder: 0,
+    content: emptyStructuredContent(),
+    seo: {},
   };
 }
 
@@ -59,11 +66,10 @@ function formFromCategory(category: AdminCategory): FormState {
   return {
     label: category.label,
     description: category.description,
-    iconKind: category.iconKind,
-    iconEmoji: category.iconEmoji ?? "📦",
-    iconImage: category.iconImage ?? null,
+    icon: category.icon,
     isActive: category.isActive,
-    sortOrder: category.sortOrder,
+    content: normalizeStructuredContent(category.content, category.description),
+    seo: category.seo ?? {},
   };
 }
 
@@ -90,10 +96,9 @@ export function CategoryEditor({
     () => ({
       label: deferredForm.label,
       description: deferredForm.description,
-      iconKind: deferredForm.iconKind,
-      iconEmoji: deferredForm.iconEmoji,
-      iconImage: deferredForm.iconImage ?? undefined,
+      icon: deferredForm.icon,
       isActive: deferredForm.isActive,
+      content: deferredForm.content,
     }),
     [deferredForm],
   );
@@ -105,28 +110,16 @@ export function CategoryEditor({
       toast.danger("Label is required.");
       return;
     }
-    if (form.iconKind === "emoji" && !form.iconEmoji.trim()) {
-      toast.danger("Pick an emoji or switch to image upload.");
-      return;
-    }
-    if (form.iconKind === "image" && !form.iconImage) {
-      toast.danger("Upload an icon image or switch back to emoji.");
-      return;
-    }
     setSubmitting(true);
     try {
       const body: Record<string, unknown> = {
         label: form.label.trim(),
         description: form.description.trim(),
-        iconKind: form.iconKind,
+        icon: form.icon,
         isActive: form.isActive,
-        sortOrder: form.sortOrder,
+        content: form.content,
+        seo: form.seo,
       };
-      if (form.iconKind === "emoji") {
-        body.iconEmoji = form.iconEmoji;
-      } else if (form.iconImage) {
-        body.iconImage = form.iconImage;
-      }
       if (category) {
         await adminFetch<AdminCategory>(`/api/categories/${category.id}`, {
           method: "PUT",
@@ -202,90 +195,26 @@ export function CategoryEditor({
               className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[14px] text-[var(--color-ink-900)] focus:border-[var(--color-accent-500)] focus:outline-none"
             />
           </Field>
-          <Field
-            label="Description"
-            htmlFor="category-description"
-            hint={`${form.description.length}/${CATEGORY_FIELD_LIMITS.description}`}
-          >
-            <textarea
-              id="category-description"
-              value={form.description}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, description: e.target.value }))
-              }
-              maxLength={CATEGORY_FIELD_LIMITS.description}
-              rows={3}
-              className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[14px] text-[var(--color-ink-900)] focus:border-[var(--color-accent-500)] focus:outline-none"
-            />
-          </Field>
-          <fieldset className="rounded-md border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3">
-            <legend className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">
-              Icon
-            </legend>
-            <div className="flex flex-wrap gap-2">
-              <IconKindToggle
-                label="Emoji"
-                active={form.iconKind === "emoji"}
-                onSelect={() =>
-                  setForm((prev) => ({ ...prev, iconKind: "emoji" }))
-                }
-              />
-              <IconKindToggle
-                label="Upload image"
-                active={form.iconKind === "image"}
-                onSelect={() =>
-                  setForm((prev) => ({ ...prev, iconKind: "image" }))
-                }
-              />
-            </div>
-            {form.iconKind === "emoji" ? (
-              <div className="mt-3 flex items-center gap-3">
-                <input
-                  type="text"
-                  value={form.iconEmoji}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, iconEmoji: e.target.value.slice(0, 4) }))
-                  }
-                  maxLength={4}
-                  className="w-20 rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-center text-[20px] focus:border-[var(--color-accent-500)] focus:outline-none"
-                  aria-label="Category emoji"
-                />
-                <p className="text-[12px] text-[var(--color-ink-500)]">
-                  Pick a single character — e.g. 📱 📦 🎧 🎮.
-                </p>
-              </div>
-            ) : (
-              <div className="mt-3">
-                <ImageUpload
-                  value={form.iconImage}
-                  onChange={(image) =>
-                    setForm((prev) => ({ ...prev, iconImage: image }))
-                  }
-                  altSeed={`${form.label || "Category"} icon`}
-                  subjectKind="categories"
-                  subjectId={form.label || undefined}
-                  aspect="square"
-                  hint="Square 256×256+ PNG / WebP"
-                />
-              </div>
-            )}
-          </fieldset>
-          <Field label="Sort order" htmlFor="category-sort-order">
-            <input
-              id="category-sort-order"
-              type="number"
-              value={form.sortOrder}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  sortOrder: Number.isFinite(e.target.valueAsNumber)
-                    ? e.target.valueAsNumber
-                    : 0,
-                }))
-              }
-              className="block w-32 rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[14px] focus:border-[var(--color-accent-500)] focus:outline-none"
-            />
-          </Field>
+          <StructuredContentEditor
+            value={form.content}
+            onChange={(content) =>
+              setForm((prev) => ({
+                ...prev,
+                content,
+                description: content.summary.slice(0, CATEGORY_FIELD_LIMITS.description),
+              }))
+            }
+            summaryLabel="Description"
+            summaryPlaceholder="Short, customer-facing tagline."
+            summaryRows={3}
+            maxSummaryLength={CATEGORY_FIELD_LIMITS.description}
+            bulletsHint="Optional bullets shown beneath the description on storefront category surfaces."
+          />
+          <LucideIconPicker
+            value={form.icon}
+            onChange={(icon) => setForm((prev) => ({ ...prev, icon }))}
+            description="This icon appears on category cards and navigation chips."
+          />
           <label className="flex items-center gap-2 text-[13px] text-[var(--color-ink-800)]">
             <input
               type="checkbox"
@@ -296,13 +225,30 @@ export function CategoryEditor({
             />
             Visible to customers
           </label>
+          <CatalogSeoPanel
+            value={form.seo}
+            onChange={(seo) => setForm((prev) => ({ ...prev, seo }))}
+            contextLabel={form.label ? `Category · ${form.label}` : "Category"}
+            entity={{
+              type: "category",
+              entity: {
+                slug: category?.slug ?? (slugify(form.label) || "preview"),
+                label: form.label,
+                description: form.description,
+              },
+            }}
+          />
         </form>
         <PreviewPanel
-          hint="Updates as you type. Shows the three storefront surfaces this category powers."
+          hint="Updates as you type. Mirrors the live storefront surfaces this category powers."
           tiles={[
             {
               surfaceLabel: "Appears on: Homepage category grid",
               body: <CategoryCardPreview category={draft} />,
+            },
+            {
+              surfaceLabel: "Appears on: Shop category selector",
+              body: <CategoryShopSelectorPreview category={draft} />,
             },
             {
               surfaceLabel: "Appears on: Category landing header",
@@ -345,31 +291,6 @@ function Field({
       </div>
       {children}
     </div>
-  );
-}
-
-function IconKindToggle({
-  label,
-  active,
-  onSelect,
-}: {
-  label: string;
-  active: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={
-        "rounded-md border px-2.5 py-1.5 text-[12.5px] font-semibold transition " +
-        (active
-          ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
-          : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)]")
-      }
-    >
-      {label}
-    </button>
   );
 }
 

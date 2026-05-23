@@ -1,6 +1,7 @@
 import type { Types } from "mongoose";
 import type { AdminActivityEntry } from "@/types/admin";
 import type { ActivityAction, ActivityResourceType } from "@store/db";
+import { asString, objectIdString, toIsoDate } from "@store/shared";
 
 export interface ActivityEntryLean {
   _id: Types.ObjectId;
@@ -18,16 +19,16 @@ export interface ActivityEntryLean {
 
 export function toActivityResponse(doc: ActivityEntryLean): AdminActivityEntry {
   return {
-    id: doc._id.toString(),
-    actorUserId: doc.actorUserId ? doc.actorUserId.toString() : undefined,
-    actorName: doc.actorName,
-    actorRole: doc.actorRole,
+    id: objectIdString(doc._id),
+    actorUserId: objectIdString(doc.actorUserId) || undefined,
+    actorName: asString(doc.actorName, "System"),
+    actorRole: asString(doc.actorRole),
     action: doc.action,
     resourceType: doc.resourceType,
     resourceId: doc.resourceId,
-    resourceLabel: doc.resourceLabel,
+    resourceLabel: asString(doc.resourceLabel),
     detail: doc.detail,
-    createdAt: doc.createdAt.toISOString(),
-    updatedAt: doc.updatedAt.toISOString(),
+    createdAt: toIsoDate(doc.createdAt),
+    updatedAt: toIsoDate(doc.updatedAt),
   };
 }

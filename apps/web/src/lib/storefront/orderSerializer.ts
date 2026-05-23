@@ -12,6 +12,7 @@ import type {
   OrderStatus,
   OrderTimelineEntryAttributes,
 } from "@store/db";
+import { asArray, asNumber, asString, objectIdString, toIsoDate, toMillis } from "@store/shared";
 
 interface StorefrontOrderItem {
   id: string;
@@ -89,59 +90,76 @@ const TIMELINE_DESCRIPTION: Record<OrderStatus, string> = {
  * Convert a Mongoose lean Order to the public storefront shape.
  */
 export function toStorefrontOrder(order: OrderAttributes & { _id: { toString(): string } }): StorefrontOrder {
-  const itemCount = order.items.reduce((sum, line) => sum + line.quantity, 0);
+  const items = asArray<OrderAttributes["items"][number]>(order.items);
+  const totals = order.totals ?? {
+    subtotalRupees: 0,
+    shippingRupees: 0,
+    discountRupees: 0,
+    totalRupees: 0,
+  };
+  const customer = order.customerSnapshot ?? {
+    name: "Unknown customer",
+    phoneNumber: "",
+    city: "",
+  };
+  const itemCount = items.reduce(
+    (sum, line) => sum + asNumber(line?.quantity),
+    0,
+  );
 
-  const timeline: StorefrontOrderTimelineEntry[] = (order.timeline ?? [])
+  const timeline: StorefrontOrderTimelineEntry[] = asArray<OrderTimelineEntryAttributes>(order.timeline)
     .slice()
     .sort(
       (left: OrderTimelineEntryAttributes, right: OrderTimelineEntryAttributes) =>
-        left.occurredAt.getTime() - right.occurredAt.getTime(),
+        toMillis(left?.occurredAt) - toMillis(right?.occurredAt),
     )
     .map((entry) => ({
       status: entry.status,
       label: ORDER_STATUS_LABEL[entry.status] ?? entry.status,
       description: entry.note?.trim() || TIMELINE_DESCRIPTION[entry.status] || "",
-      occurredAt: entry.occurredAt.toISOString(),
+      occurredAt: toIsoDate(entry.occurredAt),
     }));
 
   return {
-    id: order._id.toString(),
-    orderNumber: order.orderNumber,
-    placedAt: order.placedAt.toISOString(),
+    id: objectIdString(order._id),
+    orderNumber: asString(order.orderNumber),
+    placedAt: toIsoDate(order.placedAt),
     status: order.status,
     statusLabel: ORDER_STATUS_LABEL[order.status] ?? order.status,
-    items: order.items.map((line) => ({
-      id: line._id?.toString() ?? `${line.productId.toString()}:${line.variantId.toString()}`,
-      productName: line.productName,
-      variantSummary: line.variantSummary,
-      unitPriceRupees: line.unitPriceRupees,
-      quantity: line.quantity,
+    items: items.map((line) => ({
+      id: objectIdString(line?._id) || `${objectIdString(line?.productId)}:${objectIdString(line?.variantId)}`,
+      productName: asString(line?.productName),
+      variantSummary: asString(line?.variantSummary),
+      unitPriceRupees: asNumber(line?.unitPriceRupees),
+      quantity: asNumber(line?.quantity),
     })),
     delivery: order.delivery,
     payment: order.payment,
-    customerName: order.customerSnapshot.name,
-    customerPhone: order.customerSnapshot.phoneNumber,
-    city: order.customerSnapshot.city,
+    customerName: asString(customer.name, "Unknown customer"),
+    customerPhone: asString(customer.phoneNumber),
+    city: asString(customer.city),
     address: order.address
       ? {
-          recipientName: order.address.recipientName,
-          phoneNumber: order.address.phoneNumber,
-          city: order.address.city,
+          recipientName: asString(order.address.recipientName),
+          phoneNumber: asString(order.address.phoneNumber),
+          city: asString(order.address.city),
           area: order.address.area,
           street: order.address.street,
           postalCode: order.address.postalCode,
         }
       : undefined,
     totals: {
-      subtotalRupees: order.totals.subtotalRupees,
-      shippingRupees: order.totals.shippingRupees,
-      discountRupees: order.totals.discountRupees,
-      totalRupees: order.totals.totalRupees,
+      subtotalRupees: asNumber(totals.subtotalRupees),
+      shippingRupees: asNumber(totals.shippingRupees),
+      discountRupees: asNumber(totals.discountRupees),
+      totalRupees: asNumber(totals.totalRupees),
       itemCount,
     },
     timeline,
     trackingNote: order.trackingNote,
-    estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString(),
+    estimatedDeliveryAt: order.estimatedDeliveryAt
+      ? toIsoDate(order.estimatedDeliveryAt)
+      : undefined,
     pointsEarned: order.pointsEarned ?? 0,
     pointsRedeemed: order.pointsRedeemed ?? 0,
   };

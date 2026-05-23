@@ -27,12 +27,14 @@
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
-import { getStoreSettings as getStoreSettingsRaw } from "@store/db";
+import { Brand, connectDB, getStoreSettings as getStoreSettingsRaw, Product } from "@store/db";
 import type { Product as StorefrontProduct } from "@store/shared";
 
 import {
   getStorefrontBrandBySlug as getStorefrontBrandBySlugRaw,
   getStorefrontBrands as getStorefrontBrandsRaw,
+  getStorefrontGradeCounts as getStorefrontGradeCountsRaw,
+  getStorefrontAttributes as getStorefrontAttributesRaw,
   getStorefrontCategories as getStorefrontCategoriesRaw,
   getStorefrontCategoryBySlug as getStorefrontCategoryBySlugRaw,
   getStorefrontGrades as getStorefrontGradesRaw,
@@ -102,9 +104,21 @@ export const getStorefrontGradesCached = unstable_cache(
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
+export const getStorefrontAttributesCached = unstable_cache(
+  () => getStorefrontAttributesRaw(),
+  ["storefront-attributes"],
+  { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
 export const getStorefrontBrandsCached = unstable_cache(
-  () => getStorefrontBrandsRaw(),
+  (categorySlug?: string) => getStorefrontBrandsRaw(categorySlug),
   ["storefront-brands"],
+  { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+export const getStorefrontGradeCountsCached = unstable_cache(
+  (categorySlug: string) => getStorefrontGradeCountsRaw(categorySlug),
+  ["storefront-grade-counts"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
@@ -115,20 +129,24 @@ export const getStorefrontOffersCached = unstable_cache(
 );
 
 /**
- * Homepage hero — newest featured products, capped at `limit`. Surfacing
- * featured products across all categories (rather than the legacy
- * "phones only" hero) keeps the hero relevant after admins add new
- * categories. The limit becomes part of the cache key so different
- * callers (mobile vs desktop) don't poison each other's entry.
+ * Homepage hero — the most recently updated products across every
+ * category, capped at `limit`. Sorting by `updatedAt` (Mongoose
+ * timestamps) means an admin restocking an older SKU bumps it back
+ * into the hero without flipping any curated flag. The "Featured"
+ * toggle on Product is preserved for future curated surfaces but is
+ * no longer the filter here. The limit becomes part of the cache key
+ * so different callers (mobile vs desktop) don't poison each other's
+ * entry.
  */
 const getHomeHeroProductsInner = unstable_cache(
   async (limit: number): Promise<StorefrontProduct[]> => {
     return getStorefrontProductsRaw({
-      isFeatured: true,
+      sort: "recently-updated",
+      inStockOnly: true,
       limit,
     });
   },
-  ["storefront-hero-products"],
+  ["storefront-hero-products-v4"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
@@ -152,9 +170,43 @@ const getStorefrontProductsPageInner = unstable_cache(
     const filters = JSON.parse(cacheKey) as StorefrontProductFilters;
     return getStorefrontProductsPageRaw(filters);
   },
-  ["storefront-products-page"],
+  ["storefront-products-page-v2"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
+
+const SITEMAP_PRODUCT_LIMIT = 5_000;
+
+const loadSitemapProductsInner = unstable_cache(
+  async () => {
+    await connectDB();
+    return Product.find({ isActive: true, isArchived: { $ne: true } })
+      .select({ slug: 1, categorySlug: 1, updatedAt: 1 })
+      .sort({ updatedAt: -1 })
+      .limit(SITEMAP_PRODUCT_LIMIT)
+      .lean<Array<{ slug: string; categorySlug: string; updatedAt?: Date }>>();
+  },
+  ["storefront-sitemap-products"],
+  { revalidate: 3600, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+export function getStorefrontSitemapProductsCached() {
+  return loadSitemapProductsInner();
+}
+
+const loadSitemapBrandsInner = unstable_cache(
+  async () => {
+    await connectDB();
+    return Brand.find({ isActive: true })
+      .select({ slug: 1 })
+      .lean<Array<{ slug: string }>>();
+  },
+  ["storefront-sitemap-brands"],
+  { revalidate: 3600, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+export function getStorefrontSitemapBrandsCached() {
+  return loadSitemapBrandsInner();
+}
 
 export function getStorefrontProductsPageCached(
   filters: StorefrontProductFilters,

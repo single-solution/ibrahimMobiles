@@ -1,6 +1,7 @@
 import type { Types } from "mongoose";
 import type { AdminUser } from "@/types/admin";
 import type { UserRole } from "@store/db";
+import { asString, objectIdString, toIsoDate } from "@store/shared";
 
 export interface UserLean {
   _id: Types.ObjectId;
@@ -17,15 +18,15 @@ export interface UserLean {
 
 export function toUserResponse(doc: UserLean): AdminUser {
   return {
-    id: doc._id.toString(),
-    name: doc.name,
-    email: doc.email,
+    id: objectIdString(doc._id),
+    name: asString(doc.name),
+    email: asString(doc.email),
     phoneNumber: doc.phoneNumber,
     role: doc.role,
-    isSuperAdmin: doc.isSuperAdmin,
-    isActive: doc.isActive,
-    lastSignInAt: doc.lastLoginAt ? doc.lastLoginAt.toISOString() : undefined,
-    createdAt: doc.createdAt.toISOString(),
-    updatedAt: doc.updatedAt.toISOString(),
+    isSuperAdmin: doc.isSuperAdmin ?? false,
+    isActive: doc.isActive ?? true,
+    lastSignInAt: doc.lastLoginAt ? toIsoDate(doc.lastLoginAt) : undefined,
+    createdAt: toIsoDate(doc.createdAt),
+    updatedAt: toIsoDate(doc.updatedAt),
   };
 }

@@ -11,7 +11,7 @@
  *     optimisation.
  *   - Per-category typed fields (storage GB / connector / wattage) are
  *     gone — anything the cart needs to display about a variant beyond
- *     price + grade lives under the generic `attributes` record.
+ *     price + grade lives under the admin-defined `attributes` record.
  */
 
 import type { StoredImage } from "@store/shared";
@@ -36,7 +36,9 @@ export interface CartItem {
   productSlug: string;
   /** Variant grade slug — used to render the grade chip in the cart row. */
   gradeSlug: string;
-  /** Generic per-attribute selection (e.g. `{ storage: "256GB", colour: "Titanium" }`). */
-  attributes: Record<string, string>;
+  /** Variant selections keyed by `Attribute.slug` (e.g. `{ storage: "256GB", colour: "Titanium" }`). */
+  attributes: Record<string, string | string[]>;
   quantity: number;
+  /** Variant stock cap captured when the line was added. */
+  maxQuantity?: number;
 }

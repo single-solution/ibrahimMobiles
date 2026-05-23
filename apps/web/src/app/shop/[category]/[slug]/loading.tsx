@@ -85,39 +85,19 @@ function DesktopPhotoGallerySkeleton() {
 
 function MobileVariantSelectorSkeleton() {
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Skeleton shape="text" className="h-3 w-20" />
+    <div className="space-y-3">
+      <div className="space-y-1.5">
+        <Skeleton shape="text" className="h-2.5 w-16" />
         <Skeleton shape="text" className="h-7 w-3/4" />
-        <Skeleton shape="text" className="h-4 w-1/2" />
       </div>
-
-      <div className="flex items-baseline gap-3">
-        <Skeleton shape="text" className="h-8 w-40" />
-        <Skeleton shape="text" className="h-4 w-20" />
+      <div className="space-y-1">
+        <Skeleton shape="text" className="h-8 w-36" />
+        <Skeleton shape="text" className="h-3 w-full" />
       </div>
-
-      <div className="space-y-2">
-        <Skeleton shape="text" className="h-3 w-24" />
-        <div className="grid grid-cols-3 gap-2">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-12 w-full" />
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Skeleton shape="text" className="h-3 w-16" />
-        <div className="flex flex-wrap gap-2">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-10 w-20" />
-          ))}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 pt-2">
-        <Skeleton shape="pill" className="h-12 w-full" />
-        <Skeleton shape="pill" className="h-12 w-full" />
+      <div className="flex flex-wrap gap-1.5">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <Skeleton key={index} className="h-9 w-24" />
+        ))}
       </div>
     </div>
   );
@@ -126,48 +106,20 @@ function MobileVariantSelectorSkeleton() {
 function DesktopVariantSelectorSkeleton() {
   return (
     <div className="space-y-5">
-      <div className="space-y-3">
-        <Skeleton shape="text" className="h-3 w-24" />
+      <div className="space-y-1.5">
+        <Skeleton shape="text" className="h-2.5 w-20" />
         <Skeleton shape="text" className="h-10 w-3/4" />
-        <Skeleton shape="text" className="h-4 w-1/2" />
       </div>
-
-      <div className="flex items-baseline gap-3">
-        <Skeleton shape="text" className="h-10 w-48" />
-        <Skeleton shape="text" className="h-5 w-24" />
+      <div className="space-y-1.5">
+        <Skeleton shape="text" className="h-9 w-44" />
+        <Skeleton shape="text" className="h-3 w-full" />
       </div>
-
-      <div className="space-y-3">
-        <Skeleton shape="text" className="h-3 w-28" />
-        <div className="grid grid-cols-3 gap-2.5">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-14 w-full" />
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <Skeleton shape="text" className="h-3 w-20" />
-        <div className="flex flex-wrap gap-2">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-12 w-24" />
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="flex items-center justify-between gap-2">
-            <Skeleton shape="text" className="h-3 w-32" />
-            <Skeleton shape="text" className="h-3 w-20" />
-          </div>
+      <div className="flex flex-wrap gap-1.5">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <Skeleton key={index} className="h-10 w-28" />
         ))}
       </div>
-
-      <div className="grid grid-cols-2 gap-3 pt-2">
-        <Skeleton shape="pill" className="h-12 w-full" />
-        <Skeleton shape="pill" className="h-12 w-full" />
-      </div>
+      <Skeleton shape="pill" className="h-12 w-full" />
     </div>
   );
 }

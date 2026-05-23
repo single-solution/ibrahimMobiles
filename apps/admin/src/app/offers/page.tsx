@@ -25,7 +25,7 @@ export default async function AdminOffersPage() {
         title="Offers & deals"
         description="Promotions surfaced on the homepage and the dedicated /deals page."
       />
-      <section className="mt-8">
+      <section>
         <Suspense
           fallback={
             <AdminTableSkeleton

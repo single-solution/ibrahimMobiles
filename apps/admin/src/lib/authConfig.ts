@@ -19,7 +19,13 @@ const ADMIN_PUBLIC_ROUTES = ["/login"] as const;
  * because that module pulls in Mongoose, which the edge runtime rejects.
  * Keep this in sync with `User.USER_ROLES` (typecheck below catches drift).
  */
-const ADMIN_ROLES = ["owner", "manager", "staff"] as const;
+const ADMIN_ROLES = [
+  "owner",
+  "business_manager",
+  "product_manager",
+  "marketing_manager",
+  "support_staff",
+] as const;
 type AdminRole = (typeof ADMIN_ROLES)[number];
 
 function isAdminRole(role: unknown): role is AdminRole {

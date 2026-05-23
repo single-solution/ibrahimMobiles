@@ -7,7 +7,7 @@
  * only the data its section actually consumes:
  *
  *   - Hero: featured products + brands → `getHomeHeroData`
- *   - Shop categories tiles            → `getHomeShopTypesData`
+ *   - Category tiles                   → `loadHomeCategoryTiles`
  *
  * Process and visit-store sections only need `getStoreSettingsCached`,
  * which they call directly.
@@ -24,11 +24,10 @@
  * lookups inside the same section don't serialize.
  *
  * Schema awareness (Phase 1, PLAN.md §10):
- *   - The hero strip is now generic (featured products, any category)
+ *   - The hero strip now supports featured products from any category
  *     since the legacy "phones only" carve-out is gone.
  *   - Category tiles surface only what the dynamic Category schema
- *     exposes (`slug`, `label`, `description`, `iconKind`, `iconEmoji`,
- *     `iconImage`). Per-category copy like "trustChips" lived on the
+ *     exposes (`slug`, `label`, `description`, `icon`). Per-category copy like "trustChips" lived on the
  *     old hardcoded shape and is no longer part of the data model;
  *     storefront landing pages compose their own copy from the
  *     description plus the category's grades/attributes.
@@ -45,13 +44,14 @@ import {
 import type {
   Brand as StorefrontBrand,
   Product as StorefrontProduct,
+  StructuredContent,
 } from "@store/shared";
 
-/** Featured products surfaced in the homepage hero gallery. */
-const HERO_PRODUCTS_LIMIT = 5;
+/** Latest in-stock products for the homepage hero carousel (centre-focused). */
+const HERO_PRODUCTS_LIMIT = 12;
 
 export interface HomeHeroData {
-  /** Featured products for the hero gallery, capped at `HERO_PRODUCTS_LIMIT`. */
+  /** Latest in-stock products for the hero carousel, capped at `HERO_PRODUCTS_LIMIT`. */
   heroProducts: StorefrontProduct[];
   brands: StorefrontBrand[];
 }
@@ -61,11 +61,11 @@ export interface HomePageCategory {
   slug: string;
   label: string;
   description: string;
-  iconKind: StorefrontCategory["iconKind"];
-  iconEmoji?: string;
-  iconImage?: StorefrontCategory["iconImage"];
+  icon: StorefrontCategory["icon"];
   isActive: boolean;
   sortOrder: number;
+  /** Optional admin-authored structured copy (summary + bullet rows). */
+  content?: StructuredContent;
 }
 
 /**
@@ -101,7 +101,7 @@ export async function getHomeHeroData(): Promise<HomeHeroData> {
  * Build-time resilience: same contract as `getHomeHeroData` — empty
  * array on read failure so the page still prerenders.
  */
-export async function getHomeShopTypesData(): Promise<HomePageCategory[]> {
+export async function loadHomeCategoryTiles(): Promise<HomePageCategory[]> {
   try {
     const liveCategories = await getStorefrontCategoriesCached();
     return liveCategories
@@ -110,16 +110,15 @@ export async function getHomeShopTypesData(): Promise<HomePageCategory[]> {
         slug: category.slug,
         label: category.label,
         description: category.description,
-        iconKind: category.iconKind,
-        iconEmoji: category.iconEmoji,
-        iconImage: category.iconImage,
+        icon: category.icon,
         isActive: category.isActive,
         sortOrder: category.sortOrder,
+        content: category.content,
       }));
   } catch (error) {
     logger.error(
       { error },
-      "home: shop-types data load failed, falling back to empty list this render",
+      "home: category tiles load failed, falling back to empty list this render",
     );
     return [];
   }

@@ -12,21 +12,37 @@ import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { VariantProvider } from "@/components/shared/VariantContext";
 import { VariantSelector } from "@/components/shared/VariantSelector";
+import {
+  categoryAttributeSlugsFromProduct,
+  readLegacyVariantId,
+  resolveExactVariantFromSearch,
+} from "@/lib/catalog/pdpSelection";
 import { getDefaultVariant } from "@/lib/productSummary";
+import {
+  productAbsoluteUrl,
+  productHref,
+} from "@/lib/catalog/productPaths";
 import { getStorefrontProducts } from "@/lib/storefront";
 import {
+  getStorefrontAttributesCached,
   getStorefrontBrandBySlugCached,
   getStorefrontCategoryBySlugCached,
   getStorefrontProductBySlugCached,
 } from "@/lib/storefront/cached";
-import { productHref } from "@/data/products";
+import { composeProductSeo } from "@/lib/seo/composeSeoMeta";
+import { getSeoSettings } from "@/lib/seo/seoSettings";
+import {
+  breadcrumbJsonLd,
+  jsonLdScriptContent,
+  productJsonLd,
+} from "@/lib/seo/jsonLd";
 
 /**
- * Generic product detail page.
+ * Category-agnostic product detail page.
  *
  * Schema awareness (Phase 1, PLAN.md §10):
  *   - One PDP serves every category. The previous phone/accessory fork
- *     is gone — variants carry generic `attributes` and `images`, so the
+ *     is gone — variants carry admin-defined `attributes` and `images`, so the
  *     single `<VariantSelector>` renders them all.
  *   - The URL contract is `/shop/<categorySlug>/<productSlug>` — the
  *     category slug *is* the URL segment (no separate `pathSegment`
@@ -50,21 +66,80 @@ const RELATED_PRODUCTS_POOL = 8;
 /** Final number of related items rendered next to the product detail view. */
 const RELATED_PRODUCTS_DISPLAY_COUNT = 4;
 
+function attributeSlugsForProduct(
+  product: Product,
+  allAttributes: Awaited<ReturnType<typeof getStorefrontAttributesCached>>,
+): string[] {
+  const fromCatalog = allAttributes
+    .filter((row) => row.categorySlug === product.categorySlug)
+    .map((row) => row.slug);
+  const fromVariants = categoryAttributeSlugsFromProduct(product);
+  return Array.from(new Set([...fromCatalog, ...fromVariants])).sort((a, b) =>
+    a.localeCompare(b),
+  );
+}
+
 export async function generateMetadata({
   params,
+  searchParams,
 }: ProductDetailPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  // React `cache()` makes this lookup free if the page body has already
-  // fetched the same product in this render — or vice versa.
+  const [{ category, slug }, search] = await Promise.all([params, searchParams]);
   const product = await getStorefrontProductBySlugCached(slug);
   if (!product) {
     return { title: "Not found" };
   }
-  const brand = await getStorefrontBrandBySlugCached(product.brandSlug);
-  const brandName = brand?.name ?? product.brandSlug;
+  const [brand, categoryMeta, seoSettings, allAttributes] = await Promise.all([
+    getStorefrontBrandBySlugCached(product.brandSlug, product.categorySlug),
+    getStorefrontCategoryBySlugCached(category),
+    getSeoSettings(),
+    getStorefrontAttributesCached(),
+  ]);
+  const attributeSlugs = attributeSlugsForProduct(product, allAttributes);
+  const variant =
+    resolveExactVariantFromSearch(product, search, attributeSlugs) ??
+    getDefaultVariant(product);
+  const heroImage = variant.images?.[0];
+  const resolved = composeProductSeo({
+    product,
+    variant,
+    brand: brand ? { slug: brand.slug, name: brand.name } : null,
+    category: categoryMeta
+      ? { slug: categoryMeta.slug, label: categoryMeta.label }
+      : null,
+    settings: seoSettings,
+    seo: product.seo,
+  });
+  const canonical = productAbsoluteUrl(seoSettings.siteUrl, product, {
+    variant,
+  });
+  const brandName = brand?.name ?? product.brandName;
   return {
-    title: `${brandName} ${product.name}`,
-    description: `${brandName} ${product.name} on ibrahimMobiles.`,
+    title: resolved.title,
+    description: resolved.description,
+    alternates: { canonical },
+    robots: resolved.robots,
+    openGraph: {
+      title: resolved.title,
+      description: resolved.description,
+      url: canonical,
+      type: "website",
+      images: heroImage
+        ? [
+            {
+              url: resolved.ogImageUrl || heroImage.variants.detail,
+              width: heroImage.width,
+              height: heroImage.height,
+              alt: heroImage.alt || `${brandName} ${product.name}`,
+            },
+          ]
+        : undefined,
+    },
+    twitter: {
+      card: resolved.twitterCard,
+      title: resolved.title,
+      description: resolved.description,
+      images: resolved.ogImageUrl ? [resolved.ogImageUrl] : undefined,
+    },
   };
 }
 
@@ -74,11 +149,10 @@ export default async function ProductDetailPage({
 }: ProductDetailPageProps) {
   const [{ category, slug }, search] = await Promise.all([params, searchParams]);
 
-  // Two independent reads — fire them in parallel. React `cache()` makes the
-  // product lookup free for `generateMetadata` (same render).
-  const [categoryMeta, product] = await Promise.all([
+  const [categoryMeta, product, allAttributes] = await Promise.all([
     getStorefrontCategoryBySlugCached(category),
     getStorefrontProductBySlugCached(slug),
+    getStorefrontAttributesCached(),
   ]);
 
   if (!categoryMeta) {
@@ -89,55 +163,99 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  // If a product is opened under the wrong category segment, 308-redirect to
-  // its canonical URL — keeps every link in the codebase a single source of
-  // truth via productHref().
+  const attributeSlugs = attributeSlugsForProduct(product, allAttributes);
+  const exactFromUrl = resolveExactVariantFromSearch(
+    product,
+    search,
+    attributeSlugs,
+  );
+  const initialVariant = exactFromUrl ?? getDefaultVariant(product);
+
   if (product.categorySlug !== categoryMeta.slug) {
-    redirect(productHref(product));
+    redirect(productHref(product, { variant: initialVariant }));
   }
 
-  const requestedVariantId =
-    typeof search.variant === "string" ? search.variant : undefined;
-  const initialVariant =
-    (requestedVariantId
-      ? product.variants.find((variant) => variant.id === requestedVariantId)
-      : undefined) ?? getDefaultVariant(product);
+  const legacyVariantId = readLegacyVariantId(search);
+  if (legacyVariantId) {
+    // Legacy `?variant=<id>` links migrate once to readable params.
+    redirect(productHref(product, { variant: initialVariant }));
+  }
 
-  const brand = await getStorefrontBrandBySlugCached(product.brandSlug);
+  // Bad URL recovery (combination doesn't exist on any variant) is handled
+  // client-side via `history.replaceState` (see usePdpUrlParams) so configurator
+  // picks never refetch this RSC page.
+
+  const [brand, seoSettings] = await Promise.all([
+    getStorefrontBrandBySlugCached(product.brandSlug, product.categorySlug),
+    getSeoSettings(),
+  ]);
   const brandName = brand?.name ?? product.brandSlug;
   const brandFilterHref = `/shop/${categoryMeta.slug}?brand=${product.brandSlug}`;
 
-  return (
-    <VariantProvider initialVariantId={initialVariant.id}>
-      {/* Mobile */}
-      <div className="pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-2 md:hidden">
-        <VariantAwareGallery
-          product={product}
-          brandName={brandName}
-          layout="mobile"
-        />
+  const productLd = productJsonLd({
+    product,
+    variant: initialVariant,
+    brand: brand ? { slug: brand.slug, name: brand.name } : null,
+    category: { slug: categoryMeta.slug, label: categoryMeta.label },
+    settings: seoSettings,
+  });
+  const breadcrumbLd = breadcrumbJsonLd([
+    { name: "Home", url: seoSettings.siteUrl },
+    { name: "Shop", url: `${seoSettings.siteUrl}/shop` },
+    {
+      name: categoryMeta.label,
+      url: `${seoSettings.siteUrl}/shop/${categoryMeta.slug}`,
+    },
+    {
+      name: `${brandName} ${product.name}`,
+      url: productAbsoluteUrl(seoSettings.siteUrl, product, {
+        variant: initialVariant,
+      }),
+    },
+  ]);
 
-        <div className="app-page">
-          <div className="app-section">
-            <VariantSelector product={product} brandName={brandName} />
-          </div>
+  return (
+    <VariantProvider
+      initialVariantId={initialVariant.id}
+      initialGalleryGradeSlug={initialVariant.gradeSlug}
+    >
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(productLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(breadcrumbLd) }}
+      />
+      {/* Mobile */}
+      <div className="pdp-shell pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-2 md:hidden">
+        <div className="mx-4 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+          <VariantAwareGallery
+            product={product}
+            brandName={brandName}
+            layout="mobile"
+          />
+        </div>
+
+        <div className="app-page pdp-content px-4 pt-4">
+          <VariantSelector product={product} brandName={brandName} />
 
           <GradeShowcase product={product} variant="mobile" />
 
-          <section className="app-section">
-            <div className="app-section-eyebrow">
-              <span>More from {brandName}</span>
+          <section className="pdp-related-panel">
+            <div className="app-section-eyebrow mb-3">
+              <span className="text-[var(--color-accent-800)]">More from {brandName}</span>
               <Link href={brandFilterHref}>See all</Link>
             </div>
             <Suspense fallback={<MobileRelatedRailSkeleton />}>
-              <MobileRelatedRail product={product} />
+              <MobileRelatedRail product={product} brandName={brandName} />
             </Suspense>
           </section>
         </div>
       </div>
 
       {/* Desktop */}
-      <div className="mx-auto hidden max-w-[1440px] px-6 pb-12 pt-8 md:block">
+      <div className="pdp-shell mx-auto hidden max-w-[1440px] px-6 pb-12 pt-8 md:block">
         <Breadcrumbs
           categorySlug={categoryMeta.slug}
           categoryLabel={categoryMeta.label}
@@ -146,21 +264,23 @@ export default async function ProductDetailPage({
           modelName={product.name}
         />
 
-        <div className="mt-6 grid grid-cols-[1.1fr_1fr] gap-12">
-          <VariantAwareGallery
-            product={product}
-            brandName={brandName}
-            layout="desktop"
-          />
+        <div className="mt-6 grid grid-cols-[1.1fr_1fr] items-stretch gap-10">
+          <div className="flex min-h-0 flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-sm)]">
+            <VariantAwareGallery
+              product={product}
+              brandName={brandName}
+              layout="desktop"
+            />
+          </div>
 
-          <div>
+          <div className="flex min-h-0 flex-col">
             <VariantSelector product={product} brandName={brandName} />
           </div>
         </div>
 
         <GradeShowcase product={product} />
 
-        <section className="mt-20">
+        <section className="pdp-related-panel mt-16">
           <div className="flex items-end justify-between gap-3">
             <h2 className="text-3xl font-semibold tracking-tight text-[var(--color-ink-900)]">
               More from {brandName}
@@ -173,7 +293,7 @@ export default async function ProductDetailPage({
             </Link>
           </div>
           <Suspense fallback={<DesktopRelatedRailSkeleton />}>
-            <DesktopRelatedRail product={product} />
+            <DesktopRelatedRail product={product} brandName={brandName} />
           </Suspense>
         </section>
       </div>
@@ -194,10 +314,20 @@ async function loadRelatedProducts(product: Product): Promise<Product[]> {
     .slice(0, RELATED_PRODUCTS_DISPLAY_COUNT);
 }
 
-async function MobileRelatedRail({ product }: { product: Product }) {
+async function MobileRelatedRail({
+  product,
+  brandName,
+}: {
+  product: Product;
+  brandName: string;
+}) {
   const related = await loadRelatedProducts(product);
   if (related.length === 0) {
-    return null;
+    return (
+      <p className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]/40 px-4 py-8 text-center text-[13px] text-[var(--color-ink-500)]">
+        No more products from {brandName} right now.
+      </p>
+    );
   }
   return (
     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
@@ -208,10 +338,20 @@ async function MobileRelatedRail({ product }: { product: Product }) {
   );
 }
 
-async function DesktopRelatedRail({ product }: { product: Product }) {
+async function DesktopRelatedRail({
+  product,
+  brandName,
+}: {
+  product: Product;
+  brandName: string;
+}) {
   const related = await loadRelatedProducts(product);
   if (related.length === 0) {
-    return null;
+    return (
+      <p className="mt-6 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]/40 px-6 py-10 text-center text-[14px] text-[var(--color-ink-500)]">
+        No more products from {brandName} right now.
+      </p>
+    );
   }
   return (
     <div className="mt-6 grid grid-cols-4 gap-5">

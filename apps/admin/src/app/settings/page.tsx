@@ -15,7 +15,7 @@ export default async function AdminSettingsPage() {
   return (
     <AdminShell>
       <PageTitle eyebrow="Site" title="Settings" />
-      <section className="mt-8">
+      <section>
         <Suspense fallback={<SettingsFallback />}>
           <SettingsData />
         </Suspense>

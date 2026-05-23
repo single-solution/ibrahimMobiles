@@ -106,6 +106,13 @@ export function useFilterParams() {
     push(new URLSearchParams());
   }, [push]);
 
+  const replaceParams = useCallback(
+    (next: URLSearchParams, options: { resetPage?: boolean } = {}) => {
+      push(next, options);
+    },
+    [push],
+  );
+
   return {
     params,
     setMulti,
@@ -114,5 +121,6 @@ export function useFilterParams() {
     getMulti,
     getSingle,
     clearAll,
+    replaceParams,
   };
 }

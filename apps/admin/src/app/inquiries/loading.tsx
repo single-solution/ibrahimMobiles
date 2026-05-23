@@ -6,11 +6,7 @@ const INQUIRIES_ROW_COUNT = 12;
 
 export default function InquiriesLoading() {
   return (
-    <AdminPageSkeleton
-      label="Loading inquiries"
-      eyebrowWidthClass="w-20"
-      titleWidthClass="w-32"
-    >
+    <AdminPageSkeleton label="Loading inquiries">
       <AdminTableSkeleton
         columnCount={INQUIRIES_COLUMN_COUNT}
         rowCount={INQUIRIES_ROW_COUNT}

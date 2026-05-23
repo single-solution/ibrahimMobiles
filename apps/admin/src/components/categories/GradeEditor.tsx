@@ -1,8 +1,11 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import type { StructuredContent } from "@store/shared";
+import { emptyStructuredContent, normalizeStructuredContent } from "@store/shared";
 
 import { Drawer } from "@/components/Drawer";
+import { StructuredContentEditor } from "@/components/forms/StructuredContentEditor";
 import { VideoUpload } from "@/components/uploads";
 import { useToast } from "@/components/Toast";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
@@ -29,10 +32,17 @@ interface FormState {
   notes: string;
   color: string;
   video: string;
+  content: StructuredContent;
 }
 
 function emptyForm(): FormState {
-  return { label: "", notes: "", color: "#1f2937", video: "" };
+  return {
+    label: "",
+    notes: "",
+    color: "#1f2937",
+    video: "",
+    content: emptyStructuredContent(),
+  };
 }
 
 function formFromGrade(grade: AdminGrade): FormState {
@@ -41,6 +51,7 @@ function formFromGrade(grade: AdminGrade): FormState {
     notes: grade.notes,
     color: grade.color,
     video: grade.video,
+    content: normalizeStructuredContent(grade.content, grade.notes),
   };
 }
 
@@ -72,6 +83,7 @@ export function GradeEditor({
       notes: deferredForm.notes,
       color: deferredForm.color,
       video: deferredForm.video,
+      content: deferredForm.content,
     }),
     [deferredForm],
   );
@@ -101,6 +113,7 @@ export function GradeEditor({
             notes: form.notes.trim(),
             color: form.color,
             video: form.video.trim(),
+            content: form.content,
           },
         });
         toast.success("Grade updated.");
@@ -113,6 +126,7 @@ export function GradeEditor({
             notes: form.notes.trim(),
             color: form.color,
             video: form.video.trim(),
+            content: form.content,
           },
         });
         toast.success("Grade created.");
@@ -185,30 +199,21 @@ export function GradeEditor({
               className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[14px] focus:border-[var(--color-accent-500)] focus:outline-none"
             />
           </div>
-          <div>
-            <div className="mb-1 flex items-baseline justify-between gap-2">
-              <label
-                htmlFor="grade-notes"
-                className="text-[11.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-700)]"
-              >
-                Notes
-              </label>
-              <span className="text-[10.5px] text-[var(--color-ink-400)]">
-                {form.notes.length}/{GRADE_FIELD_LIMITS.notes}
-              </span>
-            </div>
-            <textarea
-              id="grade-notes"
-              value={form.notes}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, notes: e.target.value }))
-              }
-              maxLength={GRADE_FIELD_LIMITS.notes}
-              rows={6}
-              required
-              className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[13.5px] leading-relaxed focus:border-[var(--color-accent-500)] focus:outline-none"
-            />
-          </div>
+          <StructuredContentEditor
+            value={form.content}
+            onChange={(content) =>
+              setForm((prev) => ({
+                ...prev,
+                content,
+                notes: content.summary.slice(0, GRADE_FIELD_LIMITS.notes),
+              }))
+            }
+            summaryLabel="Notes"
+            summaryPlaceholder="What customers can expect at this grade."
+            summaryRows={5}
+            maxSummaryLength={GRADE_FIELD_LIMITS.notes}
+            bulletsHint="Optional bullets shown on the PDP grade showcase."
+          />
           <div>
             <label
               htmlFor="grade-color"

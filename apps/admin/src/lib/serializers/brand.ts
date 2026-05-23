@@ -1,5 +1,6 @@
 import type { Types } from "mongoose";
 import type { BrandAttributes, WithTimestamps } from "@store/db";
+import { asArray, asString, objectIdString, toIsoDate } from "@store/shared";
 import type { AdminBrand } from "@/types/admin";
 
 export type BrandLean = WithTimestamps<BrandAttributes> & {
@@ -8,13 +9,13 @@ export type BrandLean = WithTimestamps<BrandAttributes> & {
 
 export function toBrandResponse(brand: BrandLean): AdminBrand {
   return {
-    id: brand._id.toString(),
-    slug: brand.slug,
-    name: brand.name,
-    categorySlugs: brand.categorySlugs ?? [],
-    isActive: brand.isActive,
-    sortOrder: brand.sortOrder ?? 0,
-    createdAt: brand.createdAt.toISOString(),
-    updatedAt: brand.updatedAt.toISOString(),
+    id: objectIdString(brand._id),
+    slug: asString(brand.slug),
+    name: asString(brand.name),
+    categorySlugs: asArray<string>(brand.categorySlugs),
+    isActive: brand.isActive ?? true,
+    seo: brand.seo,
+    createdAt: toIsoDate(brand.createdAt),
+    updatedAt: toIsoDate(brand.updatedAt),
   };
 }

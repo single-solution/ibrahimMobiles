@@ -4,8 +4,10 @@ import mongoose, {
   type Model,
 } from "mongoose";
 import { slugify } from "@store/shared";
-import type { StoredImage } from "@store/shared";
+import type { SeoMeta, StoredImage, StructuredContent } from "@store/shared";
+import { seoSchema } from "../schemas/seoSchema";
 import { storedImageSchema } from "../schemas/storedImageSchema";
+import { structuredContentSchema } from "../schemas/structuredContentSchema";
 
 /**
  * Promotional offer surfaced on the home offers strip and (optionally)
@@ -19,7 +21,7 @@ import { storedImageSchema } from "../schemas/storedImageSchema";
  *   - `slug` is auto-generated from `title` via a pre-validate hook; the
  *     admin UI no longer prompts for it.
  *   - `bannerImage?: StoredImage` (added in T1.1.5) stays as the optional
- *     home-banner artwork — universal `StoredImage` shape, see
+ *     home-banner artwork — shared `StoredImage` shape, see
  *     `@store/shared/storage/types`.
  *
  * The accentColor → color migration runs in T1.22 (Offer reshape pass).
@@ -38,6 +40,10 @@ export interface OfferAttributes {
   isActive: boolean;
   sortOrder: number;
   bannerImage?: StoredImage;
+  /** Optional structured copy (summary + icon-tagged bullets). */
+  content?: StructuredContent;
+  /** Optional per-offer SEO overrides (auto-filled when absent). */
+  seo?: SeoMeta;
 }
 
 const offerSchema = new Schema<OfferAttributes>(
@@ -67,6 +73,8 @@ const offerSchema = new Schema<OfferAttributes>(
     isActive: { type: Boolean, required: true, default: true },
     sortOrder: { type: Number, required: true, default: 0 },
     bannerImage: { type: storedImageSchema, required: false },
+    content: { type: structuredContentSchema, required: false, default: undefined },
+    seo: { type: seoSchema, default: () => ({}) },
   },
   { timestamps: true },
 );

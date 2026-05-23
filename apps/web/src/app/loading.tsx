@@ -14,7 +14,7 @@ export default function HomeLoading() {
       {/* Mobile only */}
       <div className="app-page pb-2 space-y-4 md:hidden">
         <MobileHeroSkeleton />
-        <MobileShopTypesSkeleton />
+        <MobileCategoryTilesSkeleton />
         <MobileProcessSkeleton />
         <MobileGradesSkeleton />
         <MobileVisitStoreSkeleton />
@@ -23,7 +23,7 @@ export default function HomeLoading() {
       {/* Desktop */}
       <div className="hidden md:block">
         <DesktopHeroSkeleton />
-        <DesktopShopTypesSkeleton />
+        <DesktopCategoryTilesSkeleton />
         <DesktopProcessSkeleton />
         <DesktopGradesSkeleton />
         <DesktopVisitStoreSkeleton />
@@ -49,7 +49,7 @@ function MobileHeroSkeleton() {
         <Skeleton className="h-[88px] w-64" />
         <div className="grid w-full grid-cols-3 items-center gap-1.5 pt-1">
           {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="aspect-[3/4] w-full" />
+            <Skeleton key={index} className="aspect-square w-full" />
           ))}
         </div>
         <Skeleton shape="pill" className="h-11 w-full" />
@@ -66,7 +66,7 @@ function MobileHeroSkeleton() {
   );
 }
 
-function MobileShopTypesSkeleton() {
+function MobileCategoryTilesSkeleton() {
   return (
     <section className="app-section">
       <div className="mb-3 space-y-2">
@@ -207,7 +207,7 @@ function DesktopHeroSkeleton() {
         <Skeleton className="h-[120px] w-[480px] max-w-full" />
         <div className="grid w-full grid-cols-5 items-center gap-2 pt-2">
           {Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="aspect-[3/4] w-full" />
+            <Skeleton key={index} className="aspect-square w-full" />
           ))}
         </div>
         <Skeleton shape="pill" className="h-12 w-44" />
@@ -234,7 +234,7 @@ function DesktopSectionHeaderSkeleton() {
   );
 }
 
-function DesktopShopTypesSkeleton() {
+function DesktopCategoryTilesSkeleton() {
   return (
     <section className="mx-auto max-w-[1440px] px-6 py-24">
       <DesktopSectionHeaderSkeleton />

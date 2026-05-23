@@ -34,7 +34,7 @@ export default async function AdminCustomersPage() {
         title="Customers"
         description="Buyers and walk-in inquiries that you've added or that have placed an order."
       />
-      <section className="mt-8">
+      <section>
         <Suspense
           fallback={
             <AdminTableSkeleton

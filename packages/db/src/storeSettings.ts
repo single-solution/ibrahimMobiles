@@ -66,7 +66,7 @@ async function loadFromDb(): Promise<StoreSettings> {
       continue;
     }
     // Each field's coerced value is typed against `StoreSettings[K]`, so the
-    // assignment is sound — the surrounding generic just isn't preserved
+    // assignment is sound — TypeScript does not preserve `K`
     // through the `for…of` iteration.
     (merged[field] as StoreSettings[typeof field]) = coerced;
   }

@@ -1,7 +1,8 @@
-import { AdminShell } from "@/components/AdminShell";
-import { Categories } from "@/components/categories/Categories";
-import { PageTitle } from "@/components/PageTitle";
+import { Suspense } from "react";
 
+import { AdminShell } from "@/components/AdminShell";
+import { CategoriesCatalog } from "@/components/categories/CategoriesCatalog";
+import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
 import {
   Attribute,
   Brand,
@@ -23,6 +24,9 @@ import { requirePageSession } from "@/lib/server/requirePageSession";
 
 export const dynamic = "force-dynamic";
 
+const TABLE_COLUMN_COUNT = 4;
+const TABLE_ROW_COUNT = 10;
+
 export default async function AdminCategoriesPage() {
   await requirePageSession("/categories");
   await connectDB();
@@ -35,19 +39,23 @@ export default async function AdminCategoriesPage() {
   ]);
 
   return (
-    <AdminShell>
-      <PageTitle
-        eyebrow="Catalog"
-        title="Categories"
-        description="Brands, grades, and attributes per category — author once, surface everywhere."
-      />
-      <section className="mt-8">
-        <Categories
-          initialCategories={categoryDocs.map(toCategoryResponse)}
-          initialBrands={brandDocs.map(toBrandResponse)}
-          initialGrades={gradeDocs.map(toGradeResponse)}
-          initialAttributes={attributeDocs.map(toAttributeResponse)}
-        />
+    <AdminShell contentClassName="flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5 md:p-2">
+      <section className="flex min-h-0 flex-1 flex-col">
+        <Suspense
+          fallback={
+            <AdminTableSkeleton
+              columnCount={TABLE_COLUMN_COUNT}
+              rowCount={TABLE_ROW_COUNT}
+            />
+          }
+        >
+          <CategoriesCatalog
+            initialCategories={categoryDocs.map(toCategoryResponse)}
+            initialBrands={brandDocs.map(toBrandResponse)}
+            initialGrades={gradeDocs.map(toGradeResponse)}
+            initialAttributes={attributeDocs.map(toAttributeResponse)}
+          />
+        </Suspense>
       </section>
     </AdminShell>
   );

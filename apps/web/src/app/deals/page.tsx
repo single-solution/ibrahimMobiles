@@ -8,6 +8,7 @@ import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getStorefrontOffersCached } from "@/lib/storefront/cached";
 import { getStorefrontProductsOnOffer } from "@/lib/storefront";
+import { getSeoSettings } from "@/lib/seo/seoSettings";
 import { formatRelativeDate, logger, type Offer, type Product } from "@store/shared";
 
 /**
@@ -43,10 +44,31 @@ async function loadProductsOnSale(limit: number): Promise<Product[]> {
   }
 }
 
-export const metadata: Metadata = {
-  title: "Today's deals",
-  description: "Live offers, weekly drops and bank-transfer discounts on pre-owned phones.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getSeoSettings();
+  const title = `Today's deals · ${seo.seoStoreName || seo.siteName}`;
+  const description =
+    seo.defaultDescription ||
+    "Live offers, weekly drops and bank-transfer discounts on pre-owned phones.";
+  return {
+    title,
+    description,
+    alternates: { canonical: `${seo.siteUrl}/deals` },
+    openGraph: {
+      title,
+      description,
+      url: `${seo.siteUrl}/deals`,
+      type: "website",
+      images: seo.defaultOgImageUrl ? [seo.defaultOgImageUrl] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: seo.defaultOgImageUrl ? [seo.defaultOgImageUrl] : undefined,
+    },
+  };
+}
 
 // Offers + discounted-products list refresh on a slow cadence; a 60-second
 // ISR window keeps the page near-real-time without serving a fresh Mongo

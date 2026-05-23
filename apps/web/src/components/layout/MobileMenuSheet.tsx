@@ -38,6 +38,7 @@ const QUICK_LINKS = [
 const ACCOUNT_LINKS = [
   { href: "/account", label: "Account", icon: User, sub: "Dashboard" },
   { href: "/account/orders", label: "Orders", icon: Package, sub: "History & status" },
+  { href: "/account/messages", label: "Messages", icon: MessageCircle, sub: "Chats & support" },
   { href: "/track", label: "Track order", icon: Truck, sub: "Public lookup" },
 ];
 

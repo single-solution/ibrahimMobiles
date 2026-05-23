@@ -116,7 +116,7 @@ export default async function AdminOverviewPage() {
         <div className="app-section">
           <div className="app-section-eyebrow">
             <span>Today</span>
-            <Link href="/products/new">+ Add product</Link>
+            <Link href="/products?wizard=1">+ Add product</Link>
           </div>
           <Suspense fallback={<MobileKpiGridFallback />}>
             <MobileTodayKpis />

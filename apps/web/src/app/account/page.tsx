@@ -501,6 +501,7 @@ function ProfileCard({ customer }: ProfileCardProps) {
 }
 
 const QUICK_ACTIONS = [
+  { href: "/account/messages", icon: Headset, label: "Messages", subtitle: "Chat with our team" },
   { href: "/wishlist", icon: Heart, label: "Saved phones", subtitle: "Move favourites to cart" },
   { href: "/checkout", icon: Package, label: "Continue checkout", subtitle: "Pick up where you left off" },
   { href: "/track", icon: Truck, label: "Track an order", subtitle: "Public order lookup" },

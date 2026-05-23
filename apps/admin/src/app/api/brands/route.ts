@@ -3,6 +3,7 @@ import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { BRAND_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import {
   badRequest,
+  conflict,
   created,
   isValidationError,
   ok,
@@ -18,9 +19,10 @@ import { slugify } from "@store/shared";
 
 import { toBrandResponse, type BrandLean } from "@/lib/serializers/brand";
 import type { AdminBrand } from "@/types/admin";
+import { parseSeoPayload } from "@/lib/api/seoPayload";
 
 export async function GET(request: Request) {
-  const { response } = await requireSession();
+  const { response } = await requireSession("product_view");
   if (response) {
     return response;
   }
@@ -36,7 +38,7 @@ export async function GET(request: Request) {
   }
 
   const [docs, total] = await Promise.all([
-    Brand.find(filter).sort({ sortOrder: 1, name: 1 }).skip(skip).limit(limit).lean<BrandLean[]>(),
+    Brand.find(filter).sort({ name: 1 }).skip(skip).limit(limit).lean<BrandLean[]>(),
     Brand.countDocuments(filter),
   ]);
 
@@ -54,7 +56,7 @@ interface BrandInput {
   categorySlugs?: unknown;
   slug?: unknown;
   isActive?: unknown;
-  sortOrder?: unknown;
+  seo?: unknown;
 }
 
 function validateCategorySlugs(input: unknown): string[] | { error: string } {
@@ -62,13 +64,30 @@ function validateCategorySlugs(input: unknown): string[] | { error: string } {
     return { error: "Brand must reference at least one category." };
   }
   const out: string[] = [];
+  const seen = new Set<string>();
   for (const raw of input) {
     if (typeof raw !== "string" || raw.trim().length === 0) {
       return { error: "Each category slug must be a non-empty string." };
     }
-    out.push(slugify(raw, 64));
+    const slug = slugify(raw, 64);
+    if (seen.has(slug)) {
+      return { error: "Brand cannot reference the same category more than once." };
+    }
+    seen.add(slug);
+    out.push(slug);
   }
   return out;
+}
+
+async function hasBrandCategoryConflict(
+  slug: string,
+  categorySlugs: string[],
+): Promise<boolean> {
+  const existing = await Brand.exists({
+    slug,
+    categorySlugs: { $in: categorySlugs },
+  });
+  return Boolean(existing);
 }
 
 export async function POST(request: Request) {
@@ -100,14 +119,29 @@ export async function POST(request: Request) {
     return badRequest("Slug could not be derived from name.");
   }
 
+  let seo: Record<string, unknown> | undefined;
+  if (body.seo !== undefined) {
+    const parsed = parseSeoPayload(body.seo);
+    if ("response" in parsed) {
+      return parsed.response;
+    }
+    if ("seo" in parsed) {
+      seo = parsed.seo as Record<string, unknown>;
+    }
+  }
+
   await connectDB();
+  if (await hasBrandCategoryConflict(slug, categorySlugsResult)) {
+    return conflict("A brand with this name already exists in this category.");
+  }
+
   try {
     const doc = await Brand.create({
       slug,
       name: nameResult,
       categorySlugs: categorySlugsResult,
       isActive: body.isActive !== false,
-      sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : 0,
+      ...(seo ? { seo } : {}),
     });
     await recordActivity({
       actor,

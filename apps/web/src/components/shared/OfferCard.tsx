@@ -3,6 +3,11 @@ import { ArrowRight, Clock } from "lucide-react";
 import { Pill } from "@/components/ui/Pill";
 import { classNames, formatRelativeDate, type Offer } from "@store/shared";
 
+import {
+  StructuredContentCompact,
+  StructuredContentFull,
+} from "@/components/shared/StructuredContent";
+
 interface OfferCardProps {
   offer: Offer;
   size?: "sm" | "md" | "lg";
@@ -45,7 +50,21 @@ export function OfferCard({ offer, size = "md" }: OfferCardProps) {
         >
           {offer.title}
         </h3>
-        <p className="max-w-md text-[12px] leading-snug text-white/85 md:text-sm">{offer.description}</p>
+        <StructuredContentCompact
+          content={offer.content}
+          fallback={offer.description}
+          clampLines={size === "lg" ? 3 : 2}
+          className="max-w-md text-[12px] leading-snug text-white/85 md:text-sm"
+        />
+        {size === "lg" && offer.content?.bullets?.length ? (
+          <StructuredContentFull
+            content={{ summary: "", bullets: offer.content.bullets }}
+            maxBullets={3}
+            className="max-w-md pt-1"
+            iconColor="rgba(255,255,255,0.95)"
+            bulletItemClassName="text-[12px] text-white/90 md:text-[12.5px]"
+          />
+        ) : null}
         <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-medium md:mt-2 md:text-sm">
           See deal
           <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5 md:size-[14px]" />
@@ -60,7 +79,10 @@ export function OfferCard({ offer, size = "md" }: OfferCardProps) {
 
 /** Darken a `#rrggbb` hex by `amount` (0..1). Used to fake a gradient
  *  endpoint from the single admin-authored offer colour. */
-function darken(hex: string, amount: number): string {
+function darken(hex: string | undefined, amount: number): string {
+  if (!hex || typeof hex !== "string") {
+    return "#f59e0b";
+  }
   const match = /^#([0-9a-f]{6})$/i.exec(hex.trim());
   if (!match) {
     return hex;

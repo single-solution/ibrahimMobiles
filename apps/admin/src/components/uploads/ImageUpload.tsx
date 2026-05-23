@@ -2,34 +2,32 @@
 
 /**
  * Single-image input. Used everywhere the model field is
- * `StoredImage | null`: `Category.iconImage`, `Offer.bannerImage`,
+ * `StoredImage | null`: `Offer.bannerImage`,
  * `Setting.value` (store logo / favicon / OG default), etc.
  *
- * Persistence contract: the wrapper owns the value. We POST to
- * `/api/uploads` to obtain a fresh `StoredImage`, then call `onChange`
- * with the new value. The parent decides when (and how) to persist it
- * to the model.
+ * Persistence contract: the wrapper owns only local selection/preview.
+ * The parent uploads pending files when its final Save/Update action runs.
  */
 
 import { useId, useRef, useState } from "react";
 import Image from "next/image";
 import { ImagePlus, RefreshCcw, Trash2, ZoomIn } from "lucide-react";
-import type { StoredImage } from "@store/shared";
 
 import { Lightbox } from "./Lightbox";
 import {
-  collectStoredImageUrls,
-  removeStoredUrls,
-  uploadImage,
-} from "./uploadClient";
+  createPendingImageDraft,
+  getImageDraftUrl,
+  isPendingImageDraft,
+  type ImageDraft,
+} from "./imageDraft";
 
 type Aspect = "square" | "wide" | "free";
 
 interface ImageUploadProps {
-  value: StoredImage | null;
-  onChange: (image: StoredImage | null) => void;
-  /** Alt-text seed sent with the upload (e.g. `Phones category icon`). */
-  altSeed?: string;
+  value: ImageDraft | null;
+  onChange: (image: ImageDraft | null) => void;
+  /** Base alt text sent with the upload. */
+  altTextBase?: string;
   /** Subject kind sent in the storage key prefix (e.g. `categories`). */
   subjectKind?: string;
   /** Subject id (e.g. category slug). Sanitised server-side. */
@@ -51,16 +49,13 @@ const ASPECT_CLASS: Record<Aspect, string> = {
 export function ImageUpload({
   value,
   onChange,
-  altSeed,
-  subjectKind,
-  subjectId,
+  altTextBase,
   aspect = "square",
   hint,
   label,
 }: ImageUploadProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
@@ -68,30 +63,22 @@ export function ImageUpload({
     const file = files?.[0];
     if (!file) return;
     setError(null);
-    setBusy(true);
     try {
-      const stored = await uploadImage({ file, altSeed, subjectKind, subjectId });
-      if (value) {
-        await removeStoredUrls(collectStoredImageUrls(value));
-      }
-      onChange(stored);
+      const pending = await createPendingImageDraft(
+        file,
+        altTextBase || file.name.replace(/\.[^.]+$/, ""),
+      );
+      onChange(pending);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError(err instanceof Error ? err.message : "Preview failed");
     } finally {
-      setBusy(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   }
 
-  async function handleRemove() {
+  function handleRemove() {
     if (!value) return;
-    setBusy(true);
-    try {
-      await removeStoredUrls(collectStoredImageUrls(value));
-      onChange(null);
-    } finally {
-      setBusy(false);
-    }
+    onChange(null);
   }
 
   function handleAltChange(next: string) {
@@ -115,7 +102,6 @@ export function ImageUpload({
         type="file"
         accept="image/jpeg,image/png,image/webp"
         className="sr-only"
-        disabled={busy}
         onChange={(e) => handleFiles(e.target.files)}
       />
       {value ? (
@@ -123,15 +109,29 @@ export function ImageUpload({
           <div
             className={`relative overflow-hidden rounded-md bg-[var(--color-canvas-deep)] ${ASPECT_CLASS[aspect]}`}
           >
-            <Image
-              src={value.variants.card}
-              alt={value.alt || "Uploaded image"}
-              width={value.width}
-              height={value.height}
-              placeholder={value.blurDataURL ? "blur" : "empty"}
-              blurDataURL={value.blurDataURL || undefined}
-              className="size-full object-cover"
-            />
+            {isPendingImageDraft(value) ? (
+              // eslint-disable-next-line @next/next/no-img-element -- local object URL preview before final upload
+              <img
+                src={getImageDraftUrl(value, "card")}
+                alt={value.alt || "Selected image"}
+                className="size-full object-cover"
+              />
+            ) : (
+              <Image
+                src={getImageDraftUrl(value, "card")}
+                alt={value.alt || "Uploaded image"}
+                width={value.width}
+                height={value.height}
+                placeholder={value.blurDataURL ? "blur" : "empty"}
+                blurDataURL={value.blurDataURL || undefined}
+                className="size-full object-cover"
+              />
+            )}
+            {isPendingImageDraft(value) && (
+              <span className="absolute left-2 top-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
+                Uploads on save
+              </span>
+            )}
             <button
               type="button"
               aria-label="Open preview"
@@ -145,7 +145,6 @@ export function ImageUpload({
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              disabled={busy}
               className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12px] font-semibold text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)] disabled:opacity-60"
             >
               <RefreshCcw size={12} /> Replace
@@ -153,7 +152,6 @@ export function ImageUpload({
             <button
               type="button"
               onClick={handleRemove}
-              disabled={busy}
               className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-rose-200)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[12px] font-semibold text-[var(--color-rose-700)] hover:bg-[var(--color-rose-50)] disabled:opacity-60"
             >
               <Trash2 size={12} /> Remove
@@ -177,12 +175,11 @@ export function ImageUpload({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          disabled={busy}
           className={`group flex w-full flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] p-6 text-[var(--color-ink-500)] transition hover:border-[var(--color-accent-400)] hover:text-[var(--color-accent-700)] disabled:opacity-60 ${ASPECT_CLASS[aspect]}`}
         >
           <ImagePlus size={20} />
           <span className="text-[12.5px] font-semibold">
-            {busy ? "Uploading…" : "Click to upload"}
+            Click to select
           </span>
           {hint && <span className="text-[11px]">{hint}</span>}
         </button>
@@ -194,7 +191,7 @@ export function ImageUpload({
       )}
       {lightboxOpen && value && (
         <Lightbox
-          urls={[value.variants.full]}
+          urls={[getImageDraftUrl(value, "full")]}
           initialIndex={0}
           alt={value.alt}
           onClose={() => setLightboxOpen(false)}

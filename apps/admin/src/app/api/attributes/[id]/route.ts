@@ -1,6 +1,7 @@
 import { requireSession } from "@/lib/api/requireSession";
 import {
   badRequest,
+  conflict,
   isValidationError,
   isValidId,
   noContent,
@@ -20,7 +21,29 @@ import {
   toAttributeResponse,
   type AttributeLean,
 } from "@/lib/serializers/attribute";
-import { parseAttributeOptions } from "@/lib/api/attributesPayload";
+import {
+  detectVisibilityCycle,
+  parseAttributeOptions,
+  parseAttributeUnit,
+  parseAttributeVisibilityInput,
+} from "@/lib/api/attributesPayload";
+import {
+  cascadeAttributeSlugChange,
+  slugFromCatalogLabel,
+} from "@/lib/services/catalogSlugSync";
+
+async function hasAttributeSlugConflict(
+  id: string,
+  categorySlug: string,
+  slug: string,
+): Promise<boolean> {
+  const existing = await Attribute.exists({
+    _id: { $ne: id },
+    categorySlug,
+    slug,
+  });
+  return Boolean(existing);
+}
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -28,9 +51,10 @@ interface RouteContext {
 
 interface AttributeUpdateInput {
   label?: unknown;
+  unit?: unknown;
   options?: unknown;
   cardPosition?: unknown;
-  isActive?: unknown;
+  visibility?: unknown;
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -50,6 +74,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
 
   const update: Record<string, unknown> = {};
+  const unset: Record<string, ""> = {};
 
   if (body.label !== undefined) {
     const result = validateString(body.label, {
@@ -61,13 +86,36 @@ export async function PUT(request: Request, { params }: RouteContext) {
     }
     update.label = result;
   }
+  let unitForOptions: string | undefined;
+  if (body.unit !== undefined) {
+    const unitResult = parseAttributeUnit(body.unit);
+    if (typeof unitResult === "object" && "error" in unitResult) {
+      return badRequest(unitResult.error);
+    }
+    unitForOptions = unitResult;
+    if (unitResult) {
+      update.unit = unitResult;
+    } else {
+      unset.unit = "";
+    }
+  }
   if (body.options !== undefined) {
-    const parsed = parseAttributeOptions(body.options);
+    let resolvedUnit = unitForOptions;
+    if (resolvedUnit === undefined) {
+      await connectDB();
+      const currentUnit = await Attribute.findById(id)
+        .select("unit")
+        .lean<{ unit?: string }>();
+      resolvedUnit = currentUnit?.unit?.trim() ?? "";
+    }
+    const parsed = parseAttributeOptions(body.options, resolvedUnit);
     if ("error" in parsed) {
       return badRequest(parsed.error);
     }
     update.options = parsed.options;
   }
+  // Attribute-level background tint is deprecated — clear legacy values on save.
+  unset.backgroundColor = "";
   if (body.cardPosition !== undefined) {
     if (
       typeof body.cardPosition !== "string" ||
@@ -79,24 +127,74 @@ export async function PUT(request: Request, { params }: RouteContext) {
     }
     update.cardPosition = body.cardPosition;
   }
-  if (body.isActive !== undefined) {
-    update.isActive = body.isActive !== false;
+  if (body.visibility !== undefined) {
+    const visibilityResult = parseAttributeVisibilityInput(body.visibility);
+    if ("error" in visibilityResult) {
+      return badRequest(visibilityResult.error);
+    }
+    update.visibility = visibilityResult;
   }
-
-  if (Object.keys(update).length === 0) {
+  if (Object.keys(update).length === 0 && Object.keys(unset).length === 0) {
     return badRequest("No fields to update.");
   }
 
   await connectDB();
   try {
+    const current = await Attribute.findById(id)
+      .select("categorySlug slug label")
+      .lean<{ categorySlug: string; slug: string; label: string }>();
+    if (!current) {
+      return notFound("Attribute not found");
+    }
+
+    if (typeof update.label === "string") {
+      const nextSlug = slugFromCatalogLabel(update.label, 60);
+      if (await hasAttributeSlugConflict(id, current.categorySlug, nextSlug)) {
+        return conflict("An attribute with this slug already exists in this category.");
+      }
+      update.slug = nextSlug;
+    }
+
+    if (update.visibility !== undefined) {
+      const currentDoc = await Attribute.findById(id)
+        .select("slug")
+        .lean<{ slug: string }>();
+      const siblings = await Attribute.find({
+        categorySlug: current.categorySlug,
+        _id: { $ne: id },
+      })
+        .select("slug visibility")
+        .lean<Array<{ slug: string; visibility?: import("@store/shared").AttributeVisibility }>>();
+      const cycleError = detectVisibilityCycle(
+        currentDoc?.slug ?? "",
+        update.visibility as Parameters<typeof detectVisibilityCycle>[1],
+        siblings,
+      );
+      if (cycleError) {
+        return badRequest(cycleError);
+      }
+    }
+
     const doc = await Attribute.findByIdAndUpdate(
       id,
-      { $set: update },
+      {
+        ...(Object.keys(update).length > 0 ? { $set: update } : {}),
+        ...(Object.keys(unset).length > 0 ? { $unset: unset } : {}),
+      },
       { new: true, runValidators: true },
     ).lean<AttributeLean>();
     if (!doc) {
       return notFound("Attribute not found");
     }
+
+    if (typeof update.slug === "string" && update.slug !== current.slug) {
+      await cascadeAttributeSlugChange(
+        current.categorySlug,
+        current.slug,
+        update.slug as string,
+      );
+    }
+
     await recordActivity({
       actor,
       action: "updated",

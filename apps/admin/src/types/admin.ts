@@ -9,15 +9,22 @@
  *   - Categories, brands, grades, attributes are admin-authored,
  *     slug-keyed, and per-category.
  *   - Products are thin shells; all content lives on variants.
- *   - Variants carry `StoredImage[]` (universal 4-variant pipeline) +
- *     dynamic `attributes: Record<string, string>` (no more hardcoded
+ *   - Variants carry `StoredImage[]` (shared 4-variant pipeline) +
+ *     dynamic `attributes: Record<string, string | string[]>` (no more hardcoded
  *     phone / accessory fields).
  *   - Inquiries are threaded chats; the legacy flat-snapshot shape is
  *     gone.
  *   - Offers use hex `color` (matching Grade); accentColor enum gone.
  *   - User role enum trimmed to the modern five.
  */
-import type { StoredImage } from "@store/shared";
+import type {
+  AttributeVisibility,
+  IconName,
+  ProductGradeImagesEntry,
+  SeoMeta,
+  StoredImage,
+  StructuredContent,
+} from "@store/shared";
 
 export interface AdminBrand {
   id: string;
@@ -25,23 +32,21 @@ export interface AdminBrand {
   name: string;
   categorySlugs: string[];
   isActive: boolean;
-  sortOrder: number;
+  seo?: SeoMeta;
   createdAt: string;
   updatedAt: string;
 }
-
-export type AdminCategoryIconKind = "emoji" | "image";
 
 export interface AdminCategory {
   id: string;
   slug: string;
   label: string;
   description: string;
-  iconKind: AdminCategoryIconKind;
-  iconEmoji?: string;
-  iconImage?: StoredImage;
+  icon: IconName;
   isActive: boolean;
   sortOrder: number;
+  content: StructuredContent;
+  seo?: SeoMeta;
   createdAt: string;
   updatedAt: string;
 }
@@ -54,6 +59,7 @@ export interface AdminGrade {
   notes: string;
   color: string;
   video: string;
+  content: StructuredContent;
   createdAt: string;
   updatedAt: string;
 }
@@ -64,8 +70,10 @@ export type AdminAttributeCardPosition =
   | "none";
 
 export interface AdminAttributeOption {
+  /** Canonical slug (derived from label + attribute unit on save). */
   value: string;
   label: string;
+  backgroundColor?: string;
 }
 
 export interface AdminAttribute {
@@ -73,7 +81,11 @@ export interface AdminAttribute {
   categorySlug: string;
   slug: string;
   label: string;
+  /** Shared unit for all options (e.g. "gb"). */
+  unit?: string;
   options: AdminAttributeOption[];
+  visibility?: AttributeVisibility;
+  backgroundColor?: string;
   cardPosition: AdminAttributeCardPosition;
   isActive: boolean;
   createdAt: string;
@@ -89,13 +101,21 @@ export interface AdminVariant {
   gradeSlug: string;
   priceRupees: number;
   quantity: number;
+  warrantyDays?: number;
+  /** @deprecated Legacy; use `warrantyDays`. */
   warrantyMonths?: number;
+  /**
+   * Resolved from product `gradeImages` at serialize time — same for every
+   * variant in the grade. Prefer `product.gradeImages` when editing photos.
+   */
   images: StoredImage[];
   /**
    * Per-attribute chosen option value. Keys are `Attribute.slug` (per the
    * product's category); values are option `value` strings.
    */
-  attributes: Record<string, string>;
+  attributes: Record<string, string | string[]>;
+  /** Labels for product-only custom attribute values. */
+  attributeDisplay?: Record<string, string>;
 }
 
 export interface AdminProductSummary {
@@ -117,7 +137,10 @@ export interface AdminProductSummary {
 }
 
 export interface AdminProduct extends AdminProductSummary {
+  /** One ordered gallery per grade slug. */
+  gradeImages: ProductGradeImagesEntry[];
   variants: AdminVariant[];
+  seo?: SeoMeta;
 }
 
 // ============================================================================
@@ -310,6 +333,8 @@ export interface AdminOffer {
   expiresAt?: string;
   isActive: boolean;
   sortOrder: number;
+  content: StructuredContent;
+  seo?: SeoMeta;
   createdAt: string;
   updatedAt: string;
 }

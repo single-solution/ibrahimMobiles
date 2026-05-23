@@ -1,5 +1,6 @@
 import type { Types } from "mongoose";
 import type { LoyaltyAccountAttributes } from "@store/db";
+import { asArray, asNumber, asString, objectIdString, toIsoDate } from "@store/shared";
 import type { AdminLoyaltyAccount } from "@/types/admin";
 
 export type LoyaltyAccountLean = LoyaltyAccountAttributes & { _id: Types.ObjectId };
@@ -9,23 +10,23 @@ export function toLoyaltyAccountResponse(
   customerName: string,
 ): AdminLoyaltyAccount {
   return {
-    id: account._id.toString(),
-    customerId: account.customerId.toString(),
-    customerName,
-    balance: account.balance,
-    lifetimeEarned: account.lifetimeEarned,
-    pendingFromShipping: account.pendingFromShipping,
-    transactions: (account.transactions ?? []).map((transaction) => ({
+    id: objectIdString(account._id),
+    customerId: objectIdString(account.customerId),
+    customerName: asString(customerName, "Unknown customer"),
+    balance: asNumber(account.balance),
+    lifetimeEarned: asNumber(account.lifetimeEarned),
+    pendingFromShipping: asNumber(account.pendingFromShipping),
+    transactions: asArray<NonNullable<LoyaltyAccountAttributes["transactions"]>[number]>(account.transactions).map((transaction) => ({
       // Lean documents always carry the auto-generated _id; the optional type
       // is only relaxed for in-memory `push` calls before save.
-      id: transaction._id?.toString() ?? "",
+      id: objectIdString(transaction?._id),
       kind: transaction.kind,
-      amount: transaction.amount,
-      occurredAt: transaction.occurredAt.toISOString(),
+      amount: asNumber(transaction?.amount),
+      occurredAt: toIsoDate(transaction?.occurredAt),
       reason: transaction.reason,
       orderRef: transaction.orderRef,
     })),
-    createdAt: account.createdAt.toISOString(),
-    updatedAt: account.updatedAt.toISOString(),
+    createdAt: toIsoDate(account.createdAt),
+    updatedAt: toIsoDate(account.updatedAt),
   };
 }

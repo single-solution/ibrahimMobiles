@@ -24,7 +24,7 @@ export default async function AdminTeamPage() {
         title="Team & roles"
         description="Members of your admin console with their assigned permissions."
       />
-      <section className="mt-8">
+      <section>
         <Suspense
           fallback={
             <AdminTableSkeleton

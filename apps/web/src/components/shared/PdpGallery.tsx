@@ -14,18 +14,19 @@
  *     re-render the gallery tree.
  */
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 
 import type { Product, StoredImage } from "@store/shared";
+import { imagesForProductGrade } from "@store/shared";
 
 import { ProductImage } from "@/components/shared/ProductImage";
-import { useSelectedVariantId } from "@/components/shared/VariantContext";
+import { useGalleryGradeSlug } from "@/components/shared/VariantContext";
 
 interface PdpGalleryProps {
-  /** Stable identity per variant — drives the memo + thumb-strip reset. */
-  variantId: string;
+  /** Stable identity per grade — drives the memo + thumb-strip reset. */
+  galleryKey: string;
   images: StoredImage[];
   name: string;
   brandName: string;
@@ -35,7 +36,7 @@ interface PdpGalleryProps {
 }
 
 function PdpGalleryInner({
-  variantId,
+  galleryKey,
   images,
   name,
   brandName,
@@ -44,14 +45,31 @@ function PdpGalleryInner({
 }: PdpGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [readyHeroKey, setReadyHeroKey] = useState<string | null>(null);
 
-  // Reset when the variant flips — different image stack altogether.
+  const safeIndex =
+    images.length === 0 ? 0 : Math.min(activeIndex, images.length - 1);
+  const hero = images[safeIndex] ?? images[0];
+  const heroKey = hero
+    ? `${galleryKey}:${hero.variants.detail}`
+    : `${galleryKey}:empty`;
+  const heroReady = readyHeroKey === null || readyHeroKey === heroKey;
+  const heroVisibilityClass = heroReady ? "opacity-100" : "opacity-0";
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- variant change is an external trigger to reset local UI state
     setActiveIndex(0);
-  }, [variantId]);
+    setLightboxOpen(false);
+  }, [galleryKey]);
 
-  const hero = images[activeIndex] ?? images[0];
+  useEffect(() => {
+    if (images.length === 0) {
+      setReadyHeroKey(heroKey);
+    }
+  }, [heroKey, images.length]);
+
+  const handleHeroLoad = useCallback(() => {
+    setReadyHeroKey(heroKey);
+  }, [heroKey]);
 
   function go(delta: number) {
     if (images.length === 0) return;
@@ -69,23 +87,29 @@ function PdpGalleryInner({
           aria-label={hero ? `Open zoomed view of ${name}` : `${name} image`}
           className="relative block aspect-square w-full bg-[var(--color-canvas-deep)]"
         >
-          <ProductImage
-            image={hero}
-            variant="detail"
-            name={name}
-            brandName={brandName}
-            brandSlug={brandSlug}
-            sizes="100vw"
-            priority
-          />
-          {hero && (
+          <div
+            className={`absolute inset-0 transition-none ${heroVisibilityClass}`}
+          >
+            <ProductImage
+              key={heroKey}
+              image={hero}
+              variant="detail"
+              name={name}
+              brandName={brandName}
+              brandSlug={brandSlug}
+              sizes="(max-width: 768px) 92vw, 50vw"
+              priority
+              onLoadComplete={handleHeroLoad}
+            />
+          </div>
+          {hero && heroReady && (
             <span className="pointer-events-none absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-[var(--color-ink-900)]/55 text-white backdrop-blur">
               <ZoomIn size={16} />
             </span>
           )}
         </button>
         {images.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto px-4 py-2.5 no-scrollbar">
+          <div className="flex gap-2 overflow-x-auto px-4 py-2 no-scrollbar">
             {images.slice(0, 8).map((image, index) => (
               <button
                 key={`${image.variants.thumb}-${index}`}
@@ -94,7 +118,7 @@ function PdpGalleryInner({
                 aria-label={`Show image ${index + 1}`}
                 aria-pressed={index === activeIndex}
                 className={
-                  "relative aspect-square w-14 shrink-0 overflow-hidden rounded-md border bg-[var(--color-canvas-deep)] transition-colors " +
+                  "relative aspect-square w-24 shrink-0 overflow-hidden rounded-md border bg-[var(--color-canvas-deep)] transition-colors " +
                   (index === activeIndex
                     ? "border-[var(--color-ink-900)]"
                     : "border-[var(--color-ink-100)] hover:border-[var(--color-ink-300)]")
@@ -106,7 +130,7 @@ function PdpGalleryInner({
                   name={name}
                   brandName={brandName}
                   brandSlug={brandSlug}
-                  sizes="64px"
+                  sizes="96px"
                 />
               </button>
             ))}
@@ -125,30 +149,36 @@ function PdpGalleryInner({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex h-full min-h-0 flex-col gap-3">
       <button
         type="button"
         onClick={() => images.length > 0 && setLightboxOpen(true)}
         aria-label={hero ? `Open zoomed view of ${name}` : `${name} image`}
-        className="relative block aspect-square w-full overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]"
+        className="relative block min-h-0 w-full flex-1 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]"
       >
-        <ProductImage
-          image={hero}
-          variant="detail"
-          name={name}
-          brandName={brandName}
-          brandSlug={brandSlug}
-          sizes="(max-width: 1024px) 50vw, 50vw"
-          priority
-        />
-        {hero && (
-          <span className="pointer-events-none absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-[var(--color-ink-900)]/55 text-white backdrop-blur">
+        <div
+          className={`absolute inset-0 transition-none ${heroVisibilityClass}`}
+        >
+          <ProductImage
+            key={heroKey}
+            image={hero}
+            variant="detail"
+            name={name}
+            brandName={brandName}
+            brandSlug={brandSlug}
+            sizes="(max-width: 1024px) 50vw, 50vw"
+            priority
+            onLoadComplete={handleHeroLoad}
+          />
+        </div>
+        {hero && heroReady && (
+          <span className="pointer-events-none absolute right-4 top-4 z-10 grid size-10 place-items-center rounded-full bg-[var(--color-ink-900)]/55 text-white backdrop-blur">
             <ZoomIn size={16} />
           </span>
         )}
       </button>
       {images.length > 1 && (
-        <div className="grid grid-cols-4 gap-3">
+        <div className="flex shrink-0 gap-2 overflow-x-auto no-scrollbar">
           {images.slice(0, 8).map((image, index) => (
             <button
               key={`${image.variants.thumb}-${index}`}
@@ -157,7 +187,7 @@ function PdpGalleryInner({
               aria-label={`Photo ${index + 1}`}
               aria-pressed={index === activeIndex}
               className={
-                "relative aspect-square w-full overflow-hidden rounded-[var(--radius-md)] border bg-[var(--color-canvas-deep)] transition-colors " +
+                "relative aspect-square w-24 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border bg-[var(--color-canvas-deep)] transition-colors " +
                 (index === activeIndex
                   ? "border-[var(--color-ink-900)]"
                   : "border-[var(--color-ink-100)] hover:border-[var(--color-ink-300)]")
@@ -169,7 +199,7 @@ function PdpGalleryInner({
                 name={name}
                 brandName={brandName}
                 brandSlug={brandSlug}
-                sizes="120px"
+                sizes="96px"
               />
             </button>
           ))}
@@ -315,7 +345,7 @@ function Lightbox({
 export const PdpGallery = memo(
   PdpGalleryInner,
   (prev, next) =>
-    prev.variantId === next.variantId &&
+    prev.galleryKey === next.galleryKey &&
     prev.layout === next.layout &&
     prev.images === next.images &&
     prev.name === next.name &&
@@ -340,21 +370,27 @@ export function VariantAwareGallery({
   brandName,
   layout,
 }: VariantAwareGalleryProps) {
-  const selectedVariantId = useSelectedVariantId();
-  const variant = useMemo(
+  const galleryGradeSlug = useGalleryGradeSlug();
+  const galleryImages = useMemo(
     () =>
-      product.variants.find((candidate) => candidate.id === selectedVariantId) ??
-      product.variants[0],
-    [product.variants, selectedVariantId],
+      imagesForProductGrade(
+        galleryGradeSlug,
+        product.gradeImages,
+        product.variants,
+      ),
+    [galleryGradeSlug, product.gradeImages, product.variants],
   );
   return (
-    <PdpGallery
-      variantId={variant.id}
-      images={variant.images ?? []}
-      name={product.name}
-      brandName={brandName}
-      brandSlug={product.brandSlug}
-      layout={layout}
-    />
+    <div className={layout === "desktop" ? "h-full min-h-0" : undefined}>
+      <PdpGallery
+        key={galleryGradeSlug}
+        galleryKey={galleryGradeSlug}
+        images={galleryImages}
+        name={product.name}
+        brandName={brandName}
+        brandSlug={product.brandSlug}
+        layout={layout}
+      />
+    </div>
   );
 }

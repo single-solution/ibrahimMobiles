@@ -1,21 +1,12 @@
-import { AdminPageSkeleton } from "@/components/loading/AdminPageSkeleton";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
+import { AdminShell } from "@/components/AdminShell";
 
 export default function CategoriesLoading() {
   return (
-    <AdminPageSkeleton
-      label="Loading categories"
-      eyebrowWidthClass="w-14"
-      titleWidthClass="w-36"
-      hasDescription
-    >
-      <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface-muted)] px-6 py-10">
-        <div className="mx-auto max-w-prose space-y-2">
-          <Skeleton shape="text" className="h-3.5 w-full" />
-          <Skeleton shape="text" className="h-3.5 w-5/6" />
-          <Skeleton shape="text" className="h-3.5 w-3/4" />
-        </div>
-      </div>
-    </AdminPageSkeleton>
+    <AdminShell contentClassName="flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5 md:p-2">
+      <section className="flex min-h-0 flex-1 flex-col">
+        <AdminTableSkeleton columnCount={4} rowCount={10} />
+      </section>
+    </AdminShell>
   );
 }

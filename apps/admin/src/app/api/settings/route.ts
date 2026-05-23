@@ -10,6 +10,7 @@ import {
 
 import { connectDB, handleMongoError, invalidateStoreSettingsCache, Setting } from "@store/db";
 
+import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
 
 import { toSettingResponse, type SettingLean } from "@/lib/serializers/setting";
@@ -88,6 +89,9 @@ export async function PUT(request: Request) {
     ).lean<SettingLean>();
 
     invalidateStoreSettingsCache();
+    if (keyResult.startsWith("seo.")) {
+      bustAdminCaches();
+    }
     await recordActivity({
       actor,
       action: "updated",

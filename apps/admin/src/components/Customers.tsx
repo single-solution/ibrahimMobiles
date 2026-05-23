@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { DataTable, type DataTableColumn } from "@/components/DataTable";
+import { AdminTable, type AdminTableColumn } from "@/components/AdminTable";
 import { Drawer } from "@/components/Drawer";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TextField } from "@/components/forms/TextField";
@@ -52,7 +52,7 @@ export function Customers({ customers }: CustomersProps) {
     }
   }
 
-  const columns: DataTableColumn<AdminCustomerSummary>[] = [
+  const columns: AdminTableColumn<AdminCustomerSummary>[] = [
     {
       id: "customer",
       header: "Customer",
@@ -143,7 +143,7 @@ export function Customers({ customers }: CustomersProps) {
 
   return (
     <>
-      <DataTable
+      <AdminTable
         rows={customers}
         columns={columns}
         rowKey={(customer) => customer.id}

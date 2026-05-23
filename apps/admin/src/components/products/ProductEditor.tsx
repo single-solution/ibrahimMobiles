@@ -11,9 +11,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 
+import { formatWarrantyPeriod, type SeoMeta } from "@store/shared";
+
+import { ColoredPill } from "@/components/ColoredPill";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { PreviewPanel } from "@/components/categories/previewPanel";
+import { CatalogSeoPanel } from "@/components/seo/CatalogSeoPanel";
 import { useToast } from "@/components/Toast";
 import type {
   AdminAttribute,
@@ -46,9 +50,8 @@ export function ProductEditor({
   const [product, setProduct] = useState<AdminProduct>(initialProduct);
   const [name, setName] = useState(initialProduct.name);
   const [brandSlug, setBrandSlug] = useState(initialProduct.brand.slug);
-  const [isFeatured, setIsFeatured] = useState(initialProduct.isFeatured);
-  const [isActive, setIsActive] = useState(initialProduct.isActive);
   const [isArchived, setIsArchived] = useState(initialProduct.isArchived);
+  const [seo, setSeo] = useState<SeoMeta>(initialProduct.seo ?? {});
   const [savingMeta, setSavingMeta] = useState(false);
   const [editingVariant, setEditingVariant] = useState<{
     mode: "create" | "edit";
@@ -64,9 +67,8 @@ export function ProductEditor({
     setProduct(initialProduct);
     setName(initialProduct.name);
     setBrandSlug(initialProduct.brand.slug);
-    setIsFeatured(initialProduct.isFeatured);
-    setIsActive(initialProduct.isActive);
     setIsArchived(initialProduct.isArchived);
+    setSeo(initialProduct.seo ?? {});
   }, [initialProduct]);
 
   const gradesBySlug = useMemo(
@@ -77,9 +79,8 @@ export function ProductEditor({
   const metaDirty =
     name.trim() !== product.name ||
     brandSlug !== product.brand.slug ||
-    isFeatured !== product.isFeatured ||
-    isActive !== product.isActive ||
-    isArchived !== product.isArchived;
+    isArchived !== product.isArchived ||
+    JSON.stringify(seo ?? {}) !== JSON.stringify(product.seo ?? {});
 
   const saveMeta = useCallback(async () => {
     if (savingMeta) return;
@@ -96,9 +97,8 @@ export function ProductEditor({
           json: {
             name: name.trim(),
             brandSlug,
-            isFeatured,
-            isActive,
             isArchived,
+            seo,
           },
         },
       );
@@ -113,7 +113,7 @@ export function ProductEditor({
     } finally {
       setSavingMeta(false);
     }
-  }, [savingMeta, name, brandSlug, isFeatured, isActive, isArchived, product.id, toast]);
+  }, [savingMeta, name, brandSlug, isArchived, seo, product.id, toast]);
 
   async function handleVariantSaved(updated: AdminProduct) {
     setProduct(updated);
@@ -241,22 +241,6 @@ export function ProductEditor({
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={isActive}
-                  onChange={(e) => setIsActive(e.target.checked)}
-                />
-                Visible to customers
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={isFeatured}
-                  onChange={(e) => setIsFeatured(e.target.checked)}
-                />
-                Featured on storefront
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
                   checked={isArchived}
                   onChange={(e) => setIsArchived(e.target.checked)}
                 />
@@ -298,6 +282,33 @@ export function ProductEditor({
             )}
           </Section>
 
+          <CatalogSeoPanel
+            value={seo}
+            onChange={setSeo}
+            contextLabel={`Product · ${product.brand.name} ${name}`}
+            entity={{
+              type: "product",
+              entity: {
+                slug: product.slug,
+                name,
+                brandName: product.brand.name,
+                categorySlug: product.categorySlug,
+                brand: {
+                  slug: product.brand.slug,
+                  name: product.brand.name,
+                },
+                category: category
+                  ? {
+                      slug: category.slug,
+                      label: category.label,
+                      description: category.description,
+                    }
+                  : undefined,
+                variants: product.variants,
+              },
+            }}
+          />
+
           <Section title="Danger zone">
             <p className="text-[12.5px] text-[var(--color-ink-600)]">
               Deleting a product is blocked if any order references it. Archive
@@ -332,9 +343,8 @@ export function ProductEditor({
             onClick={() => {
               setName(product.name);
               setBrandSlug(product.brand.slug);
-              setIsFeatured(product.isFeatured);
-              setIsActive(product.isActive);
               setIsArchived(product.isArchived);
+              setSeo(product.seo ?? {});
             }}
             className="rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-1.5 text-[12.5px] font-semibold text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)]"
           >
@@ -413,12 +423,12 @@ function VariantRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           {grade ? (
-            <span
-              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-white"
-              style={{ backgroundColor: grade.color }}
+            <ColoredPill
+              backgroundColor={grade.color}
+              className="rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-[0.1em]"
             >
               {grade.label}
-            </span>
+            </ColoredPill>
           ) : (
             <span className="text-[11px] italic text-[var(--color-ink-400)]">
               No grade
@@ -435,8 +445,9 @@ function VariantRow({
         </div>
         <p className="mt-0.5 text-[12px] text-[var(--color-ink-600)]">
           Rs {variant.priceRupees.toLocaleString()} · qty {variant.quantity}
-          {variant.warrantyMonths !== undefined &&
-            ` · ${variant.warrantyMonths}mo warranty`}
+          {variant.warrantyDays !== undefined &&
+            variant.warrantyDays > 0 &&
+            ` · ${formatWarrantyPeriod(variant.warrantyDays)} warranty`}
         </p>
       </div>
       <button
@@ -493,7 +504,7 @@ function previewTiles(
   const hero = firstVariant?.images[0];
   const cardTile = (
     <div className="flex flex-col gap-2 p-3">
-      <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-[var(--color-canvas-deep)]">
+      <div className="relative aspect-square overflow-hidden rounded-md bg-[var(--color-canvas-deep)]">
         {hero ? (
           // eslint-disable-next-line @next/next/no-img-element -- preview thumbnail; no need for the optimizer round-trip
           <img
@@ -507,12 +518,12 @@ function previewTiles(
           </div>
         )}
         {grade && (
-          <span
-            className="absolute left-2 top-2 inline-flex items-center rounded-full px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.1em] text-white"
-            style={{ backgroundColor: grade.color }}
+          <ColoredPill
+            backgroundColor={grade.color}
+            className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.1em]"
           >
             {grade.label}
-          </span>
+          </ColoredPill>
         )}
       </div>
       <p className="truncate text-[12.5px] font-semibold text-[var(--color-ink-900)]">
@@ -553,7 +564,7 @@ function previewTiles(
       surfaceLabel: `Appears on: PDP · ${category?.label ?? product.categorySlug}`,
       body: (
         <div className="flex flex-col gap-2 p-3">
-          <div className="aspect-[16/10] overflow-hidden rounded-md bg-[var(--color-canvas-deep)]">
+          <div className="aspect-square overflow-hidden rounded-md bg-[var(--color-canvas-deep)]">
             {hero ? (
               // eslint-disable-next-line @next/next/no-img-element -- preview thumbnail; no need for the optimizer round-trip
               <img

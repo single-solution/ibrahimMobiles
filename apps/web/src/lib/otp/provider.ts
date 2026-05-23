@@ -89,9 +89,8 @@ export function getOtpProvider(): OtpProvider {
   }
 
   if (process.env.NODE_ENV === "production") {
-    logger.warn(
-      "OTP provider falling back to console in production — codes will be visible in server logs. " +
-        "Set TWILIO_* env vars to deliver via WhatsApp/SMS.",
+    throw new Error(
+      "OTP delivery is not configured for production. Set OTP_PROVIDER=twilio and TWILIO_* env vars.",
     );
   }
   cachedProvider = consoleProvider;

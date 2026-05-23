@@ -2,8 +2,16 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
-import type { GradeDescriptor, Product } from "@store/shared";
+import {
+  compareAlphabetically,
+  sortAttributeOptions,
+  type AttributeDescriptor,
+  type GradeDescriptor,
+  type Product,
+  type StorefrontVariant,
+} from "@store/shared";
 
+import { productHref } from "@/lib/catalog/productPaths";
 import type { StorefrontCategory } from "@/lib/storefront";
 
 /**
@@ -27,6 +35,7 @@ import type { StorefrontCategory } from "@/lib/storefront";
  */
 export interface StorefrontReferenceData {
   grades: GradeDescriptor[];
+  attributes: AttributeDescriptor[];
   categories: StorefrontCategoryReference[];
 }
 
@@ -39,15 +48,14 @@ export interface StorefrontCategoryReference {
   slug: string;
   label: string;
   description: string;
-  iconKind: StorefrontCategory["iconKind"];
-  iconEmoji?: string;
-  iconImage?: StorefrontCategory["iconImage"];
+  icon: StorefrontCategory["icon"];
   isActive: boolean;
   sortOrder: number;
 }
 
 const EMPTY_REFERENCE: StorefrontReferenceData = {
   grades: [],
+  attributes: [],
   categories: [],
 };
 
@@ -102,8 +110,32 @@ export function useGradesForCategory(
 ): GradeDescriptor[] {
   const grades = useGrades();
   return useMemo(
-    () => grades.filter((descriptor) => descriptor.categorySlug === categorySlug),
+    () =>
+      grades
+        .filter((descriptor) => descriptor.categorySlug === categorySlug)
+        .sort((left, right) => compareAlphabetically(left.label, right.label)),
     [grades, categorySlug],
+  );
+}
+
+export function useAttributes(): AttributeDescriptor[] {
+  return useContext(StorefrontReferenceContext).attributes;
+}
+
+export function useAttributesForCategory(
+  categorySlug: string,
+): AttributeDescriptor[] {
+  const attributes = useAttributes();
+  return useMemo(
+    () =>
+      attributes
+        .filter((attribute) => attribute.categorySlug === categorySlug)
+        .map((attribute) => ({
+          ...attribute,
+          options: sortAttributeOptions(attribute.options, attribute.unit),
+        }))
+        .sort((left, right) => compareAlphabetically(left.label, right.label)),
+    [attributes, categorySlug],
   );
 }
 
@@ -135,7 +167,10 @@ export function useCategorySegment(categorySlug: string): string {
 /** Build a `/shop/<category>/<slug>` link for a product, from context. */
 export function useProductHref(
   product: Pick<Product, "categorySlug" | "slug">,
+  variant?: StorefrontVariant,
 ): string {
-  const segment = useCategorySegment(product.categorySlug);
-  return `/shop/${segment}/${product.slug}`;
+  if (!product.categorySlug || !product.slug) {
+    return "/shop";
+  }
+  return productHref(product, variant ? { variant } : undefined);
 }

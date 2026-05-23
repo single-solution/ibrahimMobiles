@@ -10,7 +10,7 @@ import type { StoredImage } from "@store/shared";
 
 export interface UploadImageOptions {
   file: File;
-  altSeed?: string;
+  altTextBase?: string;
   subjectKind?: string;
   subjectId?: string;
 }
@@ -50,7 +50,7 @@ export async function uploadImage(options: UploadImageOptions): Promise<StoredIm
   const form = new FormData();
   form.set("file", options.file);
   form.set("kind", "image");
-  if (options.altSeed) form.set("altSeed", options.altSeed);
+  if (options.altTextBase) form.set("altTextBase", options.altTextBase);
   if (options.subjectKind) form.set("subjectKind", options.subjectKind);
   if (options.subjectId) form.set("subjectId", options.subjectId);
   return (await postUpload(form)) as StoredImage;

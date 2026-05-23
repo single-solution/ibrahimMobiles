@@ -34,7 +34,7 @@ export default async function AdminOrdersPage() {
         title="Orders"
         description="Manage every order placed through the storefront — from pending payment to delivered."
       />
-      <section className="mt-8">
+      <section>
         <Suspense
           fallback={
             <AdminTableSkeleton

@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { DataTable, type DataTableColumn } from "@/components/DataTable";
+import { AdminTable, type AdminTableColumn } from "@/components/AdminTable";
 import { Drawer } from "@/components/Drawer";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { StatusPill } from "@/components/StatusPill";
@@ -81,7 +81,7 @@ export function Team({ members, currentUserId, isCurrentUserSuperAdmin }: TeamPr
     }
   }
 
-  const columns: DataTableColumn<AdminUser>[] = [
+  const columns: AdminTableColumn<AdminUser>[] = [
     {
       id: "member",
       header: "Member",
@@ -172,7 +172,7 @@ export function Team({ members, currentUserId, isCurrentUserSuperAdmin }: TeamPr
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
       <div>
-        <DataTable
+        <AdminTable
           rows={members}
           columns={columns}
           rowKey={(member) => member.id}

@@ -1,15 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ArrowLeft,
-  ArrowUpRight,
-  Minus,
-  Plus,
-  ShoppingBag,
-  Trash2,
-} from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ShoppingBag, Trash2 } from "lucide-react";
+import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
+import { productHref } from "@/lib/catalog/productPaths";
 import { useCart } from "@/lib/cart/useCart";
 import type { CartItem } from "@/lib/cart/types";
 import { classNames, formatPrice } from "@store/shared";
@@ -103,12 +99,27 @@ export function Cart() {
 function CartLine({ line }: { line: CartItem }) {
   const cart = useCart();
   const lineTotal = line.unitPriceRupees * line.quantity;
-  const productHref = `/shop/${line.categorySlug}/${line.productSlug}`;
+  const cartSelection: Record<string, string> = {
+    [GRADE_DIMENSION_KEY]: line.gradeSlug,
+  };
+  for (const [slug, value] of Object.entries(line.attributes ?? {})) {
+    const resolved = Array.isArray(value) ? value[0] : value;
+    if (resolved) {
+      cartSelection[slug] = resolved;
+    }
+  }
+  const lineProductHref =
+    line.categorySlug && line.productSlug
+      ? productHref(
+          { categorySlug: line.categorySlug, slug: line.productSlug },
+          { selection: cartSelection },
+        )
+      : "/shop";
   const attributeEntries = Object.entries(line.attributes ?? {});
   return (
     <li className="flex gap-4 p-4">
       <Link
-        href={productHref}
+        href={lineProductHref}
         className="relative aspect-square w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
       >
         <ProductImage
@@ -128,7 +139,7 @@ function CartLine({ line }: { line: CartItem }) {
               {line.brandName}
             </p>
             <Link
-              href={productHref}
+              href={lineProductHref}
               className="line-clamp-2 text-[14px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)] hover:text-[var(--color-accent-800)]"
             >
               {line.productName}
@@ -151,8 +162,9 @@ function CartLine({ line }: { line: CartItem }) {
         <div className="mt-3 flex items-center justify-between gap-2">
           <QuantityStepper
             quantity={line.quantity}
-            onIncrement={() => cart.updateQuantity(line.id, line.quantity + 1)}
-            onDecrement={() => cart.updateQuantity(line.id, line.quantity - 1)}
+            max={line.maxQuantity ?? 10}
+            onChange={(next) => cart.updateQuantity(line.id, next)}
+            size="sm"
           />
           <p className="text-[14.5px] font-semibold leading-none tracking-tight tabular-nums text-[var(--color-ink-900)]">
             {formatPrice(lineTotal)}
@@ -171,44 +183,3 @@ function Chip({ children }: { children: React.ReactNode }) {
   );
 }
 
-function QuantityStepper({
-  quantity,
-  onDecrement,
-  onIncrement,
-}: {
-  quantity: number;
-  onDecrement: () => void;
-  onIncrement: () => void;
-}) {
-  return (
-    <div className="inline-flex h-8 items-center overflow-hidden rounded-full border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
-      <button
-        type="button"
-        onClick={onDecrement}
-        disabled={quantity <= 1}
-        aria-label="Decrease quantity"
-        className={classNames(
-          "tap grid h-full w-8 place-items-center text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]",
-          "disabled:cursor-not-allowed disabled:text-[var(--color-ink-300)] disabled:hover:bg-transparent",
-        )}
-      >
-        <Minus size={13} />
-      </button>
-      <span className="grid h-full min-w-[28px] place-items-center text-[12.5px] font-semibold tabular-nums text-[var(--color-ink-900)]">
-        {quantity}
-      </span>
-      <button
-        type="button"
-        onClick={onIncrement}
-        disabled={quantity >= 10}
-        aria-label="Increase quantity"
-        className={classNames(
-          "tap grid h-full w-8 place-items-center text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]",
-          "disabled:cursor-not-allowed disabled:text-[var(--color-ink-300)] disabled:hover:bg-transparent",
-        )}
-      >
-        <Plus size={13} />
-      </button>
-    </div>
-  );
-}

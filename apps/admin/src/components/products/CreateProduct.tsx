@@ -10,13 +10,16 @@
  * summary so the admin always sees the product taking shape.
  */
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Sparkles } from "lucide-react";
 import { slugify } from "@store/shared";
 
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { ColoredPill } from "@/components/ColoredPill";
+import { LucideIconRenderer } from "@/components/icons/LucideIconRenderer";
+import { CatalogSeoPanel } from "@/components/seo/CatalogSeoPanel";
 import { useToast } from "@/components/Toast";
 import { PreviewPanel } from "@/components/categories/previewPanel";
 import type {
@@ -26,10 +29,16 @@ import type {
   AdminGrade,
   AdminProduct,
 } from "@/types/admin";
+import {
+  getImageDraftUrl,
+  isStoredImageDraft,
+  uploadImageDrafts,
+} from "@/components/uploads/imageDraft";
 
 import { VariantCard } from "./VariantCard";
 import {
   emptyDraft,
+  describeVariantDraftLabel,
   emptyVariantDraft,
   errorsByPath,
   validateDraft,
@@ -38,6 +47,8 @@ import {
   type ProductValidationError,
   type VariantDraft,
 } from "./productFormState";
+
+const PRODUCT_DRAFT_STORAGE_KEY = "admin:create-product:draft";
 
 interface CreateProductProps {
   categories: AdminCategory[];
@@ -57,6 +68,7 @@ export function CreateProduct({
   const [draft, setDraft] = useState<ProductDraft>(emptyDraft);
   const [errors, setErrors] = useState<ProductValidationError[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [hasLoadedStoredDraft, setHasLoadedStoredDraft] = useState(false);
 
   const deferredDraft = useDeferredValue(draft);
 
@@ -68,9 +80,7 @@ export function CreateProduct({
       category,
       brands: brandsByCategory[draft.categorySlug] ?? [],
       grades: gradesByCategory[draft.categorySlug] ?? [],
-      attributes: (attributesByCategory[draft.categorySlug] ?? []).filter(
-        (attr) => attr.isActive,
-      ),
+      attributes: attributesByCategory[draft.categorySlug] ?? [],
     };
   }, [
     draft.categorySlug,
@@ -86,6 +96,47 @@ export function CreateProduct({
     [draft.name],
   );
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(PRODUCT_DRAFT_STORAGE_KEY);
+        if (!raw) {
+          setHasLoadedStoredDraft(true);
+          return;
+        }
+        const saved = JSON.parse(raw) as { draft?: ProductDraft; savedAt?: string };
+        const shouldResume = window.confirm(
+          saved.savedAt
+            ? `Resume product draft saved at ${new Date(saved.savedAt).toLocaleString()}?`
+            : "Resume saved product draft?",
+        );
+        if (shouldResume && saved.draft) {
+          setDraft(saved.draft);
+        } else {
+          window.localStorage.removeItem(PRODUCT_DRAFT_STORAGE_KEY);
+        }
+      } catch {
+        window.localStorage.removeItem(PRODUCT_DRAFT_STORAGE_KEY);
+      } finally {
+        setHasLoadedStoredDraft(true);
+      }
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedStoredDraft) {
+      return;
+    }
+    window.localStorage.setItem(
+      PRODUCT_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        draft: stripPendingImages(draft),
+        savedAt: new Date().toISOString(),
+      }),
+    );
+  }, [draft, hasLoadedStoredDraft]);
+
   function setCategory(categorySlug: string) {
     if (categorySlug === draft.categorySlug) return;
     setDraft({
@@ -96,10 +147,19 @@ export function CreateProduct({
   }
 
   function updateVariant(uid: string, next: VariantDraft) {
-    setDraft((prev) => ({
-      ...prev,
-      variants: prev.variants.map((v) => (v.uid === uid ? next : v)),
-    }));
+    setDraft((prev) => {
+      const variantIndex = prev.variants.findIndex((row) => row.uid === uid);
+      if (variantIndex >= 0) {
+        const errorPrefix = `variants.${variantIndex}`;
+        setErrors((errors) =>
+          errors.filter((row) => !row.path.startsWith(errorPrefix)),
+        );
+      }
+      return {
+        ...prev,
+        variants: prev.variants.map((row) => (row.uid === uid ? next : row)),
+      };
+    });
   }
   function removeVariant(uid: string) {
     setDraft((prev) => ({
@@ -130,12 +190,22 @@ export function CreateProduct({
     setErrors([]);
     setSubmitting(true);
     try {
-      const created = await adminFetch<AdminProduct>("/api/products", {
+      const gradeImages = await Promise.all(
+        Object.entries(draft.gradeImages).map(async ([gradeSlug, images]) => ({
+          gradeSlug,
+          images: await uploadImageDrafts(images, {
+            subjectKind: "products/new",
+            subjectId: gradeSlug,
+          }),
+        })),
+      );
+      await adminFetch<AdminProduct>("/api/products", {
         method: "POST",
-        json: result.payload,
+        json: { ...result.payload, gradeImages, variants: result.payload.variants },
       });
+      window.localStorage.removeItem(PRODUCT_DRAFT_STORAGE_KEY);
       toast.success("Product created.");
-      router.push(`/products/${created.id}`);
+      router.push("/products");
     } catch (error) {
       const message =
         error instanceof AdminApiError
@@ -170,20 +240,12 @@ export function CreateProduct({
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {categories.map((category) => (
-                <button
+                <CategoryOptionButton
                   key={category.id}
-                  type="button"
-                  onClick={() => setCategory(category.slug)}
-                  className={
-                    "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[13px] font-semibold transition " +
-                    (draft.categorySlug === category.slug
-                      ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
-                      : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)]")
-                  }
-                >
-                  <span aria-hidden>{category.iconEmoji || "📦"}</span>
-                  {category.label}
-                </button>
+                  category={category}
+                  isSelected={draft.categorySlug === category.slug}
+                  onSelect={() => setCategory(category.slug)}
+                />
               ))}
             </div>
           )}
@@ -247,32 +309,6 @@ export function CreateProduct({
               <FieldErrorLine message={errorMap.get("name")} />
             </Section>
 
-            <div className="flex flex-wrap items-center gap-4 rounded-md border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2">
-              <label className="flex items-center gap-2 text-[13px] text-[var(--color-ink-800)]">
-                <input
-                  type="checkbox"
-                  checked={draft.isActive}
-                  onChange={(e) =>
-                    setDraft((prev) => ({ ...prev, isActive: e.target.checked }))
-                  }
-                />
-                Visible to customers
-              </label>
-              <label className="flex items-center gap-2 text-[13px] text-[var(--color-ink-800)]">
-                <input
-                  type="checkbox"
-                  checked={draft.isFeatured}
-                  onChange={(e) =>
-                    setDraft((prev) => ({
-                      ...prev,
-                      isFeatured: e.target.checked,
-                    }))
-                  }
-                />
-                Featured on storefront
-              </label>
-            </div>
-
             <Section
               title="Variants"
               action={
@@ -299,6 +335,7 @@ export function CreateProduct({
                       variant={variant}
                       grades={surface.grades}
                       attributes={surface.attributes}
+                      brandSlug={draft.brandSlug}
                       productNameForAlt={draft.name}
                       errorByPath={errorMap}
                       onChange={(next) => updateVariant(variant.uid, next)}
@@ -309,6 +346,45 @@ export function CreateProduct({
               )}
               <FieldErrorLine message={errorMap.get("variants")} />
             </Section>
+
+            <CatalogSeoPanel
+              value={draft.seo}
+              onChange={(seo) => setDraft((prev) => ({ ...prev, seo }))}
+              contextLabel={
+                draft.name.trim()
+                  ? `Product · ${surface.brands.find((b) => b.slug === draft.brandSlug)?.name ?? ""} ${draft.name}`.trim()
+                  : "Product"
+              }
+              entity={{
+                type: "product",
+                entity: {
+                  slug: slugify(draft.name.trim()) || "preview",
+                  name: draft.name.trim() || "New product",
+                  brandName:
+                    surface.brands.find((b) => b.slug === draft.brandSlug)?.name ??
+                    "",
+                  categorySlug: draft.categorySlug,
+                  brand: (() => {
+                    const brand = surface.brands.find(
+                      (b) => b.slug === draft.brandSlug,
+                    );
+                    return brand
+                      ? { slug: brand.slug, name: brand.name }
+                      : undefined;
+                  })(),
+                  category: {
+                    slug: surface.category.slug,
+                    label: surface.category.label,
+                    description: surface.category.description,
+                  },
+                  variants: draft.variants.map((variant) => ({
+                    images: (draft.gradeImages[variant.gradeSlug] ?? []).filter(
+                      isStoredImageDraft,
+                    ),
+                  })),
+                },
+              }}
+            />
 
             <footer className="sticky bottom-3 z-10 flex items-center justify-end gap-2 rounded-md border border-[var(--color-ink-100)] bg-[var(--color-surface)]/95 p-3 backdrop-blur">
               <Link
@@ -370,6 +446,37 @@ function EmptyHint({ children }: { children: React.ReactNode }) {
   );
 }
 
+function CategoryOptionButton({
+  category,
+  isSelected,
+  onSelect,
+}: {
+  category: AdminCategory;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[13px] font-semibold transition " +
+        (isSelected
+          ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
+          : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)]")
+      }
+    >
+      <LucideIconRenderer
+        name={category.icon}
+        size={14}
+        strokeWidth={2.2}
+        aria-hidden
+      />
+      {category.label}
+    </button>
+  );
+}
+
 function FieldErrorLine({ message }: { message?: string }) {
   if (!message) return null;
   return (
@@ -377,6 +484,17 @@ function FieldErrorLine({ message }: { message?: string }) {
       {message}
     </p>
   );
+}
+
+function stripPendingImages(draft: ProductDraft): ProductDraft {
+  const gradeImages: ProductDraft["gradeImages"] = {};
+  for (const [gradeSlug, images] of Object.entries(draft.gradeImages)) {
+    gradeImages[gradeSlug] = images.filter(isStoredImageDraft);
+  }
+  return {
+    ...draft,
+    gradeImages,
+  };
 }
 
 function previewTiles(
@@ -387,16 +505,18 @@ function previewTiles(
   const grade = firstVariant
     ? surface?.grades.find((g) => g.slug === firstVariant.gradeSlug)
     : undefined;
-  const heroImage = firstVariant?.images[0];
+  const heroImage = firstVariant?.gradeSlug
+    ? draft.gradeImages[firstVariant.gradeSlug]?.[0]
+    : undefined;
   const brand = surface?.brands.find((b) => b.slug === draft.brandSlug);
 
   const cardTile = (
     <div className="flex flex-col gap-2 p-3">
-      <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-[var(--color-canvas-deep)]">
+      <div className="relative aspect-square overflow-hidden rounded-md bg-[var(--color-canvas-deep)]">
         {heroImage ? (
-          // eslint-disable-next-line @next/next/no-img-element -- preview thumbnail; no need for the optimizer round-trip
+          // eslint-disable-next-line @next/next/no-img-element -- local/remote preview thumbnail
           <img
-            src={heroImage.variants.card}
+            src={getImageDraftUrl(heroImage, "card")}
             alt={heroImage.alt}
             className="size-full object-cover"
           />
@@ -406,12 +526,12 @@ function previewTiles(
           </div>
         )}
         {grade && (
-          <span
-            className="absolute left-2 top-2 inline-flex items-center rounded-full px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.1em] text-white"
-            style={{ backgroundColor: grade.color }}
+          <ColoredPill
+            backgroundColor={grade.color}
+            className="absolute left-2 top-2 rounded-full px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.1em]"
           >
             {grade.label}
-          </span>
+          </ColoredPill>
         )}
       </div>
       <p className="truncate text-[12.5px] font-semibold text-[var(--color-ink-900)]">
@@ -428,11 +548,11 @@ function previewTiles(
 
   const pdpTile = (
     <div className="flex flex-col gap-2 p-3">
-      <div className="aspect-[16/10] overflow-hidden rounded-md bg-[var(--color-canvas-deep)]">
+      <div className="aspect-square overflow-hidden rounded-md bg-[var(--color-canvas-deep)]">
         {heroImage ? (
-          // eslint-disable-next-line @next/next/no-img-element -- preview thumbnail; no need for the optimizer round-trip
+          // eslint-disable-next-line @next/next/no-img-element -- local/remote preview thumbnail
           <img
-            src={heroImage.variants.detail}
+            src={getImageDraftUrl(heroImage, "detail")}
             alt={heroImage.alt}
             className="size-full object-cover"
           />

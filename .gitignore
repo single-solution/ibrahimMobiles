@@ -17,6 +17,9 @@ out
 build
 dist
 
+# Database backups (PF.2)
+backups/
+
 # Environment
 .env*
 !.env.example

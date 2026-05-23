@@ -11,12 +11,7 @@ const ACTIVITY_ROW_COUNT = 14;
  */
 export default function ActivityLoading() {
   return (
-    <AdminPageSkeleton
-      label="Loading activity log"
-      eyebrowWidthClass="w-20"
-      titleWidthClass="w-32"
-      hasDescription
-    >
+    <AdminPageSkeleton label="Loading activity log">
       <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
         <ul className="divide-y divide-[var(--color-ink-100)]">
           {Array.from({ length: ACTIVITY_ROW_COUNT }).map((_, index) => (

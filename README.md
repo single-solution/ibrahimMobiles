@@ -115,7 +115,7 @@ Vercel auto-detects npm workspaces and only redeploys the project whose code act
 - **Schema change?** Edit / add a model in `packages/db/src/models/`. Both apps pick it up on the next type-check.
 - **Storefront-only feature?** Lives in `apps/web/src/`.
 - **Admin-only feature?** Lives in `apps/admin/src/`.
-- **Util used by both?** Goes in `packages/shared/src/` — keep it framework-light (no React, no admin/storefront imports).
+- **Shared code used by both apps?** Goes in `packages/shared/src/` — keep it framework-light (no React, no admin/storefront imports).
 - **Re-brand?** Sign in to admin → `Settings` → edit site name / contacts / social links / policies. Changes propagate within the `getStoreSettings()` cache TTL (60 seconds) — no redeploy needed. The factory defaults in `packages/shared/src/storeSettings.ts` only apply on a fresh install with no Setting documents yet.
 
 ---

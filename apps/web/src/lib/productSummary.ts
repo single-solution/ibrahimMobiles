@@ -6,7 +6,7 @@
  *
  * Schema awareness (Phase 1, PLAN.md §10):
  *   - Grades are dynamic per category, so the old hardcoded `GRADE_RANK`
- *     is gone. Default variant selection now uses a single, universal
+ *     is gone. Default variant selection now uses one product-card
  *     heuristic: cheapest in-stock first, falling back to cheapest
  *     overall when the product is fully out of stock.
  *   - Stock is the variant's `quantity > 0` (no separate `isInStock`).
@@ -15,7 +15,8 @@
  *     individual variants and live on the `Offer` collection.
  */
 
-import type { Product, StorefrontVariant } from "@store/shared";
+import type { Product, StoredImage, StorefrontVariant } from "@store/shared";
+import { imagesForProductGrade } from "@store/shared";
 
 const isVariantInStock = (variant: StorefrontVariant): boolean =>
   (variant.quantity ?? 0) > 0;
@@ -29,9 +30,15 @@ const isVariantInStock = (variant: StorefrontVariant): boolean =>
 export function getDefaultVariant(product: Product): StorefrontVariant {
   const variants = product.variants;
   if (variants.length === 0) {
-    throw new Error(
-      `Product "${product.slug}" has no variants — refusing to pick a default.`,
-    );
+    return {
+      id: "",
+      gradeSlug: "",
+      priceRupees: 0,
+      quantity: 0,
+      warrantyDays: 0,
+      images: [],
+      attributes: {},
+    };
   }
   const inStock = variants.filter(isVariantInStock);
   const pool = inStock.length > 0 ? inStock : variants;
@@ -46,4 +53,44 @@ export function getDefaultVariant(product: Product): StorefrontVariant {
 
 export function isProductInStock(product: Product): boolean {
   return product.variants.some(isVariantInStock);
+}
+
+/** Hero image for a variant — prefers serialized `variant.images`, falls back to grade gallery. */
+export function resolveVariantHeroImage(
+  product: Product,
+  variant: StorefrontVariant,
+): StoredImage | undefined {
+  return (
+    variant.images?.[0] ??
+    imagesForProductGrade(variant.gradeSlug, product.gradeImages, product.variants)[0]
+  );
+}
+
+/**
+ * Variant to link from shop cards — honours a single active grade filter;
+ * expanded-variant grids already pass a one-variant `product`.
+ */
+export function resolveListingVariant(
+  product: Product,
+  options?: { gradeSlugs?: string[] },
+): StorefrontVariant {
+  const gradeSlugs = options?.gradeSlugs?.filter(Boolean) ?? [];
+  if (gradeSlugs.length === 1) {
+    const matches = product.variants.filter((row) => row.gradeSlug === gradeSlugs[0]);
+    if (matches.length > 0) {
+      const inStock = matches.filter(isVariantInStock);
+      const pool = inStock.length > 0 ? inStock : matches;
+      return [...pool].sort((left, right) => {
+        const priceDelta = left.priceRupees - right.priceRupees;
+        if (priceDelta !== 0) {
+          return priceDelta;
+        }
+        return left.id.localeCompare(right.id);
+      })[0];
+    }
+  }
+  if (product.variants.length === 1) {
+    return product.variants[0];
+  }
+  return getDefaultVariant(product);
 }

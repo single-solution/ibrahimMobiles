@@ -4,6 +4,8 @@ import mongoose, {
   type Model,
 } from "mongoose";
 import { slugify } from "@store/shared";
+import type { StructuredContent } from "@store/shared";
+import { structuredContentSchema } from "../schemas/structuredContentSchema";
 
 /**
  * Condition grade for a category — e.g. "Brand new", "Genuine",
@@ -28,7 +30,7 @@ import { slugify } from "@store/shared";
  *     storefront sorts grades by `categorySlug` lookup then array index.
  *   - `inspectionVideoUrl` (optional) → renamed `video` and made
  *     **required**. Every grade carries a short inspection clip; the PDP
- *     grade block embeds it via the universal video player.
+ *     grade block embeds it via the shared video player.
  *
  * Migration caveat (T1.4 step 6): legacy grades carry no `video` URL, so
  * during the Phase 1 migration `video` must be empty. The schema leaves
@@ -44,6 +46,8 @@ export interface GradeAttributes {
   notes: string;
   color: string;
   video: string;
+  /** Optional structured copy (summary + icon-tagged bullets). */
+  content?: StructuredContent;
 }
 
 const gradeSchema = new Schema<GradeAttributes>(
@@ -79,6 +83,7 @@ const gradeSchema = new Schema<GradeAttributes>(
       maxlength: 600,
       default: "",
     },
+    content: { type: structuredContentSchema, required: false, default: undefined },
   },
   { timestamps: true },
 );

@@ -9,7 +9,7 @@
  */
 
 import { NextResponse } from "next/server";
-import { logger, resolveStorageProvider } from "@store/shared";
+import { isAllowedStorageObjectUrl, logger, resolveStorageProvider } from "@store/shared";
 
 import { requireSession } from "@/lib/api/requireSession";
 
@@ -23,7 +23,7 @@ interface RemovePayload {
 const MAX_URLS_PER_CALL = 16;
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const { actor, response } = await requireSession();
+  const { actor, response } = await requireSession("media_delete");
   if (response) return response;
   const userId = actor.id;
 
@@ -48,6 +48,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   for (const raw of payload.urls) {
     if (typeof raw !== "string") {
       errors.push("non-string url skipped");
+      continue;
+    }
+    if (!isAllowedStorageObjectUrl(raw)) {
+      errors.push(raw);
       continue;
     }
     try {

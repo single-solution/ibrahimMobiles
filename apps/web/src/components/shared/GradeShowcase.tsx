@@ -1,10 +1,15 @@
 "use client";
 
-import { Camera, PlayCircle, ShieldCheck, Sparkles } from "lucide-react";
+import { Camera, PlayCircle, ShieldCheck } from "lucide-react";
 
-import type { Product } from "@store/shared";
+import {
+  formatWarrantyPeriod,
+  resolveWarrantyDays,
+  type Product,
+} from "@store/shared";
 
 import { GradeBadge } from "@/components/shared/GradeBadge";
+import { StructuredContentFull } from "@/components/shared/StructuredContent";
 import { useSelectedVariantId } from "@/components/shared/VariantContext";
 import { useGrade } from "@/lib/storefront/storefrontReferenceContext";
 
@@ -61,13 +66,19 @@ export function GradeShowcase({ product, variant = "desktop" }: GradeShowcasePro
             className="space-y-3 p-3.5"
             style={{ backgroundColor: accentSoftBackground }}
           >
-            <p className="text-[13px] leading-snug text-[var(--color-ink-700)]">
-              {descriptor.notes}
-            </p>
+            <StructuredContentFull
+              content={descriptor.content}
+              fallback={descriptor.notes}
+              iconColor={accentColor}
+              iconSize={13}
+              iconSizeClass="size-[13px]"
+              className="text-[13px] leading-snug text-[var(--color-ink-700)]"
+              bulletItemClassName="text-[12.5px] text-[var(--color-ink-700)]"
+            />
             <GradeBullet
               icon={<ShieldCheck size={13} />}
               title="Warranty on this unit"
-              body={`${selected.warrantyMonths ?? 0}-month warranty · 15-day moneyback guarantee.`}
+              body={`${formatWarrantyPeriod(resolveWarrantyDays(selected))} warranty · 15-day moneyback guarantee.`}
             />
           </div>
         </div>
@@ -98,19 +109,20 @@ export function GradeShowcase({ product, variant = "desktop" }: GradeShowcasePro
             </p>
           </div>
         </div>
-        <p className="mt-4 text-base leading-relaxed text-[var(--color-ink-700)]">
-          {descriptor.notes}
-        </p>
+        <StructuredContentFull
+          content={descriptor.content}
+          fallback={descriptor.notes}
+          iconColor={accentColor}
+          iconSize={14}
+          iconSizeClass="size-[14px]"
+          className="mt-4 text-base leading-relaxed text-[var(--color-ink-700)]"
+          bulletItemClassName="text-[13.5px] text-[var(--color-ink-700)]"
+        />
         <div className="mt-5 grid grid-cols-1 gap-2.5">
-          <GradeBullet
-            icon={<Sparkles size={14} />}
-            title="What this grade means"
-            body={descriptor.notes}
-          />
           <GradeBullet
             icon={<ShieldCheck size={14} />}
             title="Warranty on this unit"
-            body={`${selected.warrantyMonths ?? 0}-month warranty · 15-day moneyback guarantee.`}
+            body={`${formatWarrantyPeriod(resolveWarrantyDays(selected))} warranty · 15-day moneyback guarantee.`}
           />
         </div>
       </div>

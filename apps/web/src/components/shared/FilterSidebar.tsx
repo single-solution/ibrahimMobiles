@@ -1,31 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Check, SlidersHorizontal, X } from "lucide-react";
 
-import { classNames, type Brand } from "@store/shared";
+import {
+  attributeSlugsToClearOnFilterChange,
+  classNames,
+  compareAlphabetically,
+  type Brand,
+} from "@store/shared";
+import type { StorefrontAttributeFacet } from "@/lib/storefront/facets";
 
 import { Button } from "@/components/ui/Button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { FILTER_PARAM_KEYS } from "@/lib/storefront/filterParams";
 import { useFilterParams } from "@/lib/storefront/useFilterParams";
-import { useGrades } from "@/lib/storefront/storefrontReferenceContext";
+import { useAttributesForCategory, useGrades } from "@/lib/storefront/storefrontReferenceContext";
 
 /**
- * Filter sidebar (Phase 1 universal axes).
+ * Filter sidebar (Phase 1 shared catalog axes).
  *
- * Schema awareness (PLAN.md §10):
- *   - The catalog is admin-authored, so per-category filter axes
- *     (storage / RAM / battery / connector / wattage / gadgetType / PTA)
- *     no longer live in code. They become *generic* attribute filters
- *     in Phase 3 (Categories workspace) — driven by the active category's
- *     `Attribute` collection — keyed in the URL as `attr.<slug>=value`.
- *   - For Phase 1 this component is reduced to the universal axes:
- *     brand, grade, price (and the existing "in stock" toggle is owned
- *     by the page chrome, not this sidebar).
- *   - Grades displayed are the ones admin has defined for the active
- *     category. With "all" we list every grade across categories.
+ * Filter groups (grade, brand, attributes) are alphabetical. Price stays
+ * pinned at the bottom of the sidebar. Attribute option order is
+ * alphabetical everywhere — no manual sort in admin.
  */
 
 interface FilterSidebarProps {
@@ -33,9 +31,18 @@ interface FilterSidebarProps {
   categorySlug?: string;
   /** Live brand list from the DB, with product counts. */
   brands?: Brand[];
+  /** Product counts per grade slug for the active category. */
+  gradeCounts?: Record<string, number>;
+  /** Server-rendered facets for the current URL (avoids empty first paint). */
+  initialFacets?: StorefrontAttributeFacet[];
 }
 
-export function FilterSidebar({ categorySlug, brands = [] }: FilterSidebarProps) {
+export function FilterSidebar({
+  categorySlug,
+  brands = [],
+  gradeCounts = {},
+  initialFacets = [],
+}: FilterSidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const filterApi = useFilterParams();
   const activeFilterCount = countActiveFilters(filterApi.params);
@@ -59,7 +66,12 @@ export function FilterSidebar({ categorySlug, brands = [] }: FilterSidebarProps)
       </div>
 
       <aside className="hidden md:sticky md:top-[calc(var(--desktop-header-h)+24px)] md:block md:h-[calc(100dvh-var(--desktop-header-h)-48px)]">
-        <FilterPanel categorySlug={categorySlug} brands={brands} />
+        <FilterPanel
+          categorySlug={categorySlug}
+          brands={brands}
+          gradeCounts={gradeCounts}
+          initialFacets={initialFacets}
+        />
       </aside>
 
       <BottomSheet
@@ -91,7 +103,13 @@ export function FilterSidebar({ categorySlug, brands = [] }: FilterSidebarProps)
           </div>
         }
       >
-        <FilterPanel categorySlug={categorySlug} brands={brands} isMobile />
+        <FilterPanel
+          categorySlug={categorySlug}
+          brands={brands}
+          gradeCounts={gradeCounts}
+          initialFacets={initialFacets}
+          isMobile
+        />
       </BottomSheet>
     </>
   );
@@ -101,13 +119,33 @@ interface FilterPanelProps {
   isMobile?: boolean;
   categorySlug?: string;
   brands: Brand[];
+  gradeCounts: Record<string, number>;
+  initialFacets: StorefrontAttributeFacet[];
 }
 
-function FilterPanel({ isMobile = false, categorySlug, brands }: FilterPanelProps) {
+function FilterPanel({
+  isMobile = false,
+  categorySlug,
+  brands,
+  gradeCounts,
+  initialFacets,
+}: FilterPanelProps) {
   const filterApi = useFilterParams();
   const router = useRouter();
   const pathname = usePathname();
   const allGrades = useGrades();
+  const categoryAttributes = useAttributesForCategory(categorySlug ?? "");
+  const attributeNodes = useMemo(
+    () =>
+      categoryAttributes.map((attribute) => ({
+        slug: attribute.slug,
+        label: attribute.label,
+        visibility: attribute.visibility ?? { type: "always" as const },
+      })),
+    [categoryAttributes],
+  );
+
+  const facetFetchKey = `${categorySlug ?? ""}:${filterApi.params.toString()}`;
 
   const grades = filterApi.getMulti(FILTER_PARAM_KEYS.grades);
   const brandSlugs = filterApi.getMulti(FILTER_PARAM_KEYS.brands);
@@ -117,15 +155,98 @@ function FilterPanel({ isMobile = false, categorySlug, brands }: FilterPanelProp
   const [minPrice, setMinPrice] = useState(minPriceParam);
   const [maxPrice, setMaxPrice] = useState(maxPriceParam);
 
-  // When viewing a specific category, only its grades. When viewing "all"
-  // (no `categorySlug`), surface every grade — duplicates by slug collapse
-  // because admin scopes grades by category and labels are usually unique.
+  const clearDependentAttributes = useCallback(
+    (next: URLSearchParams, changed: "brand" | "grade" | string) => {
+      for (const slug of attributeSlugsToClearOnFilterChange(attributeNodes, changed)) {
+        next.delete(`attr.${slug}`);
+      }
+    },
+    [attributeNodes],
+  );
+
+  const toggleBrand = useCallback(
+    (slug: string) => {
+      const next = new URLSearchParams(filterApi.params.toString());
+      const current = filterApi.getMulti(FILTER_PARAM_KEYS.brands);
+      const set = new Set(current);
+      if (set.has(slug)) {
+        set.delete(slug);
+      } else {
+        set.add(slug);
+      }
+      if (set.size === 0) {
+        next.delete(FILTER_PARAM_KEYS.brands);
+      } else {
+        next.set(FILTER_PARAM_KEYS.brands, Array.from(set).join(","));
+      }
+      clearDependentAttributes(next, "brand");
+      filterApi.replaceParams(next);
+    },
+    [clearDependentAttributes, filterApi],
+  );
+
+  const toggleGrade = useCallback(
+    (slug: string) => {
+      const next = new URLSearchParams(filterApi.params.toString());
+      const current = filterApi.getMulti(FILTER_PARAM_KEYS.grades);
+      const set = new Set(current);
+      if (set.has(slug)) {
+        set.delete(slug);
+      } else {
+        set.add(slug);
+      }
+      if (set.size === 0) {
+        next.delete(FILTER_PARAM_KEYS.grades);
+      } else {
+        next.set(FILTER_PARAM_KEYS.grades, Array.from(set).join(","));
+      }
+      clearDependentAttributes(next, "grade");
+      filterApi.replaceParams(next);
+    },
+    [clearDependentAttributes, filterApi],
+  );
+
+  const toggleAttribute = useCallback(
+    (attributeSlug: string, value: string) => {
+      const paramKey = `attr.${attributeSlug}`;
+      const next = new URLSearchParams(filterApi.params.toString());
+      const current = filterApi.getMulti(paramKey);
+      const set = new Set(current);
+      if (set.has(value)) {
+        set.delete(value);
+      } else {
+        set.add(value);
+      }
+      if (set.size === 0) {
+        next.delete(paramKey);
+      } else {
+        next.set(paramKey, Array.from(set).join(","));
+      }
+      clearDependentAttributes(next, attributeSlug);
+      filterApi.replaceParams(next);
+    },
+    [clearDependentAttributes, filterApi],
+  );
+
   const visibleGrades = useMemo(() => {
-    if (!categorySlug) {
-      return allGrades;
-    }
-    return allGrades.filter((descriptor) => descriptor.categorySlug === categorySlug);
-  }, [allGrades, categorySlug]);
+    const selected = new Set(grades);
+    const scoped = categorySlug
+      ? allGrades.filter((descriptor) => descriptor.categorySlug === categorySlug)
+      : allGrades;
+    return [...scoped]
+      .filter(
+        (descriptor) =>
+          (gradeCounts[descriptor.slug] ?? 0) > 0 || selected.has(descriptor.slug),
+      )
+      .sort((left, right) => compareAlphabetically(left.label, right.label));
+  }, [allGrades, categorySlug, gradeCounts, grades]);
+
+  const sortedBrands = useMemo(() => {
+    const selected = new Set(brandSlugs);
+    return [...brands]
+      .filter((brand) => brand.productCount > 0 || selected.has(brand.slug))
+      .sort((left, right) => compareAlphabetically(left.name, right.name));
+  }, [brands, brandSlugs]);
 
   const applyPriceRange = () => {
     const next = new URLSearchParams(filterApi.params.toString());
@@ -146,8 +267,8 @@ function FilterPanel({ isMobile = false, categorySlug, brands }: FilterPanelProp
     });
   };
 
-  const content = (
-    <div className={isMobile ? "sheet-stagger space-y-6" : "space-y-3 p-2.5"}>
+  const filterGroups = (
+    <div className={isMobile ? "sheet-stagger space-y-6" : "space-y-3 p-2.5 pb-3"}>
       <FilterGroup title="Grade">
         {visibleGrades.length === 0 ? (
           <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
@@ -159,10 +280,9 @@ function FilterPanel({ isMobile = false, categorySlug, brands }: FilterPanelProp
               <FilterCheckRow
                 key={`${descriptor.categorySlug}:${descriptor.slug}`}
                 label={descriptor.label}
+                count={gradeCounts[descriptor.slug]}
                 checked={grades.includes(descriptor.slug)}
-                onToggle={() =>
-                  filterApi.toggleInMulti(FILTER_PARAM_KEYS.grades, descriptor.slug)
-                }
+                onToggle={() => toggleGrade(descriptor.slug)}
               />
             ))}
           </div>
@@ -172,21 +292,19 @@ function FilterPanel({ isMobile = false, categorySlug, brands }: FilterPanelProp
       <FilterDivider />
 
       <FilterGroup title="Brand">
-        {brands.length === 0 ? (
+        {sortedBrands.length === 0 ? (
           <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
             No brands available yet.
           </p>
         ) : (
           <div className="space-y-0.5">
-            {brands.map((brand) => (
+            {sortedBrands.map((brand) => (
               <FilterCheckRow
                 key={brand.slug}
                 label={brand.name}
                 count={brand.productCount}
                 checked={brandSlugs.includes(brand.slug)}
-                onToggle={() =>
-                  filterApi.toggleInMulti(FILTER_PARAM_KEYS.brands, brand.slug)
-                }
+                onToggle={() => toggleBrand(brand.slug)}
               />
             ))}
           </div>
@@ -195,6 +313,34 @@ function FilterPanel({ isMobile = false, categorySlug, brands }: FilterPanelProp
 
       <FilterDivider />
 
+      {categorySlug ? (
+        <AttributeFacetGroups
+          key={facetFetchKey}
+          categorySlug={categorySlug}
+          initialFacets={initialFacets}
+          filterParams={filterApi.params}
+          getMulti={filterApi.getMulti}
+          onToggleAttribute={toggleAttribute}
+        />
+      ) : null}
+
+      {!isMobile && countActiveFilters(filterApi.params) > 0 && (
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={() => filterApi.clearAll()}
+            className="inline-flex h-8 items-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 text-[12px] font-semibold text-[var(--color-ink-700)] hover:border-[var(--color-ink-300)]"
+          >
+            <X size={12} />
+            Clear all filters
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  const priceFooter = (
+    <div className={isMobile ? "mt-6 border-t border-[var(--color-ink-100)] pt-4" : "border-t border-[var(--color-ink-100)] p-2.5"}>
       <FilterGroup title="Price">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
@@ -204,7 +350,9 @@ function FilterPanel({ isMobile = false, categorySlug, brands }: FilterPanelProp
               placeholder="Min"
               ariaLabel="Minimum price in rupees"
             />
-            <span aria-hidden className="text-[var(--color-ink-300)]">–</span>
+            <span aria-hidden className="text-[var(--color-ink-300)]">
+              –
+            </span>
             <PriceInput
               value={maxPrice}
               onChange={setMaxPrice}
@@ -222,32 +370,118 @@ function FilterPanel({ isMobile = false, categorySlug, brands }: FilterPanelProp
           </button>
         </div>
       </FilterGroup>
-
-      {!isMobile && countActiveFilters(filterApi.params) > 0 && (
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={() => filterApi.clearAll()}
-            className="inline-flex h-8 items-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 text-[12px] font-semibold text-[var(--color-ink-700)] hover:border-[var(--color-ink-300)]"
-          >
-            <X size={12} />
-            Clear all filters
-          </button>
-        </div>
-      )}
     </div>
   );
 
   if (isMobile) {
-    return content;
+    return (
+      <>
+        {filterGroups}
+        {priceFooter}
+      </>
+    );
   }
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        {content}
+        {filterGroups}
       </div>
+      <div className="shrink-0 bg-[var(--color-surface)]">{priceFooter}</div>
     </div>
+  );
+}
+
+interface AttributeFacetGroupsProps {
+  categorySlug: string;
+  initialFacets: StorefrontAttributeFacet[];
+  filterParams: URLSearchParams;
+  getMulti: (key: string) => string[];
+  onToggleAttribute: (attributeSlug: string, value: string) => void;
+}
+
+/** Remount when category/filters change so facet state resets without sync effects. */
+function AttributeFacetGroups({
+  categorySlug,
+  initialFacets,
+  filterParams,
+  getMulti,
+  onToggleAttribute,
+}: AttributeFacetGroupsProps) {
+  const [facets, setFacets] = useState<StorefrontAttributeFacet[]>(initialFacets);
+  const [facetsLoading, setFacetsLoading] = useState(true);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const query = new URLSearchParams(filterParams.toString());
+    query.set("category", categorySlug);
+    fetch(`/api/storefront/facets?${query.toString()}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Facets request failed");
+        }
+        const payload = (await response.json()) as {
+          facets?: StorefrontAttributeFacet[];
+        };
+        setFacets(payload.facets ?? []);
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        setFacets([]);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setFacetsLoading(false);
+        }
+      });
+    return () => controller.abort();
+  }, [categorySlug, filterParams]);
+
+  if (!facetsLoading && facets.length === 0) {
+    return (
+      <p className="px-2 text-[12px] leading-snug text-[var(--color-ink-500)]">
+        No more products match your selection. Adjust or clear filters to see
+        attribute options.
+      </p>
+    );
+  }
+
+  return (
+    <>
+      {facets.map((facet, attributeIndex) => {
+        const selectedValues = getMulti(`attr.${facet.slug}`);
+        return (
+          <div key={facet.slug}>
+            <FilterGroup title={facet.label}>
+              {facetsLoading && facet.options.length === 0 ? (
+                <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
+                  Loading options…
+                </p>
+              ) : facet.options.length === 0 ? (
+                <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
+                  No values in current results.
+                </p>
+              ) : (
+                <div className="space-y-0.5">
+                  {facet.options.map((option) => (
+                    <FilterCheckRow
+                      key={option.value}
+                      label={option.label}
+                      count={option.count}
+                      checked={selectedValues.includes(option.value)}
+                      onToggle={() => onToggleAttribute(facet.slug, option.value)}
+                    />
+                  ))}
+                </div>
+              )}
+            </FilterGroup>
+            {attributeIndex < facets.length - 1 && <FilterDivider />}
+          </div>
+        );
+      })}
+    </>
   );
 }
 

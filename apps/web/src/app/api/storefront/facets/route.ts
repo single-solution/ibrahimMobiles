@@ -1,0 +1,45 @@
+/**
+ * GET /api/storefront/facets?category=<slug>&brand=...&grade=...&attr.<slug>=...
+ *
+ * Returns attribute filter groups whose option values are derived from the
+ * current product listing (hybrid facets), respecting visibility gates.
+ */
+
+import { logger, ok, serverError } from "@store/shared";
+
+import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
+import { parseFiltersFromSearchParams } from "@/lib/storefront/filterParams";
+import { getStorefrontFacets } from "@/lib/storefront/facets";
+
+export const dynamic = "force-dynamic";
+
+const FACETS_PER_MINUTE = 120;
+
+export async function GET(request: Request) {
+  const limited = enforcePublicRateLimit(request, {
+    scope: "storefront-facets",
+    max: FACETS_PER_MINUTE,
+    windowMs: 60_000,
+  });
+  if (limited) {
+    return limited;
+  }
+
+  const url = new URL(request.url);
+  const categorySlug = url.searchParams.get("category")?.trim();
+  if (!categorySlug) {
+    return ok({ facets: [] });
+  }
+
+  const filters = parseFiltersFromSearchParams(url.searchParams, {
+    categorySlug,
+  });
+
+  try {
+    const facets = await getStorefrontFacets(filters);
+    return ok({ facets });
+  } catch (error) {
+    logger.error({ error, categorySlug }, "storefront facets failed");
+    return serverError("Facets failed. Please try again.");
+  }
+}

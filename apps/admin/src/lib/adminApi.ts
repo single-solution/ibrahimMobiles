@@ -44,11 +44,7 @@ export async function adminFetch<TResponse>(
     throw new AdminApiError("Session expired. Redirecting…", 401);
   }
 
-  if (response.status === 204) {
-    // 204 No Content has no body — TypeScript can't know `TResponse` is
-    // `void` for the caller, so this assertion is the only way to satisfy
-    // the generic return type. Callers that rely on a body shouldn't use
-    // endpoints that return 204.
+  if (response.status === 204 || response.status === 304) {
     return undefined as TResponse;
   }
 
@@ -63,7 +59,7 @@ export async function adminFetch<TResponse>(
     throw new AdminApiError(message, response.status);
   }
 
-  // The server's response shape is opaque at this generic boundary; trust the
+  // The server's response shape is opaque to this fetch wrapper; trust the
   // caller's `<TResponse>` and let the call site do narrowing if it needs to.
   return payload as TResponse;
 }

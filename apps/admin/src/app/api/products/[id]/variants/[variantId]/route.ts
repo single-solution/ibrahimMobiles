@@ -47,31 +47,45 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
   const result = await validateVariant(body, false, {
     categorySlug: product.categorySlug,
+    brandSlug: product.brandSlug,
   });
   if (!result.ok) {
     return badRequest(result.error);
   }
 
   const set: Record<string, unknown> = {};
+  const unset: Record<string, ""> = {};
   for (const [key, value] of Object.entries(result.value)) {
     set[`variants.$.${key}`] = value;
   }
+  if (
+    body.attributes !== undefined &&
+    !("attributeDisplay" in result.value)
+  ) {
+    unset["variants.$.attributeDisplay"] = "";
+  }
 
-  if (Object.keys(set).length === 0) {
+  if (Object.keys(set).length === 0 && Object.keys(unset).length === 0) {
     return badRequest("No fields to update.");
   }
 
   try {
     const updated = await Product.findOneAndUpdate(
       { _id: id, "variants._id": variantId },
-      { $set: set },
+      {
+        ...(Object.keys(set).length > 0 ? { $set: set } : {}),
+        ...(Object.keys(unset).length > 0 ? { $unset: unset } : {}),
+      },
       { new: true, runValidators: true },
     ).lean<ProductLean>();
     if (!updated) {
       return notFound("Product or variant not found");
     }
 
-    const brand = await Brand.findOne({ slug: updated.brandSlug }).lean<BrandLean>();
+    const brand = await Brand.findOne({
+      slug: updated.brandSlug,
+      categorySlugs: updated.categorySlug,
+    }).lean<BrandLean>();
     await recordActivity({
       actor,
       action: "updated",
@@ -112,7 +126,10 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       return notFound("Product not found");
     }
 
-    const brand = await Brand.findOne({ slug: updated.brandSlug }).lean<BrandLean>();
+    const brand = await Brand.findOne({
+      slug: updated.brandSlug,
+      categorySlugs: updated.categorySlug,
+    }).lean<BrandLean>();
     await recordActivity({
       actor,
       action: "updated",

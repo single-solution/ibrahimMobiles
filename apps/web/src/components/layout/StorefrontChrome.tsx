@@ -8,7 +8,7 @@ import { MobileHeader } from "@/components/layout/MobileHeader";
 import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
 import { MobileMenuSheet } from "@/components/layout/MobileMenuSheet";
 import { SearchOverlay } from "@/components/layout/SearchOverlay";
-import { FloatingChatDock } from "@/components/layout/FloatingChatDock";
+import { ChatFabShell } from "@/components/chat/ChatFabShell";
 import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import { RevealRoot } from "@/components/motion/RevealRoot";
 
@@ -67,7 +67,7 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
         {children}
       </main>
       <Footer />
-      <FloatingChatDock hideOnMobile={Boolean(isProductDetail)} />
+      <ChatFabShell hideOnMobile={Boolean(isProductDetail)} />
       <MobileBottomTabBar
         onOpenMenu={() => setIsMenuOpen(true)}
         isMenuOpen={isMenuOpen}

@@ -1,5 +1,12 @@
 import type { Types } from "mongoose";
 import type { OfferAttributes, WithTimestamps } from "@store/db";
+import {
+  asString,
+  isStoredImage,
+  normalizeStructuredContent,
+  objectIdString,
+  toIsoDate,
+} from "@store/shared";
 import type { AdminOffer } from "@/types/admin";
 
 export type OfferLean = WithTimestamps<OfferAttributes> & {
@@ -8,20 +15,22 @@ export type OfferLean = WithTimestamps<OfferAttributes> & {
 
 export function toOfferResponse(doc: OfferLean): AdminOffer {
   return {
-    id: doc._id.toString(),
-    slug: doc.slug,
-    title: doc.title,
-    description: doc.description,
-    discountLabel: doc.discountLabel,
-    badgeLabel: doc.badgeLabel,
-    color: doc.color,
-    bannerImage: doc.bannerImage ?? null,
+    id: objectIdString(doc._id),
+    slug: asString(doc.slug),
+    title: asString(doc.title),
+    description: asString(doc.description),
+    discountLabel: asString(doc.discountLabel),
+    badgeLabel: asString(doc.badgeLabel),
+    color: asString(doc.color, "#f59e0b"),
+    bannerImage: isStoredImage(doc.bannerImage) ? doc.bannerImage : null,
     expiresAt: doc.expiresAt
-      ? new Date(doc.expiresAt).toISOString()
+      ? toIsoDate(doc.expiresAt)
       : undefined,
-    isActive: doc.isActive,
-    sortOrder: doc.sortOrder,
-    createdAt: doc.createdAt.toISOString(),
-    updatedAt: doc.updatedAt.toISOString(),
+    isActive: doc.isActive ?? true,
+    sortOrder: doc.sortOrder ?? 0,
+    content: normalizeStructuredContent(doc.content, asString(doc.description)),
+    seo: doc.seo,
+    createdAt: toIsoDate(doc.createdAt),
+    updatedAt: toIsoDate(doc.updatedAt),
   };
 }

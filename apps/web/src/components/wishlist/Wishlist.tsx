@@ -61,7 +61,10 @@ interface WishlistRowProps {
 function WishlistRow({ saved, onRemove }: WishlistRowProps) {
   const category = useCategory(saved.categorySlug);
   const categoryLabel = category?.label ?? saved.categorySlug;
-  const href = `/shop/${saved.categorySlug}/${saved.productSlug}`;
+  const href =
+    saved.categorySlug && saved.productSlug
+      ? `/shop/${saved.categorySlug}/${saved.productSlug}`
+      : "/shop";
 
   return (
     <li>

@@ -9,6 +9,7 @@ import {
   parseBody,
   slugify,
   validateString,
+  type ProductGradeImagesEntry,
 } from "@store/shared";
 
 import {
@@ -23,16 +24,19 @@ import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
 
 import {
+  brandLookupKey,
   summariseProduct,
   toProductResponse,
   type ProductLean,
 } from "@/lib/serializers/product";
 import { type BrandLean } from "@/lib/serializers/brand";
 import type { AdminProductSummary } from "@/types/admin";
-import { validateVariant, type VariantInput } from "@/lib/api/variantValidation";
+import { validateVariantsBatch, type VariantInput } from "@/lib/api/variantValidation";
+import { validateGradeImages } from "@/lib/api/gradeImagesValidation";
+import { parseSeoPayload } from "@/lib/api/seoPayload";
 
 export async function GET(request: Request) {
-  const { response } = await requireSession();
+  const { response } = await requireSession("product_view");
   if (response) {
     return response;
   }
@@ -67,8 +71,15 @@ export async function GET(request: Request) {
     Brand.find().lean<BrandLean[]>(),
   ]);
 
-  const brandsBySlug = new Map(brandDocs.map((brand) => [brand.slug, brand]));
-  const items = docs.map((doc) => summariseProduct(doc, brandsBySlug));
+  const brandsByCategoryAndSlug = new Map(
+    brandDocs.flatMap((brand) =>
+      brand.categorySlugs.map((categorySlug) => [
+        brandLookupKey(categorySlug, brand.slug),
+        brand,
+      ] as const),
+    ),
+  );
+  const items = docs.map((doc) => summariseProduct(doc, brandsByCategoryAndSlug));
 
   const payload: ListResponse<AdminProductSummary> = { items, total, page, limit };
   return ok(payload);
@@ -82,6 +93,8 @@ interface ProductCreateInput {
   isFeatured?: unknown;
   isActive?: unknown;
   variants?: unknown;
+  gradeImages?: unknown;
+  seo?: unknown;
 }
 
 export async function POST(request: Request) {
@@ -123,10 +136,10 @@ export async function POST(request: Request) {
   await connectDB();
   try {
     const [brandExists, categoryExists] = await Promise.all([
-      Brand.exists({ slug: brandSlug }),
+      Brand.exists({ slug: brandSlug, categorySlugs: categorySlug }),
       Category.exists({ slug: categorySlug }),
     ]);
-    if (!brandExists) return badRequest(`Brand '${brandSlug}' not found.`);
+    if (!brandExists) return badRequest(`Brand '${brandSlug}' is not linked to this category.`);
     if (!categoryExists) return badRequest(`Category '${categorySlug}' not found.`);
 
     // Optional variants — the new `/products/new` flow posts everything in
@@ -134,14 +147,54 @@ export async function POST(request: Request) {
     // grade + attribute catalog before insertion.
     const variantPayload: Record<string, unknown>[] = [];
     if (Array.isArray(body.variants)) {
-      for (const [index, raw] of body.variants.entries()) {
-        const result = await validateVariant(raw as VariantInput, true, {
-          categorySlug,
-        });
-        if (!result.ok) {
-          return badRequest(`Variant ${index + 1}: ${result.error}`);
+      const batch = await validateVariantsBatch(
+        body.variants as VariantInput[],
+        true,
+        { categorySlug, brandSlug },
+      );
+      if (!batch.ok) {
+        return badRequest(batch.error);
+      }
+      variantPayload.push(...batch.values);
+    }
+
+    const gradesWithVariants = new Set(
+      variantPayload.map((row) =>
+        String((row as { gradeSlug?: string }).gradeSlug ?? "")
+          .trim()
+          .toLowerCase(),
+      ),
+    );
+
+    let gradeImagesPayload: ProductGradeImagesEntry[] = [];
+    if (Array.isArray(body.gradeImages) && body.gradeImages.length > 0) {
+      const gradeImagesResult = await validateGradeImages(
+        body.gradeImages as Parameters<typeof validateGradeImages>[0],
+        categorySlug,
+        { requireImagesForGrades: gradesWithVariants },
+      );
+      if (!gradeImagesResult.ok) {
+        return badRequest(gradeImagesResult.error);
+      }
+      gradeImagesPayload = gradeImagesResult.value;
+    }
+
+    if (gradesWithVariants.size > 0) {
+      for (const gradeSlug of gradesWithVariants) {
+        if (!gradeImagesPayload.some((row) => row.gradeSlug === gradeSlug)) {
+          return badRequest(`Add at least one photo for grade '${gradeSlug}'.`);
         }
-        variantPayload.push(result.value);
+      }
+    }
+
+    let seo: Record<string, unknown> | undefined;
+    if (body.seo !== undefined) {
+      const parsed = parseSeoPayload(body.seo);
+      if ("response" in parsed) {
+        return parsed.response;
+      }
+      if ("seo" in parsed) {
+        seo = parsed.seo as Record<string, unknown>;
       }
     }
 
@@ -153,7 +206,9 @@ export async function POST(request: Request) {
       isFeatured: body.isFeatured === true,
       isActive: body.isActive !== false,
       isArchived: false,
+      gradeImages: gradeImagesPayload,
       variants: variantPayload,
+      ...(seo ? { seo } : {}),
     });
 
     await recordActivity({
@@ -168,19 +223,12 @@ export async function POST(request: Request) {
     // storefront cache (so listings reflect the new SKU immediately).
     bustAdminCaches();
 
-    // If variants came in with the initial POST the caller wants the
-    // full product back so it can redirect to the editor; otherwise the
-    // listing summary is enough.
-    if (variantPayload.length > 0) {
-      const brand = await Brand.findOne({ slug: brandSlug }).lean<BrandLean>();
-      return created(
-        toProductResponse(doc.toObject() as unknown as ProductLean, brand ?? undefined),
-      );
-    }
-    const brandDocs = await Brand.find().lean<BrandLean[]>();
-    const brandsBySlug = new Map(brandDocs.map((brand) => [brand.slug, brand]));
+    const brand = await Brand.findOne({
+      slug: brandSlug,
+      categorySlugs: categorySlug,
+    }).lean<BrandLean>();
     return created(
-      summariseProduct(doc.toObject() as unknown as ProductLean, brandsBySlug),
+      toProductResponse(doc.toObject() as unknown as ProductLean, brand ?? undefined),
     );
   } catch (error) {
     return handleMongoError(error);

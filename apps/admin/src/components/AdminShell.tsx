@@ -11,9 +11,11 @@ import { AdminMobileMenu } from "@/components/AdminMobileMenu";
 
 interface AdminShellProps {
   children: ReactNode;
+  /** Replaces default `px-3 py-2 md:px-4 md:py-3` on the main scroll area when set. */
+  contentClassName?: string;
 }
 
-export function AdminShell({ children }: AdminShellProps) {
+export function AdminShell({ children, contentClassName }: AdminShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { status } = useSession();
@@ -65,7 +67,12 @@ export function AdminShell({ children }: AdminShellProps) {
 
         <div className="flex min-w-0 flex-1 flex-col md:gap-2">
           <main className="flex flex-1 flex-col overflow-hidden md:rounded-[var(--radius-lg)] md:border md:border-[var(--color-ink-100)] md:bg-[var(--color-surface)] md:shadow-[var(--shadow-sm)]">
-            <div className="flex-1 overflow-y-auto px-4 py-3 md:px-5 md:py-4">
+            <div
+              className={
+                contentClassName ??
+                "flex-1 overflow-y-auto px-3 py-2 md:px-4 md:py-3"
+              }
+            >
               {children}
             </div>
           </main>

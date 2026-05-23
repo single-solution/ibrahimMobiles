@@ -9,6 +9,7 @@ import { SIDEBAR_SECTIONS } from "@/components/Sidebar";
 import { classNames } from "@store/shared";
 
 import { formatRole, getInitials } from "@/lib/initials";
+import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 
 interface AdminMobileMenuProps {
@@ -23,6 +24,7 @@ export function AdminMobileMenu({ isOpen, onClose }: AdminMobileMenuProps) {
   const { siteName } = useStoreSettings();
   const user = session?.user;
   const brandShort = siteName.split(" ")[0];
+  const storefrontUrl = getPublicSiteUrl();
 
   async function handleLogout() {
     onClose();
@@ -93,7 +95,7 @@ export function AdminMobileMenu({ isOpen, onClose }: AdminMobileMenuProps) {
 
       <div className="mt-3 border-t border-[var(--color-ink-100)] pt-3">
         <Link
-          href="/"
+          href={storefrontUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex h-10 items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-[13px] font-medium text-[var(--color-ink-700)] active:bg-[var(--color-canvas-deep)]"

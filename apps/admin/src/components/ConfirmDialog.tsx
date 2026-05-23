@@ -55,19 +55,21 @@ export function ConfirmDialog({
         onClick={onCancel}
         className="animate-sheet-fade absolute inset-0 bg-[var(--color-ink-900)]/40"
       />
-      <div className="relative w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-7 shadow-[var(--shadow-lg)]">
-        <div className="flex items-start gap-4">
+      <div className="relative w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-lg)]">
+        <div className="flex items-start gap-3">
           {tone === "danger" && (
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-rose-50 text-rose-600">
-              <AlertTriangle size={18} />
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-rose-50 text-rose-600">
+              <AlertTriangle size={17} />
             </span>
           )}
           <div className="flex-1">
-            <h2 className="text-base font-semibold text-[var(--color-ink-900)]">{title}</h2>
-            <div className="mt-1.5 text-sm text-[var(--color-ink-600)]">{message}</div>
+            <h2 className="text-[15px] font-semibold leading-snug text-[var(--color-ink-900)]">
+              {title}
+            </h2>
+            <div className="mt-1 text-sm text-[var(--color-ink-600)]">{message}</div>
           </div>
         </div>
-        <div className="mt-7 flex items-center justify-end gap-2">
+        <div className="mt-5 flex items-center justify-end gap-2">
           <Button variant="outline" size="md" onClick={onCancel}>
             {cancelLabel}
           </Button>

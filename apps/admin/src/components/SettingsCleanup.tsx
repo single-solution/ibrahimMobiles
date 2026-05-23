@@ -22,11 +22,11 @@ import { useToast } from "@/components/Toast";
  * exactly — the confirm button stays disabled until the typed text
  * matches, so this is impossible to trigger by misclick or stray Enter.
  *
- * Products are intentionally NOT a target — the user explicitly asked us
- * to preserve the catalog while clearing the rest.
+ * Catalog cleanup is explicit because it deletes products, categories, brands,
+ * grades, and attributes so admins can rebuild everything manually.
  */
 interface CleanupTargetConfig {
-  id: "orders" | "inquiries" | "customers";
+  id: "catalog" | "orders" | "inquiries" | "customers";
   title: string;
   description: string;
   cascadeWarning?: string;
@@ -34,6 +34,15 @@ interface CleanupTargetConfig {
 }
 
 const CLEANUP_TARGETS: ReadonlyArray<CleanupTargetConfig> = [
+  {
+    id: "catalog",
+    title: "Delete all catalog",
+    description:
+      "Permanently removes every product, category, brand, grade, and attribute. Use this before rebuilding the catalog manually.",
+    cascadeWarning:
+      "Cascade — product pages, category pages, filters, grades, and attributes will be empty until admins add them again.",
+    confirmationPhrase: "DELETE ALL CATALOG",
+  },
   {
     id: "orders",
     title: "Delete all orders",
@@ -45,7 +54,7 @@ const CLEANUP_TARGETS: ReadonlyArray<CleanupTargetConfig> = [
     id: "inquiries",
     title: "Delete all inquiries",
     description:
-      "Permanently removes every inquiry — including 'Sell your phone' submissions, callback requests, and the notes attached to them.",
+      "Permanently removes every inquiry, customer chat, callback request, and the notes attached to them.",
     confirmationPhrase: "DELETE ALL INQUIRIES",
   },
   {
@@ -78,9 +87,9 @@ export function SettingsCleanup() {
             Destructive operations
           </p>
           <p className="text-[var(--color-danger-700)]">
-            These actions permanently delete data. Products and store
-            settings are never touched. Type the exact confirmation phrase
-            into each card to enable the delete button.
+            These actions permanently delete data. Store settings are never
+            touched. Type the exact confirmation phrase into each card to
+            enable the delete button.
           </p>
         </div>
       </div>

@@ -8,11 +8,11 @@
  */
 
 export { connectDB } from "./connection";
-export { ensureReferenceData } from "./bootstrap";
 export { handleMongoError, isMongoDuplicateKeyError } from "./mongoErrors";
 export { nextOrderNumberForYear, createWithUniqueOrderNumber } from "./orderNumber";
 export { getStoreSettings, invalidateStoreSettingsCache } from "./storeSettings";
 export { storedImageSchema } from "./schemas/storedImageSchema";
+export { seoSchema } from "./schemas/seoSchema";
 
 /**
  * Augment a Mongoose document attributes type with the framework-managed

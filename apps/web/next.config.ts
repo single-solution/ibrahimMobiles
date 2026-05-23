@@ -72,11 +72,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "cdn.simpleicons.org" },
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
-    // Some seed records reference Unsplash URLs that 404 on the upstream
-    // CDN. Cache the (negative) response for an hour so the optimizer
-    // doesn't re-fetch every minute and spam the dev console — the
-    // client-side ProductImage already gracefully falls back to its
-    // PhoneVisual placeholder on `onError`, so users never see the 404.
+    // Cache negative remote-image responses for an hour so the optimizer
+    // does not repeatedly fetch a broken upstream asset.
     minimumCacheTTL: 3600,
   },
   async headers() {

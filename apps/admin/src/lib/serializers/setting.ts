@@ -1,5 +1,6 @@
 import type { Types } from "mongoose";
 import type { AdminSetting } from "@/types/admin";
+import { asString, objectIdString, toIsoDate } from "@store/shared";
 
 export interface SettingLean {
   _id: Types.ObjectId;
@@ -14,13 +15,13 @@ export interface SettingLean {
 
 export function toSettingResponse(doc: SettingLean): AdminSetting {
   return {
-    id: doc._id.toString(),
-    key: doc.key,
+    id: objectIdString(doc._id),
+    key: asString(doc.key),
     value: doc.value,
     description: doc.description,
     group: doc.group,
-    updatedById: doc.updatedBy ? doc.updatedBy.toString() : undefined,
-    createdAt: doc.createdAt.toISOString(),
-    updatedAt: doc.updatedAt.toISOString(),
+    updatedById: objectIdString(doc.updatedBy) || undefined,
+    createdAt: toIsoDate(doc.createdAt),
+    updatedAt: toIsoDate(doc.updatedAt),
   };
 }

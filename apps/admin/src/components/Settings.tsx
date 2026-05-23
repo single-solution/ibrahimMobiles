@@ -10,6 +10,8 @@ import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
 import { SaveBar } from "@/components/forms/SaveBar";
 import { SettingsCleanup } from "@/components/SettingsCleanup";
+import { ChatSettingsTab } from "@/components/ChatSettingsTab";
+import { SeoSettingsTab } from "@/components/SeoSettingsTab";
 import { useToast } from "@/components/Toast";
 
 interface SettingsProps {
@@ -28,10 +30,10 @@ export function Settings({ initialSettings }: SettingsProps) {
     <Tabs
       tabs={[
         {
-          id: "general",
-          label: "General",
+          id: "store",
+          label: "Store details",
           content: (
-            <GeneralSettings
+            <StoreDetailsSettings
               draft={draft}
               saved={savedSettings}
               setField={setField}
@@ -112,6 +114,16 @@ export function Settings({ initialSettings }: SettingsProps) {
           ),
         },
         {
+          id: "seo",
+          label: "SEO",
+          content: <SeoSettingsTab />,
+        },
+        {
+          id: "chat",
+          label: "Chat",
+          content: <ChatSettingsTab />,
+        },
+        {
           id: "cleanup",
           label: "Cleanup",
           content: <SettingsCleanup />,
@@ -128,7 +140,7 @@ interface SectionProps {
   onSaved(settings: StoreSettings): void;
 }
 
-function GeneralSettings({ draft, saved, setField, onSaved }: SectionProps) {
+function StoreDetailsSettings({ draft, saved, setField, onSaved }: SectionProps) {
   return (
     <SaveableSection
       fields={STORE_SETTING_GROUPS.branding}

@@ -24,7 +24,7 @@ export default async function AdminActivityPage() {
         title="Activity log"
         description="Every change made by admins, with timestamps and actors."
       />
-      <section className="mt-8">
+      <section>
         <Suspense fallback={<ActivityFallback />}>
           <ActivityData />
         </Suspense>

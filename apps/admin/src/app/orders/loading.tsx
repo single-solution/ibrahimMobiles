@@ -6,12 +6,7 @@ const ORDERS_ROW_COUNT = 12;
 
 export default function OrdersLoading() {
   return (
-    <AdminPageSkeleton
-      label="Loading orders"
-      eyebrowWidthClass="w-12"
-      titleWidthClass="w-28"
-      hasDescription
-    >
+    <AdminPageSkeleton label="Loading orders">
       <AdminTableSkeleton
         columnCount={ORDERS_COLUMN_COUNT}
         rowCount={ORDERS_ROW_COUNT}

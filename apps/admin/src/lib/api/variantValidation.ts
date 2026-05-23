@@ -1,4 +1,11 @@
-import { FIELD_LIMITS } from "@store/shared";
+import {
+  ATTRIBUTE_OPTION_VALUE_MAX_LENGTH,
+  FIELD_LIMITS,
+  isVisibilitySatisfied,
+  parseAttributeVisibility,
+  WARRANTY_DAYS_PER_MONTH,
+  type VisibilityContext,
+} from "@store/shared";
 import { Attribute, Grade, connectDB } from "@store/db";
 
 /**
@@ -7,23 +14,24 @@ import { Attribute, Grade, connectDB } from "@store/db";
  * an attempted overflow attack.
  */
 const MAX_RUPEE_AMOUNT = 100_000_000;
-/** Default warranty months for variants where the admin didn't specify. */
-const DEFAULT_WARRANTY_MONTHS = 6;
-/** Hard upper bound on warranty months — we don't sell anything covered for
- *  more than 5 years, so bigger values are typos. */
-const MAX_WARRANTY_MONTHS = 60;
+
+/** Default warranty when the admin didn't specify (6 months). */
+const DEFAULT_WARRANTY_DAYS = 6 * WARRANTY_DAYS_PER_MONTH;
+/** Hard upper bound — 5 years in days. */
+const MAX_WARRANTY_DAYS = 60 * WARRANTY_DAYS_PER_MONTH;
 /** Hard upper bound on variant quantity. Anything past 100k is a typo. */
 const MAX_QUANTITY = 100_000;
-/** Maximum images allowed per variant — mirrors the gallery UI cap. */
-const MAX_VARIANT_IMAGES = 24;
 
 export interface VariantInput {
   gradeSlug?: unknown;
   priceRupees?: unknown;
   quantity?: unknown;
+  warrantyDays?: unknown;
+  /** @deprecated Accepted for older clients; converted to days. */
   warrantyMonths?: unknown;
   images?: unknown;
   attributes?: unknown;
+  attributeDisplay?: unknown;
 }
 
 type VariantValidationResult =
@@ -33,29 +41,8 @@ type VariantValidationResult =
 interface ValidationContext {
   /** Required so grade + attribute validation can scope by category. */
   categorySlug: string;
-}
-
-/**
- * Quick shape-check for a `StoredImage`. The full pipeline (sharp resize,
- * blurhash, etc.) lands in Phase 2; this function only confirms the
- * payload coming back from the upload route has the universal shape so
- * we never persist a half-structured image.
- */
-function isStoredImageShape(value: unknown): boolean {
-  if (value === null || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
-  if (typeof v.blurDataURL !== "string") return false;
-  if (typeof v.width !== "number" || typeof v.height !== "number") return false;
-  if (typeof v.alt !== "string") return false;
-  const variants = v.variants;
-  if (variants === null || typeof variants !== "object") return false;
-  const vv = variants as Record<string, unknown>;
-  return (
-    typeof vv.thumb === "string" &&
-    typeof vv.card === "string" &&
-    typeof vv.detail === "string" &&
-    typeof vv.full === "string"
-  );
+  /** Product brand — used for brand-gated attribute visibility. */
+  brandSlug?: string;
 }
 
 /**
@@ -116,45 +103,46 @@ export async function validateVariant(
     value.quantity = quantity;
   }
 
-  if (input.warrantyMonths !== undefined) {
-    const months = Number(input.warrantyMonths ?? DEFAULT_WARRANTY_MONTHS);
-    if (!Number.isFinite(months) || months < 0 || months > MAX_WARRANTY_MONTHS) {
+  if (input.warrantyDays !== undefined || input.warrantyMonths !== undefined) {
+    let days: number;
+    if (input.warrantyDays !== undefined) {
+      days = Number(input.warrantyDays);
+    } else {
+      const months = Number(input.warrantyMonths ?? 6);
+      days = Math.floor(months) * WARRANTY_DAYS_PER_MONTH;
+    }
+    if (!Number.isFinite(days) || days < 0 || days > MAX_WARRANTY_DAYS) {
       return {
         ok: false,
-        error: `Warranty months must be 0–${MAX_WARRANTY_MONTHS}.`,
+        error: `Warranty must be 0–${MAX_WARRANTY_DAYS} days.`,
       };
     }
-    value.warrantyMonths = months;
+    if (!Number.isInteger(days)) {
+      return {
+        ok: false,
+        error: "Warranty days must be a whole number.",
+      };
+    }
+    value.warrantyDays = days;
   } else if (requireAll) {
-    value.warrantyMonths = DEFAULT_WARRANTY_MONTHS;
+    value.warrantyDays = DEFAULT_WARRANTY_DAYS;
   }
 
-  // Images — required (≥1) when requireAll; each entry must be the
-  // universal `StoredImage` shape produced by POST /api/uploads.
-  if (input.images !== undefined || requireAll) {
-    if (!Array.isArray(input.images) || input.images.length === 0) {
-      return { ok: false, error: "At least one image is required." };
-    }
-    if (input.images.length > MAX_VARIANT_IMAGES) {
+  // Images live on product.gradeImages — ignore legacy variant image payloads.
+  if (input.images !== undefined) {
+    if (
+      input.images !== null &&
+      (!Array.isArray(input.images) || input.images.length > 0)
+    ) {
       return {
         ok: false,
-        error: `A variant cannot have more than ${MAX_VARIANT_IMAGES} images.`,
+        error: "Variant photos are managed per grade on the product.",
       };
     }
-    for (const image of input.images) {
-      if (!isStoredImageShape(image)) {
-        return {
-          ok: false,
-          error:
-            "One or more images is not a valid StoredImage payload. Upload through /api/uploads.",
-        };
-      }
-    }
-    value.images = input.images;
   }
 
-  // Dynamic per-category attribute map — keys = Attribute.slug, values =
-  // a valid option value for that attribute.
+  // Dynamic per-category attribute map — keys = Attribute.slug; values may
+  // be global options or product-only custom slugs (with attributeDisplay).
   if (input.attributes !== undefined || requireAll) {
     const attributes = (input.attributes ?? {}) as unknown;
     if (
@@ -165,7 +153,21 @@ export async function validateVariant(
       return { ok: false, error: "Attributes must be an object map." };
     }
     const map = attributes as Record<string, unknown>;
-    const validated: Record<string, string> = {};
+
+    let displayMap: Record<string, unknown> = {};
+    if (input.attributeDisplay !== undefined) {
+      const rawDisplay = input.attributeDisplay;
+      if (
+        rawDisplay === null ||
+        typeof rawDisplay !== "object" ||
+        Array.isArray(rawDisplay)
+      ) {
+        return { ok: false, error: "attributeDisplay must be an object map." };
+      }
+      displayMap = rawDisplay as Record<string, unknown>;
+    }
+
+    const validatedDisplay: Record<string, string> = {};
 
     const defs = await Attribute.find({
       categorySlug: context.categorySlug,
@@ -175,6 +177,35 @@ export async function validateVariant(
       .exec();
     const defsBySlug = new Map(defs.map((d) => [d.slug, d]));
 
+    const gradeSlug =
+      typeof value.gradeSlug === "string"
+        ? value.gradeSlug
+        : typeof input.gradeSlug === "string"
+          ? input.gradeSlug
+          : undefined;
+
+    const visibilityContext: VisibilityContext = {
+      brandSlug: context.brandSlug?.trim().toLowerCase(),
+      gradeSlug,
+      attributes: Object.fromEntries(
+        Object.entries(map).flatMap(([slug, raw]) => {
+          if (typeof raw === "string" && raw.length > 0) {
+            return [[slug, raw] as const];
+          }
+          if (Array.isArray(raw)) {
+            const first = raw.find(
+              (entry): entry is string =>
+                typeof entry === "string" && entry.length > 0,
+            );
+            return first ? [[slug, first] as const] : [];
+          }
+          return [];
+        }),
+      ),
+    };
+
+    const validated: Record<string, string | string[]> = {};
+
     for (const [slug, raw] of Object.entries(map)) {
       const def = defsBySlug.get(slug);
       if (!def) {
@@ -183,24 +214,96 @@ export async function validateVariant(
           error: `Unknown attribute '${slug}' for category '${context.categorySlug}'.`,
         };
       }
-      if (typeof raw !== "string" || raw.length === 0) {
+
+      const values: string[] = Array.isArray(raw)
+        ? raw.filter(
+            (entry): entry is string => typeof entry === "string" && entry.length > 0,
+          )
+        : typeof raw === "string" && raw.length > 0
+          ? [raw]
+          : [];
+
+      if (values.length === 0) {
         return {
           ok: false,
-          error: `Attribute '${slug}' must be a non-empty string value.`,
+          error: `Attribute '${slug}' must have at least one value.`,
         };
       }
+
+      const visibility = parseAttributeVisibility(def.visibility);
+      if (!isVisibilitySatisfied(visibility, visibilityContext)) {
+        return {
+          ok: false,
+          error: `Attribute '${slug}' is not available for this variant context.`,
+        };
+      }
+
       const optionValues = new Set(def.options.map((o) => o.value));
-      if (!optionValues.has(raw)) {
-        return {
-          ok: false,
-          error: `Attribute '${slug}' = '${raw}' is not one of the allowed options for this category.`,
-        };
+      const normalizedSlug = slug.slice(0, FIELD_LIMITS.shortLabel);
+
+      for (const value of values) {
+        if (!optionValues.has(value)) {
+          if (value.length > ATTRIBUTE_OPTION_VALUE_MAX_LENGTH) {
+            return {
+              ok: false,
+              error: `Custom value slug for '${slug}' is too long.`,
+            };
+          }
+          const displayRaw = displayMap[slug];
+          const displayLabel =
+            typeof displayRaw === "string" ? displayRaw.trim() : "";
+          if (!displayLabel) {
+            return {
+              ok: false,
+              error: `Custom value for '${slug}' requires a display label.`,
+            };
+          }
+          validatedDisplay[normalizedSlug] = displayLabel.slice(
+            0,
+            FIELD_LIMITS.shortLabel,
+          );
+          break;
+        }
       }
-      validated[slug.slice(0, FIELD_LIMITS.shortLabel)] = raw;
+
+      validated[normalizedSlug] =
+        values.length === 1 ? values[0] : values.map((value) => value);
     }
 
     value.attributes = validated;
+    if (Object.keys(validatedDisplay).length > 0) {
+      value.attributeDisplay = validatedDisplay;
+    } else if (input.attributeDisplay !== undefined) {
+      value.attributeDisplay = {};
+    }
   }
 
   return { ok: true, value };
+}
+
+export async function validateVariantsBatch(
+  variants: VariantInput[],
+  requireAll: boolean,
+  context: ValidationContext,
+): Promise<
+  { ok: true; values: Record<string, unknown>[] } | { ok: false; error: string }
+> {
+  const results = await Promise.all(
+    variants.map((raw, index) =>
+      validateVariant(raw, requireAll, context).then((result) => ({ index, result })),
+    ),
+  );
+  const failed = results.find((entry) => !entry.result.ok);
+  if (failed && !failed.result.ok) {
+    return { ok: false, error: `Variant ${failed.index + 1}: ${failed.result.error}` };
+  }
+  return {
+    ok: true,
+    values: results.map((entry) => {
+      if (!entry.result.ok) {
+        throw new Error("unreachable");
+      }
+      return entry.result.value;
+    }),
+  };
 }

@@ -21,6 +21,12 @@ export {
   hasAnyProducts,
 } from "@/lib/storefront/queries";
 
+export { getStorefrontFacets } from "@/lib/storefront/facets";
+export type {
+  StorefrontAttributeFacet,
+  StorefrontFacetOption,
+} from "@/lib/storefront/facets";
+
 export type {
   StorefrontCategory,
   StorefrontProductFilters,

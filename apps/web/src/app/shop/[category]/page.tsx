@@ -3,11 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { classNames, type Product } from "@store/shared";
+import { classNames, normalizeStructuredContent } from "@store/shared";
 
-import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
+import { ShopProductGrid } from "@/components/shared/ShopProductGrid";
 import { FilterSidebar } from "@/components/shared/FilterSidebar";
+import { LucideIconRenderer } from "@/components/shared/LucideIconRenderer";
+import {
+  StructuredContentCompact,
+  StructuredContentFull,
+} from "@/components/shared/StructuredContent";
 import { SortDropdown } from "@/components/shared/SortDropdown";
 import { ResultsCountBar } from "@/components/shared/ResultsCountBar";
 import { ShopPagination } from "@/components/shared/ShopPagination";
@@ -17,12 +22,21 @@ import {
   type StorefrontCategory,
   type StorefrontProductFilters,
 } from "@/lib/storefront";
+import { getStorefrontFacets } from "@/lib/storefront/facets";
 import {
   getStorefrontBrandsCached,
+  getStorefrontGradeCountsCached,
   getStorefrontCategoriesCached,
   getStorefrontCategoryBySlugCached,
   getStorefrontProductsPageCached,
 } from "@/lib/storefront/cached";
+import { composeCategorySeo } from "@/lib/seo/composeSeoMeta";
+import { getSeoSettings } from "@/lib/seo/seoSettings";
+import {
+  breadcrumbJsonLd,
+  collectionPageJsonLd,
+  jsonLdScriptContent,
+} from "@/lib/seo/jsonLd";
 
 /**
  * Category listing page.
@@ -59,9 +73,33 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   if (!meta) {
     return { title: "Shop" };
   }
+  const seoSettings = await getSeoSettings();
+  const resolved = composeCategorySeo({
+    category: {
+      slug: meta.slug,
+      label: meta.label,
+      description: meta.description,
+    },
+    settings: seoSettings,
+  });
   return {
-    title: `Shop ${meta.label}`,
-    description: meta.description,
+    title: resolved.title,
+    description: resolved.description,
+    alternates: { canonical: resolved.canonical },
+    robots: resolved.robots,
+    openGraph: {
+      title: resolved.title,
+      description: resolved.description,
+      url: resolved.canonical,
+      type: "website",
+      images: resolved.ogImageUrl ? [resolved.ogImageUrl] : undefined,
+    },
+    twitter: {
+      card: resolved.twitterCard,
+      title: resolved.title,
+      description: resolved.description,
+      images: resolved.ogImageUrl ? [resolved.ogImageUrl] : undefined,
+    },
   };
 }
 
@@ -74,7 +112,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   }
 
   if (!meta.isActive) {
-    return <ComingSoon label={meta.label} description={meta.description} />;
+    return <ComingSoon meta={meta} />;
   }
 
   const filters = parseFiltersFromSearchParams(rawSearchParams, {
@@ -83,6 +121,9 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
   return (
     <>
+      <Suspense fallback={null}>
+        <CategoryJsonLd meta={meta} filters={filters} />
+      </Suspense>
       {/* Mobile only — native */}
       <div className="app-page pb-6 pt-4 md:hidden">
         <Suspense fallback={<CategorySelectorSkeleton />}>
@@ -91,7 +132,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
         <div className="mt-4 flex items-center gap-2">
           <Suspense fallback={<Skeleton shape="pill" className="h-10 w-24" />}>
-            <FilterSidebarData categorySlug={meta.slug} />
+            <FilterSidebarData categorySlug={meta.slug} filters={filters} />
           </Suspense>
           <SortDropdown />
         </div>
@@ -105,7 +146,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       <div className="mx-auto hidden max-w-[1440px] px-6 pb-16 pt-8 md:block">
         <div className="grid grid-cols-[260px_1fr] gap-8">
           <Suspense fallback={<DesktopFilterSidebarSkeleton />}>
-            <FilterSidebarData categorySlug={meta.slug} />
+            <FilterSidebarData categorySlug={meta.slug} filters={filters} />
           </Suspense>
 
           <div className="space-y-6">
@@ -123,7 +164,43 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   );
 }
 
-/* ─────────────────────── Data-bound async slots ─────────────────────── */
+/* ──────────────────────────── JSON-LD slot ──────────────────────────── */
+
+interface CategoryJsonLdProps {
+  meta: StorefrontCategory;
+  filters: StorefrontProductFilters;
+}
+
+async function CategoryJsonLd({ meta, filters }: CategoryJsonLdProps) {
+  const [page, seoSettings] = await Promise.all([
+    getStorefrontProductsPageCached(filters),
+    getSeoSettings(),
+  ]);
+  const collectionLd = collectionPageJsonLd({
+    category: { slug: meta.slug, label: meta.label },
+    products: page.products,
+    settings: seoSettings,
+  });
+  const breadcrumbLd = breadcrumbJsonLd([
+    { name: "Home", url: seoSettings.siteUrl },
+    { name: "Shop", url: `${seoSettings.siteUrl}/shop` },
+    { name: meta.label, url: `${seoSettings.siteUrl}/shop/${meta.slug}` },
+  ]);
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(collectionLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(breadcrumbLd) }}
+      />
+    </>
+  );
+}
+
+/* ─────────────────────── Async RSC section loaders ─────────────────────── */
 
 interface CategorySelectorDataProps {
   activeSlug: string;
@@ -136,11 +213,26 @@ async function CategorySelectorData({ activeSlug }: CategorySelectorDataProps) {
 
 interface FilterSidebarDataProps {
   categorySlug: string;
+  filters: StorefrontProductFilters;
 }
 
-async function FilterSidebarData({ categorySlug }: FilterSidebarDataProps) {
-  const brands = await getStorefrontBrandsCached();
-  return <FilterSidebar categorySlug={categorySlug} brands={brands} />;
+async function FilterSidebarData({
+  categorySlug,
+  filters,
+}: FilterSidebarDataProps) {
+  const [brands, facets, gradeCounts] = await Promise.all([
+    getStorefrontBrandsCached(categorySlug),
+    getStorefrontFacets(filters),
+    getStorefrontGradeCountsCached(categorySlug),
+  ]);
+  return (
+    <FilterSidebar
+      categorySlug={categorySlug}
+      brands={brands}
+      gradeCounts={gradeCounts}
+      initialFacets={facets}
+    />
+  );
 }
 
 interface ProductsAreaProps {
@@ -154,15 +246,17 @@ async function MobileProductsArea({ meta, filters }: ProductsAreaProps) {
     <>
       <ResultsCountBar total={page.total} page={page.page} pageSize={page.pageSize} />
       <div className="app-section">
-        <ProductGrid products={page.products} categoryLabel={meta.label} />
+        <ShopProductGrid products={page.products} categoryLabel={meta.label} />
       </div>
-      <div className="app-section">
-        <ShopPagination
-          page={page.page}
-          pageCount={page.pageCount}
-          basePath={`/shop/${meta.slug}`}
-        />
-      </div>
+      {page.pageCount > 1 ? (
+        <div className="app-section">
+          <ShopPagination
+            page={page.page}
+            pageCount={page.pageCount}
+            basePath={`/shop/${meta.slug}`}
+          />
+        </div>
+      ) : null}
     </>
   );
 }
@@ -180,7 +274,7 @@ async function DesktopProductsArea({ meta, filters }: ProductsAreaProps) {
         />
         <SortDropdown />
       </div>
-      <ProductGrid products={page.products} categoryLabel={meta.label} />
+      <ShopProductGrid products={page.products} categoryLabel={meta.label} />
       <ShopPagination
         page={page.page}
         pageCount={page.pageCount}
@@ -202,10 +296,7 @@ function CategorySelectorSkeleton() {
         >
           <Skeleton className="size-[18px] shrink-0 md:size-[22px]" />
           <div className="min-w-0 flex-1 space-y-1.5">
-            <div className="flex items-baseline justify-between gap-2">
-              <Skeleton shape="text" className="h-3.5 w-20 md:h-4 md:w-24" />
-              <Skeleton shape="text" className="h-3 w-8 shrink-0" />
-            </div>
+            <Skeleton shape="text" className="h-3.5 w-20 md:h-4 md:w-24" />
             <Skeleton shape="text" className="hidden h-3 w-3/4 md:block" />
           </div>
         </div>
@@ -320,9 +411,15 @@ function CategorySelector({ activeSlug, categories }: CategorySelectorProps) {
               >
                 {category.label}
               </p>
-              <p className="mt-0.5 hidden text-[12px] leading-snug text-[var(--color-ink-600)] md:line-clamp-2 md:block">
-                {category.description}
-              </p>
+              <StructuredContentCompact
+                content={normalizeStructuredContent(
+                  category.content,
+                  category.description,
+                )}
+                fallback={category.description}
+                clampLines={2}
+                className="mt-0.5 hidden leading-snug text-[var(--color-ink-600)] md:line-clamp-2 md:block md:text-[12px]"
+              />
             </div>
           </div>
         );
@@ -357,66 +454,38 @@ function CategoryIcon({
   category: StorefrontCategory;
   isActive: boolean;
 }) {
-  if (category.iconKind === "image" && category.iconImage) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- 32×32 icon, no need for next/image
-      <img
-        src={category.iconImage.variants.thumb}
-        alt=""
-        className="size-[22px] shrink-0 rounded-md object-cover"
-      />
-    );
-  }
-  const emoji = category.iconEmoji?.trim() || "📦";
   return (
-    <span
+    <LucideIconRenderer
+      name={category.icon}
+      size={22}
+      strokeWidth={2.2}
       aria-hidden
       className={classNames(
-        "shrink-0 text-[20px] md:text-[22px]",
+        "shrink-0",
         isActive ? "opacity-100" : "opacity-90",
       )}
-    >
-      {emoji}
-    </span>
+    />
   );
 }
 
-interface ProductGridProps {
-  products: Product[];
-  categoryLabel: string;
-}
-
-function ProductGrid({ products: productList, categoryLabel }: ProductGridProps) {
-  if (productList.length === 0) {
-    return (
-      <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]/40 p-10 text-center text-[13px] text-[var(--color-ink-500)]">
-        No {categoryLabel.toLowerCase()} match these filters — try clearing a few.
-      </div>
-    );
-  }
-  return (
-    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 md:gap-5 xl:grid-cols-4">
-      {productList.map((product) => (
-        <div key={product.id} className="reveal">
-          <ProductCard product={product} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ComingSoon({ label, description }: { label: string; description: string }) {
+function ComingSoon({ meta }: { meta: StorefrontCategory }) {
   return (
     <div className="mx-auto max-w-2xl px-6 pb-24 pt-16 text-center md:pt-24">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)]">
         Coming soon
       </p>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--color-ink-900)] md:text-4xl">
-        {label}
+        {meta.label}
       </h1>
-      <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-[var(--color-ink-600)]">
-        {description}
-      </p>
+      <StructuredContentFull
+        content={meta.content}
+        fallback={meta.description}
+        iconColor="var(--color-accent-700)"
+        iconSize={14}
+        iconSizeClass="size-[14px]"
+        className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-[var(--color-ink-600)]"
+        bulletItemClassName="justify-center text-[13.5px] text-[var(--color-ink-700)]"
+      />
       <Link
         href="/shop"
         className="mt-6 inline-flex items-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-4 py-2 text-[13px] font-semibold text-[var(--color-ink-800)] hover:border-[var(--color-ink-300)]"

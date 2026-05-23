@@ -6,6 +6,7 @@ import {
   isValidId,
   isValidationError,
   noContent,
+  normalizeStructuredContent,
   notFound,
   ok,
   parseBody,
@@ -18,13 +19,14 @@ import { toOfferResponse, type OfferLean } from "@/lib/serializers/offer";
 import { recordActivity } from "@/lib/services/activityLog";
 import { slugify } from "@store/shared";
 import { OFFER_FIELD_LIMITS } from "@/lib/api/fieldLimits";
+import { parseSeoPayload } from "@/lib/api/seoPayload";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const { response } = await requireSession();
+  const { response } = await requireSession("product_view");
   if (response) {
     return response;
   }
@@ -54,6 +56,8 @@ interface OfferUpdateInput {
   expiresAt?: unknown;
   isActive?: unknown;
   sortOrder?: unknown;
+  content?: unknown;
+  seo?: unknown;
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -139,6 +143,28 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
   if (typeof body.sortOrder === "number") {
     update.sortOrder = body.sortOrder;
+  }
+  if (body.content !== undefined) {
+    const fallbackSummary =
+      typeof update.description === "string"
+        ? (update.description as string)
+        : typeof body.description === "string"
+          ? body.description
+          : "";
+    const content = normalizeStructuredContent(body.content, fallbackSummary);
+    update.content = content;
+    if (content.summary) {
+      update.description = content.summary.slice(0, OFFER_FIELD_LIMITS.description);
+    }
+  }
+  if (body.seo !== undefined) {
+    const parsed = parseSeoPayload(body.seo);
+    if ("response" in parsed) {
+      return parsed.response;
+    }
+    if ("seo" in parsed) {
+      update.seo = parsed.seo;
+    }
   }
 
   if (Object.keys(update).length === 0) {

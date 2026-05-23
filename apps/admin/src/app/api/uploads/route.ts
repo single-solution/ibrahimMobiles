@@ -1,5 +1,5 @@
 /**
- * Universal upload endpoint.
+ * Admin upload endpoint.
  *
  * - `kind=image` (default): runs `processImage` to generate the four
  *   WebP variants + blurhash and returns a fully-formed `StoredImage`.
@@ -10,7 +10,7 @@
  * Multipart form fields:
  *   - `file`        — required, single file payload
  *   - `kind`        — "image" | "video" (default "image")
- *   - `altSeed`     — optional alt text seed for images
+ *   - `altTextBase` — optional base alt text for images
  *   - `subjectKind` — short label used in the storage key (e.g.
  *                     "products", "categories", "offers")
  *   - `subjectId`   — optional id for the storage key prefix
@@ -64,7 +64,7 @@ function buildKeyPrefix(subjectKind: string | null, subjectId: string | null): s
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const { actor, response } = await requireSession();
+  const { actor, response } = await requireSession("media_upload");
   if (response) return response;
   const userId = actor.id;
 
@@ -91,7 +91,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const subjectKind = formData.get("subjectKind")?.toString() ?? null;
   const subjectId = formData.get("subjectId")?.toString() ?? null;
-  const altSeed = formData.get("altSeed")?.toString().trim() ?? "";
+  const altTextBase = formData.get("altTextBase")?.toString().trim() ?? "";
   const fileType = file.type;
   const fileSize = file.size;
 
@@ -120,7 +120,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       const stored = await processImage({
         buffer,
         keyPrefix,
-        alt: altSeed || file.name.replace(/\.[^.]+$/, ""),
+        alt: altTextBase || file.name.replace(/\.[^.]+$/, ""),
         storage,
       });
       logger.info(

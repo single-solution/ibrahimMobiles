@@ -28,7 +28,7 @@ interface RouteContext {
 }
 
 export async function GET(_request: Request, { params }: RouteContext) {
-  const { response } = await requireSession();
+  const { response } = await requireSession("order_view");
   if (response) {
     return response;
   }

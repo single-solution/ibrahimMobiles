@@ -1,8 +1,10 @@
 import { requireSession } from "@/lib/api/requireSession";
 import {
   badRequest,
+  conflict,
   created,
   isValidationError,
+  normalizeStructuredContent,
   ok,
   parseBody,
   slugify,
@@ -17,8 +19,16 @@ import { recordActivity } from "@/lib/services/activityLog";
 
 const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/i;
 
+async function hasGradeCategoryConflict(
+  categorySlug: string,
+  slug: string,
+): Promise<boolean> {
+  const existing = await Grade.exists({ categorySlug, slug });
+  return Boolean(existing);
+}
+
 export async function GET() {
-  const { response } = await requireSession();
+  const { response } = await requireSession("product_view");
   if (response) {
     return response;
   }
@@ -37,6 +47,7 @@ interface GradeCreateInput {
   color?: unknown;
   video?: unknown;
   slug?: unknown;
+  content?: unknown;
 }
 
 export async function POST(request: Request) {
@@ -81,16 +92,24 @@ export async function POST(request: Request) {
   if (slug.length === 0) {
     return badRequest("Slug could not be derived from label.");
   }
+  const categorySlug = slugify(body.categorySlug, 64);
 
   await connectDB();
+  if (await hasGradeCategoryConflict(categorySlug, slug)) {
+    return conflict("A grade with this label already exists in this category.");
+  }
+
+  const content = normalizeStructuredContent(body.content, notesResult);
+
   try {
     const doc = await Grade.create({
-      categorySlug: slugify(body.categorySlug, 64),
+      categorySlug,
       slug,
       label: labelResult,
-      notes: notesResult,
+      notes: content.summary || notesResult,
       color,
       video,
+      content,
     });
     await recordActivity({
       actor,
