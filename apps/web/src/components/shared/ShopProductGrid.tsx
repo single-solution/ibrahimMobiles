@@ -12,6 +12,7 @@ import { useFilterParams } from "@/lib/storefront/useFilterParams";
 import { resolveListingVariant } from "@/lib/productSummary";
 
 import { ProductCard } from "./ProductCard";
+import { useSwapAnimation } from "@/components/motion/useSwapAnimation";
 
 interface ShopProductGridProps {
   products: Product[];
@@ -27,18 +28,23 @@ export function ShopProductGrid({ products, categoryLabel }: ShopProductGridProp
     .map((token) => token.trim())
     .filter(Boolean);
   const filtersActive = hasActiveListingFilters(params);
+  const listingKey = params.toString();
+  const isListingSwap = useSwapAnimation(listingKey);
 
   if (cards.length === 0) {
     return (
       <ShopListingEmptyState
         categoryLabel={categoryLabel}
         filtersActive={filtersActive}
+        isListingSwap={isListingSwap}
       />
     );
   }
 
   return (
-    <div className="reveal-stagger grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4 xl:gap-7">
+    <div
+      className={`reveal-stagger grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4 xl:gap-7${isListingSwap ? " listing-swap" : ""}`}
+    >
       {cards.map((product) => {
         const catalogProduct = products.find((row) => row.id === product.id) ?? product;
         const listingVariant = resolveListingVariant(product, { gradeSlugs });
@@ -63,14 +69,16 @@ export function ShopProductGrid({ products, categoryLabel }: ShopProductGridProp
 function ShopListingEmptyState({
   categoryLabel,
   filtersActive,
+  isListingSwap,
 }: {
   categoryLabel: string;
   filtersActive: boolean;
+  isListingSwap: boolean;
 }) {
   return (
     <div
       role="status"
-      className="reveal rounded-[var(--radius-lg)] border border-dashed border-[var(--color-accent-200)]/60 bg-gradient-to-b from-[var(--color-accent-50)]/40 to-[var(--color-canvas-deep)]/30 px-6 py-14 text-center"
+      className={`reveal rounded-[var(--radius-lg)] border border-dashed border-[var(--color-accent-200)]/60 bg-gradient-to-b from-[var(--color-accent-50)]/40 to-[var(--color-canvas-deep)]/30 px-6 py-14 text-center${isListingSwap ? " listing-swap" : ""}`}
     >
       <p className="text-sm font-semibold text-[var(--color-ink-900)]">
         {filtersActive

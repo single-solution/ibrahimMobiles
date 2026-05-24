@@ -118,10 +118,11 @@
        - ease-ios:       Apple-style critical-damping for sheets/dialogs
        - ease-spring:    overshoot for delightful confirmations (cart, save, qty)
    */
-  --motion-fast: 120ms;
-  --motion-base: 200ms;
-  --motion-slow: 360ms;
-  --motion-stagger: 60ms;
+  --motion-fast: 140ms;
+  --motion-base: 240ms;
+  --motion-slow: 420ms;
+  --motion-route: 480ms;
+  --motion-stagger: 72ms;
 
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
@@ -289,7 +290,6 @@ html {
     opacity var(--motion-slow) var(--ease-out-quart),
     transform var(--motion-slow) var(--ease-out-quart);
   transition-delay: var(--reveal-delay, 0ms);
-  will-change: opacity, transform;
 }
 .reveal[data-reveal="visible"] {
   opacity: 1;
@@ -316,6 +316,10 @@ html {
 .reveal-stagger > *:nth-child(6) { --reveal-delay: calc(var(--motion-stagger) * 5); }
 .reveal-stagger > *:nth-child(7) { --reveal-delay: calc(var(--motion-stagger) * 6); }
 .reveal-stagger > *:nth-child(8) { --reveal-delay: calc(var(--motion-stagger) * 7); }
+.reveal-stagger > *:nth-child(9) { --reveal-delay: calc(var(--motion-stagger) * 8); }
+.reveal-stagger > *:nth-child(10) { --reveal-delay: calc(var(--motion-stagger) * 9); }
+.reveal-stagger > *:nth-child(11) { --reveal-delay: calc(var(--motion-stagger) * 10); }
+.reveal-stagger > *:nth-child(12) { --reveal-delay: calc(var(--motion-stagger) * 11); }
 
 /* Tap feedback — apply on any interactive element to get a soft press. */
 .tap {
@@ -419,11 +423,41 @@ html {
 
 /* Page mount fade — applied at the route segment level. */
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .page-enter {
-  animation: page-in 320ms var(--ease-out-quart);
+  animation: page-in var(--motion-route) var(--ease-out-quart);
+}
+
+/* Route commit — soft cross-fade after client navigations / query swaps. */
+@keyframes route-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.route-enter {
+  animation: route-content-in var(--motion-route) var(--ease-out-quart);
+}
+
+/* Shop listing — filter/sort/pagination result swap. */
+@keyframes listing-swap-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.listing-swap {
+  animation: listing-swap-in var(--motion-slow) var(--ease-out-quart);
 }
 
 /* ----- Top navigation progress bar -----
@@ -433,13 +467,13 @@ html {
    none` so it never blocks taps on the elements below. */
 .nav-progress {
   opacity: 0;
-  transition: opacity 160ms var(--ease-out-quart);
+  transition: opacity var(--motion-base) var(--ease-out-quart);
 }
 .nav-progress[data-visible="true"] {
   opacity: 1;
 }
 .nav-progress-bar {
-  transition: width 200ms var(--ease-out-quart);
+  transition: width var(--motion-base) var(--ease-out-quart);
   box-shadow: 0 0 8px 0 var(--color-accent-500);
 }
 @media (prefers-reduced-motion: reduce) {
@@ -638,9 +672,13 @@ html {
     transition-duration: 0.01ms !important;
   }
   .reveal,
-  .reveal-fade {
+  .reveal-fade,
+  .page-enter,
+  .route-enter,
+  .listing-swap {
     opacity: 1 !important;
     transform: none !important;
+    animation: none !important;
   }
   [data-img-fade="false"] {
     opacity: 1 !important;

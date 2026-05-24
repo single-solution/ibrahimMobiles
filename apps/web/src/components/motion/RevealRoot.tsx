@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 /**
  * Single, app-wide IntersectionObserver that flips any `.reveal` element
@@ -14,9 +14,7 @@ import { usePathname } from "next/navigation";
  *     `opacity: 0` and animates in only when `data-reveal="visible"` is
  *     present. We do **not** render `data-reveal="hidden"` from SSR
  *     because that attribute was the root cause of React 19's hydration
- *     mismatch under Next 16's progressive Suspense hydration: the
- *     observer would flip the attribute to `"visible"` while React was
- *     still reconciling sibling boundaries.
+ *     mismatch under Next 16's progressive Suspense hydration.
  *
  *   • **One observer per app, not per element.** We disconnect on
  *     unmount/route change and rebuild — keeps memory flat as the user
@@ -26,12 +24,13 @@ import { usePathname } from "next/navigation";
  *     infinite scroll, modal contents all get observed without each
  *     component needing to register itself.
  *
- *   • **`rAF + microtask` defer** ensures we never observe (and
- *     therefore never mutate) during the initial hydration pass. Cheap
- *     insurance against future regressions.
+ *   • **Above-the-fold elements reveal immediately** so route/filter
+ *     swaps never leave visible content at opacity 0 waiting for idle.
  */
 export function RevealRoot() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const routeKey = `${pathname}?${searchParams?.toString() ?? ""}`;
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -42,6 +41,12 @@ export function RevealRoot() {
 
     const reveal = (target: Element) => {
       target.setAttribute("data-reveal", "visible");
+    };
+
+    const isInViewport = (element: HTMLElement): boolean => {
+      const rect = element.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      return rect.top < viewportHeight * 0.94 && rect.bottom > 0;
     };
 
     const supportsIO = "IntersectionObserver" in window;
@@ -60,15 +65,19 @@ export function RevealRoot() {
         }
       },
       {
-        rootMargin: "0px 0px -8% 0px",
-        threshold: 0.05,
+        rootMargin: "0px 0px -6% 0px",
+        threshold: 0.04,
       },
     );
 
     const observeAll = () => {
-      document
-        .querySelectorAll<HTMLElement>(REVEAL_CANDIDATE)
-        .forEach((element) => observer.observe(element));
+      document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach((element) => {
+        if (isInViewport(element)) {
+          reveal(element);
+          return;
+        }
+        observer.observe(element);
+      });
     };
 
     const mutation = new MutationObserver((records) => {
@@ -78,29 +87,32 @@ export function RevealRoot() {
             return;
           }
           if (node.matches?.(REVEAL_CANDIDATE)) {
-            observer.observe(node);
+            if (isInViewport(node)) {
+              reveal(node);
+            } else {
+              observer.observe(node);
+            }
           }
           node
             .querySelectorAll?.<HTMLElement>(REVEAL_CANDIDATE)
-            .forEach((element) => observer.observe(element));
+            .forEach((element) => {
+              if (isInViewport(element)) {
+                reveal(element);
+              } else {
+                observer.observe(element);
+              }
+            });
         });
       }
     });
 
-    // Defer past the hydration window. React 19 + Next 16 stream-hydrate
-    // sibling Suspense boundaries progressively, so a page like `/shop/[category]`
-    // can have product cards still hydrating after `RevealRoot` itself
-    // mounts. `requestIdleCallback` fires only when the main thread is
-    // idle — which by definition is after React has finished its current
-    // hydration pass. We fall back to `setTimeout` on browsers without
-    // `requestIdleCallback` (Safari has it now too, but kept for safety).
     let isCancelled = false;
     type IdleHandle = number;
     const scheduleIdle = (callback: () => void): IdleHandle => {
       if (typeof window.requestIdleCallback === "function") {
-        return window.requestIdleCallback(callback, { timeout: 500 });
+        return window.requestIdleCallback(callback, { timeout: 120 });
       }
-      return window.setTimeout(callback, 200);
+      return window.setTimeout(callback, 48);
     };
     const cancelIdle = (handle: IdleHandle): void => {
       if (typeof window.cancelIdleCallback === "function") {
@@ -124,7 +136,7 @@ export function RevealRoot() {
       observer.disconnect();
       mutation.disconnect();
     };
-  }, [pathname]);
+  }, [routeKey]);
 
   return null;
 }

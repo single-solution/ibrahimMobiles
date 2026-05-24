@@ -11,6 +11,7 @@ import { SearchOverlay } from "@/components/layout/SearchOverlay";
 import { ChatFabShell } from "@/components/chat/ChatFabShell";
 import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import { RevealRoot } from "@/components/motion/RevealRoot";
+import { RouteTransition } from "@/components/motion/RouteTransition";
 
 interface StorefrontChromeProps {
   children: React.ReactNode;
@@ -31,22 +32,13 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
     pathname?.startsWith("/shop/") && pathname !== "/shop" && pathname !== "/shop/";
 
   // We deliberately do NOT key `<main>` on `pathname`. Keying re-mounts the
-  // element on every route change, which re-runs the 320ms `.page-enter`
-  // fade and makes navigation feel laggy. Without the key, Next.js swaps
-  // children in place — the route's `loading.tsx` skeleton (and then its
-  // real content) appears instantly. The entry animation still plays once,
-  // on the initial mount.
-  //
-  // The `min-h-[...]` on <main> is a layout-stability guarantee: without it,
-  // any moment where `children` renders empty (the brief gap between
-  // `loading.tsx` unmounting and the page's static parts mounting on a
-  // slow compile, an under-tall route skeleton, or a hydration re-render)
-  // would let the footer pop up into the viewport. Reserving at least the
-  // visible viewport minus the chrome means the footer is always pinned
-  // below the fold — the layout never collapses, no matter what's in flight.
+  // element on every route change and makes navigation feel laggy. Instead,
+  // `RouteTransition` applies a light cross-fade when the route commits.
   return (
     <div className="app-shell-pad">
-      <RevealRoot />
+      <Suspense fallback={null}>
+        <RevealRoot />
+      </Suspense>
       {/*
        * `NavigationProgress` reads `useSearchParams()` to detect query-only
        * route changes. In Next 16 any component that calls
@@ -61,10 +53,10 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
       </Suspense>
       <Header onOpenSearch={() => setIsSearchOpen(true)} />
       <MobileHeader onOpenSearch={() => setIsSearchOpen(true)} />
-      <main
-        className="page-enter min-h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h))] md:min-h-[calc(100dvh-var(--desktop-header-h))]"
-      >
-        {children}
+      <main className="page-enter min-h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h))] md:min-h-[calc(100dvh-var(--desktop-header-h))]">
+        <Suspense fallback={children}>
+          <RouteTransition>{children}</RouteTransition>
+        </Suspense>
       </main>
       <Footer />
       <ChatFabShell hideOnMobile={Boolean(isProductDetail)} />
