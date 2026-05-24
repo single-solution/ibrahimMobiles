@@ -92,7 +92,7 @@ function HeroGalleryTile({
   return (
     <Link
       href={productHref(product, { variant: defaultVariant })}
-      className={`gallery-tile group relative block overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] ${className}`}
+      className={`gallery-tile product-media-well group relative block rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] ${className}`}
     >
       <ProductImage
         image={heroImage}
@@ -101,7 +101,6 @@ function HeroGalleryTile({
         brandName={brandName}
         brandSlug={product.brandSlug}
         sizes={imageSizes}
-        objectFit="cover"
       />
       {showGrade && (
         <span className="absolute right-2 top-2 z-10">

@@ -4,10 +4,9 @@
  * Resolution order:
  *   1. Explicit `OTP_PROVIDER` env var — use the named provider, no fallback.
  *   2. `OTP_PROVIDER` unset (default):
- *        - Twilio is selected automatically if its env vars are present
- *          (delivers WhatsApp first, falls back to SMS).
- *        - Otherwise the console provider runs (dev / preview only —
- *          prints the code to the server log).
+ *        - Twilio when configured — WhatsApp first; SMS only if the number is
+ *          not on WhatsApp (Twilio error 63024).
+ *        - Otherwise the console provider (dev / preview only).
  *
  * Keep secrets and HTTP calls inside concrete providers — never in the
  * surrounding code paths.
@@ -66,8 +65,7 @@ export function getOtpProvider(): OtpProvider {
     if (!twilio) {
       throw new Error(
         "OTP_PROVIDER=twilio but Twilio env vars are missing. " +
-          "Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and at least one of " +
-          "TWILIO_WHATSAPP_FROM / TWILIO_SMS_FROM.",
+          "Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_WHATSAPP_FROM.",
       );
     }
     cachedProvider = twilio;
@@ -90,7 +88,7 @@ export function getOtpProvider(): OtpProvider {
 
   if (process.env.NODE_ENV === "production") {
     throw new Error(
-      "OTP delivery is not configured for production. Set OTP_PROVIDER=twilio and TWILIO_* env vars.",
+      "OTP delivery is not configured for production. Set OTP_PROVIDER=twilio, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_WHATSAPP_FROM.",
     );
   }
   cachedProvider = consoleProvider;

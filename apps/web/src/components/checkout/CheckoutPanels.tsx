@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -21,13 +19,13 @@ import {
   LOYALTY_MAX_REDEEM_PERCENT,
   LOYALTY_MIN_REDEEM,
   LOYALTY_PROGRAM_NAME,
-  OTP_CODE_LENGTH,
   classNames,
   formatPoints,
   formatPrice,
   getPaymentMethods,
   pointsToRupees,
 } from "@store/shared";
+import { PhoneOtpForm } from "@/components/account/PhoneOtpForm";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
@@ -91,106 +89,8 @@ export function CheckoutHeader() {
   );
 }
 
-type SignInStep = "phone" | "code";
-
-export interface IssueOtpResponse {
-  phoneTail?: string;
-  error?: string;
-}
-
-const RESEND_AFTER_SECONDS = 30;
-const COUNTDOWN_TICK_MS = 1_000;
-const CODE_AUTOFOCUS_DELAY_MS = 80;
-const NON_DIGIT_REGEX = /\D/g;
-
 export function CheckoutSignInPanel() {
   const router = useRouter();
-  const [step, setStep] = useState<SignInStep>("phone");
-  const [phone, setPhone] = useState("");
-  const [code, setCode] = useState("");
-  const [phoneTail, setPhoneTail] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isSendingCode, setIsSendingCode] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [resendIn, setResendIn] = useState(0);
-  const codeRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (resendIn <= 0) {
-      return;
-    }
-    const intervalId = window.setInterval(() => {
-      setResendIn((previous) => Math.max(0, previous - 1));
-    }, COUNTDOWN_TICK_MS);
-    return () => window.clearInterval(intervalId);
-  }, [resendIn]);
-
-  async function requestCode(currentPhone: string): Promise<boolean> {
-    setIsSendingCode(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/storefront/auth/otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: currentPhone }),
-      });
-      const data = (await response.json()) as IssueOtpResponse;
-      if (!response.ok) {
-        setError(data?.error ?? "Couldn't send code. Please try again.");
-        const retryAfterSeconds = Number(response.headers.get("Retry-After"));
-        if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
-          setResendIn(retryAfterSeconds);
-        }
-        return false;
-      }
-      setPhoneTail(data?.phoneTail ?? null);
-      setStep("code");
-      setResendIn(RESEND_AFTER_SECONDS);
-      return true;
-    } catch {
-      setError("Network error. Please try again.");
-      return false;
-    } finally {
-      setIsSendingCode(false);
-    }
-  }
-
-  async function handlePhoneSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const currentPhone = phone.trim();
-    if (!currentPhone) {
-      return;
-    }
-    const issued = await requestCode(currentPhone);
-    if (issued) {
-      window.setTimeout(() => codeRef.current?.focus(), CODE_AUTOFOCUS_DELAY_MS);
-    }
-  }
-
-  async function handleCodeSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (code.length < OTP_CODE_LENGTH) {
-      return;
-    }
-    setIsVerifying(true);
-    setError(null);
-    try {
-      const result = await signIn("customer-otp", {
-        redirect: false,
-        phoneNumber: phone.trim(),
-        code,
-      });
-      if (result?.error) {
-        setError("That code didn't match. Please try again.");
-        return;
-      }
-      router.refresh();
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setIsVerifying(false);
-    }
-  }
 
   return (
     <Card className="p-5 md:p-6">
@@ -202,81 +102,13 @@ export function CheckoutSignInPanel() {
       <p className="mt-2 text-[13px] text-[var(--color-ink-500)]">
         We use your phone number for order updates and to keep your order history in one account.
       </p>
-      {step === "phone" ? (
-        <form onSubmit={handlePhoneSubmit} className="mt-5 space-y-4">
-          <Field
-            label="Phone number"
-            value={phone}
-            onChange={setPhone}
-            icon={<Phone size={14} />}
-            inputMode="tel"
-            autoComplete="tel"
-            placeholder="+92 300 1234567"
-          />
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            className="w-full"
-            isLoading={isSendingCode}
-            disabled={!phone.trim() || isSendingCode}
-          >
-            Send OTP
-          </Button>
-          {error && <CheckoutErrorMessage message={error} />}
-        </form>
-      ) : (
-        <form onSubmit={handleCodeSubmit} className="mt-5 space-y-4">
-          <p className="text-[12.5px] text-[var(--color-ink-600)]">
-            Enter the {OTP_CODE_LENGTH}-digit code sent to{" "}
-            <span className="font-semibold text-[var(--color-ink-900)]">
-              {phoneTail ? `••• ${phoneTail}` : phone}
-            </span>
-            .
-          </p>
-          <Field
-            label="Verification code"
-            value={code}
-            onChange={(value) => setCode(value.replace(NON_DIGIT_REGEX, "").slice(0, OTP_CODE_LENGTH))}
-            inputRef={codeRef}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="123456"
-          />
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            className="w-full"
-            isLoading={isVerifying}
-            disabled={code.length < OTP_CODE_LENGTH || isVerifying}
-          >
-            Verify and continue
-          </Button>
-          <div className="flex items-center justify-between gap-3 text-[12px]">
-            <button
-              type="button"
-              className="font-semibold text-[var(--color-ink-600)] hover:text-[var(--color-ink-900)]"
-              onClick={() => {
-                setStep("phone");
-                setCode("");
-                setError(null);
-              }}
-            >
-              Use a different phone
-            </button>
-            <button
-              type="button"
-              className="font-semibold text-[var(--color-accent-700)] disabled:text-[var(--color-ink-400)]"
-              disabled={resendIn > 0 || isSendingCode}
-              onClick={() => void requestCode(phone.trim())}
-            >
-              {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
-            </button>
-          </div>
-          {error && <CheckoutErrorMessage message={error} />}
-        </form>
-      )}
+      <div className="mt-5">
+        <PhoneOtpForm
+          phoneSubmitLabel="Send OTP"
+          codeSubmitLabel="Verify and continue"
+          onVerified={() => router.refresh()}
+        />
+      </div>
     </Card>
   );
 }

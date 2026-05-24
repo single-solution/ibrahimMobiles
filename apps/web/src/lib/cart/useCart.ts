@@ -22,6 +22,7 @@ import type { CartItem } from "@/lib/cart/types";
 
 interface UseCart {
   items: CartItem[];
+  /** Distinct cart lines (products), not total unit quantity. */
   itemCount: number;
   subtotalRupees: number;
   isEmpty: boolean;
@@ -38,7 +39,7 @@ export function useCart(): UseCart {
     getCartServerSnapshot,
   );
   const items = state.items;
-  const itemCount = items.reduce((sum, line) => sum + line.quantity, 0);
+  const itemCount = items.length;
   const subtotalRupees = items.reduce(
     (sum, line) => sum + line.unitPriceRupees * line.quantity,
     0,

@@ -44,7 +44,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       ) : page && page.products.length > 0 ? (
         <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4">
           {page.products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <div key={product.id} className="h-full">
+              <ProductCard product={product} />
+            </div>
           ))}
         </section>
       ) : (

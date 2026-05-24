@@ -35,8 +35,8 @@ export const FILTER_PARAM_KEYS = {
   maxPrice: "max",
   inStock: "stock",
   sort: "sort",
-  /** `0` = one card per product; omitted = separate card per variant (default). */
-  expandVariants: "variants",
+  /** `1` = one card per grade; omitted or `0` = one card per product (default). */
+  expandGrades: "grades",
   page: "page",
   search: "q",
 } as const;
@@ -241,11 +241,11 @@ export function buildSearchParamsFromFilters(
   return params;
 }
 
-/** Separate listing card per variant when true (default). */
-export function isExpandVariantsView(
+/** Separate listing card per grade when `grades=1`. */
+export function isExpandGradesView(
   source: URLSearchParams | Record<string, string | string[] | undefined>,
 ): boolean {
-  return readSingle(source, FILTER_PARAM_KEYS.expandVariants) !== "0";
+  return readSingle(source, FILTER_PARAM_KEYS.expandGrades) === "1";
 }
 
 /** True when grade, brand, price, stock, or attribute filters are set in the URL. */
@@ -271,7 +271,8 @@ export function hasActiveListingFilters(
     if (
       key === FILTER_PARAM_KEYS.sort ||
       key === FILTER_PARAM_KEYS.page ||
-      key === FILTER_PARAM_KEYS.search
+      key === FILTER_PARAM_KEYS.search ||
+      key === FILTER_PARAM_KEYS.expandGrades
     ) {
       continue;
     }

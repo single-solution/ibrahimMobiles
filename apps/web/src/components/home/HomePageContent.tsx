@@ -19,9 +19,13 @@ import type { ComponentType } from "react";
 import { ButtonLink } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { GradeBadge } from "@/components/shared/GradeBadge";
 import { LucideIconRenderer } from "@/components/shared/LucideIconRenderer";
+import {
+  StructuredContentCompact,
+  StructuredContentFull,
+} from "@/components/shared/StructuredContent";
 import { HeroProductGallery } from "@/components/home/HeroProductGallery";
+import { GradesByCategoryTabs } from "@/components/home/GradesByCategoryTabs";
 import {
   getPaymentMethods,
   type Brand,
@@ -30,9 +34,17 @@ import {
 } from "@store/shared";
 
 import {
+  getStorefrontCategoriesCached,
   getStorefrontGradesCached,
   getStoreSettingsCached,
 } from "@/lib/storefront/cached";
+import { buildGradeCategoryGroups } from "@/lib/storefront/gradeGroups";
+import {
+  HOME_FEATURED_CATEGORY_COUNT,
+  formatCategorySectionTitle,
+  getHomeCategoryGridClass,
+  shouldShowBrowseAllCategories,
+} from "@/lib/storefront/categoryDisplay";
 import {
   getHomeHeroData,
   loadHomeCategoryTiles,
@@ -45,6 +57,10 @@ const MOBILE_CATEGORY_STAGGER_MS = 80;
 const DESKTOP_CATEGORY_STAGGER_MS = 100;
 /** Trust chips visible in each desktop category card. */
 const DESKTOP_TRUST_CHIP_COUNT = 3;
+/** Category tab placeholders in the grades band. */
+const GRADES_TAB_FALLBACK_COUNT = 3;
+/** Grade cards shown while grades stream in. */
+const GRADES_CARD_FALLBACK_COUNT = 6;
 /** Google Maps zoom level used in the embedded store-locator iframe — 17
  *  reads as "street level" without showing individual building outlines. */
 const MAP_EMBED_ZOOM = 17;
@@ -241,7 +257,7 @@ async function DesktopVisitStoreData() {
 
 const MOBILE_HERO_TILE_FALLBACK_COUNT = 3;
 const DESKTOP_HERO_TILE_FALLBACK_COUNT = 5;
-const SHOP_TYPE_FALLBACK_COUNT = 3;
+const SHOP_TYPE_FALLBACK_COUNT = 6;
 const PROCESS_FLOW_FALLBACK_COUNT = 3;
 const PROCESS_STEP_FALLBACK_COUNT = 4;
 
@@ -350,18 +366,25 @@ function MobileGradesFallback() {
         <Skeleton shape="text" className="mx-auto h-12 w-3/4 bg-white/15" />
         <Skeleton shape="text" className="mx-auto h-3 w-2/3 bg-white/15" />
       </div>
-      <ul className="mt-8 grid grid-cols-2 gap-2.5">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <li
-            key={index}
-            className="flex flex-col gap-2 rounded-[14px] border border-white/10 bg-white/[0.06] p-3"
-          >
-            <Skeleton shape="pill" className="h-5 w-20 bg-white/15" />
-            <Skeleton shape="text" className="h-3 w-full bg-white/10" />
-            <Skeleton shape="text" className="h-3 w-2/3 bg-white/10" />
-          </li>
-        ))}
-      </ul>
+      <div className="mt-8 space-y-4">
+        <div className="flex gap-2">
+          {Array.from({ length: GRADES_TAB_FALLBACK_COUNT }).map((_, index) => (
+            <Skeleton key={index} shape="pill" className="h-9 flex-1 bg-white/10" />
+          ))}
+        </div>
+        <ul className="grid grid-cols-2 gap-2.5">
+          {Array.from({ length: GRADES_CARD_FALLBACK_COUNT }).map((_, index) => (
+            <li
+              key={index}
+              className="flex flex-col gap-2 rounded-[14px] border border-white/10 bg-white/[0.06] p-3"
+            >
+              <Skeleton shape="pill" className="h-5 w-20 bg-white/15" />
+              <Skeleton shape="text" className="h-3 w-full bg-white/10" />
+              <Skeleton shape="text" className="h-3 w-2/3 bg-white/10" />
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }
@@ -420,7 +443,7 @@ function DesktopShopTypesFallback() {
         <Skeleton shape="text" className="h-10 w-2/3" />
         <Skeleton shape="text" className="h-3 w-3/4" />
       </div>
-      <div className="mt-12 grid grid-cols-3 gap-5">
+      <div className="mt-12 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
         {Array.from({ length: SHOP_TYPE_FALLBACK_COUNT }).map((_, index) => (
           <div
             key={index}
@@ -492,17 +515,24 @@ function DesktopGradesFallback() {
             <Skeleton shape="text" className="h-16 w-3/4 bg-white/15" />
             <Skeleton shape="text" className="h-3 w-2/3 bg-white/10" />
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div
-                key={index}
-                className="flex flex-col gap-2.5 rounded-[var(--radius-lg)] border border-white/10 bg-white/5 p-5"
-              >
-                <Skeleton shape="pill" className="h-5 w-20 bg-white/15" />
-                <Skeleton shape="text" className="h-3 w-full bg-white/10" />
-                <Skeleton shape="text" className="h-3 w-2/3 bg-white/10" />
-              </div>
-            ))}
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              {Array.from({ length: GRADES_TAB_FALLBACK_COUNT }).map((_, index) => (
+                <Skeleton key={index} shape="pill" className="h-10 flex-1 bg-white/10" />
+              ))}
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {Array.from({ length: GRADES_CARD_FALLBACK_COUNT }).map((_, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col gap-2.5 rounded-[var(--radius-lg)] border border-white/10 bg-white/5 p-5"
+                >
+                  <Skeleton shape="pill" className="h-5 w-20 bg-white/15" />
+                  <Skeleton shape="text" className="h-3 w-full bg-white/10" />
+                  <Skeleton shape="text" className="h-3 w-2/3 bg-white/10" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -657,7 +687,35 @@ interface ShopTypesSectionProps {
   categories: HomePageCategory[];
 }
 
+function CategorySectionHeadline({ labels }: { labels: string[] }) {
+  if (labels.length === 0) {
+    return <>Every category.</>;
+  }
+  if (labels.length <= 3) {
+    return (
+      <>
+        {labels.map((label) => (
+          <span key={label} className="block">
+            {label}.
+          </span>
+        ))}
+      </>
+    );
+  }
+  return (
+    <>
+      <span className="block">{labels[0]}.</span>
+      <span className="block">{labels[1]}.</span>
+      <span className="block text-[var(--color-accent-700)]">& more.</span>
+    </>
+  );
+}
+
 function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
+  const featured = categories.slice(0, HOME_FEATURED_CATEGORY_COUNT);
+  const showBrowseAll = shouldShowBrowseAllCategories(categories.length);
+  const headlineLabels = categories.map((category) => category.label);
+
   return (
     <section className="app-section">
       <div className="reveal mb-3">
@@ -665,18 +723,14 @@ function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
           Browse by category
         </p>
         <h2 className="font-headline mt-1 text-[28px] font-semibold leading-[0.95] tracking-[-0.01em] text-[var(--color-ink-900)] uppercase">
-          Phones.
-          <br />
-          Accessories.
-          <br />
-          Gadgets.
+          <CategorySectionHeadline labels={headlineLabels} />
         </h2>
         <p className="mt-2 text-[13px] leading-snug text-[var(--color-ink-600)]">
           One shop. One graded standard. Tap a category to start browsing.
         </p>
       </div>
-      <div className="space-y-2.5">
-        {categories.map((meta, index) => (
+      <div className={getHomeCategoryGridClass(featured.length, "mobile")}>
+        {featured.map((meta, index) => (
           <ShopTypeCard
             key={meta.slug}
             meta={meta}
@@ -685,6 +739,15 @@ function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
           />
         ))}
       </div>
+      {showBrowseAll ? (
+        <Link
+          href="/shop"
+          className="cta-arrow tap mt-4 inline-flex w-full items-center justify-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-4 py-2.5 text-[13px] font-semibold text-[var(--color-accent-700)] active:bg-[var(--color-canvas-deep)]"
+        >
+          Browse all categories
+          <ArrowRight size={13} />
+        </Link>
+      ) : null}
     </section>
   );
 }
@@ -765,11 +828,26 @@ async function MobileGradesSection() {
   // be a terrible UX — render an empty grid (the surrounding section copy
   // is still useful) instead of throwing.
   let gradeDescriptors: Awaited<ReturnType<typeof getStorefrontGradesCached>> = [];
+  let categories: Awaited<ReturnType<typeof getStorefrontCategoriesCached>> = [];
   try {
-    gradeDescriptors = await getStorefrontGradesCached();
+    [gradeDescriptors, categories] = await Promise.all([
+      getStorefrontGradesCached(),
+      getStorefrontCategoriesCached(),
+    ]);
   } catch {
     gradeDescriptors = [];
+    categories = [];
   }
+
+  const groups = buildGradeCategoryGroups(
+    gradeDescriptors,
+    categories.map((category) => ({
+      slug: category.slug,
+      label: category.label,
+      sortOrder: category.sortOrder,
+    })),
+  );
+
   return (
     <section className="-mx-4 mt-20 bg-[var(--color-ink-900)] px-4 py-14 text-[var(--color-canvas)]">
       <div className="reveal space-y-3 text-center">
@@ -781,26 +859,10 @@ async function MobileGradesSection() {
           <span className="block text-[var(--color-accent-300)]">No surprises.</span>
         </h2>
         <p className="text-[13px] leading-snug text-[var(--color-ink-300)]">
-          A 32-point inspection — then one of six grades. We pick it, we stand behind it.
+          A 32-point inspection — then a grade for that category. We pick it, we stand behind it.
         </p>
       </div>
-      <ul className="reveal-stagger mt-8 grid grid-cols-2 gap-2.5">
-        {gradeDescriptors.map((descriptor) => (
-          <li
-            key={`${descriptor.categorySlug}:${descriptor.slug}`}
-            className="reveal flex flex-col gap-2 rounded-[14px] border border-white/10 bg-white/[0.06] p-3"
-          >
-            <GradeBadge
-              categorySlug={descriptor.categorySlug}
-              gradeSlug={descriptor.slug}
-              size="sm"
-            />
-            <p className="text-[12.5px] leading-snug text-[var(--color-canvas)]">
-              {descriptor.notes}
-            </p>
-          </li>
-        ))}
-      </ul>
+      <GradesByCategoryTabs groups={groups} variant="mobile" />
       <Link
         href="#how-to-buy"
         className="cta-arrow tap mt-8 inline-flex w-full items-center justify-center gap-1 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2.5 text-[13px] font-semibold text-[var(--color-accent-300)] active:bg-white/10"
@@ -1011,20 +1073,24 @@ function DesktopHero({ heroProducts, brands }: HeroProps) {
  * teaser, not the storefront). Each card links into its respective category.
  */
 function DesktopShopTypesSection({ categories }: ShopTypesSectionProps) {
+  const featured = categories.slice(0, HOME_FEATURED_CATEGORY_COUNT);
+  const showBrowseAll = shouldShowBrowseAllCategories(categories.length);
+  const headlineLabels = categories.map((category) => category.label);
+
   return (
     <section className="mx-auto max-w-[1440px] px-6 py-24">
       <div className="reveal">
         <DesktopSectionHeader
           eyebrow="Browse by category"
-          title="Phones, accessories, gadgets."
-          description="One shop, three categories. Every item graded by the same honest standard — pick a category to start."
+          title={formatCategorySectionTitle(headlineLabels)}
+          description="One graded standard across every category — pick a category to start browsing."
         />
       </div>
       <div
-        className="reveal mt-12 grid grid-cols-3 gap-5"
+        className={`reveal mt-12 ${getHomeCategoryGridClass(featured.length, "desktop")}`}
         style={{ ["--reveal-delay" as string]: "120ms" }}
       >
-        {categories.map((meta, index) => (
+        {featured.map((meta, index) => (
           <ShopTypeCard
             key={meta.slug}
             meta={meta}
@@ -1033,6 +1099,17 @@ function DesktopShopTypesSection({ categories }: ShopTypesSectionProps) {
           />
         ))}
       </div>
+      {showBrowseAll ? (
+        <div className="reveal mt-8 text-center">
+          <Link
+            href="/shop"
+            className="cta-arrow inline-flex items-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-5 py-2.5 text-[14px] font-semibold text-[var(--color-accent-700)] hover:border-[var(--color-ink-300)]"
+          >
+            Browse all categories
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -1065,8 +1142,8 @@ function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
       style={{ ["--reveal-delay" as string]: `${delayMs}ms` }}
     >
       <span
-        className={`grid shrink-0 place-items-center rounded-[var(--radius-lg)] bg-[var(--color-surface)] text-[var(--color-ink-900)] shadow-[var(--shadow-sm)] text-[20px] md:text-[22px] ${
-          variant === "desktop" ? "size-12" : "size-11"
+        className={`grid shrink-0 place-items-center rounded-[var(--radius-lg)] border border-[var(--color-accent-400)]/25 bg-[var(--color-accent-500)]/10 text-[var(--color-accent-800)] ${
+          variant === "desktop" ? "size-12 p-2.5" : "size-11 p-2"
         }`}
         aria-hidden
       >
@@ -1088,13 +1165,29 @@ function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
             </span>
           )}
         </div>
-        <p
+        <StructuredContentCompact
+          content={meta.content}
+          fallback={meta.description}
+          clampLines={variant === "desktop" ? 3 : 2}
           className={`mt-1 leading-snug text-[var(--color-ink-700)] ${
-            variant === "desktop" ? "text-[14px]" : "line-clamp-2 text-[12.5px]"
+            variant === "desktop" ? "text-[14px]" : "text-[12.5px]"
           }`}
-        >
-          {meta.description}
-        </p>
+        />
+        {meta.content?.bullets?.length ? (
+          <StructuredContentFull
+            content={{ summary: "", bullets: meta.content.bullets }}
+            maxBullets={variant === "desktop" ? 3 : 2}
+            iconColor="var(--color-accent-700)"
+            iconSize={variant === "desktop" ? 13 : 12}
+            iconSizeClass={variant === "desktop" ? "size-[13px]" : "size-3"}
+            className={variant === "desktop" ? "mt-3" : "mt-2"}
+            bulletItemClassName={
+              variant === "desktop"
+                ? "text-[13px] text-[var(--color-ink-700)]"
+                : "text-[12px] text-[var(--color-ink-700)]"
+            }
+          />
+        ) : null}
 
         <div className={variant === "desktop" ? "mt-auto pt-4" : "mt-1.5"}>
           <span
@@ -1189,11 +1282,26 @@ function DesktopProcessSection({ flows }: ProcessSectionProps) {
 
 async function DesktopGrades() {
   let gradeDescriptors: Awaited<ReturnType<typeof getStorefrontGradesCached>> = [];
+  let categories: Awaited<ReturnType<typeof getStorefrontCategoriesCached>> = [];
   try {
-    gradeDescriptors = await getStorefrontGradesCached();
+    [gradeDescriptors, categories] = await Promise.all([
+      getStorefrontGradesCached(),
+      getStorefrontCategoriesCached(),
+    ]);
   } catch {
     gradeDescriptors = [];
+    categories = [];
   }
+
+  const groups = buildGradeCategoryGroups(
+    gradeDescriptors,
+    categories.map((category) => ({
+      slug: category.slug,
+      label: category.label,
+      sortOrder: category.sortOrder,
+    })),
+  );
+
   return (
     <section className="bg-[var(--color-ink-900)] py-24 text-[var(--color-canvas)]">
       <div className="mx-auto max-w-[1440px] px-6">
@@ -1207,7 +1315,7 @@ async function DesktopGrades() {
               <span className="text-[var(--color-accent-300)]">No surprises.</span>
             </h2>
             <p className="text-base text-[var(--color-ink-300)]">
-              Our 32-point inspection covers cosmetic condition, battery health, screen, cameras and every button. Then we assign one of six grades — and stand behind it.
+              Our 32-point inspection covers cosmetic condition, battery health, screen, cameras and every button. Then we assign a grade for that category — and stand behind it.
             </p>
             <Link
               href="#how-to-buy"
@@ -1217,21 +1325,7 @@ async function DesktopGrades() {
               <ArrowRight size={14} />
             </Link>
           </div>
-          <div className="reveal-stagger grid grid-cols-3 gap-3">
-            {gradeDescriptors.map((descriptor) => (
-              <div
-                key={`${descriptor.categorySlug}:${descriptor.slug}`}
-                className="reveal flex flex-col gap-2.5 rounded-[var(--radius-lg)] border border-white/10 bg-white/5 p-5"
-              >
-                <GradeBadge
-                  categorySlug={descriptor.categorySlug}
-                  gradeSlug={descriptor.slug}
-                  size="sm"
-                />
-                <p className="text-sm text-[var(--color-canvas)]">{descriptor.notes}</p>
-              </div>
-            ))}
-          </div>
+          <GradesByCategoryTabs groups={groups} variant="desktop" />
         </div>
       </div>
     </section>

@@ -1,0 +1,69 @@
+"use client";
+
+import { MessageCircle } from "lucide-react";
+import {
+  buildPaymentInstructions,
+  buildWhatsAppLink,
+  CHECKOUT_TO_ORDER_PAYMENT,
+  type OrderPaymentMethod,
+  type PaymentMethodId,
+} from "@store/shared";
+import { Card } from "@/components/ui/Card";
+import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+
+interface PaymentInstructionsCardProps {
+  payment: OrderPaymentMethod | PaymentMethodId;
+  orderNumber: string;
+  totalRupees: number;
+}
+
+function resolveOrderPayment(
+  payment: OrderPaymentMethod | PaymentMethodId,
+): OrderPaymentMethod {
+  if (payment === "bank" || payment === "easypaisa" || payment === "jazzcash" || payment === "cod") {
+    return CHECKOUT_TO_ORDER_PAYMENT[payment];
+  }
+  return payment;
+}
+
+export function PaymentInstructionsCard({
+  payment,
+  orderNumber,
+  totalRupees,
+}: PaymentInstructionsCardProps) {
+  const settings = useStoreSettings();
+  const orderPayment = resolveOrderPayment(payment);
+  const copy = buildPaymentInstructions({
+    payment: orderPayment,
+    orderNumber,
+    totalRupees,
+    supportPhone: settings.supportPhone,
+  });
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="border-b border-[var(--color-ink-100)] bg-amber-50/80 px-4 py-3 md:px-5">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-amber-800">
+          Next step
+        </p>
+        <p className="mt-1 text-[15px] font-semibold text-[var(--color-ink-900)]">{copy.title}</p>
+      </div>
+      <ol className="list-decimal space-y-2.5 p-4 pl-8 text-[13px] leading-snug text-[var(--color-ink-700)] md:p-5 md:pl-9">
+        {copy.steps.map((step) => (
+          <li key={step}>{step}</li>
+        ))}
+      </ol>
+      <div className="border-t border-[var(--color-ink-100)] p-4 md:p-5">
+        <a
+          href={buildWhatsAppLink(copy.whatsappPrefill, settings.whatsappNumber)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="tap inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-whatsapp)] py-2.5 text-[13px] font-semibold text-white hover:bg-[var(--color-whatsapp-dark)]"
+        >
+          <MessageCircle size={15} />
+          Message us on WhatsApp
+        </a>
+      </div>
+    </Card>
+  );
+}

@@ -38,7 +38,10 @@ export function ShopPagination({ page, pageCount, basePath }: ShopPaginationProp
   const pageEntries = buildPageList(page, pageCount);
 
   return (
-    <nav className="flex items-center justify-center gap-1 pt-4" aria-label="Pagination">
+    <nav
+      className="reveal-fade flex items-center justify-center gap-1.5 pt-8 md:pt-10"
+      aria-label="Pagination"
+    >
       <PageLink
         href={buildHref(page - 1)}
         label="Previous"

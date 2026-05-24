@@ -61,7 +61,12 @@ interface IssueErrorBadInput {
   error: "invalid-phone";
 }
 
-type IssueResponse = IssueResult | IssueErrorTooSoon | IssueErrorBadInput;
+interface IssueErrorDelivery {
+  ok: false;
+  error: "delivery-failed";
+}
+
+type IssueResponse = IssueResult | IssueErrorTooSoon | IssueErrorBadInput | IssueErrorDelivery;
 
 /** Generate `OTP_CODE_LENGTH` decimal digits using the crypto-strong PRNG. */
 function generateOtp(): string {
@@ -107,7 +112,7 @@ export async function issueCode(input: {
   const codeHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
   const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-  await OtpCode.create({
+  const otpDoc = await OtpCode.create({
     phoneFingerprint: fingerprint,
     phoneRaw: input.phoneRaw.trim().slice(0, PHONE_RAW_MAX_CHARS),
     codeHash,
@@ -126,8 +131,8 @@ export async function issueCode(input: {
     });
   } catch (error) {
     logger.error({ error, phoneFingerprint: fingerprint }, "OTP delivery failed");
-    // We still succeed — the customer can request another code; we don't
-    // want delivery hiccups to lock them out.
+    await OtpCode.deleteOne({ _id: otpDoc._id });
+    return { ok: false, error: "delivery-failed" };
   }
 
   return {

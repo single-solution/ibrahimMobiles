@@ -79,6 +79,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  async redirects() {
+    return [{ source: "/wishlist", destination: "/shop", permanent: true }];
+  },
 };
 
 export default nextConfig;

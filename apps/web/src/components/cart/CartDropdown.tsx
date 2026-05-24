@@ -192,7 +192,7 @@ function CartDropdownLine({
       <Link
         href={lineProductHref}
         onClick={onClose}
-        className="relative aspect-square w-16 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
+        className="product-media-well relative aspect-square w-16 shrink-0 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
       >
         <ProductImage
           image={image}
@@ -200,7 +200,6 @@ function CartDropdownLine({
           name={productName}
           brandName={brandName}
           brandSlug={brandSlug}
-          objectFit="cover"
           sizes="64px"
         />
       </Link>

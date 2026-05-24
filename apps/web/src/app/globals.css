@@ -126,6 +126,14 @@
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Soft accent wash at top of every storefront page (see html/body). */
+  --storefront-page-gradient: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-accent-50) 55%, var(--color-canvas)) 0%,
+    color-mix(in srgb, var(--color-canvas-deep) 18%, var(--color-canvas)) 50%,
+    var(--color-canvas) 100%
+  );
 }
 
 /* Fluid spacing — desktop only.
@@ -143,7 +151,11 @@
 
 html,
 body {
+  min-height: 100dvh;
   background-color: var(--color-canvas);
+  background-image: var(--storefront-page-gradient);
+  background-repeat: no-repeat;
+  background-size: 100% 28rem;
   color: var(--color-ink-800);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -153,6 +165,17 @@ body {
 html {
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
+}
+
+/* Product/listing frames — Next fill images always cover (lightbox excluded). */
+.product-media-well {
+  position: relative;
+  overflow: hidden;
+}
+
+.product-media-well img {
+  object-fit: cover;
+  object-position: center;
 }
 
 * {
@@ -362,7 +385,7 @@ html {
   border-radius: var(--radius-md);
 }
 
-/* Badge pop — for cart count, save heart, qty changes. */
+/* Badge pop — for cart count, qty changes. */
 @keyframes badge-pop {
   0% { transform: scale(0.6); }
   60% { transform: scale(1.18); }
@@ -370,17 +393,6 @@ html {
 }
 .animate-badge-pop {
   animation: badge-pop 360ms var(--ease-spring);
-}
-
-/* Heart pop — wishlist save toggle. */
-@keyframes heart-pop {
-  0% { transform: scale(1); }
-  35% { transform: scale(1.35); }
-  60% { transform: scale(0.92); }
-  100% { transform: scale(1); }
-}
-.animate-heart-pop {
-  animation: heart-pop 480ms var(--ease-spring);
 }
 
 /* List item exit — works with the React "pending remove" pattern.
@@ -560,6 +572,37 @@ html {
   }
 }
 
+/* Product card — grade crossfade (image, badge, chips) */
+@keyframes card-grade-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.card-grade-fade {
+  animation: card-grade-fade-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.card-grade-fade-image {
+  animation: card-grade-fade-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Product card — single attribute chip cycling */
+@keyframes card-chip-cycle {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.card-chip-cycle {
+  animation: card-chip-cycle 420ms var(--ease-out-quart) both;
+}
+
 /* ----- BottomSheet content stagger -----
    Children of `.sheet-stagger > *` fade-up on sheet open. */
 .sheet-stagger > * {
@@ -679,16 +722,7 @@ html {
   color: var(--color-accent-700);
 }
 
-/* Product detail — warmer page shell; tighter rhythm than default app-section gaps. */
-.pdp-shell {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-canvas-deep) 50%, var(--color-canvas)) 0%,
-    var(--color-canvas) 22%,
-    var(--color-canvas) 100%
-  );
-}
-
+/* Product detail — tighter rhythm than default app-section gaps. */
 .pdp-content > .app-section,
 .pdp-content .app-section {
   margin-top: 0;
@@ -702,6 +736,13 @@ html {
   .pdp-content > * + * {
     margin-top: 2rem;
   }
+}
+
+.shop-listing-toolbar {
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, var(--color-accent-200) 45%, var(--color-ink-100));
+  background: color-mix(in srgb, var(--color-surface) 88%, var(--color-accent-50));
+  box-shadow: var(--shadow-sm);
 }
 
 .pdp-related-panel {

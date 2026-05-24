@@ -53,7 +53,12 @@ export function FilterSidebar({
         <button
           type="button"
           onClick={() => setIsMobileOpen(true)}
-          className="flex h-9 w-full items-center justify-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-ink-800)] active:bg-[var(--color-canvas-deep)]"
+          className={classNames(
+            "flex h-9 w-full items-center justify-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors active:bg-[var(--color-canvas-deep)]",
+            activeFilterCount > 0
+              ? "border-[var(--color-accent-400)]/70 bg-[var(--color-accent-50)]/90 text-[var(--color-accent-900)]"
+              : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-800)]",
+          )}
         >
           <SlidersHorizontal size={13} />
           Filters
@@ -383,7 +388,7 @@ function FilterPanel({
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+    <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-accent-200)]/45 bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_28px_-12px_rgba(245,158,11,0.12)]">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {filterGroups}
       </div>

@@ -3,20 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { classNames, normalizeStructuredContent } from "@store/shared";
-
 import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { ShopProductGrid } from "@/components/shared/ShopProductGrid";
 import { FilterSidebar } from "@/components/shared/FilterSidebar";
-import { LucideIconRenderer } from "@/components/shared/LucideIconRenderer";
 import {
-  StructuredContentCompact,
-  StructuredContentFull,
-} from "@/components/shared/StructuredContent";
+  ShopCategoryRail,
+  ShopCategoryRailSkeleton,
+} from "@/components/shop/ShopCategoryRail";
 import { SortDropdown } from "@/components/shared/SortDropdown";
 import { ResultsCountBar } from "@/components/shared/ResultsCountBar";
 import { ShopPagination } from "@/components/shared/ShopPagination";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { StructuredContentFull } from "@/components/shared/StructuredContent";
 import {
   parseFiltersFromSearchParams,
   type StorefrontCategory,
@@ -125,12 +123,12 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         <CategoryJsonLd meta={meta} filters={filters} />
       </Suspense>
       {/* Mobile only — native */}
-      <div className="app-page pb-6 pt-4 md:hidden">
+      <div className="app-page pb-10 pt-5 md:hidden">
         <Suspense fallback={<CategorySelectorSkeleton />}>
           <CategorySelectorData activeSlug={meta.slug} />
         </Suspense>
 
-        <div className="mt-4 flex items-center gap-2">
+        <div className="shop-listing-toolbar mt-3 flex items-center gap-2.5 p-2">
           <Suspense fallback={<Skeleton shape="pill" className="h-10 w-24" />}>
             <FilterSidebarData categorySlug={meta.slug} filters={filters} />
           </Suspense>
@@ -143,20 +141,22 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       </div>
 
       {/* Desktop */}
-      <div className="mx-auto hidden max-w-[1440px] px-6 pb-16 pt-8 md:block">
-        <div className="grid grid-cols-[260px_1fr] gap-8">
-          <Suspense fallback={<DesktopFilterSidebarSkeleton />}>
-            <FilterSidebarData categorySlug={meta.slug} filters={filters} />
-          </Suspense>
-
-          <div className="space-y-6">
-            <Suspense fallback={<CategorySelectorSkeleton />}>
-              <CategorySelectorData activeSlug={meta.slug} />
+      <div className="hidden md:block">
+        <div className="mx-auto max-w-[1440px] px-6 pb-20 pt-10">
+          <div className="grid grid-cols-[272px_1fr] gap-10 xl:grid-cols-[280px_1fr] xl:gap-12">
+            <Suspense fallback={<DesktopFilterSidebarSkeleton />}>
+              <FilterSidebarData categorySlug={meta.slug} filters={filters} />
             </Suspense>
 
-            <Suspense fallback={<DesktopProductsAreaSkeleton />}>
-              <DesktopProductsArea meta={meta} filters={filters} />
-            </Suspense>
+            <div className="min-w-0 space-y-3">
+              <Suspense fallback={<CategorySelectorSkeleton />}>
+                <CategorySelectorData activeSlug={meta.slug} />
+              </Suspense>
+
+              <Suspense fallback={<DesktopProductsAreaSkeleton />}>
+                <DesktopProductsArea meta={meta} filters={filters} />
+              </Suspense>
+            </div>
           </div>
         </div>
       </div>
@@ -208,7 +208,7 @@ interface CategorySelectorDataProps {
 
 async function CategorySelectorData({ activeSlug }: CategorySelectorDataProps) {
   const categories = await getStorefrontCategoriesCached();
-  return <CategorySelector activeSlug={activeSlug} categories={categories} />;
+  return <ShopCategoryRail activeSlug={activeSlug} categories={categories} />;
 }
 
 interface FilterSidebarDataProps {
@@ -245,11 +245,11 @@ async function MobileProductsArea({ meta, filters }: ProductsAreaProps) {
   return (
     <>
       <ResultsCountBar total={page.total} page={page.page} pageSize={page.pageSize} />
-      <div className="app-section">
+      <div className="mt-6">
         <ShopProductGrid products={page.products} categoryLabel={meta.label} />
       </div>
       {page.pageCount > 1 ? (
-        <div className="app-section">
+        <div className="mt-10">
           <ShopPagination
             page={page.page}
             pageCount={page.pageCount}
@@ -264,8 +264,8 @@ async function MobileProductsArea({ meta, filters }: ProductsAreaProps) {
 async function DesktopProductsArea({ meta, filters }: ProductsAreaProps) {
   const page = await getStorefrontProductsPageCached(filters);
   return (
-    <>
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      <div className="shop-listing-toolbar flex flex-wrap items-center justify-between gap-4 px-4 py-3">
         <ResultsCountBar
           total={page.total}
           page={page.page}
@@ -280,34 +280,19 @@ async function DesktopProductsArea({ meta, filters }: ProductsAreaProps) {
         pageCount={page.pageCount}
         basePath={`/shop/${meta.slug}`}
       />
-    </>
+    </div>
   );
 }
 
 /* ─────────────────────── Suspense fallbacks ─────────────────────── */
 
 function CategorySelectorSkeleton() {
-  return (
-    <div className="grid grid-cols-3 items-start gap-2 md:gap-4">
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div
-          key={index}
-          className="flex items-center gap-2.5 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3 md:items-start md:gap-3 md:p-4"
-        >
-          <Skeleton className="size-[18px] shrink-0 md:size-[22px]" />
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <Skeleton shape="text" className="h-3.5 w-20 md:h-4 md:w-24" />
-            <Skeleton shape="text" className="hidden h-3 w-3/4 md:block" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  return <ShopCategoryRailSkeleton pillCount={6} />;
 }
 
 function DesktopFilterSidebarSkeleton() {
   return (
-    <aside className="space-y-6 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5">
+    <aside className="space-y-6 rounded-[var(--radius-lg)] border border-[var(--color-accent-200)]/40 bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
       {Array.from({ length: FILTER_GROUP_COUNT }).map((_, groupIndex) => (
         <div key={groupIndex} className="space-y-3">
           <Skeleton shape="text" className="h-3 w-24" />
@@ -332,14 +317,12 @@ function MobileProductsAreaSkeleton() {
         <Skeleton shape="text" className="h-3 w-32" />
         <Skeleton shape="text" className="h-3 w-20" />
       </div>
-      <div className="app-section">
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-          {Array.from({ length: MOBILE_SKELETON_CARDS }).map((_, index) => (
-            <ProductCardSkeleton key={index} />
-          ))}
-        </div>
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4">
+        {Array.from({ length: MOBILE_SKELETON_CARDS }).map((_, index) => (
+          <ProductCardSkeleton key={index} />
+        ))}
       </div>
-      <div className="app-section">
+      <div className="mt-10">
         <PaginationSkeleton />
       </div>
     </>
@@ -348,18 +331,18 @@ function MobileProductsAreaSkeleton() {
 
 function DesktopProductsAreaSkeleton() {
   return (
-    <>
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      <div className="shop-listing-toolbar flex items-center justify-between gap-4 px-4 py-3">
         <Skeleton shape="text" className="h-4 w-40" />
         <Skeleton shape="pill" className="h-10 w-36" />
       </div>
-      <div className="grid grid-cols-3 gap-5 xl:grid-cols-4">
+      <div className="grid grid-cols-3 gap-6 xl:grid-cols-4 xl:gap-7">
         {Array.from({ length: DESKTOP_SKELETON_CARDS }).map((_, index) => (
           <ProductCardSkeleton key={index} />
         ))}
       </div>
       <PaginationSkeleton />
-    </>
+    </div>
   );
 }
 
@@ -376,97 +359,6 @@ function PaginationSkeleton() {
 }
 
 /* ─────────────────────── Static, data-free pieces ─────────────────────── */
-
-interface CategorySelectorProps {
-  activeSlug: string;
-  categories: StorefrontCategory[];
-}
-
-function CategorySelector({ activeSlug, categories }: CategorySelectorProps) {
-  return (
-    <div className="grid grid-cols-3 items-start gap-2 md:gap-4">
-      {categories.map((category) => {
-        const isActive = category.slug === activeSlug;
-        const isAvailable = category.isActive;
-        const inner = (
-          <div
-            className={classNames(
-              "tap relative flex items-center gap-2.5 rounded-[var(--radius-lg)] border p-3 transition-colors md:items-start md:gap-3 md:p-4",
-              isActive
-                ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] shadow-[var(--shadow-sm)]"
-                : isAvailable
-                  ? "border-[var(--color-ink-100)] bg-[var(--color-surface)] hover:border-[var(--color-ink-200)]"
-                  : "cursor-not-allowed border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]/40 opacity-70",
-            )}
-          >
-            <CategoryIcon category={category} isActive={isActive} />
-            <div className="min-w-0 flex-1">
-              <p
-                className={classNames(
-                  "truncate text-[13px] font-semibold tracking-tight md:text-[16px]",
-                  isActive
-                    ? "text-[var(--color-accent-800)]"
-                    : "text-[var(--color-ink-900)]",
-                )}
-              >
-                {category.label}
-              </p>
-              <StructuredContentCompact
-                content={normalizeStructuredContent(
-                  category.content,
-                  category.description,
-                )}
-                fallback={category.description}
-                clampLines={2}
-                className="mt-0.5 hidden leading-snug text-[var(--color-ink-600)] md:line-clamp-2 md:block md:text-[12px]"
-              />
-            </div>
-          </div>
-        );
-
-        if (!isAvailable) {
-          return (
-            <div key={category.slug} aria-disabled>
-              {inner}
-            </div>
-          );
-        }
-        return (
-          <Link
-            key={category.slug}
-            href={`/shop/${category.slug}`}
-            scroll={false}
-            className="block focus:outline-none"
-            aria-current={isActive ? "page" : undefined}
-          >
-            {inner}
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
-function CategoryIcon({
-  category,
-  isActive,
-}: {
-  category: StorefrontCategory;
-  isActive: boolean;
-}) {
-  return (
-    <LucideIconRenderer
-      name={category.icon}
-      size={22}
-      strokeWidth={2.2}
-      aria-hidden
-      className={classNames(
-        "shrink-0",
-        isActive ? "opacity-100" : "opacity-90",
-      )}
-    />
-  );
-}
 
 function ComingSoon({ meta }: { meta: StorefrontCategory }) {
   return (

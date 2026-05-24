@@ -32,6 +32,7 @@ export * from "./serverEnv";
 export * from "./attributeOption";
 export * from "./attributeVisibility";
 export * from "./catalog/gradeImages";
+export * from "./checkout/paymentInstructions";
 export * from "./slug";
 export * from "./storage/providers";
 export * from "./storage/types";

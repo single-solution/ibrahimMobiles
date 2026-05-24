@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, Home, Menu, ShoppingBag, Tag } from "lucide-react";
+import { Home, Menu, ShoppingBag, Tag, User } from "lucide-react";
 import { classNames } from "@store/shared";
 
 interface MobileBottomTabBarProps {
@@ -55,10 +55,10 @@ export function MobileBottomTabBar({ onOpenMenu, isMenuOpen }: MobileBottomTabBa
     },
     {
       kind: "link",
-      href: "/wishlist",
-      label: "Saved",
-      icon: Heart,
-      matchPaths: ["/wishlist"],
+      href: "/account",
+      label: "Account",
+      icon: User,
+      matchPaths: ["/account"],
     },
     {
       kind: "action",

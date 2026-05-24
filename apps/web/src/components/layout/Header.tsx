@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { classNames } from "@store/shared";
 import {
-  Heart,
   Menu,
   Search,
   ShoppingBag,
@@ -16,7 +15,6 @@ import { Button } from "@/components/ui/Button";
 import { CartDropdown } from "@/components/cart/CartDropdown";
 import { useCart } from "@/lib/cart/useCart";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
-import { useWishlist } from "@/lib/wishlist/useWishlist";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -40,7 +38,6 @@ export function Header({ onOpenSearch }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const cart = useCart();
-  const wishlist = useWishlist();
   const pathname = usePathname() ?? "/";
   const { siteName } = useStoreSettings();
 
@@ -135,19 +132,6 @@ export function Header({ onOpenSearch }: HeaderProps) {
           >
             <User size={15} />
             <span>Account</span>
-          </Link>
-          <Link
-            href="/wishlist"
-            aria-label="Wishlist"
-            className="tap inline-flex h-10 items-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3.5 text-sm font-medium text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-ink-300)] hover:text-[var(--color-ink-900)]"
-          >
-            <Heart size={15} />
-            <span>Wishlist</span>
-            {wishlist.itemCount > 0 && (
-              <span className="ml-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--color-accent-500)] px-1 text-[11px] font-semibold text-[var(--color-ink-900)]">
-                {wishlist.itemCount}
-              </span>
-            )}
           </Link>
           <button
             type="button"

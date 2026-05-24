@@ -10,8 +10,10 @@ import {
   formatStorefrontDateTime,
   getPaymentMethods,
   LOYALTY_PROGRAM_NAME,
+  orderPaymentToCheckoutId,
 } from "@store/shared";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { PaymentInstructionsCard } from "@/components/checkout/PaymentInstructionsCard";
 import {
   ArrowLeft,
   CalendarClock,
@@ -83,7 +85,7 @@ export function OrderDetail({ order }: OrderDetailProps) {
   const isCancelled = order.status === "cancelled" || order.status === "refunded";
   const settings = useStoreSettings();
   const paymentLabel = getPaymentMethods(settings).find(
-    (method) => method.id === order.payment,
+    (method) => method.id === orderPaymentToCheckoutId(order.payment),
   )?.label;
 
   return (
@@ -128,6 +130,13 @@ export function OrderDetail({ order }: OrderDetailProps) {
 
       <div className="mt-5 grid gap-4 md:mt-8 md:grid-cols-[1fr_360px] md:gap-6 lg:gap-8">
         <div className="space-y-4">
+          {order.status === "pending-payment" && (
+            <PaymentInstructionsCard
+              payment={order.payment}
+              orderNumber={order.orderNumber}
+              totalRupees={order.totals.totalRupees}
+            />
+          )}
           {!isCancelled && order.timeline.length > 0 && <TrackingPanel order={order} />}
           <ItemsCard order={order} />
           <SupportCard orderNumber={order.orderNumber} />

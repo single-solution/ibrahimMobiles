@@ -1,41 +1,44 @@
 /**
- * Twilio-backed OTP provider — WhatsApp first, SMS fallback.
+ * Twilio-backed OTP provider — WhatsApp first, SMS only when needed.
  *
- * Why Twilio:
- *   - One vendor, two channels (WhatsApp Business API + SMS).
- *   - Works in Pakistan (PK numbers in `+92` format).
- *   - Dead simple HTTP API; no SDK lock-in (we use plain `fetch`).
+ * Delivery policy:
+ *   1. Send via WhatsApp (`TWILIO_WHATSAPP_FROM`).
+ *   2. SMS (`TWILIO_SMS_FROM`) only when Twilio reports the recipient is not on
+ *      WhatsApp (error 63024) — not on every WhatsApp failure.
+ *   3. Template/config/network errors do not trigger SMS (avoids double sends
+ *      and expensive SMS when WhatsApp would have worked on retry).
  *
- * How delivery works:
- *   1. Try WhatsApp via the `whatsapp:` channel using `TWILIO_WHATSAPP_FROM`.
- *   2. If WhatsApp fails (network error, customer never opted in, no
- *      session window), fall back to SMS via `TWILIO_SMS_FROM`.
- *   3. If both fail we throw — the OTP service treats that as a delivery
- *      hiccup, the customer can request another code.
+ * Required for production:
+ *   - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM`
  *
- * Required env vars (all production providers):
- *   - `TWILIO_ACCOUNT_SID`
- *   - `TWILIO_AUTH_TOKEN`
- *   - `TWILIO_WHATSAPP_FROM`  (e.g. "whatsapp:+14155238886")
- *   - `TWILIO_SMS_FROM`       (e.g. "+12025550141" — must be SMS-capable)
+ * SMS fallback (non-WhatsApp numbers):
+ *   - `TWILIO_SMS_FROM` — used only after WhatsApp recipient-unavailable errors.
  *
  * Optional:
- *   - `OTP_DISABLE_WHATSAPP=1`  → skip WhatsApp, go straight to SMS.
- *   - `OTP_DISABLE_SMS=1`       → WhatsApp only (testing).
- *
- * Phone format: callers pass raw user input. We normalise to E.164 using
- * the `phoneFingerprint` (last 10 digits, PK-mobile) and prepend `+92`.
+ *   - `OTP_DISABLE_SMS=1` — never send SMS, even when WhatsApp unavailable.
+ *   - `OTP_DISABLE_WHATSAPP=1` + `TWILIO_SMS_FROM` — SMS-only mode.
  */
 
 import type { OtpDeliveryRequest, OtpProvider } from "@/lib/otp/provider";
 import { FIELD_LIMITS, logger, phoneFingerprint } from "@store/shared";
 
+import {
+  isWhatsAppRecipientUnavailableCode,
+  isWhatsAppRecipientUnavailableError,
+  parseTwilioErrorCode,
+} from "@/lib/otp/twilioWhatsAppErrors";
+
 const TWILIO_API_BASE = "https://api.twilio.com/2010-04-01";
-/** Hard upper bound on a single Twilio HTTP call so a hung connection cannot
- *  delay an OTP request beyond a few seconds. */
 const TWILIO_REQUEST_TIMEOUT_MS = 10_000;
+const WHATSAPP_STATUS_POLL_INTERVAL_MS = 1_000;
+const WHATSAPP_STATUS_POLL_ATTEMPTS = 4;
+
+const WHATSAPP_TERMINAL_SUCCESS = new Set(["sent", "delivered", "read"]);
+const WHATSAPP_TERMINAL_FAILURE = new Set(["failed", "undelivered"]);
 
 class TwilioDeliveryError extends Error {
+  readonly twilioErrorCode: number | null;
+
   constructor(
     public channel: "whatsapp" | "sms",
     public status: number,
@@ -44,20 +47,16 @@ class TwilioDeliveryError extends Error {
     super(
       `Twilio ${channel} delivery failed (HTTP ${status}): ${body.slice(0, FIELD_LIMITS.providerErrorPreview)}`,
     );
+    this.name = "TwilioDeliveryError";
+    this.twilioErrorCode = parseTwilioErrorCode(body);
   }
 }
 
-/**
- * Convert any user-typed PK number to E.164 (`+923XXXXXXXXX`). Returns null
- * if we can't form a valid 10-digit mobile portion.
- */
 function toPakistaniE164(raw: string): string | null {
   const fingerprint = phoneFingerprint(raw);
   if (!fingerprint) {
     return null;
   }
-  // PK mobile numbers are 10 digits beginning with 3 — anything else is
-  // probably a landline or typo, refuse it.
   if (!fingerprint.startsWith("3")) {
     return null;
   }
@@ -85,7 +84,15 @@ interface TwilioSendInput {
   channel: "whatsapp" | "sms";
 }
 
-async function sendViaTwilio(input: TwilioSendInput): Promise<void> {
+interface TwilioSendResult {
+  messageSid: string;
+}
+
+function twilioAuthHeader(accountSid: string, authToken: string): string {
+  return `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`;
+}
+
+async function sendViaTwilio(input: TwilioSendInput): Promise<TwilioSendResult> {
   const params = new URLSearchParams({
     From: input.from,
     To: input.to,
@@ -93,14 +100,13 @@ async function sendViaTwilio(input: TwilioSendInput): Promise<void> {
   });
 
   const url = `${TWILIO_API_BASE}/Accounts/${input.accountSid}/Messages.json`;
-  const auth = Buffer.from(`${input.accountSid}:${input.authToken}`).toString("base64");
 
   let response: Response;
   try {
     response = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: `Basic ${auth}`,
+        Authorization: twilioAuthHeader(input.accountSid, input.authToken),
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: params.toString(),
@@ -110,10 +116,110 @@ async function sendViaTwilio(input: TwilioSendInput): Promise<void> {
     throw new TwilioDeliveryError(input.channel, 0, String(error));
   }
 
+  const text = await response.text().catch(() => "");
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
     throw new TwilioDeliveryError(input.channel, response.status, text);
   }
+
+  let messageSid = "";
+  try {
+    const parsed = JSON.parse(text) as { sid?: unknown };
+    if (typeof parsed.sid === "string") {
+      messageSid = parsed.sid;
+    }
+  } catch {
+    // POST succeeded without a parseable sid — polling will be skipped.
+  }
+
+  return { messageSid };
+}
+
+interface TwilioMessageStatus {
+  status: string;
+  errorCode: number | null;
+}
+
+async function fetchTwilioMessageStatus(
+  accountSid: string,
+  authToken: string,
+  messageSid: string,
+): Promise<TwilioMessageStatus> {
+  const url = `${TWILIO_API_BASE}/Accounts/${accountSid}/Messages/${messageSid}.json`;
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Authorization: twilioAuthHeader(accountSid, authToken),
+    },
+    signal: AbortSignal.timeout(TWILIO_REQUEST_TIMEOUT_MS),
+  });
+  const text = await response.text().catch(() => "");
+  if (!response.ok) {
+    throw new TwilioDeliveryError("whatsapp", response.status, text);
+  }
+  const parsed = JSON.parse(text) as { status?: unknown; error_code?: unknown };
+  const status = typeof parsed.status === "string" ? parsed.status : "unknown";
+  const rawErrorCode = parsed.error_code;
+  const errorCode =
+    typeof rawErrorCode === "number"
+      ? rawErrorCode
+      : typeof rawErrorCode === "string" && /^\d+$/.test(rawErrorCode)
+        ? Number.parseInt(rawErrorCode, 10)
+        : null;
+  return { status, errorCode };
+}
+
+async function sleep(milliseconds: number): Promise<void> {
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, milliseconds);
+  });
+}
+
+async function waitForWhatsAppDeliveryOutcome(input: {
+  accountSid: string;
+  authToken: string;
+  messageSid: string;
+}): Promise<"delivered" | "recipient-unavailable" | "failed" | "pending"> {
+  if (!input.messageSid) {
+    return "pending";
+  }
+
+  for (let attempt = 0; attempt < WHATSAPP_STATUS_POLL_ATTEMPTS; attempt += 1) {
+    if (attempt > 0) {
+      await sleep(WHATSAPP_STATUS_POLL_INTERVAL_MS);
+    }
+    const messageStatus = await fetchTwilioMessageStatus(
+      input.accountSid,
+      input.authToken,
+      input.messageSid,
+    );
+    if (WHATSAPP_TERMINAL_SUCCESS.has(messageStatus.status)) {
+      return "delivered";
+    }
+    if (WHATSAPP_TERMINAL_FAILURE.has(messageStatus.status)) {
+      if (isWhatsAppRecipientUnavailableCode(messageStatus.errorCode)) {
+        return "recipient-unavailable";
+      }
+      return "failed";
+    }
+  }
+  return "pending";
+}
+
+function resolveSmsFrom(
+  env: NodeJS.ProcessEnv,
+  whatsAppFrom: string | null,
+): string | null {
+  if (env.OTP_DISABLE_SMS === "1") {
+    return null;
+  }
+  const smsFrom = env.TWILIO_SMS_FROM?.trim() || null;
+  if (!smsFrom) {
+    return null;
+  }
+  if (env.OTP_DISABLE_WHATSAPP === "1" || !whatsAppFrom) {
+    return smsFrom;
+  }
+  return smsFrom;
 }
 
 class TwilioOtpProvider implements OtpProvider {
@@ -134,12 +240,11 @@ class TwilioOtpProvider implements OtpProvider {
     this.accountSid = accountSid;
     this.authToken = authToken;
     this.whatsAppFrom =
-      env.OTP_DISABLE_WHATSAPP === "1" ? null : env.TWILIO_WHATSAPP_FROM ?? null;
-    this.smsFrom =
-      env.OTP_DISABLE_SMS === "1" ? null : env.TWILIO_SMS_FROM ?? null;
+      env.OTP_DISABLE_WHATSAPP === "1" ? null : env.TWILIO_WHATSAPP_FROM?.trim() ?? null;
+    this.smsFrom = resolveSmsFrom(env, this.whatsAppFrom);
     if (!this.whatsAppFrom && !this.smsFrom) {
       throw new Error(
-        "TwilioOtpProvider needs at least one of TWILIO_WHATSAPP_FROM / TWILIO_SMS_FROM (or both).",
+        "TwilioOtpProvider needs TWILIO_WHATSAPP_FROM (recommended) or TWILIO_SMS_FROM with OTP_DISABLE_WHATSAPP=1.",
       );
     }
   }
@@ -157,66 +262,129 @@ class TwilioOtpProvider implements OtpProvider {
       request.brand,
     );
 
-    let whatsAppError: unknown = null;
-
-    // 1. Try WhatsApp first if configured.
     if (this.whatsAppFrom) {
-      try {
-        await sendViaTwilio({
-          accountSid: this.accountSid,
-          authToken: this.authToken,
-          from: this.whatsAppFrom,
-          to: `whatsapp:${e164}`,
-          body,
-          channel: "whatsapp",
-        });
-        logger.info(
-          { phoneFingerprint: request.phoneFingerprint, channel: "whatsapp" },
-          "OTP delivered",
-        );
-        return;
-      } catch (error) {
-        whatsAppError = error;
-        logger.warn(
-          {
-            phoneFingerprint: request.phoneFingerprint,
-            error: error instanceof Error ? error.message : String(error),
-          },
-          "OTP WhatsApp delivery failed — falling back to SMS",
-        );
-      }
-    }
-
-    // 2. SMS fallback.
-    if (this.smsFrom) {
-      await sendViaTwilio({
-        accountSid: this.accountSid,
-        authToken: this.authToken,
-        from: this.smsFrom,
-        to: e164,
+      await this.sendWhatsAppOrFallbackToSms({
+        e164,
         body,
-        channel: "sms",
+        phoneFingerprint: request.phoneFingerprint,
       });
-      logger.info(
-        { phoneFingerprint: request.phoneFingerprint, channel: "sms" },
-        "OTP delivered",
-      );
       return;
     }
 
-    // No fallback configured and WhatsApp failed — re-raise.
-    throw whatsAppError instanceof Error
-      ? whatsAppError
-      : new Error("OTP delivery failed: no usable channel.");
+    if (this.smsFrom) {
+      await this.sendSms({
+        e164,
+        body,
+        phoneFingerprint: request.phoneFingerprint,
+        reason: "sms-only-mode",
+      });
+    }
+  }
+
+  private async sendWhatsAppOrFallbackToSms(input: {
+    e164: string;
+    body: string;
+    phoneFingerprint: string;
+  }): Promise<"delivered"> {
+    let syncError: TwilioDeliveryError | null = null;
+
+    try {
+      const sendResult = await sendViaTwilio({
+        accountSid: this.accountSid,
+        authToken: this.authToken,
+        from: this.whatsAppFrom!,
+        to: `whatsapp:${input.e164}`,
+        body: input.body,
+        channel: "whatsapp",
+      });
+
+      const deliveryOutcome = await waitForWhatsAppDeliveryOutcome({
+        accountSid: this.accountSid,
+        authToken: this.authToken,
+        messageSid: sendResult.messageSid,
+      });
+
+      if (deliveryOutcome === "delivered" || deliveryOutcome === "pending") {
+        logger.info(
+          { phoneFingerprint: input.phoneFingerprint, channel: "whatsapp" },
+          deliveryOutcome === "pending"
+            ? "OTP accepted on WhatsApp (delivery still pending)"
+            : "OTP delivered on WhatsApp",
+        );
+        return "delivered";
+      }
+
+      if (deliveryOutcome === "recipient-unavailable" && this.smsFrom) {
+        logger.info(
+          { phoneFingerprint: input.phoneFingerprint },
+          "Recipient not on WhatsApp — sending OTP via SMS",
+        );
+        await this.sendSms({
+          e164: input.e164,
+          body: input.body,
+          phoneFingerprint: input.phoneFingerprint,
+          reason: "whatsapp-unavailable",
+        });
+        return "delivered";
+      }
+
+      throw new Error(`WhatsApp OTP delivery failed (${deliveryOutcome}).`);
+    } catch (error) {
+      if (error instanceof TwilioDeliveryError) {
+        syncError = error;
+      } else if (isWhatsAppRecipientUnavailableError(error)) {
+        syncError = error as TwilioDeliveryError;
+      } else {
+        throw error;
+      }
+    }
+
+    if (
+      syncError &&
+      isWhatsAppRecipientUnavailableCode(syncError.twilioErrorCode) &&
+      this.smsFrom
+    ) {
+      logger.info(
+        { phoneFingerprint: input.phoneFingerprint, twilioErrorCode: syncError.twilioErrorCode },
+        "Recipient not on WhatsApp — sending OTP via SMS",
+      );
+      await this.sendSms({
+        e164: input.e164,
+        body: input.body,
+        phoneFingerprint: input.phoneFingerprint,
+        reason: "whatsapp-unavailable",
+      });
+      return "delivered";
+    }
+
+    throw syncError ?? new Error("WhatsApp OTP delivery failed.");
+  }
+
+  private async sendSms(input: {
+    e164: string;
+    body: string;
+    phoneFingerprint: string;
+    reason: "whatsapp-unavailable" | "sms-only-mode";
+  }): Promise<void> {
+    await sendViaTwilio({
+      accountSid: this.accountSid,
+      authToken: this.authToken,
+      from: this.smsFrom!,
+      to: input.e164,
+      body: input.body,
+      channel: "sms",
+    });
+    logger.info(
+      {
+        phoneFingerprint: input.phoneFingerprint,
+        channel: "sms",
+        reason: input.reason,
+      },
+      "OTP delivered via SMS",
+    );
   }
 }
 
-/**
- * Construct a Twilio provider from environment variables. Returns null if
- * the env isn't configured (so the caller can fall back to the dev
- * console provider). The provider is constructed lazily so a missing
- * Twilio key doesn't crash the app on import.
- */
 export function createTwilioOtpProviderFromEnv(): OtpProvider | null {
   if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
     return null;
@@ -228,4 +396,3 @@ export function createTwilioOtpProviderFromEnv(): OtpProvider | null {
     return null;
   }
 }
-

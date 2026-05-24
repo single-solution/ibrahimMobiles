@@ -49,7 +49,7 @@ mobile-store/
 - **MongoDB Atlas** + **Mongoose 9** (singleton connection in `@store/db`)
 - **Turborepo 2** + **npm workspaces** — one install, parallel dev, per-app builds
 - **Pino** structured logging, **bcryptjs** for password / OTP hashing
-- **Twilio** (optional) for WhatsApp-first OTP delivery with SMS fallback
+- **Twilio** (optional) for WhatsApp OTP — SMS fallback opt-in only ([setup guide](docs/otp-setup.md))
 
 ---
 

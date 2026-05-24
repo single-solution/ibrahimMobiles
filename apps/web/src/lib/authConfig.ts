@@ -19,7 +19,7 @@ const isProduction = process.env.NODE_ENV === "production";
  *   cookie name, so there's no way to crossover even if a malicious customer
  *   tampers with their own JWT claims.
  * - Cookie is **persistent** (matches the JWT lifetime) — customers stay
- *   signed in across browser restarts so the cart / wishlist / account stay
+ *   signed in across browser restarts so the cart / account stay
  *   handy. The admin app makes the opposite trade-off.
  * - Edge-safe: no Mongoose / bcrypt imports in this file. Anything that
  *   needs the DB lives in `lib/auth.ts`.

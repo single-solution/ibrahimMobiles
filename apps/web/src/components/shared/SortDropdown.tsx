@@ -1,9 +1,10 @@
 "use client";
 
+import { classNames } from "@store/shared";
 import { ChevronDown } from "lucide-react";
 import {
   FILTER_PARAM_KEYS,
-  isExpandVariantsView,
+  isExpandGradesView,
 } from "@/lib/storefront/filterParams";
 import { useFilterParams } from "@/lib/storefront/useFilterParams";
 import type { StorefrontSort } from "@/lib/storefront/queries";
@@ -35,21 +36,30 @@ export function SortDropdown() {
   const raw = getSingle(FILTER_PARAM_KEYS.sort) as StorefrontSort | undefined;
   const value: Exclude<StorefrontSort, "recently-updated"> =
     raw && raw !== "recently-updated" ? raw : "newest";
-  const expandVariants = isExpandVariantsView(params);
+  const expandGrades = isExpandGradesView(params);
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
-      <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-ink-800)] hover:border-[var(--color-ink-300)] md:h-auto md:rounded-[var(--radius-md)] md:px-3.5 md:py-2 md:text-sm">
-        <span className="text-[var(--color-ink-500)]">By variation</span>
+      <label
+        className={classNames(
+          "inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-ink-800)] transition-colors md:h-auto md:rounded-[var(--radius-md)] md:px-3.5 md:py-2 md:text-sm",
+          expandGrades
+            ? "border-[var(--color-accent-400)]/70 bg-[var(--color-accent-50)]/80 shadow-[var(--shadow-sm)]"
+            : "border-[var(--color-ink-200)] hover:border-[var(--color-ink-300)]",
+        )}
+      >
+        <span className={expandGrades ? "text-[var(--color-accent-800)]" : "text-[var(--color-ink-500)]"}>
+          Browse by grade
+        </span>
         <input
           type="checkbox"
           role="switch"
-          aria-label="Show each variation as its own product card"
-          checked={expandVariants}
+          aria-label="Browse by grade — show each condition grade as its own product card"
+          checked={expandGrades}
           onChange={(event) => {
             setSingle(
-              FILTER_PARAM_KEYS.expandVariants,
-              event.target.checked ? "" : "0",
+              FILTER_PARAM_KEYS.expandGrades,
+              event.target.checked ? "1" : "",
             );
           }}
           className="size-4 accent-[var(--color-accent-600)]"

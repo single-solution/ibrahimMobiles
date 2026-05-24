@@ -18,12 +18,11 @@ interface ProductImageProps {
   brandSlug: string;
   sizes?: string;
   priority?: boolean;
-  objectFit?: "cover" | "contain";
   onLoadComplete?: () => void;
 }
 
 /**
- * Hero image for the storefront product card / PDP / wishlist.
+ * Hero image for the storefront product card and PDP.
  *
  * Reads from a `StoredImage` (Phase 1 schema). The caller picks the
  * variant (`thumb` for tiny tiles, `card` for product cards, `detail`
@@ -39,7 +38,6 @@ export function ProductImage({
   brandSlug,
   sizes = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw",
   priority = false,
-  objectFit = "cover",
   onLoadComplete,
 }: ProductImageProps) {
   const [hasFailed, setHasFailed] = useState(false);
@@ -62,6 +60,7 @@ export function ProductImage({
         colorName=""
         brandSlug={brandSlug}
         size="md"
+        className="product-media-well"
       />
     );
   }
@@ -69,21 +68,23 @@ export function ProductImage({
   const altText = image.alt || `${brandName} ${name}`;
 
   return (
-    <Image
-      src={src}
-      alt={altText}
-      fill
-      sizes={sizes}
-      priority={priority}
-      placeholder={image.blurDataURL ? "blur" : undefined}
-      blurDataURL={image.blurDataURL || undefined}
-      data-img-fade={showLoadFade && !hasLoaded ? "false" : "true"}
-      className={objectFit === "contain" ? "object-contain" : "object-cover"}
-      onLoad={() => {
-        setHasLoaded(true);
-        onLoadComplete?.();
-      }}
-      onError={() => setHasFailed(true)}
-    />
+    <div className="product-media-well relative size-full">
+      <Image
+        src={src}
+        alt={altText}
+        fill
+        sizes={sizes}
+        priority={priority}
+        placeholder={image.blurDataURL ? "blur" : undefined}
+        blurDataURL={image.blurDataURL || undefined}
+        data-img-fade={showLoadFade && !hasLoaded ? "false" : "true"}
+        className="object-cover object-center"
+        onLoad={() => {
+          setHasLoaded(true);
+          onLoadComplete?.();
+        }}
+        onError={() => setHasFailed(true)}
+      />
+    </div>
   );
 }

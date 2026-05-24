@@ -21,13 +21,14 @@ export function ResultsCountBar({ total, page, pageSize, hideOnMobile = false }:
   return (
     <p
       className={classNames(
-        "mt-3 text-[12.5px] text-[var(--color-ink-500)] md:mt-0",
+        "mt-5 text-[12.5px] tracking-wide text-[var(--color-ink-500)] md:mt-0",
         hideOnMobile && "hidden md:block",
       )}
     >
-      Showing <span className="font-semibold text-[var(--color-ink-800)]">{start}</span>–
-      <span className="font-semibold text-[var(--color-ink-800)]">{end}</span> of{" "}
-      <span className="font-semibold text-[var(--color-ink-800)]">{total}</span>
+      Showing{" "}
+      <span className="font-semibold tabular-nums text-[var(--color-accent-800)]">{start}</span>–
+      <span className="font-semibold tabular-nums text-[var(--color-accent-800)]">{end}</span> of{" "}
+      <span className="font-semibold tabular-nums text-[var(--color-accent-800)]">{total}</span>
     </p>
   );
 }

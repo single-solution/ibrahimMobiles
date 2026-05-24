@@ -1,5 +1,6 @@
 import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 import { ProductGridSkeleton } from "@/components/shared/ProductCardSkeleton";
+import { ShopCategoryRailSkeleton } from "@/components/shop/ShopCategoryRail";
 
 /**
  * Category listing fallback — mirrors `app/shop/[category]/page.tsx`:
@@ -16,36 +17,40 @@ export default function CategoryListingLoading() {
   return (
     <SkeletonScreen label="Loading shop">
       {/* Mobile only */}
-      <div className="app-page pb-6 pt-4 md:hidden">
+      <div className="app-page pb-10 pt-5 md:hidden">
         <CategorySelectorSkeleton />
-        <div className="mt-4 flex items-center gap-2">
+        <div className="shop-listing-toolbar mt-3 flex items-center gap-2.5 p-2">
           <Skeleton shape="pill" className="h-10 w-24" />
           <Skeleton shape="pill" className="h-10 w-28" />
         </div>
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-5 flex items-center justify-between">
           <Skeleton shape="text" className="h-3 w-32" />
           <Skeleton shape="text" className="h-3 w-20" />
         </div>
-        <div className="app-section">
-          <ProductGridSkeleton count={MOBILE_SKELETON_CARDS} className="grid grid-cols-2 gap-2.5 sm:gap-3" />
+        <div className="mt-6">
+          <ProductGridSkeleton count={MOBILE_SKELETON_CARDS} className="grid grid-cols-2 gap-3 sm:gap-4" />
         </div>
-        <div className="app-section">
+        <div className="mt-10">
           <PaginationSkeleton />
         </div>
       </div>
 
       {/* Desktop */}
-      <div className="mx-auto hidden max-w-[1440px] px-6 pb-16 pt-8 md:block">
-        <div className="grid grid-cols-[260px_1fr] gap-8">
-          <DesktopFilterSidebarSkeleton />
-          <div className="space-y-6">
-            <CategorySelectorSkeleton />
-            <div className="flex items-center justify-between">
-              <Skeleton shape="text" className="h-4 w-40" />
-              <Skeleton shape="pill" className="h-10 w-36" />
+      <div className="hidden md:block">
+        <div className="mx-auto max-w-[1440px] px-6 pb-20 pt-10">
+          <div className="grid grid-cols-[272px_1fr] gap-10 xl:grid-cols-[280px_1fr] xl:gap-12">
+            <DesktopFilterSidebarSkeleton />
+            <div className="space-y-3">
+              <CategorySelectorSkeleton />
+              <div className="space-y-8">
+                <div className="shop-listing-toolbar flex items-center justify-between gap-4 px-4 py-3">
+                  <Skeleton shape="text" className="h-4 w-40" />
+                  <Skeleton shape="pill" className="h-10 w-36" />
+                </div>
+                <ProductGridSkeleton count={DESKTOP_SKELETON_CARDS} />
+                <PaginationSkeleton />
+              </div>
             </div>
-            <ProductGridSkeleton count={DESKTOP_SKELETON_CARDS} />
-            <PaginationSkeleton />
           </div>
         </div>
       </div>
@@ -55,9 +60,8 @@ export default function CategoryListingLoading() {
 
 /**
  * Mirrors `<ShopPagination>`: a centered pill row of page-number buttons
- * with prev / next arrows flanking them. The real component renders
- * roughly 5–7 buttons; the skeleton fixes the count so the row doesn't
- * grow/shrink when the data lands.
+ * with prev / next arrows flanking them. The skeleton fixes the count so the
+ * row doesn't grow/shrink when the data lands.
  */
 function PaginationSkeleton() {
   return (
@@ -72,25 +76,7 @@ function PaginationSkeleton() {
 }
 
 function CategorySelectorSkeleton() {
-  return (
-    <div className="grid grid-cols-3 items-start gap-2 md:gap-4">
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div
-          key={index}
-          className="flex items-center gap-2.5 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3 md:items-start md:gap-3 md:p-4"
-        >
-          <Skeleton className="size-[18px] shrink-0 md:size-[22px]" />
-          <div className="min-w-0 flex-1 space-y-1.5">
-            <div className="flex items-baseline justify-between gap-2">
-              <Skeleton shape="text" className="h-3.5 w-20 md:h-4" />
-              <Skeleton shape="text" className="h-3 w-8" />
-            </div>
-            <Skeleton shape="text" className="hidden h-3 w-3/4 md:block" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  return <ShopCategoryRailSkeleton pillCount={6} />;
 }
 
 function DesktopFilterSidebarSkeleton() {
@@ -99,7 +85,7 @@ function DesktopFilterSidebarSkeleton() {
       {Array.from({ length: 4 }).map((_, groupIndex) => (
         <div
           key={groupIndex}
-          className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4"
+          className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-accent-200)]/35 bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]"
         >
           <Skeleton shape="text" className="h-3 w-24" />
           <div className="space-y-2">

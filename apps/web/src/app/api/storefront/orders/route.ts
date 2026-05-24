@@ -92,7 +92,6 @@ const MIN_NAME_CHARS = 2;
  *  accept landline-style sequences while rejecting obvious typos. */
 const MIN_PHONE_CHARS = 7;
 const DEFAULT_CUSTOMER_CITY = "Pakistan";
-const PLACEHOLDER_CUSTOMER_NAME_PATTERN = /^Customer\s+\d{4}$/;
 
 interface OrderItemBody {
   productId?: unknown;
@@ -195,9 +194,6 @@ export async function POST(request: Request) {
   });
   if (isValidationError(nameResult)) {
     return badRequest(nameResult.error);
-  }
-  if (PLACEHOLDER_CUSTOMER_NAME_PATTERN.test(nameResult)) {
-    return badRequest("Please enter your full name before placing the order.");
   }
 
   const phoneResult = validateString(existingCustomer.phoneNumber, {

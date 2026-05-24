@@ -224,7 +224,7 @@ function SearchHit({ result, onNavigate }: SearchHitProps) {
         onClick={onNavigate}
         className="flex items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-canvas-deep)] px-3 py-3 active:bg-[var(--color-surface-muted)]"
       >
-        <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-surface)] text-xs font-semibold uppercase text-[var(--color-ink-500)]">
+        <span className="product-media-well grid size-12 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-surface)] text-xs font-semibold uppercase text-[var(--color-ink-500)]">
           {thumb ? (
             // eslint-disable-next-line @next/next/no-img-element -- search thumbnail, no need for next/image
             <img

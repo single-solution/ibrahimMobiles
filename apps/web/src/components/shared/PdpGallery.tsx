@@ -85,10 +85,10 @@ function PdpGalleryInner({
           type="button"
           onClick={() => images.length > 0 && setLightboxOpen(true)}
           aria-label={hero ? `Open zoomed view of ${name}` : `${name} image`}
-          className="relative block aspect-square w-full bg-[var(--color-canvas-deep)]"
+          className="product-media-well relative block aspect-square w-full bg-[var(--color-canvas-deep)]"
         >
           <div
-            className={`absolute inset-0 transition-none ${heroVisibilityClass}`}
+            className={`product-media-well absolute inset-0 transition-none ${heroVisibilityClass}`}
           >
             <ProductImage
               key={heroKey}
@@ -118,7 +118,7 @@ function PdpGalleryInner({
                 aria-label={`Show image ${index + 1}`}
                 aria-pressed={index === activeIndex}
                 className={
-                  "relative aspect-square w-24 shrink-0 overflow-hidden rounded-md border bg-[var(--color-canvas-deep)] transition-colors " +
+                  "product-media-well relative aspect-square w-24 shrink-0 rounded-md border bg-[var(--color-canvas-deep)] transition-colors " +
                   (index === activeIndex
                     ? "border-[var(--color-ink-900)]"
                     : "border-[var(--color-ink-100)] hover:border-[var(--color-ink-300)]")
@@ -154,10 +154,10 @@ function PdpGalleryInner({
         type="button"
         onClick={() => images.length > 0 && setLightboxOpen(true)}
         aria-label={hero ? `Open zoomed view of ${name}` : `${name} image`}
-        className="relative block min-h-0 w-full flex-1 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]"
+        className="product-media-well relative block min-h-0 w-full flex-1 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]"
       >
         <div
-          className={`absolute inset-0 transition-none ${heroVisibilityClass}`}
+          className={`product-media-well absolute inset-0 transition-none ${heroVisibilityClass}`}
         >
           <ProductImage
             key={heroKey}
@@ -187,7 +187,7 @@ function PdpGalleryInner({
               aria-label={`Photo ${index + 1}`}
               aria-pressed={index === activeIndex}
               className={
-                "relative aspect-square w-24 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border bg-[var(--color-canvas-deep)] transition-colors " +
+                "product-media-well relative aspect-square w-24 shrink-0 rounded-[var(--radius-sm)] border bg-[var(--color-canvas-deep)] transition-colors " +
                 (index === activeIndex
                   ? "border-[var(--color-ink-900)]"
                   : "border-[var(--color-ink-100)] hover:border-[var(--color-ink-300)]")

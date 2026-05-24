@@ -2,11 +2,11 @@
 
 import type { Product } from "@store/shared";
 
-import { expandProductsByVariant } from "@/lib/catalog/expandProductVariants";
+import { expandProductsByGrade } from "@/lib/catalog/expandProductGrades";
 import {
   FILTER_PARAM_KEYS,
   hasActiveListingFilters,
-  isExpandVariantsView,
+  isExpandGradesView,
 } from "@/lib/storefront/filterParams";
 import { useFilterParams } from "@/lib/storefront/useFilterParams";
 import { resolveListingVariant } from "@/lib/productSummary";
@@ -20,8 +20,8 @@ interface ShopProductGridProps {
 
 export function ShopProductGrid({ products, categoryLabel }: ShopProductGridProps) {
   const { params } = useFilterParams();
-  const expandVariants = isExpandVariantsView(params);
-  const cards = expandVariants ? expandProductsByVariant(products) : products;
+  const expandGrades = isExpandGradesView(params);
+  const cards = expandGrades ? expandProductsByGrade(products) : products;
   const gradeSlugs = (params.get(FILTER_PARAM_KEYS.grades) ?? "")
     .split(",")
     .map((token) => token.trim())
@@ -38,15 +38,20 @@ export function ShopProductGrid({ products, categoryLabel }: ShopProductGridProp
   }
 
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 md:gap-5 xl:grid-cols-4">
+    <div className="reveal-stagger grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4 xl:gap-7">
       {cards.map((product) => {
+        const catalogProduct = products.find((row) => row.id === product.id) ?? product;
         const listingVariant = resolveListingVariant(product, { gradeSlugs });
+        const pinnedGradeSlug = expandGrades ? listingVariant.gradeSlug : undefined;
         return (
-          <div key={`${product.id}:${listingVariant.id}`} className="reveal">
+          <div
+            key={`${product.id}:${pinnedGradeSlug ?? "product"}`}
+            className="reveal h-full"
+          >
             <ProductCard
               product={product}
-              variantId={listingVariant.id}
-              hideVariantCount={expandVariants}
+              catalogProduct={catalogProduct}
+              pinnedGradeSlug={pinnedGradeSlug}
             />
           </div>
         );
@@ -65,7 +70,7 @@ function ShopListingEmptyState({
   return (
     <div
       role="status"
-      className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]/40 px-5 py-12 text-center"
+      className="reveal rounded-[var(--radius-lg)] border border-dashed border-[var(--color-accent-200)]/60 bg-gradient-to-b from-[var(--color-accent-50)]/40 to-[var(--color-canvas-deep)]/30 px-6 py-14 text-center"
     >
       <p className="text-sm font-semibold text-[var(--color-ink-900)]">
         {filtersActive

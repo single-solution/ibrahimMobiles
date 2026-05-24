@@ -8,19 +8,31 @@ import {
 } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { LOYALTY_PROGRAM_NAME, formatPoints } from "@store/shared";
+import {
+  CHECKOUT_TO_ORDER_PAYMENT,
+  LOYALTY_PROGRAM_NAME,
+  formatPoints,
+  type PaymentMethodId,
+} from "@store/shared";
+import { PaymentInstructionsCard } from "@/components/checkout/PaymentInstructionsCard";
 
 interface CheckoutSuccessProps {
   orderNumber: string;
+  payment: PaymentMethodId | null;
+  totalRupees: number;
   pointsEarned: number;
   pointsRedeemed: number;
 }
 
 export function CheckoutSuccess({
   orderNumber,
+  payment,
+  totalRupees,
   pointsEarned,
   pointsRedeemed,
 }: CheckoutSuccessProps) {
+  const orderPayment = payment ? CHECKOUT_TO_ORDER_PAYMENT[payment] : null;
+
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-var(--desktop-header-h)-160px)] max-w-3xl items-center px-4 pb-16 pt-8 md:px-6">
       <div className="w-full">
@@ -40,7 +52,7 @@ export function CheckoutSuccess({
             Thank you, your order is in.
           </h1>
           <p className="mt-2 text-[14px] text-[var(--color-ink-600)] md:text-[15px]">
-            We&rsquo;ve emailed your confirmation. You&rsquo;ll get a WhatsApp update at every step.
+            We&rsquo;ll send WhatsApp updates at every step. Save your order number below.
           </p>
         </div>
 
@@ -86,6 +98,19 @@ export function CheckoutSuccess({
           </ul>
         </Card>
 
+        {orderPayment && totalRupees > 0 && (
+          <div
+            className="reveal mx-auto mt-4 max-w-xl md:mt-6"
+            style={{ ["--reveal-delay" as string]: "280ms" }}
+          >
+            <PaymentInstructionsCard
+              payment={orderPayment}
+              orderNumber={orderNumber}
+              totalRupees={totalRupees}
+            />
+          </div>
+        )}
+
         {(pointsEarned > 0 || pointsRedeemed > 0) && (
           <Card
             className="reveal mx-auto mt-4 max-w-xl overflow-hidden md:mt-6"
@@ -126,14 +151,6 @@ export function CheckoutSuccess({
                   </p>
                 )}
               </div>
-              <div className="hidden text-right md:block">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-700)]">
-                  Look up balance
-                </p>
-                <p className="text-[12px] text-[var(--color-accent-800)]">
-                  Anytime via your phone number
-                </p>
-              </div>
             </div>
           </Card>
         )}
@@ -143,11 +160,18 @@ export function CheckoutSuccess({
           style={{ ["--reveal-delay" as string]: "340ms" }}
         >
           <ButtonLink
-            href={`/track?orderNumber=${encodeURIComponent(orderNumber)}`}
+            href={`/account/orders/${encodeURIComponent(orderNumber)}`}
             variant="primary"
             size="md"
             className="cta-arrow"
             trailingIcon={<ArrowUpRight size={15} strokeWidth={2.4} />}
+          >
+            View order details
+          </ButtonLink>
+          <ButtonLink
+            href={`/track?orderNumber=${encodeURIComponent(orderNumber)}`}
+            variant="outline"
+            size="md"
           >
             Track this order
           </ButtonLink>

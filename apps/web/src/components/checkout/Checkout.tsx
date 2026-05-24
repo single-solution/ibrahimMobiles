@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  CHECKOUT_TO_ORDER_PAYMENT,
   maxRedeemable,
   pointsEarnedFor,
   pointsToRupees,
@@ -27,13 +28,6 @@ import {
 
 const DELIVERY_FEE_RUPEES = 1_500;
 
-const PAYMENT_API_VALUE: Record<PaymentMethodId, "bank-transfer" | "easypaisa" | "jazzcash" | "cod"> = {
-  bank: "bank-transfer",
-  easypaisa: "easypaisa",
-  jazzcash: "jazzcash",
-  cod: "cod",
-};
-
 const EMPTY_ADDRESS: AddressFormState = {
   recipientName: "",
   area: "",
@@ -43,13 +37,6 @@ const EMPTY_ADDRESS: AddressFormState = {
 
 interface CheckoutProps {
   customer: AccountCustomer | null;
-}
-
-const PLACEHOLDER_CUSTOMER_NAME_PATTERN = /^Customer\s+\d{4}$/;
-
-function hasRealCustomerName(name: string): boolean {
-  const trimmed = name.trim();
-  return trimmed.length >= 2 && !PLACEHOLDER_CUSTOMER_NAME_PATTERN.test(trimmed);
 }
 
 function addressToForm(address: AccountAddress | undefined): AddressFormState {
@@ -72,9 +59,7 @@ export function Checkout({ customer }: CheckoutProps) {
   const defaultAddress =
     customer?.addresses.find((candidate) => candidate.isDefault) ??
     customer?.addresses[0];
-  const [fullName, setFullName] = useState(
-    customer && hasRealCustomerName(customer.name) ? customer.name : "",
-  );
+  const [fullName, setFullName] = useState(customer?.name ?? "");
   const [phoneNumber, setPhoneNumber] = useState(customer?.phoneNumber ?? "");
   const [delivery, setDelivery] = useState<DeliveryMethod>("pickup");
   const [address, setAddress] = useState<AddressFormState>(() =>
@@ -193,7 +178,7 @@ export function Checkout({ customer }: CheckoutProps) {
         body: JSON.stringify({
           customer: { name: fullName },
           delivery: delivery === "delivery" ? "courier" : "pickup",
-          payment: PAYMENT_API_VALUE[payment],
+          payment: CHECKOUT_TO_ORDER_PAYMENT[payment],
           address:
             delivery === "delivery"
               ? {
@@ -223,12 +208,15 @@ export function Checkout({ customer }: CheckoutProps) {
 
       const data = (await response.json()) as {
         orderNumber: string;
+        totalRupees?: number;
         pointsEarned?: number;
         pointsRedeemed?: number;
       };
       cart.clear();
       const params = new URLSearchParams({
         order: data.orderNumber,
+        payment,
+        total: String(data.totalRupees ?? totals.totalRupees),
         earned: String(data.pointsEarned ?? pointsEarnedOnThisOrder),
       });
       const serverRedeemed = data.pointsRedeemed ?? cappedPointsToUse;

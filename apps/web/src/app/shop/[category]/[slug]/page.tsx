@@ -332,7 +332,9 @@ async function MobileRelatedRail({
   return (
     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
       {related.map((relatedProduct) => (
-        <ProductCard key={relatedProduct.id} product={relatedProduct} />
+        <div key={relatedProduct.id} className="h-full">
+          <ProductCard product={relatedProduct} />
+        </div>
       ))}
     </div>
   );
@@ -356,7 +358,9 @@ async function DesktopRelatedRail({
   return (
     <div className="mt-6 grid grid-cols-4 gap-5">
       {related.map((relatedProduct) => (
-        <ProductCard key={relatedProduct.id} product={relatedProduct} />
+        <div key={relatedProduct.id} className="h-full">
+          <ProductCard product={relatedProduct} />
+        </div>
       ))}
     </div>
   );

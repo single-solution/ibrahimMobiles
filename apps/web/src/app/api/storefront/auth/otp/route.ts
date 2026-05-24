@@ -14,6 +14,7 @@ import {
   ok,
   parseBody,
   phoneFingerprint,
+  serverError,
   SHORT_BURST_WINDOW_MS,
   tooManyRequests,
 } from "@store/shared";
@@ -65,6 +66,10 @@ export async function POST(request: Request) {
 
   if (result.error === "too-soon") {
     return tooManyRequests(result.retryAfterMs, "Please wait a moment before requesting another code.");
+  }
+
+  if (result.error === "delivery-failed") {
+    return serverError("Could not send the verification code. Please try again in a moment.");
   }
 
   return badRequest(INVALID_PHONE_MESSAGE);

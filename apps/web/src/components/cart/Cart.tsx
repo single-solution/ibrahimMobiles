@@ -12,8 +12,8 @@ import { classNames, formatPrice } from "@store/shared";
 
 /**
  * Full-page cart. Mirrors the cart drawer's content but at full width — used
- * when the customer hits `/cart` directly (e.g. from the wishlist or a deep
- * link). Hands off to `/checkout` for the actual purchase flow.
+ * when the customer hits `/cart` directly (e.g. from a deep link). Hands off
+ * to `/checkout` for the actual purchase flow.
  */
 export function Cart() {
   const cart = useCart();
@@ -120,7 +120,7 @@ function CartLine({ line }: { line: CartItem }) {
     <li className="flex gap-4 p-4">
       <Link
         href={lineProductHref}
-        className="relative aspect-square w-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
+        className="product-media-well relative aspect-square w-20 shrink-0 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
       >
         <ProductImage
           image={line.image}
@@ -128,7 +128,6 @@ function CartLine({ line }: { line: CartItem }) {
           name={line.productName}
           brandName={line.brandName}
           brandSlug={line.brandSlug}
-          objectFit="cover"
           sizes="80px"
         />
       </Link>
