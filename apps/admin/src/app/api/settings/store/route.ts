@@ -90,6 +90,52 @@ export async function PUT(request: Request) {
       }
       value = trimmed.replace(/\/$/, "") as StoreSettings[keyof StoreSettings];
     }
+    if (field === "lowStockThreshold") {
+      const numeric = typeof coerced === "number" ? coerced : Number(coerced);
+      if (!Number.isFinite(numeric) || numeric < 0 || numeric > 1_000) {
+        return badRequest("Low-stock threshold must be between 0 and 1000.");
+      }
+      value = Math.floor(numeric) as StoreSettings[keyof StoreSettings];
+    }
+    if (field === "metaPixelId") {
+      const trimmed = typeof coerced === "string" ? coerced.trim() : "";
+      if (trimmed.length > 0 && !/^\d{6,20}$/.test(trimmed)) {
+        return badRequest(
+          "Meta Pixel ID must be 6–20 digits (no letters or dashes).",
+        );
+      }
+      value = trimmed as StoreSettings[keyof StoreSettings];
+    }
+    if (field === "googleAnalyticsId") {
+      const trimmed =
+        typeof coerced === "string" ? coerced.trim().toUpperCase() : "";
+      if (trimmed.length > 0 && !/^G-[A-Z0-9]{4,20}$/.test(trimmed)) {
+        return badRequest(
+          'Google Analytics ID must look like "G-XXXXXXXXXX".',
+        );
+      }
+      value = trimmed as StoreSettings[keyof StoreSettings];
+    }
+    if (field === "googleTagManagerId") {
+      const trimmed =
+        typeof coerced === "string" ? coerced.trim().toUpperCase() : "";
+      if (trimmed.length > 0 && !/^GTM-[A-Z0-9]{4,12}$/.test(trimmed)) {
+        return badRequest(
+          'Google Tag Manager ID must look like "GTM-XXXXXX".',
+        );
+      }
+      value = trimmed as StoreSettings[keyof StoreSettings];
+    }
+    if (field === "tiktokPixelId") {
+      const trimmed =
+        typeof coerced === "string" ? coerced.trim().toUpperCase() : "";
+      if (trimmed.length > 0 && !/^[A-Z0-9]{16,40}$/.test(trimmed)) {
+        return badRequest(
+          "TikTok Pixel ID must be 16–40 alphanumeric characters.",
+        );
+      }
+      value = trimmed as StoreSettings[keyof StoreSettings];
+    }
     updates.push({ field, value });
   }
 

@@ -13,6 +13,8 @@ export type SettingsTabId =
   | "social"
   | "policies"
   | "loyalty"
+  | "inventory"
+  | "marketing"
   | "homepage"
   | "seo"
   | "chat"
@@ -54,7 +56,8 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
       {
         id: "payments",
         label: "Payments",
-        description: "Checkout discounts such as bank-transfer savings.",
+        description:
+          "Toggle which payment methods checkout shows and the bank / wallet account details customers see after placing an order.",
       },
       {
         id: "delivery",
@@ -70,6 +73,12 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: "policies",
         label: "Policies",
         description: "Money-back window and default warranty surfaced on product pages.",
+      },
+      {
+        id: "inventory",
+        label: "Inventory",
+        description:
+          "Stock alert threshold that drives the dashboard low-stock KPI and the bell-menu warning.",
       },
     ],
   },
@@ -97,6 +106,12 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: "chat",
         label: "Chat widget",
         description: "Floating support chat, welcome messages, and automated replies.",
+      },
+      {
+        id: "marketing",
+        label: "Marketing",
+        description:
+          "Tracking pixels — Meta, Google Analytics, Tag Manager, TikTok. IDs are injected into every storefront page automatically.",
       },
     ],
   },

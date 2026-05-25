@@ -1,11 +1,13 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
+import { useState } from "react";
+import { Check, Copy, MessageCircle } from "lucide-react";
 import {
   buildPaymentInstructions,
   buildWhatsAppLink,
   CHECKOUT_TO_ORDER_PAYMENT,
   type OrderPaymentMethod,
+  type PaymentInstructionAccountDetail,
   type PaymentMethodId,
 } from "@store/shared";
 import { Card } from "@/components/ui/Card";
@@ -38,6 +40,16 @@ export function PaymentInstructionsCard({
     orderNumber,
     totalRupees,
     supportPhone: settings.supportPhone,
+    paymentDetails: {
+      paymentBankName: settings.paymentBankName,
+      paymentBankAccountTitle: settings.paymentBankAccountTitle,
+      paymentBankAccountNumber: settings.paymentBankAccountNumber,
+      paymentBankIban: settings.paymentBankIban,
+      paymentEasypaisaAccountTitle: settings.paymentEasypaisaAccountTitle,
+      paymentEasypaisaNumber: settings.paymentEasypaisaNumber,
+      paymentJazzcashAccountTitle: settings.paymentJazzcashAccountTitle,
+      paymentJazzcashNumber: settings.paymentJazzcashNumber,
+    },
   });
 
   return (
@@ -53,6 +65,18 @@ export function PaymentInstructionsCard({
           <li key={step}>{step}</li>
         ))}
       </ol>
+      {copy.accountDetails.length > 0 ? (
+        <div className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-4 md:p-5">
+          <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+            Send to
+          </p>
+          <ul className="space-y-1.5">
+            {copy.accountDetails.map((detail) => (
+              <CopyableRow key={detail.label} detail={detail} />
+            ))}
+          </ul>
+        </div>
+      ) : null}
       <div className="border-t border-[var(--color-ink-100)] p-4 md:p-5">
         <a
           href={buildWhatsAppLink(copy.whatsappPrefill, settings.whatsappNumber)}
@@ -65,5 +89,50 @@ export function PaymentInstructionsCard({
         </a>
       </div>
     </Card>
+  );
+}
+
+function CopyableRow({ detail }: { detail: PaymentInstructionAccountDetail }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    if (typeof navigator === "undefined" || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(detail.value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard can fail on insecure origins / older browsers — silent
+      // fallback because the value is still visible on screen.
+    }
+  }
+
+  return (
+    <li className="flex items-start justify-between gap-3 rounded-[var(--radius-sm)] bg-[var(--color-canvas)] px-3 py-2 text-[12.5px]">
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">
+          {detail.label}
+        </span>
+        <span className="mt-0.5 block break-all font-mono text-[12.5px] text-[var(--color-ink-900)]">
+          {detail.value}
+        </span>
+      </span>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="tap inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2 py-1 text-[10.5px] font-semibold text-[var(--color-ink-700)] transition-colors hover:border-[var(--color-accent-300)] hover:text-[var(--color-accent-800)]"
+        aria-label={`Copy ${detail.label}`}
+      >
+        {copied ? (
+          <>
+            <Check size={11} aria-hidden /> Copied
+          </>
+        ) : (
+          <>
+            <Copy size={11} aria-hidden /> {detail.copyLabel ?? "Copy"}
+          </>
+        )}
+      </button>
+    </li>
   );
 }

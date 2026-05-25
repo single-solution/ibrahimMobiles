@@ -8,7 +8,7 @@ import {
   formatPrice,
   formatStorefrontDate,
   formatStorefrontDateTime,
-  getPaymentMethods,
+  getPaymentMethodLabel,
   LOYALTY_PROGRAM_NAME,
   orderPaymentToCheckoutId,
 } from "@store/shared";
@@ -82,10 +82,9 @@ interface OrderDetailProps {
 export function OrderDetail({ order }: OrderDetailProps) {
   const tone = TONE[order.status];
   const isCancelled = order.status === "cancelled" || order.status === "refunded";
-  const settings = useStoreSettings();
-  const paymentLabel = getPaymentMethods(settings).find(
-    (method) => method.id === orderPaymentToCheckoutId(order.payment),
-  )?.label;
+  // Use the static label (not the filtered live list) so an order placed
+  // before an admin disabled a payment method still renders correctly.
+  const paymentLabel = getPaymentMethodLabel(orderPaymentToCheckoutId(order.payment));
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">

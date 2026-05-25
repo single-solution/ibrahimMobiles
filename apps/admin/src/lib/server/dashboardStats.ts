@@ -6,6 +6,7 @@ import type { AdminInquiry } from "@/types/admin";
 import {
   connectDB,
   Customer,
+  getStoreSettings,
   Inquiry,
   LoyaltyAccount,
   Order,
@@ -84,8 +85,25 @@ const DISPATCHED_STATUSES: readonly string[] = ["dispatched"];
 const DAILY_SERIES_DAYS = 30;
 /** How many of the most recent inquiries to surface in the dashboard sidebar. */
 const RECENT_INQUIRIES_LIMIT = 8;
-/** Variants with stock at or below this threshold are flagged as "low stock". */
+/**
+ * Default low-stock alert threshold used when admin settings haven't been
+ * loaded yet (or when a deploy boots before any setting has been saved).
+ * The runtime value is `StoreSettings.lowStockThreshold` — the constant is
+ * kept exported so unit tests and skeleton hints have a stable fallback.
+ */
 export const LOW_STOCK_VARIANT_THRESHOLD = 2;
+
+async function resolveLowStockThreshold(): Promise<number> {
+  try {
+    const settings = await getStoreSettings();
+    if (Number.isFinite(settings.lowStockThreshold) && settings.lowStockThreshold >= 0) {
+      return Math.floor(settings.lowStockThreshold);
+    }
+  } catch {
+    // Best-effort — never let a settings hiccup take down the dashboard.
+  }
+  return LOW_STOCK_VARIANT_THRESHOLD;
+}
 /** Days in an ISO week — used when stepping back one full week. */
 const DAYS_PER_WEEK = 7;
 /** Denominator for percent calculations (always 100). */
@@ -153,6 +171,7 @@ function changePercent(current: number, previous: number): number {
  */
 export async function loadDashboardKpis(): Promise<DashboardKpis> {
   await connectDB();
+  const lowStockThreshold = await resolveLowStockThreshold();
   const now = new Date();
 
   const todayStart = startOfDay(now);
@@ -236,7 +255,7 @@ export async function loadDashboardKpis(): Promise<DashboardKpis> {
                     {
                       $lte: [
                         { $ifNull: ["$$variant.stockCount", 0] },
-                        LOW_STOCK_VARIANT_THRESHOLD,
+                        lowStockThreshold,
                       ],
                     },
                   ],
@@ -384,6 +403,7 @@ export async function loadDashboardRecentInquiries(): Promise<AdminInquiry[]> {
 
 export async function loadDashboardData(): Promise<DashboardData> {
   await connectDB();
+  const lowStockThreshold = await resolveLowStockThreshold();
   const now = new Date();
 
   const todayStart = startOfDay(now);
@@ -472,7 +492,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
                     {
                       $lte: [
                         { $ifNull: ["$$variant.stockCount", 0] },
-                        LOW_STOCK_VARIANT_THRESHOLD,
+                        lowStockThreshold,
                       ],
                     },
                   ],

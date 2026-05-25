@@ -37,7 +37,7 @@ import {
 } from "@/lib/cached";
 import { formatPrice, formatTimeAgo } from "@store/shared";
 import { getInitials } from "@/lib/initials";
-import type { InquiryStatus } from "@store/db";
+import { getStoreSettings, type InquiryStatus } from "@store/db";
 
 export const dynamic = "force-dynamic";
 
@@ -400,7 +400,14 @@ async function DesktopAttentionKpis() {
 }
 
 async function DesktopStockKpis() {
-  const kpis = await loadDashboardKpisCached();
+  const [kpis, settings] = await Promise.all([
+    loadDashboardKpisCached(),
+    getStoreSettings().catch(() => null),
+  ]);
+  const lowStockHintCount =
+    settings && Number.isFinite(settings.lowStockThreshold) && settings.lowStockThreshold >= 0
+      ? Math.floor(settings.lowStockThreshold)
+      : LOW_STOCK_VARIANT_THRESHOLD;
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <KpiCard
@@ -413,7 +420,7 @@ async function DesktopStockKpis() {
         label="Low stock alerts"
         value={String(kpis.lowStockVariants)}
         icon={<AlertTriangle size={15} />}
-        hint={`Variants ≤ ${LOW_STOCK_VARIANT_THRESHOLD} units`}
+        hint={`Variants ≤ ${lowStockHintCount} units`}
       />
       <KpiCard
         label="Models listed"

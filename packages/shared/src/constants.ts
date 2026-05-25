@@ -30,15 +30,30 @@ export interface PaymentMethodOption {
 
 /**
  * Build the checkout's payment-method options with admin-managed copy.
- * The bank-transfer chip's "Pay full → N% off" note tracks the live
- * `bankTransferDiscountPercent` setting so changing it in admin doesn't
- * leave the storefront advertising a stale discount.
+ *
+ * Each method respects its `paymentXxxEnabled` toggle so an admin can hide
+ * (e.g.) Easypaisa when the wallet is offline. The bank-transfer "Pay full →
+ * N% off" note tracks the live `bankTransferDiscountPercent` setting, and
+ * the COD chip's note is taken straight from `paymentCodNote` so a busy
+ * weekend can swap "Lahore only" for "Pickup only".
  */
-export function getPaymentMethods(settings: {
+export interface PaymentMethodSettings {
   bankTransferDiscountPercent: number;
-}): readonly PaymentMethodOption[] {
+  paymentBankEnabled?: boolean;
+  paymentEasypaisaEnabled?: boolean;
+  paymentJazzcashEnabled?: boolean;
+  paymentCodEnabled?: boolean;
+  paymentCodNote?: string;
+}
+
+export function getPaymentMethods(
+  settings: PaymentMethodSettings,
+): readonly PaymentMethodOption[] {
   const discount = Math.max(0, settings.bankTransferDiscountPercent);
-  return [
+  // `?? true` keeps the historical behaviour for stores that haven't saved
+  // settings yet — every method shows by default until an admin toggles
+  // one off, so an upgrade can't silently break checkout.
+  const all: Array<PaymentMethodOption & { enabled: boolean }> = [
     {
       id: "bank",
       label: "Bank Transfer",
@@ -46,11 +61,47 @@ export function getPaymentMethods(settings: {
         discount > 0
           ? `Pay full → ${discount}% off`
           : "Bank transfer pre-payment",
+      enabled: settings.paymentBankEnabled ?? true,
     },
-    { id: "easypaisa", label: "Easypaisa", note: "Advance to confirm order" },
-    { id: "jazzcash", label: "JazzCash", note: "Advance to confirm order" },
-    { id: "cod", label: "Cash on Delivery", note: "Lahore only · in-person verify" },
+    {
+      id: "easypaisa",
+      label: "Easypaisa",
+      note: "Advance to confirm order",
+      enabled: settings.paymentEasypaisaEnabled ?? true,
+    },
+    {
+      id: "jazzcash",
+      label: "JazzCash",
+      note: "Advance to confirm order",
+      enabled: settings.paymentJazzcashEnabled ?? true,
+    },
+    {
+      id: "cod",
+      label: "Cash on Delivery",
+      note: settings.paymentCodNote?.trim() || "Lahore only · in-person verify",
+      enabled: settings.paymentCodEnabled ?? true,
+    },
   ];
+  return all
+    .filter((method) => method.enabled)
+    .map(({ enabled: _enabled, ...rest }) => rest);
+}
+
+/**
+ * Static label lookup that doesn't depend on whether a method is currently
+ * enabled — used by the order history / order detail pages so a customer
+ * who paid via Easypaisa still sees "Easypaisa" even after the admin
+ * temporarily disables that method on checkout.
+ */
+const PAYMENT_METHOD_FALLBACK_LABELS: Record<PaymentMethodId, string> = {
+  bank: "Bank Transfer",
+  easypaisa: "Easypaisa",
+  jazzcash: "JazzCash",
+  cod: "Cash on Delivery",
+};
+
+export function getPaymentMethodLabel(id: PaymentMethodId): string {
+  return PAYMENT_METHOD_FALLBACK_LABELS[id];
 }
 
 export const STORAGE_OPTIONS = [64, 128, 256, 512, 1024] as const;

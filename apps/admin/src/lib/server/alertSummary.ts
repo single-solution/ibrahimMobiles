@@ -1,4 +1,4 @@
-import { connectDB, Inquiry, Order, Product } from "@store/db";
+import { connectDB, getStoreSettings, Inquiry, Order, Product } from "@store/db";
 
 import { LOW_STOCK_VARIANT_THRESHOLD } from "@/lib/server/dashboardStats";
 
@@ -9,8 +9,21 @@ export interface AlertSummary {
   openInquiries: number;
 }
 
+async function resolveLowStockThreshold(): Promise<number> {
+  try {
+    const settings = await getStoreSettings();
+    if (Number.isFinite(settings.lowStockThreshold) && settings.lowStockThreshold >= 0) {
+      return Math.floor(settings.lowStockThreshold);
+    }
+  } catch {
+    // Fall through to the default — never let a settings error suppress alerts.
+  }
+  return LOW_STOCK_VARIANT_THRESHOLD;
+}
+
 export async function loadAlertSummary(): Promise<AlertSummary> {
   await connectDB();
+  const lowStockThreshold = await resolveLowStockThreshold();
 
   const [unreadInquiries, pendingPayments, productAgg, openInquiries] =
     await Promise.all([
@@ -42,7 +55,7 @@ export async function loadAlertSummary(): Promise<AlertSummary> {
                       {
                         $lte: [
                           { $ifNull: ["$$variant.stockCount", 0] },
-                          LOW_STOCK_VARIANT_THRESHOLD,
+                          lowStockThreshold,
                         ],
                       },
                     ],

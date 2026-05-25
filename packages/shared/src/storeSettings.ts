@@ -65,6 +65,60 @@ export interface StoreSettings {
   /** Loyalty bonus awarded to each side of a successful referral. */
   loyaltyReferralBonusPoints: number;
 
+  // ── Payment method availability ─────────────────────────────────────────
+  /** Show the bank-transfer chip on checkout and accept this method. */
+  paymentBankEnabled: boolean;
+  /** Show the Easypaisa chip on checkout and accept this method. */
+  paymentEasypaisaEnabled: boolean;
+  /** Show the JazzCash chip on checkout and accept this method. */
+  paymentJazzcashEnabled: boolean;
+  /** Show the cash-on-delivery / pickup chip on checkout. */
+  paymentCodEnabled: boolean;
+
+  // ── Bank transfer details (shown after the customer picks "bank") ───────
+  /** Bank name, e.g. "Meezan Bank". */
+  paymentBankName: string;
+  /** Account title — the registered name on the bank account. */
+  paymentBankAccountTitle: string;
+  /** Account number printed alongside the IBAN. */
+  paymentBankAccountNumber: string;
+  /** IBAN, e.g. `PK24MEZN0001230012345678`. */
+  paymentBankIban: string;
+
+  // ── Easypaisa details ───────────────────────────────────────────────────
+  /** Account title registered on the Easypaisa wallet. */
+  paymentEasypaisaAccountTitle: string;
+  /** Easypaisa wallet number, digits only or formatted (e.g. 0300-1234567). */
+  paymentEasypaisaNumber: string;
+
+  // ── JazzCash details ────────────────────────────────────────────────────
+  /** Account title registered on the JazzCash wallet. */
+  paymentJazzcashAccountTitle: string;
+  /** JazzCash wallet number. */
+  paymentJazzcashNumber: string;
+
+  // ── COD policy copy ─────────────────────────────────────────────────────
+  /** Short note shown under the COD chip and on the order success page. */
+  paymentCodNote: string;
+
+  // ── Inventory ───────────────────────────────────────────────────────────
+  /**
+   * Low-stock alert threshold — variant stock counts at or below this trigger
+   * the dashboard low-stock KPI and the bell-menu "low stock" alert. Stored
+   * as a number rather than a constant so a busy weekend can ratchet it up.
+   */
+  lowStockThreshold: number;
+
+  // ── Marketing pixels (empty = disabled) ─────────────────────────────────
+  /** Meta (Facebook) Pixel ID — bare numeric ID, e.g. `123456789012345`. */
+  metaPixelId: string;
+  /** GA4 measurement ID, e.g. `G-XXXXXXXXXX`. */
+  googleAnalyticsId: string;
+  /** Google Tag Manager container ID, e.g. `GTM-XXXXXXX`. */
+  googleTagManagerId: string;
+  /** TikTok Pixel ID, e.g. `CXXXXXXXXXXXXXXXXX`. */
+  tiktokPixelId: string;
+
   /**
    * Comma-separated category slugs that feed the homepage hero gallery.
    * Empty string = include every active category. Stored as CSV to keep
@@ -109,6 +163,31 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
   loyaltyReviewBonusPoints: 200,
   loyaltyReferralBonusPoints: 1_500,
 
+  paymentBankEnabled: true,
+  paymentEasypaisaEnabled: true,
+  paymentJazzcashEnabled: true,
+  paymentCodEnabled: true,
+
+  paymentBankName: "",
+  paymentBankAccountTitle: "",
+  paymentBankAccountNumber: "",
+  paymentBankIban: "",
+
+  paymentEasypaisaAccountTitle: "",
+  paymentEasypaisaNumber: "",
+
+  paymentJazzcashAccountTitle: "",
+  paymentJazzcashNumber: "",
+
+  paymentCodNote: "Lahore only · in-person verify",
+
+  lowStockThreshold: 2,
+
+  metaPixelId: "",
+  googleAnalyticsId: "",
+  googleTagManagerId: "",
+  tiktokPixelId: "",
+
   homeHeroCategorySlugs: "",
   homeHeroGradeSlugs: "",
   homeHeroLimit: 12,
@@ -138,13 +217,35 @@ export const STORE_SETTING_GROUPS = {
   policy: [
     "freeDeliveryThresholdRupees",
     "defaultWarrantyMonths",
-    "bankTransferDiscountPercent",
     "moneybackDays",
   ] as const,
   loyalty: [
     "loyaltyEarnPercent",
     "loyaltyReviewBonusPoints",
     "loyaltyReferralBonusPoints",
+  ] as const,
+  payments: [
+    "paymentBankEnabled",
+    "paymentEasypaisaEnabled",
+    "paymentJazzcashEnabled",
+    "paymentCodEnabled",
+    "paymentBankName",
+    "paymentBankAccountTitle",
+    "paymentBankAccountNumber",
+    "paymentBankIban",
+    "paymentEasypaisaAccountTitle",
+    "paymentEasypaisaNumber",
+    "paymentJazzcashAccountTitle",
+    "paymentJazzcashNumber",
+    "paymentCodNote",
+    "bankTransferDiscountPercent",
+  ] as const,
+  inventory: ["lowStockThreshold"] as const,
+  marketing: [
+    "metaPixelId",
+    "googleAnalyticsId",
+    "googleTagManagerId",
+    "tiktokPixelId",
   ] as const,
   homepage: [
     "homeHeroCategorySlugs",
@@ -228,6 +329,16 @@ export function coerceStoreSettingValue<K extends keyof StoreSettings>(
     if (typeof raw === "string") {
       return raw as StoreSettings[K];
     }
+    return null;
+  }
+  if (expected === "boolean") {
+    if (typeof raw === "boolean") {
+      return raw as StoreSettings[K];
+    }
+    // Mongo can hand back stringified booleans from older docs and the admin
+    // form sends real booleans, so coerce both rather than refusing the save.
+    if (raw === "true") return true as StoreSettings[K];
+    if (raw === "false") return false as StoreSettings[K];
     return null;
   }
   return null;

@@ -8,6 +8,7 @@ import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { STORE_SETTING_GROUPS, type StoreSettings } from "@store/shared";
 
 import { FormSection } from "@/components/forms/FormSection";
+import { Switch } from "@/components/forms/Switch";
 import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
 import { HomepageSettings } from "@/components/settings/HomepageSettings";
@@ -133,6 +134,24 @@ function SettingsInner({ initialSettings }: SettingsProps) {
     ),
     delivery: (
       <DeliverySettings
+        draft={draft}
+        saved={savedSettings}
+        setField={setField}
+        onSaved={setSavedSettings}
+        canUpdate={canUpdate}
+      />
+    ),
+    inventory: (
+      <InventorySettings
+        draft={draft}
+        saved={savedSettings}
+        setField={setField}
+        onSaved={setSavedSettings}
+        canUpdate={canUpdate}
+      />
+    ),
+    marketing: (
+      <MarketingSettings
         draft={draft}
         saved={savedSettings}
         setField={setField}
@@ -402,13 +421,138 @@ function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: Section
 function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
   return (
     <SaveableSection
-      fields={["bankTransferDiscountPercent"] as const}
+      fields={STORE_SETTING_GROUPS.payments}
       draft={draft}
       saved={saved}
       setField={setField}
       onSaved={onSaved}
       canUpdate={canUpdate}
     >
+      <FormSection
+        title="Methods enabled at checkout"
+        description="Toggle off any method you can't honour right now — the chip disappears from checkout immediately. Customers always see at least one method."
+      >
+        <Switch
+          label="Bank transfer"
+          description="Customers pay in advance to your bank account."
+          checked={draft.paymentBankEnabled}
+          onCheckedChange={(value) => setField("paymentBankEnabled", value)}
+          disabled={!canUpdate}
+        />
+        <Switch
+          label="Easypaisa"
+          description="Mobile wallet pre-payment."
+          checked={draft.paymentEasypaisaEnabled}
+          onCheckedChange={(value) => setField("paymentEasypaisaEnabled", value)}
+          disabled={!canUpdate}
+        />
+        <Switch
+          label="JazzCash"
+          description="Mobile wallet pre-payment."
+          checked={draft.paymentJazzcashEnabled}
+          onCheckedChange={(value) => setField("paymentJazzcashEnabled", value)}
+          disabled={!canUpdate}
+        />
+        <Switch
+          label="Cash on delivery / pickup"
+          description="Pay on hand-over for in-Lahore delivery or shop pickup."
+          checked={draft.paymentCodEnabled}
+          onCheckedChange={(value) => setField("paymentCodEnabled", value)}
+          disabled={!canUpdate}
+        />
+      </FormSection>
+
+      <FormSection
+        title="Bank transfer details"
+        description="Shown to customers on the order success page after they pick bank transfer. Each row gets a Copy button."
+      >
+        <TextField
+          label="Bank name"
+          value={draft.paymentBankName}
+          onChange={(event) => setField("paymentBankName", event.target.value)}
+          placeholder="e.g. Meezan Bank"
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="Account title"
+          value={draft.paymentBankAccountTitle}
+          onChange={(event) => setField("paymentBankAccountTitle", event.target.value)}
+          placeholder="As registered on the bank account"
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="Account number"
+          value={draft.paymentBankAccountNumber}
+          onChange={(event) => setField("paymentBankAccountNumber", event.target.value)}
+          placeholder="e.g. 0123456789012"
+          inputMode="numeric"
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="IBAN"
+          value={draft.paymentBankIban}
+          onChange={(event) => setField("paymentBankIban", event.target.value)}
+          placeholder="e.g. PK24MEZN0001230012345678"
+          hint="Leave blank if you don't have an IBAN — the row hides automatically."
+          disabled={!canUpdate}
+        />
+      </FormSection>
+
+      <FormSection
+        title="Easypaisa details"
+        description="Wallet account customers send their advance to."
+      >
+        <TextField
+          label="Account title"
+          value={draft.paymentEasypaisaAccountTitle}
+          onChange={(event) => setField("paymentEasypaisaAccountTitle", event.target.value)}
+          placeholder="As registered on the wallet"
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="Wallet number"
+          value={draft.paymentEasypaisaNumber}
+          onChange={(event) => setField("paymentEasypaisaNumber", event.target.value)}
+          placeholder="e.g. 0300-1234567"
+          inputMode="tel"
+          disabled={!canUpdate}
+        />
+      </FormSection>
+
+      <FormSection
+        title="JazzCash details"
+        description="Wallet account customers send their advance to."
+      >
+        <TextField
+          label="Account title"
+          value={draft.paymentJazzcashAccountTitle}
+          onChange={(event) => setField("paymentJazzcashAccountTitle", event.target.value)}
+          placeholder="As registered on the wallet"
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="Wallet number"
+          value={draft.paymentJazzcashNumber}
+          onChange={(event) => setField("paymentJazzcashNumber", event.target.value)}
+          placeholder="e.g. 0301-1234567"
+          inputMode="tel"
+          disabled={!canUpdate}
+        />
+      </FormSection>
+
+      <FormSection
+        title="Cash on delivery copy"
+        description="Short note shown under the COD chip and on the order page."
+      >
+        <TextField
+          label="COD note"
+          value={draft.paymentCodNote}
+          onChange={(event) => setField("paymentCodNote", event.target.value)}
+          placeholder="Lahore only · in-person verify"
+          disabled={!canUpdate}
+        />
+      </FormSection>
+
       <FormSection title="Discounts" description="Order-wide discounts customers see at checkout.">
         <NumberField
           label="Bank transfer discount %"
@@ -417,6 +561,86 @@ function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: Section
           trailingAddon="%"
           placeholder="e.g. 2"
           hint="Applied automatically when the customer chooses bank transfer at checkout."
+          disabled={!canUpdate}
+        />
+      </FormSection>
+    </SaveableSection>
+  );
+}
+
+function InventorySettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
+  return (
+    <SaveableSection
+      fields={STORE_SETTING_GROUPS.inventory}
+      draft={draft}
+      saved={saved}
+      setField={setField}
+      onSaved={onSaved}
+      canUpdate={canUpdate}
+    >
+      <FormSection
+        title="Stock alerts"
+        description="Variants with stock at or below this number show up in the dashboard 'Low stock' KPI and the bell-menu warning."
+      >
+        <NumberField
+          label="Low-stock threshold"
+          value={draft.lowStockThreshold}
+          onChange={(value) => setField("lowStockThreshold", value)}
+          trailingAddon="units"
+          placeholder="e.g. 2"
+          hint="Set to 0 to silence low-stock alerts entirely."
+          disabled={!canUpdate}
+        />
+      </FormSection>
+    </SaveableSection>
+  );
+}
+
+function MarketingSettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
+  return (
+    <SaveableSection
+      fields={STORE_SETTING_GROUPS.marketing}
+      draft={draft}
+      saved={saved}
+      setField={setField}
+      onSaved={onSaved}
+      canUpdate={canUpdate}
+    >
+      <FormSection
+        title="Tracking pixels"
+        description="Paste each ID from its respective console. Empty fields stay disabled — no script tags are injected."
+      >
+        <TextField
+          label="Meta (Facebook) Pixel ID"
+          value={draft.metaPixelId}
+          onChange={(event) => setField("metaPixelId", event.target.value)}
+          placeholder="e.g. 123456789012345"
+          inputMode="numeric"
+          hint="6–20 digits. Find it in Events Manager → Data sources."
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="Google Analytics 4 measurement ID"
+          value={draft.googleAnalyticsId}
+          onChange={(event) => setField("googleAnalyticsId", event.target.value.toUpperCase())}
+          placeholder="G-XXXXXXXXXX"
+          hint="Looks like G- followed by 4–20 letters/digits."
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="Google Tag Manager container ID"
+          value={draft.googleTagManagerId}
+          onChange={(event) => setField("googleTagManagerId", event.target.value.toUpperCase())}
+          placeholder="GTM-XXXXXXX"
+          hint="Use this if you'd rather drive tags through GTM."
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="TikTok Pixel ID"
+          value={draft.tiktokPixelId}
+          onChange={(event) => setField("tiktokPixelId", event.target.value.toUpperCase())}
+          placeholder="e.g. CXXXXXXXXXXXXXXXX"
+          hint="16–40 alphanumeric characters. Found in TikTok Events Manager."
           disabled={!canUpdate}
         />
       </FormSection>

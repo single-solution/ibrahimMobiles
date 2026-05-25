@@ -6,6 +6,10 @@ import {
   Oswald,
 } from "next/font/google";
 import { StorefrontChrome } from "@/components/layout/StorefrontChrome";
+import {
+  MarketingPixels,
+  MarketingPixelsNoScript,
+} from "@/components/marketing/MarketingPixels";
 import { getStorefrontBaseUrl } from "@/lib/storefront/baseUrl";
 import {
   getStorefrontAttributesCached,
@@ -170,6 +174,12 @@ export default async function RootLayout({ children }: RootLayoutProps) {
               "document.documentElement.classList.remove('no-js');",
           }}
         />
+        <MarketingPixels
+          metaPixelId={settings.metaPixelId}
+          googleAnalyticsId={settings.googleAnalyticsId}
+          googleTagManagerId={settings.googleTagManagerId}
+          tiktokPixelId={settings.tiktokPixelId}
+        />
       </head>
       <body
         // Browser extensions (Grammarly, ColorZilla, password managers,
@@ -179,6 +189,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         // does NOT suppress mismatches in our own components.
         suppressHydrationWarning
       >
+        <MarketingPixelsNoScript googleTagManagerId={settings.googleTagManagerId} />
         <StoreSettingsProvider value={settings}>
           <ChatSettingsProvider value={chatSettings}>
             <StorefrontReferenceProvider value={reference}>
