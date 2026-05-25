@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Search, TrendingUp, X } from "lucide-react";
@@ -134,7 +134,10 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
 
   return (
     <div className="animate-sheet-fade fixed inset-0 z-50 flex flex-col bg-[var(--color-canvas)]">
-      <div className="safe-top sticky top-0 z-10 flex items-center gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2 py-2 md:mx-auto md:max-w-3xl md:px-4 md:py-3">
+      <div
+        className="safe-top sticky top-0 z-10 flex items-center gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2 py-2 md:mx-auto md:max-w-3xl md:px-4 md:py-3"
+        style={{ "--safe-top-base": "0.5rem" } as CSSProperties}
+      >
         <button
           type="button"
           onClick={onClose}

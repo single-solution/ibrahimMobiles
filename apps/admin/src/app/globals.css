@@ -107,14 +107,16 @@ html {
   }
 }
 
-/* iOS / Android safe-area helpers (the mobile top bar uses .safe-top so
-   the status bar doesn't overlap the brand mark). */
+/* iOS / Android safe-area helpers. Additive so they never override Tailwind
+   py-* on the same element (which would zero out modal/header padding). */
 .safe-top {
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--safe-top-base, 0px));
 }
 
 .safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: calc(
+    env(safe-area-inset-bottom, 0px) + var(--safe-bottom-base, 0px)
+  );
 }
 
 .no-scrollbar {

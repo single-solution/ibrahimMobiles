@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { classNames } from "@store/shared";
 
@@ -80,7 +80,14 @@ export function Drawer({
           WIDTH_CLASSES[width],
         )}
       >
-        <header className="flex items-start justify-between gap-2 border-b border-[var(--color-ink-100)] px-4 py-2.5 safe-top md:gap-3 md:px-5 md:py-3">
+        <header
+          className="safe-top flex items-start justify-between gap-2 border-b border-[var(--color-ink-100)] px-4 py-2.5 md:gap-3 md:px-5 md:py-3"
+          style={
+            {
+              "--safe-top-base": "0.625rem",
+            } as CSSProperties
+          }
+        >
           <div className="min-w-0 pr-1">
             <h2 className="text-[14px] font-semibold leading-snug tracking-[-0.01em] text-[var(--color-ink-900)] md:text-[15px]">
               {title}
@@ -91,32 +98,45 @@ export function Drawer({
               </p>
             )}
           </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)] md:size-7"
-          >
-            <X size={16} className="md:hidden" />
-            <X size={15} className="hidden md:block" />
-          </button>
+          {!footer && (
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={onClose}
+              className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)] md:size-7"
+            >
+              <X size={16} className="md:hidden" />
+              <X size={15} className="hidden md:block" />
+            </button>
+          )}
         </header>
 
         <div
           className={classNames(
             "flex-1 overflow-y-auto px-4 py-3 md:px-5 md:py-4",
-            // When there's no fixed footer we apply the safe-area-inset on the
-            // scrollable body so the last form field stays above the home
-            // indicator on iOS.
             !footer && "safe-bottom",
             bodyClassName,
           )}
+          style={
+            !footer
+              ? ({
+                  "--safe-bottom-base": "0.75rem",
+                } as CSSProperties)
+              : undefined
+          }
         >
           {children}
         </div>
 
         {footer && (
-          <footer className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-2 safe-bottom md:px-5 md:py-2.5">
+          <footer
+            className="safe-bottom border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-2 md:px-5 md:py-2.5"
+            style={
+              {
+                "--safe-bottom-base": "0.5rem",
+              } as CSSProperties
+            }
+          >
             {footer}
           </footer>
         )}
