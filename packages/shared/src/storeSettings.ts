@@ -20,6 +20,13 @@ export interface StoreSettings {
   siteName: string;
   /** One-line storefront tagline used in the homepage hero / OG metadata. */
   siteTagline: string;
+  /**
+   * Public storefront origin (e.g. `https://ibrahimmobiles.com`). Used by the
+   * admin's "View storefront" links and as the canonical base for SEO tags.
+   * Empty string falls back to the `*_SITE_URL` / `STOREFRONT_BASE_URL` env
+   * vars so existing deploys keep working without an admin save.
+   */
+  storefrontUrl: string;
 
   /** Mobile/cell number callers reach for sales + support. */
   supportPhone: string;
@@ -77,6 +84,7 @@ export interface StoreSettings {
 export const STORE_SETTING_DEFAULTS: StoreSettings = {
   siteName: "Ibrahim Mobile Store",
   siteTagline: "Pakistan's most trusted pre-owned phone store.",
+  storefrontUrl: "",
 
   supportPhone: "+92 320 4862403",
   supportLandline: "+92 42 37245459",
@@ -117,7 +125,7 @@ export const STORE_SETTING_KEYS = Object.keys(STORE_SETTING_DEFAULTS) as Array<k
  * Used by the admin UI for tabbed editing and by the API for filtering.
  */
 export const STORE_SETTING_GROUPS = {
-  branding: ["siteName", "siteTagline"] as const,
+  branding: ["siteName", "siteTagline", "storefrontUrl"] as const,
   contact: ["supportPhone", "supportLandline", "supportEmail", "whatsappNumber"] as const,
   address: ["storeAddressLine1", "storeAddressLine2", "storeHours"] as const,
   social: [

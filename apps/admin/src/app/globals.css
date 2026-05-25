@@ -75,10 +75,16 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Lucide icons in flex rows — keep a stable box so strokes stay visible. */
-svg.lucide {
-  display: block;
-  flex-shrink: 0;
+/* Lucide icons in flex rows — keep a stable box so strokes stay visible.
+   Wrapped in @layer base so Tailwind utilities like `hidden` / `md:hidden`
+   (in @layer utilities) still win — without this, the unlayered `display: block`
+   defeated `hidden`, causing every responsive icon pair (size-on-mobile +
+   size-on-desktop) to render BOTH icons at all breakpoints. */
+@layer base {
+  svg.lucide {
+    display: block;
+    flex-shrink: 0;
+  }
 }
 
 html,

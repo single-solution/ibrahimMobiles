@@ -158,7 +158,6 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 
   return (
     <SettingsFormPanel
-      wide
       footer={
         !readOnly ? (
           <SettingsSaveFooter

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Activity,
   BadgePercent,
+  ExternalLink,
   FolderTree,
   LayoutDashboard,
   MessageSquare,
@@ -18,6 +19,7 @@ import { classNames } from "@store/shared";
 
 import { InquiriesUnreadBadge } from "@/components/InquiriesUnreadBadge";
 import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
+import { useStoreSettings } from "@/lib/storeSettingsContext";
 import { useAdminPermissions } from "@/lib/adminPermissionsContext";
 
 import type { PermissionKey } from "@/lib/permissionsCatalog";
@@ -102,7 +104,8 @@ export function isNavItemVisible(
 
 export function Sidebar({ isCollapsed }: SidebarProps) {
   const pathname = usePathname() ?? "";
-  const storefrontUrl = getPublicSiteUrl();
+  const { storefrontUrl: configuredStorefrontUrl } = useStoreSettings();
+  const storefrontUrl = getPublicSiteUrl(configuredStorefrontUrl);
   const { can, isLoading } = useAdminPermissions();
 
   return (
@@ -168,9 +171,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
               : "h-8 w-full rounded-[var(--radius-md)] px-2.5",
           )}
         >
-          <span className="shrink-0 text-[13px] leading-none" aria-hidden>
-            ↗
-          </span>
+          <ExternalLink size={13} aria-hidden className="shrink-0" />
           {!isCollapsed ? (
             <span className="min-w-0 truncate">View storefront</span>
           ) : null}

@@ -83,7 +83,7 @@ export function useSeoSettings(): {
   const settings: SeoSettings = {
     siteName: store.siteName,
     siteTagline: store.siteTagline,
-    siteUrl: getPublicSiteUrl(),
+    siteUrl: getPublicSiteUrl(store.storefrontUrl),
     ...seoOverrides,
   };
 

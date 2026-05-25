@@ -177,6 +177,13 @@ export function SettingsMobileTabChip({
   );
 }
 
+/**
+ * Tab heading rendered above each tab's form card.
+ *
+ * Lives INSIDE the scrollable content area (not as a sticky chrome bar) so
+ * the title and description scroll with the form. Sized prominently so the
+ * active tab feels like a page within Settings rather than a tooltip.
+ */
 export function SettingsPanelHeader({
   title,
   description,
@@ -185,34 +192,34 @@ export function SettingsPanelHeader({
   description: string;
 }) {
   return (
-    <header className="shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2.5 md:px-5 md:py-3">
-      <h2 className="text-[13px] font-semibold text-[var(--color-ink-900)] md:text-sm">
+    <header className="px-4 pt-4 md:px-5 md:pt-5">
+      <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-ink-900)] md:text-base">
         {title}
       </h2>
-      <p className="mt-0.5 max-w-prose text-[10.5px] leading-relaxed text-[var(--color-ink-500)] md:text-[11px]">
+      <p className="mt-1 max-w-prose text-[11.5px] leading-relaxed text-[var(--color-ink-500)] md:text-xs">
         {description}
       </p>
     </header>
   );
 }
 
-/** Scrollable form body with optional sticky save footer inside the panel. */
+/**
+ * Scrollable form body with optional sticky save footer inside the panel.
+ *
+ * Always stretches to the full width of the settings tab area so dense
+ * surfaces like the chat assistant test panel and SEO previews can use
+ * every available pixel. The form card itself caps individual fields with
+ * `max-w-prose` to keep short inputs from spanning huge monitors.
+ */
 export function SettingsFormPanel({
   children,
   footer,
-  wide = false,
 }: {
   children: ReactNode;
   footer?: ReactNode;
-  wide?: boolean;
 }) {
   return (
-    <div
-      className={classNames(
-        "mx-auto w-full p-4 md:p-5",
-        wide ? "max-w-5xl" : "max-w-3xl",
-      )}
-    >
+    <div className="w-full p-4 md:p-5">
       <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
         <div className="px-4 md:px-6">{children}</div>
         {footer}

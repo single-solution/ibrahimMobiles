@@ -105,8 +105,7 @@ export function Drawer({
               onClick={onClose}
               className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)] md:size-7"
             >
-              <X size={16} className="md:hidden" />
-              <X size={15} className="hidden md:block" />
+              <X size={16} />
             </button>
           )}
         </header>

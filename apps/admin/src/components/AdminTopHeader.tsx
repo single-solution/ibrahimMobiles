@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { Bell, ChevronsLeft, ChevronsRight, ShoppingBag } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, ShoppingBag } from "lucide-react";
 
+import { NotificationsMenu } from "@/components/NotificationsMenu";
 import { UserMenu } from "@/components/UserMenu";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 
@@ -52,18 +53,7 @@ export function AdminTopHeader({ isCollapsed, onToggleCollapsed }: AdminTopHeade
       </div>
 
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          aria-label="Notifications, 3 unread"
-          title="Notifications"
-          className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-2.5 text-[11px] font-medium text-[var(--color-ink-700)] shadow-[var(--shadow-sm)] transition-colors hover:border-[var(--color-ink-200)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
-        >
-          <Bell size={12} strokeWidth={2.2} aria-hidden />
-          <span>Notifications</span>
-          <span className="rounded-full bg-[var(--color-accent-500)] px-1.5 py-0.5 text-[9px] font-bold leading-none text-[var(--color-ink-900)]">
-            3
-          </span>
-        </button>
+        <NotificationsMenu />
         <UserMenu
           name={user?.name ?? ""}
           email={user?.email ?? ""}

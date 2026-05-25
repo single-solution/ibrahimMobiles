@@ -241,17 +241,16 @@ function SettingsInner({ initialSettings }: SettingsProps) {
             </div>
           </div>
 
-          <SettingsPanelHeader
-            title={activeMeta.label}
-            description={activeMeta.description}
-          />
-
           <div
             className={classNames(
               "min-h-0 flex-1 overflow-y-auto",
               activeTab === "chat" && "bg-[var(--color-canvas-deep)]",
             )}
           >
+            <SettingsPanelHeader
+              title={activeMeta.label}
+              description={activeMeta.description}
+            />
             {tabContent[activeTab]}
           </div>
         </section>
@@ -296,6 +295,17 @@ function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdate }: Se
           value={draft.siteTagline}
           onChange={(event) => setField("siteTagline", event.target.value)}
           placeholder="Short one-liner that sits under the site name (e.g. Pakistan's trusted mobile store)."
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="Storefront URL"
+          type="url"
+          value={draft.storefrontUrl}
+          onChange={(event) => setField("storefrontUrl", event.target.value)}
+          placeholder="https://ibrahimmobiles.com"
+          inputMode="url"
+          autoComplete="url"
+          hint="Used by the admin's 'View storefront' links and as the SEO canonical base. Leave blank to fall back to the deploy environment URL."
           disabled={!canUpdate}
         />
       </FormSection>

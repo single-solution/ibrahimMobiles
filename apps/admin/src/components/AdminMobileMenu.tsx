@@ -23,11 +23,11 @@ export function AdminMobileMenu({ isOpen, onClose }: AdminMobileMenuProps) {
   const pathname = usePathname() ?? "";
   const router = useRouter();
   const { data: session } = useSession();
-  const { siteName } = useStoreSettings();
+  const { siteName, storefrontUrl: configuredStorefrontUrl } = useStoreSettings();
   const { can, isLoading } = useAdminPermissions();
   const user = session?.user;
   const brandShort = siteName.split(" ")[0];
-  const storefrontUrl = getPublicSiteUrl();
+  const storefrontUrl = getPublicSiteUrl(configuredStorefrontUrl);
 
   async function handleLogout() {
     onClose();

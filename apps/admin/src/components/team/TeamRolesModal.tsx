@@ -113,8 +113,7 @@ function RoleHeaderCard({
     <section className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-3 md:p-4">
       <div className="flex items-start gap-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-50)] text-[var(--color-accent-700)] md:size-10">
-          <ShieldCheck size={16} className="md:hidden" />
-          <ShieldCheck size={18} className="hidden md:block" />
+          <ShieldCheck size={17} />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">

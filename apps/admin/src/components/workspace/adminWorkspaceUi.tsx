@@ -189,8 +189,7 @@ export function WorkspaceEmptyPane({
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-5 py-8 text-center md:px-6 md:py-12">
       <span className="grid size-12 place-items-center rounded-full bg-[var(--color-accent-50)] text-[var(--color-accent-700)] md:size-14">
-        <Icon size={20} className="md:hidden" />
-        <Icon size={24} className="hidden md:block" />
+        <Icon size={22} />
       </span>
       <p className="mt-3 text-[13px] font-semibold text-[var(--color-ink-900)] md:mt-4 md:text-sm">
         {title}
@@ -218,8 +217,7 @@ export function WorkspaceListHeader({
     <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 py-2 md:gap-3 md:px-4 md:py-3">
       <div className="flex min-w-0 items-center gap-2 md:gap-2.5">
         <span className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-50)] text-[var(--color-accent-700)] md:size-9">
-          <Icon size={14} className="md:hidden" />
-          <Icon size={16} className="hidden md:block" />
+          <Icon size={15} />
         </span>
         <div className="min-w-0">
           <h2 className="text-[13px] font-semibold text-[var(--color-ink-900)] md:text-sm">

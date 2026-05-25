@@ -76,6 +76,20 @@ export async function PUT(request: Request) {
       }
       value = Math.round(numeric) as StoreSettings[keyof StoreSettings];
     }
+    if (field === "storefrontUrl") {
+      const trimmed = typeof coerced === "string" ? coerced.trim() : "";
+      if (trimmed.length > 0) {
+        try {
+          const url = new URL(trimmed);
+          if (url.protocol !== "http:" && url.protocol !== "https:") {
+            return badRequest("Storefront URL must start with http:// or https://.");
+          }
+        } catch {
+          return badRequest("Storefront URL must be a valid URL (e.g. https://example.com).");
+        }
+      }
+      value = trimmed.replace(/\/$/, "") as StoreSettings[keyof StoreSettings];
+    }
     updates.push({ field, value });
   }
 

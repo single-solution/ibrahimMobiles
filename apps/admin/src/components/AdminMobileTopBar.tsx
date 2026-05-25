@@ -6,6 +6,7 @@ import { Bell, ExternalLink, Menu, ShoppingBag } from "lucide-react";
 
 import { getInitials } from "@/lib/initials";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
+import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
 import { useAdminPermissions } from "@/lib/adminPermissionsContext";
 import {
   totalAdminAlertCount,
@@ -32,11 +33,12 @@ function bellHref(alertCount: {
 
 export function AdminMobileTopBar({ onOpenMenu }: AdminMobileTopBarProps) {
   const { data: session } = useSession();
-  const { siteName } = useStoreSettings();
+  const { siteName, storefrontUrl: configuredStorefrontUrl } = useStoreSettings();
   const { can } = useAdminPermissions();
   const alerts = useAdminAlerts();
   const initials = getInitials(session?.user?.name);
   const brandShort = siteName.split(" ")[0];
+  const storefrontUrl = getPublicSiteUrl(configuredStorefrontUrl);
 
   const visibleAlerts = {
     unreadInquiries: can("inquiry_view") ? alerts.unreadInquiries : 0,
@@ -81,7 +83,7 @@ export function AdminMobileTopBar({ onOpenMenu }: AdminMobileTopBarProps) {
 
       <div className="ml-auto flex items-center gap-1">
         <Link
-          href="/"
+          href={storefrontUrl}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="View storefront"

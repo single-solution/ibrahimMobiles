@@ -59,8 +59,7 @@ export function ConfirmDialog({
         <div className="flex items-start gap-2.5 md:gap-3">
           {tone === "danger" && (
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-rose-50 text-rose-600 md:size-9">
-              <AlertTriangle size={15} className="md:hidden" />
-              <AlertTriangle size={17} className="hidden md:block" />
+              <AlertTriangle size={16} />
             </span>
           )}
           <div className="flex-1">
