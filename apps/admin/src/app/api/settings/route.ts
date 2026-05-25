@@ -89,7 +89,7 @@ export async function PUT(request: Request) {
     ).lean<SettingLean>();
 
     invalidateStoreSettingsCache();
-    if (keyResult.startsWith("seo.")) {
+    if (keyResult.startsWith("seo.") || keyResult.startsWith("chat.")) {
       bustAdminCaches();
     }
     await recordActivity({

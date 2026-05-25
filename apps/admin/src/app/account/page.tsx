@@ -1,6 +1,6 @@
 import { AdminShell } from "@/components/AdminShell";
 import { AccountSettings } from "@/components/account/AccountSettings";
-import { PageTitle } from "@/components/PageTitle";
+import { adminListPageClass } from "@/components/workspace/adminWorkspaceUi";
 
 import { requirePageSession } from "@/lib/server/requirePageSession";
 
@@ -10,13 +10,8 @@ export default async function AdminAccountPage() {
   await requirePageSession("/account");
 
   return (
-    <AdminShell>
-      <PageTitle
-        eyebrow="Account"
-        title="Your profile"
-        description="Manage your name, email, and admin sign-in password."
-      />
-      <section>
+    <AdminShell contentClassName={adminListPageClass}>
+      <section className="flex min-h-0 flex-1 flex-col">
         <AccountSettings />
       </section>
     </AdminShell>

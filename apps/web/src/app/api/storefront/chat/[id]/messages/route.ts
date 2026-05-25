@@ -20,6 +20,7 @@ import {
   badRequest,
   CHAT_MESSAGE_BODY_MAX,
   created,
+  guestChatLoginRequired,
   isFieldError,
   logger,
   parseBody,
@@ -28,10 +29,13 @@ import {
   validateMessageBody,
 } from "@store/shared";
 
+import { auth } from "@/lib/auth";
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 import { inquiryStatusPatchAfterMessage } from "@store/shared";
 
 import { resolveChatAccess } from "@/lib/chat/access";
+import { claimAnonymousThreadIfNeeded } from "@/lib/chat/claimAnonymousThread";
+import { maybeReplyWithAssistant, reloadInquiry } from "@/lib/chat/assistant/maybeReply";
 import { toStorefrontThread } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
 
@@ -71,6 +75,31 @@ export async function POST(request: Request, { params }: RouteContext) {
     return badRequest("Message too long.");
   }
 
+  const session = await auth();
+  let inquiry = access.inquiry;
+  if (
+    session?.user?.role === "customer" &&
+    session.user.customerId
+  ) {
+    inquiry = await claimAnonymousThreadIfNeeded(inquiry, session.user.customerId);
+  }
+
+  if (
+    guestChatLoginRequired({
+      customerId: inquiry.customerId?.toString(),
+      phoneNumber: inquiry.phoneNumber,
+      messages: inquiry.messages,
+    })
+  ) {
+    return Response.json(
+      {
+        error: "Sign in to keep chatting — you've used your free preview messages.",
+        code: "login_required",
+      },
+      { status: 403 },
+    );
+  }
+
   await connectDB();
   try {
     const now = new Date();
@@ -81,7 +110,7 @@ export async function POST(request: Request, { params }: RouteContext) {
         $push: {
           messages: {
             author: "customer",
-            authorName: access.inquiry.customerName,
+            authorName: inquiry.customerName,
             body: bodyResult,
             createdAt: now,
           },
@@ -91,8 +120,10 @@ export async function POST(request: Request, { params }: RouteContext) {
           lastMessagePreview: bodyResult.slice(0, 280),
           lastMessageAuthor: "customer",
           unreadByCustomer: 0,
-          // `resolved → open` so the team gets notified again.
-          ...inquiryStatusPatchAfterMessage(access.inquiry.status, "customer"),
+          ...inquiryStatusPatchAfterMessage(inquiry.status, "customer"),
+          ...(inquiry.customerId ? { customerId: inquiry.customerId } : {}),
+          ...(inquiry.customerName ? { customerName: inquiry.customerName } : {}),
+          ...(inquiry.phoneNumber ? { phoneNumber: inquiry.phoneNumber } : {}),
         },
         $inc: { unreadByTeam: 1 },
       },
@@ -102,7 +133,15 @@ export async function POST(request: Request, { params }: RouteContext) {
     if (!refreshed) {
       return serverError("Thread vanished while posting your message.");
     }
-    return created(toStorefrontThread(refreshed));
+
+    try {
+      await maybeReplyWithAssistant(refreshed);
+    } catch (assistantError) {
+      logger.error({ assistantError, inquiryId: id }, "chat-assistant: auto-reply failed");
+    }
+
+    const withAssistant = (await reloadInquiry(inquiryId)) ?? refreshed;
+    return created(toStorefrontThread(withAssistant));
   } catch (error) {
     logger.error({ error, inquiryId: id }, "Failed to post chat message");
     return serverError("Could not send your message. Please try again.");

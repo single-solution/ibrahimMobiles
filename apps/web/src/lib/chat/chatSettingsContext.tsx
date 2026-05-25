@@ -3,16 +3,9 @@
 import { createContext, useContext, type ReactNode } from "react";
 
 import type { ChatSettings } from "@/lib/chat/chatSettings";
+import { CHAT_SETTING_DEFAULTS } from "@store/shared";
 
-const DEFAULTS: ChatSettings = {
-  enabled: true,
-  liveModeEnabled: false,
-  websocketUrl: "",
-  pollIntervalMsFocused: 5_000,
-  pollIntervalMsBlurred: 30_000,
-  guestThreadTokenDays: 90,
-  attachmentsEnabled: false,
-};
+const DEFAULTS: ChatSettings = CHAT_SETTING_DEFAULTS;
 
 const ChatSettingsContext = createContext<ChatSettings>(DEFAULTS);
 

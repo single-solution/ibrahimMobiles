@@ -21,17 +21,5 @@ export default async function AccountMessageDetailPage({
     redirect(`/account/sign-in?next=${encodeURIComponent(`/account/messages/${id}`)}`);
   }
 
-  return (
-    <div className="app-page max-w-3xl">
-      <header className="app-section">
-        <h1 className="text-xl font-semibold text-[var(--color-ink-900)]">
-          Messages
-        </h1>
-        <p className="mt-1 text-sm text-[var(--color-ink-500)]">
-          Continue your conversation with our team.
-        </p>
-      </header>
-      <AccountMessagesView initialThreadId={id} />
-    </div>
-  );
+  return <AccountMessagesView initialThreadId={id} />;
 }

@@ -166,6 +166,8 @@ export interface AdminCustomerSummary {
   phoneNumber: string;
   city: string;
   isLoyaltyMember: boolean;
+  loyaltyBalance: number;
+  loyaltyLifetimeEarned: number;
   orderCount: number;
   lifetimeSpendRupees: number;
   lastOrderAt?: string;
@@ -241,7 +243,7 @@ export interface AdminOrder extends AdminOrderSummary {
 // ============================================================================
 
 export type AdminInquiryStatus = "open" | "awaiting-customer" | "resolved";
-export type AdminInquiryMessageAuthor = "customer" | "agent";
+export type AdminInquiryMessageAuthor = "customer" | "agent" | "assistant";
 
 export interface AdminInquiryImageAttachment {
   kind: "image";

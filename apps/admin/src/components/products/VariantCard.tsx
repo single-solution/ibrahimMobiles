@@ -88,7 +88,7 @@ export function VariantCard({
           attributes: visibilityAttributesFromDraft(variant),
         });
       });
-  }, [attributes, brandSlug, variant.gradeSlug, variant.attributes]);
+  }, [attributes, brandSlug, variant]);
 
   return (
     <article

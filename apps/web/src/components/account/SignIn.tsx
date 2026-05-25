@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { PhoneOtpForm } from "@/components/account/PhoneOtpForm";
@@ -48,13 +47,6 @@ export function SignIn() {
         />
       </Card>
 
-      <p className="mt-4 text-center text-[12px] text-[var(--color-ink-500)]">
-        Just want to track an order?{" "}
-        <Link href="/track" className="link-underline font-semibold text-[var(--color-accent-700)]">
-          Use the public tracker
-        </Link>
-        .
-      </p>
     </div>
   );
 }

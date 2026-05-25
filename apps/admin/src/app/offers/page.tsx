@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 
 import { AdminShell } from "@/components/AdminShell";
-import { PageTitle } from "@/components/PageTitle";
 import { Offers } from "@/components/Offers";
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
+import { ListWorkspaceSkeleton } from "@/components/loading/ListWorkspaceSkeleton";
+import { adminListPageClass } from "@/components/workspace/adminWorkspaceUi";
 import { connectDB, Offer } from "@store/db";
 
 import { requirePageSession } from "@/lib/server/requirePageSession";
@@ -12,28 +12,14 @@ import { toOfferResponse, type OfferLean } from "@/lib/serializers/offer";
 export const dynamic = "force-dynamic";
 
 const OFFERS_LIST_LIMIT = 200;
-const OFFERS_COLUMN_COUNT = 5;
-const OFFERS_ROW_COUNT = 8;
 
 export default async function AdminOffersPage() {
   await requirePageSession("/offers");
 
   return (
-    <AdminShell>
-      <PageTitle
-        eyebrow="Catalog"
-        title="Offers & deals"
-        description="Promotions surfaced on the homepage and the dedicated /deals page."
-      />
-      <section>
-        <Suspense
-          fallback={
-            <AdminTableSkeleton
-              columnCount={OFFERS_COLUMN_COUNT}
-              rowCount={OFFERS_ROW_COUNT}
-            />
-          }
-        >
+    <AdminShell contentClassName={adminListPageClass}>
+      <section className="flex min-h-0 flex-1 flex-col">
+        <Suspense fallback={<ListWorkspaceSkeleton />}>
           <OffersData />
         </Suspense>
       </section>

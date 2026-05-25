@@ -40,7 +40,7 @@ export const INQUIRY_STATUSES = [
 ] as const;
 export type InquiryStatus = (typeof INQUIRY_STATUSES)[number];
 
-export const INQUIRY_MESSAGE_AUTHORS = ["customer", "agent"] as const;
+export const INQUIRY_MESSAGE_AUTHORS = ["customer", "agent", "assistant"] as const;
 export type InquiryMessageAuthor = (typeof INQUIRY_MESSAGE_AUTHORS)[number];
 
 export const INQUIRY_ATTACHMENT_KINDS = ["image", "file"] as const;

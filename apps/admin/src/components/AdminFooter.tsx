@@ -85,7 +85,7 @@ function AdminFooterAlerts() {
         <FooterAlertPill
           href="/inquiries"
           tone="danger"
-          label={`${alerts.unreadInquiries} unread chat${alerts.unreadInquiries === 1 ? "" : "s"}`}
+          label={`${alerts.unreadInquiries} unread inquiry${alerts.unreadInquiries === 1 ? "" : "ies"}`}
         />
       ) : null}
       {alerts.pendingPayments > 0 ? (

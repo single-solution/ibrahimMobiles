@@ -6,6 +6,7 @@ import {
   isValidationError,
   isValidId,
   notFound,
+  forbidden,
   parseBody,
   validateString,
 } from "@store/shared";
@@ -19,6 +20,7 @@ import {
 } from "@store/db";
 
 import { requireSession } from "@/lib/api/requireSession";
+import { hasPermission } from "@/lib/permissions";
 
 import { recordActivity } from "@/lib/services/activityLog";
 
@@ -43,9 +45,15 @@ interface TransactionInput {
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
-  const { actor, response } = await requireSession("loyalty_manage");
+  const { actor, response } = await requireSession();
   if (response) {
     return response;
+  }
+  if (
+    !hasPermission(actor, "loyalty_manage") &&
+    !hasPermission(actor, "customer_manage")
+  ) {
+    return forbidden();
   }
 
   const { customerId } = await params;

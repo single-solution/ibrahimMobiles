@@ -14,7 +14,7 @@ import { connectDB, Setting } from "@store/db";
 import { getStorefrontBaseUrl } from "@/lib/storefront/baseUrl";
 
 const HARD_DISALLOW = ["/api/"];
-const FALLBACK_DISALLOW = ["/admin", "/account", "/cart", "/checkout", "/track"];
+const FALLBACK_DISALLOW = ["/admin", "/account", "/cart", "/checkout"];
 
 export const revalidate = 3600;
 

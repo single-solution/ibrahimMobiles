@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/api/requireSession";
 import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
-import { ok } from "@store/shared";
+import { ok, isValidId } from "@store/shared";
 import { toActivityResponse, type ActivityEntryLean } from "@/lib/serializers/activity";
 import type { AdminActivityEntry } from "@/types/admin";
 import {
@@ -20,6 +20,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const action = url.searchParams.get("action");
   const resourceType = url.searchParams.get("resourceType");
+  const resourceId = url.searchParams.get("resourceId");
   const { page, limit, skip, search, searchPattern } = readListOptions(request);
 
   const filter: Record<string, unknown> = {};
@@ -28,6 +29,9 @@ export async function GET(request: Request) {
   }
   if (resourceType && (ACTIVITY_RESOURCE_TYPES as readonly string[]).includes(resourceType)) {
     filter.resourceType = resourceType;
+  }
+  if (resourceId && isValidId(resourceId)) {
+    filter.resourceId = resourceId;
   }
   if (search) {
     filter.$or = [

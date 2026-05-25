@@ -6,7 +6,6 @@ import {
   Activity,
   BadgePercent,
   FolderTree,
-  Gift,
   LayoutDashboard,
   MessageSquare,
   Package,
@@ -19,6 +18,9 @@ import { classNames } from "@store/shared";
 
 import { InquiriesUnreadBadge } from "@/components/InquiriesUnreadBadge";
 import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
+import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+
+import type { PermissionKey } from "@/lib/permissionsCatalog";
 
 interface SidebarSection {
   title: string;
@@ -30,7 +32,21 @@ interface SidebarItem {
   label: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
   exact?: boolean;
+  permission?: PermissionKey;
 }
+
+/** Nav items hidden when the signed-in user lacks the permission key. */
+export const NAV_ITEM_PERMISSIONS: Partial<Record<string, PermissionKey>> = {
+  "/orders": "order_view",
+  "/inquiries": "inquiry_view",
+  "/customers": "customer_view",
+  "/products": "product_view",
+  "/categories": "category_manage",
+  "/offers": "offer_manage",
+  "/activity": "activity_view",
+  "/settings": "settings_view",
+  "/team": "team_view",
+};
 
 export const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
@@ -45,7 +61,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { href: "/orders", label: "Orders", icon: ShoppingCart },
       { href: "/inquiries", label: "Inquiries", icon: MessageSquare },
       { href: "/customers", label: "Customers", icon: UserCircle },
-      { href: "/loyalty", label: "Loyalty", icon: Gift },
     ],
   },
   {
@@ -70,9 +85,25 @@ interface SidebarProps {
   isCollapsed: boolean;
 }
 
+export function isNavItemVisible(
+  href: string,
+  can: (permission: PermissionKey) => boolean,
+  isLoading: boolean,
+): boolean {
+  const permission = NAV_ITEM_PERMISSIONS[href];
+  if (!permission) {
+    return true;
+  }
+  if (isLoading) {
+    return false;
+  }
+  return can(permission);
+}
+
 export function Sidebar({ isCollapsed }: SidebarProps) {
   const pathname = usePathname() ?? "";
   const storefrontUrl = getPublicSiteUrl();
+  const { can, isLoading } = useAdminPermissions();
 
   return (
     <aside
@@ -90,7 +121,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
               </p>
             )}
             <ul className="space-y-0.5 px-1">
-              {section.items.map((link) => {
+              {section.items.filter((link) => isNavItemVisible(link.href, can, isLoading)).map((link) => {
                 const isActive = link.exact
                   ? pathname === link.href
                   : pathname === link.href || pathname.startsWith(`${link.href}/`);
@@ -112,7 +143,9 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
                       {!isCollapsed && (
                         <span className="truncate">{link.label}</span>
                       )}
-                      {link.href === "/inquiries" && <InquiriesUnreadBadge />}
+                      {link.href === "/inquiries" && can("inquiry_view") ? (
+                        <InquiriesUnreadBadge />
+                      ) : null}
                     </Link>
                   </li>
                 );

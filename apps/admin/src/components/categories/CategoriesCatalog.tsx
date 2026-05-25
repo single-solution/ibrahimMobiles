@@ -34,6 +34,7 @@ import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
 import { StatusPill } from "@/components/StatusPill";
 import { useToast } from "@/components/Toast";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import {
   drawerItemFromState,
   drawerUrlSignature,
@@ -130,7 +131,7 @@ function CategoriesCatalogInner({
   const [deleteIntent, setDeleteIntent] = useState<DeleteIntent | null>(null);
   const [viewMode, setViewMode] = useState<WorkspaceView>("tables");
   const prevViewModeRef = useRef<WorkspaceView>("tables");
-  // AUDIT:url-state-sync-race — docs/audit/url-state-sync-race.md
+  // URL sync uses pendingWizardRef + scheduleStateUpdate to avoid replace loops.
   const pendingCategorySlugRef = useRef<string | null>(null);
   const pendingDrawerRef = useRef<string | null>(null);
   const pendingRowQueryRef = useRef<string | null>(null);
@@ -159,16 +160,24 @@ function CategoriesCatalogInner({
   }, [toast]);
 
   useEffect(() => {
-    setCategories(initialCategories);
+    scheduleStateUpdate(() => {
+      setCategories(initialCategories);
+    });
   }, [initialCategories]);
   useEffect(() => {
-    setBrands(initialBrands);
+    scheduleStateUpdate(() => {
+      setBrands(initialBrands);
+    });
   }, [initialBrands]);
   useEffect(() => {
-    setGrades(initialGrades);
+    scheduleStateUpdate(() => {
+      setGrades(initialGrades);
+    });
   }, [initialGrades]);
   useEffect(() => {
-    setAttributes(initialAttributes);
+    scheduleStateUpdate(() => {
+      setAttributes(initialAttributes);
+    });
   }, [initialAttributes]);
 
   const setCategoryUrl = useCallback(
@@ -270,8 +279,10 @@ function CategoriesCatalogInner({
   }, [setViewUrl]);
 
   useEffect(() => {
-    const viewParam = searchParams.get("view");
-    setViewMode(viewParam === "cards" ? "cards" : "tables");
+    scheduleStateUpdate(() => {
+      const viewParam = searchParams.get("view");
+      setViewMode(viewParam === "cards" ? "cards" : "tables");
+    });
   }, [searchParams]);
 
   useEffect(() => {
@@ -327,29 +338,31 @@ function CategoriesCatalogInner({
     const tabParam = searchParams.get("tab");
     const pending = pendingCategorySlugRef.current;
 
-    if (isCatalogTab(tabParam)) {
-      setActiveTab(tabParam);
-    }
+    scheduleStateUpdate(() => {
+      if (isCatalogTab(tabParam)) {
+        setActiveTab(tabParam);
+      }
 
-    if (pending) {
-      if (fromUrl === pending) {
-        pendingCategorySlugRef.current = null;
-      } else {
+      if (pending) {
+        if (fromUrl === pending) {
+          pendingCategorySlugRef.current = null;
+        } else {
+          return;
+        }
+      }
+
+      if (fromUrl && categoryNav.some((row) => row.category.slug === fromUrl)) {
+        setSelectedCategorySlug(fromUrl);
         return;
       }
-    }
-
-    if (fromUrl && categoryNav.some((row) => row.category.slug === fromUrl)) {
-      setSelectedCategorySlug(fromUrl);
-      return;
-    }
-    if (categoryNav.length === 0) {
-      setSelectedCategorySlug(null);
-      return;
-    }
-    const preferred = categoryNav[0];
-    setSelectedCategorySlug(preferred.category.slug);
-    setCategoryUrl(preferred.category.slug);
+      if (categoryNav.length === 0) {
+        setSelectedCategorySlug(null);
+        return;
+      }
+      const preferred = categoryNav[0];
+      setSelectedCategorySlug(preferred.category.slug);
+      setCategoryUrl(preferred.category.slug);
+    });
   }, [categoryNav, searchParams, setCategoryUrl]);
 
   useEffect(() => {
@@ -358,7 +371,9 @@ function CategoriesCatalogInner({
       (row) => row.category.slug === selectedCategorySlug,
     );
     if (!stillVisible) {
-      selectCategory(filteredCategoryNav[0].category.slug);
+      scheduleStateUpdate(() => {
+        selectCategory(filteredCategoryNav[0].category.slug);
+      });
     }
   }, [categoryQuery, filteredCategoryNav, selectedCategorySlug, selectCategory]);
 
@@ -396,55 +411,57 @@ function CategoriesCatalogInner({
     const deleteParam = searchParams.get("delete");
     if (!syncAfterPendingUrl(pendingDeleteRef, deleteParam)) return;
     const parsed = parseCatalogDeleteParam(deleteParam);
-    if (!parsed) {
-      setDeleteIntent(null);
-      return;
-    }
-    if (parsed.kind === "category") {
-      const category = categories.find((row) => row.id === parsed.id);
-      if (!category) {
+    scheduleStateUpdate(() => {
+      if (!parsed) {
+        setDeleteIntent(null);
+        return;
+      }
+      if (parsed.kind === "category") {
+        const category = categories.find((row) => row.id === parsed.id);
+        if (!category) {
+          setDeleteIntent(null);
+          return;
+        }
+        setDeleteIntent({
+          kind: "category",
+          id: category.id,
+          label: category.label,
+        });
+        return;
+      }
+      if (parsed.kind === "brand") {
+        const brand = brands.find((row) => row.id === parsed.id);
+        if (!brand || !selectedCategory) {
+          setDeleteIntent(null);
+          return;
+        }
+        setDeleteIntent({
+          kind: "brand",
+          id: brand.id,
+          label: brand.name,
+          unlinkFromCategorySlug: selectedCategory.slug,
+        });
+        return;
+      }
+      if (parsed.kind === "grade") {
+        const grade = grades.find((row) => row.id === parsed.id);
+        if (!grade) {
+          setDeleteIntent(null);
+          return;
+        }
+        setDeleteIntent({ kind: "grade", id: grade.id, label: grade.label });
+        return;
+      }
+      const attribute = attributes.find((row) => row.id === parsed.id);
+      if (!attribute) {
         setDeleteIntent(null);
         return;
       }
       setDeleteIntent({
-        kind: "category",
-        id: category.id,
-        label: category.label,
+        kind: "attribute",
+        id: attribute.id,
+        label: attribute.label,
       });
-      return;
-    }
-    if (parsed.kind === "brand") {
-      const brand = brands.find((row) => row.id === parsed.id);
-      if (!brand || !selectedCategory) {
-        setDeleteIntent(null);
-        return;
-      }
-      setDeleteIntent({
-        kind: "brand",
-        id: brand.id,
-        label: brand.name,
-        unlinkFromCategorySlug: selectedCategory.slug,
-      });
-      return;
-    }
-    if (parsed.kind === "grade") {
-      const grade = grades.find((row) => row.id === parsed.id);
-      if (!grade) {
-        setDeleteIntent(null);
-        return;
-      }
-      setDeleteIntent({ kind: "grade", id: grade.id, label: grade.label });
-      return;
-    }
-    const attribute = attributes.find((row) => row.id === parsed.id);
-    if (!attribute) {
-      setDeleteIntent(null);
-      return;
-    }
-    setDeleteIntent({
-      kind: "attribute",
-      id: attribute.id,
-      label: attribute.label,
     });
   }, [
     searchParams,

@@ -39,7 +39,7 @@ import { SignOutButton } from "@/components/account/SignOutButton";
 
 export const metadata: Metadata = {
   title: "Your account",
-  description: "Track orders, manage addresses and pick up where you left off.",
+  description: "View orders, manage addresses and pick up where you left off.",
 };
 
 export const dynamic = "force-dynamic";
@@ -176,7 +176,7 @@ function AccountHeader({ name, joinedAt }: { name: string; joinedAt: string }) {
           Welcome back.
         </h1>
         <p className="mt-1 text-[13px] text-[var(--color-ink-500)] md:text-sm">
-          Track orders, manage addresses and pick up where you left off.
+          View orders, manage addresses and pick up where you left off.
         </p>
       </div>
       <div className="flex items-center gap-2">
@@ -502,7 +502,7 @@ function ProfileCard({ customer }: ProfileCardProps) {
 const QUICK_ACTIONS = [
   { href: "/account/messages", icon: Headset, label: "Messages", subtitle: "Chat with our team" },
   { href: "/checkout", icon: Package, label: "Continue checkout", subtitle: "Pick up where you left off" },
-  { href: "/track", icon: Truck, label: "Track an order", subtitle: "Public order lookup" },
+  { href: "/account/orders", icon: Package, label: "Your orders", subtitle: "Status and order history" },
 ];
 
 function QuickActions() {

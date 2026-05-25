@@ -11,7 +11,6 @@ import {
   Phone,
   Sparkles,
   Tag,
-  Truck,
   User,
 } from "lucide-react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -39,7 +38,6 @@ const ACCOUNT_LINKS = [
   { href: "/account", label: "Account", icon: User, sub: "Dashboard" },
   { href: "/account/orders", label: "Orders", icon: Package, sub: "History & status" },
   { href: "/account/messages", label: "Messages", icon: MessageCircle, sub: "Chats & support" },
-  { href: "/track", label: "Track order", icon: Truck, sub: "Public lookup" },
 ];
 
 export function MobileMenuSheet({ isOpen, onClose }: MobileMenuSheetProps) {

@@ -453,6 +453,22 @@ function clampInt(
   return truncated;
 }
 
+/** One product by Mongo id. */
+export async function getStorefrontProductById(
+  id: string,
+): Promise<StorefrontProduct | null> {
+  await connectDB();
+  const product = await Product.findOne({
+    _id: id,
+    ...PUBLIC_PRODUCT_FILTER,
+  }).lean<ProductLean>();
+  if (!product) {
+    return null;
+  }
+  const brandLookup = await buildBrandLookup();
+  return toStorefrontProduct(product, brandLookup);
+}
+
 /** One product by URL slug. */
 export async function getStorefrontProductBySlug(
   slug: string,

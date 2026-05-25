@@ -2,9 +2,15 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AdminTable, type AdminTableColumn } from "@/components/AdminTable";
+import {
+  WorkspaceFrame,
+  WorkspaceListHeader,
+  WorkspacePrimaryAction,
+  WorkspaceRowIconButton,
+} from "@/components/workspace/adminWorkspaceUi";
 import { Drawer } from "@/components/Drawer";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { StatusPill } from "@/components/StatusPill";
@@ -146,23 +152,18 @@ export function Team({ members, currentUserId, isCurrentUserSuperAdmin }: TeamPr
       width: "100px",
       cell: (member) => (
         <div className="inline-flex items-center gap-1">
-          <button
-            type="button"
-            aria-label="Edit member"
+          <WorkspaceRowIconButton
+            label="Edit member"
+            icon={Pencil}
             onClick={() => setDrawer({ mode: "edit", member })}
-            className="grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
-          >
-            <Pencil size={13} />
-          </button>
+          />
           {member.id !== currentUserId && !member.isSuperAdmin ? (
-            <button
-              type="button"
-              aria-label="Remove member"
+            <WorkspaceRowIconButton
+              label="Remove member"
+              icon={Trash2}
+              tone="danger"
               onClick={() => setRemoving(member)}
-              className="grid size-8 place-items-center rounded-[var(--radius-md)] text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-            >
-              <Trash2 size={13} />
-            </button>
+            />
           ) : null}
         </div>
       ),
@@ -170,30 +171,33 @@ export function Team({ members, currentUserId, isCurrentUserSuperAdmin }: TeamPr
   ];
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-      <div>
-        <AdminTable
-          rows={members}
-          columns={columns}
-          rowKey={(member) => member.id}
-          searchAccessor={(member) =>
-            `${member.name} ${member.email} ${ROLE_LABEL[member.role]} ${member.phoneNumber ?? ""}`
-          }
-          searchPlaceholder="Search team…"
-          toolbar={
-            <Button
-              variant="primary"
-              size="sm"
-              leadingIcon={<Plus size={14} />}
-              onClick={() => setDrawer({ mode: "new" })}
-            >
-              Invite member
-            </Button>
-          }
-        />
-      </div>
+    <WorkspaceFrame>
+      <WorkspaceListHeader
+        icon={Users}
+        title="Team & roles"
+        subtitle="Members of your admin console with their assigned permissions."
+      />
+      <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-3 md:p-4 lg:grid-cols-[1fr_320px]">
+        <div>
+          <AdminTable
+            rows={members}
+            columns={columns}
+            rowKey={(member) => member.id}
+            searchAccessor={(member) =>
+              `${member.name} ${member.email} ${ROLE_LABEL[member.role]} ${member.phoneNumber ?? ""}`
+            }
+            searchPlaceholder="Search team…"
+            toolbar={
+              <WorkspacePrimaryAction
+                label="Add member"
+                icon={Plus}
+                onClick={() => setDrawer({ mode: "new" })}
+              />
+            }
+          />
+        </div>
 
-      <aside className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5">
+        <aside className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5">
         <h2 className="text-sm font-semibold text-[var(--color-ink-900)]">Roles & permissions</h2>
         <p className="mt-1 text-xs text-[var(--color-ink-500)]">
           What each role can do in the admin console.
@@ -214,6 +218,7 @@ export function Team({ members, currentUserId, isCurrentUserSuperAdmin }: TeamPr
           ))}
         </ul>
       </aside>
+      </div>
 
       {drawer ? (
         <TeamDrawer
@@ -240,7 +245,7 @@ export function Team({ members, currentUserId, isCurrentUserSuperAdmin }: TeamPr
         onConfirm={handleRemove}
         onCancel={() => setRemoving(null)}
       />
-    </div>
+    </WorkspaceFrame>
   );
 }
 

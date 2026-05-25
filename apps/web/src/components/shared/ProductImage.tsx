@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { StoredImage, StoredImageVariantKey } from "@store/shared";
 
 import { PhoneVisual } from "@/components/shared/PhoneVisual";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
 interface ProductImageProps {
   /** Multi-resolution image record. Optional so we can fall back to PhoneVisual. */
@@ -46,10 +47,12 @@ export function ProductImage({
   const showLoadFade = !priority;
 
   useEffect(() => {
-    setHasFailed(false);
-    if (showLoadFade) {
-      setHasLoaded(false);
-    }
+    scheduleStateUpdate(() => {
+      setHasFailed(false);
+      if (showLoadFade) {
+        setHasLoaded(false);
+      }
+    });
   }, [src, showLoadFade]);
 
   if (hasFailed || !image) {

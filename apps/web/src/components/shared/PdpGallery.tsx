@@ -22,6 +22,7 @@ import type { Product, StoredImage } from "@store/shared";
 import { imagesForProductGrade } from "@store/shared";
 
 import { ProductImage } from "@/components/shared/ProductImage";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useGalleryGradeSlug } from "@/components/shared/VariantContext";
 
 interface PdpGalleryProps {
@@ -57,13 +58,17 @@ function PdpGalleryInner({
   const heroVisibilityClass = heroReady ? "opacity-100" : "opacity-0";
 
   useEffect(() => {
-    setActiveIndex(0);
-    setLightboxOpen(false);
+    scheduleStateUpdate(() => {
+      setActiveIndex(0);
+      setLightboxOpen(false);
+    });
   }, [galleryKey]);
 
   useEffect(() => {
     if (images.length === 0) {
-      setReadyHeroKey(heroKey);
+      scheduleStateUpdate(() => {
+        setReadyHeroKey(heroKey);
+      });
     }
   }, [heroKey, images.length]);
 

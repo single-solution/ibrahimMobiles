@@ -21,16 +21,27 @@ export interface ChatBootstrap {
   settings: ChatSettings;
 }
 
+export class ChatRequestError extends Error {
+  code?: string;
+
+  constructor(message: string, code?: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
 async function jsonOrThrow(res: Response): Promise<unknown> {
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
+    let code: string | undefined;
     try {
-      const body = (await res.json()) as { error?: string };
+      const body = (await res.json()) as { error?: string; code?: string };
       if (body?.error) message = body.error;
+      code = body?.code;
     } catch {
       // fall through
     }
-    throw new Error(message);
+    throw new ChatRequestError(message, code);
   }
   return res.json();
 }
@@ -100,6 +111,31 @@ export interface StartChatInput {
   body: string;
   subjectProductId?: string;
   subjectProductName?: string;
+}
+
+export interface StartAnonymousChatInput {
+  subjectProductId?: string;
+  subjectProductName?: string;
+}
+
+export async function startAnonymousChatThread(
+  input: StartAnonymousChatInput = {},
+): Promise<ChatThread> {
+  const res = await fetch("/api/storefront/chat/start-anonymous", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return (await jsonOrThrow(res)) as ChatThread;
+}
+
+export async function startCustomerChatThread(): Promise<ChatThread> {
+  const res = await fetch("/api/storefront/chat/start-customer", {
+    method: "POST",
+    credentials: "same-origin",
+  });
+  return (await jsonOrThrow(res)) as ChatThread;
 }
 
 export async function startChatThread(

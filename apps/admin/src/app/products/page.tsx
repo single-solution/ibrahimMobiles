@@ -4,6 +4,7 @@ import { AdminShell } from "@/components/AdminShell";
 import { ProductsCatalog } from "@/components/products/ProductsCatalog";
 import { loadProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
+import { adminCatalogPageClass } from "@/components/workspace/adminWorkspaceUi";
 import { Brand, connectDB, Product } from "@store/db";
 
 import { requirePageSession } from "@/lib/server/requirePageSession";
@@ -30,7 +31,7 @@ const PRODUCT_ROW_COUNT = 12;
 export default async function AdminProductsPage() {
   await requirePageSession("/products");
   return (
-    <AdminShell contentClassName="flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5 md:p-2">
+    <AdminShell contentClassName={adminCatalogPageClass}>
       <section className="flex min-h-0 flex-1 flex-col">
         <Suspense
           fallback={
@@ -40,14 +41,14 @@ export default async function AdminProductsPage() {
             />
           }
         >
-          <ProductsTableData />
+          <ProductsCatalogData />
         </Suspense>
       </section>
     </AdminShell>
   );
 }
 
-async function ProductsTableData() {
+async function ProductsCatalogData() {
   await connectDB();
   const [productDocs, brandDocs] = await Promise.all([
     Product.find({ isArchived: { $ne: true } })

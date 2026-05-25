@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useToast } from "@/components/Toast";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 import type { AdminProduct } from "@/types/admin";
@@ -29,7 +30,9 @@ export function ProductManageVariantsDrawer({
 
   useEffect(() => {
     if (!isOpen || !productId) {
-      setProduct(null);
+      scheduleStateUpdate(() => {
+        setProduct(null);
+      });
       return;
     }
     let cancelled = false;

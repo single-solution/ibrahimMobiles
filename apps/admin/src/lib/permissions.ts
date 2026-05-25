@@ -2,7 +2,7 @@ import { User, connectDB, type UserRole } from "@store/db";
 import { SESSION_CACHE_TTL_MS, logger } from "@store/shared";
 
 import { auth } from "@/lib/auth";
-import { ROLE_PERMISSIONS, type PermissionKey } from "@/lib/permissionsCatalog";
+import { ROLE_PERMISSIONS, PERMISSION_KEYS, type PermissionKey } from "@/lib/permissionsCatalog";
 
 /**
  * Authenticated actor enriched with current DB state. Returned by
@@ -86,7 +86,27 @@ export function hasPermission(actor: VerifiedUser, permission: PermissionKey): b
   if (actor.isSuperAdmin) {
     return true;
   }
-  const allowed = ROLE_PERMISSIONS[actor.role] ?? [];
-  return allowed.includes(permission);
+  const allowed = expandRolePermissions(ROLE_PERMISSIONS[actor.role] ?? []);
+  return allowed.has(permission);
+}
+
+/** All permission keys granted to an actor (including implied keys). */
+export function getActorPermissions(actor: VerifiedUser): PermissionKey[] {
+  if (actor.isSuperAdmin) {
+    return [...PERMISSION_KEYS];
+  }
+  return [...expandRolePermissions(ROLE_PERMISSIONS[actor.role] ?? [])];
+}
+
+function expandRolePermissions(keys: ReadonlyArray<PermissionKey>): Set<PermissionKey> {
+  const allowed = new Set<PermissionKey>(keys);
+  if (allowed.has("inquiry_manage")) {
+    allowed.add("inquiry_reply");
+    allowed.add("inquiry_view");
+  }
+  if (allowed.has("inquiry_reply")) {
+    allowed.add("inquiry_view");
+  }
+  return allowed;
 }
 

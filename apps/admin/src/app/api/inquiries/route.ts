@@ -1,9 +1,10 @@
 import { requireSession } from "@/lib/api/requireSession";
 import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
-import { ok } from "@store/shared";
+import { ok, isValidId } from "@store/shared";
 
 import {
   connectDB,
+  Customer,
   Inquiry,
   INQUIRY_STATUSES,
   type InquiryStatus,
@@ -41,15 +42,37 @@ export async function GET(request: Request) {
   const { page, limit, skip, search, searchPattern } = readListOptions(request);
   const statusFilter = url.searchParams.get("status");
   const inboxFilter = url.searchParams.get("filter");
+  const customerId = url.searchParams.get("customerId");
 
   const filter: Record<string, unknown> = {};
+  const andConditions: Record<string, unknown>[] = [];
+
+  if (customerId && isValidId(customerId)) {
+    const customer = await Customer.findById(customerId)
+      .select("phoneNumber")
+      .lean<{ phoneNumber: string }>();
+    if (customer) {
+      andConditions.push({
+        $or: [{ customerId }, { phoneNumber: customer.phoneNumber }],
+      });
+    } else {
+      filter.customerId = customerId;
+    }
+  }
   if (search) {
-    filter.$or = [
-      { customerName: { $regex: searchPattern, $options: "i" } },
-      { phoneNumber: { $regex: searchPattern, $options: "i" } },
-      { subjectProductName: { $regex: searchPattern, $options: "i" } },
-      { lastMessagePreview: { $regex: searchPattern, $options: "i" } },
-    ];
+    andConditions.push({
+      $or: [
+        { customerName: { $regex: searchPattern, $options: "i" } },
+        { phoneNumber: { $regex: searchPattern, $options: "i" } },
+        { subjectProductName: { $regex: searchPattern, $options: "i" } },
+        { lastMessagePreview: { $regex: searchPattern, $options: "i" } },
+      ],
+    });
+  }
+  if (andConditions.length === 1) {
+    Object.assign(filter, andConditions[0]);
+  } else if (andConditions.length > 1) {
+    filter.$and = andConditions;
   }
   if (statusFilter && ALLOWED_STATUSES.has(statusFilter)) {
     filter.status = statusFilter as InquiryStatus;

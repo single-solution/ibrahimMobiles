@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 import { useAdminUrlParams } from "@/lib/url/useAdminUrlParams";
 import type { AdminProduct } from "@/types/admin";
@@ -78,20 +79,14 @@ export function ProductCreateWizard({
       return;
     }
 
-    if (targetWizard === "1") {
-      setProduct(null);
-      setPhase("step1");
-      return;
-    }
-
     if (targetWizard === "2") {
       const productId = searchParams.get("newProduct");
       if (!productId) {
-        setPhase("closed");
+        scheduleStateUpdate(() => setPhase("closed"));
         return;
       }
       if (product?.id === productId) {
-        setPhase("step2");
+        scheduleStateUpdate(() => setPhase("step2"));
         return;
       }
       let cancelled = false;
@@ -110,8 +105,16 @@ export function ProductCreateWizard({
       };
     }
 
-    setPhase("closed");
-    setProduct(null);
+    scheduleStateUpdate(() => {
+      if (targetWizard === "1") {
+        setProduct(null);
+        setPhase("step1");
+        return;
+      }
+
+      setPhase("closed");
+      setProduct(null);
+    });
   }, [searchParams, replace, product?.id, closeWizard]);
 
   function handleCreated(created: AdminProduct) {

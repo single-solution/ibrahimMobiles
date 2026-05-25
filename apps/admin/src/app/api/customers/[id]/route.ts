@@ -20,6 +20,7 @@ import {
 } from "@store/shared";
 
 import { recordActivity } from "@/lib/services/activityLog";
+import { loadCustomerOrderStats } from "@/lib/server/customerOrderStats";
 import { toCustomerResponse, type CustomerLean } from "@/lib/serializers/customer";
 
 interface RouteContext {
@@ -43,23 +44,7 @@ export async function GET(_request: Request, { params }: RouteContext) {
     return notFound("Customer not found");
   }
 
-  const stats = await Order.aggregate<{
-    orderCount: number;
-    lifetimeSpendRupees: number;
-    lastOrderAt: Date;
-  }>([
-    { $match: { customerId: doc._id } },
-    {
-      $group: {
-        _id: null,
-        orderCount: { $sum: 1 },
-        lifetimeSpendRupees: { $sum: "$totals.totalRupees" },
-        lastOrderAt: { $max: "$placedAt" },
-      },
-    },
-  ]);
-
-  const stat = stats[0] ?? { orderCount: 0, lifetimeSpendRupees: 0, lastOrderAt: undefined };
+  const stat = await loadCustomerOrderStats(doc._id);
   return ok(toCustomerResponse(doc, stat));
 }
 
@@ -100,6 +85,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
   if (body.phoneNumber !== undefined) {
     const result = validateString(body.phoneNumber, {
       label: "Phone number",
+      min: 7,
       max: FIELD_LIMITS.phoneNumber,
     });
     if (isValidationError(result)) {
@@ -163,7 +149,8 @@ export async function PUT(request: Request, { params }: RouteContext) {
       resourceId: id,
       resourceLabel: doc.name,
     });
-    return ok(toCustomerResponse(doc));
+    const stat = await loadCustomerOrderStats(doc._id);
+    return ok(toCustomerResponse(doc, stat));
   } catch (error) {
     return handleMongoError(error);
   }

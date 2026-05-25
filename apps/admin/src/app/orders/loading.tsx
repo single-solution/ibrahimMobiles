@@ -1,16 +1,15 @@
-import { AdminPageSkeleton } from "@/components/loading/AdminPageSkeleton";
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
-
-const ORDERS_COLUMN_COUNT = 6;
-const ORDERS_ROW_COUNT = 12;
+import { AdminShell } from "@/components/AdminShell";
+import { SalesWorkspaceSkeleton } from "@/components/loading/SalesWorkspaceSkeleton";
+import { SkeletonScreen } from "@/components/ui/Skeleton";
 
 export default function OrdersLoading() {
   return (
-    <AdminPageSkeleton label="Loading orders">
-      <AdminTableSkeleton
-        columnCount={ORDERS_COLUMN_COUNT}
-        rowCount={ORDERS_ROW_COUNT}
-      />
-    </AdminPageSkeleton>
+    <SkeletonScreen label="Loading orders">
+      <AdminShell contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-1.5 md:p-2">
+        <section className="flex min-h-0 flex-1 flex-col">
+          <SalesWorkspaceSkeleton />
+        </section>
+      </AdminShell>
+    </SkeletonScreen>
   );
 }

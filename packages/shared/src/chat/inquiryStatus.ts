@@ -22,7 +22,7 @@ export function nextInquiryStatusAfterTeamMessage(
 /** Status patch for `$set` when a message is posted (empty object if unchanged). */
 export function inquiryStatusPatchAfterMessage(
   current: InquiryThreadStatus,
-  author: "customer" | "team",
+  author: "customer" | "team" | "assistant",
 ): { status?: InquiryThreadStatus } {
   const next =
     author === "customer"

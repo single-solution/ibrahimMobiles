@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
+
 /**
  * PDP configurator URL sync. Uses `history.replaceState` — not
  * `router.replace` — so grade/attribute picks update the shareable URL
@@ -18,7 +20,9 @@ export function usePdpUrlParams() {
   );
 
   useEffect(() => {
-    setParams(new URLSearchParams(serverQuery));
+    scheduleStateUpdate(() => {
+      setParams(new URLSearchParams(serverQuery));
+    });
   }, [pathname, serverQuery]);
 
   useEffect(() => {

@@ -6,7 +6,7 @@
  * Modes:
  *   - "loading"  — bootstrap fetch in flight.
  *   - "disabled" — admin toggled chat.enabled = false; render nothing.
- *   - "start"    — no existing threads; show name / message form.
+ *   - "starting" — anonymous thread being created.
  *   - "list"     — multiple threads; show summary list with pick CTA.
  *   - "thread"   — focused conversation; messages + composer.
  *
@@ -20,23 +20,32 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
-import { ArrowLeft, MessageSquare, Paperclip, Send, Sparkles, X } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+import { ArrowLeft, MessageSquare, Paperclip, Send, X } from "lucide-react";
 
 import {
-  CHAT_CUSTOMER_NAME_MAX,
+  CHAT_GUEST_MESSAGE_LIMIT,
   CHAT_MESSAGE_BODY_MAX,
   buildWhatsAppLink,
   classNames,
   createChatTransport,
+  customerChatSupportLabel,
   formatTimeAgo,
-  type ChatAttachment,
+  guestChatLoginRequired,
+  isAnonymousChatPhone,
+  countCustomerChatMessages,
   type ChatMessage,
   type ChatThread,
   type ChatThreadSummary,
 } from "@store/shared";
 
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import {
+  ChatMessageBubble,
+  ChatMessageDayDivider,
+  chatWelcomeMessage,
+  groupChatMessagesByDay,
+} from "@/components/chat/chatMessageUi";
 import type { ChatSettings } from "@/lib/chat/chatSettings";
 import type { OpenChatDetail } from "@/lib/chat/openChat";
 import {
@@ -46,11 +55,14 @@ import {
   pollChatThread,
   makeOptimisticMessage,
   sendChatMessage,
-  startChatThread,
+  startAnonymousChatThread,
+  ChatRequestError,
   uploadChatAttachment,
 } from "@/lib/chat/transport";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
+import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 
-type WidgetView = "list" | "start" | "thread";
+type WidgetView = "list" | "thread" | "starting";
 
 interface LiveChatWidgetProps {
   onCollapse?: () => void;
@@ -70,9 +82,13 @@ export function LiveChatWidget({
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [activeThread, setActiveThread] = useState<ChatThread | null>(null);
   const [view, setView] = useState<WidgetView>("list");
-  const [startDefaults, setStartDefaults] = useState<OpenChatDetail | null>(
-    initialOpenDetail,
-  );
+  const pathname = usePathname() ?? "/";
+  const searchParams = useSearchParams();
+  const signInHref = useMemo(() => {
+    const next = `${pathname}${searchParams?.toString() ? `?${searchParams.toString()}` : ""}`;
+    return `/account/sign-in?next=${encodeURIComponent(next)}`;
+  }, [pathname, searchParams]);
+  const [composerDraft, setComposerDraft] = useState("");
   const lastActivityAtRef = useRef(0);
   const activeThreadIdRef = useRef<string | null>(null);
   const activeThreadRef = useRef<ChatThread | null>(null);
@@ -101,6 +117,29 @@ export function LiveChatWidget({
     }
   }, []);
 
+  const beginAnonymousThread = useCallback(async (detail: OpenChatDetail | null) => {
+    setView("starting");
+    setBootstrapError(null);
+    try {
+      const thread = await startAnonymousChatThread({
+        subjectProductId: detail?.subjectProductId,
+        subjectProductName: detail?.subjectProductName,
+      });
+      lastActivityAtRef.current = Date.now();
+      setActiveThread(thread);
+      setActiveThreadId(thread.id);
+      setView("thread");
+      void refreshBootstrap();
+      return thread;
+    } catch (error) {
+      const msg =
+        error instanceof Error ? error.message : "Could not start chat.";
+      setBootstrapError(msg);
+      setView("list");
+      throw error;
+    }
+  }, [refreshBootstrap]);
+
   // Initial bootstrap.
   useEffect(() => {
     void (async () => {
@@ -108,10 +147,14 @@ export function LiveChatWidget({
       setBootstrapLoaded(true);
       if (!data) return;
       if (initialOpenDetail?.initialBody) {
-        setStartDefaults(initialOpenDetail);
-        setView("start");
-      } else if (data.threads.length === 0) {
-        setView("start");
+        setComposerDraft(initialOpenDetail.initialBody);
+      }
+      if (data.threads.length === 0) {
+        try {
+          await beginAnonymousThread(initialOpenDetail);
+        } catch {
+          // error surfaced via bootstrapError
+        }
       } else if (data.threads.length === 1) {
         setActiveThreadId(data.threads[0].id);
         setView("thread");
@@ -119,7 +162,21 @@ export function LiveChatWidget({
         setView("list");
       }
     })();
-  }, [refreshBootstrap, initialOpenDetail]);
+  }, [refreshBootstrap, initialOpenDetail, beginAnonymousThread]);
+
+  // After sign-in redirect, refresh thread so guest gate clears.
+  useEffect(() => {
+    function onFocus() {
+      void refreshBootstrap();
+      const threadId = activeThreadIdRef.current;
+      if (!threadId) return;
+      void fetchChatThread(threadId).then((thread) => {
+        setActiveThread(thread);
+      });
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [refreshBootstrap]);
 
   // Open the chosen thread whenever activeThreadId changes.
   useEffect(() => {
@@ -155,10 +212,10 @@ export function LiveChatWidget({
           const prevLen = activeThreadRef.current?.messages.length ?? 0;
           const fresh = await pollChatThread(threadId, since, `"${since}"`);
           if (fresh) {
-            const newAgent = fresh.messages
+            const newReply = fresh.messages
               .slice(prevLen)
-              .some((m) => m.author === "agent");
-            if (newAgent && document.hidden) {
+              .some((m) => m.author === "agent" || m.author === "assistant");
+            if (newReply && document.hidden) {
               if (!baseTitleRef.current) baseTitleRef.current = document.title;
               document.title = `*New message · ${siteName}`;
             }
@@ -192,32 +249,26 @@ export function LiveChatWidget({
   function handleBackToList() {
     setActiveThreadId(null);
     setActiveThread(null);
-    setView(threads.length > 0 ? "list" : "start");
-  }
-
-  async function handleStartThread(input: {
-    customerName: string;
-    phoneNumber: string;
-    body: string;
-  }) {
-    const thread = await startChatThread({
-      ...input,
-      subjectProductId: startDefaults?.subjectProductId,
-      subjectProductName: startDefaults?.subjectProductName,
-    });
-    lastActivityAtRef.current = Date.now();
-    setActiveThread(thread);
-    setActiveThreadId(thread.id);
-    setView("thread");
-    void refreshBootstrap();
+    if (threads.length > 0) {
+      setView("list");
+      return;
+    }
+    void beginAnonymousThread(null);
   }
 
   async function handleAttach(file: File, body?: string) {
     if (!activeThread) return;
-    const fresh = await uploadChatAttachment(activeThread.id, file, body);
-    lastActivityAtRef.current = Date.now();
-    setActiveThread(fresh);
-    void refreshBootstrap();
+    try {
+      const fresh = await uploadChatAttachment(activeThread.id, file, body);
+      lastActivityAtRef.current = Date.now();
+      setActiveThread(fresh);
+      void refreshBootstrap();
+    } catch (error) {
+      if (error instanceof ChatRequestError && error.code === "login_required") {
+        setBootstrapError(error.message);
+      }
+      throw error;
+    }
   }
 
   async function handleSend(body: string) {
@@ -248,9 +299,31 @@ export function LiveChatWidget({
             }
           : prev,
       );
+      if (error instanceof ChatRequestError && error.code === "login_required") {
+        setBootstrapError(error.message);
+      }
       throw error;
     }
   }
+
+  const loginRequired = activeThread
+    ? guestChatLoginRequired({
+        customerId: activeThread.customerId,
+        phoneNumber: activeThread.phoneNumber,
+        messages: activeThread.messages,
+      })
+    : false;
+
+  const previewMessagesLeft =
+    activeThread && isAnonymousChatPhone(activeThread.phoneNumber)
+      ? Math.max(
+          0,
+          CHAT_GUEST_MESSAGE_LIMIT -
+            countCustomerChatMessages(activeThread.messages),
+        )
+      : null;
+
+  const supportLabel = customerChatSupportLabel(settings?.assistantName);
 
   if (!bootstrapLoaded) {
     return (
@@ -283,11 +356,15 @@ export function LiveChatWidget({
   return (
     <ChatShell
       onClose={onCollapse}
-      title={siteName}
+      title={
+        settings?.assistantEnabled ? supportLabel : siteName
+      }
       subtitle={
         view === "thread" && activeThread
           ? statusLabel(activeThread.status)
-          : "We typically reply within an hour"
+          : settings?.assistantEnabled
+            ? "Support chat · replies in seconds"
+            : "We typically reply within an hour"
       }
       onBack={view === "thread" && threads.length > 1 ? handleBackToList : undefined}
     >
@@ -296,18 +373,13 @@ export function LiveChatWidget({
           {bootstrapError}
         </div>
       )}
-      {view === "start" && (
-        <StartThreadForm
-          onStart={handleStartThread}
-          defaultBody={startDefaults?.initialBody}
-        />
+      {view === "starting" && (
+        <div className="flex flex-1 items-center justify-center bg-[var(--color-canvas-deep)] px-4 text-sm text-[var(--color-ink-500)]">
+          Starting chat…
+        </div>
       )}
       {view === "list" && (
-        <ThreadList
-          threads={threads}
-          onOpen={handleOpenThread}
-          onStartNew={() => setView("start")}
-        />
+        <ThreadList threads={threads} onOpen={handleOpenThread} />
       )}
       {view === "thread" && activeThread && (
         <ThreadConversation
@@ -315,9 +387,16 @@ export function LiveChatWidget({
           onSend={handleSend}
           onAttach={handleAttach}
           attachmentsEnabled={Boolean(settings?.attachmentsEnabled)}
+          initialDraft={composerDraft}
+          onDraftConsumed={() => setComposerDraft("")}
+          loginRequired={loginRequired}
+          signInHref={signInHref}
+          previewMessagesLeft={previewMessagesLeft}
+          welcomeMessageGuest={settings?.welcomeMessageGuest}
+          welcomeMessageCustomer={settings?.welcomeMessageCustomer}
         />
       )}
-      <EscalationFooter whatsappNumber={whatsappNumber} />
+      <SupportHintFooter assistantEnabled={settings?.assistantEnabled ?? false} />
     </ChatShell>
   );
 }
@@ -341,7 +420,13 @@ interface ChatShellProps {
   children: React.ReactNode;
 }
 
-function ChatShell({ title, subtitle, onClose, onBack, children }: ChatShellProps) {
+function ChatShell({
+  title,
+  subtitle,
+  onClose,
+  onBack,
+  children,
+}: ChatShellProps) {
   return (
     <div
       role="dialog"
@@ -364,10 +449,7 @@ function ChatShell({ title, subtitle, onClose, onBack, children }: ChatShellProp
           </span>
         )}
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 text-sm font-semibold leading-tight">
-            {title}
-            <Sparkles size={11} className="text-[var(--color-accent-300)]" />
-          </p>
+          <p className="text-sm font-semibold leading-tight">{title}</p>
           <p className="truncate text-[11px] leading-tight text-[var(--color-ink-300)]">
             {subtitle}
           </p>
@@ -388,122 +470,15 @@ function ChatShell({ title, subtitle, onClose, onBack, children }: ChatShellProp
   );
 }
 
-interface StartThreadFormProps {
-  onStart: (input: {
-    customerName: string;
-    phoneNumber: string;
-    body: string;
-  }) => Promise<void>;
-  defaultBody?: string;
-}
-
-function StartThreadForm({ onStart, defaultBody = "" }: StartThreadFormProps) {
-  const [customerName, setCustomerName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [body, setBody] = useState(defaultBody);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    setError(null);
-    setSubmitting(true);
-    try {
-      await onStart({
-        customerName: customerName.trim(),
-        phoneNumber: phoneNumber.trim(),
-        body: body.trim(),
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not start chat.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  const disabled =
-    submitting ||
-    customerName.trim().length < 2 ||
-    phoneNumber.trim().length < 7 ||
-    body.trim().length === 0;
-
-  return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-1 flex-col gap-3 overflow-y-auto bg-[var(--color-canvas-deep)] px-4 py-4"
-    >
-      <div className="rounded-[var(--radius-lg)] bg-[var(--color-surface)] px-4 py-3 text-xs text-[var(--color-ink-600)] shadow-[var(--shadow-sm)]">
-        Salam! Tell us your full name and what you&apos;d like help with — our
-        team replies as soon as possible.
-      </div>
-      <label className="text-xs font-medium text-[var(--color-ink-700)]">
-        Full name
-        <input
-          type="text"
-          value={customerName}
-          onChange={(event) => setCustomerName(event.target.value)}
-          required
-          minLength={2}
-          maxLength={CHAT_CUSTOMER_NAME_MAX}
-          placeholder="e.g. Ahmed Khan"
-          autoComplete="name"
-          className="mt-1 h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-ink-800)] focus:border-[var(--color-accent-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-300)]"
-        />
-      </label>
-      <label className="text-xs font-medium text-[var(--color-ink-700)]">
-        Phone number
-        <input
-          type="tel"
-          value={phoneNumber}
-          onChange={(event) => setPhoneNumber(event.target.value)}
-          required
-          minLength={7}
-          maxLength={32}
-          placeholder="03xx-xxxxxxx"
-          autoComplete="tel"
-          className="mt-1 h-10 w-full rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-ink-800)] focus:border-[var(--color-accent-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-300)]"
-        />
-      </label>
-      <label className="text-xs font-medium text-[var(--color-ink-700)]">
-        Message
-        <textarea
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          required
-          maxLength={CHAT_MESSAGE_BODY_MAX}
-          rows={4}
-          placeholder="How can we help?"
-          className="mt-1 w-full rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink-800)] focus:border-[var(--color-accent-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-300)]"
-        />
-      </label>
-      {error && <div className="text-xs text-[var(--color-error-700)]">{error}</div>}
-      <button
-        type="submit"
-        disabled={disabled}
-        className="mt-1 h-10 rounded-[var(--radius-md)] bg-[var(--color-accent-700)] text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-800)] disabled:opacity-40"
-      >
-        {submitting ? "Sending…" : "Start chat"}
-      </button>
-    </form>
-  );
-}
 
 interface ThreadListProps {
   threads: ChatThreadSummary[];
   onOpen: (id: string) => void;
-  onStartNew: () => void;
 }
 
-function ThreadList({ threads, onOpen, onStartNew }: ThreadListProps) {
+function ThreadList({ threads, onOpen }: ThreadListProps) {
   return (
     <div className="flex-1 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-3">
-      <button
-        type="button"
-        onClick={onStartNew}
-        className="mb-3 w-full rounded-[var(--radius-md)] border border-dashed border-[var(--color-accent-500)] bg-[var(--color-accent-50)] px-3 py-2 text-xs font-semibold text-[var(--color-accent-800)] transition-colors hover:bg-[var(--color-accent-100)]"
-      >
-        + Start a new conversation
-      </button>
       <ul className="flex flex-col gap-2">
         {threads.map((thread) => (
           <li key={thread.id}>
@@ -541,6 +516,13 @@ interface ThreadConversationProps {
   onSend: (body: string) => Promise<void>;
   onAttach: (file: File, body?: string) => Promise<void>;
   attachmentsEnabled: boolean;
+  initialDraft?: string;
+  onDraftConsumed?: () => void;
+  loginRequired: boolean;
+  signInHref: string;
+  previewMessagesLeft: number | null;
+  welcomeMessageGuest?: string;
+  welcomeMessageCustomer?: string;
 }
 
 function ThreadConversation({
@@ -548,13 +530,29 @@ function ThreadConversation({
   onSend,
   onAttach,
   attachmentsEnabled,
+  initialDraft = "",
+  onDraftConsumed,
+  loginRequired,
+  signInHref,
+  previewMessagesLeft,
+  welcomeMessageGuest,
+  welcomeMessageCustomer,
 }: ThreadConversationProps) {
   const messageListRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(initialDraft);
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialDraft) {
+      scheduleStateUpdate(() => {
+        setDraft(initialDraft);
+        onDraftConsumed?.();
+      });
+    }
+  }, [initialDraft, onDraftConsumed]);
 
   const messages = thread.messages;
   const lastMessageId = messages[messages.length - 1]?.id;
@@ -571,11 +569,14 @@ function ThreadConversation({
     }
   }, [lastMessageId]);
 
-  const groupedMessages = useMemo(() => groupByDay(messages), [messages]);
+  const groupedMessages = useMemo(
+    () => groupChatMessagesByDay(messages),
+    [messages],
+  );
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (draft.trim().length === 0) return;
+    if (loginRequired || draft.trim().length === 0) return;
     const body = draft.trim();
     setSending(true);
     setError(null);
@@ -593,7 +594,7 @@ function ThreadConversation({
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (!file) return;
+    if (!file || loginRequired) return;
     setUploading(true);
     setError(null);
     try {
@@ -614,19 +615,20 @@ function ThreadConversation({
       >
         {groupedMessages.map((group) => (
           <div key={group.day} className="space-y-2">
-            <div className="flex justify-center">
-              <span className="rounded-[var(--radius-full)] bg-[var(--color-surface)] px-3 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--color-ink-500)]">
-                {group.day}
-              </span>
-            </div>
+            <ChatMessageDayDivider label={group.day} />
             {group.messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
+              <ChatMessageBubble key={message.id} message={message} />
             ))}
           </div>
         ))}
         {messages.length === 0 && (
-          <div className="flex h-full items-center justify-center text-xs text-[var(--color-ink-500)]">
-            No messages yet.
+          <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3.5 text-xs leading-relaxed text-[var(--color-ink-600)] shadow-[var(--shadow-sm)]">
+            {chatWelcomeMessage({
+              audience: thread.customerId ? "customer" : "guest",
+              guestMessageLimit: CHAT_GUEST_MESSAGE_LIMIT,
+              welcomeMessageGuest,
+              welcomeMessageCustomer,
+            })}
           </div>
         )}
       </div>
@@ -635,10 +637,21 @@ function ThreadConversation({
           {error}
         </div>
       )}
-      <form
-        onSubmit={handleSubmit}
-        className="flex items-center gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2.5"
-      >
+      {loginRequired ? (
+        <ChatLoginGate signInHref={signInHref} />
+      ) : (
+        <>
+          {previewMessagesLeft !== null && previewMessagesLeft <= 2 && (
+            <p className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-1.5 text-center text-[10px] text-[var(--color-ink-500)]">
+              {previewMessagesLeft === 1
+                ? "Last preview message — sign in after this to continue."
+                : `${previewMessagesLeft} preview messages left before sign-in.`}
+            </p>
+          )}
+          <form
+            onSubmit={handleSubmit}
+            className="flex items-center gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2.5"
+          >
         {attachmentsEnabled && (
           <>
             <input
@@ -677,156 +690,44 @@ function ThreadConversation({
         >
           <Send size={14} />
         </button>
-      </form>
+          </form>
+        </>
+      )}
     </>
   );
 }
 
-interface DayGroup {
-  day: string;
-  messages: ChatMessage[];
+
+interface SupportHintFooterProps {
+  assistantEnabled: boolean;
 }
 
-function groupByDay(messages: ChatMessage[]): DayGroup[] {
-  const groups: DayGroup[] = [];
-  let current: DayGroup | undefined;
-  for (const message of messages) {
-    const day = dayLabel(message.createdAt);
-    if (!current || current.day !== day) {
-      current = { day, messages: [] };
-      groups.push(current);
-    }
-    current.messages.push(message);
-  }
-  return groups;
-}
-
-function dayLabel(iso: string): string {
-  const messageDate = new Date(iso);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const sameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-  if (sameDay(messageDate, today)) return "Today";
-  if (sameDay(messageDate, yesterday)) return "Yesterday";
-  return messageDate.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function MessageBubble({ message }: { message: ChatMessage }) {
-  const isCustomer = message.author === "customer";
-  const attachments = message.attachments ?? [];
+function ChatLoginGate({ signInHref }: { signInHref: string }) {
   return (
-    <div
-      className={classNames(
-        "flex gap-2",
-        isCustomer ? "justify-end" : "justify-start",
-      )}
-    >
-      {!isCustomer && (
-        <span className="mt-1 grid size-7 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-700)] text-[11px] font-semibold text-white">
-          {(message.authorName ?? "T").charAt(0).toUpperCase()}
-        </span>
-      )}
-      <div
-        className={classNames(
-          "max-w-[78%] whitespace-pre-line rounded-[var(--radius-lg)] px-3.5 py-2.5 text-sm leading-relaxed shadow-[var(--shadow-sm)]",
-          isCustomer
-            ? "rounded-tr-sm bg-[var(--color-ink-900)] text-[var(--color-canvas)]"
-            : "rounded-tl-sm bg-[var(--color-surface)] text-[var(--color-ink-800)]",
-        )}
+    <div className="border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-4">
+      <p className="text-center text-sm font-medium text-[var(--color-ink-800)]">
+        Sign in to keep chatting
+      </p>
+      <p className="mt-1 text-center text-xs leading-relaxed text-[var(--color-ink-600)]">
+        You&apos;ve used your {CHAT_GUEST_MESSAGE_LIMIT} free preview messages. Sign in to
+        continue this conversation and get order updates.
+      </p>
+      <Link
+        href={signInHref}
+        className="mt-3 flex h-10 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent-700)] text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-800)]"
       >
-        {message.authorName && !isCustomer && (
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-ink-500)]">
-            {message.authorName}
-          </p>
-        )}
-        {attachments.length > 0 && (
-          <div className="mb-1.5 flex flex-col gap-1.5">
-            {attachments.map((attachment, index) => (
-              <AttachmentPreview
-                key={`${message.id}-att-${index}`}
-                attachment={attachment}
-              />
-            ))}
-          </div>
-        )}
-        <p>{message.body}</p>
-        <p
-          className={classNames(
-            "mt-1 text-[10px]",
-            isCustomer ? "text-white/60" : "text-[var(--color-ink-500)]",
-          )}
-        >
-          {new Date(message.createdAt).toLocaleTimeString(undefined, {
-            hour: "numeric",
-            minute: "2-digit",
-          })}
-        </p>
-      </div>
+        Sign in
+      </Link>
     </div>
   );
 }
 
-function AttachmentPreview({ attachment }: { attachment: ChatAttachment }) {
-  if (attachment.kind === "image") {
-    const thumb = attachment.image.variants.thumb || attachment.image.variants.card;
-    const full = attachment.image.variants.full || attachment.image.variants.detail;
-    return (
-      <a
-        href={full}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block max-w-[200px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)]"
-      >
-        <Image
-          src={thumb}
-          width={200}
-          height={200}
-          alt={attachment.image.alt ?? "Attached image"}
-          placeholder={attachment.image.blurDataURL ? "blur" : undefined}
-          blurDataURL={attachment.image.blurDataURL ?? undefined}
-          className="block h-auto w-full object-cover"
-          unoptimized
-        />
-      </a>
-    );
-  }
-  const sizeKb = Math.max(1, Math.round(attachment.sizeBytes / 1024));
+function SupportHintFooter({ assistantEnabled }: SupportHintFooterProps) {
   return (
-    <a
-      href={attachment.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-ink-800)] hover:bg-[var(--color-accent-50)]"
-    >
-      <Paperclip size={12} />
-      <span className="max-w-[160px] truncate">{attachment.filename}</span>
-      <span className="text-[10px] text-[var(--color-ink-500)]">
-        {sizeKb} KB
-      </span>
-    </a>
-  );
-}
-
-interface EscalationFooterProps {
-  whatsappNumber: string;
-}
-
-function EscalationFooter({ whatsappNumber }: EscalationFooterProps) {
-  return (
-    <a
-      href={buildWhatsAppLink("Salam!", whatsappNumber)}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-4 py-2.5 text-center text-xs text-[var(--color-ink-600)] transition-colors hover:bg-[var(--color-canvas)] hover:text-[var(--color-ink-900)]"
-    >
-      Prefer WhatsApp? <span className="font-semibold text-[var(--color-whatsapp-dark)]">Open chat →</span>
-    </a>
+    <p className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-4 py-2.5 text-center text-[11px] leading-relaxed text-[var(--color-ink-600)]">
+      {assistantEnabled
+        ? 'Need to speak with our team? Type "speak to someone" and we will join this chat.'
+        : "A teammate will reply here as soon as possible."}
+    </p>
   );
 }

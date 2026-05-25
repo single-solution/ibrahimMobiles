@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { AdminShell } from "@/components/AdminShell";
 import { CategoriesCatalog } from "@/components/categories/CategoriesCatalog";
 import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
+import { adminCatalogPageClass } from "@/components/workspace/adminWorkspaceUi";
 import {
   Attribute,
   Brand,
@@ -39,7 +40,7 @@ export default async function AdminCategoriesPage() {
   ]);
 
   return (
-    <AdminShell contentClassName="flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5 md:p-2">
+    <AdminShell contentClassName={adminCatalogPageClass}>
       <section className="flex min-h-0 flex-1 flex-col">
         <Suspense
           fallback={

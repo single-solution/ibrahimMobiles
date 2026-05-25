@@ -25,6 +25,7 @@ import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
 import { StatusPill } from "@/components/StatusPill";
 import { useToast } from "@/components/Toast";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { getInitials } from "@/lib/initials";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 import {
@@ -115,7 +116,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
   const [categoryQuery, setCategoryQuery] = useState("");
   const [productQuery, setProductQuery] = useState("");
   const [listFilter, setListFilter] = useState<ProductListFilter>("all");
-  // AUDIT:url-state-sync-race — docs/audit/url-state-sync-race.md
+  // URL sync uses pending refs + scheduleStateUpdate to avoid replace loops.
   const pendingCategorySlugRef = useRef<string | null>(null);
   const pendingProductQueryRef = useRef<string | null>(null);
   const pendingCategoryQueryRef = useRef<string | null>(null);
@@ -176,20 +177,22 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
   useEffect(() => {
     const productId = searchParams.get("product");
     const panel = searchParams.get("panel");
-    if (!productId) {
-      setEditId(null);
-      setVariantsId(null);
-      return;
-    }
-    if (panel === "edit") {
-      setEditId(productId);
-      setVariantsId(null);
-      return;
-    }
-    if (panel === "variants") {
-      setVariantsId(productId);
-      setEditId(null);
-    }
+    scheduleStateUpdate(() => {
+      if (!productId) {
+        setEditId(null);
+        setVariantsId(null);
+        return;
+      }
+      if (panel === "edit") {
+        setEditId(productId);
+        setVariantsId(null);
+        return;
+      }
+      if (panel === "variants") {
+        setVariantsId(productId);
+        setEditId(null);
+      }
+    });
   }, [searchParams]);
 
   useEffect(() => {
@@ -213,12 +216,14 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
   useEffect(() => {
     const deleteId = searchParams.get("delete");
     if (!syncAfterPendingUrl(pendingDeleteIdRef, deleteId)) return;
-    if (!deleteId) {
-      setDeleteTarget(null);
-      return;
-    }
-    const match = products.find((row) => row.id === deleteId);
-    setDeleteTarget(match ?? null);
+    scheduleStateUpdate(() => {
+      if (!deleteId) {
+        setDeleteTarget(null);
+        return;
+      }
+      const match = products.find((row) => row.id === deleteId);
+      setDeleteTarget(match ?? null);
+    });
   }, [searchParams, products]);
 
   const setProductQueryUrl = useCallback(
@@ -318,26 +323,28 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     const fromUrl = searchParams.get("category");
     const pending = pendingCategorySlugRef.current;
 
-    if (pending) {
-      if (fromUrl === pending) {
-        pendingCategorySlugRef.current = null;
-      } else {
+    scheduleStateUpdate(() => {
+      if (pending) {
+        if (fromUrl === pending) {
+          pendingCategorySlugRef.current = null;
+        } else {
+          return;
+        }
+      }
+
+      if (fromUrl && categoryNav.some((row) => row.category.slug === fromUrl)) {
+        setSelectedCategorySlug(fromUrl);
         return;
       }
-    }
-
-    if (fromUrl && categoryNav.some((row) => row.category.slug === fromUrl)) {
-      setSelectedCategorySlug(fromUrl);
-      return;
-    }
-    if (categoryNav.length === 0) {
-      setSelectedCategorySlug(null);
-      return;
-    }
-    const preferred =
-      categoryNav.find((row) => row.totalCount > 0) ?? categoryNav[0];
-    setSelectedCategorySlug(preferred.category.slug);
-    setCategoryUrl(preferred.category.slug);
+      if (categoryNav.length === 0) {
+        setSelectedCategorySlug(null);
+        return;
+      }
+      const preferred =
+        categoryNav.find((row) => row.totalCount > 0) ?? categoryNav[0];
+      setSelectedCategorySlug(preferred.category.slug);
+      setCategoryUrl(preferred.category.slug);
+    });
   }, [categoryNav, searchParams, setCategoryUrl]);
 
   const selectedNav = categoryNav.find(
@@ -357,7 +364,9 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       (row) => row.category.slug === selectedCategorySlug,
     );
     if (!stillVisible) {
-      selectCategory(filteredCategoryNav[0].category.slug);
+      scheduleStateUpdate(() => {
+        selectCategory(filteredCategoryNav[0].category.slug);
+      });
     }
   }, [categoryQuery, filteredCategoryNav, selectedCategorySlug, selectCategory]);
 
@@ -899,7 +908,9 @@ function ProductStorefrontToggle({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setIsActive(initialActive);
+    scheduleStateUpdate(() => {
+      setIsActive(initialActive);
+    });
   }, [initialActive, productId]);
 
   async function handleToggle() {

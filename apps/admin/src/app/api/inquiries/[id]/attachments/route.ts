@@ -55,7 +55,7 @@ function todayIsoDate(): string {
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
-  const { actor, response } = await requireSession("inquiry_manage");
+  const { actor, response } = await requireSession("inquiry_reply");
   if (response) return response;
 
   const { id } = await params;

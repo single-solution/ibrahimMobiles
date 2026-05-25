@@ -9,7 +9,7 @@ interface RouteContext {
 }
 
 export async function POST(_request: Request, { params }: RouteContext) {
-  const { response } = await requireSession("inquiry_manage");
+  const { response } = await requireSession("inquiry_view");
   if (response) return response;
 
   const { id } = await params;

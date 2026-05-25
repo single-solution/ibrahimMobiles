@@ -1,16 +1,15 @@
-import { AdminPageSkeleton } from "@/components/loading/AdminPageSkeleton";
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
-
-const INQUIRIES_COLUMN_COUNT = 6;
-const INQUIRIES_ROW_COUNT = 12;
+import { AdminShell } from "@/components/AdminShell";
+import { InquiriesInboxSkeleton } from "@/components/loading/InquiriesInboxSkeleton";
+import { SkeletonScreen } from "@/components/ui/Skeleton";
 
 export default function InquiriesLoading() {
   return (
-    <AdminPageSkeleton label="Loading inquiries">
-      <AdminTableSkeleton
-        columnCount={INQUIRIES_COLUMN_COUNT}
-        rowCount={INQUIRIES_ROW_COUNT}
-      />
-    </AdminPageSkeleton>
+    <SkeletonScreen label="Loading inquiries">
+      <AdminShell contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-1.5 md:p-2">
+        <section className="flex min-h-0 flex-1 flex-col">
+          <InquiriesInboxSkeleton />
+        </section>
+      </AdminShell>
+    </SkeletonScreen>
   );
 }

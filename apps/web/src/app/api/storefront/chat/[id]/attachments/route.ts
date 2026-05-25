@@ -21,12 +21,15 @@ import {
   logger,
   resolveStorageProvider,
   SHORT_BURST_WINDOW_MS,
+  guestChatLoginRequired,
 } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
+import { auth } from "@/lib/auth";
 import { inquiryStatusPatchAfterMessage } from "@store/shared";
 
 import { resolveChatAccess } from "@/lib/chat/access";
+import { claimAnonymousThreadIfNeeded } from "@/lib/chat/claimAnonymousThread";
 import { getChatSettings } from "@/lib/chat/chatSettings";
 import { toStorefrontThread, type InquiryLean } from "@/lib/chat/serializer";
 import {
@@ -71,9 +74,34 @@ export async function POST(request: Request, { params }: RouteContext) {
   const access = await resolveChatAccess(id);
   if (access instanceof Response) return access;
 
+  const session = await auth();
+  let inquiry = access.inquiry;
+  if (session?.user?.role === "customer" && session.user.customerId) {
+    inquiry = await claimAnonymousThreadIfNeeded(
+      inquiry,
+      session.user.customerId,
+    );
+  }
+
+  if (
+    guestChatLoginRequired({
+      customerId: inquiry.customerId?.toString(),
+      phoneNumber: inquiry.phoneNumber,
+      messages: inquiry.messages,
+    })
+  ) {
+    return NextResponse.json(
+      {
+        error: "Sign in to keep chatting — you've used your free preview messages.",
+        code: "login_required",
+      },
+      { status: 403 },
+    );
+  }
+
   const limited = enforcePublicRateLimit(request, {
     scope: "chat-attachment",
-    identifier: access.inquiry.phoneNumber,
+    identifier: inquiry.phoneNumber,
     max: MAX_PER_WINDOW,
     windowMs: SHORT_BURST_WINDOW_MS,
   });
@@ -130,7 +158,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const storage = resolveStorageProvider();
-    const keyPrefix = `chat/${access.inquiry._id.toString()}/${todayIsoDate()}`;
+    const keyPrefix = `chat/${inquiry._id.toString()}/${todayIsoDate()}`;
 
     const previewBody = accompanyingBody || (isImage ? "(image)" : `(${file.name})`);
     const now = new Date();
@@ -176,12 +204,12 @@ export async function POST(request: Request, { params }: RouteContext) {
 
     await connectDB();
     await Inquiry.updateOne(
-      { _id: access.inquiry._id },
+      { _id: inquiry._id },
       {
         $push: {
           messages: {
             author: "customer",
-            authorName: access.inquiry.customerName,
+            authorName: inquiry.customerName,
             body: accompanyingBody || (isImage ? "📷" : "📎"),
             attachments: [pushed.attachment],
             createdAt: now,
@@ -192,13 +220,13 @@ export async function POST(request: Request, { params }: RouteContext) {
           lastMessagePreview: previewBody.slice(0, 280),
           lastMessageAuthor: "customer",
           unreadByCustomer: 0,
-          ...inquiryStatusPatchAfterMessage(access.inquiry.status, "customer"),
+          ...inquiryStatusPatchAfterMessage(inquiry.status, "customer"),
         },
         $inc: { unreadByTeam: 1 },
       },
     );
 
-    const refreshed = await Inquiry.findById(access.inquiry._id).lean<InquiryLean>();
+    const refreshed = await Inquiry.findById(inquiry._id).lean<InquiryLean>();
     if (!refreshed) {
       return NextResponse.json(
         { error: "Thread vanished after upload." },

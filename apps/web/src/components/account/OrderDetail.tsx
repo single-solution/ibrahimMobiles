@@ -29,7 +29,6 @@ import {
   Truck,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { ButtonLink } from "@/components/ui/Button";
 
 import type {
   StorefrontOrder,
@@ -137,7 +136,7 @@ export function OrderDetail({ order }: OrderDetailProps) {
               totalRupees={order.totals.totalRupees}
             />
           )}
-          {!isCancelled && order.timeline.length > 0 && <TrackingPanel order={order} />}
+          {!isCancelled && order.timeline.length > 0 && <StatusTimelinePanel order={order} />}
           <ItemsCard order={order} />
           <SupportCard orderNumber={order.orderNumber} />
         </div>
@@ -155,7 +154,7 @@ export function OrderDetail({ order }: OrderDetailProps) {
   );
 }
 
-function TrackingPanel({ order }: { order: StorefrontOrder }) {
+function StatusTimelinePanel({ order }: { order: StorefrontOrder }) {
   return (
     <Card className="overflow-hidden">
       <p className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-4 py-3 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)] md:px-5">
@@ -340,18 +339,6 @@ function SummaryCard({ order, paymentLabel }: { order: StorefrontOrder; paymentL
           </div>
         )}
       </dl>
-      {order.status === "pending-payment" && (
-        <div className="border-t border-[var(--color-ink-100)] p-4 md:p-5">
-          <ButtonLink
-            href={`/track?orderNumber=${encodeURIComponent(order.orderNumber)}`}
-            variant="primary"
-            size="sm"
-            className="w-full cta-arrow"
-          >
-            Confirm payment via WhatsApp
-          </ButtonLink>
-        </div>
-      )}
     </Card>
   );
 }

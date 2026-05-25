@@ -8,6 +8,7 @@ import { AdminTopHeader } from "@/components/AdminTopHeader";
 import { AdminFooter } from "@/components/AdminFooter";
 import { AdminMobileTopBar } from "@/components/AdminMobileTopBar";
 import { AdminMobileMenu } from "@/components/AdminMobileMenu";
+import { AdminPermissionsProvider } from "@/lib/adminPermissionsContext";
 
 interface AdminShellProps {
   children: ReactNode;
@@ -30,12 +31,8 @@ export function AdminShell({ children, contentClassName }: AdminShellProps) {
     }
   }, [status, pathname, router]);
 
-  // Close the mobile menu whenever the visitor navigates. This is a
-  // "command on prop change" — the canonical React 19 escape hatch is
-  // `useEffectEvent`, which is still experimental, so we use a plain effect
-  // and silence the rule with an explicit reason.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation-driven UI reset; see React docs on closing UI on route change
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation-driven UI reset
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
@@ -50,41 +47,43 @@ export function AdminShell({ children, contentClassName }: AdminShellProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[var(--color-canvas-deep)] md:h-screen md:gap-2 md:overflow-hidden md:p-2">
-      <div className="md:hidden">
-        <AdminMobileTopBar onOpenMenu={() => setIsMobileMenuOpen(true)} />
-      </div>
-
-      <AdminTopHeader
-        isCollapsed={isCollapsed}
-        onToggleCollapsed={() => setIsCollapsed((current) => !current)}
-      />
-
-      <div className="flex min-h-0 flex-1 md:gap-2">
-        <div className="hidden md:flex">
-          <Sidebar isCollapsed={isCollapsed} />
+    <AdminPermissionsProvider>
+      <div className="flex min-h-screen flex-col bg-[var(--color-canvas-deep)] md:h-screen md:gap-2 md:overflow-hidden md:p-2">
+        <div className="md:hidden">
+          <AdminMobileTopBar onOpenMenu={() => setIsMobileMenuOpen(true)} />
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col md:gap-2">
-          <main className="flex flex-1 flex-col overflow-hidden md:rounded-[var(--radius-lg)] md:border md:border-[var(--color-ink-100)] md:bg-[var(--color-surface)] md:shadow-[var(--shadow-sm)]">
-            <div
-              className={
-                contentClassName ??
-                "flex-1 overflow-y-auto px-3 py-2 md:px-4 md:py-3"
-              }
-            >
-              {children}
-            </div>
-          </main>
+        <AdminTopHeader
+          isCollapsed={isCollapsed}
+          onToggleCollapsed={() => setIsCollapsed((current) => !current)}
+        />
 
-          <AdminFooter />
+        <div className="flex min-h-0 flex-1 md:gap-2">
+          <div className="hidden md:flex">
+            <Sidebar isCollapsed={isCollapsed} />
+          </div>
+
+          <div className="flex min-w-0 flex-1 flex-col md:gap-2">
+            <main className="flex flex-1 flex-col overflow-hidden md:rounded-[var(--radius-lg)] md:border md:border-[var(--color-ink-100)] md:bg-[var(--color-surface)] md:shadow-[var(--shadow-sm)]">
+              <div
+                className={
+                  contentClassName ??
+                  "flex-1 overflow-y-auto px-3 py-2 md:px-4 md:py-3"
+                }
+              >
+                {children}
+              </div>
+            </main>
+
+            <AdminFooter />
+          </div>
         </div>
-      </div>
 
-      <AdminMobileMenu
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-      />
-    </div>
+        <AdminMobileMenu
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+        />
+      </div>
+    </AdminPermissionsProvider>
   );
 }

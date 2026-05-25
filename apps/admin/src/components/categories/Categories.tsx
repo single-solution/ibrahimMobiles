@@ -23,7 +23,6 @@ import {
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
 import { useToast } from "@/components/Toast";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { Skeleton } from "@/components/ui/Skeleton";
 import type {
   AdminAttribute,
   AdminBrand,
@@ -784,23 +783,5 @@ function CardIconButton({
     >
       {icon}
     </button>
-  );
-}
-
-export function CategoriesLoadingPlaceholder() {
-  return (
-    <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
-      {[0, 1].map((i) => (
-        <div
-          key={i}
-          className="flex flex-col gap-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4"
-        >
-          <Skeleton shape="text" className="h-6 w-1/3" />
-          <Skeleton shape="text" className="h-4 w-2/3" />
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-16 w-full" />
-        </div>
-      ))}
-    </div>
   );
 }

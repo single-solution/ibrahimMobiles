@@ -168,13 +168,6 @@ export function CheckoutSuccess({
           >
             View order details
           </ButtonLink>
-          <ButtonLink
-            href={`/track?orderNumber=${encodeURIComponent(orderNumber)}`}
-            variant="outline"
-            size="md"
-          >
-            Track this order
-          </ButtonLink>
           <ButtonLink href="/shop" variant="outline" size="md">
             Keep shopping
           </ButtonLink>

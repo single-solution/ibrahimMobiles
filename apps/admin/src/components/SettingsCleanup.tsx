@@ -54,7 +54,7 @@ const CLEANUP_TARGETS: ReadonlyArray<CleanupTargetConfig> = [
     id: "inquiries",
     title: "Delete all inquiries",
     description:
-      "Permanently removes every inquiry, customer chat, callback request, and the notes attached to them.",
+      "Permanently removes every inquiry and the notes attached to them.",
     confirmationPhrase: "DELETE ALL INQUIRIES",
   },
   {

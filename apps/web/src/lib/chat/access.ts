@@ -20,9 +20,10 @@ import { cookies } from "next/headers";
 import type { Types } from "mongoose";
 
 import { Inquiry, connectDB } from "@store/db";
-import { badRequest, forbidden, isValidId, notFound, verifyGuestToken } from "@store/shared";
+import { badRequest, forbidden, isAnonymousChatPhone, isValidId, notFound, verifyGuestToken } from "@store/shared";
 
 import { auth } from "@/lib/auth";
+import { claimAnonymousThreadIfNeeded } from "@/lib/chat/claimAnonymousThread";
 import type { InquiryLean } from "./serializer";
 
 const COOKIE_NAME = "inquiry_thread_token";
@@ -68,7 +69,24 @@ export async function resolveChatAccess(
     payload.inquiryIds.includes(doc._id.toString()) &&
     payload.phoneNumber === doc.phoneNumber
   ) {
-    return { inquiry: doc, via: "guest" };
+    let inquiry = doc;
+    if (
+      session?.user?.role === "customer" &&
+      session.user.customerId &&
+      isAnonymousChatPhone(doc.phoneNumber)
+    ) {
+      inquiry = await claimAnonymousThreadIfNeeded(doc, session.user.customerId);
+    }
+    return {
+      inquiry,
+      via:
+        inquiry.customerId &&
+        session?.user?.customerId &&
+        inquiry.customerId.toString() === session.user.customerId
+          ? "customer"
+          : "guest",
+      customerId: inquiry.customerId,
+    };
   }
 
   return forbidden("You don't have access to this thread.");

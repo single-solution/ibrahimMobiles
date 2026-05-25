@@ -7,8 +7,7 @@ const PRODUCT_ROW_COUNT = 12;
 /**
  * Mirrors `app/products/page.tsx` exactly:
  *
- *   Compact add-product action
- *   ↳ ProductsTable
+ *   ↳ ProductsCatalog workspace
  */
 export default function ProductsLoading() {
   return (

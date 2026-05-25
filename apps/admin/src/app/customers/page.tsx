@@ -2,20 +2,19 @@ import type { Types } from "mongoose";
 import { Suspense } from "react";
 
 import { AdminShell } from "@/components/AdminShell";
-import { PageTitle } from "@/components/PageTitle";
-import { Customers } from "@/components/Customers";
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
-import { connectDB, Customer, Order } from "@store/db";
+import { CustomersCatalog } from "@/components/customers/CustomersCatalog";
+import { SalesWorkspaceSkeleton } from "@/components/loading/SalesWorkspaceSkeleton";
+import { adminWorkspacePageClass } from "@/components/workspace/adminWorkspaceUi";
+import { connectDB, Customer, LoyaltyAccount, Order } from "@store/db";
 
 import { requirePageSession } from "@/lib/server/requirePageSession";
 import { toCustomerResponse, type CustomerLean } from "@/lib/serializers/customer";
 import type { AdminCustomerSummary } from "@/types/admin";
+import { LOYALTY_POINT_TO_RUPEE } from "@store/shared";
 
 export const dynamic = "force-dynamic";
 
 const RECENT_CUSTOMERS_LIMIT = 500;
-const CUSTOMERS_COLUMN_COUNT = 7;
-const CUSTOMERS_ROW_COUNT = 12;
 
 interface OrderStatsRow {
   _id: Types.ObjectId;
@@ -28,21 +27,9 @@ export default async function AdminCustomersPage() {
   await requirePageSession("/customers");
 
   return (
-    <AdminShell>
-      <PageTitle
-        eyebrow="Sales"
-        title="Customers"
-        description="Buyers and walk-in inquiries that you've added or that have placed an order."
-      />
-      <section>
-        <Suspense
-          fallback={
-            <AdminTableSkeleton
-              columnCount={CUSTOMERS_COLUMN_COUNT}
-              rowCount={CUSTOMERS_ROW_COUNT}
-            />
-          }
-        >
+    <AdminShell contentClassName={adminWorkspacePageClass}>
+      <section className="flex min-h-0 flex-1 flex-col">
+        <Suspense fallback={<SalesWorkspaceSkeleton />}>
           <CustomersData />
         </Suspense>
       </section>
@@ -78,6 +65,22 @@ async function CustomersData() {
     ]),
   );
 
+  const loyaltyDocs = await LoyaltyAccount.find({
+    customerId: { $in: docs.map((customer) => customer._id) },
+  })
+    .select({ customerId: 1, balance: 1, lifetimeEarned: 1 })
+    .lean<Array<{ customerId: Types.ObjectId; balance: number; lifetimeEarned: number }>>();
+
+  const loyaltyByCustomerId = new Map(
+    loyaltyDocs.map((account) => [
+      account.customerId.toString(),
+      {
+        balance: account.balance ?? 0,
+        lifetimeEarned: account.lifetimeEarned ?? 0,
+      },
+    ]),
+  );
+
   const customers: AdminCustomerSummary[] = docs.map((customer) => {
     const stat = statsMap.get(customer._id.toString()) ?? {
       orderCount: 0,
@@ -85,6 +88,7 @@ async function CustomersData() {
       lastOrderAt: undefined,
     };
     const full = toCustomerResponse(customer, stat);
+    const loyalty = loyaltyByCustomerId.get(customer._id.toString());
     return {
       id: full.id,
       name: full.name,
@@ -92,6 +96,8 @@ async function CustomersData() {
       phoneNumber: full.phoneNumber,
       city: full.city,
       isLoyaltyMember: full.isLoyaltyMember,
+      loyaltyBalance: loyalty?.balance ?? 0,
+      loyaltyLifetimeEarned: loyalty?.lifetimeEarned ?? 0,
       orderCount: full.orderCount,
       lifetimeSpendRupees: full.lifetimeSpendRupees,
       lastOrderAt: full.lastOrderAt,
@@ -100,5 +106,10 @@ async function CustomersData() {
     };
   });
 
-  return <Customers customers={customers} />;
+  return (
+    <CustomersCatalog
+      customers={customers}
+      programmeRupeesPerPoint={LOYALTY_POINT_TO_RUPEE}
+    />
+  );
 }

@@ -9,6 +9,8 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
+
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { Award } from "lucide-react";
 
 import {
@@ -458,7 +460,9 @@ function useSlideCycle(slideCount: number, cycleKey: string, enabled: boolean) {
     enabled && !prefersReducedMotion && slideCount > 1 && !paused;
 
   useEffect(() => {
-    setIndex(0);
+    scheduleStateUpdate(() => {
+      setIndex(0);
+    });
   }, [slideCount, cycleKey]);
 
   useEffect(() => {
@@ -690,7 +694,9 @@ function GroupedAttributeChipRow({
   );
 
   useLayoutEffect(() => {
-    setLayout(createFullChipRowLayout(segments));
+    scheduleStateUpdate(() => {
+      setLayout(createFullChipRowLayout(segments));
+    });
   }, [segments]);
 
   useLayoutEffect(() => {

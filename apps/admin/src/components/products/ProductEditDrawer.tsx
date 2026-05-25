@@ -6,6 +6,7 @@ import { Drawer } from "@/components/Drawer";
 import { CatalogSeoPanel } from "@/components/seo/CatalogSeoPanel";
 import { useToast } from "@/components/Toast";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 import type { SeoMeta } from "@store/shared";
 import type { AdminProduct } from "@/types/admin";
@@ -52,7 +53,9 @@ export function ProductEditDrawer({
       return;
     }
     let cancelled = false;
-    setLoading(true);
+    scheduleStateUpdate(() => {
+      setLoading(true);
+    });
     adminFetch<AdminProduct>(`/api/products/${productId}`)
       .then((loaded) => {
         if (cancelled) return;

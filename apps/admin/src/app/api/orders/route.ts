@@ -1,6 +1,6 @@
 import { requireSession } from "@/lib/api/requireSession";
 import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
-import { ok } from "@store/shared";
+import { ok, isValidId } from "@store/shared";
 import { summariseOrder, type OrderLean } from "@/lib/serializers/order";
 import type { AdminOrderSummary } from "@/types/admin";
 import {
@@ -22,8 +22,12 @@ export async function GET(request: Request) {
   const { page, limit, skip, search, searchPattern } = readListOptions(request);
   const url = new URL(request.url);
   const statusFilter = url.searchParams.get("status");
+  const customerId = url.searchParams.get("customerId");
 
   const filter: Record<string, unknown> = {};
+  if (customerId && isValidId(customerId)) {
+    filter.customerId = customerId;
+  }
   if (search) {
     filter.$or = [
       { orderNumber: { $regex: searchPattern, $options: "i" } },

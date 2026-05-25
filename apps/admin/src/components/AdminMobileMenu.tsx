@@ -5,7 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { ChevronRight, ExternalLink, LogOut, ShoppingBag } from "lucide-react";
 import { Flyout } from "@/components/ui/Flyout";
-import { SIDEBAR_SECTIONS } from "@/components/Sidebar";
+import { SIDEBAR_SECTIONS, isNavItemVisible } from "@/components/Sidebar";
+import { useAdminPermissions } from "@/lib/adminPermissionsContext";
 import { classNames } from "@store/shared";
 
 import { formatRole, getInitials } from "@/lib/initials";
@@ -22,6 +23,7 @@ export function AdminMobileMenu({ isOpen, onClose }: AdminMobileMenuProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const { siteName } = useStoreSettings();
+  const { can, isLoading } = useAdminPermissions();
   const user = session?.user;
   const brandShort = siteName.split(" ")[0];
   const storefrontUrl = getPublicSiteUrl();
@@ -58,7 +60,7 @@ export function AdminMobileMenu({ isOpen, onClose }: AdminMobileMenuProps) {
               {section.title}
             </p>
             <ul className="space-y-0.5">
-              {section.items.map((link) => {
+              {section.items.filter((link) => isNavItemVisible(link.href, can, isLoading)).map((link) => {
                 const isActive = link.exact
                   ? pathname === link.href
                   : pathname === link.href || pathname.startsWith(`${link.href}/`);

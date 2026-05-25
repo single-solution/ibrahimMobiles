@@ -16,7 +16,7 @@ export const CHAT_STATUSES = [
 ] as const;
 export type ChatStatus = (typeof CHAT_STATUSES)[number];
 
-export const CHAT_MESSAGE_AUTHORS = ["customer", "agent"] as const;
+export const CHAT_MESSAGE_AUTHORS = ["customer", "agent", "assistant"] as const;
 export type ChatMessageAuthor = (typeof CHAT_MESSAGE_AUTHORS)[number];
 
 export interface ChatImageAttachment {

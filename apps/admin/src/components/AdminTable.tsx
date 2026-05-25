@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { classNames } from "@store/shared";
+import { WorkspaceSearchField } from "@/components/workspace/adminWorkspaceUi";
 
 type SortDirection = "asc" | "desc";
 type SortableValue = string | number;
@@ -122,29 +123,21 @@ export function AdminTable<TRow>({
     setPageIndex((current) => Math.min(totalPages - 1, current + 1));
   }
 
-  function handleSearchChange(event: React.ChangeEvent<HTMLInputElement>) {
-    setQuery(event.target.value);
-    setPageIndex(0);
-  }
-
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
       {(searchAccessor || toolbar) && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-3 py-3 sm:px-5 sm:py-3.5">
           {searchAccessor ? (
-            <label className="relative flex h-9 max-w-xs flex-1 items-center">
-              <Search
-                size={14}
-                className="pointer-events-none absolute left-2.5 text-[var(--color-ink-400)]"
-              />
-              <input
-                type="search"
-                value={query}
-                onChange={handleSearchChange}
-                placeholder={searchPlaceholder ?? "Search…"}
-                className="h-full w-full rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] pl-8 pr-3 text-sm text-[var(--color-ink-900)] placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-100)]"
-              />
-            </label>
+            <WorkspaceSearchField
+              value={query}
+              onChange={(value) => {
+                setQuery(value);
+                setPageIndex(0);
+              }}
+              placeholder={searchPlaceholder ?? "Search…"}
+              aria-label={searchPlaceholder ?? "Search table"}
+              className="h-9 max-w-xs flex-1"
+            />
           ) : (
             <span />
           )}

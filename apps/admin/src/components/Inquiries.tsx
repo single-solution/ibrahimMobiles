@@ -10,17 +10,17 @@ import {
   type FormEvent,
 } from "react";
 import { useRouter } from "next/navigation";
-import { Paperclip, Phone, Send } from "lucide-react";
+import { ArrowLeft, Paperclip, MessageSquare, Phone, Send } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { AdminTable, type AdminTableColumn } from "@/components/AdminTable";
-import { Drawer } from "@/components/Drawer";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { StatusPill, type StatusTone } from "@/components/StatusPill";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextArea } from "@/components/forms/TextArea";
 import { useToast } from "@/components/Toast";
+import { CatalogSearchField } from "@/components/catalog/catalogWorkspaceUi";
 import { adminFetch } from "@/lib/adminApi";
 import { getInitials } from "@/lib/initials";
-import { classNames, createChatTransport } from "@store/shared";
+import { classNames, createChatTransport, formatTimeAgo } from "@store/shared";
 
 const INQUIRY_POLL_FOCUSED_MS = 5_000;
 const INQUIRY_POLL_BLURRED_MS = 30_000;
@@ -30,16 +30,14 @@ import type {
   AdminInquiryMessage,
   AdminInquiryStatus,
   AdminInquirySummary,
+  AdminUser,
 } from "@/types/admin";
+import type { InquiriesPageAccess } from "@/app/inquiries/page";
+import type { PermissionKey } from "@/lib/permissionsCatalog";
 
 /**
- * Threaded-chat inquiries (PLAN §12).
- *
- * The full chat UI (send messages, attachments, polling/WebSocket
- * transport) lands in Phase 8 — see PHASE 8 "Chat plugin". This list
- * + drawer surface the metadata an admin needs to triage threads today:
- * status, assignee, customer / subject / last message preview, and the
- * full message log (read-only for now).
+ * Admin inquiries inbox — list, read, reply, assign, and resolve customer inquiries.
+ * Actions are gated by role permissions (`inquiry_view`, `inquiry_reply`, `inquiry_manage`).
  */
 
 const STATUS_TONE: Record<AdminInquiryStatus, StatusTone> = {
@@ -62,9 +60,8 @@ const STATUS_OPTIONS: readonly AdminInquiryStatus[] = [
 
 interface InquiriesProps {
   inquiries: AdminInquirySummary[];
+  access: InquiriesPageAccess;
 }
-
-type InboxFilter = "all" | "mine" | "unassigned";
 
 interface InquiryListResponse {
   items: AdminInquirySummary[];
@@ -73,14 +70,26 @@ interface InquiryListResponse {
   limit: number;
 }
 
-export function Inquiries({ inquiries }: InquiriesProps) {
+interface TeamListResponse {
+  items: AdminUser[];
+}
+
+function accessFlags(permissions: PermissionKey[]) {
+  const set = new Set(permissions);
+  return {
+    canReply: set.has("inquiry_reply"),
+    canManage: set.has("inquiry_manage"),
+    canViewTeam: set.has("team_view"),
+  };
+}
+
+export function Inquiries({ inquiries, access }: InquiriesProps) {
   const router = useRouter();
   const toast = useToast();
-  const [inboxFilter, setInboxFilter] = useState<InboxFilter>("all");
+  const flags = accessFlags(access.permissions);
+  const [searchQuery, setSearchQuery] = useState("");
   const [remoteInquiries, setRemoteInquiries] = useState(inquiries);
-  const [statusFilter, setStatusFilter] = useState<"all" | AdminInquiryStatus>(
-    "all",
-  );
+  const [teamById, setTeamById] = useState<Map<string, string>>(new Map());
   const [activeInquiryId, setActiveInquiryId] = useState<string | null>(null);
 
   const handleInquiryRead = useCallback((id: string) => {
@@ -95,12 +104,8 @@ export function Inquiries({ inquiries }: InquiriesProps) {
     let cancelled = false;
     async function load() {
       try {
-        const params = new URLSearchParams({ limit: "200" });
-        if (inboxFilter !== "all") {
-          params.set("filter", inboxFilter);
-        }
         const data = await adminFetch<InquiryListResponse>(
-          `/api/inquiries?${params.toString()}`,
+          "/api/inquiries?limit=200",
         );
         if (!cancelled) {
           setRemoteInquiries(data.items);
@@ -117,182 +122,295 @@ export function Inquiries({ inquiries }: InquiriesProps) {
     return () => {
       cancelled = true;
     };
-  }, [inboxFilter, toast]);
+  }, [toast]);
+
+  useEffect(() => {
+    if (!flags.canManage && !flags.canViewTeam) {
+      return;
+    }
+    let cancelled = false;
+    async function loadTeam() {
+      try {
+        const data = await adminFetch<TeamListResponse>("/api/team?limit=200");
+        if (cancelled) return;
+        setTeamById(new Map(data.items.map((member) => [member.id, member.name])));
+      } catch {
+        // ignore — assignee names fall back to "Assigned"
+      }
+    }
+    void loadTeam();
+    return () => {
+      cancelled = true;
+    };
+  }, [flags.canManage, flags.canViewTeam]);
+
+  function assigneeLabel(userId?: string): string {
+    if (!userId) return "Unassigned";
+    return teamById.get(userId) ?? "Assigned";
+  }
 
   const filteredInquiries = useMemo(() => {
-    if (statusFilter === "all") {
+    const query = searchQuery.trim().toLowerCase();
+    if (query.length === 0) {
       return remoteInquiries;
     }
-    return remoteInquiries.filter((inquiry) => inquiry.status === statusFilter);
-  }, [remoteInquiries, statusFilter]);
+    return remoteInquiries.filter((inquiry) =>
+      `${inquiry.customerName} ${inquiry.phoneNumber} ${
+        inquiry.subjectProductName ?? ""
+      } ${inquiry.lastMessagePreview}`
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [remoteInquiries, searchQuery]);
 
-  const counts = useMemo(() => {
-    const map = new Map<string, number>();
-    map.set("all", remoteInquiries.length);
-    for (const status of STATUS_OPTIONS) {
-      map.set(
-        status,
-        remoteInquiries.filter((inquiry) => inquiry.status === status).length,
-      );
-    }
-    return map;
-  }, [remoteInquiries]);
+  const refreshInquiryInList = useCallback((updated: AdminInquirySummary) => {
+    setRemoteInquiries((current) =>
+      current.map((row) => (row.id === updated.id ? { ...row, ...updated } : row)),
+    );
+  }, []);
 
-  const columns: AdminTableColumn<AdminInquirySummary>[] = [
-    {
-      id: "customer",
-      header: "Customer",
-      cell: (inquiry) => (
-        <div className="flex items-center gap-3">
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
-            {getInitials(inquiry.customerName)}
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-[var(--color-ink-900)]">
-              {inquiry.customerName}
-            </p>
-            <p className="truncate text-[11px] text-[var(--color-ink-500)]">
-              {inquiry.phoneNumber}
-            </p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "subject",
-      header: "Subject",
-      hideOnMobile: true,
-      cell: (inquiry) => (
-        <p className="text-sm font-semibold text-[var(--color-ink-900)]">
-          {inquiry.subjectProductName ?? "Store inquiry"}
-        </p>
-      ),
-    },
-    {
-      id: "lastMessage",
-      header: "Last message",
-      hideOnMobile: true,
-      cell: (inquiry) => (
-        <div className="max-w-[36ch]">
-          <p className="truncate text-xs text-[var(--color-ink-700)]">
-            {inquiry.lastMessagePreview}
-          </p>
-          <p className="text-[11px] text-[var(--color-ink-500)]">
-            {new Date(inquiry.lastMessageAt).toLocaleString()}
-          </p>
-        </div>
-      ),
-    },
-    {
-      id: "unread",
-      header: "Unread",
-      align: "right",
-      cell: (inquiry) =>
-        inquiry.unreadByTeam > 0 ? (
-          <StatusPill tone="danger">{inquiry.unreadByTeam}</StatusPill>
-        ) : (
-          <span className="text-xs text-[var(--color-ink-400)]">0</span>
-        ),
-    },
-    {
-      id: "status",
-      header: "Status",
-      cell: (inquiry) => (
-        <StatusPill tone={STATUS_TONE[inquiry.status]}>
-          {STATUS_LABELS[inquiry.status]}
-        </StatusPill>
-      ),
-    },
-  ];
+  useEffect(() => {
+    scheduleStateUpdate(() => {
+      if (filteredInquiries.length === 0) {
+        setActiveInquiryId(null);
+        return;
+      }
+      const activeStillVisible =
+        activeInquiryId !== null &&
+        filteredInquiries.some((inquiry) => inquiry.id === activeInquiryId);
+      if (activeStillVisible) {
+        return;
+      }
+      const preferDesktop =
+        typeof window !== "undefined" &&
+        window.matchMedia("(min-width: 1024px)").matches;
+      if (preferDesktop) {
+        setActiveInquiryId(filteredInquiries[0].id);
+      } else {
+        setActiveInquiryId(null);
+      }
+    });
+  }, [activeInquiryId, filteredInquiries]);
 
   return (
-    <>
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        <FilterChip
-          label="Inbox"
-          count={remoteInquiries.length}
-          isActive={inboxFilter === "all"}
-          onClick={() => setInboxFilter("all")}
+    <div className="flex min-h-[min(72vh,680px)] flex-1 flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <ThreadListPane
+          inquiries={filteredInquiries}
+          activeId={activeInquiryId}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSelect={(id) => setActiveInquiryId(id)}
+          assigneeLabel={assigneeLabel}
+          hiddenOnMobile={Boolean(activeInquiryId)}
         />
-        <FilterChip
-          label="Mine"
-          count={inboxFilter === "mine" ? remoteInquiries.length : 0}
-          isActive={inboxFilter === "mine"}
-          onClick={() => setInboxFilter("mine")}
-        />
-        <FilterChip
-          label="Unassigned"
-          count={inboxFilter === "unassigned" ? remoteInquiries.length : 0}
-          isActive={inboxFilter === "unassigned"}
-          onClick={() => setInboxFilter("unassigned")}
-        />
+
+        <section
+          className={classNames(
+            "flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--color-canvas)]",
+            !activeInquiryId && "hidden lg:flex",
+          )}
+        >
+          {activeInquiryId ? (
+            <InquiryConversationPanel
+              inquiryId={activeInquiryId}
+              actorId={access.actorId}
+              actorName={access.actorName}
+              canReply={flags.canReply}
+              canManage={flags.canManage}
+              teamMembers={
+                flags.canManage && flags.canViewTeam
+                  ? [...teamById.entries()].map(([id, name]) => ({ id, name }))
+                  : []
+              }
+              assigneeLabel={assigneeLabel}
+              onBack={() => setActiveInquiryId(null)}
+              onRead={handleInquiryRead}
+              onThreadUpdated={refreshInquiryInList}
+              onDeleted={() => {
+                setActiveInquiryId(null);
+                router.refresh();
+              }}
+              onCallTapped={(phoneNumber) => {
+                window.location.href = `tel:${phoneNumber.replace(/\s+/g, "")}`;
+              }}
+            />
+          ) : (
+            <ConversationPlaceholder />
+          )}
+        </section>
       </div>
-
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        <FilterChip
-          label="All"
-          count={counts.get("all") ?? 0}
-          isActive={statusFilter === "all"}
-          onClick={() => setStatusFilter("all")}
-        />
-        {STATUS_OPTIONS.map((status) => (
-          <FilterChip
-            key={status}
-            label={STATUS_LABELS[status]}
-            count={counts.get(status) ?? 0}
-            isActive={statusFilter === status}
-            onClick={() => setStatusFilter(status)}
-          />
-        ))}
-      </div>
-
-      <AdminTable
-        rows={filteredInquiries}
-        columns={columns}
-        rowKey={(inquiry) => inquiry.id}
-        searchAccessor={(inquiry) =>
-          `${inquiry.customerName} ${inquiry.phoneNumber} ${
-            inquiry.subjectProductName ?? ""
-          } ${inquiry.lastMessagePreview}`
-        }
-        searchPlaceholder="Search inquiries…"
-        onRowClick={(inquiry) => setActiveInquiryId(inquiry.id)}
-      />
-
-      {activeInquiryId ? (
-        <InquiryDrawer
-          inquiryId={activeInquiryId}
-          onClose={() => setActiveInquiryId(null)}
-          onRead={handleInquiryRead}
-          onSaved={() => {
-            setActiveInquiryId(null);
-            router.refresh();
-          }}
-          onCallTapped={(phoneNumber) => toast.info(`Calling ${phoneNumber}`)}
-        />
-      ) : null}
-    </>
+    </div>
   );
 }
 
-interface InquiryDrawerProps {
+interface ThreadListPaneProps {
+  inquiries: AdminInquirySummary[];
+  activeId: string | null;
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+  onSelect: (id: string) => void;
+  assigneeLabel: (userId?: string) => string;
+  hiddenOnMobile: boolean;
+}
+
+function ThreadListPane({
+  inquiries,
+  activeId,
+  searchQuery,
+  onSearchChange,
+  onSelect,
+  assigneeLabel,
+  hiddenOnMobile,
+}: ThreadListPaneProps) {
+  return (
+    <aside
+      className={classNames(
+        "flex w-full shrink-0 flex-col border-b border-[var(--color-ink-100)] bg-[var(--color-surface)] lg:w-[min(340px,38%)] lg:max-w-sm lg:border-b-0 lg:border-r",
+        hiddenOnMobile && "hidden lg:flex",
+      )}
+    >
+      <header className="shrink-0 space-y-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <MessageSquare size={15} className="shrink-0 text-[var(--color-accent-700)]" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-semibold text-[var(--color-ink-900)]">Inquiries</h2>
+            <p className="text-[10px] text-[var(--color-ink-500)]">
+              {inquiries.length} conversation{inquiries.length === 1 ? "" : "s"}
+            </p>
+          </div>
+        </div>
+        <CatalogSearchField
+          value={searchQuery}
+          onChange={onSearchChange}
+          placeholder="Search conversations…"
+          aria-label="Search conversations"
+          className="w-full"
+        />
+      </header>
+
+      <ul className="min-h-0 flex-1 overflow-y-auto">
+        {inquiries.length === 0 ? (
+          <li className="px-4 py-8 text-center text-xs text-[var(--color-ink-500)]">
+            {searchQuery.trim()
+              ? "No conversations match your search."
+              : "No conversations yet."}
+          </li>
+        ) : (
+          inquiries.map((inquiry) => (
+            <li key={inquiry.id}>
+              <ThreadListItem
+                inquiry={inquiry}
+                isActive={inquiry.id === activeId}
+                assigneeLabel={assigneeLabel}
+                onSelect={() => onSelect(inquiry.id)}
+              />
+            </li>
+          ))
+        )}
+      </ul>
+    </aside>
+  );
+}
+
+function ThreadListItem({
+  inquiry,
+  isActive,
+  assigneeLabel,
+  onSelect,
+}: {
+  inquiry: AdminInquirySummary;
+  isActive: boolean;
+  assigneeLabel: (userId?: string) => string;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={classNames(
+        "tap flex w-full gap-3 border-b border-[var(--color-ink-100)] px-3 py-3 text-left transition-colors",
+        isActive ? "bg-[var(--color-accent-50)]" : "hover:bg-[var(--color-canvas-deep)]",
+      )}
+    >
+      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
+        {getInitials(inquiry.customerName)}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-start justify-between gap-2">
+          <span className="truncate text-sm font-semibold text-[var(--color-ink-900)]">
+            {inquiry.customerName}
+          </span>
+          <span className="shrink-0 text-[10px] tabular-nums text-[var(--color-ink-400)]">
+            {formatTimeAgo(inquiry.lastMessageAt)}
+          </span>
+        </span>
+        <span className="mt-0.5 block truncate text-xs text-[var(--color-ink-600)]">
+          {inquiry.lastMessagePreview || "No messages yet"}
+        </span>
+        <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <StatusPill tone={STATUS_TONE[inquiry.status]}>{STATUS_LABELS[inquiry.status]}</StatusPill>
+          <span className="text-[10px] text-[var(--color-ink-500)]">
+            {assigneeLabel(inquiry.assignedToUserId)}
+          </span>
+          {inquiry.unreadByTeam > 0 ? (
+            <span className="rounded-full bg-[var(--color-danger-600)] px-1.5 py-0.5 text-[9px] font-semibold text-white">
+              {inquiry.unreadByTeam}
+            </span>
+          ) : null}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+function ConversationPlaceholder() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
+      <span className="grid size-14 place-items-center rounded-full bg-[var(--color-accent-50)] text-[var(--color-accent-700)]">
+        <MessageSquare size={24} />
+      </span>
+      <p className="mt-4 text-sm font-semibold text-[var(--color-ink-900)]">Select a conversation</p>
+      <p className="mt-1 max-w-xs text-xs leading-relaxed text-[var(--color-ink-500)]">
+        Choose a thread on the left to read messages and reply to customers.
+      </p>
+    </div>
+  );
+}
+
+interface InquiryConversationPanelProps {
   inquiryId: string;
-  onClose: () => void;
+  actorId: string;
+  actorName: string;
+  canReply: boolean;
+  canManage: boolean;
+  teamMembers: Array<{ id: string; name: string }>;
+  assigneeLabel: (userId?: string) => string;
+  onBack: () => void;
   onRead: (id: string) => void;
-  onSaved: () => void;
+  onThreadUpdated: (summary: AdminInquirySummary) => void;
+  onDeleted: () => void;
   onCallTapped: (phoneNumber: string) => void;
 }
 
-function InquiryDrawer({
+function InquiryConversationPanel({
   inquiryId,
-  onClose,
+  actorId,
+  actorName,
+  canReply,
+  canManage,
+  teamMembers,
+  assigneeLabel,
+  onBack,
   onRead,
-  onSaved,
+  onThreadUpdated,
+  onDeleted,
   onCallTapped,
-}: InquiryDrawerProps) {
+}: InquiryConversationPanelProps) {
   const toast = useToast();
   const [inquiry, setInquiry] = useState<AdminInquiry | null>(null);
   const [status, setStatus] = useState<AdminInquiryStatus>("open");
+  const [assignedToUserId, setAssignedToUserId] = useState<string>("");
   const [internalNotes, setInternalNotes] = useState("");
   const [reply, setReply] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -303,6 +421,26 @@ function InquiryDrawer({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const pollCursorRef = useRef<string | null>(null);
+
+  function syncListSummary(detail: AdminInquiry) {
+    onThreadUpdated({
+      id: detail.id,
+      customerId: detail.customerId,
+      customerName: detail.customerName,
+      phoneNumber: detail.phoneNumber,
+      subjectProductId: detail.subjectProductId,
+      subjectProductName: detail.subjectProductName,
+      status: detail.status,
+      assignedToUserId: detail.assignedToUserId,
+      lastMessageAt: detail.lastMessageAt,
+      lastMessagePreview: detail.lastMessagePreview,
+      lastMessageAuthor: detail.lastMessageAuthor,
+      unreadByCustomer: detail.unreadByCustomer,
+      unreadByTeam: detail.unreadByTeam,
+      createdAt: detail.createdAt,
+      updatedAt: detail.updatedAt,
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -333,6 +471,7 @@ function InquiryDrawer({
         }
         if (initial) {
           setStatus(detail.status);
+          setAssignedToUserId(detail.assignedToUserId ?? "");
           setInternalNotes(detail.internalNotes ?? "");
         }
       } catch (error) {
@@ -361,7 +500,6 @@ function InquiryDrawer({
     };
   }, [inquiryId, onRead, toast]);
 
-  // Auto-scroll to the latest message once the thread renders.
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
@@ -370,14 +508,21 @@ function InquiryDrawer({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canManage || !inquiry) return;
     setIsSaving(true);
     try {
-      await adminFetch(`/api/inquiries/${inquiryId}`, {
+      const updated = await adminFetch<AdminInquiry>(`/api/inquiries/${inquiryId}`, {
         method: "PUT",
-        json: { status, internalNotes },
+        json: {
+          status,
+          internalNotes,
+          assignedToUserId: assignedToUserId || null,
+        },
       });
+      setInquiry(updated);
+      setStatus(updated.status);
+      syncListSummary(updated);
       toast.success("Inquiry updated");
-      onSaved();
     } catch (error) {
       toast.danger(
         error instanceof Error ? error.message : "Failed to update inquiry",
@@ -394,13 +539,11 @@ function InquiryDrawer({
     try {
       const updated = await adminFetch<AdminInquiry>(
         `/api/inquiries/${inquiryId}/messages`,
-        {
-          method: "POST",
-          json: { body },
-        },
+        { method: "POST", json: { body } },
       );
       setInquiry(updated);
       setStatus(updated.status);
+      syncListSummary(updated);
       setReply("");
     } catch (error) {
       toast.danger(
@@ -411,9 +554,7 @@ function InquiryDrawer({
     }
   }
 
-  async function handleAttachmentChange(
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) {
+  async function handleAttachmentChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
@@ -424,13 +565,11 @@ function InquiryDrawer({
       if (reply.trim()) formData.append("body", reply.trim());
       const updated = await adminFetch<AdminInquiry>(
         `/api/inquiries/${inquiryId}/attachments`,
-        {
-          method: "POST",
-          body: formData,
-        },
+        { method: "POST", body: formData },
       );
       setInquiry(updated);
       setStatus(updated.status);
+      syncListSummary(updated);
       setReply("");
     } catch (error) {
       toast.danger(
@@ -446,14 +585,12 @@ function InquiryDrawer({
     const confirmed = window.confirm(
       `Delete the inquiry from ${inquiry.customerName}? This cannot be undone.`,
     );
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
     setIsDeleting(true);
     try {
       await adminFetch(`/api/inquiries/${inquiryId}`, { method: "DELETE" });
       toast.success("Inquiry deleted");
-      onSaved();
+      onDeleted();
     } catch (error) {
       toast.danger(
         error instanceof Error ? error.message : "Failed to delete inquiry",
@@ -464,39 +601,47 @@ function InquiryDrawer({
 
   if (isLoading || !inquiry) {
     return (
-      <Drawer
-        isOpen
-        onClose={onClose}
-        title="Loading…"
-        description=""
-        width="lg"
-      >
-        <p className="text-sm text-[var(--color-ink-500)]">Loading thread…</p>
-      </Drawer>
+      <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-ink-500)]">
+        Loading conversation…
+      </div>
     );
   }
 
   return (
-    <Drawer
-      isOpen
-      onClose={onClose}
-      title={inquiry.customerName}
-      description={
-        inquiry.subjectProductName ? `Re: ${inquiry.subjectProductName}` : ""
-      }
-      width="lg"
-      footer={
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              leadingIcon={<Phone size={12} />}
-              onClick={() => onCallTapped(inquiry.phoneNumber)}
-              disabled={isDeleting}
-            >
-              Call
-            </Button>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <header className="flex shrink-0 items-center gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-3 md:px-4">
+        <button
+          type="button"
+          aria-label="Back to inbox"
+          onClick={onBack}
+          className="grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-600)] hover:bg-[var(--color-canvas-deep)] lg:hidden"
+        >
+          <ArrowLeft size={16} />
+        </button>
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
+          {getInitials(inquiry.customerName)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-[var(--color-ink-900)]">
+            {inquiry.customerName}
+          </p>
+          <p className="truncate text-xs text-[var(--color-ink-500)]">
+            {inquiry.phoneNumber}
+            {inquiry.subjectProductName ? ` · ${inquiry.subjectProductName}` : ""}
+          </p>
+        </div>
+        <StatusPill tone={STATUS_TONE[inquiry.status]}>{STATUS_LABELS[inquiry.status]}</StatusPill>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            leadingIcon={<Phone size={12} />}
+            onClick={() => onCallTapped(inquiry.phoneNumber)}
+            disabled={isDeleting}
+          >
+            Call
+          </Button>
+          {canManage ? (
             <Button
               variant="danger"
               size="sm"
@@ -507,187 +652,140 @@ function InquiryDrawer({
             >
               Delete
             </Button>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" type="button" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              type="submit"
-              form="inquiry-form"
-              isLoading={isSaving}
-              disabled={isDeleting}
-              leadingIcon={<Send size={12} />}
-            >
-              Save changes
-            </Button>
-          </div>
+          ) : null}
         </div>
-      }
-    >
-      <form id="inquiry-form" onSubmit={handleSubmit} className="space-y-5">
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-            Conversation ({inquiry.messages.length})
-          </p>
-          <div
-            ref={messagesContainerRef}
-            className="max-h-80 space-y-2 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-3"
-          >
-            {inquiry.messages.length === 0 ? (
-              <p className="text-xs text-[var(--color-ink-500)]">
-                No messages yet.
-              </p>
-            ) : (
-              inquiry.messages.map((message) => (
-                <InquiryBubble key={message.id} message={message} />
-              ))
-            )}
-          </div>
-        </div>
+      </header>
 
-        <div className="space-y-1.5">
-          <label className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-            Reply to customer
-          </label>
-          <div className="flex items-end gap-2">
+      <div
+        ref={messagesContainerRef}
+        className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-4 md:px-5"
+      >
+        {inquiry.messages.length === 0 ? (
+          <p className="text-center text-xs text-[var(--color-ink-500)]">
+            No messages yet. Send a reply below to start the conversation.
+          </p>
+        ) : (
+          inquiry.messages.map((message) => (
+            <InquiryBubble key={message.id} message={message} />
+          ))
+        )}
+      </div>
+
+      {canReply ? (
+        <div className="shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3 md:p-4">
+          <div className="flex items-end gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-2">
+            <input
+              ref={attachmentInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf,text/plain"
+              hidden
+              onChange={handleAttachmentChange}
+            />
+            <button
+              type="button"
+              aria-label="Attach file"
+              disabled={isUploading || isSending}
+              onClick={() => attachmentInputRef.current?.click()}
+              className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] hover:bg-[var(--color-canvas-deep)] disabled:opacity-40"
+            >
+              <Paperclip size={16} />
+            </button>
             <textarea
               value={reply}
               onChange={(event) => setReply(event.target.value)}
-              rows={3}
+              rows={1}
               maxLength={4_000}
-              placeholder="Type your reply…"
-              className="flex-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-ink-800)] focus:border-[var(--color-accent-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-300)]"
+              placeholder="Write a reply…"
+              disabled={isUploading}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void handleSendReply();
+                }
+              }}
+              className="max-h-32 min-h-[40px] flex-1 resize-none bg-transparent px-1 py-2 text-sm text-[var(--color-ink-800)] placeholder:text-[var(--color-ink-400)] focus:outline-none"
             />
-            <div className="flex flex-col gap-2">
-              <input
-                ref={attachmentInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,application/pdf,text/plain"
-                hidden
-                onChange={handleAttachmentChange}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => attachmentInputRef.current?.click()}
-                isLoading={isUploading}
-                disabled={isSending}
-                leadingIcon={<Paperclip size={12} />}
-                aria-label="Attach file"
-              >
-                Attach
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                onClick={handleSendReply}
-                disabled={reply.trim().length === 0 || isUploading}
-                isLoading={isSending}
-                leadingIcon={<Send size={12} />}
-              >
-                Send
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={handleSendReply}
+              disabled={reply.trim().length === 0 || isUploading}
+              isLoading={isSending}
+              leadingIcon={<Send size={12} />}
+              className="shrink-0"
+            >
+              Send
+            </Button>
           </div>
-          <p className="text-[11px] text-[var(--color-ink-500)]">
-            Press Send to push to the customer. Replying auto-flips status to
-            &quot;Awaiting customer&quot; and claims the thread if unassigned.
+          <p className="mt-1.5 text-[10px] text-[var(--color-ink-500)]">
+            Replying as {actorName}. Unassigned inquiries are claimed on first reply.
           </p>
         </div>
-
-        <SelectField
-          label="Update status"
-          value={status}
-          onChange={(event) =>
-            setStatus(event.target.value as AdminInquiryStatus)
-          }
-          options={STATUS_OPTIONS.map((option) => ({
-            value: option,
-            label: STATUS_LABELS[option],
-          }))}
-        />
-
-        <div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface-muted)] p-3 text-xs text-[var(--color-ink-600)]">
-          <p className="font-semibold text-[var(--color-ink-900)]">
-            {inquiry.assignedToUserId ? "Assigned thread" : "Unassigned thread"}
-          </p>
-          <p className="mt-1">
-            Replying claims unassigned inquiries automatically, so every active
-            customer conversation has a clear team owner.
-          </p>
+      ) : (
+        <div className="shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-surface-muted)] px-4 py-3 text-xs text-[var(--color-ink-600)]">
+          Read-only access — you can view this conversation but not reply.
         </div>
-
-        <TextArea
-          label="Internal note (not visible to customer)"
-          placeholder="e.g. Promised callback at 4pm; waiting on grade C stock…"
-          value={internalNotes}
-          onChange={(event) => setInternalNotes(event.target.value)}
-          rows={4}
-          maxLength={4_000}
-        />
-      </form>
-    </Drawer>
-  );
-}
-
-function InquiryBubble({ message }: { message: AdminInquiryMessage }) {
-  const isAgent = message.author === "agent";
-  const attachments = message.attachments ?? [];
-  return (
-    <div
-      className={classNames(
-        "flex gap-2",
-        isAgent ? "justify-end" : "justify-start",
       )}
-    >
-      <div
-        className={classNames(
-          "max-w-[80%] rounded-[var(--radius-md)] px-3 py-2 text-xs shadow-[var(--shadow-sm)]",
-          isAgent
-            ? "rounded-tr-sm bg-[var(--color-ink-900)] text-[var(--color-canvas)]"
-            : "rounded-tl-sm bg-[var(--color-surface)] text-[var(--color-ink-800)]",
-        )}
-      >
-        <p
-          className={classNames(
-            "text-[10px] font-semibold uppercase tracking-wide",
-            isAgent ? "text-white/70" : "text-[var(--color-ink-500)]",
-          )}
-        >
-          {message.authorName ?? message.author}
-        </p>
-        {attachments.length > 0 && (
-          <div className="mt-1 flex flex-col gap-1.5">
-            {attachments.map((attachment, index) => (
-              <InquiryAttachmentChip
-                key={`${message.id}-att-${index}`}
-                attachment={attachment}
+
+      <details className="shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+        <summary className="cursor-pointer px-4 py-2.5 text-xs font-semibold text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)]">
+          Inquiry details
+        </summary>
+        <form onSubmit={handleSubmit} className="space-y-3 border-t border-[var(--color-ink-100)] px-4 py-3">
+          {canManage ? (
+            <>
+              <SelectField
+                label="Status"
+                value={status}
+                onChange={(event) => setStatus(event.target.value as AdminInquiryStatus)}
+                options={STATUS_OPTIONS.map((option) => ({
+                  value: option,
+                  label: STATUS_LABELS[option],
+                }))}
               />
-            ))}
-          </div>
-        )}
-        <p className="mt-0.5 whitespace-pre-wrap text-xs leading-relaxed">
-          {message.body}
-        </p>
-        <p
-          className={classNames(
-            "mt-1 text-[10px]",
-            isAgent ? "text-white/60" : "text-[var(--color-ink-400)]",
+              {teamMembers.length > 0 ? (
+                <SelectField
+                  label="Assign to"
+                  value={assignedToUserId}
+                  onChange={(event) => setAssignedToUserId(event.target.value)}
+                  options={[
+                    { value: "", label: "Unassigned" },
+                    ...teamMembers.map((member) => ({
+                      value: member.id,
+                      label: member.id === actorId ? `${member.name} (you)` : member.name,
+                    })),
+                  ]}
+                />
+              ) : (
+                <p className="text-xs text-[var(--color-ink-600)]">
+                  {assigneeLabel(inquiry.assignedToUserId)}
+                </p>
+              )}
+              <TextArea
+                label="Internal note (team only)"
+                placeholder="Notes for your team — not visible to the customer"
+                value={internalNotes}
+                onChange={(event) => setInternalNotes(event.target.value)}
+                rows={3}
+                maxLength={4_000}
+              />
+              <Button type="submit" variant="secondary" size="sm" isLoading={isSaving} disabled={isDeleting}>
+                Save details
+              </Button>
+            </>
+          ) : (
+            <div className="text-xs text-[var(--color-ink-600)]">
+              <p className="font-semibold text-[var(--color-ink-900)]">
+                {assigneeLabel(inquiry.assignedToUserId)} · {STATUS_LABELS[inquiry.status]}
+              </p>
+              {inquiry.internalNotes ? (
+                <p className="mt-1 whitespace-pre-wrap">{inquiry.internalNotes}</p>
+              ) : null}
+            </div>
           )}
-        >
-          {new Date(message.createdAt).toLocaleString(undefined, {
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "2-digit",
-          })}
-        </p>
-      </div>
+        </form>
+      </details>
     </div>
   );
 }
@@ -707,12 +805,12 @@ function InquiryAttachmentChip({
         href={full}
         target="_blank"
         rel="noopener noreferrer"
-        className="block max-w-[160px] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-ink-100)]"
+        className="block max-w-[240px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)]"
       >
         <Image
           src={thumb}
-          width={160}
-          height={160}
+          width={240}
+          height={240}
           alt={attachment.image.alt ?? "Attached image"}
           placeholder={attachment.image.blurDataURL ? "blur" : undefined}
           blurDataURL={attachment.image.blurDataURL ?? undefined}
@@ -728,43 +826,86 @@ function InquiryAttachmentChip({
       href={attachment.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2 py-1 text-[10px] font-medium text-[var(--color-ink-800)] hover:bg-[var(--color-accent-50)]"
+      className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-ink-800)] hover:bg-[var(--color-accent-50)]"
     >
-      <Paperclip size={10} />
-      <span className="max-w-[140px] truncate">{attachment.filename}</span>
-      <span className="text-[var(--color-ink-500)]">{sizeKb} KB</span>
+      <Paperclip size={12} />
+      <span className="max-w-[180px] truncate">{attachment.filename}</span>
+      <span className="text-[10px] text-[var(--color-ink-500)]">{sizeKb} KB</span>
     </a>
   );
 }
 
-interface FilterChipProps {
-  label: string;
-  count: number;
-  isActive: boolean;
-  onClick: () => void;
-}
-
-function FilterChip({ label, count, isActive, onClick }: FilterChipProps) {
+function InquiryBubble({ message }: { message: AdminInquiryMessage }) {
+  const isAgent = message.author === "agent";
+  const isAssistant = message.author === "assistant";
+  const isTeamSide = isAgent || isAssistant;
+  const attachments = message.attachments ?? [];
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        isActive
-          ? "inline-flex items-center gap-1.5 rounded-[var(--radius-full)] bg-[var(--color-accent-100)] px-3.5 py-1.5 text-xs font-semibold text-[var(--color-accent-800)]"
-          : "inline-flex items-center gap-1.5 rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3.5 py-1.5 text-xs font-medium text-[var(--color-ink-700)] transition-colors hover:border-[var(--color-ink-300)] hover:text-[var(--color-ink-900)]"
-      }
+    <div
+      className={classNames(
+        "flex gap-2",
+        isTeamSide ? "justify-end" : "justify-start",
+      )}
     >
-      {label}
-      <span
-        className={
-          isActive
-            ? "rounded-full bg-[var(--color-accent-200)]/70 px-1.5 text-[10px] font-semibold text-[var(--color-accent-800)]"
-            : "rounded-full bg-[var(--color-canvas-deep)] px-1.5 text-[10px] font-semibold text-[var(--color-ink-500)]"
-        }
+      <div
+        className={classNames(
+          "max-w-[80%] rounded-[var(--radius-md)] px-3 py-2 text-xs shadow-[var(--shadow-sm)]",
+          isAgent
+            ? "rounded-tr-sm bg-[var(--color-ink-900)] text-[var(--color-canvas)]"
+            : isAssistant
+              ? "rounded-tr-sm border border-[var(--color-accent-300)] bg-[var(--color-accent-50)] text-[var(--color-ink-800)]"
+              : "rounded-tl-sm bg-[var(--color-surface)] text-[var(--color-ink-800)]",
+        )}
       >
-        {count}
-      </span>
-    </button>
+        <p
+          className={classNames(
+            "text-[10px] font-semibold uppercase tracking-wide",
+            isAgent
+              ? "text-white/70"
+              : isAssistant
+                ? "text-[var(--color-accent-800)]"
+                : "text-[var(--color-ink-500)]",
+          )}
+        >
+          {message.authorName ?? message.author}
+          {isAssistant && (
+            <span className="ml-1 font-normal normal-case text-[var(--color-ink-500)]">
+              · AI
+            </span>
+          )}
+        </p>
+        {attachments.length > 0 && (
+          <div className="mt-1 flex flex-col gap-1.5">
+            {attachments.map((attachment, index) => (
+              <InquiryAttachmentChip
+                key={`${message.id}-att-${index}`}
+                attachment={attachment}
+              />
+            ))}
+          </div>
+        )}
+        <p className="mt-0.5 whitespace-pre-wrap text-xs leading-relaxed">
+          {message.body}
+        </p>
+        <p
+          className={classNames(
+            "mt-1 text-[10px]",
+            isAgent
+              ? "text-white/60"
+              : isAssistant
+                ? "text-[var(--color-ink-500)]"
+                : "text-[var(--color-ink-400)]",
+          )}
+        >
+          {new Date(message.createdAt).toLocaleString(undefined, {
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          })}
+        </p>
+      </div>
+    </div>
   );
 }
+

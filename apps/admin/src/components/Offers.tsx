@@ -2,9 +2,15 @@
 
 import { useDeferredValue, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Pencil, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, Pencil, Plus, Tag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AdminTable, type AdminTableColumn } from "@/components/AdminTable";
+import {
+  WorkspaceFrame,
+  WorkspaceListHeader,
+  WorkspacePrimaryAction,
+  WorkspaceRowIconButton,
+} from "@/components/workspace/adminWorkspaceUi";
 import { Drawer } from "@/components/Drawer";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { StatusPill } from "@/components/StatusPill";
@@ -128,46 +134,45 @@ export function Offers({ offers }: OffersProps) {
       width: "100px",
       cell: (offer) => (
         <div className="inline-flex items-center gap-1">
-          <button
-            type="button"
-            aria-label="Edit offer"
+          <WorkspaceRowIconButton
+            label="Edit offer"
+            icon={Pencil}
             onClick={() => setDrawer({ mode: "edit", offer })}
-            className="grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
-          >
-            <Pencil size={13} />
-          </button>
-          <button
-            type="button"
-            aria-label="Delete offer"
+          />
+          <WorkspaceRowIconButton
+            label="Delete offer"
+            icon={Trash2}
+            tone="danger"
             onClick={() => setToDelete(offer)}
-            className="grid size-8 place-items-center rounded-[var(--radius-md)] text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-          >
-            <Trash2 size={13} />
-          </button>
+          />
         </div>
       ),
     },
   ];
 
   return (
-    <>
-      <AdminTable
-        rows={offers}
-        columns={columns}
-        rowKey={(offer) => offer.id}
-        searchAccessor={(offer) => `${offer.title} ${offer.description} ${offer.badgeLabel}`}
-        searchPlaceholder="Search offers…"
-        toolbar={
-          <Button
-            variant="primary"
-            size="sm"
-            leadingIcon={<Plus size={14} />}
-            onClick={() => setDrawer({ mode: "new" })}
-          >
-            New offer
-          </Button>
-        }
+    <WorkspaceFrame>
+      <WorkspaceListHeader
+        icon={Tag}
+        title="Offers & deals"
+        subtitle="Promotions surfaced on the homepage and the dedicated /deals page."
       />
+      <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
+        <AdminTable
+          rows={offers}
+          columns={columns}
+          rowKey={(offer) => offer.id}
+          searchAccessor={(offer) => `${offer.title} ${offer.description} ${offer.badgeLabel}`}
+          searchPlaceholder="Search offers…"
+          toolbar={
+            <WorkspacePrimaryAction
+              label="New offer"
+              icon={Plus}
+              onClick={() => setDrawer({ mode: "new" })}
+            />
+          }
+        />
+      </div>
 
       {drawer ? (
         <OfferDrawer
@@ -193,7 +198,7 @@ export function Offers({ offers }: OffersProps) {
         onConfirm={handleDelete}
         onCancel={() => setToDelete(null)}
       />
-    </>
+    </WorkspaceFrame>
   );
 }
 

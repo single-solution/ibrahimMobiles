@@ -1,5 +1,12 @@
 import { redirect } from "next/navigation";
-import { getVerifiedSession, type VerifiedUser } from "@/lib/permissions";
+
+import {
+  getActorPermissions,
+  getVerifiedSession,
+  hasPermission,
+  type VerifiedUser,
+} from "@/lib/permissions";
+import type { PermissionKey } from "@/lib/permissionsCatalog";
 
 /**
  * Server-component guard for admin pages. If the visitor is unauthenticated
@@ -13,4 +20,27 @@ export async function requirePageSession(callbackPath: string): Promise<Verified
     redirect(`/login?callbackUrl=${callback}`);
   }
   return actor;
+}
+
+export interface PageAccess {
+  actor: VerifiedUser;
+  permissions: PermissionKey[];
+}
+
+/**
+ * Like {@link requirePageSession} but also requires a specific permission.
+ * Users without access are sent to the dashboard.
+ */
+export async function requirePagePermission(
+  permission: PermissionKey,
+  callbackPath: string,
+): Promise<PageAccess> {
+  const actor = await requirePageSession(callbackPath);
+  if (!hasPermission(actor, permission)) {
+    redirect("/?access=denied");
+  }
+  return {
+    actor,
+    permissions: getActorPermissions(actor),
+  };
 }

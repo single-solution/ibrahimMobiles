@@ -1,16 +1,15 @@
-import { AdminPageSkeleton } from "@/components/loading/AdminPageSkeleton";
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
-
-const CUSTOMERS_COLUMN_COUNT = 7;
-const CUSTOMERS_ROW_COUNT = 12;
+import { AdminShell } from "@/components/AdminShell";
+import { SalesWorkspaceSkeleton } from "@/components/loading/SalesWorkspaceSkeleton";
+import { SkeletonScreen } from "@/components/ui/Skeleton";
 
 export default function CustomersLoading() {
   return (
-    <AdminPageSkeleton label="Loading customers">
-      <AdminTableSkeleton
-        columnCount={CUSTOMERS_COLUMN_COUNT}
-        rowCount={CUSTOMERS_ROW_COUNT}
-      />
-    </AdminPageSkeleton>
+    <SkeletonScreen label="Loading customers">
+      <AdminShell contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-1.5 md:p-2">
+        <section className="flex min-h-0 flex-1 flex-col">
+          <SalesWorkspaceSkeleton />
+        </section>
+      </AdminShell>
+    </SkeletonScreen>
   );
 }

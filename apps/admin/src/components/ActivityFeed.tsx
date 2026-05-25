@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  Activity,
   Archive,
   CheckCircle2,
   LogIn,
@@ -14,6 +15,12 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { StatusPill } from "@/components/StatusPill";
+import {
+  WorkspaceEmptyPane,
+  WorkspaceFilterChip,
+  WorkspaceFrame,
+  WorkspaceListHeader,
+} from "@/components/workspace/adminWorkspaceUi";
 import { getInitials } from "@/lib/initials";
 import type { AdminActivityEntry } from "@/types/admin";
 
@@ -85,97 +92,95 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
 
   if (entries.length === 0) {
     return (
-      <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface)] p-10 text-center">
-        <p className="text-sm font-semibold text-[var(--color-ink-900)]">No activity yet</p>
-        <p className="mt-1 text-xs text-[var(--color-ink-500)]">
-          Admin actions will appear here as they happen.
-        </p>
-      </div>
+      <WorkspaceFrame>
+        <WorkspaceListHeader
+          icon={Activity}
+          title="Activity log"
+          subtitle="Every change made by admins, with timestamps and actors."
+        />
+        <WorkspaceEmptyPane
+          icon={Activity}
+          title="No activity yet"
+          description="Admin actions will appear here as they happen."
+        />
+      </WorkspaceFrame>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        {filterOptions.map((option) => {
-          const isActive = actionFilter === option;
-          const label = option === "all" ? "All" : (ACTION_LABEL[option] ?? option);
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setActionFilter(option)}
-              className={
-                isActive
-                  ? "inline-flex items-center gap-1.5 rounded-[var(--radius-full)] bg-[var(--color-accent-100)] px-3.5 py-1.5 text-xs font-semibold capitalize text-[var(--color-accent-800)]"
-                  : "inline-flex items-center gap-1.5 rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3.5 py-1.5 text-xs font-medium capitalize text-[var(--color-ink-700)] transition-colors hover:border-[var(--color-ink-300)] hover:text-[var(--color-ink-900)]"
-              }
-            >
-              {label}
-              <span
-                className={
-                  isActive
-                    ? "rounded-full bg-[var(--color-accent-200)]/70 px-1.5 text-[10px] font-semibold text-[var(--color-accent-800)]"
-                    : "rounded-full bg-[var(--color-canvas-deep)] px-1.5 text-[10px] font-semibold text-[var(--color-ink-500)]"
-                }
-              >
-                {counts.get(option) ?? 0}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+    <WorkspaceFrame>
+      <WorkspaceListHeader
+        icon={Activity}
+        title="Activity log"
+        subtitle="Every change made by admins, with timestamps and actors."
+      />
+      <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
+        <div className="mb-6 flex flex-wrap items-center gap-2">
+          {filterOptions.map((option) => {
+            const label = option === "all" ? "All" : (ACTION_LABEL[option] ?? option);
+            return (
+              <WorkspaceFilterChip
+                key={option}
+                label={label}
+                count={counts.get(option) ?? 0}
+                isActive={actionFilter === option}
+                onClick={() => setActionFilter(option)}
+              />
+            );
+          })}
+        </div>
 
-      <ol className="relative space-y-4 border-l border-[var(--color-ink-100)] pl-6">
-        {filtered.map((entry) => {
-          const Icon = ACTION_ICONS[entry.action] ?? Pencil;
-          const tone = ACTION_TONE[entry.action] ?? "neutral";
-          return (
-            <li key={entry.id} className="relative">
-              <span className="absolute -left-[34px] top-4 grid size-6 place-items-center rounded-full border border-[var(--color-ink-100)] bg-[var(--color-surface)] text-[var(--color-ink-700)]">
-                <Icon size={11} />
-              </span>
-              <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[10px] font-semibold text-[var(--color-ink-700)]">
-                      {getInitials(entry.actorName)}
-                    </span>
-                    <p className="text-sm font-semibold text-[var(--color-ink-900)]">
-                      {entry.actorName}{" "}
-                      <span className="font-normal text-[var(--color-ink-500)]">
-                        ({entry.actorRole})
+        <ol className="relative space-y-4 border-l border-[var(--color-ink-100)] pl-6">
+          {filtered.map((entry) => {
+            const Icon = ACTION_ICONS[entry.action] ?? Pencil;
+            const tone = ACTION_TONE[entry.action] ?? "neutral";
+            return (
+              <li key={entry.id} className="relative">
+                <span className="absolute -left-[34px] top-4 grid size-6 place-items-center rounded-full border border-[var(--color-ink-100)] bg-[var(--color-surface)] text-[var(--color-ink-700)]">
+                  <Icon size={11} />
+                </span>
+                <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[10px] font-semibold text-[var(--color-ink-700)]">
+                        {getInitials(entry.actorName)}
                       </span>
-                    </p>
+                      <p className="text-sm font-semibold text-[var(--color-ink-900)]">
+                        {entry.actorName}{" "}
+                        <span className="font-normal text-[var(--color-ink-500)]">
+                          ({entry.actorRole})
+                        </span>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusPill tone={tone}>
+                        {ACTION_LABEL[entry.action] ?? entry.action}
+                      </StatusPill>
+                      <span className="text-[11px] text-[var(--color-ink-400)]">
+                        {new Date(entry.createdAt).toLocaleString("en-PK", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <StatusPill tone={tone}>
-                      {ACTION_LABEL[entry.action] ?? entry.action}
-                    </StatusPill>
-                    <span className="text-[11px] text-[var(--color-ink-400)]">
-                      {new Date(entry.createdAt).toLocaleString("en-PK", {
-                        day: "2-digit",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                  <p className="mt-2 text-sm text-[var(--color-ink-800)]">
+                    <span className="text-[var(--color-ink-500)]">{entry.resourceType}:</span>{" "}
+                    <span className="font-semibold text-[var(--color-ink-900)]">
+                      {entry.resourceLabel}
                     </span>
-                  </div>
+                  </p>
+                  {entry.detail ? (
+                    <p className="mt-1 text-xs text-[var(--color-ink-500)]">{entry.detail}</p>
+                  ) : null}
                 </div>
-                <p className="mt-2 text-sm text-[var(--color-ink-800)]">
-                  <span className="text-[var(--color-ink-500)]">{entry.resourceType}:</span>{" "}
-                  <span className="font-semibold text-[var(--color-ink-900)]">
-                    {entry.resourceLabel}
-                  </span>
-                </p>
-                {entry.detail ? (
-                  <p className="mt-1 text-xs text-[var(--color-ink-500)]">{entry.detail}</p>
-                ) : null}
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </WorkspaceFrame>
   );
 }

@@ -3,10 +3,15 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { UserCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/forms/TextField";
 import { useToast } from "@/components/Toast";
+import {
+  WorkspaceFrame,
+  WorkspaceListHeader,
+} from "@/components/workspace/adminWorkspaceUi";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
 import { formatRole } from "@/lib/initials";
 import { FIELD_LIMITS } from "@store/shared";
@@ -129,11 +134,26 @@ export function AccountSettings() {
   }
 
   if (loading) {
-    return <p className="text-sm text-[var(--color-ink-500)]">Loading account…</p>;
+    return (
+      <WorkspaceFrame minHeight={false}>
+        <WorkspaceListHeader
+          icon={UserCircle}
+          title="Your profile"
+          subtitle="Manage your name, email, and admin sign-in password."
+        />
+        <p className="p-4 text-sm text-[var(--color-ink-500)]">Loading account…</p>
+      </WorkspaceFrame>
+    );
   }
 
   return (
-    <div className="mx-auto flex max-w-lg flex-col gap-6">
+    <WorkspaceFrame minHeight={false}>
+      <WorkspaceListHeader
+        icon={UserCircle}
+        title="Your profile"
+        subtitle="Manage your name, email, and admin sign-in password."
+      />
+      <div className="mx-auto flex max-w-lg flex-col gap-6 p-4 md:p-5">
       <section className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
         <h2 className="text-sm font-semibold text-[var(--color-ink-900)]">Profile</h2>
         <p className="mt-0.5 text-xs text-[var(--color-ink-500)]">
@@ -227,6 +247,7 @@ export function AccountSettings() {
           </div>
         </form>
       </section>
-    </div>
+      </div>
+    </WorkspaceFrame>
   );
 }

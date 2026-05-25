@@ -34,6 +34,7 @@ import {
   selectionToUrlPatch,
 } from "@/lib/catalog/pdpSelection";
 import { useCart } from "@/lib/cart/useCart";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { usePdpUrlParams } from "@/lib/storefront/usePdpUrlParams";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 import {
@@ -144,16 +145,20 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
         EMPTY_VARIANT;
       const fallbackSelection = selectionFromVariant(currentVariant);
       pendingSelectionSigRef.current = selectionSignature(fallbackSelection);
-      setPickerSelection(fallbackSelection);
-      setSelectedVariantId(currentVariant.id);
-      setGalleryGradeSlug(currentVariant.gradeSlug);
+      scheduleStateUpdate(() => {
+        setPickerSelection(fallbackSelection);
+        setSelectedVariantId(currentVariant.id);
+        setGalleryGradeSlug(currentVariant.gradeSlug);
+      });
       syncSelectionToUrl(fallbackSelection);
       return;
     }
 
-    setPickerSelection(fromUrl);
-    setSelectedVariantId(exact.id);
-    setGalleryGradeSlug(exact.gradeSlug);
+    scheduleStateUpdate(() => {
+      setPickerSelection(fromUrl);
+      setSelectedVariantId(exact.id);
+      setGalleryGradeSlug(exact.gradeSlug);
+    });
   }, [
     searchParams,
     attributeSlugs,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Settings as SettingsIcon } from "lucide-react";
 
 import { STORE_SETTING_GROUPS, type StoreSettings } from "@store/shared";
 
@@ -13,6 +14,10 @@ import { SettingsCleanup } from "@/components/SettingsCleanup";
 import { ChatSettingsTab } from "@/components/ChatSettingsTab";
 import { SeoSettingsTab } from "@/components/SeoSettingsTab";
 import { useToast } from "@/components/Toast";
+import {
+  WorkspaceFrame,
+  WorkspaceListHeader,
+} from "@/components/workspace/adminWorkspaceUi";
 
 interface SettingsProps {
   initialSettings: StoreSettings;
@@ -27,7 +32,14 @@ export function Settings({ initialSettings }: SettingsProps) {
   }
 
   return (
-    <Tabs
+    <WorkspaceFrame minHeight={false}>
+      <WorkspaceListHeader
+        icon={SettingsIcon}
+        title="Settings"
+        subtitle="Store details, contact, SEO, inquiries bot, and cleanup."
+      />
+      <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
+        <Tabs
       tabs={[
         {
           id: "store",
@@ -120,7 +132,7 @@ export function Settings({ initialSettings }: SettingsProps) {
         },
         {
           id: "chat",
-          label: "Chat",
+          label: "Inquiries",
           content: <ChatSettingsTab />,
         },
         {
@@ -129,7 +141,9 @@ export function Settings({ initialSettings }: SettingsProps) {
           content: <SettingsCleanup />,
         },
       ]}
-    />
+        />
+      </div>
+    </WorkspaceFrame>
   );
 }
 
@@ -177,7 +191,7 @@ function ContactSettings({ draft, saved, setField, onSaved }: SectionProps) {
     <SaveableSection fields={fields} draft={draft} saved={saved} onSaved={onSaved}>
       <FormSection
         title="Store contact"
-        description="Used in the support strip, footer, AI chat replies, and order confirmation emails."
+        description="Used in the support strip, footer, automated inquiry replies, and order confirmation emails."
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <TextField

@@ -43,6 +43,7 @@ import {
 import { auth } from "@/lib/auth";
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 import { getChatSettings } from "@/lib/chat/chatSettings";
+import { maybeReplyWithAssistant, reloadInquiry } from "@/lib/chat/assistant/maybeReply";
 import { toStorefrontThread } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
 
@@ -159,7 +160,15 @@ export async function POST(request: Request) {
     if (!lean) {
       return serverError("Thread vanished after creation.");
     }
-    const thread = toStorefrontThread(lean);
+
+    try {
+      await maybeReplyWithAssistant(lean);
+    } catch (assistantError) {
+      logger.error({ assistantError }, "chat-assistant: welcome reply failed");
+    }
+
+    const refreshed = (await reloadInquiry(doc._id)) ?? lean;
+    const thread = toStorefrontThread(refreshed);
 
     // Re-issue guest cookie when there's no session — appends the new
     // inquiry id so the visitor's browser holds the running set of

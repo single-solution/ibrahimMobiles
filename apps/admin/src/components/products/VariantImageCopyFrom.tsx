@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Images } from "lucide-react";
 
 import { cloneImageDrafts, type ImageDraft } from "@/components/uploads/imageDraft";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
 export interface VariantImageSource {
   uid: string;
@@ -37,12 +38,14 @@ export function VariantImageCopyFrom({
   const [sourceUid, setSourceUid] = useState("");
 
   useEffect(() => {
-    if (candidates.length === 0) {
-      return;
-    }
-    if (!candidates.some((row) => row.uid === sourceUid)) {
-      setSourceUid(candidates[0].uid);
-    }
+    scheduleStateUpdate(() => {
+      if (candidates.length === 0) {
+        return;
+      }
+      if (!candidates.some((row) => row.uid === sourceUid)) {
+        setSourceUid(candidates[0].uid);
+      }
+    });
   }, [candidates, sourceUid]);
 
   const picked =

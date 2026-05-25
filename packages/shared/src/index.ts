@@ -6,12 +6,19 @@
  * concern lives inside that app's `src/lib`, never here.
  */
 
+export * from "./chat/chatSettingsSchema";
 export * from "./chat/chatTransport";
+export * from "./chat/guestLimits";
 export * from "./chat/guestToken";
 export * from "./chat/inquiryStatus";
 export * from "./chat/poll";
 export * from "./chat/types";
 export * from "./chat/validators";
+export * from "./chat/assistantReply";
+export * from "./chat/assistantEscalation";
+export * from "./chat/assistantProvider";
+export * from "./chat/assistantPrompt";
+export * from "./chat/assistantConstants";
 export * from "./wireCoercion";
 export * from "./icons";
 export * from "./classNames";
@@ -40,5 +47,6 @@ export * from "./storage/urlPolicy";
 export * from "./storeSettings";
 export * from "./structuredContent";
 export * from "./types";
+export * from "./customerAddresses";
 export * from "./validation";
 export * from "./warranty";

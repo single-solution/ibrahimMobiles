@@ -80,6 +80,35 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  async redirects() {
+    return [
+      {
+        source: "/attributes",
+        destination: "/categories?tab=attributes",
+        permanent: false,
+      },
+      {
+        source: "/brands",
+        destination: "/categories?tab=brands",
+        permanent: false,
+      },
+      {
+        source: "/grades",
+        destination: "/categories?tab=grades",
+        permanent: false,
+      },
+      {
+        source: "/loyalty",
+        destination: "/customers",
+        permanent: false,
+      },
+      {
+        source: "/products/new",
+        destination: "/products?wizard=1",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

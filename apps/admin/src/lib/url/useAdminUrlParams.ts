@@ -16,7 +16,7 @@ export interface AdminUrlReplaceOptions {
 
 /**
  * Push admin list/workspace state into the URL (shareable, back-button friendly).
- * See docs/audit/url-state-sync-race.md for pending-ref pairing.
+ * Uses a pending-ref guard so programmatic `replace()` does not fight URL-driven effects.
  */
 export function useAdminUrlParams() {
   const router = useRouter();

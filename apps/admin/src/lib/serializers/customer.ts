@@ -12,6 +12,8 @@ interface CustomerStats {
   orderCount: number;
   lifetimeSpendRupees: number;
   lastOrderAt?: Date;
+  loyaltyBalance?: number;
+  loyaltyLifetimeEarned?: number;
 }
 
 function toAddress(address: CustomerAddressAttributes): AdminCustomerAddress {
@@ -39,6 +41,8 @@ export function toCustomerResponse(
     phoneNumber: asString(customer.phoneNumber),
     city: asString(customer.city),
     isLoyaltyMember: customer.isLoyaltyMember ?? false,
+    loyaltyBalance: asNumber(stats.loyaltyBalance),
+    loyaltyLifetimeEarned: asNumber(stats.loyaltyLifetimeEarned),
     orderCount: asNumber(stats.orderCount),
     lifetimeSpendRupees: asNumber(stats.lifetimeSpendRupees),
     lastOrderAt: stats.lastOrderAt ? toIsoDate(stats.lastOrderAt) : undefined,

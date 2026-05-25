@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 
 import { AdminShell } from "@/components/AdminShell";
-import { PageTitle } from "@/components/PageTitle";
-import { Orders } from "@/components/Orders";
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
+import { OrdersCatalog } from "@/components/orders/OrdersCatalog";
+import { SalesWorkspaceSkeleton } from "@/components/loading/SalesWorkspaceSkeleton";
+import { adminWorkspacePageClass } from "@/components/workspace/adminWorkspaceUi";
 import { connectDB, Order } from "@store/db";
 
 import { requirePageSession } from "@/lib/server/requirePageSession";
@@ -12,37 +12,14 @@ import { summariseOrder, type OrderLean } from "@/lib/serializers/order";
 export const dynamic = "force-dynamic";
 
 const RECENT_ORDERS_LIMIT = 200;
-const ORDERS_COLUMN_COUNT = 6;
-const ORDERS_ROW_COUNT = 12;
 
-/**
- * Admin orders index.
- *
- * Static-first rendering: the shell, page title, and section wrapper
- * render synchronously on navigation; the `Orders` (which does the
- * Mongo round-trip for the 200 most recent orders) streams in via
- * Suspense with a content-shaped fallback. The brief skeleton flash
- * only covers the data, never the chrome.
- */
 export default async function AdminOrdersPage() {
   await requirePageSession("/orders");
 
   return (
-    <AdminShell>
-      <PageTitle
-        eyebrow="Sales"
-        title="Orders"
-        description="Manage every order placed through the storefront — from pending payment to delivered."
-      />
-      <section>
-        <Suspense
-          fallback={
-            <AdminTableSkeleton
-              columnCount={ORDERS_COLUMN_COUNT}
-              rowCount={ORDERS_ROW_COUNT}
-            />
-          }
-        >
+    <AdminShell contentClassName={adminWorkspacePageClass}>
+      <section className="flex min-h-0 flex-1 flex-col">
+        <Suspense fallback={<SalesWorkspaceSkeleton />}>
           <OrdersData />
         </Suspense>
       </section>
@@ -57,5 +34,5 @@ async function OrdersData() {
     .limit(RECENT_ORDERS_LIMIT)
     .lean<OrderLean[]>();
   const orders = docs.map(summariseOrder);
-  return <Orders orders={orders} />;
+  return <OrdersCatalog orders={orders} />;
 }

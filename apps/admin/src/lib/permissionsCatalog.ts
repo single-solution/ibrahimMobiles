@@ -28,6 +28,7 @@ const PERMISSION_KEYS = [
   "loyalty_manage",
 
   "inquiry_view",
+  "inquiry_reply",
   "inquiry_manage",
 
   "category_manage",
@@ -56,6 +57,8 @@ const PERMISSION_KEYS = [
 
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];
 
+export { PERMISSION_KEYS };
+
 /**
  * Default role → permissions mapping. Owners get every permission via
  * `isSuperAdmin = true`, so this matrix only matters for managers and staff.
@@ -78,7 +81,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, ReadonlyArray<PermissionKey>> = 
     "customer_manage",
     "loyalty_view",
     "loyalty_manage",
-    "inquiry_view",
     "inquiry_manage",
     "category_manage",
     "brand_manage",
@@ -120,7 +122,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, ReadonlyArray<PermissionKey>> = 
     "order_view",
     "customer_view",
     "inquiry_view",
-    "inquiry_manage",
+    "inquiry_reply",
     "media_view",
     "ai_view",
   ],

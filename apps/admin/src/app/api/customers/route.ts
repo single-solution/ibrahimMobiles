@@ -98,6 +98,8 @@ export async function GET(request: Request) {
       phoneNumber: full.phoneNumber,
       city: full.city,
       isLoyaltyMember: full.isLoyaltyMember,
+      loyaltyBalance: 0,
+      loyaltyLifetimeEarned: 0,
       orderCount: full.orderCount,
       lifetimeSpendRupees: full.lifetimeSpendRupees,
       lastOrderAt: full.lastOrderAt,
@@ -128,6 +130,7 @@ export async function POST(request: Request) {
 
   const phoneResult = validateString(body.phoneNumber, {
     label: "Phone number",
+    min: 7,
     max: FIELD_LIMITS.phoneNumber,
   });
   if (isValidationError(phoneResult)) {
