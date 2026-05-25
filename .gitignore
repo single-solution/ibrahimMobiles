@@ -20,6 +20,9 @@ dist
 # Database backups (PF.2)
 backups/
 
+# Local image staging (one-off import runs)
+tmp/
+
 # Environment
 .env*
 !.env.example
