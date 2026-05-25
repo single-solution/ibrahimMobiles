@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { classNames } from "@store/shared";
+import { CheckCircle2, Circle, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 
@@ -218,6 +219,113 @@ export function SettingsPanelHeader({
   );
 }
 
+export type SettingsHeroMetricTone = "good" | "warn" | "neutral" | "off";
+
+export interface SettingsHeroMetric {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: SettingsHeroMetricTone;
+  icon?: LucideIcon;
+}
+
+const TONE_STYLES: Record<SettingsHeroMetricTone, string> = {
+  good: "bg-emerald-50 text-emerald-800 border-emerald-100",
+  warn: "bg-amber-50 text-amber-800 border-amber-100",
+  neutral: "bg-[var(--color-canvas-deep)] text-[var(--color-ink-700)] border-[var(--color-ink-100)]",
+  off: "bg-[var(--color-canvas)] text-[var(--color-ink-500)] border-[var(--color-ink-100)]",
+};
+
+/**
+ * Status strip that sits at the top of each settings tab — gives an at-a-glance
+ * read on what's currently configured (e.g. "3 of 4 payment methods enabled")
+ * before the admin starts editing fields. Optional `actions` slot houses CTAs
+ * like "Test call" or "Open inbox".
+ *
+ * Modelled on the chat-settings tab's status row that the team called out as
+ * the right design — shipped as a reusable component so every tab gets the
+ * same shape rather than each rolling its own.
+ */
+export function SettingsTabHero({
+  metrics,
+  actions,
+  description,
+}: {
+  metrics: SettingsHeroMetric[];
+  actions?: ReactNode;
+  description?: string;
+}) {
+  return (
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-3 md:p-4">
+      {description ? (
+        <p className="mb-3 max-w-prose text-[11.5px] leading-relaxed text-[var(--color-ink-600)] md:text-[12px]">
+          {description}
+        </p>
+      ) : null}
+      <div className="flex flex-wrap items-stretch gap-2">
+        {metrics.map((metric) => {
+          const Icon =
+            metric.icon ?? (metric.tone === "good" ? CheckCircle2 : Circle);
+          return (
+            <div
+              key={metric.label}
+              className={classNames(
+                "flex min-w-[140px] flex-1 items-start gap-2 rounded-[var(--radius-md)] border px-3 py-2",
+                TONE_STYLES[metric.tone ?? "neutral"],
+              )}
+            >
+              <Icon size={14} className="mt-0.5 shrink-0" aria-hidden />
+              <div className="min-w-0 flex-1 leading-tight">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] opacity-70">
+                  {metric.label}
+                </p>
+                <p className="mt-0.5 truncate text-[13px] font-semibold">
+                  {metric.value}
+                </p>
+                {metric.hint ? (
+                  <p className="mt-0.5 truncate text-[10.5px] opacity-80">
+                    {metric.hint}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {actions ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-[var(--color-ink-100)] pt-3">
+          {actions}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Compact 2-column responsive grid for stacking short text/number fields
+ * inside a FormSection. Falls back to a single column on phones; drops to
+ * two columns at `md:` so a desktop monitor can pair, e.g., "Account title"
+ * and "Wallet number" on the same row.
+ */
+export function FormGrid({
+  cols = 2,
+  children,
+}: {
+  cols?: 2 | 3;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={classNames(
+        "grid gap-3 md:gap-4",
+        cols === 3 ? "md:grid-cols-2 xl:grid-cols-3" : "md:grid-cols-2",
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 /**
  * Scrollable form body with optional sticky save footer inside the panel.
  *
@@ -250,6 +358,7 @@ export function SettingsSaveFooter({
   discardLabel = "Discard",
   hint,
   showDiscard,
+  dirtyCount,
 }: {
   onSave: () => void;
   onDiscard?: () => void;
@@ -257,11 +366,18 @@ export function SettingsSaveFooter({
   discardLabel?: string;
   hint?: string;
   showDiscard?: boolean;
+  /** When provided, replaces the generic dirty hint with a concrete count. */
+  dirtyCount?: number;
 }) {
+  const computedHint =
+    hint ??
+    (dirtyCount && dirtyCount > 0
+      ? `${dirtyCount} unsaved ${dirtyCount === 1 ? "change" : "changes"} on this tab.`
+      : "Up to date — changes appear on the storefront within about a minute.");
   return (
     <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)]/90 px-3 py-2 backdrop-blur md:gap-3 md:px-6 md:py-3">
       <p className="text-[10.5px] text-[var(--color-ink-500)] md:text-[11px]">
-        {hint ?? "Unsaved changes will be lost if you leave this tab."}
+        {computedHint}
       </p>
       <div className="flex items-center gap-2">
         {showDiscard && onDiscard ? (

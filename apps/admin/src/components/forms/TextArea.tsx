@@ -4,12 +4,21 @@ import { classNames } from "@store/shared";
 interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
   hint?: string;
+  containerClassName?: string;
 }
 
-export function TextArea({ label, hint, id, className, rows = 4, ...rest }: TextAreaProps) {
+export function TextArea({
+  label,
+  hint,
+  id,
+  className,
+  containerClassName,
+  rows = 4,
+  ...rest
+}: TextAreaProps) {
   const fieldId = id ?? `area-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
-    <div className="flex flex-col gap-1 md:gap-1.5">
+    <div className={classNames("flex flex-col gap-1 md:gap-1.5", containerClassName)}>
       <label
         htmlFor={fieldId}
         className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-700)] md:text-[11px] md:tracking-[0.14em]"
