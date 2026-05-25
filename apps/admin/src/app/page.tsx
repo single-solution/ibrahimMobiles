@@ -196,6 +196,16 @@ export default async function AdminOverviewPage() {
   );
 }
 
+/**
+ * Shared grid for every desktop KPI strip on this page. Tighter than the
+ * old `gap-4` spacing and breaks to 4-up at `lg:` (instead of `xl:`) so a
+ * 13" laptop fits a full row without horizontal compromises. On 2xl
+ * monitors all four cards still occupy comfortable widths — the constraint
+ * is no longer the grid, it's the dashboard container.
+ */
+const DESKTOP_KPI_GRID =
+  "grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4";
+
 /* ─────────────────────────── Mobile data slots ─────────────────────────── */
 
 async function MobileTodayKpis() {
@@ -325,7 +335,7 @@ async function DesktopPerformanceKpis() {
   ]);
   const revenueValues = dailyRevenue.map((day) => day.rupees);
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className={DESKTOP_KPI_GRID}>
       <KpiCard
         label="Orders today"
         value={String(kpis.ordersToday)}
@@ -366,7 +376,7 @@ async function DesktopPerformanceKpis() {
 async function DesktopAttentionKpis() {
   const kpis = await loadDashboardKpisCached();
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className={DESKTOP_KPI_GRID}>
       <KpiCard
         tone="warn"
         label="Pending payments"
@@ -409,7 +419,7 @@ async function DesktopStockKpis() {
       ? Math.floor(settings.lowStockThreshold)
       : LOW_STOCK_VARIANT_THRESHOLD;
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className={DESKTOP_KPI_GRID}>
       <KpiCard
         label="Units in stock"
         value={String(kpis.unitsInStock)}
@@ -489,20 +499,23 @@ function MobileInquiriesFallback() {
 
 function DesktopKpiGridFallback() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className={DESKTOP_KPI_GRID}>
       {Array.from({ length: KPI_FALLBACK_COUNT }).map((_, index) => (
         <div
           key={index}
-          className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-6"
+          // Match the dense KpiCard skeleton: same paddings, same value
+          // height, same trailing trend row. Prevents a layout shift when
+          // the data lands.
+          className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3 sm:p-3.5"
         >
-          <div className="flex items-center justify-between gap-3">
-            <Skeleton shape="text" className="h-3 w-24" />
+          <div className="flex items-center justify-between gap-2">
+            <Skeleton shape="text" className="h-3 w-20" />
             <Skeleton className="size-7" />
           </div>
-          <Skeleton shape="text" className="mt-6 h-7 w-32" />
-          <div className="mt-4 flex items-center justify-between gap-2">
-            <Skeleton shape="text" className="h-3 w-20" />
+          <Skeleton shape="text" className="mt-3 h-5 w-24" />
+          <div className="mt-2.5 flex items-center justify-between gap-2">
             <Skeleton shape="text" className="h-3 w-16" />
+            <Skeleton shape="text" className="h-3 w-12" />
           </div>
         </div>
       ))}
@@ -556,7 +569,9 @@ interface SectionHeaderProps {
 
 function SectionHeader({ eyebrow, title, subtitle, action }: SectionHeaderProps) {
   return (
-    <header className="mt-8 mb-3 flex flex-wrap items-end justify-between gap-3">
+    // Tightened from `mt-8 mb-3` — three sections of headers + 4-up KPI
+    // grids was creating ~96px of pure header rhythm, now ~56px.
+    <header className="mt-5 mb-2 flex flex-wrap items-end justify-between gap-2 first:mt-0">
       <div>
         {eyebrow && (
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
@@ -564,12 +579,12 @@ function SectionHeader({ eyebrow, title, subtitle, action }: SectionHeaderProps)
           </p>
         )}
         {title && (
-          <h2 className="mt-1 text-base font-semibold tracking-tight text-[var(--color-ink-900)]">
+          <h2 className="mt-0.5 text-[14px] font-semibold tracking-tight text-[var(--color-ink-900)] sm:text-[15px]">
             {title}
           </h2>
         )}
         {subtitle && (
-          <p className="mt-0.5 text-xs text-[var(--color-ink-500)]">{subtitle}</p>
+          <p className="mt-0.5 text-[11.5px] text-[var(--color-ink-500)]">{subtitle}</p>
         )}
       </div>
       {action}

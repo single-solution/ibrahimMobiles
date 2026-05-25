@@ -108,32 +108,32 @@ function MobileKpiStripSkeleton({ heading }: { heading: string }) {
 
 function DesktopSectionHeaderSkeleton() {
   return (
-    <header className="mt-8 mb-3 flex flex-wrap items-end justify-between gap-3">
-      <div className="space-y-2">
-        <Skeleton shape="text" className="h-4 w-56" />
-        <Skeleton shape="text" className="h-3 w-72" />
+    <header className="mt-5 mb-2 flex flex-wrap items-end justify-between gap-2 first:mt-0">
+      <div className="space-y-1.5">
+        <Skeleton shape="text" className="h-3.5 w-48" />
+        <Skeleton shape="text" className="h-2.5 w-64" />
       </div>
-      <Skeleton shape="text" className="h-3 w-24" />
+      <Skeleton shape="text" className="h-3 w-20" />
     </header>
   );
 }
 
 function DesktopKpiGridSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
       {Array.from({ length: KPI_CARDS }).map((_, index) => (
         <div
           key={index}
-          className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-6"
+          className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3 sm:p-3.5"
         >
-          <div className="flex items-center justify-between gap-3">
-            <Skeleton shape="text" className="h-3 w-24" />
+          <div className="flex items-center justify-between gap-2">
+            <Skeleton shape="text" className="h-3 w-20" />
             <Skeleton className="size-7" />
           </div>
-          <Skeleton shape="text" className="mt-6 h-7 w-32" />
-          <div className="mt-4 flex items-center justify-between gap-2">
-            <Skeleton shape="text" className="h-3 w-20" />
+          <Skeleton shape="text" className="mt-3 h-5 w-24" />
+          <div className="mt-2.5 flex items-center justify-between gap-2">
             <Skeleton shape="text" className="h-3 w-16" />
+            <Skeleton shape="text" className="h-3 w-12" />
           </div>
         </div>
       ))}

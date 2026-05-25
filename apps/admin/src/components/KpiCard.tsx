@@ -45,20 +45,25 @@ export function KpiCard({
 }: KpiCardProps) {
   const isPositive = (changePercent ?? 0) >= 0;
   return (
+    // Dense card sizing — was `p-4 sm:p-5` with `text-[22px] sm:text-[28px]`
+    // values and `mt-4`/`mt-5` gaps. Three KPI grids each with 4 cards added
+    // up to a wall of scroll on the dashboard. Halving the vertical rhythm
+    // keeps the same hierarchy (label → big value → trend) but fits ~30%
+    // more in a viewport.
     <div
       className={classNames(
-        "lift rounded-[var(--radius-lg)] border p-4 sm:p-5",
+        "lift rounded-[var(--radius-lg)] border p-3 sm:p-3.5",
         TONE_CONTAINER[tone],
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)] sm:text-[11px]">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)] sm:text-[10.5px]">
           {label}
         </p>
         {icon && (
           <span
             className={classNames(
-              "grid size-8 place-items-center rounded-[var(--radius-md)] sm:size-9",
+              "grid size-7 place-items-center rounded-[var(--radius-md)] sm:size-8",
               TONE_ICON_BADGE[tone],
             )}
           >
@@ -66,19 +71,19 @@ export function KpiCard({
           </span>
         )}
       </div>
-      <p className="mt-4 text-[22px] font-semibold leading-none tracking-[-0.025em] text-[var(--color-ink-900)] sm:mt-5 sm:text-[28px]">
+      <p className="mt-2 text-[18px] font-semibold leading-none tracking-[-0.02em] text-[var(--color-ink-900)] sm:mt-2.5 sm:text-[22px]">
         {value}
       </p>
-      <div className="mt-3 flex items-end justify-between gap-3 sm:mt-4">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+      <div className="mt-2 flex items-end justify-between gap-2 sm:mt-2.5">
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
           {typeof changePercent === "number" && (
             <span
               className={classNames(
-                "inline-flex items-center gap-1 text-[11px] font-semibold sm:text-xs",
+                "inline-flex items-center gap-0.5 text-[10.5px] font-semibold sm:text-[11px]",
                 isPositive ? "text-[var(--color-accent-700)]" : "text-rose-600",
               )}
             >
-              {isPositive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+              {isPositive ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
               {Math.abs(changePercent)}%
               {changeLabel && (
                 <span className="hidden font-normal text-[var(--color-ink-500)] sm:inline">{changeLabel}</span>
@@ -86,7 +91,7 @@ export function KpiCard({
             </span>
           )}
           {hint && (
-            <span className="text-[11px] text-[var(--color-ink-500)]">{hint}</span>
+            <span className="text-[10.5px] text-[var(--color-ink-500)]">{hint}</span>
           )}
         </div>
         {spark && <div className="ml-auto opacity-90">{spark}</div>}
