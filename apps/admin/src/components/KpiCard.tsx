@@ -44,26 +44,27 @@ export function KpiCard({
   tone = "default",
 }: KpiCardProps) {
   const isPositive = (changePercent ?? 0) >= 0;
+  // Compact two-row layout — was three stacked rows (label+icon, value,
+  // trend) totalling ~110px tall. Now: icon sits on the left of the value
+  // line, label sits above as a tight eyebrow, change% rides next to the
+  // value. Trend row only renders when there's actually data to show, so
+  // pure-info cards (e.g. "Days with orders") collapse from three rows to
+  // two without an empty footer eating space. Result: ~70px per card.
   return (
-    // Dense card sizing — was `p-4 sm:p-5` with `text-[22px] sm:text-[28px]`
-    // values and `mt-4`/`mt-5` gaps. Three KPI grids each with 4 cards added
-    // up to a wall of scroll on the dashboard. Halving the vertical rhythm
-    // keeps the same hierarchy (label → big value → trend) but fits ~30%
-    // more in a viewport.
     <div
       className={classNames(
-        "lift rounded-[var(--radius-lg)] border p-3 sm:p-3.5",
+        "lift flex h-full flex-col justify-center rounded-[var(--radius-lg)] border px-3 py-2.5 sm:px-3.5 sm:py-3",
         TONE_CONTAINER[tone],
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)] sm:text-[10.5px]">
           {label}
         </p>
         {icon && (
           <span
             className={classNames(
-              "grid size-7 place-items-center rounded-[var(--radius-md)] sm:size-8",
+              "grid size-6 place-items-center rounded-[var(--radius-md)] sm:size-7",
               TONE_ICON_BADGE[tone],
             )}
           >
@@ -71,31 +72,30 @@ export function KpiCard({
           </span>
         )}
       </div>
-      <p className="mt-2 text-[18px] font-semibold leading-none tracking-[-0.02em] text-[var(--color-ink-900)] sm:mt-2.5 sm:text-[22px]">
-        {value}
-      </p>
-      <div className="mt-2 flex items-end justify-between gap-2 sm:mt-2.5">
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-          {typeof changePercent === "number" && (
-            <span
-              className={classNames(
-                "inline-flex items-center gap-0.5 text-[10.5px] font-semibold sm:text-[11px]",
-                isPositive ? "text-[var(--color-accent-700)]" : "text-rose-600",
-              )}
-            >
-              {isPositive ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-              {Math.abs(changePercent)}%
-              {changeLabel && (
-                <span className="hidden font-normal text-[var(--color-ink-500)] sm:inline">{changeLabel}</span>
-              )}
-            </span>
-          )}
-          {hint && (
-            <span className="text-[10.5px] text-[var(--color-ink-500)]">{hint}</span>
-          )}
-        </div>
-        {spark && <div className="ml-auto opacity-90">{spark}</div>}
+      <div className="mt-1.5 flex items-baseline justify-between gap-2 sm:mt-2">
+        <p className="text-[17px] font-semibold leading-none tracking-[-0.02em] text-[var(--color-ink-900)] sm:text-[20px]">
+          {value}
+        </p>
+        {typeof changePercent === "number" && (
+          <span
+            className={classNames(
+              "inline-flex shrink-0 items-center gap-0.5 text-[10.5px] font-semibold sm:text-[11px]",
+              isPositive ? "text-[var(--color-accent-700)]" : "text-rose-600",
+            )}
+          >
+            {isPositive ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+            {Math.abs(changePercent)}%
+          </span>
+        )}
       </div>
+      {(changeLabel || hint || spark) && (
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <span className="truncate text-[10.5px] text-[var(--color-ink-500)]">
+            {hint ?? changeLabel}
+          </span>
+          {spark && <div className="ml-auto shrink-0 opacity-90">{spark}</div>}
+        </div>
+      )}
     </div>
   );
 }

@@ -564,19 +564,18 @@ function DesktopKpiGridFallback() {
       {Array.from({ length: KPI_FALLBACK_COUNT }).map((_, index) => (
         <div
           key={index}
-          // Match the dense KpiCard skeleton: same paddings, same value
-          // height, same trailing trend row. Prevents a layout shift when
-          // the data lands.
-          className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3 sm:p-3.5"
+          // Match the compact KpiCard shape: eyebrow + icon, then a value
+          // row with inline change. No trailing footer so the skeleton's
+          // height matches the final card and there's no layout shift.
+          className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2.5 sm:px-3.5 sm:py-3"
         >
           <div className="flex items-center justify-between gap-2">
             <Skeleton shape="text" className="h-3 w-20" />
-            <Skeleton className="size-7" />
+            <Skeleton className="size-6" />
           </div>
-          <Skeleton shape="text" className="mt-3 h-5 w-24" />
-          <div className="mt-2.5 flex items-center justify-between gap-2">
-            <Skeleton shape="text" className="h-3 w-16" />
-            <Skeleton shape="text" className="h-3 w-12" />
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <Skeleton shape="text" className="h-4 w-20" />
+            <Skeleton shape="text" className="h-3 w-10" />
           </div>
         </div>
       ))}
