@@ -1,10 +1,8 @@
 "use client";
 
-import { classNames } from "@store/shared";
 import { ChevronDown } from "lucide-react";
 import {
   FILTER_PARAM_KEYS,
-  isExpandGradesView,
 } from "@/lib/storefront/filterParams";
 import { useFilterParams } from "@/lib/storefront/useFilterParams";
 import type { StorefrontSort } from "@/lib/storefront/queries";
@@ -29,65 +27,40 @@ const SORT_OPTIONS: Exclude<StorefrontSort, "recently-updated">[] = [
  * server-rendered shop page; the page re-renders with the new sort applied.
  *
  * We use a plain `<select>` for native mobile UX (system picker) and style
- * the wrapper to look like the rest of the design language.
+ * the wrapper to look like the rest of the design language. The "Browse by
+ * grade" view mode lives in `GradeViewModeTabs` (segmented control above
+ * the grid) — it's a view mode, not a sort, so it shouldn't crowd this
+ * pill.
  */
 export function SortDropdown() {
-  const { getSingle, setSingle, params } = useFilterParams();
+  const { getSingle, setSingle } = useFilterParams();
   const raw = getSingle(FILTER_PARAM_KEYS.sort) as StorefrontSort | undefined;
   const value: Exclude<StorefrontSort, "recently-updated"> =
     raw && raw !== "recently-updated" ? raw : "newest";
-  const expandGrades = isExpandGradesView(params);
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
-      <label
-        className={classNames(
-          "inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-ink-800)] transition-colors md:h-auto md:rounded-[var(--radius-md)] md:px-3.5 md:py-2 md:text-sm",
-          expandGrades
-            ? "border-[var(--color-accent-400)]/70 bg-[var(--color-accent-50)]/80 shadow-[var(--shadow-sm)]"
-            : "border-[var(--color-ink-200)] hover:border-[var(--color-ink-300)]",
-        )}
+    <label className="relative inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-ink-800)] hover:border-[var(--color-ink-300)] md:h-auto md:rounded-[var(--radius-md)] md:px-3.5 md:py-2 md:text-sm">
+      <span className="text-[var(--color-ink-500)]">Sort</span>
+      <span className="line-clamp-1">{SORT_LABELS[value]}</span>
+      <ChevronDown size={13} aria-hidden />
+      <select
+        aria-label="Sort products"
+        value={value}
+        onChange={(event) => {
+          const next = event.target.value as Exclude<
+            StorefrontSort,
+            "recently-updated"
+          >;
+          setSingle(FILTER_PARAM_KEYS.sort, next === "newest" ? "" : next);
+        }}
+        className="absolute inset-0 cursor-pointer opacity-0"
       >
-        <span className={expandGrades ? "text-[var(--color-accent-800)]" : "text-[var(--color-ink-500)]"}>
-          Browse by grade
-        </span>
-        <input
-          type="checkbox"
-          role="switch"
-          aria-label="Browse by grade — show each condition grade as its own product card"
-          checked={expandGrades}
-          onChange={(event) => {
-            setSingle(
-              FILTER_PARAM_KEYS.expandGrades,
-              event.target.checked ? "1" : "",
-            );
-          }}
-          className="size-4 accent-[var(--color-accent-600)]"
-        />
-      </label>
-      <label className="relative inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-ink-800)] hover:border-[var(--color-ink-300)] md:h-auto md:rounded-[var(--radius-md)] md:px-3.5 md:py-2 md:text-sm">
-        <span className="text-[var(--color-ink-500)]">Sort</span>
-        <span>{SORT_LABELS[value]}</span>
-        <ChevronDown size={13} aria-hidden />
-        <select
-          aria-label="Sort products"
-          value={value}
-          onChange={(event) => {
-            const next = event.target.value as Exclude<
-              StorefrontSort,
-              "recently-updated"
-            >;
-            setSingle(FILTER_PARAM_KEYS.sort, next === "newest" ? "" : next);
-          }}
-          className="absolute inset-0 cursor-pointer opacity-0"
-        >
-          {SORT_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {SORT_LABELS[option]}
-            </option>
-          ))}
-        </select>
-      </label>
-    </div>
+        {SORT_OPTIONS.map((option) => (
+          <option key={option} value={option}>
+            {SORT_LABELS[option]}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

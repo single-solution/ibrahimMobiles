@@ -43,9 +43,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <EmptySearchState message="Enter a search term from the header search box." />
       ) : page && page.products.length > 0 ? (
         <section className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4">
-          {page.products.map((product) => (
+          {page.products.map((product, index) => (
             <div key={product.id} className="h-full">
-              <ProductCard product={product} />
+              {/* First two cards preload as priority — covers the LCP
+                  candidate on mobile (2-col first row) without splitting
+                  bandwidth across the rest. */}
+              <ProductCard product={product} priority={index < 2} />
             </div>
           ))}
         </section>

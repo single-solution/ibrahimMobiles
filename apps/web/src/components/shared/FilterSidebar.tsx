@@ -14,7 +14,10 @@ import type { StorefrontAttributeFacet } from "@/lib/storefront/facets";
 
 import { Button } from "@/components/ui/Button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { FILTER_PARAM_KEYS } from "@/lib/storefront/filterParams";
+import {
+  FILTER_PARAM_KEYS,
+  isExpandGradesView,
+} from "@/lib/storefront/filterParams";
 import { useFilterParams } from "@/lib/storefront/useFilterParams";
 import { useAttributesForCategory, useGrades } from "@/lib/storefront/storefrontReferenceContext";
 
@@ -156,6 +159,14 @@ function FilterPanel({
   const brandSlugs = filterApi.getMulti(FILTER_PARAM_KEYS.brands);
   const minPriceParam = filterApi.getSingle(FILTER_PARAM_KEYS.minPrice) ?? "";
   const maxPriceParam = filterApi.getSingle(FILTER_PARAM_KEYS.maxPrice) ?? "";
+  const expandGrades = isExpandGradesView(filterApi.params);
+
+  const setExpandGrades = useCallback(
+    (next: boolean) => {
+      filterApi.setSingle(FILTER_PARAM_KEYS.expandGrades, next ? "1" : "");
+    },
+    [filterApi],
+  );
 
   const [minPrice, setMinPrice] = useState(minPriceParam);
   const [maxPrice, setMaxPrice] = useState(maxPriceParam);
@@ -274,6 +285,30 @@ function FilterPanel({
 
   const filterGroups = (
     <div className={isMobile ? "sheet-stagger space-y-6" : "space-y-3 p-2.5 pb-3"}>
+      {/* View mode (desktop only). Mobile renders this as segmented tabs
+          above the grid (`GradeViewModeTabs`) — that placement is the
+          mobile-native one, so we skip it here to avoid duplicating the
+          control in the mobile filter bottom sheet. */}
+      {!isMobile && (
+        <>
+          <FilterGroup title="View">
+            <div className="space-y-0.5">
+              <FilterCheckRow
+                label="By product"
+                checked={!expandGrades}
+                onToggle={() => setExpandGrades(false)}
+              />
+              <FilterCheckRow
+                label="By grade"
+                checked={expandGrades}
+                onToggle={() => setExpandGrades(true)}
+              />
+            </div>
+          </FilterGroup>
+          <FilterDivider />
+        </>
+      )}
+
       <FilterGroup title="Grade">
         {visibleGrades.length === 0 ? (
           <p className="px-2 text-[12px] text-[var(--color-ink-500)]">

@@ -3,17 +3,24 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { ShopProductGrid } from "@/components/shared/ShopProductGrid";
 import { FilterSidebar } from "@/components/shared/FilterSidebar";
+import { ShopCategoryRail } from "@/components/shop/ShopCategoryRail";
 import {
-  ShopCategoryRail,
-  ShopCategoryRailSkeleton,
-} from "@/components/shop/ShopCategoryRail";
+  MobileCategoryPicker,
+  MobileCategoryPickerSkeleton,
+} from "@/components/shop/MobileCategoryPicker";
+import { GradeViewModeTabs } from "@/components/shop/GradeViewModeTabs";
 import { SortDropdown } from "@/components/shared/SortDropdown";
 import { ResultsCountBar } from "@/components/shared/ResultsCountBar";
 import { ShopPagination } from "@/components/shared/ShopPagination";
-import { Skeleton } from "@/components/ui/Skeleton";
+import {
+  ShopCategoryRailFallback,
+  ShopDesktopFilterSidebarFallback,
+  ShopDesktopProductsAreaFallback,
+  ShopMobileProductsAreaFallback,
+  ShopMobileToolbarFilterFallback,
+} from "@/components/shared/ShopListingSkeleton";
 import { StructuredContentFull } from "@/components/shared/StructuredContent";
 import {
   parseFiltersFromSearchParams,
@@ -59,11 +66,6 @@ interface CategoryPageProps {
   params: Promise<{ category: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
-
-const MOBILE_SKELETON_CARDS = 6;
-const DESKTOP_SKELETON_CARDS = 12;
-const FILTER_GROUP_COUNT = 3;
-const FILTER_ROWS_PER_GROUP = 4;
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const { category } = await params;
@@ -122,20 +124,27 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       <Suspense fallback={null}>
         <CategoryJsonLd meta={meta} filters={filters} />
       </Suspense>
-      {/* Mobile only — native */}
+      {/* Mobile only — native. Single compact toolbar replaces the
+          previous (pill-rail + filter + sort) two-row layout: now a
+          [Category ▾] picker, [Filter (n)] button and [Sort ▾] pill all
+          fit on one row, with the grade view-mode segmented control
+          living above the grid where it stops crowding the toolbar. */}
       <div className="app-page pb-10 pt-2 md:hidden">
-        <Suspense fallback={<CategorySelectorSkeleton />}>
-          <CategorySelectorData activeSlug={meta.slug} />
-        </Suspense>
-
-        <div className="shop-listing-toolbar mt-3 flex items-center gap-2.5 p-2">
-          <Suspense fallback={<Skeleton shape="pill" className="h-10 w-24" />}>
+        <div className="shop-listing-toolbar mt-1 flex items-center gap-2 p-2">
+          <Suspense fallback={<MobileCategoryPickerSkeleton />}>
+            <MobileCategoryPickerData activeSlug={meta.slug} />
+          </Suspense>
+          <Suspense fallback={<ShopMobileToolbarFilterFallback />}>
             <FilterSidebarData categorySlug={meta.slug} filters={filters} />
           </Suspense>
           <SortDropdown />
         </div>
 
-        <Suspense fallback={<MobileProductsAreaSkeleton />}>
+        <div className="mt-3 px-1">
+          <GradeViewModeTabs className="w-full" />
+        </div>
+
+        <Suspense fallback={<ShopMobileProductsAreaFallback />}>
           <MobileProductsArea meta={meta} filters={filters} />
         </Suspense>
       </div>
@@ -144,16 +153,16 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       <div className="hidden md:block">
         <div className="mx-auto max-w-[1440px] px-6 pb-20 pt-4">
           <div className="grid grid-cols-[272px_1fr] gap-10 xl:grid-cols-[280px_1fr] xl:gap-12">
-            <Suspense fallback={<DesktopFilterSidebarSkeleton />}>
+            <Suspense fallback={<ShopDesktopFilterSidebarFallback />}>
               <FilterSidebarData categorySlug={meta.slug} filters={filters} />
             </Suspense>
 
             <div className="min-w-0 space-y-3">
-              <Suspense fallback={<CategorySelectorSkeleton />}>
+              <Suspense fallback={<ShopCategoryRailFallback />}>
                 <CategorySelectorData activeSlug={meta.slug} />
               </Suspense>
 
-              <Suspense fallback={<DesktopProductsAreaSkeleton />}>
+              <Suspense fallback={<ShopDesktopProductsAreaFallback />}>
                 <DesktopProductsArea meta={meta} filters={filters} />
               </Suspense>
             </div>
@@ -211,6 +220,11 @@ async function CategorySelectorData({ activeSlug }: CategorySelectorDataProps) {
   return <ShopCategoryRail activeSlug={activeSlug} categories={categories} />;
 }
 
+async function MobileCategoryPickerData({ activeSlug }: CategorySelectorDataProps) {
+  const categories = await getStorefrontCategoriesCached();
+  return <MobileCategoryPicker activeSlug={activeSlug} categories={categories} />;
+}
+
 interface FilterSidebarDataProps {
   categorySlug: string;
   filters: StorefrontProductFilters;
@@ -264,7 +278,7 @@ async function MobileProductsArea({ meta, filters }: ProductsAreaProps) {
 async function DesktopProductsArea({ meta, filters }: ProductsAreaProps) {
   const page = await getStorefrontProductsPageCached(filters);
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="shop-listing-toolbar flex flex-wrap items-center justify-between gap-4 px-4 py-3">
         <ResultsCountBar
           total={page.total}
@@ -281,80 +295,6 @@ async function DesktopProductsArea({ meta, filters }: ProductsAreaProps) {
         basePath={`/shop/${meta.slug}`}
       />
     </div>
-  );
-}
-
-/* ─────────────────────── Suspense fallbacks ─────────────────────── */
-
-function CategorySelectorSkeleton() {
-  return <ShopCategoryRailSkeleton pillCount={6} />;
-}
-
-function DesktopFilterSidebarSkeleton() {
-  return (
-    <aside className="space-y-6 rounded-[var(--radius-lg)] border border-[var(--color-accent-200)]/40 bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)]">
-      {Array.from({ length: FILTER_GROUP_COUNT }).map((_, groupIndex) => (
-        <div key={groupIndex} className="space-y-3">
-          <Skeleton shape="text" className="h-3 w-24" />
-          <div className="space-y-2">
-            {Array.from({ length: FILTER_ROWS_PER_GROUP }).map((_, rowIndex) => (
-              <div key={rowIndex} className="flex items-center gap-2">
-                <Skeleton className="size-4 shrink-0" />
-                <Skeleton shape="text" className="h-3 w-3/4" />
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </aside>
-  );
-}
-
-function MobileProductsAreaSkeleton() {
-  return (
-    <>
-      <div className="mt-4 flex items-center justify-between">
-        <Skeleton shape="text" className="h-3 w-32" />
-        <Skeleton shape="text" className="h-3 w-20" />
-      </div>
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4">
-        {Array.from({ length: MOBILE_SKELETON_CARDS }).map((_, index) => (
-          <ProductCardSkeleton key={index} />
-        ))}
-      </div>
-      <div className="mt-10">
-        <PaginationSkeleton />
-      </div>
-    </>
-  );
-}
-
-function DesktopProductsAreaSkeleton() {
-  return (
-    <div className="space-y-8">
-      <div className="shop-listing-toolbar flex items-center justify-between gap-4 px-4 py-3">
-        <Skeleton shape="text" className="h-4 w-40" />
-        <Skeleton shape="pill" className="h-10 w-36" />
-      </div>
-      <div className="grid grid-cols-3 gap-6 xl:grid-cols-4 xl:gap-7">
-        {Array.from({ length: DESKTOP_SKELETON_CARDS }).map((_, index) => (
-          <ProductCardSkeleton key={index} />
-        ))}
-      </div>
-      <PaginationSkeleton />
-    </div>
-  );
-}
-
-function PaginationSkeleton() {
-  return (
-    <nav className="flex items-center justify-center gap-1.5">
-      <Skeleton shape="pill" className="h-9 w-9" />
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Skeleton key={index} shape="pill" className="h-9 w-9" />
-      ))}
-      <Skeleton shape="pill" className="h-9 w-9" />
-    </nav>
   );
 }
 

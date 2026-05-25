@@ -17,9 +17,26 @@ import { useSwapAnimation } from "@/components/motion/useSwapAnimation";
 interface ShopProductGridProps {
   products: Product[];
   categoryLabel: string;
+  /**
+   * Number of leading cards whose hero image should load with high
+   * priority (sets `priority` on the `<Image>` so Next.js emits a
+   * `<link rel="preload" fetchpriority="high">` and skips the default
+   * lazy loader). The LCP candidate is almost always the first card —
+   * preloading additional images would split bandwidth and slow it down
+   * — so the safe default is the mobile first row (2 cards). Surfaces
+   * with a wider above-the-fold layout (e.g. a 4-column desktop hero
+   * rail) can pass a higher count.
+   */
+  priorityCount?: number;
 }
 
-export function ShopProductGrid({ products, categoryLabel }: ShopProductGridProps) {
+const DEFAULT_PRIORITY_COUNT = 2;
+
+export function ShopProductGrid({
+  products,
+  categoryLabel,
+  priorityCount = DEFAULT_PRIORITY_COUNT,
+}: ShopProductGridProps) {
   const { params } = useFilterParams();
   const expandGrades = isExpandGradesView(params);
   const cards = expandGrades ? expandProductsByGrade(products) : products;
@@ -45,7 +62,7 @@ export function ShopProductGrid({ products, categoryLabel }: ShopProductGridProp
     <div
       className={`reveal-stagger grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4 xl:gap-7${isListingSwap ? " listing-swap" : ""}`}
     >
-      {cards.map((product) => {
+      {cards.map((product, index) => {
         const catalogProduct = products.find((row) => row.id === product.id) ?? product;
         const listingVariant = resolveListingVariant(product, { gradeSlugs });
         const pinnedGradeSlug = expandGrades ? listingVariant.gradeSlug : undefined;
@@ -58,6 +75,7 @@ export function ShopProductGrid({ products, categoryLabel }: ShopProductGridProp
               product={product}
               catalogProduct={catalogProduct}
               pinnedGradeSlug={pinnedGradeSlug}
+              priority={index < priorityCount}
             />
           </div>
         );

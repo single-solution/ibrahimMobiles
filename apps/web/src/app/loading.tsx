@@ -8,6 +8,13 @@ import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
  * tiles → process strip → dark grades band → visit-store card. Sub-routes
  * (shop, account, etc.) override this with their own `loading.tsx`.
  */
+
+// Must stay in sync with `SHOP_TYPE_FALLBACK_COUNT` in `HomePageContent.tsx`
+// — when the segment loading flips to the page render, the shop-type rail
+// uses its own Suspense fallback (also 6) and a count mismatch here would
+// make the rail jump in length on transition.
+const SHOP_TYPE_TILE_COUNT = 6;
+
 export default function HomeLoading() {
   return (
     <SkeletonScreen label="Loading store">
@@ -75,7 +82,7 @@ function MobileCategoryTilesSkeleton() {
         <Skeleton shape="text" className="h-3 w-3/4" />
       </div>
       <div className="space-y-2.5">
-        {Array.from({ length: 3 }).map((_, index) => (
+        {Array.from({ length: SHOP_TYPE_TILE_COUNT }).map((_, index) => (
           <div
             key={index}
             className="flex min-h-[110px] flex-row items-center gap-3 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3.5"
@@ -239,7 +246,7 @@ function DesktopCategoryTilesSkeleton() {
     <section className="mx-auto max-w-[1440px] px-6 py-24">
       <DesktopSectionHeaderSkeleton />
       <div className="mt-12 grid grid-cols-3 gap-5">
-        {Array.from({ length: 3 }).map((_, index) => (
+        {Array.from({ length: SHOP_TYPE_TILE_COUNT }).map((_, index) => (
           <div
             key={index}
             className="flex min-h-[240px] flex-col rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-6"

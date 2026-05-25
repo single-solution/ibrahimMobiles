@@ -87,6 +87,10 @@ interface FanTileProps {
   isCenter: boolean;
   isDesktop: boolean;
   floatDelay: string;
+  /** Preload this tile's image as `priority` for LCP — the homepage's
+   *  hero fan is the largest visual block above the fold, so the centre
+   *  tile is by far the best LCP candidate. */
+  priority: boolean;
 }
 
 function HeroGalleryTile({
@@ -97,6 +101,7 @@ function HeroGalleryTile({
   isCenter,
   isDesktop,
   floatDelay,
+  priority,
 }: FanTileProps) {
   const brandName = brandLookup.get(product.brandSlug);
   const defaultVariant = getDefaultVariant(product);
@@ -125,6 +130,7 @@ function HeroGalleryTile({
           brandName={brandName}
           brandSlug={product.brandSlug}
           sizes={imageSizes}
+          priority={priority}
         />
       </div>
     </div>
@@ -191,6 +197,7 @@ export function HeroProductGallery({
               floatDelay={
                 TILE_FLOAT_DELAYS[slotIndex % TILE_FLOAT_DELAYS.length] ?? "0s"
               }
+              priority={slotIndex === centerSlotIndex}
             />
           );
         })}

@@ -203,9 +203,9 @@ async function MobileProductsOnSale() {
         <DealsEmpty />
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
-          {offeredProducts.map((product) => (
+          {offeredProducts.map((product, index) => (
             <div key={product.id} className="h-full">
-              <ProductCard product={product} />
+              <ProductCard product={product} priority={index < 2} />
             </div>
           ))}
         </div>
@@ -251,9 +251,9 @@ async function DesktopProductsSection() {
         <DealsEmpty />
       ) : (
         <div className="grid grid-cols-4 gap-5">
-          {offeredProducts.map((product) => (
+          {offeredProducts.map((product, index) => (
             <div key={product.id} className="h-full">
-              <ProductCard product={product} />
+              <ProductCard product={product} priority={index < 2} />
             </div>
           ))}
         </div>

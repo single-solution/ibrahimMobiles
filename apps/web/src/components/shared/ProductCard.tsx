@@ -49,6 +49,13 @@ interface ProductCardProps {
   catalogProduct?: Product;
   /** Grade view: link opens PDP with this grade selected. */
   pinnedGradeSlug?: string;
+  /**
+   * When `true` the hero image renders as a `priority` `<Image>` so the
+   * browser preloads it as a high-priority resource and skips the lazy
+   * loader. Use for above-the-fold cards (first row in the shop grid /
+   * featured rails) to claim a strong LCP — keep `false` for the rest.
+   */
+  priority?: boolean;
 }
 
 interface AttributeChipModel {
@@ -92,6 +99,7 @@ export function ProductCard({
   product,
   catalogProduct,
   pinnedGradeSlug,
+  priority = false,
 }: ProductCardProps) {
   const isGradeListing = Boolean(pinnedGradeSlug);
   const catalog = catalogProduct ?? product;
@@ -197,6 +205,7 @@ export function ProductCard({
               categorySlug={product.categorySlug}
               name={product.name}
               slides={gradeSlides}
+              priority={priority}
             />
           ) : isGradeListing && shouldCycleVariantChips && variantSlides ? (
             <ProductCardMediaCycle
@@ -208,6 +217,7 @@ export function ProductCard({
               name={product.name}
               pinnedGradeSlug={pinnedGradeSlug}
               slides={variantSlides}
+              priority={priority}
             />
           ) : (
             <>
@@ -218,6 +228,7 @@ export function ProductCard({
                   name={product.name}
                   brandName={brandName}
                   brandSlug={product.brandSlug}
+                  priority={priority}
                 />
               </div>
               <div className="absolute right-1.5 top-1.5 z-10 flex flex-col items-end gap-1 md:right-3 md:top-3 md:gap-1.5">
@@ -349,6 +360,7 @@ function ProductCardMediaCycle({
   brandSlug,
   pinnedGradeSlug,
   fixedHeroImage,
+  priority = false,
 }: {
   slides: ProductCardMediaSlide[];
   activeIndex: number;
@@ -359,6 +371,12 @@ function ProductCardMediaCycle({
   pinnedGradeSlug?: string;
   /** Browse-by-grade: grade gallery stays fixed while attributes cycle. */
   fixedHeroImage?: StoredImage;
+  /**
+   * Preload the first slide's hero (and `fixedHeroImage`) — used for
+   * above-the-fold cards. We never set `priority` on more than one
+   * underlying image at a time so the LCP budget isn't blown.
+   */
+  priority?: boolean;
 }) {
   const activeSlide = slides[activeIndex] ?? slides[0];
 
@@ -377,6 +395,7 @@ function ProductCardMediaCycle({
               name={name}
               brandName={brandName}
               brandSlug={brandSlug}
+              priority={priority}
             />
           </div>
         ) : (
@@ -395,6 +414,10 @@ function ProductCardMediaCycle({
                   name={name}
                   brandName={brandName}
                   brandSlug={brandSlug}
+                  // Only the first slide preloads. The rotating siblings
+                  // ride the standard Next/Image lazy path so a single
+                  // above-the-fold card never preloads N images.
+                  priority={priority && index === 0}
                 />
               </div>
             ))}
