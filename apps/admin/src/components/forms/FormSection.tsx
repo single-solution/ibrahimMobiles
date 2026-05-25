@@ -6,21 +6,23 @@ interface FormSectionProps {
   children: ReactNode;
 }
 
+/**
+ * Stacked section: title and description sit above the form body, body
+ * fills the full width of its parent. Replaces the older two-column grid
+ * which left big empty bands on the right of dense sections (toggle
+ * lists, multi-row forms) — the title column was thin and the form
+ * column was capped, neither using the panel well. Inputs that should
+ * stay short can still cap themselves with `containerClassName="max-w-md"`.
+ */
 export function FormSection({ title, description, children }: FormSectionProps) {
   return (
-    // Title column is fixed at ~240px and the form column flexes to fill the
-    // remaining width with `minmax(0,1fr)`. Used to be capped at 360px which
-    // left big empty bands on the right of the Settings tabs on wide
-    // monitors. Individual inputs can still narrow themselves with
-    // `containerClassName="max-w-md"` for short numeric fields where a
-    // 1200px input would look silly.
-    <section className="grid gap-3 border-b border-[var(--color-ink-100)] py-4 first:pt-0 last:border-b-0 md:gap-5 md:py-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
-      <header>
+    <section className="border-b border-[var(--color-ink-100)] py-4 first:pt-0 last:border-b-0 md:py-6">
+      <header className="mb-3 md:mb-4">
         <h3 className="text-[13px] font-semibold tracking-tight text-[var(--color-ink-900)] md:text-sm">
           {title}
         </h3>
         {description && (
-          <p className="mt-1 text-[11.5px] leading-relaxed text-[var(--color-ink-500)] md:mt-1.5 md:text-xs">
+          <p className="mt-1 max-w-prose text-[11.5px] leading-relaxed text-[var(--color-ink-500)] md:mt-1.5 md:text-xs">
             {description}
           </p>
         )}
