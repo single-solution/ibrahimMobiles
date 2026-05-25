@@ -25,7 +25,13 @@ import {
   loadDashboardDailyRevenue as loadDashboardDailyRevenueRaw,
   loadDashboardKpis as loadDashboardKpisRaw,
   loadDashboardRecentInquiries as loadDashboardRecentInquiriesRaw,
+  loadPerformanceSummary as loadPerformanceSummaryRaw,
 } from "@/lib/server/dashboardStats";
+import type {
+  PerformanceCompare,
+  PerformanceRange,
+} from "@/lib/dashboard/performancePeriod";
+import { loadShopHealth as loadShopHealthRaw } from "@/lib/server/shopHealth";
 
 /** Tag for admin reads. Any admin mutation that should reflect
  *  immediately should call `revalidateTag(ADMIN_CACHE_TAG)`. */
@@ -69,6 +75,25 @@ export const loadDashboardDailyRevenueCached = unstable_cache(
 export const loadDashboardRecentInquiriesCached = unstable_cache(
   () => loadDashboardRecentInquiriesRaw(),
   ["admin-dashboard-recent-inquiries"],
+  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+);
+
+/**
+ * Period-aware performance summary cache. The cache key includes the
+ * range + compare arguments so each (range, compare) tuple gets its
+ * own slot. Same 15s TTL as the rest of the dashboard.
+ */
+export const loadPerformanceSummaryCached = unstable_cache(
+  async (range: PerformanceRange, compare: PerformanceCompare) =>
+    loadPerformanceSummaryRaw({ range, compare }),
+  ["admin-dashboard-performance-summary"],
+  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+);
+
+/** Shop health card — settings + catalog hygiene + stock readiness. */
+export const loadShopHealthCached = unstable_cache(
+  () => loadShopHealthRaw(),
+  ["admin-dashboard-shop-health"],
   { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
 );
 

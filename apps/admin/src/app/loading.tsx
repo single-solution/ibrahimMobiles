@@ -64,7 +64,7 @@ export default function AdminDashboardLoading() {
 
         {/* Desktop */}
         <div className="hidden md:block">
-          <DesktopSectionHeaderSkeleton />
+          <DesktopSectionHeaderSkeleton action />
           <DesktopKpiGridSkeleton />
 
           <DesktopSectionHeaderSkeleton />
@@ -72,6 +72,9 @@ export default function AdminDashboardLoading() {
 
           <DesktopSectionHeaderSkeleton />
           <DesktopKpiGridSkeleton />
+
+          <DesktopSectionHeaderSkeleton />
+          <ShopHealthSkeleton />
         </div>
       </AdminShell>
     </SkeletonScreen>
@@ -106,15 +109,43 @@ function MobileKpiStripSkeleton({ heading }: { heading: string }) {
   );
 }
 
-function DesktopSectionHeaderSkeleton() {
+function DesktopSectionHeaderSkeleton({ action }: { action?: boolean }) {
   return (
     <header className="mt-5 mb-2 flex flex-wrap items-end justify-between gap-2 first:mt-0">
       <div className="space-y-1.5">
         <Skeleton shape="text" className="h-3.5 w-48" />
         <Skeleton shape="text" className="h-2.5 w-64" />
       </div>
-      <Skeleton shape="text" className="h-3 w-20" />
+      {action ? (
+        <div className="flex gap-2">
+          <Skeleton shape="text" className="h-8 w-48" />
+          <Skeleton shape="text" className="h-8 w-36" />
+        </div>
+      ) : (
+        <Skeleton shape="text" className="h-3 w-20" />
+      )}
     </header>
+  );
+}
+
+function ShopHealthSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+      <div className="border-b border-[var(--color-ink-100)] px-4 py-3 md:px-5">
+        <Skeleton shape="text" className="h-4 w-28" />
+      </div>
+      <div className="divide-y divide-[var(--color-ink-100)]">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div key={index} className="flex items-center gap-3 px-4 py-3 md:px-5">
+            <Skeleton className="size-7 shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton shape="text" className="h-3 w-48" />
+              <Skeleton shape="text" className="h-2.5 w-64" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

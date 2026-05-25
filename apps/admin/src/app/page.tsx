@@ -2,10 +2,8 @@ import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import {
   AlertTriangle,
-  ArrowRight,
   Boxes,
   CalendarDays,
-  CalendarRange,
   CheckCircle2,
   Clock,
   Heart,
@@ -24,22 +22,36 @@ import {
   DashboardMobileEyebrowActions,
   DashboardSectionActionLink,
 } from "@/components/dashboard/DashboardQuickLinks";
+import { PerformancePeriodSelector } from "@/components/dashboard/PerformancePeriodSelector";
+import { ShopHealthCard } from "@/components/dashboard/ShopHealthCard";
 import { KpiCard } from "@/components/KpiCard";
 import { Sparkline } from "@/components/Sparkline";
 import { StatusPill, type StatusTone } from "@/components/StatusPill";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { requirePageSession } from "@/lib/server/requirePageSession";
+import {
+  isPerformanceCompare,
+  isPerformanceRange,
+  type PerformanceCompare,
+  type PerformanceRange,
+} from "@/lib/dashboard/performancePeriod";
 import { LOW_STOCK_VARIANT_THRESHOLD } from "@/lib/server/dashboardStats";
 import {
-  loadDashboardDailyRevenueCached,
   loadDashboardKpisCached,
   loadDashboardRecentInquiriesCached,
+  loadPerformanceSummaryCached,
+  loadShopHealthCached,
 } from "@/lib/cached";
 import { formatPrice, formatTimeAgo } from "@store/shared";
 import { getInitials } from "@/lib/initials";
 import { getStoreSettings, type InquiryStatus } from "@store/db";
 
 export const dynamic = "force-dynamic";
+
+interface AdminOverviewSearchParams {
+  range?: string;
+  compare?: string;
+}
 
 /** Inquiries surfaced on the mobile dashboard tile (server fetches more for desktop hooks). */
 const MOBILE_RECENT_INQUIRIES_COUNT = 5;
@@ -102,8 +114,21 @@ function compactRupees(rupees: number): string {
  *
  * Net effect: the page paints in <50ms, content streams in piece by piece.
  */
-export default async function AdminOverviewPage() {
+export default async function AdminOverviewPage({
+  searchParams,
+}: {
+  // Next 16 hands these in async — preserve that signature so we don't
+  // regress on the streaming render.
+  searchParams?: Promise<AdminOverviewSearchParams>;
+}) {
   await requirePageSession("/");
+  const resolved = (await searchParams) ?? {};
+  const range: PerformanceRange = isPerformanceRange(resolved.range)
+    ? resolved.range
+    : "month";
+  const compare: PerformanceCompare = isPerformanceCompare(resolved.compare)
+    ? resolved.compare
+    : "previous";
 
   return (
     <AdminShell>
@@ -143,6 +168,15 @@ export default async function AdminOverviewPage() {
 
         <div className="app-section">
           <div className="app-section-eyebrow">
+            <span>Shop health</span>
+          </div>
+          <Suspense fallback={<ShopHealthFallback />}>
+            <ShopHealthSection />
+          </Suspense>
+        </div>
+
+        <div className="app-section">
+          <div className="app-section-eyebrow">
             <span>Recent inquiries</span>
             <DashboardMobileEyebrowActions variant="inquiries" />
           </div>
@@ -155,11 +189,19 @@ export default async function AdminOverviewPage() {
       {/* Desktop layout */}
       <div className="hidden md:block">
         <SectionHeader
-          title="How the shop is performing"
-          subtitle="Live snapshot across today, this week, and this month."
+          title="Performance"
+          subtitle="Pick a window — every tile re-runs against your chosen range and comparison."
+          action={
+            <Suspense fallback={<PeriodSelectorFallback />}>
+              <PerformancePeriodSelector range={range} compare={compare} />
+            </Suspense>
+          }
         />
-        <Suspense fallback={<DesktopKpiGridFallback />}>
-          <DesktopPerformanceKpis />
+        <Suspense
+          key={`${range}-${compare}`}
+          fallback={<DesktopPerformanceFallback />}
+        >
+          <DesktopPerformancePanel range={range} compare={compare} />
         </Suspense>
 
         <SectionHeader
@@ -190,6 +232,14 @@ export default async function AdminOverviewPage() {
         />
         <Suspense fallback={<DesktopKpiGridFallback />}>
           <DesktopStockKpis />
+        </Suspense>
+
+        <SectionHeader
+          title="Shop health"
+          subtitle="Configuration, catalog hygiene, and stock — the things stopping your shop from looking polished."
+        />
+        <Suspense fallback={<ShopHealthFallback />}>
+          <ShopHealthSection />
         </Suspense>
       </div>
     </AdminShell>
@@ -325,52 +375,63 @@ async function MobileRecentInquiries() {
 
 /* ─────────────────────────── Desktop data slots ─────────────────────────── */
 
-async function DesktopPerformanceKpis() {
-  // Two independent cached reads kicked off in parallel: KPIs (~15
-  // aggregations) and the daily-revenue sparkline series (1 aggregation).
-  // The Suspense boundary unblocks the moment the slower of the two lands.
-  const [kpis, dailyRevenue] = await Promise.all([
-    loadDashboardKpisCached(),
-    loadDashboardDailyRevenueCached(),
-  ]);
-  const revenueValues = dailyRevenue.map((day) => day.rupees);
+async function DesktopPerformancePanel({
+  range,
+  compare,
+}: {
+  range: PerformanceRange;
+  compare: PerformanceCompare;
+}) {
+  const summary = await loadPerformanceSummaryCached(range, compare);
+  const sparkValues = summary.dailySeries.map((day) => day.rupees);
   return (
     <div className={DESKTOP_KPI_GRID}>
       <KpiCard
-        label="Orders today"
-        value={String(kpis.ordersToday)}
-        changePercent={kpis.changePercents.ordersToday}
-        changeLabel="vs yesterday"
+        label={`Orders · ${summary.period.rangeLabel}`}
+        value={String(summary.orders)}
+        changePercent={summary.ordersChangePercent}
+        changeLabel={summary.period.comparisonLabel}
         icon={<Receipt size={15} />}
-        hint={`${compactRupees(kpis.salesTodayRupees)} in sales`}
-      />
-      <KpiCard
-        label="Orders this week"
-        value={String(kpis.ordersThisWeek)}
-        changePercent={kpis.changePercents.ordersWeek}
-        changeLabel="vs last week"
-        icon={<CalendarRange size={15} />}
-        hint={compactRupees(kpis.salesThisWeekRupees)}
-      />
-      <KpiCard
-        label="Orders this month"
-        value={String(kpis.ordersThisMonth)}
-        changePercent={kpis.changePercents.ordersMonth}
-        changeLabel="vs last month"
-        icon={<CalendarDays size={15} />}
-        spark={<Sparkline values={revenueValues.slice(-SPARKLINE_DATA_POINTS)} />}
       />
       <KpiCard
         tone="accent"
-        label="Sales this month"
-        value={compactRupees(kpis.salesThisMonthRupees)}
-        changePercent={kpis.changePercents.salesMonth}
-        changeLabel="vs last month"
+        label={`Sales · ${summary.period.rangeLabel}`}
+        value={compactRupees(summary.salesRupees)}
+        changePercent={summary.salesChangePercent}
+        changeLabel={summary.period.comparisonLabel}
         icon={<TrendingUp size={15} />}
-        spark={<Sparkline values={revenueValues.slice(-SPARKLINE_DATA_POINTS)} />}
+        spark={
+          sparkValues.length > 1 ? (
+            <Sparkline values={sparkValues.slice(-SPARKLINE_DATA_POINTS)} />
+          ) : undefined
+        }
+      />
+      <KpiCard
+        label="Average order value"
+        value={
+          summary.averageOrderRupees > 0
+            ? compactRupees(summary.averageOrderRupees)
+            : "—"
+        }
+        changePercent={
+          summary.orders > 0 ? summary.averageOrderChangePercent : undefined
+        }
+        changeLabel={summary.period.comparisonLabel}
+        icon={<Wallet size={15} />}
+      />
+      <KpiCard
+        label="Days with orders"
+        value={String(summary.dailySeries.filter((day) => day.rupees > 0).length)}
+        hint={`${summary.dailySeries.length} ${summary.dailySeries.length === 1 ? "day" : "days"} in window`}
+        icon={<CalendarDays size={15} />}
       />
     </div>
   );
+}
+
+async function ShopHealthSection() {
+  const summary = await loadShopHealthCached();
+  return <ShopHealthCard summary={summary} />;
 }
 
 async function DesktopAttentionKpis() {
@@ -519,6 +580,46 @@ function DesktopKpiGridFallback() {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function DesktopPerformanceFallback() {
+  return <DesktopKpiGridFallback />;
+}
+
+function ShopHealthFallback() {
+  return (
+    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+      <div className="border-b border-[var(--color-ink-100)] px-4 py-3 md:px-5">
+        <Skeleton shape="text" className="h-4 w-28" />
+      </div>
+      <div className="divide-y divide-[var(--color-ink-100)]">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <ShopHealthRowSkeleton key={index} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ShopHealthRowSkeleton() {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 md:px-5">
+      <Skeleton className="size-7 shrink-0" />
+      <div className="flex-1 space-y-1.5">
+        <Skeleton shape="text" className="h-3 w-48" />
+        <Skeleton shape="text" className="h-2.5 w-64" />
+      </div>
+    </div>
+  );
+}
+
+function PeriodSelectorFallback() {
+  return (
+    <div className="flex gap-2">
+      <Skeleton shape="text" className="h-8 w-48" />
+      <Skeleton shape="text" className="h-8 w-36" />
     </div>
   );
 }
