@@ -7,7 +7,7 @@ import { SalesWorkspaceSkeleton } from "@/components/loading/SalesWorkspaceSkele
 import { adminWorkspacePageClass } from "@/components/workspace/adminWorkspaceUi";
 import { connectDB, Customer, LoyaltyAccount, Order } from "@store/db";
 
-import { requirePageSession } from "@/lib/server/requirePageSession";
+import { requirePagePermission } from "@/lib/server/requirePageSession";
 import { toCustomerResponse, type CustomerLean } from "@/lib/serializers/customer";
 import type { AdminCustomerSummary } from "@/types/admin";
 import { LOYALTY_POINT_TO_RUPEE } from "@store/shared";
@@ -24,7 +24,7 @@ interface OrderStatsRow {
 }
 
 export default async function AdminCustomersPage() {
-  await requirePageSession("/customers");
+  await requirePagePermission("customer_view", "/customers");
 
   return (
     <AdminShell contentClassName={adminWorkspacePageClass}>

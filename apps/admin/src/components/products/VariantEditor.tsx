@@ -10,6 +10,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import { coloredPillStyle } from "@store/shared";
 
+import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/Drawer";
 import { PreviewPanel } from "@/components/categories/previewPanel";
 import { useToast } from "@/components/Toast";
@@ -169,26 +170,18 @@ export function VariantEditor({
       width="xl"
       footer={
         <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className="rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)] disabled:opacity-60"
-          >
+          <Button variant="ghost" size="sm" type="button" onClick={onClose} disabled={submitting}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             type="submit"
             form="variant-editor-form"
-            disabled={submitting}
-            className="rounded-md bg-[var(--color-accent-600)] px-3.5 py-1.5 text-[13px] font-semibold text-white hover:bg-[var(--color-accent-700)] disabled:opacity-60"
+            isLoading={submitting}
           >
-            {submitting
-              ? "Saving…"
-              : mode === "edit"
-                ? "Save changes"
-                : "Add variant"}
-          </button>
+            {mode === "edit" ? "Save changes" : "Add variant"}
+          </Button>
         </div>
       }
     >

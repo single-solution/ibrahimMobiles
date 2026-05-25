@@ -1,26 +1,16 @@
-import { AdminPageSkeleton } from "@/components/loading/AdminPageSkeleton";
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
+import { AdminShell } from "@/components/AdminShell";
+import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
+import { adminCatalogPageClass } from "@/components/workspace/adminWorkspaceUi";
+import { SkeletonScreen } from "@/components/ui/Skeleton";
 
-const PRODUCT_COLUMN_COUNT = 6;
-const PRODUCT_ROW_COUNT = 12;
-
-/**
- * Mirrors `app/products/page.tsx` exactly:
- *
- *   ↳ ProductsCatalog workspace
- */
 export default function ProductsLoading() {
   return (
-    <AdminPageSkeleton
-      label="Loading products"
-      hasActions
-    >
-      <section className="mt-3 md:mt-8">
-        <AdminTableSkeleton
-          columnCount={PRODUCT_COLUMN_COUNT}
-          rowCount={PRODUCT_ROW_COUNT}
-        />
-      </section>
-    </AdminPageSkeleton>
+    <SkeletonScreen label="Loading products">
+      <AdminShell contentClassName={adminCatalogPageClass}>
+        <section className="flex min-h-0 flex-1 flex-col">
+          <CatalogWorkspaceSkeleton />
+        </section>
+      </AdminShell>
+    </SkeletonScreen>
   );
 }

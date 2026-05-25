@@ -21,22 +21,11 @@ import {
   WorkspaceFrame,
   WorkspaceListHeader,
 } from "@/components/workspace/adminWorkspaceUi";
+import { formatActivityAction } from "@/lib/activityLabels";
 import { getInitials } from "@/lib/initials";
 import type { AdminActivityEntry } from "@/types/admin";
 
 type Action = AdminActivityEntry["action"];
-
-const ACTION_LABEL: Record<string, string> = {
-  created: "Created",
-  updated: "Updated",
-  deleted: "Deleted",
-  archived: "Archived",
-  restored: "Restored",
-  status_changed: "Status changed",
-  login: "Signed in",
-  logout: "Signed out",
-  invited: "Invited",
-};
 
 const ACTION_ICONS: Record<string, LucideIcon> = {
   created: Plus,
@@ -117,7 +106,7 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
       <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
         <div className="mb-6 flex flex-wrap items-center gap-2">
           {filterOptions.map((option) => {
-            const label = option === "all" ? "All" : (ACTION_LABEL[option] ?? option);
+            const label = option === "all" ? "All" : formatActivityAction(option);
             return (
               <WorkspaceFilterChip
                 key={option}
@@ -130,6 +119,22 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
           })}
         </div>
 
+        {filtered.length === 0 ? (
+          <WorkspaceEmptyPane
+            icon={Activity}
+            title="No matching activity"
+            description="Try another filter or show all actions."
+            action={
+              <button
+                type="button"
+                onClick={() => setActionFilter("all")}
+                className="text-xs font-semibold text-[var(--color-accent-700)] hover:underline"
+              >
+                Clear filters
+              </button>
+            }
+          />
+        ) : (
         <ol className="relative space-y-4 border-l border-[var(--color-ink-100)] pl-6">
           {filtered.map((entry) => {
             const Icon = ACTION_ICONS[entry.action] ?? Pencil;
@@ -154,7 +159,7 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusPill tone={tone}>
-                        {ACTION_LABEL[entry.action] ?? entry.action}
+                        {formatActivityAction(entry.action)}
                       </StatusPill>
                       <span className="text-[11px] text-[var(--color-ink-400)]">
                         {new Date(entry.createdAt).toLocaleString("en-PK", {
@@ -180,6 +185,7 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
             );
           })}
         </ol>
+        )}
       </div>
     </WorkspaceFrame>
   );

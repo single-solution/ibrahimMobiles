@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft,
   Copy,
   Mail,
   MessageSquare,
@@ -23,6 +22,7 @@ import { Switch } from "@/components/forms/Switch";
 import { useToast } from "@/components/Toast";
 import { AdminApiError, adminFetch } from "@/lib/adminApi";
 import { getInitials } from "@/lib/initials";
+import { formatActivityAction } from "@/lib/activityLabels";
 import {
   FIELD_LIMITS,
   formatPrice,
@@ -36,6 +36,7 @@ import type {
   AdminLoyaltyAccount,
   AdminOrderSummary,
 } from "@/types/admin";
+import { WorkspaceDetailHeader } from "@/components/workspace/adminWorkspaceUi";
 import { CustomerAddressesSection } from "./CustomerAddressesSection";
 import {
   CustomerErrorBanner,
@@ -204,7 +205,6 @@ export function CustomerDetailPanel({
         json: {
           name,
           email: email || undefined,
-          phoneNumber,
           city,
           isLoyaltyMember,
           notes: notes || undefined,
@@ -259,8 +259,27 @@ export function CustomerDetailPanel({
 
   if (isLoading && !customer) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-ink-500)]">
-        Loading customer…
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-3 md:px-4">
+          <div className="flex items-center gap-3">
+            <div className="size-10 shrink-0 animate-pulse rounded-full bg-[var(--color-ink-100)]/80" />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="h-4 w-40 animate-pulse rounded bg-[var(--color-ink-100)]" />
+              <div className="h-2.5 w-28 animate-pulse rounded bg-[var(--color-ink-100)]/70" />
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 space-y-3 p-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-20 animate-pulse rounded-[var(--radius-md)] bg-[var(--color-ink-100)]/70"
+              />
+            ))}
+          </div>
+          <div className="h-32 animate-pulse rounded-[var(--radius-md)] bg-[var(--color-ink-100)]/70" />
+        </div>
       </div>
     );
   }
@@ -301,65 +320,65 @@ export function CustomerDetailPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex shrink-0 flex-wrap items-center gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-3 md:px-4">
-        <button
-          type="button"
-          aria-label="Back to list"
-          onClick={onBack}
-          className="grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-600)] hover:bg-[var(--color-canvas-deep)] lg:hidden"
-        >
-          <ArrowLeft size={16} />
-        </button>
-        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
-          {getInitials(customer.name)}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-[var(--color-ink-900)]">{customer.name}</p>
-          <p className="truncate text-xs text-[var(--color-ink-500)]">
+      <WorkspaceDetailHeader
+        onBack={onBack}
+        backLabel="Back to customers"
+        title={
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
+              {getInitials(customer.name)}
+            </span>
+            <span className="truncate">{customer.name}</span>
+          </span>
+        }
+        subtitle={
+          <>
             {customer.city} · {customer.phoneNumber}
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="sm"
-            leadingIcon={<Phone size={12} />}
-            onClick={() => {
-              window.location.href = `tel:${customer.phoneNumber.replace(/\s+/g, "")}`;
-            }}
-          >
-            Call
-          </Button>
-          {customer.email ? (
+          </>
+        }
+        actions={
+          <>
             <Button
               variant="outline"
               size="sm"
-              leadingIcon={<Mail size={12} />}
+              leadingIcon={<Phone size={12} />}
               onClick={() => {
-                window.location.href = `mailto:${customer.email}`;
+                window.location.href = `tel:${customer.phoneNumber.replace(/\s+/g, "")}`;
               }}
             >
-              Email
+              Call
             </Button>
-          ) : null}
-          {canManage ? (
-            <Button
-              variant="danger"
-              size="sm"
-              leadingIcon={<Trash2 size={12} />}
-              onClick={() => onDelete(summary)}
-              disabled={deleteBlocked}
-              title={
-                deleteBlocked
-                  ? `Cannot delete — ${customer.orderCount} order${customer.orderCount === 1 ? "" : "s"} on record`
-                  : undefined
-              }
-            >
-              Delete
-            </Button>
-          ) : null}
-        </div>
-      </header>
+            {customer.email ? (
+              <Button
+                variant="outline"
+                size="sm"
+                leadingIcon={<Mail size={12} />}
+                onClick={() => {
+                  window.location.href = `mailto:${customer.email}`;
+                }}
+              >
+                Email
+              </Button>
+            ) : null}
+            {canManage ? (
+              <Button
+                variant="danger"
+                size="sm"
+                leadingIcon={<Trash2 size={12} />}
+                onClick={() => onDelete(summary)}
+                disabled={deleteBlocked}
+                title={
+                  deleteBlocked
+                    ? `Cannot delete — ${customer.orderCount} order${customer.orderCount === 1 ? "" : "s"} on record`
+                    : undefined
+                }
+              >
+                Delete
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
       <TabList
         tabs={tabs}
@@ -394,8 +413,10 @@ export function CustomerDetailPanel({
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
                 Profile
               </p>
-              <p className="mt-1 text-[10px] text-[var(--color-ink-500)]">
-                Phone is the storefront login anchor (OTP). Changing it affects sign-in.
+              <p className="mb-3 text-xs text-[var(--color-ink-500)]">
+                Customers sign in on the website with their phone number. You can update name,
+                email, city, loyalty enrollment, and internal notes here — not the phone used for
+                OTP.
               </p>
               <div className="mt-3 space-y-3">
                 <TextField
@@ -405,15 +426,18 @@ export function CustomerDetailPanel({
                   required
                   disabled={!canManage}
                   maxLength={FIELD_LIMITS.personName}
+                  placeholder="As they want it printed on invoices"
+                  autoComplete="name"
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <TextField
-                    label="Phone"
+                    label="Phone (sign-in ID)"
                     value={phoneNumber}
-                    onChange={(event) => setPhoneNumber(event.target.value)}
-                    required
-                    disabled={!canManage}
+                    readOnly
+                    disabled
+                    hint="Set when the customer registers on the storefront. Cannot be edited here."
                     maxLength={FIELD_LIMITS.phoneNumber}
+                    inputMode="tel"
                   />
                   <TextField
                     label="City"
@@ -422,6 +446,8 @@ export function CustomerDetailPanel({
                     required
                     disabled={!canManage}
                     maxLength={FIELD_LIMITS.city}
+                    placeholder="e.g. Lahore"
+                    autoComplete="address-level2"
                   />
                 </div>
                 <TextField
@@ -431,10 +457,14 @@ export function CustomerDetailPanel({
                   onChange={(event) => setEmail(event.target.value)}
                   disabled={!canManage}
                   maxLength={EMAIL_MAX_CHARS}
+                  placeholder="optional@example.com"
+                  inputMode="email"
+                  autoComplete="email"
+                  hint="Optional — used for order receipts when provided."
                 />
                 <Switch
                   label="Loyalty member"
-                  description="Enroll in the loyalty programme."
+                  description="Marks enrollment for programme rules; balance changes happen on the Loyalty tab."
                   checked={isLoyaltyMember}
                   onCheckedChange={setIsLoyaltyMember}
                   disabled={!canManage}
@@ -690,7 +720,7 @@ function InquiriesTab({
       {inquiries.map((inquiry) => (
         <li key={inquiry.id}>
           <Link
-            href="/inquiries"
+            href={`/inquiries?inquiry=${inquiry.id}`}
             className="flex items-start justify-between gap-2 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2.5 transition-colors hover:bg-[var(--color-canvas-deep)]"
           >
             <span className="min-w-0">
@@ -735,7 +765,7 @@ function ActivityTab({ entries }: { entries: AdminActivityEntry[] }) {
           className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2 text-xs"
         >
           <p className="font-semibold text-[var(--color-ink-900)]">
-            {entry.action} · {entry.resourceLabel}
+            {formatActivityAction(entry.action)} · {entry.resourceLabel}
           </p>
           <p className="text-[10px] text-[var(--color-ink-500)]">
             {entry.actorName} · {formatTimeAgo(entry.createdAt)}
@@ -813,7 +843,8 @@ function LoyaltyTab({
       {error ? <CustomerErrorBanner message={error} onDismiss={() => setError(null)} /> : null}
       {!account ? (
         <p className="text-xs text-[var(--color-ink-500)]">
-          No loyalty account yet — post an adjustment to create one for {customerName}.
+          No loyalty account yet. Post a points adjustment below to open an account for{" "}
+          {customerName} (usually created automatically when they earn points on an order).
         </p>
       ) : (
         <div className="grid gap-2 sm:grid-cols-3">
@@ -840,12 +871,17 @@ function LoyaltyTab({
             value={amount}
             onChange={(event) => setAmount(Number(event.target.value) || 0)}
             required
+            inputMode="numeric"
+            placeholder="e.g. 100"
+            hint="Always enter a positive number — the kind above decides the sign."
           />
           <TextField
             label="Order ref (optional)"
             value={orderRef}
             onChange={(event) => setOrderRef(event.target.value)}
             maxLength={ORDER_REF_INPUT_MAX}
+            placeholder="e.g. ORD-2025-0123"
+            hint="Link this adjustment to a specific order, if applicable."
           />
           <TextArea
             label="Reason"
@@ -854,6 +890,7 @@ function LoyaltyTab({
             rows={2}
             required
             maxLength={FIELD_LIMITS.shortText}
+            placeholder="Why are you adjusting? (e.g. goodwill credit for delayed shipment)"
           />
           <Button type="submit" variant="secondary" size="sm" isLoading={isSaving}>
             Apply adjustment

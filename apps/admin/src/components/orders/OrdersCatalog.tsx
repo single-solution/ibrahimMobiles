@@ -11,13 +11,16 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
+import { useAdminPermissions } from "@/lib/adminPermissionsContext";
 import { StatusPill, type StatusTone } from "@/components/StatusPill";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
 import { useToast } from "@/components/Toast";
 import {
+  WorkspaceDetailHeader,
   WorkspaceEmptyPane,
   WorkspaceFilterChip,
   WorkspaceFrame,
@@ -79,6 +82,9 @@ export function OrdersCatalog(props: OrdersCatalogProps) {
 function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { can } = useAdminPermissions();
+  const canUpdate = can("order_update");
+  const canDelete = can("order_delete");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
@@ -210,7 +216,7 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
           <WorkspacePaneHeader
             icon={ShoppingCart}
             title="Orders"
-            subtitle={`${filteredOrders.length} shown · ${formatPrice(stats.revenue)} revenue`}
+            subtitle={`${filteredOrders.length} shown (recent 200) · ${formatPrice(stats.revenue)} in view`}
             search={
               <>
                 <WorkspaceSearchField
@@ -242,10 +248,16 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
           />
           <ul className="min-h-0 flex-1 overflow-y-auto">
             {filteredOrders.length === 0 ? (
-              <li className="px-4 py-8 text-center text-xs text-[var(--color-ink-500)]">
-                {searchQuery.trim()
-                  ? "No orders match your search."
-                  : "No orders in this view."}
+              <li className="px-4 py-6">
+                <WorkspaceEmptyPane
+                  icon={ShoppingCart}
+                  title={searchQuery.trim() ? "No matching orders" : "No orders in this view"}
+                  description={
+                    searchQuery.trim()
+                      ? "Try a different search or status filter."
+                      : "Orders will appear here when customers checkout."
+                  }
+                />
               </li>
             ) : (
               filteredOrders.map((order) => (
@@ -271,6 +283,8 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
             <OrderDetailPanel
               orderId={activeOrderId}
               onBack={clearActiveOrder}
+              canUpdate={canUpdate}
+              canDelete={canDelete}
             />
           ) : (
             <WorkspaceEmptyPane
@@ -331,7 +345,17 @@ function OrderListItem({
   );
 }
 
-function OrderDetailPanel({ orderId, onBack }: { orderId: string; onBack: () => void }) {
+function OrderDetailPanel({
+  orderId,
+  onBack,
+  canUpdate,
+  canDelete,
+}: {
+  orderId: string;
+  onBack: () => void;
+  canUpdate: boolean;
+  canDelete: boolean;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [order, setOrder] = useState<AdminOrder | null>(null);
@@ -340,6 +364,7 @@ function OrderDetailPanel({ orderId, onBack }: { orderId: string; onBack: () => 
   const [timelineNote, setTimelineNote] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -394,10 +419,6 @@ function OrderDetailPanel({ orderId, onBack }: { orderId: string; onBack: () => 
 
   async function handleDelete() {
     if (!order) return;
-    const confirmed = window.confirm(
-      `Delete order ${order.orderNumber}? Stock and loyalty will be reversed if applicable.`,
-    );
-    if (!confirmed) return;
     setIsDeleting(true);
     try {
       await adminFetch(`/api/orders/${order.id}`, { method: "DELETE" });
@@ -420,56 +441,57 @@ function OrderDetailPanel({ orderId, onBack }: { orderId: string; onBack: () => 
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex shrink-0 flex-wrap items-start gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-3 md:px-4">
-        <button
-          type="button"
-          aria-label="Back to orders"
-          onClick={onBack}
-          className="grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-600)] hover:bg-[var(--color-canvas-deep)] lg:hidden"
-        >
-          <ArrowLeft size={16} />
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-[var(--color-ink-900)]">{order.orderNumber}</p>
-          <p className="text-xs text-[var(--color-ink-500)]">
-            {new Date(order.placedAt).toLocaleString()} · {order.payment} · {order.delivery}
-          </p>
-        </div>
-        <StatusPill tone={STATUS_TONE[order.status] ?? "neutral"}>
-          {STATUS_LABELS[order.status] ?? order.status}
-        </StatusPill>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="sm"
-            leadingIcon={<Phone size={12} />}
-            onClick={() => {
-              window.location.href = `tel:${order.customer.phoneNumber.replace(/\s+/g, "")}`;
-            }}
-          >
-            Call
-          </Button>
-          {order.customer.id ? (
-            <Link
-              href={`/customers?customer=${order.customer.id}`}
-              className="inline-flex h-8 items-center rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2.5 text-xs font-semibold text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)]"
+      {!canUpdate ? (
+        <p className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-2 text-center text-[11px] text-[var(--color-ink-600)]">
+          Read-only — you can view orders but not change status.
+        </p>
+      ) : null}
+      <WorkspaceDetailHeader
+        onBack={onBack}
+        backLabel="Back to orders"
+        title={order.orderNumber}
+        subtitle={`${new Date(order.placedAt).toLocaleString()} · ${order.payment} · ${order.delivery}`}
+        badge={
+          <StatusPill tone={STATUS_TONE[order.status] ?? "neutral"}>
+            {STATUS_LABELS[order.status] ?? order.status}
+          </StatusPill>
+        }
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              leadingIcon={<Phone size={12} />}
+              onClick={() => {
+                window.location.href = `tel:${order.customer.phoneNumber.replace(/\s+/g, "")}`;
+              }}
             >
-              Customer
-            </Link>
-          ) : null}
-          <Button
-            variant="danger"
-            size="sm"
-            type="button"
-            onClick={handleDelete}
-            isLoading={isDeleting}
-            disabled={isSaving}
-            leadingIcon={<Trash2 size={12} />}
-          >
-            Delete
-          </Button>
-        </div>
-      </header>
+              Call
+            </Button>
+            {order.customer.id ? (
+              <Link
+                href={`/customers?customer=${order.customer.id}`}
+                className="inline-flex h-8 items-center rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2.5 text-xs font-semibold text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)]"
+              >
+                Customer
+              </Link>
+            ) : null}
+            {canDelete ? (
+              <Button
+                variant="danger"
+                size="sm"
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                isLoading={isDeleting}
+                disabled={isSaving}
+                leadingIcon={<Trash2 size={12} />}
+              >
+                Delete
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 md:px-5">
         <form id={`order-form-${order.id}`} onSubmit={handleSubmit} className="space-y-5">
@@ -554,6 +576,7 @@ function OrderDetailPanel({ orderId, onBack }: { orderId: string; onBack: () => 
               label="Status"
               value={status}
               onChange={(event) => setStatus(event.target.value)}
+              disabled={!canUpdate}
               options={STATUS_OPTIONS.map((option) => ({
                 value: option,
                 label: STATUS_LABELS[option] ?? option,
@@ -564,6 +587,7 @@ function OrderDetailPanel({ orderId, onBack }: { orderId: string; onBack: () => 
               type="date"
               value={estimatedDeliveryAt}
               onChange={(event) => setEstimatedDeliveryAt(event.target.value)}
+              disabled={!canUpdate}
             />
             <div className="sm:col-span-2">
               <TextArea
@@ -571,6 +595,7 @@ function OrderDetailPanel({ orderId, onBack }: { orderId: string; onBack: () => 
                 value={timelineNote}
                 onChange={(event) => setTimelineNote(event.target.value)}
                 rows={2}
+                disabled={!canUpdate}
                 placeholder="Note attached to the next status change."
                 maxLength={FIELD_LIMITS.operatorNote}
               />
@@ -605,20 +630,40 @@ function OrderDetailPanel({ orderId, onBack }: { orderId: string; onBack: () => 
         </form>
       </div>
 
-      <footer className="shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3">
-        <div className="flex justify-end">
-          <Button
-            variant="primary"
-            size="sm"
-            type="submit"
-            form={`order-form-${order.id}`}
-            isLoading={isSaving}
-            disabled={isDeleting}
-          >
-            Save changes
-          </Button>
-        </div>
-      </footer>
+      {canUpdate ? (
+        <footer className="shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3">
+          <div className="flex justify-end">
+            <Button
+              variant="primary"
+              size="sm"
+              type="submit"
+              form={`order-form-${order.id}`}
+              isLoading={isSaving}
+              disabled={isDeleting}
+            >
+              Save changes
+            </Button>
+          </div>
+        </footer>
+      ) : null}
+
+      <ConfirmDialog
+        isOpen={confirmDelete}
+        title="Delete order?"
+        message={
+          <>
+            Delete <strong>{order.orderNumber}</strong>? Stock and loyalty adjustments will be
+            reversed when applicable.
+          </>
+        }
+        tone="danger"
+        confirmLabel="Delete order"
+        onConfirm={() => {
+          setConfirmDelete(false);
+          void handleDelete();
+        }}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }

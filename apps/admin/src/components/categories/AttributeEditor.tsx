@@ -11,6 +11,7 @@ import {
   type AttributeVisibilityType,
 } from "@store/shared";
 
+import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/Drawer";
 import { useToast } from "@/components/Toast";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
@@ -340,22 +341,18 @@ export function AttributeEditor({
       width="xl"
       footer={
         <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className="rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)] disabled:opacity-60"
-          >
+          <Button variant="ghost" size="sm" type="button" onClick={onClose} disabled={submitting}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             type="submit"
             form="attribute-editor-form"
-            disabled={submitting}
-            className="rounded-md bg-[var(--color-accent-600)] px-3.5 py-1.5 text-[13px] font-semibold text-white hover:bg-[var(--color-accent-700)] disabled:opacity-60"
+            isLoading={submitting}
           >
-            {submitting ? "Saving…" : attribute ? "Save changes" : "Create attribute"}
-          </button>
+            {attribute ? "Save changes" : "Create attribute"}
+          </Button>
         </div>
       }
     >

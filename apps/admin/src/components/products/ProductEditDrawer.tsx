@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/Drawer";
 import { CatalogSeoPanel } from "@/components/seo/CatalogSeoPanel";
 import { useToast } from "@/components/Toast";
@@ -118,22 +119,19 @@ export function ProductEditDrawer({
       width="lg"
       footer={
         <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] disabled:opacity-60"
-          >
+          <Button variant="ghost" size="sm" type="button" onClick={onClose} disabled={saving}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             type="submit"
             form="product-edit-drawer"
-            disabled={saving || loading || !product}
-            className="rounded-md bg-[var(--color-accent-600)] px-3.5 py-1.5 text-[13px] font-semibold text-white hover:bg-[var(--color-accent-700)] disabled:opacity-60"
+            isLoading={saving}
+            disabled={loading || !product}
           >
-            {saving ? "Saving…" : "Save"}
-          </button>
+            Save
+          </Button>
         </div>
       }
     >
@@ -152,7 +150,9 @@ export function ProductEditDrawer({
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 maxLength={120}
-                className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[15px] focus:border-[var(--color-accent-500)] focus:outline-none"
+                placeholder="e.g. Samsung Galaxy S24 Ultra"
+                autoComplete="off"
+                className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[15px] placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:outline-none"
               />
             </label>
             <p className="mt-2 text-[11.5px] text-[var(--color-ink-500)]">

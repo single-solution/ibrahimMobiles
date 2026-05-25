@@ -43,7 +43,13 @@ export function ProductImage({
 }: ProductImageProps) {
   const [hasFailed, setHasFailed] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const src = image?.variants[variant] ?? image?.variants.card ?? "";
+  // Logical OR (not `??`) so an empty-string variant (legacy seed data that
+  // wrote `""` instead of dropping the key) still falls through to the next
+  // best variant rather than producing `<Image src="">`. Without this the PDP
+  // hero shows a blank well while the listing card (which asks for the `card`
+  // variant directly) renders fine.
+  const src =
+    image?.variants[variant] || image?.variants.card || image?.variants.full || "";
   const showLoadFade = !priority;
 
   useEffect(() => {
@@ -55,7 +61,7 @@ export function ProductImage({
     });
   }, [src, showLoadFade]);
 
-  if (hasFailed || !image) {
+  if (hasFailed || !image || !src) {
     return (
       <PhoneVisual
         brandName={brandName}

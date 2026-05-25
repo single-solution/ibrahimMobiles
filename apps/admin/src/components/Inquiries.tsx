@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import {
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -9,15 +10,22 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Paperclip, MessageSquare, Phone, Send } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Paperclip, MessageSquare, Phone, Send } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { StatusPill, type StatusTone } from "@/components/StatusPill";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextArea } from "@/components/forms/TextArea";
 import { useToast } from "@/components/Toast";
-import { CatalogSearchField } from "@/components/catalog/catalogWorkspaceUi";
+import {
+  WorkspaceDetailHeader,
+  WorkspaceEmptyPane,
+  WorkspaceFrame,
+  WorkspacePaneHeader,
+  WorkspaceSearchField,
+} from "@/components/workspace/adminWorkspaceUi";
 import { adminFetch } from "@/lib/adminApi";
 import { getInitials } from "@/lib/initials";
 import { classNames, createChatTransport, formatTimeAgo } from "@store/shared";
@@ -63,13 +71,6 @@ interface InquiriesProps {
   access: InquiriesPageAccess;
 }
 
-interface InquiryListResponse {
-  items: AdminInquirySummary[];
-  total: number;
-  page: number;
-  limit: number;
-}
-
 interface TeamListResponse {
   items: AdminUser[];
 }
@@ -83,14 +84,48 @@ function accessFlags(permissions: PermissionKey[]) {
   };
 }
 
-export function Inquiries({ inquiries, access }: InquiriesProps) {
+export function Inquiries(props: InquiriesProps) {
+  return (
+    <Suspense fallback={null}>
+      <InquiriesInner {...props} />
+    </Suspense>
+  );
+}
+
+function InquiriesInner({ inquiries, access }: InquiriesProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const flags = accessFlags(access.permissions);
   const [searchQuery, setSearchQuery] = useState("");
   const [remoteInquiries, setRemoteInquiries] = useState(inquiries);
   const [teamById, setTeamById] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    scheduleStateUpdate(() => {
+      setRemoteInquiries(inquiries);
+    });
+  }, [inquiries]);
   const [activeInquiryId, setActiveInquiryId] = useState<string | null>(null);
+
+  const setActiveInquiryUrl = useCallback(
+    (id: string | null) => {
+      setActiveInquiryId(id);
+      const params = new URLSearchParams(searchParams.toString());
+      if (id) {
+        params.set("inquiry", id);
+      } else {
+        params.delete("inquiry");
+      }
+      const query = params.toString();
+      router.replace(query ? `/inquiries?${query}` : "/inquiries", { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  const clearActiveInquiry = useCallback(() => {
+    setActiveInquiryUrl(null);
+  }, [setActiveInquiryUrl]);
 
   const handleInquiryRead = useCallback((id: string) => {
     setRemoteInquiries((current) =>
@@ -99,30 +134,6 @@ export function Inquiries({ inquiries, access }: InquiriesProps) {
       ),
     );
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const data = await adminFetch<InquiryListResponse>(
-          "/api/inquiries?limit=200",
-        );
-        if (!cancelled) {
-          setRemoteInquiries(data.items);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          toast.danger(
-            error instanceof Error ? error.message : "Failed to load inquiries",
-          );
-        }
-      }
-    }
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [toast]);
 
   useEffect(() => {
     if (!flags.canManage && !flags.canViewTeam) {
@@ -171,8 +182,15 @@ export function Inquiries({ inquiries, access }: InquiriesProps) {
 
   useEffect(() => {
     scheduleStateUpdate(() => {
+      const fromUrl = searchParams.get("inquiry");
+      if (fromUrl && remoteInquiries.some((inquiry) => inquiry.id === fromUrl)) {
+        setActiveInquiryId(fromUrl);
+        return;
+      }
       if (filteredInquiries.length === 0) {
-        setActiveInquiryId(null);
+        if (activeInquiryId !== null) {
+          setActiveInquiryUrl(null);
+        }
         return;
       }
       const activeStillVisible =
@@ -184,23 +202,25 @@ export function Inquiries({ inquiries, access }: InquiriesProps) {
       const preferDesktop =
         typeof window !== "undefined" &&
         window.matchMedia("(min-width: 1024px)").matches;
-      if (preferDesktop) {
-        setActiveInquiryId(filteredInquiries[0].id);
-      } else {
-        setActiveInquiryId(null);
-      }
+      setActiveInquiryUrl(preferDesktop ? filteredInquiries[0].id : null);
     });
-  }, [activeInquiryId, filteredInquiries]);
+  }, [
+    activeInquiryId,
+    filteredInquiries,
+    remoteInquiries,
+    searchParams,
+    setActiveInquiryUrl,
+  ]);
 
   return (
-    <div className="flex min-h-[min(72vh,680px)] flex-1 flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+    <WorkspaceFrame>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <ThreadListPane
           inquiries={filteredInquiries}
           activeId={activeInquiryId}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onSelect={(id) => setActiveInquiryId(id)}
+          onSelect={(id) => setActiveInquiryUrl(id)}
           assigneeLabel={assigneeLabel}
           hiddenOnMobile={Boolean(activeInquiryId)}
         />
@@ -224,11 +244,11 @@ export function Inquiries({ inquiries, access }: InquiriesProps) {
                   : []
               }
               assigneeLabel={assigneeLabel}
-              onBack={() => setActiveInquiryId(null)}
+              onBack={clearActiveInquiry}
               onRead={handleInquiryRead}
               onThreadUpdated={refreshInquiryInList}
               onDeleted={() => {
-                setActiveInquiryId(null);
+                setActiveInquiryUrl(null);
                 router.refresh();
               }}
               onCallTapped={(phoneNumber) => {
@@ -236,11 +256,15 @@ export function Inquiries({ inquiries, access }: InquiriesProps) {
               }}
             />
           ) : (
-            <ConversationPlaceholder />
+            <WorkspaceEmptyPane
+              icon={MessageSquare}
+              title="Select a conversation"
+              description="Choose a thread on the left to read messages and reply to customers."
+            />
           )}
         </section>
       </div>
-    </div>
+    </WorkspaceFrame>
   );
 }
 
@@ -270,31 +294,27 @@ function ThreadListPane({
         hiddenOnMobile && "hidden lg:flex",
       )}
     >
-      <header className="shrink-0 space-y-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2.5">
-        <div className="flex items-center gap-2">
-          <MessageSquare size={15} className="shrink-0 text-[var(--color-accent-700)]" aria-hidden />
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-[var(--color-ink-900)]">Inquiries</h2>
-            <p className="text-[10px] text-[var(--color-ink-500)]">
-              {inquiries.length} conversation{inquiries.length === 1 ? "" : "s"}
-            </p>
-          </div>
-        </div>
-        <CatalogSearchField
-          value={searchQuery}
-          onChange={onSearchChange}
-          placeholder="Search conversations…"
-          aria-label="Search conversations"
-          className="w-full"
-        />
-      </header>
+      <WorkspacePaneHeader
+        icon={MessageSquare}
+        title="Inquiries"
+        subtitle={`${inquiries.length} conversation${inquiries.length === 1 ? "" : "s"} (recent 200) · from storefront chat`}
+        search={
+          <WorkspaceSearchField
+            value={searchQuery}
+            onChange={onSearchChange}
+            placeholder="Search conversations…"
+            aria-label="Search conversations"
+            className="w-full"
+          />
+        }
+      />
 
       <ul className="min-h-0 flex-1 overflow-y-auto">
         {inquiries.length === 0 ? (
           <li className="px-4 py-8 text-center text-xs text-[var(--color-ink-500)]">
             {searchQuery.trim()
               ? "No conversations match your search."
-              : "No conversations yet."}
+              : "No conversations yet. Threads appear when customers use the storefront chat widget."}
           </li>
         ) : (
           inquiries.map((inquiry) => (
@@ -364,20 +384,6 @@ function ThreadListItem({
   );
 }
 
-function ConversationPlaceholder() {
-  return (
-    <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
-      <span className="grid size-14 place-items-center rounded-full bg-[var(--color-accent-50)] text-[var(--color-accent-700)]">
-        <MessageSquare size={24} />
-      </span>
-      <p className="mt-4 text-sm font-semibold text-[var(--color-ink-900)]">Select a conversation</p>
-      <p className="mt-1 max-w-xs text-xs leading-relaxed text-[var(--color-ink-500)]">
-        Choose a thread on the left to read messages and reply to customers.
-      </p>
-    </div>
-  );
-}
-
 interface InquiryConversationPanelProps {
   inquiryId: string;
   actorId: string;
@@ -418,6 +424,7 @@ function InquiryConversationPanel({
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const pollCursorRef = useRef<string | null>(null);
@@ -582,10 +589,6 @@ function InquiryConversationPanel({
 
   async function handleDelete() {
     if (!inquiry) return;
-    const confirmed = window.confirm(
-      `Delete the inquiry from ${inquiry.customerName}? This cannot be undone.`,
-    );
-    if (!confirmed) return;
     setIsDeleting(true);
     try {
       await adminFetch(`/api/inquiries/${inquiryId}`, { method: "DELETE" });
@@ -601,60 +604,96 @@ function InquiryConversationPanel({
 
   if (isLoading || !inquiry) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-ink-500)]">
-        Loading conversation…
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="shrink-0 space-y-2 border-b border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-3 md:px-4">
+          <div className="h-4 w-40 animate-pulse rounded bg-[var(--color-ink-100)]" />
+          <div className="h-2.5 w-28 animate-pulse rounded bg-[var(--color-ink-100)]/70" />
+        </div>
+        <div className="flex-1 space-y-3 bg-[var(--color-canvas-deep)] p-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div
+              key={index}
+              className={`h-12 animate-pulse rounded-[var(--radius-lg)] bg-[var(--color-ink-100)]/70 ${
+                index % 2 === 0 ? "w-[60%]" : "ml-auto w-[55%]"
+              }`}
+            />
+          ))}
+        </div>
+        <div className="shrink-0 border-t border-[var(--color-ink-100)] p-3">
+          <div className="h-10 animate-pulse rounded-[var(--radius-lg)] bg-[var(--color-ink-100)]/70" />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <header className="flex shrink-0 items-center gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-3 md:px-4">
-        <button
-          type="button"
-          aria-label="Back to inbox"
-          onClick={onBack}
-          className="grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-600)] hover:bg-[var(--color-canvas-deep)] lg:hidden"
-        >
-          <ArrowLeft size={16} />
-        </button>
-        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
-          {getInitials(inquiry.customerName)}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-[var(--color-ink-900)]">
-            {inquiry.customerName}
-          </p>
-          <p className="truncate text-xs text-[var(--color-ink-500)]">
+      <WorkspaceDetailHeader
+        onBack={onBack}
+        backLabel="Back to inbox"
+        title={
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
+              {getInitials(inquiry.customerName)}
+            </span>
+            <span className="truncate">{inquiry.customerName}</span>
+          </span>
+        }
+        subtitle={
+          <>
             {inquiry.phoneNumber}
             {inquiry.subjectProductName ? ` · ${inquiry.subjectProductName}` : ""}
-          </p>
-        </div>
-        <StatusPill tone={STATUS_TONE[inquiry.status]}>{STATUS_LABELS[inquiry.status]}</StatusPill>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="sm"
-            leadingIcon={<Phone size={12} />}
-            onClick={() => onCallTapped(inquiry.phoneNumber)}
-            disabled={isDeleting}
-          >
-            Call
-          </Button>
-          {canManage ? (
+          </>
+        }
+        badge={
+          <StatusPill tone={STATUS_TONE[inquiry.status]}>
+            {STATUS_LABELS[inquiry.status]}
+          </StatusPill>
+        }
+        actions={
+          <>
             <Button
-              variant="danger"
+              variant="outline"
               size="sm"
-              type="button"
-              onClick={handleDelete}
-              isLoading={isDeleting}
-              disabled={isSaving}
+              leadingIcon={<Phone size={12} />}
+              onClick={() => onCallTapped(inquiry.phoneNumber)}
+              disabled={isDeleting}
             >
-              Delete
+              Call
             </Button>
-          ) : null}
-        </div>
-      </header>
+            {canManage ? (
+              <Button
+                variant="danger"
+                size="sm"
+                type="button"
+                onClick={() => setConfirmDelete(true)}
+                isLoading={isDeleting}
+                disabled={isSaving}
+              >
+                Delete
+              </Button>
+            ) : null}
+          </>
+        }
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDelete}
+        title="Delete inquiry?"
+        message={
+          <>
+            Delete the inquiry from <strong>{inquiry.customerName}</strong>? This cannot be
+            undone.
+          </>
+        }
+        tone="danger"
+        confirmLabel="Delete inquiry"
+        onConfirm={() => {
+          setConfirmDelete(false);
+          void handleDelete();
+        }}
+        onCancel={() => setConfirmDelete(false)}
+      />
 
       <div
         ref={messagesContainerRef}
@@ -662,7 +701,7 @@ function InquiryConversationPanel({
       >
         {inquiry.messages.length === 0 ? (
           <p className="text-center text-xs text-[var(--color-ink-500)]">
-            No messages yet. Send a reply below to start the conversation.
+            Waiting for the customer&apos;s first message from the chat widget.
           </p>
         ) : (
           inquiry.messages.map((message) => (

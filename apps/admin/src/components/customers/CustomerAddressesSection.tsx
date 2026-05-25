@@ -151,7 +151,8 @@ export function CustomerAddressesSection({
             Saved addresses
           </p>
           <p className="mt-0.5 text-[10px] text-[var(--color-ink-500)]">
-            {addresses.length} of {MAX_CUSTOMER_ADDRESSES} · used at checkout
+            {addresses.length} of {MAX_CUSTOMER_ADDRESSES} · customers usually add these on the
+            website; edit here only to fix mistakes
           </p>
         </div>
         {canManage ? (
@@ -171,7 +172,10 @@ export function CustomerAddressesSection({
 
       {addresses.length === 0 && editingIndex !== "new" ? (
         <p className="rounded-[var(--radius-md)] border border-dashed border-[var(--color-ink-200)] px-4 py-6 text-center text-xs text-[var(--color-ink-500)]">
-          No saved addresses. {canManage ? "Add one to help with future orders." : ""}
+          No saved addresses yet.{" "}
+          {canManage
+            ? "They can add delivery addresses from their account or at checkout."
+            : ""}
         </p>
       ) : null}
 
@@ -352,6 +356,8 @@ function AddressEditor({
           }
           required
           maxLength={FIELD_LIMITS.recipientName}
+          placeholder="Who will receive the parcel?"
+          autoComplete="name"
         />
         <TextField
           label="Phone"
@@ -361,6 +367,9 @@ function AddressEditor({
           }
           required
           maxLength={FIELD_LIMITS.phoneNumber}
+          placeholder="+92 320 4862403"
+          inputMode="tel"
+          autoComplete="tel"
         />
       </div>
       <TextField
@@ -368,6 +377,8 @@ function AddressEditor({
         value={form.street ?? ""}
         onChange={(event) => setForm((prev) => ({ ...prev, street: event.target.value }))}
         maxLength={FIELD_LIMITS.addressStreet}
+        placeholder="House #, Street"
+        autoComplete="address-line1"
       />
       <div className="grid gap-3 sm:grid-cols-2">
         <TextField
@@ -375,6 +386,8 @@ function AddressEditor({
           value={form.area ?? ""}
           onChange={(event) => setForm((prev) => ({ ...prev, area: event.target.value }))}
           maxLength={FIELD_LIMITS.addressArea}
+          placeholder="Sector / Block / Neighbourhood"
+          autoComplete="address-line2"
         />
         <TextField
           label="City"
@@ -382,6 +395,8 @@ function AddressEditor({
           onChange={(event) => setForm((prev) => ({ ...prev, city: event.target.value }))}
           required
           maxLength={FIELD_LIMITS.city}
+          placeholder="e.g. Lahore"
+          autoComplete="address-level2"
         />
       </div>
       <TextField
@@ -389,6 +404,9 @@ function AddressEditor({
         value={form.postalCode ?? ""}
         onChange={(event) => setForm((prev) => ({ ...prev, postalCode: event.target.value }))}
         maxLength={FIELD_LIMITS.postalCode}
+        placeholder="54000"
+        autoComplete="postal-code"
+        inputMode="numeric"
       />
       <label className="flex items-center gap-2 text-xs text-[var(--color-ink-700)]">
         <input

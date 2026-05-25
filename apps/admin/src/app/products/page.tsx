@@ -3,11 +3,11 @@ import { Suspense } from "react";
 import { AdminShell } from "@/components/AdminShell";
 import { ProductsCatalog } from "@/components/products/ProductsCatalog";
 import { loadProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
+import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
 import { adminCatalogPageClass } from "@/components/workspace/adminWorkspaceUi";
 import { Brand, connectDB, Product } from "@store/db";
 
-import { requirePageSession } from "@/lib/server/requirePageSession";
+import { requirePagePermission } from "@/lib/server/requirePageSession";
 import {
   brandLookupKey,
   summariseProduct,
@@ -16,9 +16,6 @@ import {
 import { type BrandLean } from "@/lib/serializers/brand";
 
 export const dynamic = "force-dynamic";
-
-const PRODUCT_COLUMN_COUNT = 6;
-const PRODUCT_ROW_COUNT = 12;
 
 /**
  * Admin products index.
@@ -29,18 +26,11 @@ const PRODUCT_ROW_COUNT = 12;
  * it streams in once the underlying Mongo reads resolve.
  */
 export default async function AdminProductsPage() {
-  await requirePageSession("/products");
+  await requirePagePermission("product_view", "/products");
   return (
     <AdminShell contentClassName={adminCatalogPageClass}>
       <section className="flex min-h-0 flex-1 flex-col">
-        <Suspense
-          fallback={
-            <AdminTableSkeleton
-              columnCount={PRODUCT_COLUMN_COUNT}
-              rowCount={PRODUCT_ROW_COUNT}
-            />
-          }
-        >
+        <Suspense fallback={<CatalogWorkspaceSkeleton />}>
           <ProductsCatalogData />
         </Suspense>
       </section>

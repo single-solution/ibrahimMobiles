@@ -21,7 +21,11 @@ import { FormSection } from "@/components/forms/FormSection";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
-import { SaveBar } from "@/components/forms/SaveBar";
+import {
+  SettingsFormPanel,
+  SettingsLoadingPanel,
+  SettingsSaveFooter,
+} from "@/components/settings/settingsWorkspaceUi";
 import { useToast } from "@/components/Toast";
 import { AssistantTestPanel } from "@/components/chat/AssistantTestPanel";
 import {
@@ -48,7 +52,7 @@ interface ChatSettingsResponse {
   providers: Record<ChatAssistantProvider, ProviderStatus>;
 }
 
-export function ChatSettingsTab() {
+export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
   const toast = useToast();
   const [draft, setDraft] = useState<ChatSettingsValues>(CHAT_SETTING_DEFAULTS);
   const [saved, setSaved] = useState<ChatSettingsValues>(CHAT_SETTING_DEFAULTS);
@@ -149,24 +153,37 @@ export function ChatSettingsTab() {
   }
 
   if (isLoading) {
-    return (
-      <div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-6 text-sm text-[var(--color-ink-500)]">
-        Loading inquiry settings…
-      </div>
-    );
+    return <SettingsLoadingPanel />;
   }
 
   return (
-    <>
-      <div className="space-y-6">
+    <SettingsFormPanel
+      wide
+      footer={
+        !readOnly ? (
+          <SettingsSaveFooter
+            onSave={handleSave}
+            onDiscard={() => setDraft(saved)}
+            showDiscard={isDirty}
+            saveLabel={isSaving ? "Saving…" : isDirty ? "Save chat settings" : "Saved"}
+            hint={
+              isDirty
+                ? "You have unsaved chat widget changes."
+                : "Up to date — storefront picks up changes within seconds."
+            }
+          />
+        ) : undefined
+      }
+    >
+      <div className="space-y-6 py-2">
         <div className="flex flex-wrap items-start justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-3">
           <div>
             <p className="text-sm font-semibold text-[var(--color-ink-900)]">
-              Inquiry platform
+              Storefront chat
             </p>
             <p className="mt-0.5 max-w-2xl text-xs leading-relaxed text-[var(--color-ink-500)]">
-              Configure the storefront widget, welcome messages, and automated replies.
-              Changes apply on the live site within seconds after saving.
+              Floating widget, account messages, and optional AI replies. Customers start
+              threads from the website — not from this screen.
             </p>
           </div>
           <Link
@@ -235,6 +252,7 @@ export function ChatSettingsTab() {
             value={draft.welcomeMessageGuest}
             onChange={(event) => setField("welcomeMessageGuest", event.target.value)}
             disabled={!draft.enabled}
+            placeholder={CHAT_WELCOME_GUEST_DEFAULT}
             hint={`Default: ${CHAT_WELCOME_GUEST_DEFAULT.slice(0, 80)}…`}
           />
           <TextArea
@@ -245,6 +263,7 @@ export function ChatSettingsTab() {
               setField("welcomeMessageCustomer", event.target.value)
             }
             disabled={!draft.enabled}
+            placeholder={CHAT_WELCOME_CUSTOMER_DEFAULT}
             hint={`Default: ${CHAT_WELCOME_CUSTOMER_DEFAULT.slice(0, 80)}…`}
           />
           </FormSection>
@@ -461,17 +480,7 @@ export function ChatSettingsTab() {
           </div>
         </FormSection>
       </div>
-
-      <SaveBar
-        onSave={handleSave}
-        saveLabel={isSaving ? "Saving…" : isDirty ? "Save inquiry settings" : "Saved"}
-        hint={
-          isDirty
-            ? "You have unsaved inquiry settings."
-            : "Up to date — storefront picks up changes within seconds."
-        }
-      />
-    </>
+    </SettingsFormPanel>
   );
 }
 

@@ -8,7 +8,9 @@ import { adminFetch } from "@/lib/adminApi";
 import { Button } from "@/components/ui/Button";
 import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";
+import { SettingsFormPanel } from "@/components/settings/settingsWorkspaceUi";
 import { useToast } from "@/components/Toast";
+import { useAdminPermissions } from "@/lib/adminPermissionsContext";
 
 /**
  * "Data cleanup" tab inside admin Settings.
@@ -74,8 +76,22 @@ interface CleanupResponse {
 }
 
 export function SettingsCleanup() {
+  const { can } = useAdminPermissions();
+
+  if (!can("data_cleanup")) {
+    return (
+      <SettingsFormPanel>
+        <p className="py-8 text-center text-sm text-[var(--color-ink-500)]">
+          Bulk data cleanup is restricted to the store owner. Contact an owner if you
+          need to clear test data.
+        </p>
+      </SettingsFormPanel>
+    );
+  }
+
   return (
-    <div className="space-y-5">
+    <SettingsFormPanel>
+    <div className="space-y-5 py-2">
       <div className="flex items-start gap-3 rounded-[var(--radius-md)] border border-[var(--color-danger-200)] bg-[var(--color-danger-50)] p-4">
         <AlertTriangle
           size={18}
@@ -98,6 +114,7 @@ export function SettingsCleanup() {
         <CleanupCard key={target.id} target={target} />
       ))}
     </div>
+    </SettingsFormPanel>
   );
 }
 

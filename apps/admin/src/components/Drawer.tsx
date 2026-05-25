@@ -60,7 +60,7 @@ export function Drawer({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-50 flex items-stretch justify-center sm:items-center sm:justify-center sm:p-6"
     >
       <button
         type="button"
@@ -70,20 +70,23 @@ export function Drawer({
       />
       <div
         className={classNames(
-          "relative flex w-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]",
+          "relative flex w-full flex-col overflow-hidden border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]",
+          // Phones: edge-to-edge full-screen sheet (no rounded corners, no
+          // outer margin). Tablets+: centered modal with rounded corners.
+          "h-[100dvh] max-h-[100dvh] sm:h-auto sm:rounded-[var(--radius-xl)] sm:border",
           width === "2xl"
-            ? "h-[min(92vh,52rem)] max-h-[calc(100vh-2rem)]"
-            : "max-h-[calc(100vh-3rem)]",
+            ? "sm:h-[min(92vh,52rem)] sm:max-h-[calc(100dvh-2rem)]"
+            : "sm:max-h-[calc(100dvh-3rem)]",
           WIDTH_CLASSES[width],
         )}
       >
-        <header className="flex items-start justify-between gap-3 border-b border-[var(--color-ink-100)] px-5 py-3">
+        <header className="flex items-start justify-between gap-2 border-b border-[var(--color-ink-100)] px-4 py-2.5 safe-top md:gap-3 md:px-5 md:py-3">
           <div className="min-w-0 pr-1">
-            <h2 className="text-[15px] font-semibold leading-snug tracking-[-0.01em] text-[var(--color-ink-900)]">
+            <h2 className="text-[14px] font-semibold leading-snug tracking-[-0.01em] text-[var(--color-ink-900)] md:text-[15px]">
               {title}
             </h2>
             {description && (
-              <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-ink-500)]">
+              <p className="mt-0.5 text-[10.5px] leading-snug text-[var(--color-ink-500)] md:text-[11px]">
                 {description}
               </p>
             )}
@@ -92,15 +95,20 @@ export function Drawer({
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="grid size-7 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
+            className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)] md:size-7"
           >
-            <X size={15} />
+            <X size={16} className="md:hidden" />
+            <X size={15} className="hidden md:block" />
           </button>
         </header>
 
         <div
           className={classNames(
-            "flex-1 overflow-y-auto px-5 py-4",
+            "flex-1 overflow-y-auto px-4 py-3 md:px-5 md:py-4",
+            // When there's no fixed footer we apply the safe-area-inset on the
+            // scrollable body so the last form field stays above the home
+            // indicator on iOS.
+            !footer && "safe-bottom",
             bodyClassName,
           )}
         >
@@ -108,7 +116,7 @@ export function Drawer({
         </div>
 
         {footer && (
-          <footer className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-5 py-2.5">
+          <footer className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-2 safe-bottom md:px-5 md:py-2.5">
             {footer}
           </footer>
         )}

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
   Award,
-  LayoutDashboard,
   Mail,
   MapPin,
   MessageCircle,
@@ -165,16 +164,6 @@ export function MobileMenuSheet({ isOpen, onClose }: MobileMenuSheetProps) {
         </div>
       </section>
 
-      <section className="mt-5">
-        <Link
-          href="/admin"
-          onClick={onClose}
-          className="flex h-10 items-center justify-center gap-2 rounded-[10px] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-4 text-[13px] font-semibold text-[var(--color-ink-800)]"
-        >
-          <LayoutDashboard size={14} />
-          Open admin dashboard
-        </Link>
-      </section>
     </BottomSheet>
   );
 }

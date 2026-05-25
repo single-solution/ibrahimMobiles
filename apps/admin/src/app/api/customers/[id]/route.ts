@@ -83,15 +83,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
     update.name = result;
   }
   if (body.phoneNumber !== undefined) {
-    const result = validateString(body.phoneNumber, {
-      label: "Phone number",
-      min: 7,
-      max: FIELD_LIMITS.phoneNumber,
-    });
-    if (isValidationError(result)) {
-      return badRequest(result.error);
-    }
-    update.phoneNumber = result;
+    return badRequest(
+      "Phone number is the customer's storefront sign-in ID and cannot be changed from admin.",
+    );
   }
   if (body.city !== undefined) {
     const result = validateString(body.city, { label: "City", max: FIELD_LIMITS.city });
@@ -123,16 +117,6 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
 
   await connectDB();
-  if (typeof update.phoneNumber === "string") {
-    const duplicate = await Customer.findOne({
-      phoneNumber: update.phoneNumber,
-      _id: { $ne: id },
-    }).lean();
-    if (duplicate) {
-      return conflict("Another customer already uses this phone number.");
-    }
-  }
-
   try {
     const doc = await Customer.findByIdAndUpdate(id, { $set: update }, {
       new: true,

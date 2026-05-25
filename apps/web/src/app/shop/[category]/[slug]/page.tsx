@@ -265,7 +265,7 @@ export default async function ProductDetailPage({
         />
 
         <div className="mt-6 grid grid-cols-[1.1fr_1fr] items-stretch gap-10">
-          <div className="flex min-h-0 flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-sm)]">
+          <div className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-sm)]">
             <VariantAwareGallery
               product={product}
               brandName={brandName}

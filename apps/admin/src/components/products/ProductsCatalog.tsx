@@ -10,7 +10,7 @@ import {
 } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Boxes, Pencil, Search, Trash2 } from "lucide-react";
+import { Boxes, Pencil, Trash2 } from "lucide-react";
 import {
   classNames,
   compareAlphabetically,
@@ -18,10 +18,18 @@ import {
   formatPrice,
 } from "@store/shared";
 
+import { CatalogSearchField } from "@/components/catalog/catalogWorkspaceUi";
 import { AdminTable, type AdminTableColumn } from "@/components/AdminTable";
+import {
+  WorkspaceCatalogPaneHeader,
+  WorkspaceFilterChip,
+  WorkspaceFrame,
+  WorkspaceReadOnlyBanner,
+} from "@/components/workspace/adminWorkspaceUi";
+import { useAdminPermissions } from "@/lib/adminPermissionsContext";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LucideIconRenderer } from "@/components/icons/LucideIconRenderer";
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
+import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
 import { StatusPill } from "@/components/StatusPill";
 import { useToast } from "@/components/Toast";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
@@ -94,7 +102,7 @@ function categorySearchHaystack(category: AdminCategory): string {
 
 export function ProductsCatalog(props: ProductsCatalogProps) {
   return (
-    <Suspense fallback={<AdminTableSkeleton columnCount={4} rowCount={8} />}>
+    <Suspense fallback={<CatalogWorkspaceSkeleton />}>
       <ProductsCatalogInner {...props} />
     </Suspense>
   );
@@ -104,6 +112,10 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
   const router = useRouter();
   const { searchParams, replace } = useAdminUrlParams();
   const toast = useToast();
+  const { can } = useAdminPermissions();
+  const canCreate = can("product_create");
+  const canUpdate = can("product_update");
+  const canDelete = can("product_delete");
 
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(
     null,
@@ -183,6 +195,12 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
         setVariantsId(null);
         return;
       }
+      if (!canUpdate && (panel === "edit" || panel === "variants")) {
+        setEditId(null);
+        setVariantsId(null);
+        replace({ product: productId, panel: null, vgrade: null, vuid: null });
+        return;
+      }
       if (panel === "edit") {
         setEditId(productId);
         setVariantsId(null);
@@ -193,7 +211,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
         setEditId(null);
       }
     });
-  }, [searchParams]);
+  }, [canUpdate, replace, searchParams]);
 
   useEffect(() => {
     const fromUrl = searchParams.get("q") ?? "";
@@ -511,22 +529,28 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       align: "right",
       cell: (product) => (
         <div className="flex flex-wrap justify-end gap-1.5">
-          <RowActionButton
-            icon={<Pencil size={13} />}
-            label="Edit"
-            onClick={() => openEdit(product.id)}
-          />
-          <RowActionButton
-            icon={<Boxes size={13} />}
-            label="Manage variants"
-            onClick={() => openVariants(product.id)}
-          />
-          <RowActionButton
-            icon={<Trash2 size={13} />}
-            label="Delete"
-            onClick={() => openDeleteConfirm(product)}
-            tone="danger"
-          />
+          {canUpdate ? (
+            <>
+              <RowActionButton
+                icon={<Pencil size={13} />}
+                label="Edit"
+                onClick={() => openEdit(product.id)}
+              />
+              <RowActionButton
+                icon={<Boxes size={13} />}
+                label="Manage variants"
+                onClick={() => openVariants(product.id)}
+              />
+            </>
+          ) : null}
+          {canDelete ? (
+            <RowActionButton
+              icon={<Trash2 size={13} />}
+              label="Delete"
+              onClick={() => openDeleteConfirm(product)}
+              tone="danger"
+            />
+          ) : null}
         </div>
       ),
     },
@@ -534,7 +558,10 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
 
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+      <WorkspaceFrame minHeight={false}>
+        {!canUpdate ? (
+          <WorkspaceReadOnlyBanner message="Read-only — you can browse products but not edit listings or variants." />
+        ) : null}
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
           <CategorySidebar
             items={filteredCategoryNav}
@@ -546,10 +573,10 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
           />
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <header className="shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 py-2">
-              <div className="flex flex-wrap items-center gap-2">
-                {selectedNav ? (
-                  <div className="flex min-w-0 items-center gap-1.5 sm:mr-auto">
+            <WorkspaceCatalogPaneHeader
+              title={
+                selectedNav ? (
+                  <div className="flex min-w-0 items-center gap-1.5">
                     <LucideIconRenderer
                       name={selectedNav.category.icon}
                       size={14}
@@ -557,84 +584,82 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
                       className="shrink-0 text-[var(--color-accent-700)]"
                       aria-hidden
                     />
-                    <div className="min-w-0">
-                      <h2 className="truncate text-xs font-semibold text-[var(--color-ink-900)]">
-                        {selectedNav.category.label}
-                      </h2>
-                      <p className="text-[10px] text-[var(--color-ink-500)]">
-                        {tableRows.length} shown · {selectedNav.totalCount} total
-                      </p>
-                    </div>
+                    <h2 className="truncate text-xs font-semibold text-[var(--color-ink-900)]">
+                      {selectedNav.category.label}
+                    </h2>
                   </div>
                 ) : (
-                  <p className="text-xs text-[var(--color-ink-500)] sm:mr-auto">
-                    Products
-                  </p>
-                )}
-
-                <div className="flex w-full min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 sm:w-auto sm:flex-nowrap">
-                  <CatalogSearchField
-                    value={productQuery}
-                    onChange={setProductQueryUrl}
-                    placeholder="Search products…"
-                    aria-label="Search products"
-                    className="min-w-0 flex-1 sm:max-w-[14rem] sm:flex-none"
-                  />
+                  <h2 className="text-xs font-semibold text-[var(--color-ink-900)]">Products</h2>
+                )
+              }
+              subtitle={
+                selectedNav
+                  ? `${tableRows.length} shown · ${selectedNav.totalCount} total`
+                  : "Select a category to manage products."
+              }
+              search={
+                <CatalogSearchField
+                  value={productQuery}
+                  onChange={setProductQueryUrl}
+                  placeholder="Search products…"
+                  aria-label="Search products"
+                  className="min-w-0 flex-1 sm:max-w-[14rem] sm:flex-none"
+                />
+              }
+              action={
+                canCreate ? (
                   <Suspense fallback={null}>
                     <ProductCreateWizard catalog={catalog} variant="toolbar" />
                   </Suspense>
-                </div>
-              </div>
-
-              <div
-                className="mt-2 flex flex-wrap gap-1.5"
-                role="group"
-                aria-label="Product filters"
-              >
-                <ProductFilterChip
+                ) : undefined
+              }
+              filters={
+                <>
+                <WorkspaceFilterChip
                   label="All"
                   count={filterCounts.all}
                   isActive={listFilter === "all"}
                   onClick={() => setListFilterUrl("all")}
                 />
-                <ProductFilterChip
+                <WorkspaceFilterChip
                   label="No variants"
                   count={filterCounts.no_variants}
                   isActive={listFilter === "no_variants"}
                   onClick={() => setListFilterUrl("no_variants")}
                 />
-                <ProductFilterChip
+                <WorkspaceFilterChip
                   label="Partial stock"
                   count={filterCounts.partial_stock}
                   isActive={listFilter === "partial_stock"}
                   onClick={() => setListFilterUrl("partial_stock")}
                 />
-                <ProductFilterChip
+                <WorkspaceFilterChip
                   label="All OOS"
                   count={filterCounts.all_out_of_stock}
                   isActive={listFilter === "all_out_of_stock"}
                   onClick={() => setListFilterUrl("all_out_of_stock")}
                 />
-                <ProductFilterChip
+                <WorkspaceFilterChip
                   label="Fully stocked"
                   count={filterCounts.fully_stocked}
                   isActive={listFilter === "fully_stocked"}
                   onClick={() => setListFilterUrl("fully_stocked")}
                 />
-                <ProductFilterChip
+                <WorkspaceFilterChip
                   label="Featured"
                   count={filterCounts.featured}
                   isActive={listFilter === "featured"}
                   onClick={() => setListFilterUrl("featured")}
                 />
-                <ProductFilterChip
+                <WorkspaceFilterChip
                   label="Disabled"
                   count={filterCounts.hidden}
                   isActive={listFilter === "hidden"}
                   onClick={() => setListFilterUrl("hidden")}
                 />
-              </div>
-            </header>
+                </>
+              }
+            />
 
             <div className="min-h-0 flex-1 overflow-y-auto p-2 [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&_table]:text-xs [&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-[10px]">
               <AdminTable
@@ -643,7 +668,9 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
                 rowKey={(product) => product.id}
                 emptyState={
                   products.length === 0
-                    ? "No products yet. Click New product to add one."
+                    ? canCreate
+                      ? "No products yet. Click New product to add one."
+                      : "No products yet."
                     : productQuery.trim() || listFilter !== "all"
                       ? "No products match your search or filters."
                       : "No products in this category."
@@ -652,7 +679,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
             </div>
           </div>
         </div>
-      </div>
+      </WorkspaceFrame>
 
       <ProductEditDrawer
         productId={editId}
@@ -685,75 +712,6 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
         onCancel={closeDeleteConfirm}
       />
     </>
-  );
-}
-
-function CatalogSearchField({
-  value,
-  onChange,
-  placeholder,
-  className,
-  "aria-label": ariaLabel,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  className?: string;
-  "aria-label": string;
-}) {
-  return (
-    <label className={classNames("relative flex h-8 items-center", className)}>
-      <Search
-        size={13}
-        className="pointer-events-none absolute left-2 text-[var(--color-ink-400)]"
-        aria-hidden
-      />
-      <input
-        type="search"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
-        className="h-full w-full rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] pl-7 pr-2 text-xs text-[var(--color-ink-900)] placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-100)]"
-      />
-    </label>
-  );
-}
-
-function ProductFilterChip({
-  label,
-  count,
-  isActive,
-  onClick,
-}: {
-  label: string;
-  count: number;
-  isActive: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={classNames(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
-        isActive
-          ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
-          : "border border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:border-[var(--color-ink-300)] hover:text-[var(--color-ink-900)]",
-      )}
-    >
-      {label}
-      <span
-        className={classNames(
-          "rounded-full px-1 text-[9px] tabular-nums",
-          isActive
-            ? "bg-[var(--color-accent-200)]/70 text-[var(--color-accent-800)]"
-            : "bg-[var(--color-canvas-deep)] text-[var(--color-ink-500)]",
-        )}
-      >
-        {count}
-      </span>
-    </button>
   );
 }
 

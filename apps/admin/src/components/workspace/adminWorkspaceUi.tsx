@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Search } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import { classNames } from "@store/shared";
 import { Button } from "@/components/ui/Button";
 
@@ -187,15 +187,18 @@ export function WorkspaceEmptyPane({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
-      <span className="grid size-14 place-items-center rounded-full bg-[var(--color-accent-50)] text-[var(--color-accent-700)]">
-        <Icon size={24} />
+    <div className="flex flex-1 flex-col items-center justify-center px-5 py-8 text-center md:px-6 md:py-12">
+      <span className="grid size-12 place-items-center rounded-full bg-[var(--color-accent-50)] text-[var(--color-accent-700)] md:size-14">
+        <Icon size={20} className="md:hidden" />
+        <Icon size={24} className="hidden md:block" />
       </span>
-      <p className="mt-4 text-sm font-semibold text-[var(--color-ink-900)]">{title}</p>
-      <p className="mt-1 max-w-xs text-xs leading-relaxed text-[var(--color-ink-500)]">
+      <p className="mt-3 text-[13px] font-semibold text-[var(--color-ink-900)] md:mt-4 md:text-sm">
+        {title}
+      </p>
+      <p className="mt-1 max-w-xs text-[11.5px] leading-relaxed text-[var(--color-ink-500)] md:text-xs">
         {description}
       </p>
-      {action ? <div className="mt-4">{action}</div> : null}
+      {action ? <div className="mt-3 md:mt-4">{action}</div> : null}
     </div>
   );
 }
@@ -212,13 +215,16 @@ export function WorkspaceListHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-3 md:px-4">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-50)] text-[var(--color-accent-700)]">
-          <Icon size={16} />
+    <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 py-2 md:gap-3 md:px-4 md:py-3">
+      <div className="flex min-w-0 items-center gap-2 md:gap-2.5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-50)] text-[var(--color-accent-700)] md:size-9">
+          <Icon size={14} className="md:hidden" />
+          <Icon size={16} className="hidden md:block" />
         </span>
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold text-[var(--color-ink-900)]">{title}</h2>
+          <h2 className="text-[13px] font-semibold text-[var(--color-ink-900)] md:text-sm">
+            {title}
+          </h2>
           {subtitle ? (
             <p className="text-[10px] text-[var(--color-ink-500)]">{subtitle}</p>
           ) : null}
@@ -264,10 +270,12 @@ export function WorkspacePrimaryAction({
   label,
   onClick,
   icon: Icon,
+  disabled,
 }: {
   label: string;
   onClick: () => void;
   icon?: LucideIcon;
+  disabled?: boolean;
 }) {
   return (
     <Button
@@ -275,8 +283,94 @@ export function WorkspacePrimaryAction({
       size="sm"
       leadingIcon={Icon ? <Icon size={14} /> : undefined}
       onClick={onClick}
+      disabled={disabled}
     >
       {label}
     </Button>
+  );
+}
+
+export function WorkspaceReadOnlyBanner({ message }: { message: string }) {
+  return (
+    <p className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-2 text-center text-[11px] text-[var(--color-ink-600)]">
+      {message}
+    </p>
+  );
+}
+
+/** Catalog workspace main column header (products, categories tables). */
+export function WorkspaceCatalogPaneHeader({
+  title,
+  subtitle,
+  search,
+  filters,
+  action,
+}: {
+  title: ReactNode;
+  subtitle?: string;
+  search?: ReactNode;
+  filters?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <header className="shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 py-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 items-center gap-1.5 sm:mr-auto">{title}</div>
+        <div className="flex w-full min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 sm:w-auto sm:flex-nowrap">
+          {search}
+          {action}
+        </div>
+      </div>
+      {subtitle ? (
+        <p className="mt-1 text-[10px] text-[var(--color-ink-500)]">{subtitle}</p>
+      ) : null}
+      {filters ? <div className="mt-2 flex flex-wrap gap-1.5">{filters}</div> : null}
+    </header>
+  );
+}
+
+/** Split-pane detail column header (orders, customers, inquiries). */
+export function WorkspaceDetailHeader({
+  onBack,
+  backLabel,
+  title,
+  subtitle,
+  badge,
+  actions,
+}: {
+  onBack?: () => void;
+  backLabel?: string;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  badge?: ReactNode;
+  actions?: ReactNode;
+}) {
+  return (
+    <header className="flex shrink-0 flex-wrap items-start gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-surface)] px-2.5 py-2 md:gap-3 md:px-4 md:py-3">
+      {onBack ? (
+        <button
+          type="button"
+          aria-label={backLabel ?? "Back to list"}
+          onClick={onBack}
+          className="grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-600)] hover:bg-[var(--color-canvas-deep)] lg:hidden"
+        >
+          <ArrowLeft size={16} />
+        </button>
+      ) : null}
+      <div className="min-w-0 flex-1">
+        <div className="text-[13px] font-semibold text-[var(--color-ink-900)] md:text-sm">
+          {title}
+        </div>
+        {subtitle ? (
+          <div className="text-[11.5px] text-[var(--color-ink-500)] md:text-xs">
+            {subtitle}
+          </div>
+        ) : null}
+      </div>
+      {badge}
+      {actions ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5">{actions}</div>
+      ) : null}
+    </header>
   );
 }

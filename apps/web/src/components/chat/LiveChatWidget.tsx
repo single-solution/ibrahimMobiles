@@ -22,7 +22,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { ArrowLeft, MessageSquare, Paperclip, Send, X } from "lucide-react";
+import { ArrowLeft, MessageSquare, Paperclip, Plus, Send, X } from "lucide-react";
 
 import {
   CHAT_GUEST_MESSAGE_LIMIT,
@@ -56,13 +56,14 @@ import {
   makeOptimisticMessage,
   sendChatMessage,
   startAnonymousChatThread,
+  startCustomerChatThread,
   ChatRequestError,
   uploadChatAttachment,
 } from "@/lib/chat/transport";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 
-type WidgetView = "list" | "thread" | "starting";
+type WidgetView = "list" | "thread" | "starting" | "compose";
 
 interface LiveChatWidgetProps {
   onCollapse?: () => void;
@@ -89,6 +90,11 @@ export function LiveChatWidget({
     return `/account/sign-in?next=${encodeURIComponent(next)}`;
   }, [pathname, searchParams]);
   const [composerDraft, setComposerDraft] = useState("");
+  const [isSignedInCustomer, setIsSignedInCustomer] = useState(false);
+  const [composeSubjectName, setComposeSubjectName] = useState<string | undefined>(
+    initialOpenDetail?.subjectProductName,
+  );
+  const composeProductIdRef = useRef<string | undefined>(initialOpenDetail?.subjectProductId);
   const lastActivityAtRef = useRef(0);
   const activeThreadIdRef = useRef<string | null>(null);
   const activeThreadRef = useRef<ChatThread | null>(null);
@@ -109,6 +115,7 @@ export function LiveChatWidget({
       setEnabled(data.enabled);
       setSettings(data.settings);
       setThreads(data.threads);
+      setIsSignedInCustomer(data.isSignedInCustomer);
       return data;
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Unable to load chat.";
@@ -116,29 +123,6 @@ export function LiveChatWidget({
       return null;
     }
   }, []);
-
-  const beginAnonymousThread = useCallback(async (detail: OpenChatDetail | null) => {
-    setView("starting");
-    setBootstrapError(null);
-    try {
-      const thread = await startAnonymousChatThread({
-        subjectProductId: detail?.subjectProductId,
-        subjectProductName: detail?.subjectProductName,
-      });
-      lastActivityAtRef.current = Date.now();
-      setActiveThread(thread);
-      setActiveThreadId(thread.id);
-      setView("thread");
-      void refreshBootstrap();
-      return thread;
-    } catch (error) {
-      const msg =
-        error instanceof Error ? error.message : "Could not start chat.";
-      setBootstrapError(msg);
-      setView("list");
-      throw error;
-    }
-  }, [refreshBootstrap]);
 
   // Initial bootstrap.
   useEffect(() => {
@@ -149,12 +133,10 @@ export function LiveChatWidget({
       if (initialOpenDetail?.initialBody) {
         setComposerDraft(initialOpenDetail.initialBody);
       }
+      setComposeSubjectName(initialOpenDetail?.subjectProductName);
+      composeProductIdRef.current = initialOpenDetail?.subjectProductId;
       if (data.threads.length === 0) {
-        try {
-          await beginAnonymousThread(initialOpenDetail);
-        } catch {
-          // error surfaced via bootstrapError
-        }
+        setView("compose");
       } else if (data.threads.length === 1) {
         setActiveThreadId(data.threads[0].id);
         setView("thread");
@@ -162,7 +144,7 @@ export function LiveChatWidget({
         setView("list");
       }
     })();
-  }, [refreshBootstrap, initialOpenDetail, beginAnonymousThread]);
+  }, [refreshBootstrap, initialOpenDetail]);
 
   // After sign-in redirect, refresh thread so guest gate clears.
   useEffect(() => {
@@ -253,7 +235,32 @@ export function LiveChatWidget({
       setView("list");
       return;
     }
-    void beginAnonymousThread(null);
+    setView("compose");
+  }
+
+  async function handleComposeSend(body: string) {
+    setBootstrapError(null);
+    setView("starting");
+    try {
+      const thread = isSignedInCustomer
+        ? await startCustomerChatThread()
+        : await startAnonymousChatThread({
+            subjectProductId: composeProductIdRef.current,
+            subjectProductName: composeSubjectName,
+          });
+      const fresh = await sendChatMessage(thread.id, body);
+      lastActivityAtRef.current = Date.now();
+      setActiveThread(fresh);
+      setActiveThreadId(fresh.id);
+      setView("thread");
+      void refreshBootstrap();
+    } catch (error) {
+      const msg =
+        error instanceof Error ? error.message : "Could not start chat.";
+      setBootstrapError(msg);
+      setView("compose");
+      throw error;
+    }
   }
 
   async function handleAttach(file: File, body?: string) {
@@ -366,7 +373,7 @@ export function LiveChatWidget({
             ? "Support chat · replies in seconds"
             : "We typically reply within an hour"
       }
-      onBack={view === "thread" && threads.length > 1 ? handleBackToList : undefined}
+      onBack={view === "thread" && threads.length > 0 ? handleBackToList : undefined}
     >
       {bootstrapError && (
         <div className="border-b border-[var(--color-error-200)] bg-[var(--color-error-50)] px-4 py-2 text-xs text-[var(--color-error-700)]">
@@ -379,7 +386,32 @@ export function LiveChatWidget({
         </div>
       )}
       {view === "list" && (
-        <ThreadList threads={threads} onOpen={handleOpenThread} />
+        <ThreadList
+          threads={threads}
+          onOpen={handleOpenThread}
+          onNew={() => {
+            setComposeSubjectName(undefined);
+            composeProductIdRef.current = undefined;
+            setComposerDraft("");
+            setBootstrapError(null);
+            setView("compose");
+          }}
+        />
+      )}
+      {view === "compose" && (
+        <ComposeConversation
+          draft={composerDraft}
+          onDraftChange={setComposerDraft}
+          onSend={handleComposeSend}
+          welcomeMessage={
+            isSignedInCustomer
+              ? settings?.welcomeMessageCustomer
+              : settings?.welcomeMessageGuest
+          }
+          subjectProductName={composeSubjectName}
+          signInHref={signInHref}
+          isSignedInCustomer={isSignedInCustomer}
+        />
       )}
       {view === "thread" && activeThread && (
         <ThreadConversation
@@ -474,11 +506,25 @@ function ChatShell({
 interface ThreadListProps {
   threads: ChatThreadSummary[];
   onOpen: (id: string) => void;
+  onNew: () => void;
 }
 
-function ThreadList({ threads, onOpen }: ThreadListProps) {
+function ThreadList({ threads, onOpen, onNew }: ThreadListProps) {
   return (
     <div className="flex-1 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+          Your conversations
+        </p>
+        <button
+          type="button"
+          onClick={onNew}
+          className="inline-flex items-center gap-1 rounded-full bg-[var(--color-ink-900)] px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-[var(--color-ink-800)]"
+        >
+          <Plus size={12} aria-hidden />
+          New chat
+        </button>
+      </div>
       <ul className="flex flex-col gap-2">
         {threads.map((thread) => (
           <li key={thread.id}>
@@ -697,6 +743,102 @@ function ThreadConversation({
   );
 }
 
+
+interface ComposeConversationProps {
+  draft: string;
+  onDraftChange: (value: string) => void;
+  onSend: (body: string) => Promise<void>;
+  welcomeMessage?: string;
+  subjectProductName?: string;
+  signInHref: string;
+  isSignedInCustomer: boolean;
+}
+
+function ComposeConversation({
+  draft,
+  onDraftChange,
+  onSend,
+  welcomeMessage,
+  subjectProductName,
+  signInHref,
+  isSignedInCustomer,
+}: ComposeConversationProps) {
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (draft.trim().length === 0 || sending) return;
+    const body = draft.trim();
+    setSending(true);
+    setError(null);
+    onDraftChange("");
+    try {
+      await onSend(body);
+    } catch (err) {
+      onDraftChange(body);
+      setError(err instanceof Error ? err.message : "Send failed.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="flex-1 space-y-3 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-3">
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3.5 text-xs leading-relaxed text-[var(--color-ink-600)] shadow-[var(--shadow-sm)]">
+          {welcomeMessage ??
+            chatWelcomeMessage({
+              audience: isSignedInCustomer ? "customer" : "guest",
+              guestMessageLimit: CHAT_GUEST_MESSAGE_LIMIT,
+            })}
+          {subjectProductName ? (
+            <p className="mt-2 font-semibold text-[var(--color-ink-800)]">
+              About: {subjectProductName}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      {error ? (
+        <div className="border-t border-[var(--color-error-200)] bg-[var(--color-error-50)] px-3 py-1.5 text-[11px] text-[var(--color-error-700)]">
+          {error}
+        </div>
+      ) : null}
+      {!isSignedInCustomer ? (
+        <p className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-1.5 text-center text-[10px] text-[var(--color-ink-500)]">
+          Guest preview —{" "}
+          <Link href={signInHref} className="font-semibold text-[var(--color-accent-700)] underline">
+            sign in
+          </Link>{" "}
+          after a few messages to continue.
+        </p>
+      ) : null}
+      <form
+        onSubmit={handleSubmit}
+        className="flex items-center gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2.5"
+      >
+        <input
+          type="text"
+          value={draft}
+          onChange={(event) => onDraftChange(event.target.value)}
+          placeholder="Type your first message"
+          aria-label="Type your first message"
+          maxLength={CHAT_MESSAGE_BODY_MAX}
+          disabled={sending}
+          className="h-9 flex-1 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] px-3 text-sm text-[var(--color-ink-800)] placeholder:text-[var(--color-ink-400)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-500)] disabled:opacity-60"
+        />
+        <button
+          type="submit"
+          aria-label="Send message"
+          disabled={sending || draft.trim().length === 0}
+          className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-white transition-opacity disabled:opacity-40"
+        >
+          <Send size={14} />
+        </button>
+      </form>
+    </>
+  );
+}
 
 interface SupportHintFooterProps {
   assistantEnabled: boolean;

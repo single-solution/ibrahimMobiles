@@ -123,7 +123,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         <CategoryJsonLd meta={meta} filters={filters} />
       </Suspense>
       {/* Mobile only — native */}
-      <div className="app-page pb-10 pt-5 md:hidden">
+      <div className="app-page pb-10 pt-2 md:hidden">
         <Suspense fallback={<CategorySelectorSkeleton />}>
           <CategorySelectorData activeSlug={meta.slug} />
         </Suspense>
@@ -142,7 +142,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
       {/* Desktop */}
       <div className="hidden md:block">
-        <div className="mx-auto max-w-[1440px] px-6 pb-20 pt-10">
+        <div className="mx-auto max-w-[1440px] px-6 pb-20 pt-4">
           <div className="grid grid-cols-[272px_1fr] gap-10 xl:grid-cols-[280px_1fr] xl:gap-12">
             <Suspense fallback={<DesktopFilterSidebarSkeleton />}>
               <FilterSidebarData categorySlug={meta.slug} filters={filters} />

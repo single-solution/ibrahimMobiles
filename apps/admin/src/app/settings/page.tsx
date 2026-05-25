@@ -3,16 +3,19 @@ import { getStoreSettings } from "@store/db";
 
 import { AdminShell } from "@/components/AdminShell";
 import { Settings } from "@/components/Settings";
-import { ListWorkspaceSkeleton } from "@/components/loading/ListWorkspaceSkeleton";
-import { adminListPageClass } from "@/components/workspace/adminWorkspaceUi";
+import { SettingsWorkspaceSkeleton } from "@/components/loading/SettingsWorkspaceSkeleton";
+import { adminWorkspacePageClass } from "@/components/workspace/adminWorkspaceUi";
+import { requirePagePermission } from "@/lib/server/requirePageSession";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
+  await requirePagePermission("settings_view", "/settings");
+
   return (
-    <AdminShell contentClassName={adminListPageClass}>
+    <AdminShell contentClassName={adminWorkspacePageClass}>
       <section className="flex min-h-0 flex-1 flex-col">
-        <Suspense fallback={<ListWorkspaceSkeleton />}>
+        <Suspense fallback={<SettingsWorkspaceSkeleton />}>
           <SettingsData />
         </Suspense>
       </section>

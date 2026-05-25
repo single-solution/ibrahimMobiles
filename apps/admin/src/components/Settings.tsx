@@ -1,147 +1,260 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Settings as SettingsIcon } from "lucide-react";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
 import { STORE_SETTING_GROUPS, type StoreSettings } from "@store/shared";
 
-import { Tabs } from "@/components/Tabs";
 import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
-import { SaveBar } from "@/components/forms/SaveBar";
+import { HomepageSettings } from "@/components/settings/HomepageSettings";
 import { SettingsCleanup } from "@/components/SettingsCleanup";
 import { ChatSettingsTab } from "@/components/ChatSettingsTab";
 import { SeoSettingsTab } from "@/components/SeoSettingsTab";
+import {
+  getSettingsTabMeta,
+  isSettingsTabId,
+  SETTINGS_NAV_GROUPS,
+  SettingsFormPanel,
+  SettingsMobileTabChip,
+  SettingsNavItem,
+  SettingsPanelHeader,
+  SettingsSaveFooter,
+  type SettingsTabId,
+} from "@/components/settings/settingsWorkspaceUi";
 import { useToast } from "@/components/Toast";
 import {
   WorkspaceFrame,
   WorkspaceListHeader,
+  WorkspaceReadOnlyBanner,
 } from "@/components/workspace/adminWorkspaceUi";
+import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { classNames } from "@store/shared";
 
 interface SettingsProps {
   initialSettings: StoreSettings;
 }
 
 export function Settings({ initialSettings }: SettingsProps) {
+  return (
+    <Suspense fallback={null}>
+      <SettingsInner initialSettings={initialSettings} />
+    </Suspense>
+  );
+}
+
+function SettingsInner({ initialSettings }: SettingsProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { can } = useAdminPermissions();
+  const canUpdate = can("settings_update");
+  const canCleanup = can("data_cleanup");
+
   const [savedSettings, setSavedSettings] = useState<StoreSettings>(initialSettings);
   const [draft, setDraft] = useState<StoreSettings>(initialSettings);
+  const [activeTab, setActiveTab] = useState<SettingsTabId>("store");
+
+  const navGroups = useMemo(
+    () =>
+      SETTINGS_NAV_GROUPS.map((group) => ({
+        ...group,
+        tabs: group.tabs.filter(
+          (tab) => tab.id !== "cleanup" || canCleanup,
+        ),
+      })).filter((group) => group.tabs.length > 0),
+    [canCleanup],
+  );
+
+  const flatTabs = useMemo(
+    () => navGroups.flatMap((group) => group.tabs),
+    [navGroups],
+  );
+
+  const activeMeta = getSettingsTabMeta(activeTab);
 
   function setField<K extends keyof StoreSettings>(field: K, value: StoreSettings[K]) {
     setDraft((current) => ({ ...current, [field]: value }));
   }
+
+  useEffect(() => {
+    scheduleStateUpdate(() => {
+      const fromUrl = searchParams.get("tab");
+      if (isSettingsTabId(fromUrl)) {
+        if (fromUrl === "cleanup" && !canCleanup) {
+          setActiveTab("store");
+          return;
+        }
+        setActiveTab(fromUrl);
+        return;
+      }
+      if (!flatTabs.some((tab) => tab.id === activeTab)) {
+        setActiveTab(flatTabs[0]?.id ?? "store");
+      }
+    });
+  }, [activeTab, canCleanup, flatTabs, searchParams]);
+
+  function setTabUrl(tab: SettingsTabId) {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.replace(`/settings?${params.toString()}`, { scroll: false });
+  }
+
+  const tabContent: Record<SettingsTabId, ReactNode> = {
+    store: (
+      <StoreDetailsSettings
+        draft={draft}
+        saved={savedSettings}
+        setField={setField}
+        onSaved={setSavedSettings}
+        canUpdate={canUpdate}
+      />
+    ),
+    contact: (
+      <ContactSettings
+        draft={draft}
+        saved={savedSettings}
+        setField={setField}
+        onSaved={setSavedSettings}
+        canUpdate={canUpdate}
+      />
+    ),
+    payments: (
+      <PaymentSettings
+        draft={draft}
+        saved={savedSettings}
+        setField={setField}
+        onSaved={setSavedSettings}
+        canUpdate={canUpdate}
+      />
+    ),
+    delivery: (
+      <DeliverySettings
+        draft={draft}
+        saved={savedSettings}
+        setField={setField}
+        onSaved={setSavedSettings}
+        canUpdate={canUpdate}
+      />
+    ),
+    social: (
+      <SocialSettings
+        draft={draft}
+        saved={savedSettings}
+        setField={setField}
+        onSaved={setSavedSettings}
+        canUpdate={canUpdate}
+      />
+    ),
+    policies: (
+      <PolicySettings
+        draft={draft}
+        saved={savedSettings}
+        setField={setField}
+        onSaved={setSavedSettings}
+        canUpdate={canUpdate}
+      />
+    ),
+    loyalty: (
+      <LoyaltySettings
+        draft={draft}
+        saved={savedSettings}
+        setField={setField}
+        onSaved={setSavedSettings}
+        canUpdate={canUpdate}
+      />
+    ),
+    homepage: (
+      <HomepageSettings
+        draft={draft}
+        saved={savedSettings}
+        setField={setField}
+        onSaved={setSavedSettings}
+        canUpdate={canUpdate}
+        renderSaveable={({ fields, children }) => (
+          <SaveableSection
+            fields={fields}
+            draft={draft}
+            saved={savedSettings}
+            setField={setField}
+            onSaved={setSavedSettings}
+            canUpdate={canUpdate}
+          >
+            {children}
+          </SaveableSection>
+        )}
+      />
+    ),
+    seo: <SeoSettingsTab readOnly={!canUpdate} />,
+    chat: <ChatSettingsTab readOnly={!canUpdate} />,
+    cleanup: <SettingsCleanup />,
+  };
 
   return (
     <WorkspaceFrame minHeight={false}>
       <WorkspaceListHeader
         icon={SettingsIcon}
         title="Settings"
-        subtitle="Store details, contact, SEO, inquiries bot, and cleanup."
+        subtitle="Storefront, commerce rules, SEO, chat widget, and optional data cleanup."
       />
-      <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
-        <Tabs
-      tabs={[
-        {
-          id: "store",
-          label: "Store details",
-          content: (
-            <StoreDetailsSettings
-              draft={draft}
-              saved={savedSettings}
-              setField={setField}
-              onSaved={setSavedSettings}
-            />
-          ),
-        },
-        {
-          id: "contact",
-          label: "Contact",
-          content: (
-            <ContactSettings
-              draft={draft}
-              saved={savedSettings}
-              setField={setField}
-              onSaved={setSavedSettings}
-            />
-          ),
-        },
-        {
-          id: "payments",
-          label: "Payments",
-          content: (
-            <PaymentSettings
-              draft={draft}
-              saved={savedSettings}
-              setField={setField}
-              onSaved={setSavedSettings}
-            />
-          ),
-        },
-        {
-          id: "delivery",
-          label: "Delivery",
-          content: (
-            <DeliverySettings
-              draft={draft}
-              saved={savedSettings}
-              setField={setField}
-              onSaved={setSavedSettings}
-            />
-          ),
-        },
-        {
-          id: "social",
-          label: "Social",
-          content: (
-            <SocialSettings
-              draft={draft}
-              saved={savedSettings}
-              setField={setField}
-              onSaved={setSavedSettings}
-            />
-          ),
-        },
-        {
-          id: "policies",
-          label: "Policies",
-          content: (
-            <PolicySettings
-              draft={draft}
-              saved={savedSettings}
-              setField={setField}
-              onSaved={setSavedSettings}
-            />
-          ),
-        },
-        {
-          id: "loyalty",
-          label: "Loyalty",
-          content: (
-            <LoyaltySettings
-              draft={draft}
-              saved={savedSettings}
-              setField={setField}
-              onSaved={setSavedSettings}
-            />
-          ),
-        },
-        {
-          id: "seo",
-          label: "SEO",
-          content: <SeoSettingsTab />,
-        },
-        {
-          id: "chat",
-          label: "Inquiries",
-          content: <ChatSettingsTab />,
-        },
-        {
-          id: "cleanup",
-          label: "Cleanup",
-          content: <SettingsCleanup />,
-        },
-      ]}
-        />
+      {!canUpdate ? (
+        <WorkspaceReadOnlyBanner message="Read-only — you can view settings but not save changes." />
+      ) : null}
+
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <aside className="hidden shrink-0 flex-col border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-2.5 lg:flex lg:w-44 lg:border-b-0 lg:border-r xl:w-52">
+          <nav aria-label="Settings sections" className="-mx-1 flex-1 overflow-y-auto">
+            {navGroups.map((group) => (
+              <div key={group.id} className="mb-3 last:mb-0">
+                <p className="px-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+                  {group.label}
+                </p>
+                <ul className="flex flex-col gap-0.5">
+                  {group.tabs.map((tab) => (
+                    <SettingsNavItem
+                      key={tab.id}
+                      label={tab.label}
+                      isActive={activeTab === tab.id}
+                      onClick={() => setTabUrl(tab.id)}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
+        </aside>
+
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2 lg:hidden">
+            <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+              {flatTabs.map((tab) => (
+                <SettingsMobileTabChip
+                  key={tab.id}
+                  label={tab.label}
+                  isActive={activeTab === tab.id}
+                  onClick={() => setTabUrl(tab.id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <SettingsPanelHeader
+            title={activeMeta.label}
+            description={activeMeta.description}
+          />
+
+          <div
+            className={classNames(
+              "min-h-0 flex-1 overflow-y-auto",
+              activeTab === "chat" && "bg-[var(--color-canvas-deep)]",
+            )}
+          >
+            {tabContent[activeTab]}
+          </div>
+        </section>
       </div>
     </WorkspaceFrame>
   );
@@ -152,15 +265,18 @@ interface SectionProps {
   saved: StoreSettings;
   setField<K extends keyof StoreSettings>(field: K, value: StoreSettings[K]): void;
   onSaved(settings: StoreSettings): void;
+  canUpdate: boolean;
 }
 
-function StoreDetailsSettings({ draft, saved, setField, onSaved }: SectionProps) {
+function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
   return (
     <SaveableSection
       fields={STORE_SETTING_GROUPS.branding}
       draft={draft}
       saved={saved}
+      setField={setField}
       onSaved={onSaved}
+      canUpdate={canUpdate}
     >
       <FormSection
         title="Site identity"
@@ -170,87 +286,118 @@ function StoreDetailsSettings({ draft, saved, setField, onSaved }: SectionProps)
           label="Site name"
           value={draft.siteName}
           onChange={(event) => setField("siteName", event.target.value)}
+          placeholder="e.g. Ibrahim Mobiles"
+          hint="Appears in the navbar, page titles, emails, and assistant greetings."
+          disabled={!canUpdate}
         />
         <TextArea
           label="Site tagline"
           rows={2}
           value={draft.siteTagline}
           onChange={(event) => setField("siteTagline", event.target.value)}
+          placeholder="Short one-liner that sits under the site name (e.g. Pakistan's trusted mobile store)."
+          disabled={!canUpdate}
         />
       </FormSection>
     </SaveableSection>
   );
 }
 
-function ContactSettings({ draft, saved, setField, onSaved }: SectionProps) {
+function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
   const fields = useMemo(
     () => [...STORE_SETTING_GROUPS.contact, ...STORE_SETTING_GROUPS.address],
     [],
   );
   return (
-    <SaveableSection fields={fields} draft={draft} saved={saved} onSaved={onSaved}>
+    <SaveableSection
+      fields={fields}
+      draft={draft}
+      saved={saved}
+      setField={setField}
+      onSaved={onSaved}
+      canUpdate={canUpdate}
+    >
       <FormSection
         title="Store contact"
         description="Used in the support strip, footer, automated inquiry replies, and order confirmation emails."
       >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField
-            label="Support phone"
-            value={draft.supportPhone}
-            onChange={(event) => setField("supportPhone", event.target.value)}
-          />
-          <TextField
-            label="Landline"
-            value={draft.supportLandline}
-            onChange={(event) => setField("supportLandline", event.target.value)}
-          />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField
-            label="Support email"
-            type="email"
-            value={draft.supportEmail}
-            onChange={(event) => setField("supportEmail", event.target.value)}
-          />
-          <TextField
-            label="WhatsApp number (digits only, no plus)"
-            value={draft.whatsappNumber}
-            onChange={(event) => setField("whatsappNumber", event.target.value)}
-            hint="International dialling format without the leading +."
-          />
-        </div>
+        <TextField
+          label="Support phone"
+          value={draft.supportPhone}
+          onChange={(event) => setField("supportPhone", event.target.value)}
+          placeholder="+92 320 4862403"
+          inputMode="tel"
+          autoComplete="tel"
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="Landline"
+          value={draft.supportLandline}
+          onChange={(event) => setField("supportLandline", event.target.value)}
+          placeholder="042 35711234"
+          inputMode="tel"
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="Support email"
+          type="email"
+          value={draft.supportEmail}
+          onChange={(event) => setField("supportEmail", event.target.value)}
+          placeholder="support@yourstore.com"
+          inputMode="email"
+          autoComplete="email"
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="WhatsApp number"
+          value={draft.whatsappNumber}
+          onChange={(event) => setField("whatsappNumber", event.target.value)}
+          placeholder="923204862403"
+          inputMode="tel"
+          hint="Digits only — country code first, no plus or spaces (e.g. 923204862403)."
+          disabled={!canUpdate}
+        />
       </FormSection>
 
       <FormSection title="Outlet address" description="Address shown on the about page and in the footer.">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField
-            label="Address line 1"
-            value={draft.storeAddressLine1}
-            onChange={(event) => setField("storeAddressLine1", event.target.value)}
-          />
-          <TextField
-            label="Address line 2"
-            value={draft.storeAddressLine2}
-            onChange={(event) => setField("storeAddressLine2", event.target.value)}
-          />
-        </div>
+        <TextField
+          label="Address line 1"
+          value={draft.storeAddressLine1}
+          onChange={(event) => setField("storeAddressLine1", event.target.value)}
+          placeholder="Shop 12, Main Boulevard"
+          autoComplete="address-line1"
+          disabled={!canUpdate}
+        />
+        <TextField
+          label="Address line 2"
+          value={draft.storeAddressLine2}
+          onChange={(event) => setField("storeAddressLine2", event.target.value)}
+          placeholder="Gulberg III, Lahore"
+          autoComplete="address-line2"
+          disabled={!canUpdate}
+        />
         <TextField
           label="Store hours"
           value={draft.storeHours}
           onChange={(event) => setField("storeHours", event.target.value)}
+          placeholder="Mon–Sat · 11am – 10pm"
+          hint="Shown in the footer and About page."
+          disabled={!canUpdate}
         />
       </FormSection>
     </SaveableSection>
   );
 }
 
-function PaymentSettings({ draft, saved, setField, onSaved }: SectionProps) {
+function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
   return (
     <SaveableSection
       fields={["bankTransferDiscountPercent"] as const}
       draft={draft}
       saved={saved}
+      setField={setField}
       onSaved={onSaved}
+      canUpdate={canUpdate}
     >
       <FormSection title="Discounts" description="Order-wide discounts customers see at checkout.">
         <NumberField
@@ -258,19 +405,24 @@ function PaymentSettings({ draft, saved, setField, onSaved }: SectionProps) {
           value={draft.bankTransferDiscountPercent}
           onChange={(value) => setField("bankTransferDiscountPercent", value)}
           trailingAddon="%"
+          placeholder="e.g. 2"
+          hint="Applied automatically when the customer chooses bank transfer at checkout."
+          disabled={!canUpdate}
         />
       </FormSection>
     </SaveableSection>
   );
 }
 
-function DeliverySettings({ draft, saved, setField, onSaved }: SectionProps) {
+function DeliverySettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
   return (
     <SaveableSection
       fields={["freeDeliveryThresholdRupees"] as const}
       draft={draft}
       saved={saved}
+      setField={setField}
       onSaved={onSaved}
+      canUpdate={canUpdate}
     >
       <FormSection
         title="Delivery rules"
@@ -281,112 +433,152 @@ function DeliverySettings({ draft, saved, setField, onSaved }: SectionProps) {
           value={draft.freeDeliveryThresholdRupees}
           onChange={(value) => setField("freeDeliveryThresholdRupees", value)}
           trailingAddon="Rs"
+          placeholder="e.g. 5000"
+          hint="Cart totals at or above this amount ship for free."
+          disabled={!canUpdate}
         />
       </FormSection>
     </SaveableSection>
   );
 }
 
-function SocialSettings({ draft, saved, setField, onSaved }: SectionProps) {
+function SocialSettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
   return (
     <SaveableSection
       fields={STORE_SETTING_GROUPS.social}
       draft={draft}
       saved={saved}
+      setField={setField}
       onSaved={onSaved}
+      canUpdate={canUpdate}
     >
       <FormSection title="Social profiles" description="Linked from the footer and about page.">
         <TextField
           label="Facebook URL"
+          type="url"
           value={draft.socialFacebook}
           onChange={(event) => setField("socialFacebook", event.target.value)}
+          placeholder="https://facebook.com/yourstore"
+          inputMode="url"
+          disabled={!canUpdate}
         />
         <TextField
           label="Instagram URL"
+          type="url"
           value={draft.socialInstagram}
           onChange={(event) => setField("socialInstagram", event.target.value)}
+          placeholder="https://instagram.com/yourstore"
+          inputMode="url"
+          disabled={!canUpdate}
         />
         <TextField
           label="TikTok URL"
+          type="url"
           value={draft.socialTiktok}
           onChange={(event) => setField("socialTiktok", event.target.value)}
+          placeholder="https://tiktok.com/@yourstore"
+          inputMode="url"
+          disabled={!canUpdate}
         />
         <TextField
           label="YouTube URL"
+          type="url"
           value={draft.socialYoutube}
           onChange={(event) => setField("socialYoutube", event.target.value)}
+          placeholder="https://youtube.com/@yourstore"
+          inputMode="url"
+          disabled={!canUpdate}
         />
         <TextField
           label="Google Maps URL"
+          type="url"
           value={draft.socialGoogleMaps}
           onChange={(event) => setField("socialGoogleMaps", event.target.value)}
+          placeholder="https://goo.gl/maps/…"
+          hint="Used by the 'Get directions' link on the About page."
+          inputMode="url"
+          disabled={!canUpdate}
         />
       </FormSection>
     </SaveableSection>
   );
 }
 
-function LoyaltySettings({ draft, saved, setField, onSaved }: SectionProps) {
+function LoyaltySettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
   return (
     <SaveableSection
       fields={STORE_SETTING_GROUPS.loyalty}
       draft={draft}
       saved={saved}
+      setField={setField}
       onSaved={onSaved}
+      canUpdate={canUpdate}
     >
       <FormSection
         title="Loyalty programme"
-        description="Edit the earn rate and bonus values shown to customers on the account dashboard and checkout 'you'll earn' chip."
+        description="Earn rate and bonus values shown on the account dashboard and checkout."
       >
         <NumberField
           label="Earn rate (% of order total)"
           value={draft.loyaltyEarnPercent}
           onChange={(value) => setField("loyaltyEarnPercent", value)}
           trailingAddon="%"
+          placeholder="e.g. 1"
+          hint="Points earned per Rupee spent on a paid order."
+          disabled={!canUpdate}
         />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <NumberField
-            label="Review bonus (pts)"
-            value={draft.loyaltyReviewBonusPoints}
-            onChange={(value) => setField("loyaltyReviewBonusPoints", value)}
-          />
-          <NumberField
-            label="Referral bonus per side (pts)"
-            value={draft.loyaltyReferralBonusPoints}
-            onChange={(value) => setField("loyaltyReferralBonusPoints", value)}
-          />
-        </div>
+        <NumberField
+          label="Review bonus (pts)"
+          value={draft.loyaltyReviewBonusPoints}
+          onChange={(value) => setField("loyaltyReviewBonusPoints", value)}
+          placeholder="e.g. 50"
+          hint="Awarded once when a customer submits a verified review."
+          disabled={!canUpdate}
+        />
+        <NumberField
+          label="Referral bonus per side (pts)"
+          value={draft.loyaltyReferralBonusPoints}
+          onChange={(value) => setField("loyaltyReferralBonusPoints", value)}
+          placeholder="e.g. 100"
+          hint="Both the referrer and the new customer get this many points."
+          disabled={!canUpdate}
+        />
       </FormSection>
     </SaveableSection>
   );
 }
 
-function PolicySettings({ draft, saved, setField, onSaved }: SectionProps) {
+function PolicySettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
   return (
     <SaveableSection
       fields={["moneybackDays", "defaultWarrantyMonths"] as const}
       draft={draft}
       saved={saved}
+      setField={setField}
       onSaved={onSaved}
+      canUpdate={canUpdate}
     >
       <FormSection
         title="Customer policies"
         description="Policy values surfaced on product pages, FAQs and dispatch confirmations."
       >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <NumberField
-            label="Moneyback window (days)"
-            value={draft.moneybackDays}
-            onChange={(value) => setField("moneybackDays", value)}
-          />
-          <NumberField
-            label="Default warranty (months)"
-            value={draft.defaultWarrantyMonths}
-            onChange={(value) => setField("defaultWarrantyMonths", value)}
-          />
-        </div>
+        <NumberField
+          label="Moneyback window (days)"
+          value={draft.moneybackDays}
+          onChange={(value) => setField("moneybackDays", value)}
+          placeholder="e.g. 7"
+          hint="Number of days a customer can request a refund after delivery."
+          disabled={!canUpdate}
+        />
+        <NumberField
+          label="Default warranty (months)"
+          value={draft.defaultWarrantyMonths}
+          onChange={(value) => setField("defaultWarrantyMonths", value)}
+          placeholder="e.g. 12"
+          hint="Used when a product doesn't override its warranty."
+          disabled={!canUpdate}
+        />
       </FormSection>
-
     </SaveableSection>
   );
 }
@@ -395,11 +587,21 @@ interface SaveableSectionProps {
   fields: ReadonlyArray<keyof StoreSettings>;
   draft: StoreSettings;
   saved: StoreSettings;
+  setField<K extends keyof StoreSettings>(field: K, value: StoreSettings[K]): void;
   onSaved(settings: StoreSettings): void;
-  children: React.ReactNode;
+  canUpdate: boolean;
+  children: ReactNode;
 }
 
-function SaveableSection({ fields, draft, saved, onSaved, children }: SaveableSectionProps) {
+function SaveableSection({
+  fields,
+  draft,
+  saved,
+  setField,
+  onSaved,
+  canUpdate,
+  children,
+}: SaveableSectionProps) {
   const toast = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -434,18 +636,29 @@ function SaveableSection({ fields, draft, saved, onSaved, children }: SaveableSe
   }
 
   return (
-    <>
-      <div className="space-y-1">{children}</div>
-      <SaveBar
-        onSave={handleSave}
-        saveLabel={isSaving ? "Saving…" : isDirty ? "Save changes" : "Saved"}
-        hint={
-          isDirty
-            ? "You have unsaved changes."
-            : "Up to date — changes appear on the storefront within 60 seconds."
-        }
-      />
-    </>
+    <SettingsFormPanel
+      footer={
+        canUpdate ? (
+          <SettingsSaveFooter
+            onSave={handleSave}
+            onDiscard={() => {
+              for (const field of fields) {
+                setField(field, saved[field]);
+              }
+            }}
+            showDiscard={isDirty}
+            saveLabel={isSaving ? "Saving…" : isDirty ? "Save changes" : "Saved"}
+            hint={
+              isDirty
+                ? "You have unsaved changes on this tab."
+                : "Up to date — changes appear on the storefront within about a minute."
+            }
+          />
+        ) : undefined
+      }
+    >
+      {children}
+    </SettingsFormPanel>
   );
 }
 
@@ -454,9 +667,20 @@ interface NumberFieldProps {
   value: number;
   onChange(value: number): void;
   trailingAddon?: string;
+  disabled?: boolean;
+  placeholder?: string;
+  hint?: string;
 }
 
-function NumberField({ label, value, onChange, trailingAddon }: NumberFieldProps) {
+function NumberField({
+  label,
+  value,
+  onChange,
+  trailingAddon,
+  disabled,
+  placeholder,
+  hint,
+}: NumberFieldProps) {
   return (
     <TextField
       label={label}
@@ -467,7 +691,10 @@ function NumberField({ label, value, onChange, trailingAddon }: NumberFieldProps
         onChange(Number.isFinite(next) ? next : 0);
       }}
       trailingAddon={trailingAddon}
+      placeholder={placeholder}
+      hint={hint}
+      inputMode="decimal"
+      disabled={disabled}
     />
   );
 }
-

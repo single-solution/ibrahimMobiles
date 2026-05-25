@@ -4,14 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { classNames } from "@store/shared";
-import {
-  Menu,
-  Search,
-  ShoppingBag,
-  User,
-  X,
-} from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Search, ShoppingBag, User } from "lucide-react";
 import { CartDropdown } from "@/components/cart/CartDropdown";
 import { useCart } from "@/lib/cart/useCart";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
@@ -34,7 +27,6 @@ interface HeaderProps {
 }
 
 export function Header({ onOpenSearch }: HeaderProps) {
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const cart = useCart();
@@ -57,14 +49,6 @@ export function Header({ onOpenSearch }: HeaderProps) {
     setIsCartOpen(false);
   }, [pathname]);
 
-  function handleMobileNavToggle() {
-    setIsMobileNavOpen((previous) => !previous);
-  }
-
-  function handleMobileNavClose() {
-    setIsMobileNavOpen(false);
-  }
-
   return (
     <header
       data-scrolled={isScrolled ? "true" : "false"}
@@ -85,7 +69,6 @@ export function Header({ onOpenSearch }: HeaderProps) {
         <Link
           href="/"
           className="brand-lockup flex items-center gap-2.5 text-[var(--color-ink-900)]"
-          onClick={handleMobileNavClose}
           aria-label={siteName}
         >
           <span className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
@@ -94,7 +77,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
           <span className="font-semibold text-2xl leading-none tracking-tight">{siteName}</span>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="flex items-center gap-1">
           {NAV_LINKS.map((navLink) => {
             const isActive = isNavActive(navLink.href, pathname);
             return (
@@ -157,79 +140,10 @@ export function Header({ onOpenSearch }: HeaderProps) {
               </span>
             )}
           </button>
-          <button
-            type="button"
-            aria-label={isMobileNavOpen ? "Close menu" : "Open menu"}
-            onClick={handleMobileNavToggle}
-            className="grid size-10 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-700)] hover:bg-[var(--color-surface-muted)] md:hidden"
-          >
-            {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
         </div>
       </div>
 
-      <MobileNav
-        isOpen={isMobileNavOpen}
-        onLinkClick={handleMobileNavClose}
-        onOpenSearch={onOpenSearch}
-        pathname={pathname}
-      />
-
       <CartDropdown open={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </header>
-  );
-}
-
-interface MobileNavProps {
-  isOpen: boolean;
-  onLinkClick: () => void;
-  onOpenSearch: () => void;
-  pathname: string;
-}
-
-function MobileNav({ isOpen, onLinkClick, onOpenSearch, pathname }: MobileNavProps) {
-  return (
-    <div
-      className={classNames(
-        "overflow-hidden border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] transition-all duration-200 md:hidden",
-        isOpen ? "max-h-96" : "max-h-0",
-      )}
-    >
-      <div className="flex flex-col gap-1 px-4 py-3 sm:px-6">
-        <button
-          type="button"
-          onClick={() => {
-            onLinkClick();
-            onOpenSearch();
-          }}
-          className="flex h-11 w-full items-center gap-2 rounded-[var(--radius-full)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-3 text-left text-sm text-[var(--color-ink-500)] md:hidden"
-        >
-          <Search size={16} />
-          <span>Search phones…</span>
-        </button>
-        {NAV_LINKS.map((navLink) => {
-          const isActive = isNavActive(navLink.href, pathname);
-          return (
-            <Link
-              key={navLink.href}
-              href={navLink.href}
-              onClick={onLinkClick}
-              aria-current={isActive ? "page" : undefined}
-              className={classNames(
-                "rounded-[var(--radius-md)] px-3 py-2.5 text-sm",
-                isActive
-                  ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
-                  : "font-medium text-[var(--color-ink-800)] hover:bg-[var(--color-surface-muted)]",
-              )}
-            >
-              {navLink.label}
-            </Link>
-          );
-        })}
-        <Button variant="primary" size="md" className="mt-2 w-full" onClick={onLinkClick}>
-          Browse all phones
-        </Button>
-      </div>
-    </div>
   );
 }

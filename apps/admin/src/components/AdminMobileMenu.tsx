@@ -12,6 +12,7 @@ import { classNames } from "@store/shared";
 import { formatRole, getInitials } from "@/lib/initials";
 import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
+import { AdminAlertsRow, useAdminAlerts } from "@/components/adminAlertsUi";
 
 interface AdminMobileMenuProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export function AdminMobileMenu({ isOpen, onClose }: AdminMobileMenuProps) {
 
   const userName = user?.name ?? "Admin";
   const userRole = user?.isSuperAdmin ? "Owner" : formatRole(user?.role ?? "staff");
+  const alerts = useAdminAlerts();
 
   return (
     <Flyout isOpen={isOpen} onClose={onClose} side="left" width="md" showCloseButton={false}>
@@ -51,6 +53,13 @@ export function AdminMobileMenu({ isOpen, onClose }: AdminMobileMenuProps) {
             {brandShort} HQ
           </p>
         </div>
+      </div>
+
+      <div className="mt-3 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 py-2">
+        <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-400)]">
+          Today&apos;s alerts
+        </p>
+        <AdminAlertsRow alerts={alerts} onNavigate={onClose} />
       </div>
 
       <nav className="mt-3">

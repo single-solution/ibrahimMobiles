@@ -70,7 +70,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
             role="dialog"
             aria-modal="true"
             aria-label="Your cart"
-            className="animate-sheet-fade pointer-events-auto flex h-[min(560px,calc(100vh-var(--mobile-header-h)-24px))] w-full max-w-[420px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[min(620px,calc(100vh-var(--desktop-header-h)-32px))] md:w-[400px]"
+            className="animate-sheet-fade pointer-events-auto flex h-[min(560px,calc(100dvh-var(--mobile-header-h)-24px))] w-full max-w-[420px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[400px]"
           >
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-4 py-3">
           <div className="min-w-0">

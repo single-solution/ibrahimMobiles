@@ -35,20 +35,21 @@ export async function GET(request: Request) {
   }
 
   const settings = await getChatSettings();
+  const session = await auth();
+  const isSignedInCustomer =
+    session?.user?.role === "customer" &&
+    Boolean(session?.user?.customerId) &&
+    Types.ObjectId.isValid(session?.user?.customerId ?? "");
+
   if (!settings.enabled) {
-    return ok({ enabled: false, threads: [], settings });
+    return ok({ enabled: false, threads: [], settings, isSignedInCustomer });
   }
 
   const url = new URL(request.url);
   if (url.searchParams.get("summary") === "1") {
     await connectDB();
-    const session = await auth();
     const filters: Record<string, unknown>[] = [];
-    if (
-      session?.user?.role === "customer" &&
-      session.user.customerId &&
-      Types.ObjectId.isValid(session.user.customerId)
-    ) {
+    if (isSignedInCustomer && session?.user?.customerId) {
       filters.push({ customerId: new Types.ObjectId(session.user.customerId) });
     }
     const cookieJar = await cookies();
@@ -74,14 +75,9 @@ export async function GET(request: Request) {
 
   await connectDB();
 
-  const session = await auth();
   const filters: Record<string, unknown>[] = [];
 
-  if (
-    session?.user?.role === "customer" &&
-    session.user.customerId &&
-    Types.ObjectId.isValid(session.user.customerId)
-  ) {
+  if (isSignedInCustomer && session?.user?.customerId) {
     filters.push({ customerId: new Types.ObjectId(session.user.customerId) });
   }
 
@@ -101,7 +97,7 @@ export async function GET(request: Request) {
   }
 
   if (filters.length === 0) {
-    return ok({ enabled: true, threads: [], settings });
+    return ok({ enabled: true, threads: [], settings, isSignedInCustomer });
   }
 
   const docs = await Inquiry.find(filters.length === 1 ? filters[0] : { $or: filters })
@@ -113,5 +109,6 @@ export async function GET(request: Request) {
     enabled: true,
     threads: docs.map(summariseStorefrontThread),
     settings,
+    isSignedInCustomer,
   });
 }

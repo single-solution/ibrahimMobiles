@@ -4,6 +4,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { StructuredContent } from "@store/shared";
 import { emptyStructuredContent, normalizeStructuredContent } from "@store/shared";
 
+import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/Drawer";
 import { StructuredContentEditor } from "@/components/forms/StructuredContentEditor";
 import { VideoUpload } from "@/components/uploads";
@@ -155,22 +156,18 @@ export function GradeEditor({
       width="xl"
       footer={
         <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className="rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)] disabled:opacity-60"
-          >
+          <Button variant="ghost" size="sm" type="button" onClick={onClose} disabled={submitting}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             type="submit"
             form="grade-editor-form"
-            disabled={submitting}
-            className="rounded-md bg-[var(--color-accent-600)] px-3.5 py-1.5 text-[13px] font-semibold text-white hover:bg-[var(--color-accent-700)] disabled:opacity-60"
+            isLoading={submitting}
           >
-            {submitting ? "Saving…" : grade ? "Save changes" : "Create grade"}
-          </button>
+            {grade ? "Save changes" : "Create grade"}
+          </Button>
         </div>
       }
     >
@@ -196,7 +193,9 @@ export function GradeEditor({
               }
               maxLength={GRADE_FIELD_LIMITS.label}
               required
-              className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[14px] focus:border-[var(--color-accent-500)] focus:outline-none"
+              placeholder="e.g. Grade A, Pristine"
+              autoComplete="off"
+              className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[14px] placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:outline-none"
             />
           </div>
           <StructuredContentEditor
@@ -239,7 +238,10 @@ export function GradeEditor({
                 }
                 pattern="#[0-9a-fA-F]{6}"
                 maxLength={7}
-                className="w-28 rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[13px] uppercase focus:border-[var(--color-accent-500)] focus:outline-none"
+                placeholder="#1F2937"
+                spellCheck={false}
+                autoComplete="off"
+                className="w-28 rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[13px] uppercase placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:outline-none"
               />
               <span
                 className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-white"

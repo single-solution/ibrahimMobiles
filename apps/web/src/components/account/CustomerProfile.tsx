@@ -187,6 +187,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
             value={fullName}
             onChange={setFullName}
             autoComplete="name"
+            placeholder="As you want it on receipts"
           />
           <Field
             label="Phone (verified)"
@@ -204,6 +205,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
             onChange={setEmail}
             autoComplete="email"
             inputMode="email"
+            placeholder="you@example.com"
           />
           <Field
             label="City"
@@ -211,6 +213,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
             value={city}
             onChange={setCity}
             autoComplete="address-level2"
+            placeholder="e.g. Lahore"
           />
         </div>
         {profileError && <ErrorBanner message={profileError} />}
@@ -399,6 +402,8 @@ function AddressEditor({ draft, onSave, onCancel, isSaving }: AddressEditorProps
           icon={<User size={14} />}
           value={recipientName}
           onChange={setRecipientName}
+          autoComplete="name"
+          placeholder="Who will receive this parcel?"
         />
         <Field
           label="Phone"
@@ -406,6 +411,8 @@ function AddressEditor({ draft, onSave, onCancel, isSaving }: AddressEditorProps
           value={phoneNumber}
           onChange={setPhoneNumber}
           inputMode="tel"
+          autoComplete="tel"
+          placeholder="+92 320 4862403"
         />
         <div className="md:col-span-2">
           <Field
@@ -414,6 +421,7 @@ function AddressEditor({ draft, onSave, onCancel, isSaving }: AddressEditorProps
             value={street}
             onChange={setStreet}
             placeholder="House #, Street"
+            autoComplete="address-line1"
           />
         </div>
         <div className="md:col-span-2">
@@ -421,14 +429,24 @@ function AddressEditor({ draft, onSave, onCancel, isSaving }: AddressEditorProps
             label="Area / sector (optional)"
             value={area}
             onChange={setArea}
-            placeholder="Sector / Block"
+            placeholder="Sector / Block / Neighbourhood"
+            autoComplete="address-line2"
           />
         </div>
-        <Field label="City" value={city} onChange={setCity} />
+        <Field
+          label="City"
+          value={city}
+          onChange={setCity}
+          placeholder="e.g. Lahore"
+          autoComplete="address-level2"
+        />
         <Field
           label="Postcode (optional)"
           value={postalCode}
           onChange={setPostalCode}
+          placeholder="54000"
+          inputMode="numeric"
+          autoComplete="postal-code"
         />
       </div>
       <div className="mt-4 flex items-center justify-end gap-2">

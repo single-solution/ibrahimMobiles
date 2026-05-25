@@ -33,10 +33,13 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
     "bg-[var(--color-danger-500)] font-semibold text-white hover:bg-rose-700 focus-visible:ring-[var(--color-danger-500)]",
 };
 
+// Mobile sizes follow native iOS/Material density (~32–40px tall) so the
+// admin doesn't feel like a tablet UI shrunk to a phone. Desktop keeps the
+// roomier sizes that match the rest of the dashboard chrome.
 const SIZE_CLASSES: Record<ButtonSize, string> = {
-  sm: "h-9 px-3 text-sm",
-  md: "h-11 px-5 text-sm",
-  lg: "h-13 px-7 text-base",
+  sm: "h-8 px-2.5 text-[12.5px] md:h-9 md:px-3 md:text-sm",
+  md: "h-9 px-3.5 text-[13px] md:h-11 md:px-5 md:text-sm",
+  lg: "h-10 px-5 text-sm md:h-13 md:px-7 md:text-base",
 };
 
 export function Button({

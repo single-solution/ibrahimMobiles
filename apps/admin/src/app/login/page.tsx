@@ -33,6 +33,9 @@ export default function AdminLoginPage() {
           <h1 className="text-center text-xl font-semibold tracking-[-0.02em] text-[var(--color-ink-900)]">
             Sign in
           </h1>
+          <p className="mt-1.5 text-center text-[12px] text-[var(--color-ink-500)]">
+            Use the email and password your owner shared with you.
+          </p>
 
           <Suspense fallback={<LoginFormSkeleton />}>
             <LoginForm />
@@ -40,7 +43,7 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="mt-6 text-center text-[11px] text-[var(--color-ink-400)]">
-          © {new Date().getFullYear()} {siteName}
+          © {new Date().getFullYear()} {siteName} · Lost access? Ask the store owner to reset your password.
         </p>
       </div>
     </div>
@@ -50,9 +53,13 @@ export default function AdminLoginPage() {
 function LoginFormSkeleton() {
   return (
     <div className="mt-7 space-y-5">
-      <div className="h-10 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]" />
-      <div className="h-10 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]" />
-      <div className="h-10 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]" />
+      {Array.from({ length: 2 }).map((_, index) => (
+        <div key={index} className="space-y-1.5">
+          <div className="h-3 w-16 animate-pulse rounded bg-[var(--color-canvas-deep)]" />
+          <div className="h-10 animate-pulse rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]" />
+        </div>
+      ))}
+      <div className="h-11 animate-pulse rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]" />
     </div>
   );
 }
@@ -104,7 +111,9 @@ function LoginForm() {
         value={email}
         onChange={(event) => setEmail(event.target.value)}
         leadingIcon={<Mail size={14} />}
+        placeholder="you@store.example"
         autoComplete="email"
+        inputMode="email"
         required
         disabled={isSubmitting}
       />
@@ -114,6 +123,7 @@ function LoginForm() {
         value={password}
         onChange={(event) => setPassword(event.target.value)}
         leadingIcon={<Lock size={14} />}
+        placeholder="Your admin password"
         autoComplete="current-password"
         required
         disabled={isSubmitting}

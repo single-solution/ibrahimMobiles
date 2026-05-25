@@ -274,17 +274,22 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
   };
 
   return (
-    <div className="space-y-3 md:flex md:h-full md:min-h-0 md:flex-col md:justify-between md:space-y-0">
-      <header className="shrink-0 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-gradient-to-br from-[var(--color-surface)] via-[var(--color-surface)] to-[var(--color-accent-50)]/40 px-3 py-2.5 shadow-[var(--shadow-sm)] md:px-4 md:py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)] md:text-[11px]">
-          {brandName}
-        </p>
-        <h1 className="mt-0.5 text-lg font-semibold leading-tight tracking-tight text-[var(--color-ink-900)] sm:text-xl md:mt-1 md:text-4xl md:leading-[1.08] md:tracking-[-0.02em]">
-          {product.name}
-        </h1>
-      </header>
+    <div className="space-y-3 md:flex md:h-full md:min-h-0 md:flex-col md:space-y-0">
+      {/* Title + configurator stay grouped at the top of the column. Any
+          leftover vertical space inside the right-hand column shows up as a
+          gap between this group and the price block below it, so the price
+          stays pinned to the bottom of the gallery's height without the
+          configurator floating in the middle. */}
+      <div className="space-y-3 md:flex md:min-h-0 md:flex-col md:gap-3 md:space-y-0">
+        <header className="shrink-0 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-gradient-to-br from-[var(--color-surface)] via-[var(--color-surface)] to-[var(--color-accent-50)]/40 px-3 py-2.5 shadow-[var(--shadow-sm)] md:px-4 md:py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)] md:text-[11px]">
+            {brandName}
+          </p>
+          <h1 className="mt-0.5 text-lg font-semibold leading-tight tracking-tight text-[var(--color-ink-900)] sm:text-xl md:mt-1 md:text-4xl md:leading-[1.08] md:tracking-[-0.02em]">
+            {product.name}
+          </h1>
+        </header>
 
-      <div className="md:flex md:min-h-0 md:flex-1 md:flex-col md:justify-center md:gap-3">
         <Configurator
           dimensions={dimensions}
           variants={product.variants}
@@ -302,7 +307,7 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
         )}
       </div>
 
-      <div className="shrink-0 space-y-3">
+      <div className="shrink-0 space-y-3 md:mt-auto md:pt-3">
         {isComplete ? (
           <PurchaseSummary
             isInStock={inStock}

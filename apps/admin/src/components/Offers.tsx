@@ -156,6 +156,13 @@ export function Offers({ offers }: OffersProps) {
         icon={Tag}
         title="Offers & deals"
         subtitle="Promotions surfaced on the homepage and the dedicated /deals page."
+        action={
+          <WorkspacePrimaryAction
+            label="New offer"
+            icon={Plus}
+            onClick={() => setDrawer({ mode: "new" })}
+          />
+        }
       />
       <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
         <AdminTable
@@ -164,13 +171,7 @@ export function Offers({ offers }: OffersProps) {
           rowKey={(offer) => offer.id}
           searchAccessor={(offer) => `${offer.title} ${offer.description} ${offer.badgeLabel}`}
           searchPlaceholder="Search offers…"
-          toolbar={
-            <WorkspacePrimaryAction
-              label="New offer"
-              icon={Plus}
-              onClick={() => setDrawer({ mode: "new" })}
-            />
-          }
+          emptyState="No offers yet. Create one to show on the storefront."
         />
       </div>
 
@@ -356,6 +357,7 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
           type="date"
           value={expiresAt}
           onChange={(event) => setExpiresAt(event.target.value)}
+          hint="Leave blank for an open-ended offer."
         />
         <ImageUpload
           label="Offer banner"

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { WorkspacePrimaryAction } from "@/components/workspace/adminWorkspaceUi";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
@@ -123,23 +124,20 @@ export function ProductCreateWizard({
 
   const trigger =
     variant === "toolbar" ? (
-      <button
-        type="button"
-        onClick={openStep1}
-        className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-accent-600)] px-3 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-accent-700)]"
-      >
-        <Plus size={13} aria-hidden />
-        New product
-      </button>
+      <WorkspacePrimaryAction label="New product" icon={Plus} onClick={openStep1} />
     ) : variant === "sidebar" ? (
-      <button
-        type="button"
-        onClick={openStep1}
-        className="mx-2 mb-3 flex w-[calc(100%-1rem)] items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent-600)] px-3 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-accent-700)]"
-      >
-        <Plus size={15} aria-hidden />
-        Add product
-      </button>
+      <div className="mx-2 mb-3">
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          className="w-full"
+          leadingIcon={<Plus size={15} aria-hidden />}
+          onClick={openStep1}
+        >
+          Add product
+        </Button>
+      </div>
     ) : (
       <Button
         type="button"

@@ -1,60 +1,54 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { DECIMAL_RADIX, PAYMENT_METHOD_IDS, type PaymentMethodId } from "@store/shared";
+import { orderPaymentToCheckoutId } from "@store/shared";
 
 import { CheckoutSuccess } from "@/components/checkout/CheckoutSuccess";
+import { auth } from "@/lib/auth";
+import { getAccountOrder } from "@/lib/storefront/account";
 
 export const metadata: Metadata = {
   title: "Order placed",
   description: "Your order is confirmed and on its way.",
 };
 
+export const dynamic = "force-dynamic";
+
 interface CheckoutSuccessPageProps {
   searchParams: Promise<{
     order?: string | string[];
-    payment?: string | string[];
-    total?: string | string[];
-    earned?: string | string[];
-    redeemed?: string | string[];
   }>;
 }
 
-function readNumberParam(value: string | string[] | undefined): number {
-  if (!value || Array.isArray(value)) {
-    return 0;
-  }
-  const parsed = Number.parseInt(value, DECIMAL_RADIX);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
-}
-
-function readPaymentParam(value: string | string[] | undefined): PaymentMethodId | null {
-  if (!value || Array.isArray(value)) {
-    return null;
-  }
-  return (PAYMENT_METHOD_IDS as readonly string[]).includes(value)
-    ? (value as PaymentMethodId)
-    : null;
-}
-
-function buildPlaceholderOrderNumber(): string {
-  return `IM-${new Date().getFullYear()}-0000`;
-}
-
 export default async function CheckoutSuccessPage({ searchParams }: CheckoutSuccessPageProps) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "customer" || !session.user.customerId) {
+    const params = await searchParams;
+    const orderParam = typeof params.order === "string" ? params.order : "";
+    const next = orderParam
+      ? `/checkout/success?order=${encodeURIComponent(orderParam)}`
+      : "/checkout/success";
+    redirect(`/account/sign-in?next=${encodeURIComponent(next)}`);
+  }
+
   const params = await searchParams;
-  const orderNumber =
-    typeof params.order === "string" ? params.order : buildPlaceholderOrderNumber();
-  const payment = readPaymentParam(params.payment);
-  const totalRupees = readNumberParam(params.total);
-  const pointsEarned = readNumberParam(params.earned);
-  const pointsRedeemed = readNumberParam(params.redeemed);
+  const orderNumber = typeof params.order === "string" ? params.order.trim() : "";
+  if (!orderNumber) {
+    redirect("/account/orders");
+  }
+
+  const order = await getAccountOrder(session.user.customerId, orderNumber);
+  if (!order) {
+    redirect("/account/orders");
+  }
+
   return (
     <CheckoutSuccess
-      orderNumber={orderNumber}
-      payment={payment}
-      totalRupees={totalRupees}
-      pointsEarned={pointsEarned}
-      pointsRedeemed={pointsRedeemed}
+      orderNumber={order.orderNumber}
+      payment={orderPaymentToCheckoutId(order.payment)}
+      totalRupees={order.totals.totalRupees}
+      pointsEarned={order.pointsEarned}
+      pointsRedeemed={order.pointsRedeemed}
     />
   );
 }

@@ -6,7 +6,7 @@ import { SalesWorkspaceSkeleton } from "@/components/loading/SalesWorkspaceSkele
 import { adminWorkspacePageClass } from "@/components/workspace/adminWorkspaceUi";
 import { connectDB, Order } from "@store/db";
 
-import { requirePageSession } from "@/lib/server/requirePageSession";
+import { requirePagePermission } from "@/lib/server/requirePageSession";
 import { summariseOrder, type OrderLean } from "@/lib/serializers/order";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 const RECENT_ORDERS_LIMIT = 200;
 
 export default async function AdminOrdersPage() {
-  await requirePageSession("/orders");
+  await requirePagePermission("order_view", "/orders");
 
   return (
     <AdminShell contentClassName={adminWorkspacePageClass}>

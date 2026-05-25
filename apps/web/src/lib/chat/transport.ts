@@ -19,6 +19,8 @@ export interface ChatBootstrap {
   enabled: boolean;
   threads: ChatThreadSummary[];
   settings: ChatSettings;
+  /** True when the caller is a signed-in storefront customer (not staff). */
+  isSignedInCustomer: boolean;
 }
 
 export class ChatRequestError extends Error {

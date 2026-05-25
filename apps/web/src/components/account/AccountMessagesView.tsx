@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Headset,
   MessageSquare,
+  Paperclip,
   Send,
 } from "lucide-react";
 
@@ -40,6 +41,7 @@ import {
   pollChatThread,
   sendChatMessage,
   startCustomerChatThread,
+  uploadChatAttachment,
 } from "@/lib/chat/transport";
 
 interface AccountMessagesViewProps {
@@ -67,7 +69,7 @@ export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProp
     if (data.threads.length > 0 && !activeId && !hasInitialThread) {
       const preferDesktop =
         typeof window !== "undefined" &&
-        window.matchMedia("(min-width: 768px)").matches;
+        window.matchMedia("(min-width: 40rem)").matches;
       if (preferDesktop) {
         setActiveId(data.threads[0].id);
       }
@@ -199,9 +201,25 @@ export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProp
     }
   }
 
+  async function handleAttach(file: File, body?: string) {
+    if (!activeId || sending) return;
+    setSending(true);
+    setError(null);
+    try {
+      const fresh = await uploadChatAttachment(activeId, file, body);
+      setActiveThread(fresh);
+      if (body) setDraft("");
+      void loadThreads();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send attachment.");
+    } finally {
+      setSending(false);
+    }
+  }
+
   function handleSelectThread(id: string) {
     setActiveId(id);
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches) {
+    if (typeof window !== "undefined" && !window.matchMedia("(min-width: 40rem)").matches) {
       router.push(`/account/messages/${id}`);
     }
   }
@@ -277,6 +295,8 @@ export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProp
               messageListRef={messageListRef}
               onDraftChange={setDraft}
               onSubmit={handleSend}
+              onAttach={handleAttach}
+              attachmentsEnabled={chatSettings.attachmentsEnabled}
               onBack={handleBackToList}
               hiddenOnMobile={!activeId}
               error={error}
@@ -431,6 +451,8 @@ interface ConversationPaneProps {
   messageListRef: React.RefObject<HTMLDivElement | null>;
   onDraftChange: (value: string) => void;
   onSubmit: (event: React.FormEvent) => void;
+  onAttach: (file: File, body?: string) => Promise<void>;
+  attachmentsEnabled: boolean;
   onBack: () => void;
   hiddenOnMobile: boolean;
   error: string | null;
@@ -445,6 +467,8 @@ function ConversationPane({
   messageListRef,
   onDraftChange,
   onSubmit,
+  onAttach,
+  attachmentsEnabled,
   onBack,
   hiddenOnMobile,
   error,
@@ -542,36 +566,91 @@ function ConversationPane({
         onSubmit={onSubmit}
         className="border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-3 md:px-5 md:py-4"
       >
-        <div className="flex items-end gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/70 p-2 shadow-[var(--shadow-sm)]">
-          <textarea
-            value={draft}
-            onChange={(event) => onDraftChange(event.target.value)}
-            placeholder="Write a message…"
-            aria-label="Message"
-            rows={1}
-            maxLength={CHAT_MESSAGE_BODY_MAX}
-            disabled={sending}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                event.currentTarget.form?.requestSubmit();
-              }
-            }}
-            className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[var(--color-ink-800)] placeholder:text-[var(--color-ink-400)] focus:outline-none disabled:opacity-60"
-          />
-          <Button
-            type="submit"
-            variant="secondary"
-            size="sm"
-            disabled={sending || draft.trim().length === 0}
-            leadingIcon={<Send size={14} />}
-            className="shrink-0"
-          >
-            Send
-          </Button>
-        </div>
+        <ConversationComposer
+          draft={draft}
+          sending={sending}
+          attachmentsEnabled={attachmentsEnabled}
+          onDraftChange={onDraftChange}
+          onAttach={onAttach}
+        />
       </form>
     </section>
+  );
+}
+
+interface ConversationComposerProps {
+  draft: string;
+  sending: boolean;
+  attachmentsEnabled: boolean;
+  onDraftChange: (value: string) => void;
+  onAttach: (file: File, body?: string) => Promise<void>;
+}
+
+function ConversationComposer({
+  draft,
+  sending,
+  attachmentsEnabled,
+  onDraftChange,
+  onAttach,
+}: ConversationComposerProps) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    void onAttach(file, draft.trim() || undefined);
+  }
+
+  return (
+    <div className="flex items-end gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/70 p-2 shadow-[var(--shadow-sm)]">
+      {attachmentsEnabled && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf,text/plain"
+            hidden
+            onChange={handleFileChange}
+          />
+          <button
+            type="button"
+            aria-label="Attach a file"
+            disabled={sending}
+            onClick={() => fileInputRef.current?.click()}
+            className="tap grid size-10 shrink-0 place-items-center rounded-full text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Paperclip size={16} />
+          </button>
+        </>
+      )}
+      <textarea
+        value={draft}
+        onChange={(event) => onDraftChange(event.target.value)}
+        placeholder={sending ? "Sending…" : "Write a message…"}
+        aria-label="Message"
+        rows={1}
+        maxLength={CHAT_MESSAGE_BODY_MAX}
+        disabled={sending}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            event.currentTarget.form?.requestSubmit();
+          }
+        }}
+        className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-[var(--color-ink-800)] placeholder:text-[var(--color-ink-400)] focus:outline-none disabled:opacity-60"
+      />
+      <Button
+        type="submit"
+        variant="secondary"
+        size="sm"
+        disabled={sending || draft.trim().length === 0}
+        leadingIcon={<Send size={14} />}
+        className="shrink-0"
+      >
+        Send
+      </Button>
+    </div>
   );
 }
 

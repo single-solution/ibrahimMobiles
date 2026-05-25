@@ -33,11 +33,12 @@
  *     description plus the category's grades/attributes.
  */
 
-import { logger } from "@store/shared";
+import { logger, parseCsvList } from "@store/shared";
 
 import type { StorefrontCategory } from "@/lib/storefront";
 import {
   getHomeHeroProductsCached,
+  getStoreSettingsCached,
   getStorefrontBrandsCached,
   getStorefrontCategoriesCached,
 } from "@/lib/storefront/cached";
@@ -47,11 +48,20 @@ import type {
   StructuredContent,
 } from "@store/shared";
 
-/** Latest in-stock products for the homepage hero carousel (centre-focused). */
-const HERO_PRODUCTS_LIMIT = 12;
+/**
+ * Cap and default for the hero fan. The admin can tune the live value in
+ * Settings → Homepage; we clamp here as a defensive fallback for legacy
+ * documents that pre-date the field.
+ */
+const HERO_PRODUCTS_DEFAULT_LIMIT = 12;
+const HERO_PRODUCTS_MIN_LIMIT = 4;
+const HERO_PRODUCTS_MAX_LIMIT = 24;
 
 export interface HomeHeroData {
-  /** Latest in-stock products for the hero carousel, capped at `HERO_PRODUCTS_LIMIT`. */
+  /**
+   * Latest in-stock products for the hero carousel, narrowed by the admin's
+   * homepage settings (categories/grades) and capped at `homeHeroLimit`.
+   */
   heroProducts: StorefrontProduct[];
   brands: StorefrontBrand[];
 }
@@ -81,11 +91,24 @@ export interface HomePageCategory {
  */
 export async function getHomeHeroData(): Promise<HomeHeroData> {
   try {
+    const settings = await getStoreSettingsCached();
+    const rawLimit =
+      typeof settings.homeHeroLimit === "number" &&
+      Number.isFinite(settings.homeHeroLimit)
+        ? settings.homeHeroLimit
+        : HERO_PRODUCTS_DEFAULT_LIMIT;
+    const limit = Math.min(
+      Math.max(Math.round(rawLimit), HERO_PRODUCTS_MIN_LIMIT),
+      HERO_PRODUCTS_MAX_LIMIT,
+    );
+    const categorySlugs = parseCsvList(settings.homeHeroCategorySlugs);
+    const gradeSlugs = parseCsvList(settings.homeHeroGradeSlugs);
+
     const [heroProducts, brands] = await Promise.all([
-      getHomeHeroProductsCached(HERO_PRODUCTS_LIMIT),
+      getHomeHeroProductsCached(limit, { categorySlugs, gradeSlugs }),
       getStorefrontBrandsCached(),
     ]);
-    return { heroProducts: heroProducts.slice(0, HERO_PRODUCTS_LIMIT), brands };
+    return { heroProducts: heroProducts.slice(0, limit), brands };
   } catch (error) {
     logger.error(
       { error },

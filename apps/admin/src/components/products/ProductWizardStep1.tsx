@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { slugify } from "@store/shared";
 
+import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/Drawer";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
 import { useToast } from "@/components/Toast";
@@ -121,22 +122,18 @@ export function ProductWizardStep1({
       width="lg"
       footer={
         <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={submitting}
-            className="rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] disabled:opacity-60"
-          >
+          <Button variant="ghost" size="sm" type="button" onClick={handleClose} disabled={submitting}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             type="submit"
             form="product-wizard-step1"
-            disabled={submitting}
-            className="rounded-md bg-[var(--color-accent-600)] px-3.5 py-1.5 text-[13px] font-semibold text-white hover:bg-[var(--color-accent-700)] disabled:opacity-60"
+            isLoading={submitting}
           >
-            {submitting ? "Saving…" : "Save & continue"}
-          </button>
+            Save &amp; continue
+          </Button>
         </div>
       }
     >

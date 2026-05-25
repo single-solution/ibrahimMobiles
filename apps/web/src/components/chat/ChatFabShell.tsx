@@ -20,10 +20,15 @@ const LABEL_AUTO_HIDE_MS = 4500;
 const HIDDEN_PREFIXES = ["/checkout", "/account/sign-in"];
 
 interface ChatFabShellProps {
-  hideOnMobile?: boolean;
+  /**
+   * Stack the FAB above a mobile sticky CTA bar (e.g. the PDP add-to-cart bar).
+   * Adds extra bottom offset so the two don't overlap on phones; desktop
+   * positioning is unaffected.
+   */
+  mobileStackedAbove?: "pdp-cta" | null;
 }
 
-export function ChatFabShell({ hideOnMobile = false }: ChatFabShellProps) {
+export function ChatFabShell({ mobileStackedAbove = null }: ChatFabShellProps) {
   const chatSettings = useChatSettings();
   const pathname = usePathname() ?? "";
   const [isOpen, setIsOpen] = useState(false);
@@ -75,8 +80,8 @@ export function ChatFabShell({ hideOnMobile = false }: ChatFabShellProps) {
   return (
     <div
       className={classNames(
-        "floating-dock fixed right-4 z-40 flex-col items-end gap-2.5 md:right-7 md:flex",
-        hideOnMobile ? "hidden" : "flex",
+        "floating-dock fixed right-4 z-40 flex flex-col items-end gap-2.5 md:right-7",
+        mobileStackedAbove === "pdp-cta" && "floating-dock--above-pdp-cta",
       )}
     >
       {isOpen && (

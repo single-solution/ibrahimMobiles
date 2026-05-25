@@ -1,24 +1,17 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Plus,
-  UserCircle,
-} from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { UserCircle } from "lucide-react";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
-import { Drawer } from "@/components/Drawer";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { StatusPill } from "@/components/StatusPill";
-import { TextField } from "@/components/forms/TextField";
-import { TextArea } from "@/components/forms/TextArea";
-import { Switch } from "@/components/forms/Switch";
 import { useToast } from "@/components/Toast";
 import {
   WorkspaceEmptyPane,
   WorkspaceFilterChip,
   WorkspaceFrame,
+  WorkspaceReadOnlyBanner,
   WorkspacePaneHeader,
   WorkspaceSearchField,
   WorkspaceSidebarNavItem,
@@ -27,15 +20,8 @@ import { CustomerDetailPanel } from "./CustomerDetailPanel";
 import { adminFetch } from "@/lib/adminApi";
 import { useAdminPermissions } from "@/lib/adminPermissionsContext";
 import { getInitials } from "@/lib/initials";
-import {
-  classNames,
-  FIELD_LIMITS,
-  formatPrice,
-  formatTimeAgo,
-} from "@store/shared";
+import { classNames, formatPrice, formatTimeAgo } from "@store/shared";
 import type { AdminCustomerSummary } from "@/types/admin";
-
-const EMAIL_MAX_CHARS = 320;
 
 type SegmentFilter = "all" | "loyalty" | "active";
 
@@ -64,7 +50,6 @@ function CustomersCatalogInner({
   const [segment, setSegment] = useState<SegmentFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [createOpen, setCreateOpen] = useState(false);
   const [toDelete, setToDelete] = useState<AdminCustomerSummary | null>(null);
 
   const canManage = can("customer_manage");
@@ -164,6 +149,9 @@ function CustomersCatalogInner({
   return (
     <>
       <WorkspaceFrame>
+        {!canManage ? (
+          <WorkspaceReadOnlyBanner message="Read-only — you can view customers but not edit profiles, addresses, or loyalty." />
+        ) : null}
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
           <aside className="hidden shrink-0 flex-col border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-2.5 lg:flex lg:w-44 lg:border-b-0 lg:border-r xl:w-48">
             <p className="pb-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
@@ -216,19 +204,7 @@ function CustomersCatalogInner({
             <WorkspacePaneHeader
               icon={UserCircle}
               title="Customers"
-              subtitle={`${filteredCustomers.length} shown · ${formatPrice(stats.totalBalance * programmeRupeesPerPoint)} loyalty value`}
-              action={
-                canManage ? (
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    leadingIcon={<Plus size={14} />}
-                    onClick={() => setCreateOpen(true)}
-                  >
-                    Add
-                  </Button>
-                ) : undefined
-              }
+              subtitle={`${filteredCustomers.length} shown (recent 500) · website sign-up · ${formatPrice(stats.totalBalance * programmeRupeesPerPoint)} loyalty`}
               search={
                 <>
                   <WorkspaceSearchField
@@ -263,8 +239,12 @@ function CustomersCatalogInner({
             />
             <ul className="min-h-0 flex-1 overflow-y-auto">
               {filteredCustomers.length === 0 ? (
-                <li className="px-4 py-8 text-center text-xs text-[var(--color-ink-500)]">
-                  {searchQuery.trim() ? "No customers match your search." : "No customers in this view."}
+                <li className="px-4 py-8 text-center text-xs leading-relaxed text-[var(--color-ink-500)]">
+                  {searchQuery.trim()
+                    ? "No customers match your search."
+                    : segment === "all"
+                      ? "No customers yet. Records appear when someone signs in with OTP or checks out on the storefront."
+                      : "No customers in this segment."}
                 </li>
               ) : (
                 filteredCustomers.map((customer) => (
@@ -302,34 +282,12 @@ function CustomersCatalogInner({
               <WorkspaceEmptyPane
                 icon={UserCircle}
                 title="Select a customer"
-                description="View profile, order history, loyalty balance, and addresses in one place."
-                action={
-                  canManage ? (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      leadingIcon={<Plus size={14} />}
-                      onClick={() => setCreateOpen(true)}
-                    >
-                      Add customer
-                    </Button>
-                  ) : undefined
-                }
+                description="Customers register on the website (OTP sign-in or checkout). Use this workspace to view orders, adjust loyalty, and add internal notes."
               />
             )}
           </section>
         </div>
       </WorkspaceFrame>
-
-      {createOpen ? (
-        <CustomerCreateDrawer
-          onClose={() => setCreateOpen(false)}
-          onSaved={() => {
-            setCreateOpen(false);
-            refresh();
-          }}
-        />
-      ) : null}
 
       <ConfirmDialog
         isOpen={toDelete !== null}
@@ -399,115 +357,5 @@ function CustomerListItem({
         </span>
       </span>
     </button>
-  );
-}
-
-function CustomerCreateDrawer({
-  onClose,
-  onSaved,
-}: {
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const toast = useToast();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [city, setCity] = useState("");
-  const [isLoyaltyMember, setIsLoyaltyMember] = useState(false);
-  const [notes, setNotes] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsSaving(true);
-    try {
-      await adminFetch("/api/customers", {
-        method: "POST",
-        json: {
-          name,
-          email: email || undefined,
-          phoneNumber,
-          city,
-          isLoyaltyMember,
-          notes: notes || undefined,
-        },
-      });
-      toast.success("Customer created");
-      onSaved();
-    } catch (error) {
-      toast.danger(error instanceof Error ? error.message : "Failed to create customer");
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  return (
-    <Drawer
-      isOpen
-      onClose={onClose}
-      title="Add customer"
-      footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="md" type="button" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            size="md"
-            type="submit"
-            form="customer-create-form"
-            isLoading={isSaving}
-          >
-            Create customer
-          </Button>
-        </div>
-      }
-    >
-      <form id="customer-create-form" onSubmit={handleSubmit} className="space-y-4">
-        <TextField
-          label="Full name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          required
-          maxLength={FIELD_LIMITS.personName}
-        />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField
-            label="Phone"
-            value={phoneNumber}
-            onChange={(event) => setPhoneNumber(event.target.value)}
-            required
-            maxLength={FIELD_LIMITS.phoneNumber}
-          />
-          <TextField
-            label="City"
-            value={city}
-            onChange={(event) => setCity(event.target.value)}
-            required
-            maxLength={FIELD_LIMITS.city}
-          />
-        </div>
-        <TextField
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          maxLength={EMAIL_MAX_CHARS}
-        />
-        <Switch
-          label="Loyalty member"
-          checked={isLoyaltyMember}
-          onCheckedChange={setIsLoyaltyMember}
-        />
-        <TextArea
-          label="Notes"
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          rows={3}
-          maxLength={2_000}
-        />
-      </form>
-    </Drawer>
   );
 }

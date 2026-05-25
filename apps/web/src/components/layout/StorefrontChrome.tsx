@@ -59,7 +59,7 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
         </Suspense>
       </main>
       <Footer />
-      <ChatFabShell hideOnMobile={Boolean(isProductDetail)} />
+      <ChatFabShell mobileStackedAbove={isProductDetail ? "pdp-cta" : null} />
       <MobileBottomTabBar
         onOpenMenu={() => setIsMenuOpen(true)}
         isMenuOpen={isMenuOpen}

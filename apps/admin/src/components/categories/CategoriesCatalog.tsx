@@ -27,6 +27,10 @@ import {
   CatalogSearchField,
   CatalogTabChip,
 } from "@/components/catalog/catalogWorkspaceUi";
+import {
+  WorkspaceFrame,
+  WorkspacePrimaryAction,
+} from "@/components/workspace/adminWorkspaceUi";
 import { ColoredPill } from "@/components/ColoredPill";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { LucideIconRenderer } from "@/components/icons/LucideIconRenderer";
@@ -800,7 +804,7 @@ function CategoriesCatalogInner({
 
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+      <WorkspaceFrame minHeight={false}>
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
           <CategorySidebar
             items={filteredCategoryNav}
@@ -905,15 +909,12 @@ function CategoriesCatalogInner({
                     aria-label={rowSearchPlaceholder}
                     className="min-w-0 flex-1 sm:max-w-[14rem] sm:flex-none"
                   />
-                  <button
-                    type="button"
-                    disabled={!selectedCategory}
+                  <WorkspacePrimaryAction
+                    icon={Plus}
+                    label={newButtonLabel}
                     onClick={openCreateForTab}
-                    className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-accent-600)] px-3 text-xs font-semibold text-white transition-colors hover:bg-[var(--color-accent-700)] disabled:opacity-50"
-                  >
-                    <Plus size={13} aria-hidden />
-                    {newButtonLabel}
-                  </button>
+                    disabled={!selectedCategory}
+                  />
                 </div>
               </div>
 
@@ -958,7 +959,7 @@ function CategoriesCatalogInner({
             <div className="min-h-0 flex-1 overflow-y-auto p-2 [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&_table]:text-xs [&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-[10px]">
               {categories.length === 0 ? (
                 <div className="px-4 py-12 text-center text-sm text-[var(--color-ink-500)]">
-                  No categories yet. Open Manage categories to add one.
+                  No categories yet. Switch to Manage categories below to create your first storefront category.
                 </div>
               ) : (
                 <>
@@ -1011,7 +1012,7 @@ function CategoriesCatalogInner({
             )}
           </div>
         </div>
-      </div>
+      </WorkspaceFrame>
 
       <CategoryEditor
         isOpen={drawer?.kind === "category"}

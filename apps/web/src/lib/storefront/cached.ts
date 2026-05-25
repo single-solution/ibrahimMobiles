@@ -31,6 +31,7 @@ import { Brand, connectDB, getStoreSettings as getStoreSettingsRaw, Product } fr
 import type { Product as StorefrontProduct } from "@store/shared";
 
 import {
+  PUBLIC_PRODUCT_FILTER,
   getStorefrontBrandBySlug as getStorefrontBrandBySlugRaw,
   getStorefrontBrands as getStorefrontBrandsRaw,
   getStorefrontGradeCounts as getStorefrontGradeCountsRaw,
@@ -129,31 +130,48 @@ export const getStorefrontOffersCached = unstable_cache(
 );
 
 /**
- * Homepage hero — the most recently updated products across every
- * category, capped at `limit`. Sorting by `updatedAt` (Mongoose
- * timestamps) means an admin restocking an older SKU bumps it back
- * into the hero without flipping any curated flag. The "Featured"
- * toggle on Product is preserved for future curated surfaces but is
- * no longer the filter here. The limit becomes part of the cache key
- * so different callers (mobile vs desktop) don't poison each other's
- * entry.
+ * Homepage hero — the most recently updated in-stock products, optionally
+ * narrowed to a chosen set of categories and/or grades chosen by the admin
+ * in Settings → Homepage. Sorting by `updatedAt` (Mongoose timestamps)
+ * means a restock bumps the SKU back into the hero without flipping any
+ * curated flag.
+ *
+ * The cache key is a JSON envelope of every input so changing the admin's
+ * picks (or the requested limit) carves a fresh entry instead of poisoning
+ * the unfiltered result. Empty filter arrays mean "no narrowing".
  */
+export interface HomeHeroFilters {
+  categorySlugs?: string[];
+  gradeSlugs?: string[];
+}
+
 const getHomeHeroProductsInner = unstable_cache(
-  async (limit: number): Promise<StorefrontProduct[]> => {
+  async (cacheKey: string): Promise<StorefrontProduct[]> => {
+    const { limit, categorySlugs, gradeSlugs } = JSON.parse(cacheKey) as {
+      limit: number;
+      categorySlugs: string[];
+      gradeSlugs: string[];
+    };
     return getStorefrontProductsRaw({
       sort: "recently-updated",
       inStockOnly: true,
       limit,
+      ...(categorySlugs.length > 0 ? { categorySlugs } : {}),
+      ...(gradeSlugs.length > 0 ? { gradeSlugs } : {}),
     });
   },
-  ["storefront-hero-products-v4"],
+  ["storefront-hero-products-v5"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
 export function getHomeHeroProductsCached(
   limit: number,
+  filters: HomeHeroFilters = {},
 ): Promise<StorefrontProduct[]> {
-  return getHomeHeroProductsInner(limit);
+  const categorySlugs = (filters.categorySlugs ?? []).slice().sort();
+  const gradeSlugs = (filters.gradeSlugs ?? []).slice().sort();
+  const cacheKey = JSON.stringify({ limit, categorySlugs, gradeSlugs });
+  return getHomeHeroProductsInner(cacheKey);
 }
 
 /**
@@ -179,7 +197,7 @@ const SITEMAP_PRODUCT_LIMIT = 5_000;
 const loadSitemapProductsInner = unstable_cache(
   async () => {
     await connectDB();
-    return Product.find({ isActive: true, isArchived: { $ne: true } })
+    return Product.find(PUBLIC_PRODUCT_FILTER)
       .select({ slug: 1, categorySlug: 1, updatedAt: 1 })
       .sort({ updatedAt: -1 })
       .limit(SITEMAP_PRODUCT_LIMIT)

@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 export function ProductCardSkeleton() {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
-      <div className="product-media-well relative aspect-[5/4] bg-[var(--color-canvas-deep)]">
+      <div className="product-media-well relative aspect-square bg-[var(--color-canvas-deep)]">
         <Skeleton className="absolute inset-0 h-full w-full rounded-none" />
         <Skeleton shape="pill" className="absolute right-1.5 top-1.5 h-5 w-14 md:right-2.5 md:top-2.5 md:h-5 md:w-16" />
       </div>

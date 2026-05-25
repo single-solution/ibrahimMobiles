@@ -2,7 +2,7 @@ export function SalesWorkspaceSkeleton() {
   return (
     <div className="flex min-h-[min(72vh,680px)] flex-1 flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <aside className="hidden w-full shrink-0 flex-col border-r border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-3 lg:flex lg:w-[min(220px,28%)] lg:max-w-xs">
+        <aside className="hidden shrink-0 flex-col border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-2.5 lg:flex lg:w-44 lg:border-b-0 lg:border-r xl:w-48">
           <div className="h-4 w-20 animate-pulse rounded bg-[var(--color-ink-100)]" />
           <div className="mt-3 h-8 animate-pulse rounded-[var(--radius-md)] bg-[var(--color-ink-100)]/80" />
           <div className="mt-4 space-y-2">
@@ -14,7 +14,7 @@ export function SalesWorkspaceSkeleton() {
             ))}
           </div>
         </aside>
-        <section className="flex min-h-0 flex-1 flex-col border-r border-[var(--color-ink-100)] lg:max-w-sm">
+        <section className="flex min-h-0 flex-1 flex-col border-b border-[var(--color-ink-100)] lg:w-[min(340px,38%)] lg:max-w-sm lg:border-b-0 lg:border-r">
           <div className="border-b border-[var(--color-ink-100)] p-3">
             <div className="h-4 w-24 animate-pulse rounded bg-[var(--color-ink-100)]" />
             <div className="mt-2 h-8 animate-pulse rounded-[var(--radius-md)] bg-[var(--color-ink-100)]/80" />

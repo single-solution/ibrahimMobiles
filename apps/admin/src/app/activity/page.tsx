@@ -6,7 +6,7 @@ import { ListWorkspaceSkeleton } from "@/components/loading/ListWorkspaceSkeleto
 import { adminListPageClass } from "@/components/workspace/adminWorkspaceUi";
 import { ActivityEntry, connectDB } from "@store/db";
 
-import { requirePageSession } from "@/lib/server/requirePageSession";
+import { requirePagePermission } from "@/lib/server/requirePageSession";
 import { toActivityResponse, type ActivityEntryLean } from "@/lib/serializers/activity";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 const RECENT_ACTIVITY_LIMIT = 200;
 
 export default async function AdminActivityPage() {
-  await requirePageSession("/activity");
+  await requirePagePermission("activity_view", "/activity");
 
   return (
     <AdminShell contentClassName={adminListPageClass}>

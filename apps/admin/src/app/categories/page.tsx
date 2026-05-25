@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import { AdminShell } from "@/components/AdminShell";
 import { CategoriesCatalog } from "@/components/categories/CategoriesCatalog";
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
+import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
 import { adminCatalogPageClass } from "@/components/workspace/adminWorkspaceUi";
 import {
   Attribute,
@@ -21,15 +21,25 @@ import {
   type CategoryLean,
 } from "@/lib/serializers/category";
 import { toGradeResponse, type GradeLean } from "@/lib/serializers/grade";
-import { requirePageSession } from "@/lib/server/requirePageSession";
+import { requirePagePermission } from "@/lib/server/requirePageSession";
 
 export const dynamic = "force-dynamic";
 
-const TABLE_COLUMN_COUNT = 4;
-const TABLE_ROW_COUNT = 10;
-
 export default async function AdminCategoriesPage() {
-  await requirePageSession("/categories");
+  await requirePagePermission("category_manage", "/categories");
+
+  return (
+    <AdminShell contentClassName={adminCatalogPageClass}>
+      <section className="flex min-h-0 flex-1 flex-col">
+        <Suspense fallback={<CatalogWorkspaceSkeleton />}>
+          <CategoriesData />
+        </Suspense>
+      </section>
+    </AdminShell>
+  );
+}
+
+async function CategoriesData() {
   await connectDB();
 
   const [categoryDocs, brandDocs, gradeDocs, attributeDocs] = await Promise.all([
@@ -40,24 +50,11 @@ export default async function AdminCategoriesPage() {
   ]);
 
   return (
-    <AdminShell contentClassName={adminCatalogPageClass}>
-      <section className="flex min-h-0 flex-1 flex-col">
-        <Suspense
-          fallback={
-            <AdminTableSkeleton
-              columnCount={TABLE_COLUMN_COUNT}
-              rowCount={TABLE_ROW_COUNT}
-            />
-          }
-        >
-          <CategoriesCatalog
-            initialCategories={categoryDocs.map(toCategoryResponse)}
-            initialBrands={brandDocs.map(toBrandResponse)}
-            initialGrades={gradeDocs.map(toGradeResponse)}
-            initialAttributes={attributeDocs.map(toAttributeResponse)}
-          />
-        </Suspense>
-      </section>
-    </AdminShell>
+    <CategoriesCatalog
+      initialCategories={categoryDocs.map(toCategoryResponse)}
+      initialBrands={brandDocs.map(toBrandResponse)}
+      initialGrades={gradeDocs.map(toGradeResponse)}
+      initialAttributes={attributeDocs.map(toAttributeResponse)}
+    />
   );
 }

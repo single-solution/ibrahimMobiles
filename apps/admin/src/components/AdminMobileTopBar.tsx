@@ -6,16 +6,48 @@ import { Bell, ExternalLink, Menu, ShoppingBag } from "lucide-react";
 
 import { getInitials } from "@/lib/initials";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
+import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import {
+  totalAdminAlertCount,
+  useAdminAlerts,
+} from "@/components/adminAlertsUi";
 
 interface AdminMobileTopBarProps {
   onOpenMenu: () => void;
 }
 
+/** Where the bell badge sends the user. Picks the highest-priority alert
+ *  (unread inquiries > pending payments > low stock) and falls back to the
+ *  inbox if every counter is zero. */
+function bellHref(alertCount: {
+  unreadInquiries: number;
+  pendingPayments: number;
+  lowStockVariants: number;
+}): string {
+  if (alertCount.unreadInquiries > 0) return "/inquiries";
+  if (alertCount.pendingPayments > 0) return "/orders";
+  if (alertCount.lowStockVariants > 0) return "/products";
+  return "/inquiries";
+}
+
 export function AdminMobileTopBar({ onOpenMenu }: AdminMobileTopBarProps) {
   const { data: session } = useSession();
   const { siteName } = useStoreSettings();
+  const { can } = useAdminPermissions();
+  const alerts = useAdminAlerts();
   const initials = getInitials(session?.user?.name);
   const brandShort = siteName.split(" ")[0];
+
+  const visibleAlerts = {
+    unreadInquiries: can("inquiry_view") ? alerts.unreadInquiries : 0,
+    pendingPayments: can("order_view") ? alerts.pendingPayments : 0,
+    lowStockVariants: can("product_view") ? alerts.lowStockVariants : 0,
+  };
+  const badgeCount = totalAdminAlertCount({
+    ...visibleAlerts,
+    openInquiries: 0,
+  });
+  const badgeLabel = badgeCount > 9 ? "9+" : String(badgeCount);
 
   return (
     <header
@@ -34,14 +66,14 @@ export function AdminMobileTopBar({ onOpenMenu }: AdminMobileTopBarProps) {
         href="/"
         className="flex min-w-0 items-center gap-2 text-[var(--color-ink-900)]"
       >
-        <span className="grid size-8 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
-          <ShoppingBag size={14} strokeWidth={2.6} />
+        <span className="grid size-7 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
+          <ShoppingBag size={13} strokeWidth={2.6} />
         </span>
         <div className="min-w-0 leading-tight">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
+          <p className="text-[9.5px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-700)]">
             Admin
           </p>
-          <p className="truncate text-sm font-semibold tracking-tight text-[var(--color-ink-900)]">
+          <p className="truncate text-[13px] font-semibold tracking-tight text-[var(--color-ink-900)]">
             {brandShort} HQ
           </p>
         </div>
@@ -57,16 +89,22 @@ export function AdminMobileTopBar({ onOpenMenu }: AdminMobileTopBarProps) {
         >
           <ExternalLink size={17} />
         </Link>
-        <button
-          type="button"
-          aria-label="Notifications"
+        <Link
+          href={bellHref(visibleAlerts)}
+          aria-label={
+            badgeCount > 0
+              ? `${badgeCount} pending notification${badgeCount === 1 ? "" : "s"}`
+              : "No notifications"
+          }
           className="relative grid size-10 place-items-center rounded-full text-[var(--color-ink-600)] active:bg-[var(--color-canvas-deep)]"
         >
           <Bell size={18} />
-          <span className="absolute right-2 top-2 grid size-3.5 place-items-center rounded-full bg-[var(--color-accent-500)] text-[8px] font-bold text-[var(--color-ink-900)]">
-            3
-          </span>
-        </button>
+          {badgeCount > 0 ? (
+            <span className="absolute right-1.5 top-1.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-[var(--color-accent-500)] px-1 text-[9px] font-bold text-[var(--color-ink-900)]">
+              {badgeLabel}
+            </span>
+          ) : null}
+        </Link>
         <span
           aria-hidden
           className="grid size-8 place-items-center rounded-full bg-[var(--color-accent-500)] text-[11px] font-semibold text-[var(--color-ink-900)]"

@@ -5,6 +5,7 @@ import type { SeoMeta } from "@store/shared";
 
 import { slugify } from "@store/shared";
 
+import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/Drawer";
 import { CatalogSeoPanel } from "@/components/seo/CatalogSeoPanel";
 import { useToast } from "@/components/Toast";
@@ -141,22 +142,18 @@ export function BrandEditor({
       width="lg"
       footer={
         <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={submitting}
-            className="rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)] disabled:opacity-60"
-          >
+          <Button variant="ghost" size="sm" type="button" onClick={onClose} disabled={submitting}>
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             type="submit"
             form="brand-editor-form"
-            disabled={submitting}
-            className="rounded-md bg-[var(--color-accent-600)] px-3.5 py-1.5 text-[13px] font-semibold text-white hover:bg-[var(--color-accent-700)] disabled:opacity-60"
+            isLoading={submitting}
           >
-            {submitting ? "Saving…" : brand ? "Save changes" : "Add brand"}
-          </button>
+            {brand ? "Save changes" : "Add brand"}
+          </Button>
         </div>
       }
     >
@@ -182,7 +179,9 @@ export function BrandEditor({
               }
               maxLength={BRAND_FIELD_LIMITS.name}
               required
-              className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[14px] text-[var(--color-ink-900)] focus:border-[var(--color-accent-500)] focus:outline-none"
+              placeholder="e.g. Apple, Samsung, Xiaomi"
+              autoComplete="off"
+              className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[14px] text-[var(--color-ink-900)] placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:outline-none"
             />
           </div>
           <p className="rounded-md bg-[var(--color-canvas-deep)] px-3 py-2 text-[12px] text-[var(--color-ink-500)]">

@@ -34,7 +34,7 @@ export function CheckoutSuccess({
   const orderPayment = payment ? CHECKOUT_TO_ORDER_PAYMENT[payment] : null;
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-var(--desktop-header-h)-160px)] max-w-3xl items-center px-4 pb-16 pt-8 md:px-6">
+    <div className="mx-auto flex min-h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h)-80px)] max-w-3xl items-center px-4 pb-16 pt-8 md:min-h-[calc(100dvh-var(--desktop-header-h)-160px)] md:px-6">
       <div className="w-full">
         <div className="reveal" style={{ ["--reveal-delay" as string]: "60ms" }}>
           <div className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-50 text-emerald-700 md:size-20">

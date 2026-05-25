@@ -48,6 +48,19 @@ const securityHeaders = isProduction
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  // Keep the Next.js router cache short so the storefront reflects fresh
+  // catalog data (new products, refreshed hero rail, updated prices) when
+  // a visitor navigates back to the homepage or category pages without a
+  // full reload. The defaults (5 min for prefetched static routes) were
+  // making the hero feel "stuck" until F5. `static` must be ≥ 30s; we use
+  // 30s for both buckets so client navigations refetch on roughly the same
+  // cadence as the homepage's `revalidate = 30` ISR window.
+  experimental: {
+    staleTimes: {
+      dynamic: 0,
+      static: 30,
+    },
+  },
   // Treat the workspace packages as part of the build so Next.js compiles
   // their TypeScript instead of expecting a published .js bundle.
   transpilePackages: ["@store/db", "@store/shared"],

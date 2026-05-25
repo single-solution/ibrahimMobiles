@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -19,6 +19,11 @@ import {
   Wallet,
 } from "lucide-react";
 import { AdminShell } from "@/components/AdminShell";
+import { DashboardAccessBanner } from "@/components/dashboard/DashboardAccessBanner";
+import {
+  DashboardMobileEyebrowActions,
+  DashboardSectionActionLink,
+} from "@/components/dashboard/DashboardQuickLinks";
 import { KpiCard } from "@/components/KpiCard";
 import { Sparkline } from "@/components/Sparkline";
 import { StatusPill, type StatusTone } from "@/components/StatusPill";
@@ -102,6 +107,9 @@ export default async function AdminOverviewPage() {
 
   return (
     <AdminShell>
+      <Suspense fallback={null}>
+        <DashboardAccessBanner />
+      </Suspense>
       {/* Mobile only — compact native layout */}
       <div className="md:hidden">
         <div>
@@ -116,7 +124,7 @@ export default async function AdminOverviewPage() {
         <div className="app-section">
           <div className="app-section-eyebrow">
             <span>Today</span>
-            <Link href="/products?wizard=1">+ Add product</Link>
+            <DashboardMobileEyebrowActions variant="today" />
           </div>
           <Suspense fallback={<MobileKpiGridFallback />}>
             <MobileTodayKpis />
@@ -126,7 +134,7 @@ export default async function AdminOverviewPage() {
         <div className="app-section">
           <div className="app-section-eyebrow">
             <span>This month</span>
-            <Link href="/inquiries">View all</Link>
+            <DashboardMobileEyebrowActions variant="month" />
           </div>
           <Suspense fallback={<MobileKpiGridFallback />}>
             <MobileMonthKpis />
@@ -136,7 +144,7 @@ export default async function AdminOverviewPage() {
         <div className="app-section">
           <div className="app-section-eyebrow">
             <span>Recent inquiries</span>
-            <Link href="/inquiries">View all</Link>
+            <DashboardMobileEyebrowActions variant="inquiries" />
           </div>
           <Suspense fallback={<MobileInquiriesFallback />}>
             <MobileRecentInquiries />
@@ -157,7 +165,13 @@ export default async function AdminOverviewPage() {
         <SectionHeader
           title="What needs your attention"
           subtitle="Pending payments first, then dispatch and delivery."
-          action={{ href: "/inquiries", label: "Open inquiries" }}
+          action={
+            <DashboardSectionActionLink
+              href="/inquiries"
+              label="Open inquiries"
+              permission="inquiry_view"
+            />
+          }
         />
         <Suspense fallback={<DesktopKpiGridFallback />}>
           <DesktopAttentionKpis />
@@ -166,7 +180,13 @@ export default async function AdminOverviewPage() {
         <SectionHeader
           title="What's in stock and what's hot"
           subtitle="Stock, low-stock alerts, listings, and inquiry inbox."
-          action={{ href: "/products", label: "Manage products" }}
+          action={
+            <DashboardSectionActionLink
+              href="/products"
+              label="Manage products"
+              permission="product_view"
+            />
+          }
         />
         <Suspense fallback={<DesktopKpiGridFallback />}>
           <DesktopStockKpis />
@@ -253,7 +273,11 @@ async function MobileRecentInquiries() {
         recentInquiries.slice(0, MOBILE_RECENT_INQUIRIES_COUNT).map((inquiry) => {
           const status = inquiry.status as InquiryStatus;
           return (
-            <li key={inquiry.id} className="app-list-row">
+            <li key={inquiry.id}>
+              <Link
+                href={`/inquiries?inquiry=${inquiry.id}`}
+                className="app-list-row tap flex"
+              >
               <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
                 {getInitials(inquiry.customerName)}
               </span>
@@ -280,6 +304,7 @@ async function MobileRecentInquiries() {
                   {formatTimeAgo(inquiry.lastMessageAt, nowReferenceIso)}
                 </p>
               </div>
+              </Link>
             </li>
           );
         })
@@ -519,7 +544,7 @@ interface SectionHeaderProps {
   eyebrow?: string;
   title?: string;
   subtitle?: string;
-  action?: { href: string; label: string };
+  action?: ReactNode;
 }
 
 function SectionHeader({ eyebrow, title, subtitle, action }: SectionHeaderProps) {
@@ -540,14 +565,7 @@ function SectionHeader({ eyebrow, title, subtitle, action }: SectionHeaderProps)
           <p className="mt-0.5 text-xs text-[var(--color-ink-500)]">{subtitle}</p>
         )}
       </div>
-      {action && (
-        <Link
-          href={action.href}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-accent-700)] hover:underline"
-        >
-          {action.label} <ArrowRight size={12} />
-        </Link>
-      )}
+      {action}
     </header>
   );
 }

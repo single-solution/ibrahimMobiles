@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { compareAlphabetically, isValidId, normalizeGradeSlug } from "@store/shared";
 
+import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/Drawer";
 import { TabList } from "@/components/Tabs";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
@@ -500,31 +501,29 @@ export function ProductWizardStep2({
       footer={
         <div className="flex flex-wrap items-center justify-end gap-2">
           {!isManage && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               type="button"
               onClick={handleSkip}
               disabled={submitting}
-              className="mr-auto rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] disabled:opacity-60"
+              className="mr-auto"
             >
               Skip for now
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={submitting}
-            className="rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] disabled:opacity-60"
-          >
+          <Button variant="ghost" size="sm" type="button" onClick={handleClose} disabled={submitting}>
             {isManage ? "Close" : "Cancel"}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             type="submit"
             form="product-wizard-step2"
-            disabled={submitting}
-            className="rounded-md bg-[var(--color-accent-600)] px-3.5 py-1.5 text-[13px] font-semibold text-white hover:bg-[var(--color-accent-700)] disabled:opacity-60"
+            isLoading={submitting}
           >
-            {submitting ? "Saving…" : isManage ? "Save changes" : "Save variations"}
-          </button>
+            {isManage ? "Save changes" : "Save variations"}
+          </Button>
         </div>
       }
     >
@@ -641,17 +640,19 @@ export function ProductWizardStep2({
                     </ul>
                   )}
                 </nav>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   type="button"
+                  className="mt-2 w-full border-dashed"
+                  leadingIcon={<Plus size={13} aria-hidden />}
                   disabled={!selectedGradeSlug}
                   onClick={() =>
                     selectedGradeSlug && addCombination(selectedGradeSlug)
                   }
-                  className="mt-2 inline-flex h-8 w-full items-center justify-center gap-1 rounded-[var(--radius-md)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[11px] font-semibold text-[var(--color-ink-700)] hover:border-[var(--color-accent-400)] hover:bg-[var(--color-accent-50)] disabled:opacity-50"
                 >
-                  <Plus size={13} aria-hidden />
                   New variant
-                </button>
+                </Button>
               </aside>
 
               <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -669,14 +670,16 @@ export function ProductWizardStep2({
                       {grades.find((row) => row.slug === selectedGradeSlug)?.label}{" "}
                       or pick one from the sidebar.
                     </p>
-                    <button
+                    <Button
+                      variant="primary"
+                      size="sm"
                       type="button"
+                      className="mt-4"
+                      leadingIcon={<Plus size={13} aria-hidden />}
                       onClick={() => addCombination(selectedGradeSlug)}
-                      className="mt-4 inline-flex items-center gap-1 rounded-md bg-[var(--color-accent-600)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--color-accent-700)]"
                     >
-                      <Plus size={13} aria-hidden />
                       Add variant
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <>

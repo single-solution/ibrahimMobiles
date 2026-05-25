@@ -188,7 +188,7 @@ export function ProductCard({
       onBlur={() => slideCycle.setPaused(false)}
     >
       <div className="lift flex h-full flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] hover:border-[var(--color-ink-200)]">
-        <div className="product-media-well relative aspect-[5/4] bg-[var(--color-canvas-deep)]">
+        <div className="product-media-well relative aspect-square bg-[var(--color-canvas-deep)]">
           {shouldCycleGradeMedia && gradeSlides ? (
             <ProductCardMediaCycle
               activeIndex={slideCycle.activeIndex}
@@ -279,18 +279,16 @@ export function ProductCard({
           </div>
 
           <div className="flex items-center justify-between gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-2 py-1.5 md:px-2.5 md:py-2">
-            <p
-              key={
-                isGradeListing && shouldCycleVariantChips
-                  ? listingVariant.id
-                  : "listing-price"
-              }
-              className={`min-w-0 text-[14px] font-semibold leading-snug tracking-tight text-[var(--color-ink-900)] md:text-[16px] ${
-                isGradeListing && shouldCycleVariantChips ? "card-grade-fade" : ""
-              }`}
-            >
-              {priceLabel ?? "Unavailable"}
-            </p>
+            {isGradeListing && shouldCycleVariantChips && variantSlides ? (
+              <ProductCardPriceCycle
+                variants={orderedVariantsInGrade}
+                activeIndex={slideCycle.activeIndex}
+              />
+            ) : (
+              <p className="min-w-0 text-[14px] font-semibold leading-snug tracking-tight text-[var(--color-ink-900)] md:text-[16px]">
+                {priceLabel ?? "Unavailable"}
+              </p>
+            )}
             {showGradeCountChip && (
               <ProductListingCountChip
                 label={`${gradeCount} ${gradeCount === 1 ? "grade" : "grades"}`}
@@ -363,69 +361,145 @@ function ProductCardMediaCycle({
   fixedHeroImage?: StoredImage;
 }) {
   const activeSlide = slides[activeIndex] ?? slides[0];
-  const badgeGradeSlug = pinnedGradeSlug ?? activeSlide.gradeSlug ?? "";
-  const heroImage = fixedHeroImage ?? activeSlide.heroImage;
-  const imageKey = fixedHeroImage ? "grade-fixed-hero" : activeSlide.slideKey;
 
   return (
     <>
+      {/* Hero image — stacked crossfade across slides. The wrapper keeps the
+          hover zoom while the inner grid holds every slide layered in the
+          same cell, so opacity transitions produce a true crossfade with
+          no blank frame between slides. */}
       <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.04]">
-        <div
-          key={imageKey}
-          className={
-            fixedHeroImage
-              ? "absolute inset-0"
-              : "card-grade-fade-image absolute inset-0"
-          }
-        >
-          <ProductImage
-            image={heroImage}
-            variant="card"
-            name={name}
-            brandName={brandName}
-            brandSlug={brandSlug}
-          />
-        </div>
-      </div>
-
-      {badgeGradeSlug ? (
-        <div className="absolute right-1.5 top-1.5 z-10 md:right-3 md:top-3">
-          <div
-            key={pinnedGradeSlug ? pinnedGradeSlug : activeSlide.slideKey}
-            className={pinnedGradeSlug ? undefined : "card-grade-fade"}
-          >
-            <GradeBadge
-              categorySlug={categorySlug}
-              gradeSlug={badgeGradeSlug}
-              size="sm"
+        {fixedHeroImage ? (
+          <div className="absolute inset-0">
+            <ProductImage
+              image={fixedHeroImage}
+              variant="card"
+              name={name}
+              brandName={brandName}
+              brandSlug={brandSlug}
             />
           </div>
+        ) : (
+          <div className="card-fade-stack absolute inset-0">
+            {slides.map((slide, index) => (
+              <div
+                key={slide.slideKey}
+                className={`card-fade-stack__layer ${
+                  index === activeIndex ? "card-fade-stack__layer--active" : ""
+                }`}
+                aria-hidden={index !== activeIndex}
+              >
+                <ProductImage
+                  image={slide.heroImage}
+                  variant="card"
+                  name={name}
+                  brandName={brandName}
+                  brandSlug={brandSlug}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Grade badge — when the badge follows the slide, stack every grade so
+          we never flash between labels of different widths. When pinned (grade
+          listing), just render the one badge. */}
+      {pinnedGradeSlug ? (
+        <div className="absolute right-1.5 top-1.5 z-10 md:right-3 md:top-3">
+          <GradeBadge
+            categorySlug={categorySlug}
+            gradeSlug={pinnedGradeSlug}
+            size="sm"
+          />
+        </div>
+      ) : slides.some((slide) => slide.gradeSlug) ? (
+        <div className="card-fade-stack absolute right-1.5 top-1.5 z-10 md:right-3 md:top-3">
+          {slides.map((slide, index) =>
+            slide.gradeSlug ? (
+              <div
+                key={slide.slideKey}
+                className={`card-fade-stack__layer ${
+                  index === activeIndex ? "card-fade-stack__layer--active" : ""
+                }`}
+                aria-hidden={index !== activeIndex}
+              >
+                <GradeBadge
+                  categorySlug={categorySlug}
+                  gradeSlug={slide.gradeSlug}
+                  size="sm"
+                />
+              </div>
+            ) : null,
+          )}
         </div>
       ) : null}
 
-      {activeSlide.overlayChipGroups.length > 0 && (
-        <div className="absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-12px)] md:bottom-3 md:left-3">
-          <div key={activeSlide.slideKey} className="card-grade-fade">
-            <GroupedAttributeChipRow
-              groups={activeSlide.overlayChipGroups}
-              maxHeightPx={OVERLAY_CHIP_ROW_MAX_PX}
-              variant="overlay"
-            />
-          </div>
+      {/* Overlay chips — same stacked crossfade. The container anchors at the
+          bottom-left of the image well; each slide's chip row sits in its own
+          grid cell layered on top. */}
+      {slides.some((slide) => slide.overlayChipGroups.length > 0) ? (
+        <div className="card-fade-stack absolute bottom-1.5 left-1.5 z-10 max-w-[calc(100%-12px)] md:bottom-3 md:left-3">
+          {slides.map((slide, index) =>
+            slide.overlayChipGroups.length > 0 ? (
+              <div
+                key={slide.slideKey}
+                className={`card-fade-stack__layer ${
+                  index === activeIndex ? "card-fade-stack__layer--active" : ""
+                }`}
+                aria-hidden={index !== activeIndex}
+              >
+                <GroupedAttributeChipRow
+                  groups={slide.overlayChipGroups}
+                  maxHeightPx={OVERLAY_CHIP_ROW_MAX_PX}
+                  variant="overlay"
+                />
+              </div>
+            ) : null,
+          )}
         </div>
-      )}
+      ) : null}
 
       <span className="sr-only" aria-live="polite">
-        {slides
-          .map((slide) => {
-            const labels = flattenChipGroups(slide.titleChipGroups)
-              .map((chip) => chip.label)
-              .join(", ");
-            return slide.gradeSlug ? `${slide.gradeSlug}: ${labels}` : labels;
-          })
-          .join("; ")}
+        {activeSlide
+          ? (() => {
+              const labels = flattenChipGroups(activeSlide.titleChipGroups)
+                .map((chip) => chip.label)
+                .join(", ");
+              return activeSlide.gradeSlug
+                ? `${activeSlide.gradeSlug}: ${labels}`
+                : labels;
+            })()
+          : null}
       </span>
     </>
+  );
+}
+
+function ProductCardPriceCycle({
+  variants,
+  activeIndex,
+}: {
+  variants: Product["variants"];
+  activeIndex: number;
+}) {
+  // Stacked crossfade for the per-variant price so the line never blanks
+  // between values. Grid layout sizes the container to the widest price so
+  // the count chip on the right doesn't shift around as we cycle.
+  return (
+    <div className="card-fade-stack min-w-0 flex-1">
+      {variants.map((variant, index) => (
+        <p
+          key={variant.id}
+          className={`card-fade-stack__layer min-w-0 text-[14px] font-semibold leading-snug tracking-tight text-[var(--color-ink-900)] md:text-[16px] ${
+            index === activeIndex ? "card-fade-stack__layer--active" : ""
+          }`}
+          aria-hidden={index !== activeIndex}
+        >
+          {formatVariantListingPrice(variant) ?? "Unavailable"}
+        </p>
+      ))}
+    </div>
   );
 }
 
@@ -436,14 +510,25 @@ function ProductCardTitleChipCycle({
   slides: ProductCardMediaSlide[];
   activeIndex: number;
 }) {
-  const activeSlide = slides[activeIndex] ?? slides[0];
-
+  // Stacked crossfade inside the reserved chip slot (min-h-[2.25rem]). All
+  // chip rows occupy the same grid cell so the row never collapses or jumps
+  // between slides.
   return (
-    <div key={activeSlide.slideKey} className="card-grade-fade">
-      <GroupedAttributeChipRow
-        groups={activeSlide.titleChipGroups}
-        maxHeightPx={TITLE_CHIP_ROW_MAX_PX}
-      />
+    <div className="card-fade-stack h-full w-full">
+      {slides.map((slide, index) => (
+        <div
+          key={slide.slideKey}
+          className={`card-fade-stack__layer ${
+            index === activeIndex ? "card-fade-stack__layer--active" : ""
+          }`}
+          aria-hidden={index !== activeIndex}
+        >
+          <GroupedAttributeChipRow
+            groups={slide.titleChipGroups}
+            maxHeightPx={TITLE_CHIP_ROW_MAX_PX}
+          />
+        </div>
+      ))}
     </div>
   );
 }

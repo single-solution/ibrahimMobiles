@@ -61,9 +61,16 @@ import {
 
 // Public visibility filter — re-used by every product query so a draft / off
 // product can't slip through.
-const PUBLIC_PRODUCT_FILTER = {
+//
+// `variants.0` requires the array to have at least one entry (Mongo treats
+// `0` as the first array index). This drops "shell" products that an admin
+// created but never priced/stocked — they have no grades, no price, no
+// purchasable variant, so the storefront treats them as if they didn't
+// exist (no PDP, no listing, no search hit, no sitemap URL).
+export const PUBLIC_PRODUCT_FILTER = {
   isActive: true,
   isArchived: { $ne: true },
+  "variants.0": { $exists: true },
 } as const;
 
 /** Default page size when a caller doesn't override `limit`. */

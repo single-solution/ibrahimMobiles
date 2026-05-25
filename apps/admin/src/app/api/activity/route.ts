@@ -21,6 +21,7 @@ export async function GET(request: Request) {
   const action = url.searchParams.get("action");
   const resourceType = url.searchParams.get("resourceType");
   const resourceId = url.searchParams.get("resourceId");
+  const actorId = url.searchParams.get("actorId");
   const { page, limit, skip, search, searchPattern } = readListOptions(request);
 
   const filter: Record<string, unknown> = {};
@@ -32,6 +33,12 @@ export async function GET(request: Request) {
   }
   if (resourceId && isValidId(resourceId)) {
     filter.resourceId = resourceId;
+  }
+  // Filter by which admin took the action — used by the Team workspace to
+  // render a "what has this member done?" feed without leaking other actors'
+  // history through the same endpoint.
+  if (actorId && isValidId(actorId)) {
+    filter.actorUserId = actorId;
   }
   if (search) {
     filter.$or = [

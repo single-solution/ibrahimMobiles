@@ -156,8 +156,84 @@ export function AdminTable<TRow>({
           {emptyState ?? "No results."}
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <>
+          {/* Mobile card list — below `md` we drop the horizontal-scroll table
+              and stack each row as a card. Columns marked `hideOnMobile` are
+              skipped, the first remaining column becomes the card title, and
+              columns with an empty header (typically action icons) are
+              rendered as a label-less footer row. */}
+          <ul className="divide-y divide-[var(--color-ink-100)] md:hidden">
+            {visibleRows.map((row) => {
+              const mobileColumns = columns.filter((column) => !column.hideOnMobile);
+              const hasLabel = (column: AdminTableColumn<TRow>) =>
+                column.header !== "" && column.header != null;
+              const labelled = mobileColumns.filter(hasLabel);
+              const unlabelled = mobileColumns.filter((column) => !hasLabel(column));
+              const [primaryColumn, ...detailColumns] = labelled;
+              const interactive = Boolean(onRowClick);
+              return (
+                <li key={rowKey(row)}>
+                  <div
+                    role={interactive ? "button" : undefined}
+                    tabIndex={interactive ? 0 : undefined}
+                    onClick={interactive ? () => onRowClick?.(row) : undefined}
+                    onKeyDown={
+                      interactive
+                        ? (event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              onRowClick?.(row);
+                            }
+                          }
+                        : undefined
+                    }
+                    className={classNames(
+                      "flex flex-col gap-2 px-3 py-3",
+                      interactive &&
+                        "cursor-pointer transition-colors active:bg-[var(--color-canvas-deep)]/60",
+                    )}
+                  >
+                    {primaryColumn ? (
+                      <div className="text-sm font-semibold text-[var(--color-ink-900)]">
+                        {primaryColumn.cell(row)}
+                      </div>
+                    ) : null}
+                    {detailColumns.length > 0 ? (
+                      <dl className="grid gap-1.5">
+                        {detailColumns.map((column) => (
+                          <div
+                            key={column.id}
+                            className="flex items-start justify-between gap-3 text-[12px]"
+                          >
+                            <dt className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">
+                              {column.header}
+                            </dt>
+                            <dd className="min-w-0 flex-1 text-right text-[var(--color-ink-800)]">
+                              {column.cell(row)}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : null}
+                    {unlabelled.length > 0 ? (
+                      <div
+                        onClick={(event) => event.stopPropagation()}
+                        className="flex flex-wrap items-center justify-end gap-1.5 pt-0.5"
+                      >
+                        {unlabelled.map((column) => (
+                          <div key={column.id}>{column.cell(row)}</div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Desktop table — at md+ we keep the original sortable table layout. */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-[var(--color-canvas-deep)] shadow-[inset_0_-1px_0_var(--color-ink-100)]">
               <tr className="text-[var(--color-ink-500)]">
                 {columns.map((column) => {
@@ -233,7 +309,8 @@ export function AdminTable<TRow>({
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
       )}
 
       {sortedRows.length > pageSize && (

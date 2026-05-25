@@ -1,12 +1,16 @@
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
 import { AdminShell } from "@/components/AdminShell";
+import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
+import { adminCatalogPageClass } from "@/components/workspace/adminWorkspaceUi";
+import { SkeletonScreen } from "@/components/ui/Skeleton";
 
 export default function CategoriesLoading() {
   return (
-    <AdminShell contentClassName="flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5 md:p-2">
-      <section className="flex min-h-0 flex-1 flex-col">
-        <AdminTableSkeleton columnCount={4} rowCount={10} />
-      </section>
-    </AdminShell>
+    <SkeletonScreen label="Loading categories">
+      <AdminShell contentClassName={adminCatalogPageClass}>
+        <section className="flex min-h-0 flex-1 flex-col">
+          <CatalogWorkspaceSkeleton />
+        </section>
+      </AdminShell>
+    </SkeletonScreen>
   );
 }

@@ -6,7 +6,7 @@ import { ListWorkspaceSkeleton } from "@/components/loading/ListWorkspaceSkeleto
 import { adminListPageClass } from "@/components/workspace/adminWorkspaceUi";
 import { connectDB, Offer } from "@store/db";
 
-import { requirePageSession } from "@/lib/server/requirePageSession";
+import { requirePagePermission } from "@/lib/server/requirePageSession";
 import { toOfferResponse, type OfferLean } from "@/lib/serializers/offer";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 const OFFERS_LIST_LIMIT = 200;
 
 export default async function AdminOffersPage() {
-  await requirePageSession("/offers");
+  await requirePagePermission("offer_manage", "/offers");
 
   return (
     <AdminShell contentClassName={adminListPageClass}>

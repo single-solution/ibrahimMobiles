@@ -6,7 +6,6 @@ import { applyTitleTemplate } from "@store/shared";
 
 import { adminFetch } from "@/lib/adminApi";
 import { storedImageFromSetting } from "@/lib/seo/useSeoSettings";
-import { Button } from "@/components/ui/Button";
 import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
@@ -15,6 +14,11 @@ import {
   type ImageDraft,
   uploadImageDrafts,
 } from "@/components/uploads/imageDraft";
+import {
+  SettingsFormPanel,
+  SettingsLoadingPanel,
+  SettingsSaveFooter,
+} from "@/components/settings/settingsWorkspaceUi";
 import { useToast } from "@/components/Toast";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 
@@ -101,7 +105,7 @@ function parseSameAs(value: unknown): string {
   return "";
 }
 
-export function SeoSettingsTab() {
+export function SeoSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
   const toast = useToast();
   const store = useStoreSettings();
   const [draft, setDraft] = useState<SeoGlobalDraft>(DEFAULTS);
@@ -243,15 +247,28 @@ export function SeoSettingsTab() {
   }
 
   if (loading) {
-    return (
-      <div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-6 text-sm text-[var(--color-ink-500)]">
-        Loading SEO settings…
-      </div>
-    );
+    return <SettingsLoadingPanel />;
   }
 
   return (
-    <div className="space-y-6">
+    <SettingsFormPanel
+      footer={
+        !readOnly ? (
+          <SettingsSaveFooter
+            onSave={() => void handleSave()}
+            onDiscard={() => setDraft(saved)}
+            showDiscard={isDirty}
+            saveLabel={saving ? "Saving…" : isDirty ? "Save SEO settings" : "Saved"}
+            hint={
+              isDirty
+                ? "You have unsaved SEO changes."
+                : "Up to date — search and social previews update after save."
+            }
+          />
+        ) : undefined
+      }
+    >
+      <div className="space-y-0">
       <FormSection
         title="Global SEO"
         description="Defaults used when an entity has no per-page SEO overrides. Changes propagate to the storefront after save."
@@ -262,12 +279,15 @@ export function SeoSettingsTab() {
           onChange={(event) => setField("seoStoreName", event.target.value)}
           placeholder={store.siteName}
           hint="Blank uses the site name from Store details settings."
+          disabled={readOnly}
         />
         <TextField
           label="Title template"
           value={draft.titleTemplate}
           onChange={(event) => setField("titleTemplate", event.target.value)}
+          placeholder="{title} | {storeName}"
           hint="Placeholders: {title}, {storeName}, {brandName}, {categoryLabel}"
+          disabled={readOnly}
         />
         <p className="rounded-md bg-[var(--color-canvas-deep)] px-3 py-2 text-xs text-[var(--color-ink-700)]">
           Preview: <span className="font-medium">{titlePreview}</span>
@@ -277,6 +297,9 @@ export function SeoSettingsTab() {
           value={draft.defaultDescription}
           onChange={(event) => setField("defaultDescription", event.target.value)}
           rows={3}
+          placeholder="One or two sentences shown in search results when a page doesn't define its own description."
+          hint="Aim for 150–160 characters."
+          disabled={readOnly}
         />
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-ink-500)]">
@@ -296,13 +319,16 @@ export function SeoSettingsTab() {
             setField("googleSiteVerification", event.target.value)
           }
           placeholder="google-site-verification token"
+          disabled={readOnly}
         />
         <TextArea
           label="Robots disallow paths (one per line)"
           value={draft.robotsDisallow}
           onChange={(event) => setField("robotsDisallow", event.target.value)}
           rows={4}
+          placeholder="/admin&#10;/account&#10;/checkout&#10;/cart"
           hint="Each line becomes a Disallow rule in robots.txt."
+          disabled={readOnly}
         />
       </FormSection>
 
@@ -314,78 +340,82 @@ export function SeoSettingsTab() {
           label="Legal name"
           value={draft.organizationLegalName}
           onChange={(event) => setField("organizationLegalName", event.target.value)}
+          placeholder="e.g. Ibrahim Mobiles (Pvt.) Ltd"
+          disabled={readOnly}
         />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField
-            label="Contact phone"
-            value={draft.organizationPhone}
-            onChange={(event) => setField("organizationPhone", event.target.value)}
-          />
-          <TextField
-            label="Contact email"
-            type="email"
-            value={draft.organizationEmail}
-            onChange={(event) => setField("organizationEmail", event.target.value)}
-          />
-        </div>
+        <TextField
+          label="Contact phone"
+          value={draft.organizationPhone}
+          onChange={(event) => setField("organizationPhone", event.target.value)}
+          placeholder="+92 320 4862403"
+          inputMode="tel"
+          autoComplete="tel"
+          disabled={readOnly}
+        />
+        <TextField
+          label="Contact email"
+          type="email"
+          value={draft.organizationEmail}
+          onChange={(event) => setField("organizationEmail", event.target.value)}
+          placeholder="support@yourstore.com"
+          inputMode="email"
+          autoComplete="email"
+          disabled={readOnly}
+        />
         <TextField
           label="Street"
           value={draft.organizationStreet}
           onChange={(event) => setField("organizationStreet", event.target.value)}
+          placeholder="Shop 12, Main Boulevard"
+          autoComplete="address-line1"
+          disabled={readOnly}
         />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField
-            label="City"
-            value={draft.organizationCity}
-            onChange={(event) => setField("organizationCity", event.target.value)}
-          />
-          <TextField
-            label="Region"
-            value={draft.organizationRegion}
-            onChange={(event) => setField("organizationRegion", event.target.value)}
-          />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField
-            label="Postal code"
-            value={draft.organizationPostalCode}
-            onChange={(event) =>
-              setField("organizationPostalCode", event.target.value)
-            }
-          />
-          <TextField
-            label="Country"
-            value={draft.organizationCountry}
-            onChange={(event) => setField("organizationCountry", event.target.value)}
-          />
-        </div>
+        <TextField
+          label="City"
+          value={draft.organizationCity}
+          onChange={(event) => setField("organizationCity", event.target.value)}
+          placeholder="Lahore"
+          autoComplete="address-level2"
+          disabled={readOnly}
+        />
+        <TextField
+          label="Region"
+          value={draft.organizationRegion}
+          onChange={(event) => setField("organizationRegion", event.target.value)}
+          placeholder="Punjab"
+          autoComplete="address-level1"
+          disabled={readOnly}
+        />
+        <TextField
+          label="Postal code"
+          value={draft.organizationPostalCode}
+          onChange={(event) =>
+            setField("organizationPostalCode", event.target.value)
+          }
+          placeholder="54000"
+          autoComplete="postal-code"
+          disabled={readOnly}
+        />
+        <TextField
+          label="Country"
+          value={draft.organizationCountry}
+          onChange={(event) => setField("organizationCountry", event.target.value)}
+          placeholder="PK"
+          hint="Two-letter ISO country code (e.g. PK, AE, GB)."
+          autoComplete="country"
+          disabled={readOnly}
+        />
         <TextArea
           label="Social profile URLs (sameAs, one per line)"
           value={draft.organizationSameAs}
           onChange={(event) => setField("organizationSameAs", event.target.value)}
           rows={3}
+          placeholder="https://facebook.com/yourstore&#10;https://instagram.com/yourstore"
+          hint="One URL per line — added to the Organization JSON-LD."
+          disabled={readOnly}
         />
       </FormSection>
-
-      <div className="flex items-center justify-end gap-2 border-t border-[var(--color-ink-100)] pt-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setDraft(saved)}
-          disabled={!isDirty || saving}
-        >
-          Discard
-        </Button>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleSave}
-          isLoading={saving}
-          disabled={!isDirty}
-        >
-          Save SEO settings
-        </Button>
       </div>
-    </div>
+    </SettingsFormPanel>
   );
 }

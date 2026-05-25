@@ -14,7 +14,14 @@
  *     re-render the gallery tree.
  */
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 
@@ -24,6 +31,46 @@ import { imagesForProductGrade } from "@store/shared";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useGalleryGradeSlug } from "@/components/shared/VariantContext";
+
+/** Minimum horizontal distance for a touch gesture to register as a swipe. */
+const SWIPE_THRESHOLD_PX = 40;
+/** Maximum vertical drift before we treat a gesture as a scroll, not a swipe. */
+const SWIPE_VERTICAL_TOLERANCE_PX = 60;
+
+interface SwipeHandlers {
+  onTouchStart: (event: React.TouchEvent) => void;
+  onTouchMove: (event: React.TouchEvent) => void;
+  onTouchEnd: (event: React.TouchEvent) => void;
+}
+
+/** Detects a horizontal swipe and calls onNext/onPrev. Ignores vertical scrolls. */
+function useHorizontalSwipe(onNext: () => void, onPrev: () => void): SwipeHandlers {
+  const startRef = useRef<{ x: number; y: number } | null>(null);
+
+  return {
+    onTouchStart: (event) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      startRef.current = { x: touch.clientX, y: touch.clientY };
+    },
+    onTouchMove: () => {
+      // Nothing to do mid-gesture; we evaluate on touchend.
+    },
+    onTouchEnd: (event) => {
+      const start = startRef.current;
+      startRef.current = null;
+      if (!start) return;
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      if (Math.abs(dy) > SWIPE_VERTICAL_TOLERANCE_PX) return;
+      if (Math.abs(dx) < SWIPE_THRESHOLD_PX) return;
+      if (dx < 0) onNext();
+      else onPrev();
+    },
+  };
+}
 
 interface PdpGalleryProps {
   /** Stable identity per grade — drives the memo + thumb-strip reset. */
@@ -76,12 +123,20 @@ function PdpGalleryInner({
     setReadyHeroKey(heroKey);
   }, [heroKey]);
 
-  function go(delta: number) {
-    if (images.length === 0) return;
-    setActiveIndex(
-      (current) => (current + delta + images.length) % images.length,
-    );
-  }
+  const go = useCallback(
+    (delta: number) => {
+      if (images.length === 0) return;
+      setActiveIndex(
+        (current) => (current + delta + images.length) % images.length,
+      );
+    },
+    [images.length],
+  );
+
+  const heroSwipe = useHorizontalSwipe(
+    useCallback(() => go(1), [go]),
+    useCallback(() => go(-1), [go]),
+  );
 
   if (layout === "mobile") {
     return (
@@ -90,7 +145,8 @@ function PdpGalleryInner({
           type="button"
           onClick={() => images.length > 0 && setLightboxOpen(true)}
           aria-label={hero ? `Open zoomed view of ${name}` : `${name} image`}
-          className="product-media-well relative block aspect-square w-full bg-[var(--color-canvas-deep)]"
+          className="product-media-well relative block aspect-square w-full touch-pan-y bg-[var(--color-canvas-deep)]"
+          {...(images.length > 1 ? heroSwipe : {})}
         >
           <div
             className={`product-media-well absolute inset-0 transition-none ${heroVisibilityClass}`}
@@ -147,6 +203,10 @@ function PdpGalleryInner({
             initialIndex={activeIndex}
             name={name}
             onClose={() => setLightboxOpen(false)}
+            onNavigate={(next) => setActiveIndex(next)}
+            showArrows
+            onNext={() => go(1)}
+            onPrev={() => go(-1)}
           />
         )}
       </>
@@ -154,12 +214,13 @@ function PdpGalleryInner({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <button
         type="button"
         onClick={() => images.length > 0 && setLightboxOpen(true)}
         aria-label={hero ? `Open zoomed view of ${name}` : `${name} image`}
-        className="product-media-well relative block min-h-0 w-full flex-1 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]"
+        className="product-media-well relative block aspect-square w-full touch-pan-y rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]"
+        {...(images.length > 1 ? heroSwipe : {})}
       >
         <div
           className={`product-media-well absolute inset-0 transition-none ${heroVisibilityClass}`}
@@ -252,19 +313,25 @@ function Lightbox({
   const [index, setIndex] = useState(initialIndex);
   const image = images[index];
 
+  const goNext = useCallback(() => {
+    if (images.length === 0) return;
+    setIndex((i) => (i + 1) % images.length);
+    onNext?.();
+  }, [images.length, onNext]);
+
+  const goPrev = useCallback(() => {
+    if (images.length === 0) return;
+    setIndex((i) => (i - 1 + images.length) % images.length);
+    onPrev?.();
+  }, [images.length, onPrev]);
+
+  const lightboxSwipe = useHorizontalSwipe(goNext, goPrev);
+
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
-      if (event.key === "ArrowRight") {
-        if (images.length === 0) return;
-        setIndex((i) => (i + 1) % images.length);
-        onNext?.();
-      }
-      if (event.key === "ArrowLeft") {
-        if (images.length === 0) return;
-        setIndex((i) => (i - 1 + images.length) % images.length);
-        onPrev?.();
-      }
+      if (event.key === "ArrowRight") goNext();
+      if (event.key === "ArrowLeft") goPrev();
     }
     window.addEventListener("keydown", handleKey);
     const previousOverflow = document.body.style.overflow;
@@ -273,7 +340,7 @@ function Lightbox({
       window.removeEventListener("keydown", handleKey);
       document.body.style.overflow = previousOverflow;
     };
-  }, [images.length, onClose, onNext, onPrev]);
+  }, [onClose, goNext, goPrev]);
 
   useEffect(() => {
     onNavigate?.(index);
@@ -294,9 +361,16 @@ function Lightbox({
         onClick={onClose}
         className="absolute inset-0"
       />
-      <div className="relative max-h-[92vh] max-w-[92vw]">
+      <div
+        className="relative max-h-[92vh] max-w-[92vw] touch-pan-y"
+        {...(images.length > 1 ? lightboxSwipe : {})}
+      >
         <Image
-          src={image.variants.full}
+          src={
+            image.variants.full ||
+            image.variants.detail ||
+            image.variants.card
+          }
           alt={image.alt || name}
           width={image.width}
           height={image.height}
@@ -321,7 +395,7 @@ function Lightbox({
             aria-label="Previous image"
             onClick={(e) => {
               e.stopPropagation();
-              setIndex((i) => (i - 1 + images.length) % images.length);
+              goPrev();
             }}
             className="absolute left-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white backdrop-blur hover:bg-white/25"
           >
@@ -332,7 +406,7 @@ function Lightbox({
             aria-label="Next image"
             onClick={(e) => {
               e.stopPropagation();
-              setIndex((i) => (i + 1) % images.length);
+              goNext();
             }}
             className="absolute right-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white backdrop-blur hover:bg-white/25"
           >
@@ -386,16 +460,14 @@ export function VariantAwareGallery({
     [galleryGradeSlug, product.gradeImages, product.variants],
   );
   return (
-    <div className={layout === "desktop" ? "h-full min-h-0" : undefined}>
-      <PdpGallery
-        key={galleryGradeSlug}
-        galleryKey={galleryGradeSlug}
-        images={galleryImages}
-        name={product.name}
-        brandName={brandName}
-        brandSlug={product.brandSlug}
-        layout={layout}
-      />
-    </div>
+    <PdpGallery
+      key={galleryGradeSlug}
+      galleryKey={galleryGradeSlug}
+      images={galleryImages}
+      name={product.name}
+      brandName={brandName}
+      brandSlug={product.brandSlug}
+      layout={layout}
+    />
   );
 }

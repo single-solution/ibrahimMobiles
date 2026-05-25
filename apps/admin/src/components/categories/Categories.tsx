@@ -22,7 +22,9 @@ import {
 
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
 import { useToast } from "@/components/Toast";
+import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { WorkspacePrimaryAction } from "@/components/workspace/adminWorkspaceUi";
 import type {
   AdminAttribute,
   AdminBrand,
@@ -286,13 +288,11 @@ export function Categories({
           </p>
         </div>
         {canManageCategories && (
-          <button
-            type="button"
+          <WorkspacePrimaryAction
+            label="New category"
+            icon={Plus}
             onClick={() => setDrawer({ kind: "category", category: null })}
-            className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-accent-600)] px-3 text-xs font-semibold text-white hover:bg-[var(--color-accent-700)]"
-          >
-            <Plus size={13} aria-hidden /> New category
-          </button>
+          />
         )}
       </header>
 
@@ -318,13 +318,17 @@ export function Categories({
               : "Create categories from the Categories page first, then manage this page's content under each category."}
           </p>
           {canManageCategories && (
-            <button
-              type="button"
-              onClick={() => setDrawer({ kind: "category", category: null })}
-              className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-[var(--color-accent-600)] px-4 py-2 text-[13.5px] font-semibold text-white hover:bg-[var(--color-accent-700)]"
-            >
-              <Plus size={14} /> Create category
-            </button>
+            <div className="mt-5 flex justify-center">
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                leadingIcon={<Plus size={14} />}
+                onClick={() => setDrawer({ kind: "category", category: null })}
+              >
+                Create category
+              </Button>
+            </div>
           )}
         </div>
       ) : (

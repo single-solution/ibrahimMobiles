@@ -55,21 +55,24 @@ export function ConfirmDialog({
         onClick={onCancel}
         className="animate-sheet-fade absolute inset-0 bg-[var(--color-ink-900)]/40"
       />
-      <div className="relative w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-lg)]">
-        <div className="flex items-start gap-3">
+      <div className="relative w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)] md:p-5">
+        <div className="flex items-start gap-2.5 md:gap-3">
           {tone === "danger" && (
-            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-rose-50 text-rose-600">
-              <AlertTriangle size={17} />
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-rose-50 text-rose-600 md:size-9">
+              <AlertTriangle size={15} className="md:hidden" />
+              <AlertTriangle size={17} className="hidden md:block" />
             </span>
           )}
           <div className="flex-1">
-            <h2 className="text-[15px] font-semibold leading-snug text-[var(--color-ink-900)]">
+            <h2 className="text-[14px] font-semibold leading-snug text-[var(--color-ink-900)] md:text-[15px]">
               {title}
             </h2>
-            <div className="mt-1 text-sm text-[var(--color-ink-600)]">{message}</div>
+            <div className="mt-1 text-[13px] text-[var(--color-ink-600)] md:text-sm">
+              {message}
+            </div>
           </div>
         </div>
-        <div className="mt-5 flex items-center justify-end gap-2">
+        <div className="mt-4 flex items-center justify-end gap-2 md:mt-5">
           <Button variant="outline" size="md" onClick={onCancel}>
             {cancelLabel}
           </Button>
