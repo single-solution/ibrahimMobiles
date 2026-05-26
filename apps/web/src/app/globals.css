@@ -175,36 +175,6 @@
    card that opts in via the matching React wrapper.
    ============================================================ */
 
-/* --- Letter-stagger entrance ------------------------------------
-   Applied once on mount via the `.hero-letter` span around each
-   character. Each letter inherits its own `--letter-i` index which
-   the CSS uses to delay its slide-up. Animation runs forwards so the
-   final state sticks. */
-@keyframes hero-letter-rise {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 0.35em, 0) rotate(2deg);
-    filter: blur(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) rotate(0);
-    filter: blur(0);
-  }
-}
-.hero-letter {
-  display: inline-block;
-  opacity: 0;
-  animation: hero-letter-rise 720ms var(--ease-spring) forwards;
-  animation-delay: calc(var(--letter-i, 0) * 38ms + 80ms);
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-letter {
-    animation: none;
-    opacity: 1;
-  }
-}
-
 /* --- 3D tilt card -----------------------------------------------
    The wrapper sets the perspective and an empty transform; the
    `.tilt-card-surface` child reads `--tilt-x` / `--tilt-y` set by
@@ -354,6 +324,108 @@
   .hero-spotlight {
     display: none;
   }
+}
+
+/* --- Kinetic-punch heading ---------------------------------------
+   Each character ships hidden so GSAP can take over without a flash
+   of visible content. Reduced-motion users still see the heading
+   immediately because the JS path explicitly resets `opacity: 1`. */
+.kinetic-heading {
+  display: block;
+  transform-style: preserve-3d;
+}
+.kinetic-char {
+  display: inline-block;
+  white-space: pre;
+  backface-visibility: hidden;
+  opacity: 0;
+  transform: translateY(0.55em) rotateX(-78deg);
+  filter: blur(8px);
+  transform-origin: 50% 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kinetic-char {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* --- Section ambience -------------------------------------------
+   Slimmer cousin of the hero ambient layer. Two orbs only, opacity
+   scaled by the wrapper's --section-ambience-opacity. */
+.section-ambience {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+  --section-ambience-opacity: 0.3;
+}
+.section-ambience-orb {
+  position: absolute;
+  display: block;
+  border-radius: 9999px;
+  filter: blur(70px);
+  opacity: var(--section-ambience-opacity);
+  will-change: transform;
+}
+.section-ambience-orb--a {
+  width: 38vw;
+  height: 38vw;
+  max-width: 460px;
+  max-height: 460px;
+  background: radial-gradient(
+    circle at 35% 35%,
+    color-mix(in srgb, var(--color-accent-200) 70%, transparent),
+    transparent 70%
+  );
+  animation: section-orb-a 26s ease-in-out infinite;
+}
+.section-ambience-orb--b {
+  width: 30vw;
+  height: 30vw;
+  max-width: 360px;
+  max-height: 360px;
+  background: radial-gradient(
+    circle at 60% 50%,
+    color-mix(in srgb, var(--color-accent-100) 90%, transparent),
+    transparent 72%
+  );
+  animation: section-orb-b 32s ease-in-out infinite;
+}
+.section-ambience[data-side="right"] .section-ambience-orb--a {
+  inset: -10% -10% auto auto;
+}
+.section-ambience[data-side="right"] .section-ambience-orb--b {
+  inset: auto auto -15% -15%;
+}
+.section-ambience[data-side="left"] .section-ambience-orb--a {
+  inset: -10% auto auto -10%;
+}
+.section-ambience[data-side="left"] .section-ambience-orb--b {
+  inset: auto -15% -15% auto;
+}
+@keyframes section-orb-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(3%, 5%, 0) scale(1.08); }
+}
+@keyframes section-orb-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-4%, -3%, 0) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .section-ambience-orb {
+    animation: none;
+  }
+}
+
+/* --- Scroll-pin diagram -----------------------------------------
+   Container needs `position: relative` for the absolutely-stacked
+   detail panels to share space; the SVG path uses a `currentColor`
+   stroke so theming via `text-[var(--color-...)]` Just Works. */
+.scroll-pin-diagram [data-diagram-panel] {
+  transform: translate3d(0, 0, 0);
 }
 
 /* Fluid spacing — desktop only.

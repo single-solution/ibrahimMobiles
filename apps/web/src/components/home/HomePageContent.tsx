@@ -27,7 +27,10 @@ import {
 import { HeroProductGallery } from "@/components/home/HeroProductGallery";
 import { GradesByCategoryTabs } from "@/components/home/GradesByCategoryTabs";
 import { HeroAmbience } from "@/components/motion/HeroAmbience";
+import { KineticHeading } from "@/components/motion/KineticHeading";
 import { MagneticHover } from "@/components/motion/MagneticHover";
+import { ScrollPinDiagram } from "@/components/motion/ScrollPinDiagram";
+import { SectionAmbience } from "@/components/motion/SectionAmbience";
 import {
   getPaymentMethods,
   type Brand,
@@ -575,32 +578,6 @@ interface HeroProps {
   brands: Brand[];
 }
 
-/**
- * Splits a word into per-letter spans so each character can ride its
- * own animation delay. Spaces collapse to fixed-width gaps so the
- * sequence still tracks naturally with the surrounding text. The
- * `aria-hidden`-on-spans + readable parent `aria-label` keeps screen
- * readers hearing the whole word rather than each letter.
- */
-function HeroLetterReveal({ text, startIndex = 0 }: { text: string; startIndex?: number }) {
-  return (
-    <span aria-label={text}>
-      {Array.from(text).map((char, index) => (
-        <span
-          key={`${char}-${index}`}
-          className="hero-letter"
-          style={
-            { ["--letter-i" as string]: String(startIndex + index) } as React.CSSProperties
-          }
-          aria-hidden
-        >
-          {char === " " ? "\u00A0" : char}
-        </span>
-      ))}
-    </span>
-  );
-}
-
 function MobileHero({ heroProducts, brands }: HeroProps) {
   return (
     <section
@@ -618,14 +595,22 @@ function MobileHero({ heroProducts, brands }: HeroProps) {
           <Recycle size={11} />
           Phones · Accessories · Gadgets
         </span>
-        <h1 className="font-display text-[110px] leading-[0.85] tracking-[-0.02em] uppercase">
-          <span className="hero-display-outline block">
-            <HeroLetterReveal text="pre owned" />
-          </span>
-          <span className="hero-accent-mark mt-2 block text-[var(--color-ink-800)]">
-            <HeroLetterReveal text="mobiles" startIndex={9} />
-          </span>
-        </h1>
+        <KineticHeading
+          as="h1"
+          lines={["pre owned", "mobiles"]}
+          immediate
+          stagger={0.045}
+          className="font-display text-[110px] leading-[0.85] tracking-[-0.02em] uppercase"
+          renderLine={(characters, lineIndex) =>
+            lineIndex === 0 ? (
+              <span className="hero-display-outline block">{characters}</span>
+            ) : (
+              <span className="hero-accent-mark mt-2 block text-[var(--color-ink-800)]">
+                {characters}
+              </span>
+            )
+          }
+        />
 
         <div className="w-full pt-1">
           <HeroProductGallery
@@ -787,10 +772,12 @@ function MobileProcessSection({ flows }: ProcessSectionProps) {
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
           How it works
         </p>
-        <h2 className="font-headline mt-2 text-[40px] font-semibold leading-[0.95] tracking-[-0.01em] text-[var(--color-ink-900)] uppercase">
-          Three flows
-          <span className="block">behind every order</span>
-        </h2>
+        <KineticHeading
+          as="h2"
+          lines={["Three flows", "behind every order"]}
+          stagger={0.028}
+          className="font-headline mt-2 text-[40px] font-semibold leading-[0.95] tracking-[-0.01em] text-[var(--color-ink-900)] uppercase"
+        />
         <p className="mt-3 text-[13px] leading-snug text-[var(--color-ink-500)]">
           From sourcing to refund — every step on record.
         </p>
@@ -878,10 +865,23 @@ async function MobileGradesSection() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-400)]">
           How we grade
         </p>
-        <h2 className="font-headline text-[44px] font-semibold leading-[0.95] tracking-[-0.01em] uppercase">
-          Honest grades.
-          <span className="block text-[var(--color-accent-300)]">No surprises.</span>
-        </h2>
+        <KineticHeading
+          as="h2"
+          lines={["Honest grades.", "No surprises."]}
+          stagger={0.03}
+          className="font-headline text-[44px] font-semibold leading-[0.95] tracking-[-0.01em] uppercase"
+          renderLine={(characters, lineIndex) => (
+            <span
+              className={
+                lineIndex === 1
+                  ? "block text-[var(--color-accent-300)]"
+                  : "block"
+              }
+            >
+              {characters}
+            </span>
+          )}
+        />
         <p className="text-[13px] leading-snug text-[var(--color-ink-300)]">
           A 32-point inspection — then a grade for that category. We pick it, we stand behind it.
         </p>
@@ -909,10 +909,23 @@ function MobileVisitStoreSection({ settings }: VisitStoreSectionProps) {
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
           Visit · Call · Chat
         </p>
-        <h2 className="font-headline mt-2 text-[40px] font-semibold leading-[0.95] tracking-[-0.01em] text-[var(--color-ink-900)] uppercase">
-          Walk in to
-          <span className="block text-[var(--color-accent-700)]">Hall Road</span>
-        </h2>
+        <KineticHeading
+          as="h2"
+          lines={["Walk in to", "Hall Road"]}
+          stagger={0.03}
+          className="font-headline mt-2 text-[40px] font-semibold leading-[0.95] tracking-[-0.01em] text-[var(--color-ink-900)] uppercase"
+          renderLine={(characters, lineIndex) => (
+            <span
+              className={
+                lineIndex === 1
+                  ? "block text-[var(--color-accent-700)]"
+                  : "block"
+              }
+            >
+              {characters}
+            </span>
+          )}
+        />
         <p className="mt-3 text-[13px] leading-snug text-[var(--color-ink-500)]">
           Hold the phone, test it for yourself — or message us, we ship anywhere in Pakistan.
         </p>
@@ -1027,14 +1040,22 @@ function DesktopHero({ heroProducts, brands }: HeroProps) {
             Phones · Accessories · Gadgets — graded honestly
           </Pill>
         </div>
-        <h1 className="font-display text-[150px] leading-[0.82] tracking-[-0.02em] uppercase">
-          <span className="hero-display-outline block">
-            <HeroLetterReveal text="pre-owned" />
-          </span>
-          <span className="hero-accent-mark mt-3 block text-[var(--color-ink-800)]">
-            <HeroLetterReveal text="mobiles" startIndex={9} />
-          </span>
-        </h1>
+        <KineticHeading
+          as="h1"
+          lines={["pre-owned", "mobiles"]}
+          immediate
+          stagger={0.045}
+          className="font-display text-[150px] leading-[0.82] tracking-[-0.02em] uppercase"
+          renderLine={(characters, lineIndex) =>
+            lineIndex === 0 ? (
+              <span className="hero-display-outline block">{characters}</span>
+            ) : (
+              <span className="hero-accent-mark mt-3 block text-[var(--color-ink-800)]">
+                {characters}
+              </span>
+            )
+          }
+        />
         <div className="w-full pt-2">
           <HeroProductGallery
             products={heroProducts}
@@ -1100,8 +1121,9 @@ function DesktopShopTypesSection({ categories }: ShopTypesSectionProps) {
   const headlineLabels = categories.map((category) => category.label);
 
   return (
-    <section className="mx-auto max-w-[1440px] px-6 py-24">
-      <div className="reveal">
+    <section className="relative mx-auto max-w-[1440px] overflow-hidden px-6 py-24">
+      <SectionAmbience intensity="soft" side="right" />
+      <div className="relative z-10 reveal">
         <DesktopSectionHeader
           eyebrow="Browse by category"
           title={formatCategorySectionTitle(headlineLabels)}
@@ -1109,7 +1131,7 @@ function DesktopShopTypesSection({ categories }: ShopTypesSectionProps) {
         />
       </div>
       <div
-        className={`reveal mt-12 ${getHomeCategoryGridClass(featured.length, "desktop")}`}
+        className={`relative z-10 reveal mt-12 ${getHomeCategoryGridClass(featured.length, "desktop")}`}
         style={{ ["--reveal-delay" as string]: "120ms" }}
       >
         {featured.map((meta, index) => (
@@ -1122,7 +1144,7 @@ function DesktopShopTypesSection({ categories }: ShopTypesSectionProps) {
         ))}
       </div>
       {showBrowseAll ? (
-        <div className="reveal mt-8 text-center">
+        <div className="relative z-10 reveal mt-8 text-center">
           <Link
             href="/shop"
             className="cta-arrow inline-flex items-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-5 py-2.5 text-[14px] font-semibold text-[var(--color-accent-700)] hover:border-[var(--color-ink-300)]"
@@ -1244,59 +1266,30 @@ function ShopTypeIcon({ category }: { category: HomePageCategory }) {
 }
 
 function DesktopProcessSection({ flows }: ProcessSectionProps) {
+  const stages = flows.map((flow) => ({
+    key: flow.key,
+    label: flow.label,
+    title: flow.caption,
+    description:
+      "Every step on record — no guesswork, no surprises, no hidden fees.",
+    icon: flow.icon,
+    steps: flow.steps,
+  }));
   return (
     <section
       id="how-to-buy"
-      className="mx-auto max-w-[1440px] scroll-mt-[var(--desktop-header-h)] px-6 py-24"
+      className="relative mx-auto max-w-[1440px] scroll-mt-[var(--desktop-header-h)] overflow-hidden px-6 py-24"
     >
-      <div className="reveal">
-        <DesktopSectionHeader
-          eyebrow="How it works"
-          title="Three flows behind every order."
-          description="From sourcing to refund — every step on record."
-        />
-      </div>
-      <div className="reveal-stagger mt-8 grid grid-cols-3 gap-4">
-        {flows.map((flow) => {
-          const Icon = flow.icon;
-          return (
-            <div
-              key={flow.key}
-              className="reveal flex flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] transition-shadow hover:shadow-[var(--shadow-md)]"
-            >
-              <div className="flex items-center gap-3 bg-[var(--color-ink-900)] px-6 py-4 text-[var(--color-canvas)]">
-                <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
-                  <Icon size={16} strokeWidth={2.2} />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-400)]">
-                    {flow.label}
-                  </p>
-                  <p className="text-[14px] font-semibold leading-tight">
-                    {flow.caption}
-                  </p>
-                </div>
-              </div>
-              <ol className="flex flex-1 flex-col gap-4 p-6">
-                {flow.steps.map((step, index) => (
-                  <li key={step.title} className="flex items-start gap-3">
-                    <span className="grid size-7 shrink-0 place-items-center rounded-full border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] text-[12px] font-semibold text-[var(--color-accent-800)]">
-                      {index + 1}
-                    </span>
-                    <div className="min-w-0 flex-1 leading-snug">
-                      <p className="text-[14px] font-semibold text-[var(--color-ink-900)]">
-                        {step.title}
-                      </p>
-                      <p className="mt-0.5 text-[12.5px] text-[var(--color-ink-600)]">
-                        {step.detail}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          );
-        })}
+      <SectionAmbience intensity="soft" side="left" />
+      <div className="relative z-10">
+        <div className="reveal">
+          <DesktopSectionHeader
+            eyebrow="How it works"
+            title="Three flows behind every order."
+            description="From sourcing to refund — scroll through each stage."
+          />
+        </div>
+        <ScrollPinDiagram stages={stages} className="mt-10" />
       </div>
     </section>
   );
@@ -1332,10 +1325,23 @@ async function DesktopGrades() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-400)]">
               How we grade
             </p>
-            <h2 className="font-headline text-[72px] font-semibold leading-[0.92] tracking-[-0.015em] uppercase">
-              Honest grades.<br />
-              <span className="text-[var(--color-accent-300)]">No surprises.</span>
-            </h2>
+            <KineticHeading
+              as="h2"
+              lines={["Honest grades.", "No surprises."]}
+              stagger={0.026}
+              className="font-headline text-[72px] font-semibold leading-[0.92] tracking-[-0.015em] uppercase"
+              renderLine={(characters, lineIndex) => (
+                <span
+                  className={
+                    lineIndex === 1
+                      ? "block text-[var(--color-accent-300)]"
+                      : "block"
+                  }
+                >
+                  {characters}
+                </span>
+              )}
+            />
             <p className="text-base text-[var(--color-ink-300)]">
               Our 32-point inspection covers cosmetic condition, battery health, screen, cameras and every button. Then we assign a grade for that category — and stand behind it.
             </p>
@@ -1356,9 +1362,10 @@ async function DesktopGrades() {
 
 function DesktopVisitStore({ settings }: VisitStoreSectionProps) {
   return (
-    <section id="contact" className="mx-auto max-w-[1440px] px-6 py-24">
+    <section id="contact" className="relative mx-auto max-w-[1440px] overflow-hidden px-6 py-24">
+      <SectionAmbience intensity="soft" side="right" />
       <div
-        className="reveal overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"
+        className="relative z-10 reveal overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"
       >
         <div className="grid grid-cols-[1.15fr_1fr]">
           <div className="flex flex-col gap-7 p-10">
@@ -1366,9 +1373,12 @@ function DesktopVisitStore({ settings }: VisitStoreSectionProps) {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
                 Visit · Call · Chat
               </p>
-              <h2 className="font-headline text-[72px] font-semibold leading-[0.92] tracking-[-0.015em] text-[var(--color-ink-900)] uppercase">
-                Walk in to <span className="text-[var(--color-accent-700)]">Hall Road</span>
-              </h2>
+              <KineticHeading
+                as="h2"
+                lines={["Walk in to Hall Road"]}
+                stagger={0.026}
+                className="font-headline text-[72px] font-semibold leading-[0.92] tracking-[-0.015em] text-[var(--color-ink-900)] uppercase"
+              />
               <p className="text-base text-[var(--color-ink-600)]">
                 Our flagship outlet sits in the heart of Pakistan&apos;s biggest mobile market — hold the phone, test it for yourself, walk out the same day. Or message us and we ship anywhere in Pakistan.
               </p>
@@ -1450,9 +1460,12 @@ function DesktopSectionHeader({ eyebrow, title, description, ctaHref, ctaLabel }
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
           {eyebrow}
         </p>
-        <h2 className="font-headline mt-2 text-[64px] font-semibold leading-[0.95] tracking-[-0.01em] text-[var(--color-ink-900)] uppercase">
-          {title}
-        </h2>
+        <KineticHeading
+          as="h2"
+          lines={title}
+          stagger={0.028}
+          className="font-headline mt-2 text-[64px] font-semibold leading-[0.95] tracking-[-0.01em] text-[var(--color-ink-900)] uppercase"
+        />
         <p className="mt-3 text-base text-[var(--color-ink-600)]">{description}</p>
       </div>
       {ctaHref && ctaLabel && (
