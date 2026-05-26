@@ -602,7 +602,7 @@ function MobileHero({ heroProducts, brands }: HeroProps) {
           className="font-display text-[110px] leading-[0.85] tracking-[-0.02em] uppercase"
           lineClassNames={[
             "hero-display-outline",
-            "hero-accent-mark mt-2 text-[var(--color-ink-800)]",
+            "mt-1 text-[var(--color-accent-700)]",
           ]}
         />
 
@@ -1022,7 +1022,7 @@ function DesktopHero({ heroProducts, brands }: HeroProps) {
           className="font-display text-[150px] leading-[0.82] tracking-[-0.02em] uppercase"
           lineClassNames={[
             "hero-display-outline",
-            "hero-accent-mark mt-3 text-[var(--color-ink-800)]",
+            "mt-1 text-[var(--color-accent-700)]",
           ]}
         />
         <div className="w-full pt-2">

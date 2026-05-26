@@ -129,44 +129,20 @@
   );
 }
 
-/* Hero dual-tone display type.
-   ----------------------------------------------------------------------
-   `hero-display-outline` — hollow ink-700 lockup for the supporting line
-   ("pre owned"). Thin stroke keeps it airy so the eye glides over it.
-
-   `hero-accent-mark` — solid gunmetal word ("mobiles") with a slim
-   chartreuse underline sitting just below the baseline. Calm, refined,
-   reads as a deliberate brand moment without screaming for attention. */
+/* Hero display type — hollow ink-700 outline for the supporting line
+   ("pre owned"). Thin stroke keeps it airy so the eye glides over it
+   onto the solid coloured line below. */
 .hero-display-outline {
   color: transparent;
   -webkit-text-stroke: 1px var(--color-ink-700);
   text-stroke: 1px var(--color-ink-700);
   paint-order: stroke fill;
 }
-.hero-accent-mark {
-  position: relative;
-  display: inline-block;
-  padding-bottom: 0.12em;
-}
-.hero-accent-mark::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0.04em;
-  bottom: 0;
-  height: 0.1em;
-  background: var(--color-accent-500);
-  border-radius: 999px;
-}
 
-/* Tablet+ — slightly thicker stroke + underline so they still read at
-   display sizes without going heavy. */
 @media (min-width: 768px) {
   .hero-display-outline {
     -webkit-text-stroke-width: 1.4px;
     text-stroke-width: 1.4px;
-  }
-  .hero-accent-mark::after {
-    height: 0.085em;
   }
 }
 
