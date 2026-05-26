@@ -1,8 +1,9 @@
 "use client";
 
 import { useGSAP } from "@gsap/react";
-import { useRef, type ComponentType, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
+import { LucideIconRenderer } from "@/components/shared/LucideIconRenderer";
 import {
   ensureGsapPlugins,
   gsap,
@@ -37,8 +38,8 @@ export interface DiagramStage {
   title: string;
   /** Body copy explaining the stage. */
   description: string;
-  /** Lucide-style icon component used in the SVG node. */
-  icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  /** Lucide icon name (PascalCase) — resolved inside this client component. */
+  iconName: string;
   /** Optional list of bullet steps shown when this stage is active. */
   steps?: Array<{ title: string; detail: string }>;
 }
@@ -207,9 +208,7 @@ export function ScrollPinDiagram({
             </ul>
           </div>
           <div className="relative">
-            {stages.map((stage, index) => {
-              const Icon = stage.icon;
-              return (
+            {stages.map((stage, index) => (
                 <div
                   key={stage.key}
                   data-diagram-panel={index}
@@ -219,7 +218,7 @@ export function ScrollPinDiagram({
                 >
                   <div className="flex items-center gap-3">
                     <span className="grid size-11 place-items-center rounded-full bg-[var(--color-ink-900)] text-[var(--color-accent-400)]">
-                      <Icon size={18} strokeWidth={2.2} />
+                      <LucideIconRenderer name={stage.iconName} size={18} strokeWidth={2.2} />
                     </span>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
                       {stage.label}
@@ -254,8 +253,7 @@ export function ScrollPinDiagram({
                     </ol>
                   ) : null}
                 </div>
-              );
-            })}
+            ))}
           </div>
         </div>
       </div>

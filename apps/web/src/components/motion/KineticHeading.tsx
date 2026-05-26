@@ -39,12 +39,12 @@ export interface KineticHeadingProps {
   /** Skip the ScrollTrigger and fire immediately on mount. */
   immediate?: boolean;
   className?: string;
-  /** Style applied to the line wrappers (each `<span class="kinetic-line">`). */
+  /** Default class on every line wrapper. */
   lineClassName?: string;
-  /** Optional render-prop wrapper for individual lines (e.g. add hero
-   *  outline / accent-mark spans). The function receives the rendered
-   *  character spans and the line index. */
-  renderLine?: (children: ReactNode, lineIndex: number) => ReactNode;
+  /** Per-line class names (serializable strings for RSC → client). Index
+   *  aligns with `lines` — omit or leave blank to fall back to
+   *  `lineClassName`. */
+  lineClassNames?: readonly string[];
   style?: CSSProperties;
 }
 
@@ -74,7 +74,7 @@ export function KineticHeading({
   immediate = false,
   className = "",
   lineClassName = "",
-  renderLine,
+  lineClassNames,
   style,
 }: KineticHeadingProps) {
   const rootRef = useRef<HTMLElement | null>(null);
@@ -154,20 +154,14 @@ export function KineticHeading({
       {normalisedLines.map((line, lineIndex) => {
         const startIndex = lineStartIndexes[lineIndex] ?? 0;
         const characters = splitCharacters(line, lineIndex, startIndex);
-        const block = (
+        const perLineClass = lineClassNames?.[lineIndex] ?? lineClassName;
+        return (
           <span
             key={`line-${lineIndex}`}
-            className={`kinetic-line block ${lineClassName}`.trim()}
+            className={`kinetic-line block ${perLineClass}`.trim()}
           >
             {characters}
           </span>
-        );
-        return renderLine ? (
-          <span key={`render-${lineIndex}`} className="block">
-            {renderLine(characters, lineIndex)}
-          </span>
-        ) : (
-          block
         );
       })}
     </Tag>

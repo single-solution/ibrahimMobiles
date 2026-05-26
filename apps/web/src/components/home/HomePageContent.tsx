@@ -82,6 +82,8 @@ interface ProcessFlow {
   label: string;
   caption: string;
   icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+  /** PascalCase Lucide name — serializable for client motion components. */
+  iconName: string;
   steps: ProcessFlowStep[];
 }
 
@@ -99,6 +101,7 @@ function buildProcessFlows(settings: StoreSettings): ProcessFlow[] {
       label: "Store",
       caption: "How we curate",
       icon: PackageOpen,
+      iconName: "PackageOpen",
       steps: [
         { title: "Source", detail: "Direct from verified Pakistani importers and trusted resellers." },
         { title: "Inspect", detail: "32-point bench check — battery, screen, cameras, every button." },
@@ -111,6 +114,7 @@ function buildProcessFlows(settings: StoreSettings): ProcessFlow[] {
       label: "Order",
       caption: "How you buy",
       icon: ShoppingBag,
+      iconName: "ShoppingBag",
       steps: [
         { title: "Pick", detail: "Browse by brand, grade or budget." },
         {
@@ -126,6 +130,7 @@ function buildProcessFlows(settings: StoreSettings): ProcessFlow[] {
       label: "Return",
       caption: "What we promise",
       icon: ShieldCheck,
+      iconName: "ShieldCheck",
       steps: [
         {
           title: `${settings.moneybackDays}-day moneyback`,
@@ -601,15 +606,10 @@ function MobileHero({ heroProducts, brands }: HeroProps) {
           immediate
           stagger={0.045}
           className="font-display text-[110px] leading-[0.85] tracking-[-0.02em] uppercase"
-          renderLine={(characters, lineIndex) =>
-            lineIndex === 0 ? (
-              <span className="hero-display-outline block">{characters}</span>
-            ) : (
-              <span className="hero-accent-mark mt-2 block text-[var(--color-ink-800)]">
-                {characters}
-              </span>
-            )
-          }
+          lineClassNames={[
+            "hero-display-outline",
+            "hero-accent-mark mt-2 text-[var(--color-ink-800)]",
+          ]}
         />
 
         <div className="w-full pt-1">
@@ -870,17 +870,7 @@ async function MobileGradesSection() {
           lines={["Honest grades.", "No surprises."]}
           stagger={0.03}
           className="font-headline text-[44px] font-semibold leading-[0.95] tracking-[-0.01em] uppercase"
-          renderLine={(characters, lineIndex) => (
-            <span
-              className={
-                lineIndex === 1
-                  ? "block text-[var(--color-accent-300)]"
-                  : "block"
-              }
-            >
-              {characters}
-            </span>
-          )}
+          lineClassNames={["", "text-[var(--color-accent-300)]"]}
         />
         <p className="text-[13px] leading-snug text-[var(--color-ink-300)]">
           A 32-point inspection — then a grade for that category. We pick it, we stand behind it.
@@ -914,17 +904,7 @@ function MobileVisitStoreSection({ settings }: VisitStoreSectionProps) {
           lines={["Walk in to", "Hall Road"]}
           stagger={0.03}
           className="font-headline mt-2 text-[40px] font-semibold leading-[0.95] tracking-[-0.01em] text-[var(--color-ink-900)] uppercase"
-          renderLine={(characters, lineIndex) => (
-            <span
-              className={
-                lineIndex === 1
-                  ? "block text-[var(--color-accent-700)]"
-                  : "block"
-              }
-            >
-              {characters}
-            </span>
-          )}
+          lineClassNames={["", "text-[var(--color-accent-700)]"]}
         />
         <p className="mt-3 text-[13px] leading-snug text-[var(--color-ink-500)]">
           Hold the phone, test it for yourself — or message us, we ship anywhere in Pakistan.
@@ -1046,15 +1026,10 @@ function DesktopHero({ heroProducts, brands }: HeroProps) {
           immediate
           stagger={0.045}
           className="font-display text-[150px] leading-[0.82] tracking-[-0.02em] uppercase"
-          renderLine={(characters, lineIndex) =>
-            lineIndex === 0 ? (
-              <span className="hero-display-outline block">{characters}</span>
-            ) : (
-              <span className="hero-accent-mark mt-3 block text-[var(--color-ink-800)]">
-                {characters}
-              </span>
-            )
-          }
+          lineClassNames={[
+            "hero-display-outline",
+            "hero-accent-mark mt-3 text-[var(--color-ink-800)]",
+          ]}
         />
         <div className="w-full pt-2">
           <HeroProductGallery
@@ -1272,7 +1247,7 @@ function DesktopProcessSection({ flows }: ProcessSectionProps) {
     title: flow.caption,
     description:
       "Every step on record — no guesswork, no surprises, no hidden fees.",
-    icon: flow.icon,
+    iconName: flow.iconName,
     steps: flow.steps,
   }));
   return (
@@ -1330,17 +1305,7 @@ async function DesktopGrades() {
               lines={["Honest grades.", "No surprises."]}
               stagger={0.026}
               className="font-headline text-[72px] font-semibold leading-[0.92] tracking-[-0.015em] uppercase"
-              renderLine={(characters, lineIndex) => (
-                <span
-                  className={
-                    lineIndex === 1
-                      ? "block text-[var(--color-accent-300)]"
-                      : "block"
-                  }
-                >
-                  {characters}
-                </span>
-              )}
+              lineClassNames={["", "text-[var(--color-accent-300)]"]}
             />
             <p className="text-base text-[var(--color-ink-300)]">
               Our 32-point inspection covers cosmetic condition, battery health, screen, cameras and every button. Then we assign a grade for that category — and stand behind it.
