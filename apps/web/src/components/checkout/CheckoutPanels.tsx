@@ -649,7 +649,7 @@ export function ChoiceTile({
         className={classNames(
           "mt-0.5 grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)]",
           isSelected
-            ? "bg-[var(--color-accent-600)] text-white"
+            ? "bg-[var(--color-accent-500)] text-[var(--color-ink-900)]"
             : "bg-[var(--color-canvas-deep)] text-[var(--color-ink-700)]",
         )}
       >

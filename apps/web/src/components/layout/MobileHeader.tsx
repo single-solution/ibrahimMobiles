@@ -87,7 +87,7 @@ export function MobileHeader({ onOpenSearch }: MobileHeaderProps) {
             {cart.itemCount > 0 && (
               <span
                 key={cart.itemCount}
-                className="animate-badge-pop absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full bg-[var(--color-accent-600)] text-[10px] font-semibold text-white"
+                className="animate-badge-pop absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full bg-[var(--color-accent-500)] text-[10px] font-semibold text-[var(--color-ink-900)]"
               >
                 {cart.itemCount}
               </span>

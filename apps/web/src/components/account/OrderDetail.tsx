@@ -201,7 +201,7 @@ function TimelineRow({
       <span
         className={classNames(
           "z-10 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2",
-          "border-[var(--color-accent-600)] bg-[var(--color-accent-600)] text-white",
+          "border-[var(--color-accent-500)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)]",
           isCurrent && "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-700)]",
         )}
       >

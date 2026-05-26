@@ -912,7 +912,7 @@ function ProductStorefrontToggle({
       className={classNames(
         "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
         saving ? "cursor-wait opacity-60" : "cursor-pointer",
-        isActive ? "bg-[var(--color-accent-700)]" : "bg-[var(--color-ink-200)]",
+        isActive ? "bg-[var(--color-ink-900)]" : "bg-[var(--color-ink-200)]",
       )}
     >
       <span

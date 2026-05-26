@@ -255,7 +255,7 @@ export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProp
               <Headset size={13} className="text-[var(--color-accent-700)]" />
               {threads.length} thread{threads.length === 1 ? "" : "s"}
               {unreadTotal > 0 && (
-                <span className="rounded-full bg-[var(--color-accent-700)] px-2 py-0.5 text-[10px] font-semibold text-white">
+                <span className="rounded-full bg-[var(--color-accent-500)] px-2 py-0.5 text-[10px] font-semibold text-[var(--color-ink-900)]">
                   {unreadTotal} new
                 </span>
               )}
@@ -402,7 +402,7 @@ function ThreadSidebar({
                     : "hover:bg-[var(--color-surface)]/80",
                 )}
               >
-                <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-700)] text-sm font-semibold text-white">
+                <span className="mt-0.5 grid size-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-300)] to-[var(--color-accent-500)] text-sm font-semibold text-[var(--color-ink-900)]">
                   {title.charAt(0).toUpperCase()}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -425,7 +425,7 @@ function ThreadSidebar({
                       {status.label}
                     </span>
                     {thread.unreadByCustomer > 0 && (
-                      <span className="rounded-full bg-[var(--color-accent-700)] px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                      <span className="rounded-full bg-[var(--color-accent-500)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--color-ink-900)]">
                         {thread.unreadByCustomer}
                       </span>
                     )}

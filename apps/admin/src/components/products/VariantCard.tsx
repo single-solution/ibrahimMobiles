@@ -297,7 +297,7 @@ export function VariantDetailFooter({
             className={classNames(
               "relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors",
               inStock
-                ? "bg-[var(--color-accent-700)]"
+                ? "bg-[var(--color-ink-900)]"
                 : "bg-[var(--color-ink-200)]",
             )}
           >

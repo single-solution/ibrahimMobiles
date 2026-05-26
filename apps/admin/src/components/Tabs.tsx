@@ -78,7 +78,7 @@ export function TabList({
                 className={classNames(
                   "rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
                   isActive
-                    ? "bg-[var(--color-accent-700)] text-white"
+                    ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
                     : "bg-[var(--color-canvas-deep)] text-[var(--color-ink-600)]",
                 )}
               >
@@ -86,7 +86,7 @@ export function TabList({
               </span>
             )}
             {isActive && (
-              <span className="absolute -bottom-px left-0 right-0 h-0.5 bg-[var(--color-accent-700)]" />
+              <span className="absolute -bottom-px left-0 right-0 h-0.5 bg-[var(--color-accent-500)]" />
             )}
           </button>
         );

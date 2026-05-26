@@ -55,7 +55,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={socialButton.label}
-                  className="tap grid size-9 place-items-center rounded-[var(--radius-md)] border border-[var(--color-ink-700)] bg-[var(--color-ink-800)] text-[var(--color-ink-300)] transition-colors hover:border-[var(--color-accent-500)] hover:bg-[var(--color-accent-700)] hover:text-white"
+                  className="tap grid size-9 place-items-center rounded-[var(--radius-md)] border border-[var(--color-ink-700)] bg-[var(--color-ink-800)] text-[var(--color-ink-300)] transition-colors hover:border-[var(--color-accent-500)] hover:bg-[var(--color-accent-500)] hover:text-[var(--color-ink-900)]"
                 >
                   {socialButton.icon}
                 </a>

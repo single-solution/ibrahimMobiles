@@ -101,16 +101,16 @@ export function ChatFabShell({ mobileStackedAbove = null }: ChatFabShellProps) {
         aria-label={isOpen ? "Close chat" : "Ask us a question"}
         aria-expanded={isOpen}
         className={classNames(
-          "tap group relative flex cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-accent-700)] py-2.5 text-white shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-accent-800)] hover:shadow-[var(--shadow-lg)]",
+          "tap group relative flex cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-ink-900)] py-2.5 text-white shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink-800)] hover:shadow-[var(--shadow-lg)]",
           isLabelVisible && !isOpen ? "gap-2 pl-3 pr-4" : "gap-0 px-2.5",
           "md:gap-2 md:pl-3 md:pr-4",
         )}
       >
-        <span className="grid size-7 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-700)] transition-transform group-hover:scale-110">
+        <span className="grid size-7 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-500)] text-[var(--color-ink-900)] transition-transform group-hover:scale-110">
           {isOpen ? (
-            <X size={14} />
+            <X size={14} strokeWidth={2.4} />
           ) : (
-            <MessageSquare size={14} className="fill-white text-white" />
+            <MessageSquare size={14} strokeWidth={2.4} />
           )}
         </span>
         <span

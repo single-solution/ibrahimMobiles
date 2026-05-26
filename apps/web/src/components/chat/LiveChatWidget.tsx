@@ -351,7 +351,7 @@ export function LiveChatWidget({
             href={buildWhatsAppLink("Salam!", whatsappNumber)}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-[var(--radius-md)] bg-[var(--color-accent-700)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--color-accent-800)]"
+            className="rounded-[var(--radius-md)] bg-[var(--color-accent-500)] px-3 py-1.5 text-xs font-semibold text-[var(--color-ink-900)] hover:bg-[var(--color-accent-600)]"
           >
             Open WhatsApp
           </a>
@@ -476,7 +476,7 @@ function ChatShell({
             <ArrowLeft size={16} />
           </button>
         ) : (
-          <span className="grid size-10 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-700)] text-base font-semibold">
+          <span className="grid size-10 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-300)] to-[var(--color-accent-500)] text-base font-semibold text-[var(--color-ink-900)]">
             <MessageSquare size={16} />
           </span>
         )}
@@ -545,7 +545,7 @@ function ThreadList({ threads, onOpen, onNew }: ThreadListProps) {
                 {thread.lastMessagePreview || "No messages yet"}
               </p>
               {thread.unreadByCustomer > 0 && (
-                <span className="inline-flex w-fit items-center rounded-full bg-[var(--color-accent-700)] px-2 py-0.5 text-[10px] font-semibold text-white">
+                <span className="inline-flex w-fit items-center rounded-full bg-[var(--color-accent-500)] px-2 py-0.5 text-[10px] font-semibold text-[var(--color-ink-900)]">
                   {thread.unreadByCustomer} new
                 </span>
               )}
@@ -856,7 +856,7 @@ function ChatLoginGate({ signInHref }: { signInHref: string }) {
       </p>
       <Link
         href={signInHref}
-        className="mt-3 flex h-10 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent-700)] text-sm font-semibold text-white transition-colors hover:bg-[var(--color-accent-800)]"
+        className="mt-3 flex h-10 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-sm font-semibold text-[var(--color-ink-900)] transition-colors hover:bg-[var(--color-accent-600)]"
       >
         Sign in
       </Link>

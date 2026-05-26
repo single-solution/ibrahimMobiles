@@ -344,7 +344,7 @@ function SelectablePill({
       className={classNames(
         "group inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
         selected
-          ? "border-[var(--color-accent-700)] bg-[var(--color-accent-700)] text-white shadow-[var(--shadow-sm)]"
+          ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)] shadow-[var(--shadow-sm)] ring-2 ring-[var(--color-accent-400)]/25"
           : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:border-[var(--color-accent-500)] hover:text-[var(--color-ink-900)]",
         disabled && "cursor-not-allowed opacity-60",
       )}

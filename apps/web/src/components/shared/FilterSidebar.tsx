@@ -66,7 +66,7 @@ export function FilterSidebar({
           <SlidersHorizontal size={13} />
           Filters
           {activeFilterCount > 0 && (
-            <span className="ml-0.5 grid size-4 place-items-center rounded-full bg-[var(--color-accent-700)] text-[10px] font-bold text-white">
+            <span className="ml-0.5 grid size-4 place-items-center rounded-full bg-[var(--color-accent-500)] text-[10px] font-bold text-[var(--color-ink-900)]">
               {activeFilterCount}
             </span>
           )}
@@ -616,7 +616,7 @@ function FilterCheckRow({ label, count, checked, onToggle }: FilterCheckRowProps
           className={classNames(
             "grid size-[18px] shrink-0 place-items-center rounded-[5px] border transition-colors",
             checked
-              ? "border-[var(--color-accent-700)] bg-[var(--color-accent-700)] text-white"
+              ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)] shadow-[var(--shadow-sm)] ring-2 ring-[var(--color-accent-400)]/25"
               : "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
           )}
         >

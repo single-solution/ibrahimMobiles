@@ -141,7 +141,7 @@ export function ChatMessageBubble({
       )}
     >
       {!isCustomer && (
-        <span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-700)] text-[11px] font-semibold text-white">
+        <span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-300)] to-[var(--color-accent-500)] text-[11px] font-semibold text-[var(--color-ink-900)]">
           {(isAssistant ? "S" : (message.authorName ?? "T")).charAt(0).toUpperCase()}
         </span>
       )}

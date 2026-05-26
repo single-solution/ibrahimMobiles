@@ -136,7 +136,7 @@ function RoleHeaderCard({
               aria-hidden
             >
               <div
-                className="h-full rounded-full bg-[var(--color-accent-700)]"
+                className="h-full rounded-full bg-[var(--color-accent-500)]"
                 style={{ width: `${(grantedCount / totalCount) * 100}%` }}
               />
             </div>

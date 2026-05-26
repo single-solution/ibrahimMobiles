@@ -97,7 +97,7 @@ export function OrderHistory({ orders }: OrderHistoryProps) {
                 className={classNames(
                   "grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-semibold",
                   isActive
-                    ? "bg-[var(--color-accent-600)] text-white"
+                    ? "bg-[var(--color-accent-500)] text-[var(--color-ink-900)]"
                     : "bg-[var(--color-ink-100)] text-[var(--color-ink-700)]",
                 )}
               >

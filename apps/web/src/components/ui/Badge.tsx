@@ -27,7 +27,7 @@ interface BadgeProps {
 
 const TONE_CLASSES: Record<BadgeTone, string> = {
   neutral: "bg-[var(--color-ink-100)] text-[var(--color-ink-800)]",
-  accent: "bg-[var(--color-accent-600)] text-white",
+  accent: "bg-[var(--color-accent-500)] text-[var(--color-ink-900)]",
   warn: "bg-[var(--color-warn-500)] text-white",
   danger: "bg-[var(--color-danger-500)] text-white",
   info: "bg-[var(--color-info-500)] text-white",
