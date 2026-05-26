@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, ShoppingBag, User } from "lucide-react";
+import { BrandLockup } from "@/components/layout/BrandLockup";
 import { CartDropdown } from "@/components/cart/CartDropdown";
 import { useCart } from "@/lib/cart/useCart";
 import { classNames } from "@store/shared";
@@ -15,9 +16,10 @@ interface MobileHeaderProps {
 
 export function MobileHeader({ onOpenSearch }: MobileHeaderProps) {
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
   const cart = useCart();
-  const { siteName } = useStoreSettings();
+  const { siteName, brandLogoLight, brandLogoDark } = useStoreSettings();
 
   // Close the cart whenever the visitor navigates. Navigation-driven UI
   // reset; `useEffectEvent` is still experimental in React 19.
@@ -26,10 +28,30 @@ export function MobileHeader({ onOpenSearch }: MobileHeaderProps) {
     setIsCartOpen(false);
   }, [pathname]);
 
+  // Mirror the desktop header's frosted-on-scroll behaviour so the
+  // mobile header dissolves into the hero gradient at the top of the
+  // page and only firms up once content scrolls underneath it. Passive
+  // listener so the scroll thread stays cheap.
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 4);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
     <header
+      data-scrolled={isScrolled ? "true" : "false"}
+      /* `.scroll-header` (in globals.css) supplies the real
+         `backdrop-filter` frosted-glass background. At the top of the
+         page the header is near-transparent so the hero gradient shows
+         through; on scroll it picks up a stronger tint, ink-100 border
+         and shadow. The `border-b` class only declares the side; the
+         colour is animated by `.scroll-header[data-scrolled]`. */
       className={classNames(
-        "sticky top-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] shadow-[var(--shadow-sm)] safe-top md:hidden",
+        "scroll-header sticky top-0 border-b safe-top md:hidden",
         isCartOpen ? "z-[80]" : "z-30",
       )}
       style={{ height: "var(--mobile-header-h)" }}
@@ -43,16 +65,13 @@ export function MobileHeader({ onOpenSearch }: MobileHeaderProps) {
         />
       )}
       <div className="flex h-full items-center gap-2 px-4">
-        <Link
+        <BrandLockup
           href="/"
-          aria-label={siteName}
-          className="brand-lockup flex items-center gap-2 text-[var(--color-ink-900)]"
-        >
-          <span className="grid size-8 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
-            <ShoppingBag size={14} strokeWidth={2.6} />
-          </span>
-          <span className="font-semibold text-lg leading-none tracking-tight">{siteName}</span>
-        </Link>
+          siteName={siteName}
+          logoUrl={brandLogoLight || brandLogoDark}
+          tone="light"
+          size="sm"
+        />
 
         <div className="ml-auto flex items-center gap-1">
           <button

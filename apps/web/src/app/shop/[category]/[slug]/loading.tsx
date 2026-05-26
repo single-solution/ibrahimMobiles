@@ -44,7 +44,7 @@ export default function ProductDetailLoading() {
 
         <DesktopGradeShowcaseSkeleton />
 
-        <section className="mt-20">
+        <section className="cv-auto mt-20">
           <div className="flex items-end justify-between gap-3">
             <Skeleton shape="text" className="h-8 w-72" />
             <Skeleton shape="text" className="h-3 w-28" />
@@ -126,7 +126,7 @@ function DesktopVariantSelectorSkeleton() {
 
 function MobileGradeShowcaseSkeleton() {
   return (
-    <section className="app-section">
+    <section className="app-section cv-auto">
       <div className="mb-4 space-y-1.5">
         <Skeleton shape="text" className="h-3 w-24" />
         <Skeleton shape="text" className="h-6 w-2/3" />
@@ -151,7 +151,7 @@ function MobileGradeShowcaseSkeleton() {
 
 function DesktopGradeShowcaseSkeleton() {
   return (
-    <section className="mt-20 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/40 p-8">
+    <section className="cv-auto mt-20 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/40 p-8">
       <div className="mb-6 space-y-2">
         <Skeleton shape="text" className="h-3 w-32" />
         <Skeleton shape="text" className="h-8 w-1/3" />
@@ -174,7 +174,7 @@ function DesktopGradeShowcaseSkeleton() {
 
 function RelatedRailSkeleton() {
   return (
-    <section className="app-section">
+    <section className="app-section cv-auto">
       <div className="mb-3 flex items-center justify-between gap-3">
         <Skeleton shape="text" className="h-3 w-32" />
         <Skeleton shape="text" className="h-3 w-16" />

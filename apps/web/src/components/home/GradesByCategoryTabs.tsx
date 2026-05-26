@@ -34,7 +34,7 @@ export function GradesByCategoryTabs({ groups, variant }: GradesByCategoryTabsPr
       {showTabs && (
         <div
           className={classNames(
-            "flex w-full divide-x divide-white/15 overflow-x-auto rounded-[var(--radius-md)] border border-white/15",
+            "flex w-full divide-x divide-[var(--color-on-dark-15)] overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-on-dark-15)]",
             variant === "mobile" && "scrollbar-none",
           )}
           role="tablist"
@@ -53,8 +53,8 @@ export function GradesByCategoryTabs({ groups, variant }: GradesByCategoryTabsPr
                 className={classNames(
                   "tap min-w-0 flex-1 whitespace-nowrap px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors md:px-4 md:py-3 md:text-xs",
                   isSelected
-                    ? "bg-white/10 text-[var(--color-accent-300)]"
-                    : "bg-white/[0.03] text-[var(--color-ink-300)] hover:bg-white/[0.06] hover:text-[var(--color-canvas)]",
+                    ? "bg-[var(--color-on-dark-10)] text-[var(--color-accent-300)]"
+                    : "bg-[var(--color-on-dark-03)] text-[var(--color-ink-300)] hover:bg-[var(--color-on-dark-06)] hover:text-[var(--color-canvas)]",
                 )}
               >
                 {group.categoryLabel}
@@ -64,7 +64,10 @@ export function GradesByCategoryTabs({ groups, variant }: GradesByCategoryTabsPr
         </div>
       )}
 
+      {/* `key` forces a remount on tab change so the `.animate-tab-panel-in`
+          class on the grid runs its cross-fade-up keyframe each time. */}
       <GradeCardGrid
+        key={activeGroup.categorySlug}
         grades={activeGroup.grades}
         variant={variant}
         panelId={activeGroup.categorySlug}
@@ -87,17 +90,20 @@ function GradeCardGrid({
       <ul
         role="tabpanel"
         id={`grades-panel-${panelId}`}
-        className="reveal-stagger grid grid-cols-2 gap-2.5"
+        className="animate-tab-panel-in reveal-stagger grid grid-cols-2 gap-2.5"
       >
         {grades.map((descriptor) => (
           <li
             key={`${descriptor.categorySlug}:${descriptor.slug}`}
-            className="reveal flex flex-col gap-2 rounded-[14px] border border-white/10 bg-white/[0.06] p-3"
+            /* Concentric: inner GradeBadge --radius-md (8) + p-3 (12) →
+               outer 20 = --radius-xl. */
+            className="reveal flex flex-col gap-2 rounded-[var(--radius-xl)] border border-[var(--color-on-dark-10)] bg-[var(--color-on-dark-06)] p-3"
           >
             <GradeBadge
               categorySlug={descriptor.categorySlug}
               gradeSlug={descriptor.slug}
               size="sm"
+              surface="dark"
             />
             <GradeCardCopy descriptor={descriptor} variant={variant} />
           </li>
@@ -110,17 +116,20 @@ function GradeCardGrid({
     <div
       role="tabpanel"
       id={`grades-panel-${panelId}`}
-      className="reveal-stagger grid grid-cols-3 gap-3"
+      className="animate-tab-panel-in reveal-stagger grid grid-cols-3 gap-3"
     >
       {grades.map((descriptor) => (
         <div
           key={`${descriptor.categorySlug}:${descriptor.slug}`}
-          className="reveal flex flex-col gap-2.5 rounded-[var(--radius-lg)] border border-white/10 bg-white/5 p-5"
+          /* Concentric: inner GradeBadge --radius-md (8) + p-5 (20) →
+             outer 28 ≈ --radius-3xl (32, within 4px). */
+          className="reveal flex flex-col gap-2.5 rounded-[var(--radius-3xl)] border border-[var(--color-on-dark-10)] bg-[var(--color-on-dark-05)] p-5"
         >
           <GradeBadge
             categorySlug={descriptor.categorySlug}
             gradeSlug={descriptor.slug}
             size="sm"
+            surface="dark"
           />
           <GradeCardCopy descriptor={descriptor} variant={variant} />
         </div>

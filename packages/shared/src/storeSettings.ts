@@ -28,6 +28,20 @@ export interface StoreSettings {
    */
   storefrontUrl: string;
 
+  /**
+   * Brand mark URLs used by the storefront chrome. Each pair has a light
+   * variant (sits on light surfaces — top header, login screen) and a
+   * dark variant (sits on the dark footer, dark system favicons).
+   *
+   * Empty string = no upload → the chrome falls back to the wordmark
+   * (`siteName`) only, no badge/icon. Browsers fall back to whichever
+   * favicon variant is present, or to `/favicon.ico` when both are empty.
+   */
+  brandLogoLight: string;
+  brandLogoDark: string;
+  brandFaviconLight: string;
+  brandFaviconDark: string;
+
   /** Mobile/cell number callers reach for sales + support. */
   supportPhone: string;
   /** Landline number printed in the footer. */
@@ -140,6 +154,11 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
   siteTagline: "Pakistan's most trusted pre-owned phone store.",
   storefrontUrl: "",
 
+  brandLogoLight: "",
+  brandLogoDark: "",
+  brandFaviconLight: "",
+  brandFaviconDark: "",
+
   supportPhone: "+92 320 4862403",
   supportLandline: "+92 42 37245459",
   supportEmail: "alyaschudry@gmail.com",
@@ -204,7 +223,15 @@ export const STORE_SETTING_KEYS = Object.keys(STORE_SETTING_DEFAULTS) as Array<k
  * Used by the admin UI for tabbed editing and by the API for filtering.
  */
 export const STORE_SETTING_GROUPS = {
-  branding: ["siteName", "siteTagline", "storefrontUrl"] as const,
+  branding: [
+    "siteName",
+    "siteTagline",
+    "storefrontUrl",
+    "brandLogoLight",
+    "brandLogoDark",
+    "brandFaviconLight",
+    "brandFaviconDark",
+  ] as const,
   contact: ["supportPhone", "supportLandline", "supportEmail", "whatsappNumber"] as const,
   address: ["storeAddressLine1", "storeAddressLine2", "storeHours"] as const,
   social: [

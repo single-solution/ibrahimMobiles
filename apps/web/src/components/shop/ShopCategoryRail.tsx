@@ -127,7 +127,9 @@ function CategoryHubCard({ category }: { category: StorefrontCategory }) {
   const inner = (
     <div
       className={classNames(
-        "flex h-full min-h-[7.5rem] flex-col items-start justify-between gap-4 rounded-[var(--radius-lg)] border p-5 transition-[border-color,box-shadow,transform] duration-[var(--motion-fast)] md:min-h-[8.5rem] md:p-6",
+        /* Concentric: inner icon well --radius-md (8) + p-5/p-6
+           (20/24) → outer 28/32 ≈ --radius-3xl (32). */
+        "flex h-full min-h-[7.5rem] flex-col items-start justify-between gap-4 rounded-[var(--radius-3xl)] border p-5 transition-[border-color,box-shadow,transform] duration-[var(--motion-fast)] md:min-h-[8.5rem] md:p-6",
         isAvailable
           ? "border-[var(--color-ink-100)] bg-[var(--color-surface)] hover:-translate-y-0.5 hover:border-[var(--color-accent-300)]/50 hover:shadow-[var(--shadow-md)]"
           : "cursor-not-allowed border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]/40 opacity-75",

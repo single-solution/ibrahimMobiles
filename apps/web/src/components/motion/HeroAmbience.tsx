@@ -38,6 +38,28 @@ export function HeroAmbience() {
     const section = node.parentElement;
     if (!section) return;
 
+    // Cache the section rect; refresh on resize / scroll only.
+    let rect = section.getBoundingClientRect();
+    const refreshRect = () => {
+      rect = section.getBoundingClientRect();
+    };
+
+    // Pause when the section is offscreen — there's no point computing
+    // a cursor spotlight nobody can see, and pausing also lets the
+    // browser stop compositing the blurred orb layer.
+    let visible = true;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) return;
+        visible = entry.isIntersecting;
+        node.dataset.ambienceVisible = visible ? "1" : "0";
+      },
+      { rootMargin: "120px 0px" },
+    );
+    io.observe(section);
+    node.dataset.ambienceVisible = "1";
+
     const apply = () => {
       frameRef.current = null;
       const { x, y, active } = targetRef.current;
@@ -52,7 +74,7 @@ export function HeroAmbience() {
     };
 
     const handleMove = (event: PointerEvent) => {
-      const rect = section.getBoundingClientRect();
+      if (!visible) return;
       const px = ((event.clientX - rect.left) / rect.width) * 100;
       const py = ((event.clientY - rect.top) / rect.height) * 100;
       targetRef.current.x = px;
@@ -66,11 +88,16 @@ export function HeroAmbience() {
       schedule();
     };
 
-    section.addEventListener("pointermove", handleMove);
-    section.addEventListener("pointerleave", handleLeave);
+    section.addEventListener("pointermove", handleMove, { passive: true });
+    section.addEventListener("pointerleave", handleLeave, { passive: true });
+    window.addEventListener("resize", refreshRect, { passive: true });
+    window.addEventListener("scroll", refreshRect, { passive: true });
     return () => {
       section.removeEventListener("pointermove", handleMove);
       section.removeEventListener("pointerleave", handleLeave);
+      window.removeEventListener("resize", refreshRect);
+      window.removeEventListener("scroll", refreshRect);
+      io.disconnect();
       if (frameRef.current != null) {
         window.cancelAnimationFrame(frameRef.current);
         frameRef.current = null;

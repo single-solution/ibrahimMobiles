@@ -20,7 +20,7 @@ export default function AccountLoading() {
       <StatsRowSkeleton />
 
       <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-[1fr_320px] md:gap-6 lg:gap-8">
-        <div className="space-y-4">
+        <div className="cv-auto space-y-4">
           <div className="space-y-2">
             <Skeleton shape="text" className="h-3 w-32" />
             <Skeleton shape="text" className="h-6 w-1/2" />

@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { MessageCircle, ShoppingBag } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
 import { buildWhatsAppLink } from "@store/shared";
 
+import { BrandLockup } from "@/components/layout/BrandLockup";
 import {
   FacebookIcon,
   InstagramIcon,
@@ -23,16 +23,21 @@ export function Footer() {
   ];
 
   return (
-    <footer className="mt-14 border-t border-[var(--color-ink-100)] bg-[var(--color-ink-900)] text-[var(--color-ink-200)] sm:mt-24">
+    <footer className="cv-auto mt-14 border-t border-[var(--color-ink-100)] bg-[var(--color-ink-900)] text-[var(--color-ink-200)] sm:mt-24">
       <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
-            <Link href="/" className="brand-lockup flex items-center gap-2.5 text-white">
-              <span className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
-                <ShoppingBag size={16} strokeWidth={2.4} />
-              </span>
-              <span className="text-2xl font-semibold tracking-tight">{settings.siteName}</span>
-            </Link>
+            <BrandLockup
+              href="/"
+              siteName={settings.siteName}
+              /* Prefer the dark-surface logo down here since the footer
+                 sits on `--color-ink-900`; fall back to the light logo
+                 so a single uploaded mark still works. Empty string ⇒
+                 wordmark only. */
+              logoUrl={settings.brandLogoDark || settings.brandLogoLight}
+              tone="dark"
+              size="md"
+            />
             <span className="hidden h-6 w-px bg-[var(--color-ink-700)] sm:block" />
             <p className="max-w-xs text-sm text-[var(--color-ink-400)]">{settings.siteTagline}</p>
           </div>
@@ -42,9 +47,9 @@ export function Footer() {
               href={buildWhatsAppLink("Salam!", settings.whatsappNumber)}
               target="_blank"
               rel="noopener noreferrer"
-              className="tap inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-whatsapp)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-whatsapp-dark)]"
+              className="tap inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-whatsapp)] px-4 text-sm font-semibold text-[var(--color-on-dark)] transition-colors hover:bg-[var(--color-whatsapp-dark)]"
             >
-              <MessageCircle size={15} className="fill-white" />
+              <MessageCircle size={15} className="fill-[var(--color-on-dark)]" />
               Chat on WhatsApp
             </a>
             <div className="flex items-center gap-1.5">

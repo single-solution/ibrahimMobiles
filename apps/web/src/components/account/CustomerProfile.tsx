@@ -171,7 +171,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
         <h1 className="mt-1 font-headline text-[34px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[44px]">
           Your details
         </h1>
-        <p className="mt-1 text-[13px] text-[var(--color-ink-500)] md:text-sm">
+        <p className="mt-1 max-w-prose text-[13px] text-[var(--color-ink-500)] md:text-sm">
           Manage your contact information and saved addresses.
         </p>
       </div>
@@ -218,7 +218,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
         </div>
         {profileError && <ErrorBanner message={profileError} />}
         <div className="mt-4 flex items-center justify-between gap-3">
-          <p className="text-[11.5px] text-[var(--color-ink-500)]">
+          <p className="max-w-prose text-[11.5px] text-[var(--color-ink-500)]">
             We&rsquo;ll only use these to update you about your orders.
           </p>
           <Button
@@ -238,7 +238,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
           Saved addresses
           {hasSavedAddresses && (
-            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-800">
+            <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-[var(--color-success-50)] px-2 py-0.5 text-[10.5px] font-semibold text-[var(--color-success-800)]">
               <Check size={10} strokeWidth={3.2} />
               Saved
             </span>
@@ -256,7 +256,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
       </div>
       {addressError && <ErrorBanner message={addressError} />}
 
-      <ul className="mt-3 space-y-3">
+      <ul className="cv-auto mt-3 space-y-3">
         {addresses.length === 0 ? (
           <li>
             <Card className="p-6 text-center text-[12.5px] text-[var(--color-ink-500)]">
@@ -296,7 +296,7 @@ function ErrorBanner({ message }: { message: string }) {
   return (
     <p
       role="alert"
-      className="mt-3 rounded-[var(--radius-md)] border border-rose-100 bg-rose-50 px-3 py-2 text-[12.5px] text-rose-800"
+      className="animate-banner-in mt-3 rounded-[var(--radius-md)] border border-[var(--color-danger-100)] bg-[var(--color-danger-50)] px-3 py-2 text-[12.5px] text-[var(--color-danger-800)]"
     >
       {message}
     </p>

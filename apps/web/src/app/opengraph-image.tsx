@@ -4,6 +4,14 @@
  * Branded 1200×630 image used whenever someone shares the storefront
  * root. Simple — store name, tagline, and (if available) the default
  * OG image from settings.
+ *
+ * Every hex literal mirrors the official palette so the OG card stays
+ * in-brand without depending on runtime CSS variables (Vercel OG runs
+ * in an isolated edge runtime that can't read globals.css).
+ *   #00272c -> --color-ink-900
+ *   #0a3035 -> --color-ink-800
+ *   #1a3f44 -> --color-ink-700
+ *   #ffffff -> --color-canvas
  */
 
 import { ImageResponse } from "next/og";
@@ -61,8 +69,8 @@ function HomeCard(data: HomeOgData) {
         alignItems: "center",
         justifyContent: "space-between",
         background:
-          "linear-gradient(135deg, #1e3a8a 0%, #0f172a 60%, #020617 100%)",
-        color: "white",
+          "linear-gradient(135deg, #1a3f44 0%, #0a3035 60%, #00272c 100%)",
+        color: "#ffffff",
         fontFamily: "system-ui, sans-serif",
         padding: 80,
       }}
@@ -129,8 +137,8 @@ function fallbackImage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0f172a",
-          color: "white",
+          background: "#00272c",
+          color: "#ffffff",
           fontFamily: "system-ui, sans-serif",
           fontSize: 84,
           fontWeight: 800,

@@ -9,18 +9,25 @@ interface PhoneVisualProps {
   size?: "sm" | "md" | "lg";
 }
 
+/* Brand gradients are restricted to the palette (ink + accent ramps)
+   so the phone mockup stays inside the brand colour system. Each brand
+   gets its own pair of palette stops to keep visual variety, but the
+   palette is the only source of truth. */
 const BRAND_GRADIENTS: Record<string, [string, string]> = {
-  apple: ["#1f2937", "#0f172a"],
-  samsung: ["#1e3a8a", "#0c1c4a"],
-  google: ["#0f766e", "#064e3b"],
-  xiaomi: ["#ea580c", "#7c2d12"],
-  oneplus: ["#dc2626", "#7f1d1d"],
-  oppo: ["#0ea5e9", "#075985"],
-  vivo: ["#7c3aed", "#3b0764"],
-  huawei: ["#475569", "#0f172a"],
+  apple: ["var(--color-ink-800)", "var(--color-ink-900)"],
+  samsung: ["var(--color-ink-700)", "var(--color-ink-900)"],
+  google: ["var(--color-accent-800)", "var(--color-ink-900)"],
+  xiaomi: ["var(--color-accent-700)", "var(--color-ink-900)"],
+  oneplus: ["var(--color-ink-900)", "var(--color-ink-700)"],
+  oppo: ["var(--color-ink-600)", "var(--color-ink-900)"],
+  vivo: ["var(--color-ink-700)", "var(--color-accent-800)"],
+  huawei: ["var(--color-ink-800)", "var(--color-ink-900)"],
 };
 
-const FALLBACK_GRADIENT: [string, string] = ["#3f4750", "#0f1418"];
+const FALLBACK_GRADIENT: [string, string] = [
+  "var(--color-ink-600)",
+  "var(--color-ink-900)",
+];
 
 export function PhoneVisual({
   brandName,
@@ -57,12 +64,12 @@ export function PhoneVisual({
       >
         <defs>
           <linearGradient id={`screen-${brandSlug}`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0.04)" />
+            <stop offset="0%" stopColor="var(--color-on-dark-20)" />
+            <stop offset="100%" stopColor="var(--color-on-dark-05)" />
           </linearGradient>
           <linearGradient id={`bezel-${brandSlug}`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.22)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0.06)" />
+            <stop offset="0%" stopColor="var(--color-on-dark-25)" />
+            <stop offset="100%" stopColor="var(--color-on-dark-06)" />
           </linearGradient>
         </defs>
         <rect
@@ -72,7 +79,7 @@ export function PhoneVisual({
           height="260"
           rx="28"
           fill={`url(#bezel-${brandSlug})`}
-          stroke="rgba(255,255,255,0.25)"
+          stroke="var(--color-on-dark-25)"
           strokeWidth="1.2"
         />
         <rect
@@ -89,20 +96,31 @@ export function PhoneVisual({
           width="32"
           height="6"
           rx="3"
-          fill="rgba(0,0,0,0.4)"
+          fill="color-mix(in srgb, var(--color-ink-900) 40%, transparent)"
         />
-        <circle cx="158" cy="50" r="10" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.2)" />
-        <circle cx="158" cy="50" r="4" fill="rgba(0,0,0,0.4)" />
+        <circle
+          cx="158"
+          cy="50"
+          r="10"
+          fill="var(--color-on-dark-10)"
+          stroke="var(--color-on-dark-20)"
+        />
+        <circle
+          cx="158"
+          cy="50"
+          r="4"
+          fill="color-mix(in srgb, var(--color-ink-900) 40%, transparent)"
+        />
       </svg>
 
-      <div className="absolute inset-x-0 bottom-3 flex flex-col items-center text-center text-white/90 px-4">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">
+      <div className="absolute inset-x-0 bottom-3 flex flex-col items-center px-4 text-center text-[var(--color-on-dark-strong)]">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-on-dark-soft)]">
           {brandName}
         </span>
         <span className="line-clamp-1 text-[13px] font-medium">{modelName}</span>
       </div>
 
-      <div className="pointer-events-none absolute -right-10 -top-12 size-32 rounded-full bg-white/10 blur-2xl" />
+      <div className="pointer-events-none absolute -right-10 -top-12 size-32 rounded-full bg-[var(--color-on-dark-10)] blur-2xl" />
     </div>
   );
 }

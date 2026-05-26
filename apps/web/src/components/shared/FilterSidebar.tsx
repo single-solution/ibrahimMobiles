@@ -423,7 +423,9 @@ function FilterPanel({
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-accent-200)]/45 bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_28px_-12px_rgba(245,158,11,0.12)]">
+    /* Concentric: inner FilterCheckRow --radius-md (8) sits ~10px
+       from sidebar edge → outer 18 ≈ --radius-xl (20, within 2px). */
+    <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-200)]/45 bg-[var(--color-surface)] shadow-[0_1px_2px_var(--color-on-light-05),0_10px_28px_-12px_var(--color-on-light-10)]">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {filterGroups}
       </div>
@@ -481,7 +483,7 @@ function AttributeFacetGroups({
 
   if (!facetsLoading && facets.length === 0) {
     return (
-      <p className="px-2 text-[12px] leading-snug text-[var(--color-ink-500)]">
+      <p className="max-w-prose px-2 text-[12px] leading-snug text-[var(--color-ink-500)]">
         No more products match your selection. Adjust or clear filters to see
         attribute options.
       </p>

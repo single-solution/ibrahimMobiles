@@ -20,7 +20,7 @@ export default function DealsLoading() {
           <Skeleton shape="text" className="h-3 w-3/4" />
         </section>
 
-        <section className="app-section">
+        <section className="app-section cv-auto">
           <Skeleton shape="text" className="mb-3 h-3 w-32" />
           <ul className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
             {Array.from({ length: OFFER_PLACEHOLDER_COUNT }).map((_, index) => (
@@ -39,7 +39,7 @@ export default function DealsLoading() {
           </ul>
         </section>
 
-        <section className="app-section">
+        <section className="app-section cv-auto-lg">
           <div className="mb-3 flex items-center justify-between">
             <Skeleton shape="text" className="h-3 w-28" />
             <Skeleton shape="text" className="h-3 w-16" />
@@ -59,7 +59,7 @@ export default function DealsLoading() {
           <Skeleton shape="text" className="h-4 w-2/3" />
         </header>
 
-        <section className="mt-16 grid grid-cols-2 gap-4">
+        <section className="cv-auto mt-16 grid grid-cols-2 gap-4">
           {Array.from({ length: OFFER_PLACEHOLDER_COUNT }).map((_, index) => (
             <div
               key={index}
@@ -77,7 +77,7 @@ export default function DealsLoading() {
           ))}
         </section>
 
-        <section className="mt-20 space-y-6">
+        <section className="cv-auto-lg mt-20 space-y-6">
           <div className="flex items-end justify-between gap-3">
             <div className="space-y-2">
               <Skeleton shape="text" className="h-10 w-64" />

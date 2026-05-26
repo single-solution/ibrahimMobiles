@@ -264,12 +264,14 @@ function InlineIconPicker({
           role="dialog"
           aria-modal="true"
           aria-label="Pick bullet icon"
-          className="fixed inset-0 z-[95] flex items-center justify-center bg-[var(--color-ink-900)]/35 p-4"
+          className="animate-sheet-fade fixed inset-0 z-[95] flex items-center justify-center bg-[var(--color-ink-900)]/35 p-4"
           onClick={(event) => {
             if (event.target === event.currentTarget) setIsOpen(false);
           }}
         >
-          <div className="flex max-h-[80vh] w-full max-w-2xl flex-col rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)]">
+          {/* Concentric: inner icon grid tiles (rounded-md ≈ 6) + p-4
+              (16) → outer 22 ≈ --radius-2xl (24, within 2px). */}
+          <div className="animate-dialog-in flex max-h-[80vh] w-full max-w-2xl flex-col rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)]">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-[var(--color-ink-900)]">

@@ -24,7 +24,7 @@ export default function SearchLoading() {
         <Skeleton shape="text" className="h-9 w-2/3 md:h-12 md:w-1/2" />
         <Skeleton shape="text" className="h-3 w-3/4 md:w-1/2" />
       </div>
-      <div className="mt-8 min-h-[60vh]">
+      <div className="cv-auto-lg mt-8 min-h-[60vh]">
         <ProductGridSkeleton
           count={SEARCH_RESULT_CARDS}
           className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4"

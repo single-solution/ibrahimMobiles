@@ -150,7 +150,7 @@ export function PhoneOtpForm({
 
   return (
     <form onSubmit={handleCodeSubmit} className="space-y-4">
-      <p className="text-[12.5px] text-[var(--color-ink-600)]">
+      <p className="max-w-prose text-[12.5px] text-[var(--color-ink-600)]">
         Enter the {OTP_CODE_LENGTH}-digit code sent to{" "}
         <span className="font-semibold text-[var(--color-ink-900)]">
           {phoneTail ? `••• ${phoneTail}` : phone}
@@ -241,7 +241,7 @@ export function OtpFormError({ message }: { message: string }) {
   return (
     <div
       role="alert"
-      className="rounded-[var(--radius-md)] border border-rose-100 bg-rose-50 p-3 text-[12.5px] text-rose-800"
+      className="animate-banner-in rounded-[var(--radius-md)] border border-[var(--color-danger-100)] bg-[var(--color-danger-50)] p-3 text-[12.5px] text-[var(--color-danger-800)]"
     >
       {message}
     </div>

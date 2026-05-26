@@ -18,7 +18,7 @@ export function MotionLabShell({
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 85%, #fff) 0%, var(--color-canvas) 100%)",
+            "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 85%, var(--color-canvas)) 0%, var(--color-canvas) 100%)",
         }}
       />
       {eyebrow ? (

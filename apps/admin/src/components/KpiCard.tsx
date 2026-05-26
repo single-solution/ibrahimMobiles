@@ -53,7 +53,9 @@ export function KpiCard({
   return (
     <div
       className={classNames(
-        "lift flex h-full flex-col justify-center rounded-[var(--radius-lg)] border px-3 py-2.5 sm:px-3.5 sm:py-3",
+        /* Concentric: inner icon badge --radius-md (8) + px-3 (12) →
+           outer 20 = --radius-xl. */
+        "lift flex h-full flex-col justify-center rounded-[var(--radius-xl)] border px-3 py-2.5 sm:px-3.5 sm:py-3",
         TONE_CONTAINER[tone],
       )}
     >

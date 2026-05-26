@@ -68,12 +68,69 @@
   --color-accent-600: #c8e636;
   --color-accent-700: #3a4d00;
   --color-accent-800: #2a3800;
+  --color-accent-900: #18250a;
 
   --color-pak-green: #064e3b;
 
+  /* Status scales — full ramps so every shade used in the UI (50, 100,
+     200, 500, 700, 800) is a palette token. No more Tailwind raw
+     `bg-amber-50` / `text-rose-800` etc. in component code. */
+  --color-warn-50: #fffbeb;
+  --color-warn-100: #fef3c7;
+  --color-warn-200: #fde68a;
   --color-warn-500: #d97706;
+  --color-warn-700: #b45309;
+  --color-warn-800: #92400e;
+
+  --color-danger-50: #fff1f2;
+  --color-danger-100: #ffe4e6;
+  --color-danger-200: #fecdd3;
+  --color-danger-400: #fb7185;
   --color-danger-500: #e11d48;
+  --color-danger-700: #be123c;
+  --color-danger-800: #9f1239;
+
+  --color-info-50: #f0f9ff;
+  --color-info-100: #e0f2fe;
+  --color-info-200: #bae6fd;
   --color-info-500: #0284c7;
+  --color-info-700: #0369a1;
+  --color-info-800: #075985;
+
+  --color-success-50: #ecfdf5;
+  --color-success-100: #d1fae5;
+  --color-success-200: #a7f3d0;
+  --color-success-500: #10b981;
+  --color-success-700: #047857;
+  --color-success-800: #065f46;
+
+  /* Aliases for legacy `--color-error-*` usage. Resolve to danger. */
+  --color-error-50: var(--color-danger-50);
+  --color-error-200: var(--color-danger-200);
+  --color-error-700: var(--color-danger-700);
+  --color-error-800: var(--color-danger-800);
+
+  /* On-dark surface tokens — sanctioned light tints + canvas alias so we
+     can stay strictly within the palette even when overlaying a dark
+     band (grades section, chat header, footer, etc.). They resolve to
+     `--color-canvas` (which is white) with baked-in opacities so the
+     rest of the code never has to reach for raw `white/15` shortcuts. */
+  --color-on-dark: var(--color-canvas);
+  --color-on-dark-strong: color-mix(in srgb, var(--color-canvas) 90%, transparent);
+  --color-on-dark-soft: color-mix(in srgb, var(--color-canvas) 70%, transparent);
+  --color-on-dark-muted: color-mix(in srgb, var(--color-canvas) 50%, transparent);
+  --color-on-dark-25: color-mix(in srgb, var(--color-canvas) 25%, transparent);
+  --color-on-dark-20: color-mix(in srgb, var(--color-canvas) 20%, transparent);
+  --color-on-dark-15: color-mix(in srgb, var(--color-canvas) 15%, transparent);
+  --color-on-dark-10: color-mix(in srgb, var(--color-canvas) 10%, transparent);
+  --color-on-dark-06: color-mix(in srgb, var(--color-canvas) 6%, transparent);
+  --color-on-dark-05: color-mix(in srgb, var(--color-canvas) 5%, transparent);
+  --color-on-dark-03: color-mix(in srgb, var(--color-canvas) 3%, transparent);
+
+  /* On-light surface — sanctioned shadow / overlay token (the inverse:
+     a dark wash over light content). Used by raised cards, borders. */
+  --color-on-light-10: color-mix(in srgb, var(--color-ink-900) 10%, transparent);
+  --color-on-light-05: color-mix(in srgb, var(--color-ink-900) 5%, transparent);
 
   /* Grade scale — best-to-worst stock category. */
   --color-grade-brand-new: #0f172a;
@@ -86,15 +143,36 @@
   --color-whatsapp: #25d366;
   --color-whatsapp-dark: #128c7e;
 
+  /* Border-radius scale — paired with padding via the concentric corner
+     rule:  outer_radius = inner_radius + padding.  Use the table below
+     to keep nested surfaces visually concentric (the gap between the
+     outer and inner curve stays uniform around the corner):
+
+       outer token       wraps inner token       at padding
+       ──────────────────────────────────────────────────────
+       --radius-md  (8)   --radius-sm  (6)        p-0.5  (2)
+       --radius-lg (14)   --radius-md  (8)        p-1.5  (6)
+       --radius-xl (20)   --radius-md  (8)        p-3    (12)
+       --radius-2xl (24)  --radius-md  (8)        p-4    (16)
+       --radius-2xl (24)  --radius-lg (14)        p-2.5  (10)
+       --radius-3xl (32)  --radius-md  (8)        p-6    (24)
+       --radius-3xl (32)  --radius-lg (14)        p-4.5  (18)
+
+     If the natural pairing is off by a couple of px, that's fine — the
+     eye accepts ±2px without seeing a kink in the corner. */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.875rem;
   --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 1px 2px 0 rgb(28 25 23 / 0.04);
-  --shadow-md: 0 4px 14px -4px rgb(28 25 23 / 0.07);
-  --shadow-lg: 0 14px 36px -10px rgb(28 25 23 / 0.12);
+  /* Shadows are tinted with the brand ink (gunmetal) so highlights and
+     elevation reads warm-cool consistent with the palette. */
+  --shadow-sm: 0 1px 2px 0 color-mix(in srgb, var(--color-ink-900) 4%, transparent);
+  --shadow-md: 0 4px 14px -4px color-mix(in srgb, var(--color-ink-900) 7%, transparent);
+  --shadow-lg: 0 14px 36px -10px color-mix(in srgb, var(--color-ink-900) 12%, transparent);
 
   --mobile-tabbar-h: 64px;
   --mobile-header-h: 56px;
@@ -155,7 +233,12 @@
    The wrapper sets the perspective and an empty transform; the
    `.tilt-card-surface` child reads `--tilt-x` / `--tilt-y` set by
    JavaScript on pointer move. `--tilt-active` toggles the hover
-   scale + glow so the lift only happens while the cursor is inside. */
+   scale so the lift only happens while the cursor is inside.
+
+   `will-change` is intentionally *only* applied while the card is
+   actively being interacted with — the GPU layer is otherwise idle
+   memory pressure. The `[data-tilt-active]` attribute is set/cleared
+   by `TiltCard` on pointerenter/leave. */
 .tilt-card {
   perspective: 1000px;
   transform-style: preserve-3d;
@@ -170,21 +253,9 @@
   transition:
     transform 320ms var(--ease-spring),
     box-shadow 320ms var(--ease-out-quart);
-  will-change: transform;
 }
-.tilt-card-glow {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  opacity: calc(var(--tilt-active, 0) * 0.6);
-  transition: opacity 320ms var(--ease-out-quart);
-  background: radial-gradient(
-    300px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    color-mix(in srgb, var(--color-accent-300) 65%, transparent),
-    transparent 70%
-  );
-  mix-blend-mode: plus-lighter;
+.tilt-card[data-tilt-active] .tilt-card-surface {
+  will-change: transform;
 }
 /* Bright top-left rim that appears as the card tilts — sells the
    "front-lit physical card" illusion. */
@@ -196,7 +267,7 @@
   opacity: var(--tilt-active, 0);
   transition: opacity 320ms var(--ease-out-quart);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 1px 0 color-mix(in srgb, var(--color-canvas) 55%, transparent),
     inset 0 0 0 1px color-mix(in srgb, var(--color-accent-400) 60%, transparent);
 }
 /* Optional inner-content parallax — opt in by adding `.tilt-parallax`
@@ -226,7 +297,6 @@
   .tilt-card-surface {
     transform: none !important;
   }
-  .tilt-card-glow,
   .tilt-card-edge {
     display: none;
   }
@@ -236,12 +306,12 @@
 }
 
 /* --- Magnetic hover ---------------------------------------------
-   The wrapper translates in/out via JS; this rule just gives it a
-   smooth transition for any state changes outside the rAF loop. */
+   The wrapper translates in/out via JS; `will-change` is set inline
+   only while the rAF loop is running so the compositor layer is
+   released once the element returns to rest. */
 .magnetic-hover {
   display: inline-flex;
   transition: transform 220ms var(--ease-spring);
-  will-change: transform;
 }
 @media (prefers-reduced-motion: reduce), (pointer: coarse) {
   .magnetic-hover {
@@ -436,6 +506,40 @@
   }
 }
 
+/* --- content-visibility utility --------------------------------
+   `content-visibility: auto` tells the browser it may skip layout
+   AND paint for the element while it is far outside the viewport.
+   For sections containing ambient orbs, scroll-driven motion, or
+   image grids, this is the single largest paint optimisation
+   available: off-screen ambience keyframes don't composite,
+   off-screen TiltCards don't repaint, off-screen Lottie-style
+   motion is paused — automatically.
+
+   `contain-intrinsic-size: auto <fallback>` reserves a placeholder
+   height before the section has ever rendered. The `auto` keyword
+   tells the browser to *remember* the actual size after first
+   paint and reuse it, so the scrollbar settles after the first
+   pass and never jumps again. The 800px fallback is used only for
+   sections that have never been painted yet.
+
+   `.cv-auto`     — generic below-the-fold sections (default 800px)
+   .cv-auto-sm    — short below-the-fold blocks (e.g. CTAs, single
+                    cards) — fallback 400px so the scrollbar
+                    reserves less.
+   .cv-auto-lg    — very tall grids / image walls (1200px fallback) */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 800px;
+}
+.cv-auto-sm {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 400px;
+}
+.cv-auto-lg {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1200px;
+}
+
 
 /* Fluid spacing — desktop only.
    Mobile keeps Tailwind's default --spacing (0.25rem) so tap targets, gaps,
@@ -461,6 +565,16 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Words never split mid-character; lines wrap at word boundaries. Long
+     unbroken strings (URLs, IBANs, hashes) are allowed to wrap at any
+     point so they don't overflow their container.
+
+       word-break: normal       -> never split a real word
+       overflow-wrap: break-word -> long unbreakable runs may wrap
+       hyphens: manual          -> only break where authors put `&shy;` */
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: manual;
 }
 
 html {
@@ -582,6 +696,95 @@ html {
   animation: flyout-in-left 240ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* ----- Anchored popover / dropdown enter -----
+   Cart dropdown, account menus, popovers anchored to a header button.
+   Fades in with a small downward slide + subtle scale so the panel
+   feels attached to its trigger rather than just popping into place. */
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+.animate-popover-in {
+  animation: popover-in 180ms var(--ease-out-quart);
+  transform-origin: top center;
+}
+
+/* ----- Centered dialog / lightbox enter -----
+   Confirm dialogs, image lightboxes, icon pickers — anything centered.
+   Backdrop is `.animate-sheet-fade`; the card uses this for a calm
+   scale-in. Origin is the card centre. */
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-dialog-in {
+  animation: dialog-in 220ms var(--ease-out-quart);
+  transform-origin: center;
+}
+
+/* ----- Lightbox content enter -----
+   Slightly stronger scale than `.animate-dialog-in` since lightbox
+   images are large and benefit from a more cinematic zoom. */
+@keyframes lightbox-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.animate-lightbox-in {
+  animation: lightbox-in 260ms var(--ease-out-quart);
+}
+
+/* ----- Slide-down banner enter -----
+   Inline error / success banners that appear above a form. Tiny vertical
+   slide + fade so the form doesn't jump. */
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.animate-banner-in {
+  animation: banner-in 200ms var(--ease-out-quart);
+}
+
+/* ----- Tab panel cross-fade -----
+   Apply to a tab panel's content wrapper with a `key` derived from the
+   active tab id. React remounts the wrapper, the animation re-runs. */
+@keyframes tab-panel-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.animate-tab-panel-in {
+  animation: tab-panel-in 180ms var(--ease-out-quart);
+}
+
 /* ----- Reveal-on-scroll (driven by IntersectionObserver) -----
    Add the `.reveal` (or `.reveal-fade`) class to any element you want to
    animate in. The global `RevealRoot` finds it via the class selector,
@@ -657,16 +860,54 @@ html {
 }
 
 /* Sticky desktop header that gains a shadow + denser background once you scroll. */
+/* ----- Sticky header — frosted glass that picks up whatever is behind
+   it (hero gradient at the top of the home page, page surface deeper
+   in). Two states, both rely on real `backdrop-filter` rather than a
+   solid background tint:
+
+     [data-scrolled="false"]  → barely-there ~6% canvas tint with a
+                                14px blur. Lets the hero gradient bleed
+                                through so the header reads as part of
+                                the banner rather than a hard white bar
+                                bolted on top.
+     [data-scrolled="true"]   → ~78% canvas tint with a 20px blur +
+                                160% saturation, hairline ink-100
+                                border, and a soft shadow. Restores
+                                legibility once content scrolls under
+                                the header.
+
+   Safari needs the `-webkit-` prefix to apply the filter pre-iOS 17.
+   On browsers without `backdrop-filter` support we fall back to a more
+   opaque canvas via the `@supports not` block. */
 .scroll-header {
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  background-color: color-mix(in srgb, var(--color-canvas) 6%, transparent);
+  border-color: transparent;
   transition:
     box-shadow var(--motion-base) var(--ease-out-quart),
     background-color var(--motion-base) var(--ease-out-quart),
     border-color var(--motion-base) var(--ease-out-quart),
+    -webkit-backdrop-filter var(--motion-base) var(--ease-out-quart),
     backdrop-filter var(--motion-base) var(--ease-out-quart);
 }
 .scroll-header[data-scrolled="true"] {
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  background-color: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+  border-color: var(--color-ink-100);
   box-shadow: var(--shadow-md);
-  background-color: color-mix(in srgb, var(--color-canvas) 92%, transparent);
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  /* Fallback: when the browser can't blur, bump the canvas tint up so
+     content underneath doesn't muddy the header text. */
+  .scroll-header {
+    background-color: color-mix(in srgb, var(--color-canvas) 60%, transparent);
+  }
+  .scroll-header[data-scrolled="true"] {
+    background-color: var(--color-canvas);
+  }
 }
 
 /* Image fade-in — works with next/image's onLoad handler that flips the

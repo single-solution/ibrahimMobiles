@@ -49,15 +49,15 @@ const STATUS_TONE: Record<
   { toneBg: string; toneFg: string; toneDot: string; nextLabel?: string }
 > = {
   "pending-payment": {
-    toneBg: "bg-amber-50",
-    toneFg: "text-amber-800",
-    toneDot: "bg-amber-500",
+    toneBg: "bg-[var(--color-warn-50)]",
+    toneFg: "text-[var(--color-warn-800)]",
+    toneDot: "bg-[var(--color-warn-500)]",
     nextLabel: "Awaiting payment",
   },
   confirmed: {
-    toneBg: "bg-sky-50",
-    toneFg: "text-sky-800",
-    toneDot: "bg-sky-500",
+    toneBg: "bg-[var(--color-info-50)]",
+    toneFg: "text-[var(--color-info-800)]",
+    toneDot: "bg-[var(--color-info-500)]",
     nextLabel: "Packing your order",
   },
   dispatched: {
@@ -67,19 +67,19 @@ const STATUS_TONE: Record<
     nextLabel: "Out for delivery",
   },
   delivered: {
-    toneBg: "bg-emerald-50",
-    toneFg: "text-emerald-800",
-    toneDot: "bg-emerald-500",
+    toneBg: "bg-[var(--color-success-50)]",
+    toneFg: "text-[var(--color-success-800)]",
+    toneDot: "bg-[var(--color-success-500)]",
   },
   cancelled: {
-    toneBg: "bg-rose-50",
-    toneFg: "text-rose-800",
-    toneDot: "bg-rose-500",
+    toneBg: "bg-[var(--color-danger-50)]",
+    toneFg: "text-[var(--color-danger-800)]",
+    toneDot: "bg-[var(--color-danger-500)]",
   },
   refunded: {
-    toneBg: "bg-rose-50",
-    toneFg: "text-rose-800",
-    toneDot: "bg-rose-500",
+    toneBg: "bg-[var(--color-danger-50)]",
+    toneFg: "text-[var(--color-danger-800)]",
+    toneDot: "bg-[var(--color-danger-500)]",
   },
 };
 
@@ -135,7 +135,7 @@ export default async function AccountPage() {
       </div>
 
       <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-[1fr_320px] md:gap-6 lg:gap-8">
-        <div className="space-y-4">
+        <div className="cv-auto space-y-4">
           <SectionHeader
             eyebrow="Recent orders"
             title="What you&rsquo;ve been buying"
@@ -175,7 +175,7 @@ function AccountHeader({ name, joinedAt }: { name: string; joinedAt: string }) {
         <h1 className="mt-1 font-headline text-[36px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[52px]">
           Welcome back.
         </h1>
-        <p className="mt-1 text-[13px] text-[var(--color-ink-500)] md:text-sm">
+        <p className="mt-1 max-w-prose text-[13px] text-[var(--color-ink-500)] md:text-sm">
           View orders, manage addresses and pick up where you left off.
         </p>
       </div>
@@ -259,7 +259,9 @@ function LoyaltyCard({
             {earnRules.map((rule) => (
               <li
                 key={rule.id}
-                className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]/85 p-3"
+                /* Concentric: inner icon well --radius-md (8) + p-3 (12)
+                   → outer 20 = --radius-xl. */
+                className="flex items-center gap-3 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]/85 p-3"
               >
                 <span className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-100)] text-[var(--color-accent-700)]">
                   <Star size={13} strokeWidth={2.4} />
@@ -268,7 +270,7 @@ function LoyaltyCard({
                   <p className="text-[12.5px] font-semibold text-[var(--color-ink-900)]">
                     {rule.label}
                   </p>
-                  <p className="text-[11px] leading-snug text-[var(--color-ink-500)]">
+                  <p className="max-w-prose text-[11px] leading-snug text-[var(--color-ink-500)]">
                     {rule.description}
                   </p>
                 </div>
@@ -278,7 +280,7 @@ function LoyaltyCard({
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-[11px] text-[var(--color-ink-500)]">
+          <p className="mt-3 max-w-prose text-[11px] text-[var(--color-ink-500)]">
             Pay up to{" "}
             <span className="font-semibold text-[var(--color-ink-900)]">
               {LOYALTY_MAX_REDEEM_PERCENT}%
@@ -301,7 +303,7 @@ function NotALoyaltyMember() {
         <p className="text-[13.5px] font-semibold text-[var(--color-ink-900)]">
           Join {LOYALTY_PROGRAM_NAME}
         </p>
-        <p className="text-[12px] text-[var(--color-ink-500)]">
+        <p className="max-w-prose text-[12px] text-[var(--color-ink-500)]">
           Earn points on every order — ask us at checkout to enrol.
         </p>
       </div>
@@ -321,14 +323,16 @@ function StatCard({ icon, label, value, href, accent }: StatCardProps) {
   const accentClasses: Record<StatCardProps["accent"], string> = {
     amber: "bg-[var(--color-accent-100)] text-[var(--color-accent-800)]",
     ink: "bg-[var(--color-ink-100)] text-[var(--color-ink-700)]",
-    emerald: "bg-emerald-50 text-emerald-700",
+    emerald: "bg-[var(--color-success-50)] text-[var(--color-success-700)]",
   };
   const Wrapper: React.ElementType = href ? Link : "div";
   const props = href ? { href } : {};
   return (
     <Wrapper
       {...props}
-      className="lift block rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5"
+      /* Concentric: inner icon well --radius-md (8) + p-4/p-5 (16/20)
+         → outer 24/28 ≈ --radius-2xl (24, within 4px of p-5). */
+      className="lift block rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5"
     >
       <div className="flex items-center justify-between">
         <span
@@ -422,7 +426,7 @@ function EmptyOrders() {
       </span>
       <div>
         <p className="text-[15px] font-semibold text-[var(--color-ink-900)]">No orders yet</p>
-        <p className="mt-1 text-[13px] text-[var(--color-ink-500)]">
+        <p className="mx-auto mt-1 max-w-prose text-[13px] text-[var(--color-ink-500)]">
           Browse the shop and your first order will land here.
         </p>
       </div>
@@ -482,7 +486,7 @@ function ProfileCard({ customer }: ProfileCardProps) {
           </div>
         </div>
       ) : (
-        <div className="border-b border-[var(--color-ink-100)] p-4 text-[12.5px] text-[var(--color-ink-500)] md:p-5">
+        <div className="max-w-prose border-b border-[var(--color-ink-100)] p-4 text-[12.5px] text-[var(--color-ink-500)] md:p-5">
           No saved addresses yet — we&rsquo;ll save the address from your next order.
         </div>
       )}
@@ -549,7 +553,7 @@ async function SupportCard() {
         </span>
         <p className="text-[13px] font-semibold text-[var(--color-ink-900)]">Need a hand?</p>
       </div>
-      <p className="mt-2 text-[12.5px] text-[var(--color-ink-500)]">
+      <p className="mt-2 max-w-prose text-[12.5px] text-[var(--color-ink-500)]">
         We reply on WhatsApp within minutes — every working day until 9 PM.
       </p>
       <div className="mt-3 flex items-center gap-2">
@@ -557,7 +561,7 @@ async function SupportCard() {
           href={buildWhatsAppLink("Salam! I have a question about my account.", whatsappNumber)}
           target="_blank"
           rel="noopener noreferrer"
-          className="tap inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-whatsapp)] py-2 text-[12.5px] font-semibold text-white hover:bg-[var(--color-whatsapp-dark)]"
+          className="tap inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-whatsapp)] py-2 text-[12.5px] font-semibold text-[var(--color-on-dark)] hover:bg-[var(--color-whatsapp-dark)]"
         >
           WhatsApp
         </a>

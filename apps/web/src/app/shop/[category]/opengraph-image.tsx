@@ -79,8 +79,8 @@ function CategoryCard(data: CategoryOgData) {
         display: "flex",
         flexDirection: "column",
         background:
-          "linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #020617 100%)",
-        color: "white",
+          "linear-gradient(135deg, #1a3f44 0%, #0a3035 60%, #00272c 100%)",
+        color: "#ffffff",
         fontFamily: "system-ui, sans-serif",
         padding: 64,
       }}
@@ -164,8 +164,8 @@ function fallbackImage(label: string) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0f172a",
-          color: "white",
+          background: "#00272c",
+          color: "#ffffff",
           fontFamily: "system-ui, sans-serif",
           fontSize: 84,
           fontWeight: 800,

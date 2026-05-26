@@ -10,6 +10,7 @@ import {
   Gauge,
   Gift,
   Globe2,
+  ImagePlus,
   Mail,
   MapPin,
   MessageCircle,
@@ -32,6 +33,7 @@ import { FormSection } from "@/components/forms/FormSection";
 import { Switch } from "@/components/forms/Switch";
 import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
+import { BrandImageUpload } from "@/components/uploads/BrandImageUpload";
 import { HomepageSettings } from "@/components/settings/HomepageSettings";
 import { SettingsCleanup } from "@/components/SettingsCleanup";
 import { ChatSettingsTab } from "@/components/ChatSettingsTab";
@@ -315,6 +317,12 @@ function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdate }: Se
   const hasName = draft.siteName.trim().length > 0;
   const hasTagline = draft.siteTagline.trim().length > 0;
   const hasUrl = draft.storefrontUrl.trim().length > 0;
+  const brandAssetCount = [
+    draft.brandLogoLight,
+    draft.brandLogoDark,
+    draft.brandFaviconLight,
+    draft.brandFaviconDark,
+  ].filter((value) => value.trim().length > 0).length;
   const heroMetrics: SettingsHeroMetric[] = [
     {
       label: "Site name",
@@ -333,6 +341,18 @@ function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdate }: Se
       value: hasUrl ? draft.storefrontUrl : "Auto (env)",
       tone: hasUrl ? "good" : "neutral",
       icon: Globe2,
+    },
+    {
+      label: "Brand assets",
+      value: brandAssetCount > 0 ? `${brandAssetCount} of 4 uploaded` : "Wordmark only",
+      hint:
+        brandAssetCount === 0
+          ? "Header & footer show the site name only"
+          : brandAssetCount === 4
+            ? "Logo + favicon in both light and dark"
+            : "Some surfaces still fall back to the wordmark",
+      tone: brandAssetCount === 4 ? "good" : brandAssetCount > 0 ? "neutral" : "off",
+      icon: ImagePlus,
     },
   ];
   return (
@@ -398,6 +418,50 @@ function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdate }: Se
           disabled={!canUpdate}
           containerClassName="max-w-2xl"
         />
+      </FormSection>
+
+      <FormSection
+        title="Brand assets"
+        description="Logo and favicon for light and dark surfaces. Leave any tile empty and the storefront falls back to the wordmark — no icon. Square-ish PNG/WebP transparent files render best."
+      >
+        <div className="grid gap-3 md:grid-cols-2">
+          <BrandImageUpload
+            label="Logo · light surface"
+            hint="Top header, login, light pages. Transparent background recommended."
+            value={draft.brandLogoLight}
+            onChange={(value) => setField("brandLogoLight", value)}
+            previewTone="light"
+            subjectKind="brand-logo-light"
+            disabled={!canUpdate}
+          />
+          <BrandImageUpload
+            label="Logo · dark surface"
+            hint="Footer & any dark hero block. Falls back to the light logo if blank."
+            value={draft.brandLogoDark}
+            onChange={(value) => setField("brandLogoDark", value)}
+            previewTone="dark"
+            subjectKind="brand-logo-dark"
+            disabled={!canUpdate}
+          />
+          <BrandImageUpload
+            label="Favicon · light theme"
+            hint="Browser tab icon for users on light system themes."
+            value={draft.brandFaviconLight}
+            onChange={(value) => setField("brandFaviconLight", value)}
+            previewTone="light"
+            subjectKind="brand-favicon-light"
+            disabled={!canUpdate}
+          />
+          <BrandImageUpload
+            label="Favicon · dark theme"
+            hint="Browser tab icon for users on dark system themes."
+            value={draft.brandFaviconDark}
+            onChange={(value) => setField("brandFaviconDark", value)}
+            previewTone="dark"
+            subjectKind="brand-favicon-dark"
+            disabled={!canUpdate}
+          />
+        </div>
       </FormSection>
     </SaveableSection>
   );

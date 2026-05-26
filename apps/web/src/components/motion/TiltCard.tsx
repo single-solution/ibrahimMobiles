@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useCallback,
   useEffect,
   useRef,
   type CSSProperties,
@@ -28,8 +27,8 @@ import {
  *     so phones and accessibility-respecting users see a flat card.
  *
  *   • **The component is purely additive.** Without the inner CSS
- *     hooks (`.tilt-card-surface`, `.tilt-card-glow`) the children
- *     render as-is — no jank for SSR or first paint.
+ *     hook (`.tilt-card-surface`) the children render as-is — no jank
+ *     for SSR or first paint.
  */
 interface TiltCardProps {
   children: ReactNode;
@@ -39,8 +38,6 @@ interface TiltCardProps {
   hoverScale?: number;
   className?: string;
   style?: CSSProperties;
-  /** Renders an interior gradient that tracks the cursor. */
-  showGlow?: boolean;
 }
 
 export function TiltCard({
@@ -49,71 +46,86 @@ export function TiltCard({
   hoverScale = 1.03,
   className = "",
   style,
-  showGlow = true,
 }: TiltCardProps) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const frameRef = useRef<number | null>(null);
-  const targetRef = useRef({ x: 0, y: 0, mx: 50, my: 50, active: 0 });
-
-  const apply = useCallback(() => {
-    frameRef.current = null;
-    const node = ref.current;
-    if (!node) return;
-    const { x, y, mx, my, active } = targetRef.current;
-    node.style.setProperty("--tilt-x", `${x.toFixed(2)}deg`);
-    node.style.setProperty("--tilt-y", `${y.toFixed(2)}deg`);
-    node.style.setProperty("--tilt-active", String(active));
-    node.style.setProperty("--mouse-x", `${mx.toFixed(2)}%`);
-    node.style.setProperty("--mouse-y", `${my.toFixed(2)}%`);
-  }, []);
-
-  const schedule = useCallback(() => {
-    if (frameRef.current != null) return;
-    frameRef.current = window.requestAnimationFrame(apply);
-  }, [apply]);
 
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
-
     if (typeof window === "undefined") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
       return;
     }
 
+    // Cache the element rect — `getBoundingClientRect()` triggers layout
+    // when called inside a high-frequency event handler. We refresh only
+    // on entry, resize and scroll (the values that can actually change
+    // the element's screen position).
+    let rect = node.getBoundingClientRect();
+    const refreshRect = () => {
+      rect = node.getBoundingClientRect();
+    };
+
+    let frame: number | null = null;
+    const target = { x: 0, y: 0, mx: 50, my: 50, active: 0 };
+
+    const apply = () => {
+      frame = null;
+      node.style.setProperty("--tilt-x", `${target.x.toFixed(2)}deg`);
+      node.style.setProperty("--tilt-y", `${target.y.toFixed(2)}deg`);
+      node.style.setProperty("--tilt-active", String(target.active));
+      node.style.setProperty("--mouse-x", `${target.mx.toFixed(2)}%`);
+      node.style.setProperty("--mouse-y", `${target.my.toFixed(2)}%`);
+    };
+
+    const schedule = () => {
+      if (frame != null) return;
+      frame = window.requestAnimationFrame(apply);
+    };
+
+    const handleEnter = () => {
+      refreshRect();
+      node.dataset.tiltActive = "1";
+    };
+
     const handleMove = (event: PointerEvent) => {
-      const rect = node.getBoundingClientRect();
       const px = (event.clientX - rect.left) / rect.width;
       const py = (event.clientY - rect.top) / rect.height;
       const clampedX = Math.min(1, Math.max(0, px));
       const clampedY = Math.min(1, Math.max(0, py));
-      targetRef.current.y = (clampedX - 0.5) * intensity * 2;
-      targetRef.current.x = -(clampedY - 0.5) * intensity * 2;
-      targetRef.current.mx = clampedX * 100;
-      targetRef.current.my = clampedY * 100;
-      targetRef.current.active = 1;
+      target.y = (clampedX - 0.5) * intensity * 2;
+      target.x = -(clampedY - 0.5) * intensity * 2;
+      target.mx = clampedX * 100;
+      target.my = clampedY * 100;
+      target.active = 1;
       schedule();
     };
 
     const handleLeave = () => {
-      targetRef.current.x = 0;
-      targetRef.current.y = 0;
-      targetRef.current.active = 0;
+      target.x = 0;
+      target.y = 0;
+      target.active = 0;
+      delete node.dataset.tiltActive;
       schedule();
     };
 
-    node.addEventListener("pointermove", handleMove);
-    node.addEventListener("pointerleave", handleLeave);
+    node.addEventListener("pointerenter", handleEnter, { passive: true });
+    node.addEventListener("pointermove", handleMove, { passive: true });
+    node.addEventListener("pointerleave", handleLeave, { passive: true });
+    window.addEventListener("resize", refreshRect, { passive: true });
+    window.addEventListener("scroll", refreshRect, { passive: true });
     return () => {
+      node.removeEventListener("pointerenter", handleEnter);
       node.removeEventListener("pointermove", handleMove);
       node.removeEventListener("pointerleave", handleLeave);
-      if (frameRef.current != null) {
-        window.cancelAnimationFrame(frameRef.current);
-        frameRef.current = null;
+      window.removeEventListener("resize", refreshRect);
+      window.removeEventListener("scroll", refreshRect);
+      if (frame != null) {
+        window.cancelAnimationFrame(frame);
       }
     };
-  }, [intensity, schedule]);
+  }, [intensity]);
 
   return (
     <div
@@ -129,9 +141,6 @@ export function TiltCard({
       <div className="tilt-card-surface">
         {children}
         <span className="tilt-card-edge" aria-hidden />
-        {showGlow ? (
-          <span className="tilt-card-glow" aria-hidden />
-        ) : null}
       </div>
     </div>
   );

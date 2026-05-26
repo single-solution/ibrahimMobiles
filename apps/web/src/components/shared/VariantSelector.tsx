@@ -544,7 +544,7 @@ function ClosestMatchNotice({
     >
       <div className="min-w-0">
         <p className="font-semibold leading-tight">Closest match shown</p>
-        <p className="mt-0.5 leading-snug">
+        <p className="mt-0.5 max-w-prose leading-snug">
           We don&apos;t stock this exact combination right now — message us and
           we&apos;ll source it.
           <span className="sr-only">
@@ -557,9 +557,9 @@ function ClosestMatchNotice({
         href={buildWhatsAppLink(whatsappMessage, whatsappNumber)}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-full)] bg-[var(--color-whatsapp)] px-2.5 py-1 text-[11px] font-semibold text-white shadow-[var(--shadow-sm)] hover:bg-[var(--color-whatsapp-dark)] md:text-[12px]"
+        className="inline-flex shrink-0 items-center gap-1 rounded-[var(--radius-full)] bg-[var(--color-whatsapp)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-on-dark)] shadow-[var(--shadow-sm)] hover:bg-[var(--color-whatsapp-dark)] md:text-[12px]"
       >
-        <MessageCircle size={12} className="fill-white" />
+        <MessageCircle size={12} className="fill-[var(--color-on-dark)]" />
         Ask on WhatsApp
       </a>
     </div>
@@ -602,7 +602,9 @@ function PurchaseSummary({
 
   return (
     <div className="hidden md:block">
-      <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2.5 shadow-[var(--shadow-sm)]">
+      {/* Concentric: inner Button --radius-md (8) + p-2.5 (10) →
+          outer 18 ≈ --radius-xl (20, within 2px). */}
+      <div className="rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2.5 shadow-[var(--shadow-sm)]">
         <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-ink-500)]">
@@ -736,9 +738,9 @@ function MobileStickyCta({
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Inquire on WhatsApp"
-              className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-full)] bg-[var(--color-whatsapp)] text-white shadow-[var(--shadow-sm)] active:bg-[var(--color-whatsapp-dark)]"
+              className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-full)] bg-[var(--color-whatsapp)] text-[var(--color-on-dark)] shadow-[var(--shadow-sm)] active:bg-[var(--color-whatsapp-dark)]"
             >
-              <MessageCircle size={14} className="fill-white" />
+              <MessageCircle size={14} className="fill-[var(--color-on-dark)]" />
             </a>
             <button
               type="button"

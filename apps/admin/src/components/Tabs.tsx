@@ -107,7 +107,17 @@ export function Tabs({ tabs, initialTabId }: TabsProps) {
   return (
     <div>
       <TabList tabs={tabs} activeId={activeTab?.id ?? ""} onChange={setActiveId} />
-      <div className="pt-7">{activeTab?.content}</div>
+      {/* `key` triggers a remount on tab change so the
+          `.animate-tab-panel-in` class replays its fade-up keyframe.
+          CSS-only — no JS animation needed. */}
+      <div
+        key={activeTab?.id}
+        className="animate-tab-panel-in pt-7"
+        role="tabpanel"
+        aria-labelledby={activeTab?.id}
+      >
+        {activeTab?.content}
+      </div>
     </div>
   );
 }

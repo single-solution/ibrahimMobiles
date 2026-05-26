@@ -52,15 +52,15 @@ export function chatStatusMeta(status: ChatStatus): {
       return {
         label: "Active",
         pillClass:
-          "bg-emerald-50 text-emerald-800 ring-1 ring-inset ring-emerald-200/80",
-        dotClass: "bg-emerald-500",
+          "bg-[var(--color-success-50)] text-[var(--color-success-800)] ring-1 ring-inset ring-[var(--color-success-200)]",
+        dotClass: "bg-[var(--color-success-500)]",
       };
     case "awaiting-customer":
       return {
         label: "Reply needed",
         pillClass:
-          "bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200/80",
-        dotClass: "bg-amber-500",
+          "bg-[var(--color-warn-50)] text-[var(--color-warn-800)] ring-1 ring-inset ring-[var(--color-warn-200)]",
+        dotClass: "bg-[var(--color-warn-500)]",
       };
     case "resolved":
       return {
@@ -180,7 +180,7 @@ export function ChatMessageBubble({
         <p
           className={classNames(
             "mt-1 text-[10px]",
-            isCustomer ? "text-white/60" : "text-[var(--color-ink-500)]",
+            isCustomer ? "text-[var(--color-on-dark-soft)]" : "text-[var(--color-ink-500)]",
           )}
         >
           {new Date(message.createdAt).toLocaleTimeString(undefined, {

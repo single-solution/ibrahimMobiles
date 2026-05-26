@@ -104,7 +104,7 @@ export default function DealsPage() {
           <h1 className="mt-3 text-[26px] font-semibold leading-[1.05] tracking-tight text-[var(--color-ink-900)]">
             Today&apos;s deals
           </h1>
-          <p className="mt-2.5 text-[13.5px] leading-snug text-[var(--color-ink-600)]">
+          <p className="mt-2.5 max-w-prose text-[13.5px] leading-snug text-[var(--color-ink-600)]">
             Weekly drops, bundle deals and a flat 5% off on full bank transfer.
           </p>
         </section>
@@ -113,7 +113,7 @@ export default function DealsPage() {
           <MobileOffers />
         </Suspense>
 
-        <section className="app-section">
+        <section className="app-section cv-auto-lg">
           <Suspense fallback={<MobileProductsFallback />}>
             <MobileProductsOnSale />
           </Suspense>
@@ -130,7 +130,7 @@ export default function DealsPage() {
           <h1 className="text-5xl font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)]">
             Today&apos;s deals
           </h1>
-          <p className="max-w-2xl text-base text-[var(--color-ink-600)]">
+          <p className="max-w-prose text-base text-[var(--color-ink-600)]">
             Weekly drops, bundle deals and a flat 5% off on full bank transfer.
           </p>
         </header>
@@ -139,7 +139,7 @@ export default function DealsPage() {
           <DesktopOffers />
         </Suspense>
 
-        <section className="mt-20 space-y-6">
+        <section className="cv-auto-lg mt-20 space-y-6">
           <Suspense fallback={<DesktopProductsSectionFallback />}>
             <DesktopProductsSection />
           </Suspense>
@@ -157,7 +157,7 @@ async function MobileOffers() {
     return null;
   }
   return (
-    <section className="app-section">
+    <section className="app-section cv-auto">
       <div className="app-section-eyebrow">
         <span>Active offers</span>
       </div>
@@ -166,8 +166,13 @@ async function MobileOffers() {
           <li key={offer.id} id={offer.slug}>
             <Link href={`/deals#${offer.slug}`} className="app-list-row">
               <span
-                className="grid size-9 shrink-0 place-items-center rounded-full text-[11px] font-bold uppercase text-white"
-                style={{ backgroundColor: offer.color }}
+                className="grid size-9 shrink-0 place-items-center rounded-full text-[11px] font-bold uppercase whitespace-nowrap"
+                style={{
+                  /* Soft tint over the brand canvas so a row of mixed
+                     offer hues still reads as one harmonious palette. */
+                  backgroundColor: `color-mix(in srgb, ${offer.color} 18%, var(--color-canvas))`,
+                  color: `color-mix(in srgb, ${offer.color} 65%, var(--color-ink-900))`,
+                }}
               >
                 {offer.discountLabel.split(" ")[0]}
               </span>
@@ -222,7 +227,7 @@ async function DesktopOffers() {
     return null;
   }
   return (
-    <section className="mt-16 grid grid-cols-2 gap-4">
+    <section className="cv-auto mt-16 grid grid-cols-2 gap-4">
       {offers.map((offer) => (
         <div key={offer.id} id={offer.slug}>
           <OfferCard offer={offer} size="lg" />
@@ -274,7 +279,7 @@ function DealsEmpty() {
 
 function MobileOffersFallback() {
   return (
-    <section className="app-section">
+    <section className="app-section cv-auto">
       <div className="mb-3 flex items-center justify-between">
         <Skeleton shape="text" className="h-3 w-32" />
       </div>
@@ -315,7 +320,7 @@ function MobileProductsFallback() {
 
 function DesktopOffersFallback() {
   return (
-    <section className="mt-16 grid grid-cols-2 gap-4">
+    <section className="cv-auto mt-16 grid grid-cols-2 gap-4">
       {Array.from({ length: OFFER_SKELETON_COUNT }).map((_, index) => (
         <div
           key={index}

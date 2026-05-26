@@ -41,15 +41,15 @@ const TONE: Record<
   { toneBg: string; toneFg: string; toneDot: string; nextLabel?: string }
 > = {
   "pending-payment": {
-    toneBg: "bg-amber-50",
-    toneFg: "text-amber-800",
-    toneDot: "bg-amber-500",
+    toneBg: "bg-[var(--color-warn-50)]",
+    toneFg: "text-[var(--color-warn-800)]",
+    toneDot: "bg-[var(--color-warn-500)]",
     nextLabel: "Awaiting payment",
   },
   confirmed: {
-    toneBg: "bg-sky-50",
-    toneFg: "text-sky-800",
-    toneDot: "bg-sky-500",
+    toneBg: "bg-[var(--color-info-50)]",
+    toneFg: "text-[var(--color-info-800)]",
+    toneDot: "bg-[var(--color-info-500)]",
     nextLabel: "Packing",
   },
   dispatched: {
@@ -59,19 +59,19 @@ const TONE: Record<
     nextLabel: "On the way",
   },
   delivered: {
-    toneBg: "bg-emerald-50",
-    toneFg: "text-emerald-800",
-    toneDot: "bg-emerald-500",
+    toneBg: "bg-[var(--color-success-50)]",
+    toneFg: "text-[var(--color-success-800)]",
+    toneDot: "bg-[var(--color-success-500)]",
   },
   cancelled: {
-    toneBg: "bg-rose-50",
-    toneFg: "text-rose-800",
-    toneDot: "bg-rose-500",
+    toneBg: "bg-[var(--color-danger-50)]",
+    toneFg: "text-[var(--color-danger-800)]",
+    toneDot: "bg-[var(--color-danger-500)]",
   },
   refunded: {
-    toneBg: "bg-rose-50",
-    toneFg: "text-rose-800",
-    toneDot: "bg-rose-500",
+    toneBg: "bg-[var(--color-danger-50)]",
+    toneFg: "text-[var(--color-danger-800)]",
+    toneDot: "bg-[var(--color-danger-500)]",
   },
 };
 
@@ -215,7 +215,7 @@ function TimelineRow({
           </p>
         </div>
         {entry.description && (
-          <p className="mt-0.5 text-[12.5px] leading-snug text-[var(--color-ink-600)]">
+          <p className="mt-0.5 max-w-prose text-[12.5px] leading-snug text-[var(--color-ink-600)]">
             {entry.description}
           </p>
         )}
@@ -271,7 +271,7 @@ function SupportCard({ orderNumber }: { orderNumber: string }) {
           Need a hand with this order?
         </p>
       </div>
-      <p className="mt-2 text-[12.5px] text-[var(--color-ink-500)]">
+      <p className="mt-2 max-w-prose text-[12.5px] text-[var(--color-ink-500)]">
         We reply on WhatsApp within minutes — every working day until 9 PM.
       </p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -279,7 +279,7 @@ function SupportCard({ orderNumber }: { orderNumber: string }) {
           href={buildWhatsAppLink(`Salam! Order ${orderNumber}.`, whatsappNumber)}
           target="_blank"
           rel="noopener noreferrer"
-          className="tap inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-whatsapp)] px-3 py-2 text-[12.5px] font-semibold text-white hover:bg-[var(--color-whatsapp-dark)]"
+          className="tap inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-whatsapp)] px-3 py-2 text-[12.5px] font-semibold text-[var(--color-on-dark)] hover:bg-[var(--color-whatsapp-dark)]"
         >
           <MessageCircle size={13} />
           WhatsApp

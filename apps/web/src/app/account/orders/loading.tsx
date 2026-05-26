@@ -27,7 +27,7 @@ export default function OrdersListLoading() {
         ))}
       </div>
 
-      <ul className="mt-5 space-y-3">
+      <ul className="cv-auto mt-5 space-y-3">
         {Array.from({ length: ORDER_ROW_COUNT }).map((_, index) => (
           <li
             key={index}

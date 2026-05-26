@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { classNames } from "@store/shared";
 import { Search, ShoppingBag, User } from "lucide-react";
+import { BrandLockup } from "@/components/layout/BrandLockup";
 import { CartDropdown } from "@/components/cart/CartDropdown";
 import { useCart } from "@/lib/cart/useCart";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
@@ -31,7 +32,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const cart = useCart();
   const pathname = usePathname() ?? "/";
-  const { siteName } = useStoreSettings();
+  const { siteName, brandLogoLight, brandLogoDark } = useStoreSettings();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -52,8 +53,15 @@ export function Header({ onOpenSearch }: HeaderProps) {
   return (
     <header
       data-scrolled={isScrolled ? "true" : "false"}
+      /* `.scroll-header` (in globals.css) owns the frosted-glass look:
+         real `backdrop-filter` + a near-transparent canvas tint at the
+         top of the page so the header dissolves into the hero gradient,
+         then a stronger 20px / 160%-saturation blur + ink-100 border +
+         soft shadow once content scrolls under it. The `border-b` class
+         only carves out the bottom border; the *color* is animated by
+         the global stylesheet. */
       className={classNames(
-        "scroll-header sticky top-0 hidden border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)]/85 backdrop-blur md:block",
+        "scroll-header sticky top-0 hidden border-b md:block",
         isCartOpen ? "z-[80]" : "z-30",
       )}
     >
@@ -66,16 +74,13 @@ export function Header({ onOpenSearch }: HeaderProps) {
         />
       )}
       <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:px-8">
-        <Link
+        <BrandLockup
           href="/"
-          className="brand-lockup flex items-center gap-2.5 text-[var(--color-ink-900)]"
-          aria-label={siteName}
-        >
-          <span className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
-            <ShoppingBag size={16} strokeWidth={2.4} />
-          </span>
-          <span className="font-semibold text-2xl leading-none tracking-tight">{siteName}</span>
-        </Link>
+          siteName={siteName}
+          logoUrl={brandLogoLight || brandLogoDark}
+          tone="light"
+          size="md"
+        />
 
         <nav className="flex items-center gap-1">
           {NAV_LINKS.map((navLink) => {
@@ -103,7 +108,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
             type="button"
             onClick={onOpenSearch}
             aria-label="Search phones"
-            className="inline-flex h-10 w-72 items-center gap-2 rounded-full border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 text-sm text-[var(--color-ink-500)] transition-colors hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-700)]"
+            className="inline-flex h-10 w-72 items-center gap-2 rounded-full border border-transparent bg-[var(--color-surface)] px-4 text-sm text-[var(--color-ink-500)] transition-colors hover:border-[var(--color-ink-100)] hover:text-[var(--color-ink-700)] focus-visible:border-[var(--color-ink-100)] focus-visible:text-[var(--color-ink-700)] focus-visible:outline-none"
           >
             <Search size={15} />
             <span className="truncate">Search iPhone, Galaxy, Pixel…</span>
@@ -111,7 +116,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
           <Link
             href="/account"
             aria-label="Account"
-            className="tap inline-flex h-10 items-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3.5 text-sm font-medium text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-ink-300)] hover:text-[var(--color-ink-900)]"
+            className="tap inline-flex h-10 items-center gap-1.5 rounded-full border border-transparent bg-[var(--color-surface)] px-3.5 text-sm font-medium text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)] focus-visible:outline-none"
           >
             <User size={15} />
             <span>Account</span>
@@ -123,10 +128,10 @@ export function Header({ onOpenSearch }: HeaderProps) {
             aria-haspopup="dialog"
             aria-expanded={isCartOpen}
             className={classNames(
-              "tap relative z-[2] inline-flex h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors",
+              "tap relative z-[2] inline-flex h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors focus-visible:outline-none",
               isCartOpen
-                ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)] shadow-[var(--shadow-md)]"
-                : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-800)] hover:border-[var(--color-ink-300)] hover:text-[var(--color-ink-900)]",
+                ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)] shadow-[var(--shadow-sm)]"
+                : "border-transparent bg-[var(--color-surface)] text-[var(--color-ink-800)] hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)]",
             )}
           >
             <ShoppingBag size={15} />

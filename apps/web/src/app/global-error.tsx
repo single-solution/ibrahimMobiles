@@ -13,6 +13,14 @@ interface GlobalErrorProps {
   reset: () => void;
 }
 
+/* Every hex literal below is mirrored from the official palette so this
+   boundary stays brand-correct even when no CSS variables are loaded.
+     #ffffff -> --color-canvas
+     #00272c -> --color-ink-900
+     #3a4d00 -> --color-accent-700
+     #3f4a4c -> --color-ink-600
+     #5b6669 -> --color-ink-500
+     #e1ff51 -> --color-accent-500 */
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   return (
     <html lang="en">
@@ -56,7 +64,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 style={{
                   marginTop: "0.75rem",
                   fontSize: "0.75rem",
-                  color: "#737373",
+                  color: "#5b6669",
                 }}
               >
                 Reference: <code>{error.digest}</code>

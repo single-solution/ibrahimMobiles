@@ -1,7 +1,7 @@
 "use client";
 
 import { useGrade } from "@/lib/storefront/storefrontReferenceContext";
-import { ColoredPill } from "@/components/shared/ColoredPill";
+import { ColoredPill, type ColoredPillTone } from "@/components/shared/ColoredPill";
 
 interface GradeBadgeProps {
   /** Owning category slug — `Variant.gradeSlug` is unique only within this scope. */
@@ -9,6 +9,15 @@ interface GradeBadgeProps {
   /** The variant's grade slug. */
   gradeSlug: string;
   size?: "sm" | "md" | "lg";
+  /**
+   * Light vs dark host surface. We default to a soft-tinted chip so that
+   * grids of mixed grades read as a calm palette instead of a rainbow.
+   * Pass `surface="dark"` when the badge sits on `--color-ink-900` (home
+   * grades band) so the tint flips for legibility.
+   */
+  surface?: "light" | "dark";
+  /** Force the loud full-saturation chip — reserved for hero / single-grade callouts. */
+  tone?: ColoredPillTone;
   className?: string;
 }
 
@@ -28,11 +37,15 @@ export function GradeBadge({
   categorySlug,
   gradeSlug,
   size = "md",
+  surface = "light",
+  tone,
   className,
 }: GradeBadgeProps) {
   const descriptor = useGrade(categorySlug, gradeSlug);
   const label = descriptor?.label ?? gradeSlug;
-  const color = descriptor?.color ?? "#1f2937";
+  /* Fallback hex resolves to `--color-ink-700` so any grade missing
+     metadata still reads inside the brand palette. */
+  const color = descriptor?.color ?? "#1a3f44";
 
   const sizeClass = SIZE_CLASSES[size];
   const classes = [
@@ -43,9 +56,13 @@ export function GradeBadge({
     .filter(Boolean)
     .join(" ");
 
+  const resolvedTone: ColoredPillTone =
+    tone ?? (surface === "dark" ? "soft-dark" : "soft-light");
+
   return (
     <ColoredPill
       backgroundColor={color}
+      tone={resolvedTone}
       className={classes}
       aria-label={`Grade ${label}`}
     >

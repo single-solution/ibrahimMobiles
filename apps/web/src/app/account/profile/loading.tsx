@@ -37,7 +37,7 @@ export default function ProfileLoading() {
           <Skeleton shape="pill" className="h-11 w-32" />
         </section>
 
-        <section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] md:p-6">
+        <section className="cv-auto space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] md:p-6">
           <div className="flex items-end justify-between gap-3">
             <div className="space-y-2">
               <Skeleton shape="text" className="h-3 w-32" />

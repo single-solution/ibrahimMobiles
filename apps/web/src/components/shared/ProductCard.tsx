@@ -910,8 +910,8 @@ function AttributeGroupPill({
     "inline-flex max-w-full items-center truncate rounded-full border px-1.5 py-0.5 text-[10px] font-semibold shadow-sm backdrop-blur md:px-2 md:text-[11px]";
   const neutralClass =
     variant === "overlay"
-      ? `${pillClass} border-black/10 bg-[var(--color-surface)]/95 text-[var(--color-ink-900)]`
-      : `${pillClass} border-black/5 bg-[var(--color-surface)]/90 text-[var(--color-ink-800)]`;
+      ? `${pillClass} border-[var(--color-on-light-10)] bg-[var(--color-surface)]/95 text-[var(--color-ink-900)]`
+      : `${pillClass} border-[var(--color-on-light-05)] bg-[var(--color-surface)]/90 text-[var(--color-ink-800)]`;
   const accentColor =
     visible.find((chip) => chip.backgroundColor)?.backgroundColor ??
     allChips.find((chip) => chip.backgroundColor)?.backgroundColor;

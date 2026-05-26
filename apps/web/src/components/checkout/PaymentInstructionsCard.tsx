@@ -54,15 +54,17 @@ export function PaymentInstructionsCard({
 
   return (
     <Card className="overflow-hidden">
-      <div className="border-b border-[var(--color-ink-100)] bg-amber-50/80 px-4 py-3 md:px-5">
-        <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-amber-800">
+      <div className="border-b border-[var(--color-ink-100)] bg-[var(--color-warn-50)] px-4 py-3 md:px-5">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-warn-800)]">
           Next step
         </p>
         <p className="mt-1 text-[15px] font-semibold text-[var(--color-ink-900)]">{copy.title}</p>
       </div>
       <ol className="list-decimal space-y-2.5 p-4 pl-8 text-[13px] leading-snug text-[var(--color-ink-700)] md:p-5 md:pl-9">
         {copy.steps.map((step) => (
-          <li key={step}>{step}</li>
+          <li key={step} className="max-w-prose">
+            {step}
+          </li>
         ))}
       </ol>
       {copy.accountDetails.length > 0 ? (
@@ -82,7 +84,7 @@ export function PaymentInstructionsCard({
           href={buildWhatsAppLink(copy.whatsappPrefill, settings.whatsappNumber)}
           target="_blank"
           rel="noopener noreferrer"
-          className="tap inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-whatsapp)] py-2.5 text-[13px] font-semibold text-white hover:bg-[var(--color-whatsapp-dark)]"
+          className="tap inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-whatsapp)] py-2.5 text-[13px] font-semibold text-[var(--color-on-dark)] hover:bg-[var(--color-whatsapp-dark)]"
         >
           <MessageCircle size={15} />
           Message us on WhatsApp
@@ -113,7 +115,7 @@ function CopyableRow({ detail }: { detail: PaymentInstructionAccountDetail }) {
         <span className="block text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">
           {detail.label}
         </span>
-        <span className="mt-0.5 block break-all font-mono text-[12.5px] text-[var(--color-ink-900)]">
+        <span className="mt-0.5 block break-words font-mono text-[12.5px] text-[var(--color-ink-900)]">
           {detail.value}
         </span>
       </span>

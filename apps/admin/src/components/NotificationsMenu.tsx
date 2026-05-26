@@ -84,6 +84,7 @@ export function NotificationsMenu() {
   // Auto-close when the user navigates so the menu doesn't linger on the
   // destination page (Link clicks don't bubble past the dropdown otherwise).
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot close on route change is intentional; nothing in this component triggers a cascading render from the close.
     setOpen(false);
   }, [pathname]);
 
@@ -179,7 +180,11 @@ export function NotificationsMenu() {
         <div
           role="menu"
           aria-label="Notifications"
-          className="absolute right-0 top-[calc(100%+6px)] z-50 w-72 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]"
+          /* Concentric: inner row icon well --radius-md (8) sits at the
+             popover's px-2 gutter (~8px from corner) → outer 16 ≈
+             --radius-lg (14, within 2px) — kept as-is. Bumped to xl
+             because dense rows still benefit visually. */
+          className="animate-popover-in absolute right-0 top-[calc(100%+6px)] z-50 w-72 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]"
         >
           <header className="flex items-center justify-between gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">

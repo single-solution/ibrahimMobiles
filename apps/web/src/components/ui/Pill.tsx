@@ -15,10 +15,10 @@ interface PillProps {
 const TONE_CLASSES: Record<PillTone, string> = {
   neutral: "bg-[var(--color-ink-100)] text-[var(--color-ink-800)]",
   accent: "bg-[var(--color-accent-100)] text-[var(--color-accent-800)]",
-  warn: "bg-amber-100 text-amber-800",
-  danger: "bg-red-100 text-red-800",
-  info: "bg-sky-100 text-sky-800",
-  dark: "bg-[var(--color-ink-900)] text-white shadow-[var(--shadow-sm)]",
+  warn: "bg-[var(--color-warn-100)] text-[var(--color-warn-800)]",
+  danger: "bg-[var(--color-danger-100)] text-[var(--color-danger-800)]",
+  info: "bg-[var(--color-info-100)] text-[var(--color-info-800)]",
+  dark: "bg-[var(--color-ink-900)] text-[var(--color-on-dark)] shadow-[var(--shadow-sm)]",
   outline: "border border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)]",
 };
 

@@ -49,6 +49,12 @@ export function MagneticHover({
       return;
     }
 
+    // Cache rect — only refresh on enter / resize / scroll.
+    let rect = node.getBoundingClientRect();
+    const refreshRect = () => {
+      rect = node.getBoundingClientRect();
+    };
+
     const target = { x: 0, y: 0 };
     const current = { x: 0, y: 0 };
     let frame: number | null = null;
@@ -63,6 +69,7 @@ export function MagneticHover({
         Math.abs(current.y - target.y) < 0.1;
       if (settled && target.x === 0 && target.y === 0) {
         node.style.transform = "translate3d(0,0,0)";
+        node.style.willChange = "auto";
         animating = false;
         frame = null;
         return;
@@ -73,11 +80,15 @@ export function MagneticHover({
     const ensureLoop = () => {
       if (animating) return;
       animating = true;
+      node.style.willChange = "transform";
       frame = window.requestAnimationFrame(tick);
     };
 
+    const handleEnter = () => {
+      refreshRect();
+    };
+
     const handleMove = (event: PointerEvent) => {
-      const rect = node.getBoundingClientRect();
       const dx = event.clientX - (rect.left + rect.width / 2);
       const dy = event.clientY - (rect.top + rect.height / 2);
       target.x = Math.max(-maxOffset, Math.min(maxOffset, dx * strength));
@@ -91,11 +102,17 @@ export function MagneticHover({
       ensureLoop();
     };
 
-    node.addEventListener("pointermove", handleMove);
-    node.addEventListener("pointerleave", handleLeave);
+    node.addEventListener("pointerenter", handleEnter, { passive: true });
+    node.addEventListener("pointermove", handleMove, { passive: true });
+    node.addEventListener("pointerleave", handleLeave, { passive: true });
+    window.addEventListener("resize", refreshRect, { passive: true });
+    window.addEventListener("scroll", refreshRect, { passive: true });
     return () => {
+      node.removeEventListener("pointerenter", handleEnter);
       node.removeEventListener("pointermove", handleMove);
       node.removeEventListener("pointerleave", handleLeave);
+      window.removeEventListener("resize", refreshRect);
+      window.removeEventListener("scroll", refreshRect);
       if (frame != null) {
         window.cancelAnimationFrame(frame);
       }

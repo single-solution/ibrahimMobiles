@@ -59,13 +59,36 @@ const barlowCondensed = Barlow_Condensed({
 const STOREFRONT_BASE_URL = getStorefrontBaseUrl();
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [{ siteName, siteTagline }, seoSettings, googleVerification] =
-    await Promise.all([
-      getStoreSettingsCached(),
-      getSeoSettings(),
-      getGoogleSiteVerification(),
-    ]);
+  const [
+    { siteName, siteTagline, brandFaviconLight, brandFaviconDark },
+    seoSettings,
+    googleVerification,
+  ] = await Promise.all([
+    getStoreSettingsCached(),
+    getSeoSettings(),
+    getGoogleSiteVerification(),
+  ]);
   const defaultOg = seoSettings.defaultOgImageUrl || undefined;
+
+  /* Build the favicon descriptor list dynamically so the browser
+     gets the admin-uploaded mark when present and falls back to the
+     bundled `/favicon.ico` when neither variant is set. When both
+     variants exist, the `media` queries let the browser pick the
+     right one for the user's system theme; if only one is set we
+     publish it without a media query so it applies everywhere. */
+  const faviconLight = brandFaviconLight.trim();
+  const faviconDark = brandFaviconDark.trim();
+  const iconDescriptors: Array<{ url: string; media?: string }> = [];
+  if (faviconLight && faviconDark) {
+    iconDescriptors.push({ url: faviconLight, media: "(prefers-color-scheme: light)" });
+    iconDescriptors.push({ url: faviconDark, media: "(prefers-color-scheme: dark)" });
+  } else if (faviconLight) {
+    iconDescriptors.push({ url: faviconLight });
+  } else if (faviconDark) {
+    iconDescriptors.push({ url: faviconDark });
+  } else {
+    iconDescriptors.push({ url: "/favicon.ico" });
+  }
   return {
     metadataBase: new URL(STOREFRONT_BASE_URL),
     title: {
@@ -97,7 +120,7 @@ export async function generateMetadata(): Promise<Metadata> {
       follow: true,
     },
     icons: {
-      icon: "/favicon.ico",
+      icon: iconDescriptors,
     },
     formatDetection: {
       telephone: false,
@@ -110,6 +133,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  /* Mirrors `--color-canvas` — the browser chrome tints to match the
+     storefront's light surface. */
   themeColor: "#ffffff",
 };
 

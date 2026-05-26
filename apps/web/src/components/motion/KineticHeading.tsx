@@ -48,21 +48,75 @@ export interface KineticHeadingProps {
   style?: CSSProperties;
 }
 
-function splitCharacters(line: string, lineIndex: number, characterStartIndex: number): ReactNode[] {
-  return Array.from(line).map((char, charIndex) => {
-    const globalIndex = characterStartIndex + charIndex;
-    return (
+function splitCharacters(
+  line: string,
+  lineIndex: number,
+  characterStartIndex: number,
+): ReactNode[] {
+  /* Split the line into word + whitespace tokens so the browser is
+     only allowed to break BETWEEN words, never mid-word. Each word
+     becomes an `inline-block` wrapper holding its per-character spans
+     (the chars stay `inline-block` so GSAP can transform them
+     individually). The whitespace between words is rendered as a
+     normal text node — that's the only break opportunity the
+     line-breaking algorithm sees, so single words like "Three" or
+     "Welcome" can never be split across two lines.
+
+     `globalIndex` increments per source character (including spaces
+     we don't actually emit a span for) so the kinetic-stagger CSS
+     index stays continuous across multi-line headings and matches
+     the math in `lineStartIndexes`. */
+  const tokens = line.split(/(\s+)/);
+  const result: ReactNode[] = [];
+  let cursor = 0;
+  let wordCounter = 0;
+
+  for (const token of tokens) {
+    if (token.length === 0) {
+      continue;
+    }
+    if (/^\s+$/.test(token)) {
+      /* Wrap whitespace in a keyed span so the surrounding array
+         doesn't trigger React's "missing key" warning, but leave
+         the whitespace as plain text so the browser's line-break
+         algorithm still treats it as a normal break opportunity
+         between the word wrappers. */
+      result.push(
+        <span key={`l${lineIndex}-ws-${cursor}`}>{token}</span>,
+      );
+      cursor += token.length;
+      continue;
+    }
+
+    const chars: ReactNode[] = [];
+    for (let i = 0; i < token.length; i++) {
+      const char = token[i];
+      const globalIndex = characterStartIndex + cursor + i;
+      chars.push(
+        <span
+          key={`l${lineIndex}-c${cursor + i}`}
+          className="kinetic-char inline-block will-change-transform"
+          data-kinetic-char
+          style={{ ["--kinetic-i" as string]: String(globalIndex) } as CSSProperties}
+          aria-hidden
+        >
+          {char}
+        </span>,
+      );
+    }
+    result.push(
       <span
-        key={`${lineIndex}-${charIndex}-${char}`}
-        className="kinetic-char inline-block will-change-transform"
-        data-kinetic-char
-        style={{ ["--kinetic-i" as string]: String(globalIndex) } as CSSProperties}
-        aria-hidden
+        key={`l${lineIndex}-w${wordCounter}`}
+        className="kinetic-word inline-block whitespace-nowrap"
       >
-        {char === " " ? "\u00A0" : char}
-      </span>
+        {chars}
+      </span>,
     );
-  });
+    cursor += token.length;
+    wordCounter += 1;
+  }
+
+  return result;
 }
 
 export function KineticHeading({

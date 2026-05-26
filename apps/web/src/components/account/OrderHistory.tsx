@@ -13,12 +13,12 @@ type FilterId = "all" | "active" | "delivered" | "cancelled";
 
 const ACTIVE_STATUSES: OrderStatus[] = ["pending-payment", "confirmed", "dispatched"];
 const TONE: Record<OrderStatus, { toneBg: string; toneFg: string; toneDot: string; nextLabel?: string }> = {
-  "pending-payment": { toneBg: "bg-amber-50", toneFg: "text-amber-800", toneDot: "bg-amber-500", nextLabel: "Awaiting payment" },
-  confirmed: { toneBg: "bg-sky-50", toneFg: "text-sky-800", toneDot: "bg-sky-500", nextLabel: "Packing" },
+  "pending-payment": { toneBg: "bg-[var(--color-warn-50)]", toneFg: "text-[var(--color-warn-800)]", toneDot: "bg-[var(--color-warn-500)]", nextLabel: "Awaiting payment" },
+  confirmed: { toneBg: "bg-[var(--color-info-50)]", toneFg: "text-[var(--color-info-800)]", toneDot: "bg-[var(--color-info-500)]", nextLabel: "Packing" },
   dispatched: { toneBg: "bg-[var(--color-accent-100)]", toneFg: "text-[var(--color-accent-800)]", toneDot: "bg-[var(--color-accent-600)]", nextLabel: "On the way" },
-  delivered: { toneBg: "bg-emerald-50", toneFg: "text-emerald-800", toneDot: "bg-emerald-500" },
-  cancelled: { toneBg: "bg-rose-50", toneFg: "text-rose-800", toneDot: "bg-rose-500" },
-  refunded: { toneBg: "bg-rose-50", toneFg: "text-rose-800", toneDot: "bg-rose-500" },
+  delivered: { toneBg: "bg-[var(--color-success-50)]", toneFg: "text-[var(--color-success-800)]", toneDot: "bg-[var(--color-success-500)]" },
+  cancelled: { toneBg: "bg-[var(--color-danger-50)]", toneFg: "text-[var(--color-danger-800)]", toneDot: "bg-[var(--color-danger-500)]" },
+  refunded: { toneBg: "bg-[var(--color-danger-50)]", toneFg: "text-[var(--color-danger-800)]", toneDot: "bg-[var(--color-danger-500)]" },
 };
 
 const FILTERS: { id: FilterId; label: string; matches: (order: StorefrontOrder) => boolean }[] = [
@@ -108,7 +108,7 @@ export function OrderHistory({ orders }: OrderHistoryProps) {
         })}
       </div>
 
-      <div className="mt-5 md:mt-6">
+      <div className="cv-auto mt-5 md:mt-6">
         {filtered.length === 0 ? (
           <Empty filter={filter} />
         ) : (

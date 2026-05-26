@@ -366,25 +366,25 @@ function MobileGradesFallback() {
   return (
     <section className="-mx-4 mt-20 bg-[var(--color-ink-900)] px-4 py-14 text-[var(--color-canvas)]">
       <div className="space-y-3 text-center">
-        <Skeleton shape="text" className="mx-auto h-3 w-32 bg-white/20" />
-        <Skeleton shape="text" className="mx-auto h-12 w-3/4 bg-white/15" />
-        <Skeleton shape="text" className="mx-auto h-3 w-2/3 bg-white/15" />
+        <Skeleton shape="text" className="mx-auto h-3 w-32 bg-[var(--color-on-dark-20)]" />
+        <Skeleton shape="text" className="mx-auto h-12 w-3/4 bg-[var(--color-on-dark-15)]" />
+        <Skeleton shape="text" className="mx-auto h-3 w-2/3 bg-[var(--color-on-dark-15)]" />
       </div>
       <div className="mt-8 space-y-4">
         <div className="flex gap-2">
           {Array.from({ length: GRADES_TAB_FALLBACK_COUNT }).map((_, index) => (
-            <Skeleton key={index} shape="pill" className="h-9 flex-1 bg-white/10" />
+            <Skeleton key={index} shape="pill" className="h-9 flex-1 bg-[var(--color-on-dark-10)]" />
           ))}
         </div>
         <ul className="grid grid-cols-2 gap-2.5">
           {Array.from({ length: GRADES_CARD_FALLBACK_COUNT }).map((_, index) => (
             <li
               key={index}
-              className="flex flex-col gap-2 rounded-[14px] border border-white/10 bg-white/[0.06] p-3"
+              className="flex flex-col gap-2 rounded-[14px] border border-[var(--color-on-dark-10)] bg-[var(--color-on-dark-06)] p-3"
             >
-              <Skeleton shape="pill" className="h-5 w-20 bg-white/15" />
-              <Skeleton shape="text" className="h-3 w-full bg-white/10" />
-              <Skeleton shape="text" className="h-3 w-2/3 bg-white/10" />
+              <Skeleton shape="pill" className="h-5 w-20 bg-[var(--color-on-dark-15)]" />
+              <Skeleton shape="text" className="h-3 w-full bg-[var(--color-on-dark-10)]" />
+              <Skeleton shape="text" className="h-3 w-2/3 bg-[var(--color-on-dark-10)]" />
             </li>
           ))}
         </ul>
@@ -515,25 +515,25 @@ function DesktopGradesFallback() {
       <div className="mx-auto max-w-[1440px] px-6">
         <div className="grid grid-cols-[1fr_2fr] gap-12">
           <div className="space-y-4">
-            <Skeleton shape="text" className="h-3 w-32 bg-white/15" />
-            <Skeleton shape="text" className="h-16 w-3/4 bg-white/15" />
-            <Skeleton shape="text" className="h-3 w-2/3 bg-white/10" />
+            <Skeleton shape="text" className="h-3 w-32 bg-[var(--color-on-dark-15)]" />
+            <Skeleton shape="text" className="h-16 w-3/4 bg-[var(--color-on-dark-15)]" />
+            <Skeleton shape="text" className="h-3 w-2/3 bg-[var(--color-on-dark-10)]" />
           </div>
           <div className="space-y-4">
             <div className="flex gap-2">
               {Array.from({ length: GRADES_TAB_FALLBACK_COUNT }).map((_, index) => (
-                <Skeleton key={index} shape="pill" className="h-10 flex-1 bg-white/10" />
+                <Skeleton key={index} shape="pill" className="h-10 flex-1 bg-[var(--color-on-dark-10)]" />
               ))}
             </div>
             <div className="grid grid-cols-3 gap-3">
               {Array.from({ length: GRADES_CARD_FALLBACK_COUNT }).map((_, index) => (
                 <div
                   key={index}
-                  className="flex flex-col gap-2.5 rounded-[var(--radius-lg)] border border-white/10 bg-white/5 p-5"
+                  className="flex flex-col gap-2.5 rounded-[var(--radius-lg)] border border-[var(--color-on-dark-10)] bg-[var(--color-on-dark-05)] p-5"
                 >
-                  <Skeleton shape="pill" className="h-5 w-20 bg-white/15" />
-                  <Skeleton shape="text" className="h-3 w-full bg-white/10" />
-                  <Skeleton shape="text" className="h-3 w-2/3 bg-white/10" />
+                  <Skeleton shape="pill" className="h-5 w-20 bg-[var(--color-on-dark-15)]" />
+                  <Skeleton shape="text" className="h-3 w-full bg-[var(--color-on-dark-10)]" />
+                  <Skeleton shape="text" className="h-3 w-2/3 bg-[var(--color-on-dark-10)]" />
                 </div>
               ))}
             </div>
@@ -585,7 +585,10 @@ function MobileHero({ heroProducts, brands }: HeroProps) {
         minHeight:
           "calc(100dvh - var(--mobile-header-h) - var(--mobile-tabbar-h))",
         background:
-          "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 80%, #fff) 0%, var(--color-canvas) 65%, var(--color-canvas) 100%)",
+          /* Tint dialled back from 80% → 55% of accent-50 and the fade
+             band pulled up from 65% → 55% so the wash is gentler and
+             the canvas takes over sooner. */
+          "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 55%, var(--color-canvas)) 0%, var(--color-canvas) 55%, var(--color-canvas) 100%)",
       }}
     >
       <HeroAmbience />
@@ -694,11 +697,15 @@ function CategorySectionHeadline({ labels }: { labels: string[] }) {
   if (labels.length === 0) {
     return <>Every category.</>;
   }
+  /* Each category label sits on its own line. Single-word labels
+     (e.g. "Samsung", "Audio") must never break across lines — if the
+     container ever gets narrow, the eye expects the label to overflow,
+     not to split mid-word. */
   if (labels.length <= 3) {
     return (
       <>
         {labels.map((label) => (
-          <span key={label} className="block">
+          <span key={label} className="block whitespace-nowrap">
             {label}.
           </span>
         ))}
@@ -707,9 +714,11 @@ function CategorySectionHeadline({ labels }: { labels: string[] }) {
   }
   return (
     <>
-      <span className="block">{labels[0]}.</span>
-      <span className="block">{labels[1]}.</span>
-      <span className="block text-[var(--color-accent-700)]">& more.</span>
+      <span className="block whitespace-nowrap">{labels[0]}.</span>
+      <span className="block whitespace-nowrap">{labels[1]}.</span>
+      <span className="block whitespace-nowrap text-[var(--color-accent-700)]">
+        & more.
+      </span>
     </>
   );
 }
@@ -720,7 +729,7 @@ function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
   const headlineLabels = categories.map((category) => category.label);
 
   return (
-    <section className="app-section">
+    <section className="app-section cv-auto">
       <div className="reveal mb-3">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
           Browse by category
@@ -728,7 +737,7 @@ function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
         <h2 className="font-headline mt-1 text-[28px] font-semibold leading-[0.95] tracking-[-0.01em] text-[var(--color-ink-900)] uppercase">
           <CategorySectionHeadline labels={headlineLabels} />
         </h2>
-        <p className="mt-2 text-[13px] leading-snug text-[var(--color-ink-600)]">
+        <p className="mt-2 max-w-prose text-[13px] leading-snug text-[var(--color-ink-600)]">
           One shop. One graded standard. Tap a category to start browsing.
         </p>
       </div>
@@ -761,7 +770,7 @@ interface ProcessSectionProps {
 
 function MobileProcessSection({ flows }: ProcessSectionProps) {
   return (
-    <section id="how-to-buy" className="app-section">
+    <section id="how-to-buy" className="app-section cv-auto">
       <div className="reveal mb-7 text-center">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
           How it works
@@ -772,7 +781,7 @@ function MobileProcessSection({ flows }: ProcessSectionProps) {
           stagger={0.028}
           className="font-headline mt-2 text-[40px] font-semibold leading-[0.95] tracking-[-0.01em] text-[var(--color-ink-900)] uppercase"
         />
-        <p className="mt-3 text-[13px] leading-snug text-[var(--color-ink-500)]">
+        <p className="mx-auto mt-3 max-w-prose text-[13px] leading-snug text-[var(--color-ink-500)]">
           From sourcing to refund — every step on record.
         </p>
       </div>
@@ -807,7 +816,7 @@ function MobileProcessSection({ flows }: ProcessSectionProps) {
                       <p className="text-[13px] font-semibold leading-tight text-[var(--color-ink-900)]">
                         {step.title}
                       </p>
-                      <p className="mt-0.5 text-[12px] leading-snug text-[var(--color-ink-600)]">
+                      <p className="mt-0.5 max-w-prose text-[12px] leading-snug text-[var(--color-ink-600)]">
                         {step.detail}
                       </p>
                     </div>
@@ -854,7 +863,7 @@ async function MobileGradesSection() {
   );
 
   return (
-    <section className="-mx-4 mt-20 bg-[var(--color-ink-900)] px-4 py-14 text-[var(--color-canvas)]">
+    <section className="cv-auto -mx-4 mt-20 bg-[var(--color-ink-900)] px-4 py-14 text-[var(--color-canvas)]">
       <div className="reveal space-y-3 text-center">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-400)]">
           How we grade
@@ -866,14 +875,14 @@ async function MobileGradesSection() {
           className="font-headline text-[44px] font-semibold leading-[0.95] tracking-[-0.01em] uppercase"
           lineClassNames={["", "text-[var(--color-accent-300)]"]}
         />
-        <p className="text-[13px] leading-snug text-[var(--color-ink-300)]">
+        <p className="mx-auto max-w-prose text-[13px] leading-snug text-[var(--color-ink-300)]">
           A 32-point inspection — then a grade for that category. We pick it, we stand behind it.
         </p>
       </div>
       <GradesByCategoryTabs groups={groups} variant="mobile" />
       <Link
         href="#how-to-buy"
-        className="cta-arrow tap mt-8 inline-flex w-full items-center justify-center gap-1 rounded-full border border-white/15 bg-white/[0.06] px-4 py-2.5 text-[13px] font-semibold text-[var(--color-accent-300)] active:bg-white/10"
+        className="cta-arrow tap mt-8 inline-flex w-full items-center justify-center gap-1 rounded-full border border-[var(--color-on-dark-15)] bg-[var(--color-on-dark-06)] px-4 py-2.5 text-[13px] font-semibold text-[var(--color-accent-300)] active:bg-[var(--color-on-dark-10)]"
       >
         Read our inspection process
         <ArrowRight size={13} />
@@ -888,7 +897,7 @@ interface VisitStoreSectionProps {
 
 function MobileVisitStoreSection({ settings }: VisitStoreSectionProps) {
   return (
-    <section id="contact" className="app-section">
+    <section id="contact" className="app-section cv-auto">
       <div className="reveal mb-7 text-center">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
           Visit · Call · Chat
@@ -900,7 +909,7 @@ function MobileVisitStoreSection({ settings }: VisitStoreSectionProps) {
           className="font-headline mt-2 text-[40px] font-semibold leading-[0.95] tracking-[-0.01em] text-[var(--color-ink-900)] uppercase"
           lineClassNames={["", "text-[var(--color-accent-700)]"]}
         />
-        <p className="mt-3 text-[13px] leading-snug text-[var(--color-ink-500)]">
+        <p className="mx-auto mt-3 max-w-prose text-[13px] leading-snug text-[var(--color-ink-500)]">
           Hold the phone, test it for yourself — or message us, we ship anywhere in Pakistan.
         </p>
       </div>
@@ -1004,7 +1013,10 @@ function DesktopHero({ heroProducts, brands }: HeroProps) {
       className="relative flex min-h-[calc(100dvh-var(--desktop-header-h))] items-center overflow-hidden border-b border-[var(--color-ink-100)]"
       style={{
         background:
-          "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 85%, #fff) 0%, var(--color-canvas) 70%, var(--color-canvas) 100%)",
+          /* Same softening as mobile: 85% → 60% of accent-50 and the
+             fade band pulled up from 70% → 60% so the gradient feels
+             lighter without losing the brand wash entirely. */
+          "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 60%, var(--color-canvas)) 0%, var(--color-canvas) 60%, var(--color-canvas) 100%)",
       }}
     >
       <HeroAmbience />
@@ -1090,7 +1102,7 @@ function DesktopShopTypesSection({ categories }: ShopTypesSectionProps) {
   const headlineLabels = categories.map((category) => category.label);
 
   return (
-    <section className="relative mx-auto max-w-[1440px] overflow-hidden px-6 py-24">
+    <section className="cv-auto relative mx-auto max-w-[1440px] overflow-hidden px-6 py-24">
       <SectionAmbience intensity="soft" side="right" />
       <div className="relative z-10 reveal">
         <DesktopSectionHeader
@@ -1147,11 +1159,15 @@ function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
 
   const inner = (
     <div
-      className={`reveal lift relative flex h-full overflow-hidden rounded-[var(--radius-xl)] border bg-gradient-to-br ${SHOP_TYPE_DEFAULT_GRADIENT} ${
+      /* Concentric radii: mobile inner --radius-lg (14) + p-3.5 (14) →
+         outer 28 ≈ --radius-2xl (24, within 2px). Desktop inner
+         --radius-lg (14) + p-6 (24) → outer 38 ≈ --radius-3xl (32,
+         within 6px). See radius table in globals.css. */
+      className={`reveal lift relative flex h-full overflow-hidden border bg-gradient-to-br ${SHOP_TYPE_DEFAULT_GRADIENT} ${
         isActive
           ? "border-[var(--color-ink-100)] hover:border-[var(--color-ink-200)]"
           : "cursor-not-allowed border-dashed border-[var(--color-ink-200)] opacity-80"
-      } ${variant === "desktop" ? "min-h-[240px] flex-col p-6" : "min-h-[110px] flex-row items-center gap-3 p-3.5"}`}
+      } ${variant === "desktop" ? "min-h-[240px] flex-col rounded-[var(--radius-3xl)] p-6" : "min-h-[110px] flex-row items-center gap-3 rounded-[var(--radius-2xl)] p-3.5"}`}
       style={{ ["--reveal-delay" as string]: `${delayMs}ms` }}
     >
       <span
@@ -1238,7 +1254,7 @@ function DesktopProcessSection({ flows }: ProcessSectionProps) {
   return (
     <section
       id="how-to-buy"
-      className="relative mx-auto max-w-[1440px] scroll-mt-[var(--desktop-header-h)] overflow-hidden px-6 py-24"
+      className="cv-auto relative mx-auto max-w-[1440px] scroll-mt-[var(--desktop-header-h)] overflow-hidden px-6 py-24"
     >
       <SectionAmbience intensity="soft" side="left" />
       <div className="relative z-10">
@@ -1280,7 +1296,7 @@ function DesktopProcessSection({ flows }: ProcessSectionProps) {
                         <p className="text-[14px] font-semibold text-[var(--color-ink-900)]">
                           {step.title}
                         </p>
-                        <p className="mt-0.5 text-[12.5px] text-[var(--color-ink-600)]">
+                        <p className="mt-0.5 max-w-prose text-[12.5px] text-[var(--color-ink-600)]">
                           {step.detail}
                         </p>
                       </div>
@@ -1319,7 +1335,7 @@ async function DesktopGrades() {
   );
 
   return (
-    <section className="bg-[var(--color-ink-900)] py-24 text-[var(--color-canvas)]">
+    <section className="cv-auto bg-[var(--color-ink-900)] py-24 text-[var(--color-canvas)]">
       <div className="mx-auto max-w-[1440px] px-6">
         <div className="grid grid-cols-[1fr_2fr] gap-12">
           <div className="reveal space-y-4">
@@ -1333,7 +1349,7 @@ async function DesktopGrades() {
               className="font-headline text-[72px] font-semibold leading-[0.92] tracking-[-0.015em] uppercase"
               lineClassNames={["", "text-[var(--color-accent-300)]"]}
             />
-            <p className="text-base text-[var(--color-ink-300)]">
+            <p className="max-w-prose text-base text-[var(--color-ink-300)]">
               Our 32-point inspection covers cosmetic condition, battery health, screen, cameras and every button. Then we assign a grade for that category — and stand behind it.
             </p>
             <Link
@@ -1353,7 +1369,7 @@ async function DesktopGrades() {
 
 function DesktopVisitStore({ settings }: VisitStoreSectionProps) {
   return (
-    <section id="contact" className="relative mx-auto max-w-[1440px] overflow-hidden px-6 py-24">
+    <section id="contact" className="cv-auto relative mx-auto max-w-[1440px] overflow-hidden px-6 py-24">
       <SectionAmbience intensity="soft" side="right" />
       <div
         className="relative z-10 reveal overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"
@@ -1370,12 +1386,14 @@ function DesktopVisitStore({ settings }: VisitStoreSectionProps) {
                 stagger={0.026}
                 className="font-headline text-[72px] font-semibold leading-[0.92] tracking-[-0.015em] text-[var(--color-ink-900)] uppercase"
               />
-              <p className="text-base text-[var(--color-ink-600)]">
+              <p className="max-w-prose text-base text-[var(--color-ink-600)]">
                 Our flagship outlet sits in the heart of Pakistan&apos;s biggest mobile market — hold the phone, test it for yourself, walk out the same day. Or message us and we ship anywhere in Pakistan.
               </p>
             </div>
 
-            <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-4">
+            {/* Concentric: inner --radius-md (8) + p-4 (16) → outer
+                --radius-2xl (24). */}
+            <div className="rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-4">
               <div className="flex items-start gap-3">
                 <span className="grid size-9 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
                   <MapPin size={16} />
@@ -1457,7 +1475,9 @@ function DesktopSectionHeader({ eyebrow, title, description, ctaHref, ctaLabel }
           stagger={0.028}
           className="font-headline mt-2 text-[64px] font-semibold leading-[0.95] tracking-[-0.01em] text-[var(--color-ink-900)] uppercase"
         />
-        <p className="mt-3 text-base text-[var(--color-ink-600)]">{description}</p>
+        <p className="mt-3 max-w-prose text-base text-[var(--color-ink-600)]">
+          {description}
+        </p>
       </div>
       {ctaHref && ctaLabel && (
         <Link

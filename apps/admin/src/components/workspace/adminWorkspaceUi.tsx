@@ -165,7 +165,9 @@ export function WorkspacePaneHeader({
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-[var(--color-ink-900)]">{title}</h2>
           {subtitle ? (
-            <p className="text-[10px] text-[var(--color-ink-500)]">{subtitle}</p>
+            <p className="max-w-prose text-[10px] text-[var(--color-ink-500)]">
+              {subtitle}
+            </p>
           ) : null}
         </div>
         {action}
@@ -224,7 +226,9 @@ export function WorkspaceListHeader({
             {title}
           </h2>
           {subtitle ? (
-            <p className="text-[10px] text-[var(--color-ink-500)]">{subtitle}</p>
+            <p className="max-w-prose text-[10px] text-[var(--color-ink-500)]">
+              {subtitle}
+            </p>
           ) : null}
         </div>
       </div>
@@ -320,7 +324,9 @@ export function WorkspaceCatalogPaneHeader({
         </div>
       </div>
       {subtitle ? (
-        <p className="mt-1 text-[10px] text-[var(--color-ink-500)]">{subtitle}</p>
+        <p className="mt-1 max-w-prose text-[10px] text-[var(--color-ink-500)]">
+          {subtitle}
+        </p>
       ) : null}
       {filters ? <div className="mt-2 flex flex-wrap gap-1.5">{filters}</div> : null}
     </header>

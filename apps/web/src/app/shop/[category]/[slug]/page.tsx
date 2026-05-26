@@ -242,7 +242,7 @@ export default async function ProductDetailPage({
 
           <GradeShowcase product={product} variant="mobile" />
 
-          <section className="pdp-related-panel">
+          <section className="pdp-related-panel cv-auto">
             <div className="app-section-eyebrow mb-3">
               <span className="text-[var(--color-accent-800)]">More from {brandName}</span>
               <Link href={brandFilterHref}>See all</Link>
@@ -280,7 +280,7 @@ export default async function ProductDetailPage({
 
         <GradeShowcase product={product} />
 
-        <section className="pdp-related-panel mt-16">
+        <section className="pdp-related-panel cv-auto mt-16">
           <div className="flex items-end justify-between gap-3">
             <h2 className="text-3xl font-semibold tracking-tight text-[var(--color-ink-900)]">
               More from {brandName}

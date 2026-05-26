@@ -63,7 +63,7 @@ async function loadPdpOgData(slug: string): Promise<PdpOgData | null> {
     return {
       brandName: brand?.name ?? product.brandName,
       productName: product.name,
-      gradeColor: grade?.color ?? "#0ea5e9",
+      gradeColor: grade?.color ?? "#e1ff51",
       gradeLabel: grade?.label ?? variant.gradeSlug,
       categoryLabel: category?.label ?? "",
       priceLabel: new Intl.NumberFormat("en-PK", {
@@ -95,8 +95,8 @@ function PdpCard(data: PdpOgData) {
         width: "100%",
         height: "100%",
         display: "flex",
-        background: `linear-gradient(135deg, ${data.gradeColor}26 0%, #0f172a 70%)`,
-        color: "white",
+        background: `linear-gradient(135deg, ${data.gradeColor}26 0%, #00272c 70%)`,
+        color: "#ffffff",
         fontFamily: "system-ui, sans-serif",
         padding: 64,
       }}
@@ -188,8 +188,8 @@ function notFoundImage() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0f172a",
-          color: "white",
+          background: "#00272c",
+          color: "#ffffff",
           fontFamily: "system-ui, sans-serif",
           fontSize: 64,
         }}

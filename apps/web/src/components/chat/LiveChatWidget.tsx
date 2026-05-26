@@ -346,7 +346,9 @@ export function LiveChatWidget({
     return (
       <ChatShell onClose={onCollapse} title={siteName} subtitle="Chat is offline">
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-sm text-[var(--color-ink-500)]">
-          <p>Chat is currently disabled. Please reach us on WhatsApp.</p>
+          <p className="max-w-prose">
+            Chat is currently disabled. Please reach us on WhatsApp.
+          </p>
           <a
             href={buildWhatsAppLink("Salam!", whatsappNumber)}
             target="_blank"
@@ -463,15 +465,19 @@ function ChatShell({
     <div
       role="dialog"
       aria-label={`Chat with ${title}`}
-      className="fixed inset-0 z-50 flex h-[100dvh] w-screen flex-col overflow-hidden bg-[var(--color-surface)] md:static md:h-[560px] md:w-[min(380px,calc(100vw-2rem))] md:rounded-[var(--radius-xl)] md:border md:border-[var(--color-ink-100)] md:shadow-[var(--shadow-lg)]"
+      /* Mobile gets the slide-up bottom-sheet feel (full-screen panel
+         entering from below). Desktop gets the anchored popover scale —
+         the widget appears to "lift" out of the floating FAB rather
+         than snap into place. */
+      className="animate-sheet-up md:animate-popover-in fixed inset-0 z-50 flex h-[100dvh] w-screen flex-col overflow-hidden bg-[var(--color-surface)] md:static md:h-[560px] md:w-[min(380px,calc(100vw-2rem))] md:rounded-[var(--radius-xl)] md:border md:border-[var(--color-ink-100)] md:shadow-[var(--shadow-lg)]"
     >
-      <header className="flex items-center gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-ink-900)] px-3 py-3 text-white">
+      <header className="flex items-center gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-ink-900)] px-3 py-3 text-[var(--color-on-dark)]">
         {onBack ? (
           <button
             type="button"
             aria-label="Back to thread list"
             onClick={onBack}
-            className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--color-on-dark-soft)] transition-colors hover:bg-[var(--color-on-dark-10)] hover:text-[var(--color-on-dark)]"
           >
             <ArrowLeft size={16} />
           </button>
@@ -491,7 +497,7 @@ function ChatShell({
             type="button"
             aria-label="Close chat"
             onClick={onClose}
-            className="grid size-8 place-items-center rounded-[var(--radius-md)] text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+            className="grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-on-dark-soft)] transition-colors hover:bg-[var(--color-on-dark-10)] hover:text-[var(--color-on-dark)]"
           >
             <X size={16} />
           </button>
@@ -519,7 +525,7 @@ function ThreadList({ threads, onOpen, onNew }: ThreadListProps) {
         <button
           type="button"
           onClick={onNew}
-          className="inline-flex items-center gap-1 rounded-full bg-[var(--color-ink-900)] px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:bg-[var(--color-ink-800)]"
+          className="inline-flex items-center gap-1 rounded-full bg-[var(--color-ink-900)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-on-dark)] transition-colors hover:bg-[var(--color-ink-800)]"
         >
           <Plus size={12} aria-hidden />
           New chat
@@ -732,7 +738,7 @@ function ThreadConversation({
           type="submit"
           aria-label="Send message"
           disabled={sending || uploading || draft.trim().length === 0}
-          className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-white transition-opacity disabled:opacity-40"
+          className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] transition-opacity disabled:opacity-40"
         >
           <Send size={14} />
         </button>
@@ -831,7 +837,7 @@ function ComposeConversation({
           type="submit"
           aria-label="Send message"
           disabled={sending || draft.trim().length === 0}
-          className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-white transition-opacity disabled:opacity-40"
+          className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] transition-opacity disabled:opacity-40"
         >
           <Send size={14} />
         </button>
@@ -850,7 +856,7 @@ function ChatLoginGate({ signInHref }: { signInHref: string }) {
       <p className="text-center text-sm font-medium text-[var(--color-ink-800)]">
         Sign in to keep chatting
       </p>
-      <p className="mt-1 text-center text-xs leading-relaxed text-[var(--color-ink-600)]">
+      <p className="mx-auto mt-1 max-w-prose text-center text-xs leading-relaxed text-[var(--color-ink-600)]">
         You&apos;ve used your {CHAT_GUEST_MESSAGE_LIMIT} free preview messages. Sign in to
         continue this conversation and get order updates.
       </p>
@@ -866,10 +872,12 @@ function ChatLoginGate({ signInHref }: { signInHref: string }) {
 
 function SupportHintFooter({ assistantEnabled }: SupportHintFooterProps) {
   return (
-    <p className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-4 py-2.5 text-center text-[11px] leading-relaxed text-[var(--color-ink-600)]">
-      {assistantEnabled
-        ? 'Need to speak with our team? Type "speak to someone" and we will join this chat.'
-        : "A teammate will reply here as soon as possible."}
+    <p className="mx-auto border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-4 py-2.5 text-center text-[11px] leading-relaxed text-[var(--color-ink-600)]">
+      <span className="mx-auto block max-w-prose">
+        {assistantEnabled
+          ? 'Need to speak with our team? Type "speak to someone" and we will join this chat.'
+          : "A teammate will reply here as soon as possible."}
+      </span>
     </p>
   );
 }

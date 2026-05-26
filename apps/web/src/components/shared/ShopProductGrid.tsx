@@ -103,7 +103,7 @@ function ShopListingEmptyState({
           ? "No more products match your selection"
           : `No ${categoryLabel.toLowerCase()} in stock right now`}
       </p>
-      <p className="mt-2 text-[13px] leading-snug text-[var(--color-ink-500)]">
+      <p className="mx-auto mt-2 max-w-prose text-[13px] leading-snug text-[var(--color-ink-500)]">
         {filtersActive
           ? "Try clearing a filter or choosing a different grade or brand."
           : "Check back soon — we add new stock regularly."}

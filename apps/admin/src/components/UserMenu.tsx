@@ -100,7 +100,10 @@ export function UserMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+6px)] z-50 w-56 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1.5 shadow-[var(--shadow-lg)]"
+          /* Concentric: inner full-pill menu rows live behind p-1 gutter
+             — pill geometry makes the formula a soft target; --radius-xl
+             keeps the popover visually proportional to its dense rows. */
+          className="animate-popover-in absolute right-0 top-[calc(100%+6px)] z-50 w-56 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1.5 shadow-[var(--shadow-lg)]"
         >
           <div className="border-b border-[var(--color-ink-100)] px-3 py-2">
             <p className="truncate text-[11px] font-semibold text-[var(--color-ink-900)]">
@@ -140,7 +143,7 @@ export function UserMenu({
                 setOpen(false);
                 onLogout();
               }}
-              className="flex h-9 w-full items-center gap-2 rounded-[var(--radius-full)] px-2.5 text-[11px] font-semibold text-[var(--color-rose-700)] transition-colors hover:bg-[var(--color-rose-50)]"
+              className="flex h-9 w-full items-center gap-2 rounded-[var(--radius-full)] px-2.5 text-[11px] font-semibold text-[var(--color-danger-700)] transition-colors hover:bg-[var(--color-danger-50)]"
             >
               <LogOut size={14} className="shrink-0" aria-hidden />
               Log out

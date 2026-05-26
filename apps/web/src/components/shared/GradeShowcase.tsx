@@ -46,16 +46,20 @@ export function GradeShowcase({ product, variant = "desktop" }: GradeShowcasePro
     return null;
   }
 
-  const accentColor = descriptor.color || "#1f2937";
+  /* Fallback hex is `--color-ink-700` so missing-data grades still stay
+     inside the palette. */
+  const accentColor = descriptor.color || "#1a3f44";
   const accentSoftBackground = `${hexToRgba(accentColor, 0.1)}`;
 
   if (variant === "mobile") {
     return (
-      <section className="app-section">
+      <section className="app-section cv-auto">
         <div className="app-section-eyebrow">
           <span>Grade · {descriptor.label}</span>
         </div>
-        <div className="overflow-hidden rounded-[14px] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+        {/* Concentric: inner GradeBullet --radius-md (8) + p-3.5 (14)
+            content gutter → outer 22 ≈ --radius-2xl (24, within 2px). */}
+        <div className="overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
           <VideoFrame
             label={descriptor.label}
             accentColor={accentColor}
@@ -72,8 +76,8 @@ export function GradeShowcase({ product, variant = "desktop" }: GradeShowcasePro
               iconColor={accentColor}
               iconSize={13}
               iconSizeClass="size-[13px]"
-              className="text-[13px] leading-snug text-[var(--color-ink-700)]"
-              bulletItemClassName="text-[12.5px] text-[var(--color-ink-700)]"
+              className="max-w-prose text-[13px] leading-snug text-[var(--color-ink-700)]"
+              bulletItemClassName="max-w-prose text-[12.5px] text-[var(--color-ink-700)]"
             />
             <GradeBullet
               icon={<ShieldCheck size={13} />}
@@ -87,7 +91,7 @@ export function GradeShowcase({ product, variant = "desktop" }: GradeShowcasePro
   }
 
   return (
-    <section className="mt-16 grid grid-cols-[1fr_1.1fr] gap-8 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-8">
+    <section className="cv-auto mt-16 grid grid-cols-[1fr_1.1fr] gap-8 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-8">
       <VideoFrame
         label={descriptor.label}
         accentColor={accentColor}
@@ -115,8 +119,8 @@ export function GradeShowcase({ product, variant = "desktop" }: GradeShowcasePro
           iconColor={accentColor}
           iconSize={14}
           iconSizeClass="size-[14px]"
-          className="mt-4 text-base leading-relaxed text-[var(--color-ink-700)]"
-          bulletItemClassName="text-[13.5px] text-[var(--color-ink-700)]"
+          className="mt-4 max-w-prose text-base leading-relaxed text-[var(--color-ink-700)]"
+          bulletItemClassName="max-w-prose text-[13.5px] text-[var(--color-ink-700)]"
         />
         <div className="mt-5 grid grid-cols-1 gap-2.5">
           <GradeBullet
@@ -158,7 +162,7 @@ function VideoFrame({ label, accentColor, videoUrl, isCompact }: VideoFrameProps
             className="absolute inset-0 opacity-40"
             style={{
               backgroundImage:
-                "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18), transparent 55%), radial-gradient(circle at 70% 70%, rgba(255,255,255,0.08), transparent 55%)",
+                "radial-gradient(circle at 30% 30%, var(--color-on-dark-20), transparent 55%), radial-gradient(circle at 70% 70%, var(--color-on-dark-10), transparent 55%)",
             }}
           />
           <div
@@ -166,28 +170,28 @@ function VideoFrame({ label, accentColor, videoUrl, isCompact }: VideoFrameProps
             className="absolute inset-0"
             style={{
               backgroundImage:
-                "linear-gradient(135deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 14px), linear-gradient(45deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 14px)",
+                "linear-gradient(135deg, var(--color-on-dark-05) 0 1px, transparent 1px 14px), linear-gradient(45deg, var(--color-on-dark-05) 0 1px, transparent 1px 14px)",
             }}
           />
-          <div className="absolute inset-0 flex flex-col justify-between p-4 text-white">
+          <div className="absolute inset-0 flex flex-col justify-between p-4 text-[var(--color-on-dark)]">
             <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] backdrop-blur">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-on-dark-15)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] backdrop-blur">
                 <Camera size={11} />
                 Sample inspection
               </span>
               <span
-                className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white"
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--color-on-dark)]"
                 style={{ backgroundColor: accentColor }}
               >
                 {label}
               </span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-[11px] text-white/70">
-                <span className="size-1.5 animate-pulse rounded-full bg-rose-400" />
+              <div className="flex items-center gap-2 text-[11px] text-[var(--color-on-dark-soft)]">
+                <span className="size-1.5 animate-pulse rounded-full bg-[var(--color-danger-400)]" />
                 REC · 00:14
               </div>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-white/50">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[var(--color-on-dark-muted)]">
                 Hall Road · Lab
               </span>
             </div>
@@ -196,7 +200,7 @@ function VideoFrame({ label, accentColor, videoUrl, isCompact }: VideoFrameProps
             <button
               type="button"
               aria-label="Play sample inspection video"
-              className="grid place-items-center rounded-full bg-white/15 p-3 text-white backdrop-blur transition hover:bg-white/25"
+              className="grid place-items-center rounded-full bg-[var(--color-on-dark-15)] p-3 text-[var(--color-on-dark)] backdrop-blur transition hover:bg-[var(--color-on-dark-25)]"
             >
               <PlayCircle size={isCompact ? 32 : 44} strokeWidth={1.6} />
             </button>
@@ -225,11 +229,12 @@ function GradeBullet({ icon, title, body }: GradeBulletProps) {
   );
 }
 
-/** Convert `#rrggbb` to `rgba(r,g,b,a)` for soft background tints. */
+/** Convert `#rrggbb` to `rgba(r,g,b,a)` for soft background tints.
+ *  Fallback is `--color-ink-700` (#1a3f44) so palette stays intact. */
 function hexToRgba(hex: string, alpha: number): string {
   const match = /^#([0-9a-f]{6})$/i.exec(hex.trim());
   if (!match) {
-    return `rgba(31,41,55,${alpha})`;
+    return `rgba(26,63,68,${alpha})`;
   }
   const num = Number.parseInt(match[1], 16);
   const r = (num >> 16) & 0xff;

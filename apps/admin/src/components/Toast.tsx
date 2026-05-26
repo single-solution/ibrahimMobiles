@@ -56,14 +56,14 @@ export function ToastProvider({ children }: ToastProviderProps) {
     setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
-  const push = useCallback(
-    (message: string, tone: ToastTone) => {
-      const id = Date.now() + Math.random();
-      setToasts((current) => [...current, { id, message, tone }]);
-      window.setTimeout(() => dismiss(id), TOAST_AUTO_DISMISS_MS);
-    },
-    [dismiss],
-  );
+  const push = useCallback((message: string, tone: ToastTone) => {
+    const id = Date.now() + Math.random();
+    setToasts((current) => [...current, { id, message, tone }]);
+    /* Auto-dismiss is owned by the ToastItem — it flips into the
+       `leaving` state shortly before the deadline so the exit
+       keyframe can play, then calls `onDismiss` (which removes the
+       entry from the array) when the animation actually ends. */
+  }, []);
 
   const api = useMemo<ToastApi>(
     () => ({
@@ -98,21 +98,41 @@ interface ToastItemProps {
   onDismiss: () => void;
 }
 
+/* Toast lifecycle is fully CSS-driven via the `data-toast-state`
+   attribute (see `toast-in` / `toast-out` keyframes in globals.css).
+   The component just flips the attribute on enter / leave and waits
+   for the `animationend` event to unmount — no transition coordination
+   in JS, no animation library, lightweight by design. */
+const TOAST_EXIT_LEAD_MS = 180;
+
 function ToastItem({ message, tone, onDismiss }: ToastItemProps) {
-  const [isVisible, setIsVisible] = useState(false);
+  const [state, setState] = useState<"entering" | "leaving">("entering");
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => setIsVisible(true));
-    return () => cancelAnimationFrame(frame);
+    /* Start the leave animation slightly before the auto-dismiss
+       deadline so the exit keyframe has time to play. */
+    const leaveTimer = window.setTimeout(
+      () => setState("leaving"),
+      TOAST_AUTO_DISMISS_MS - TOAST_EXIT_LEAD_MS,
+    );
+    return () => window.clearTimeout(leaveTimer);
   }, []);
 
   return (
     <div
       role="status"
+      data-toast-state={state}
+      onAnimationEnd={(event) => {
+        /* Only react to the outer wrapper's own animation, not to any
+           child animations bubbling up (icons can have their own
+           keyframes in the future). */
+        if (event.target === event.currentTarget && state === "leaving") {
+          onDismiss();
+        }
+      }}
       className={classNames(
-        "pointer-events-auto flex items-start gap-2.5 rounded-[var(--radius-md)] border px-3.5 py-3 shadow-[var(--shadow-md)] backdrop-blur transition-all duration-200",
+        "pointer-events-auto flex items-start gap-2.5 rounded-[var(--radius-md)] border px-3.5 py-3 shadow-[var(--shadow-md)] backdrop-blur",
         TONE_CLASSES[tone],
-        isVisible ? "translate-x-0 opacity-100" : "translate-x-2 opacity-0",
       )}
     >
       <span className="mt-0.5 shrink-0">{TONE_ICONS[tone]}</span>
@@ -120,7 +140,7 @@ function ToastItem({ message, tone, onDismiss }: ToastItemProps) {
       <button
         type="button"
         aria-label="Dismiss"
-        onClick={onDismiss}
+        onClick={() => setState("leaving")}
         className="-m-1 grid size-6 shrink-0 place-items-center rounded text-current opacity-70 transition-opacity hover:opacity-100"
       >
         <X size={14} />

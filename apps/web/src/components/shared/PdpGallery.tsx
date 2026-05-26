@@ -164,7 +164,7 @@ function PdpGalleryInner({
             />
           </div>
           {hero && heroReady && (
-            <span className="pointer-events-none absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-[var(--color-ink-900)]/55 text-white backdrop-blur">
+            <span className="pointer-events-none absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-[var(--color-ink-900)]/55 text-[var(--color-on-dark)] backdrop-blur">
               <ZoomIn size={16} />
             </span>
           )}
@@ -238,7 +238,7 @@ function PdpGalleryInner({
           />
         </div>
         {hero && heroReady && (
-          <span className="pointer-events-none absolute right-4 top-4 z-10 grid size-10 place-items-center rounded-full bg-[var(--color-ink-900)]/55 text-white backdrop-blur">
+          <span className="pointer-events-none absolute right-4 top-4 z-10 grid size-10 place-items-center rounded-full bg-[var(--color-ink-900)]/55 text-[var(--color-on-dark)] backdrop-blur">
             <ZoomIn size={16} />
           </span>
         )}
@@ -353,7 +353,7 @@ function Lightbox({
       role="dialog"
       aria-modal="true"
       aria-label={`Zoom view of ${name}`}
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--color-ink-900)]/90 p-4"
+      className="animate-sheet-fade fixed inset-0 z-[60] flex items-center justify-center bg-[var(--color-ink-900)]/90 p-4"
     >
       <button
         type="button"
@@ -362,7 +362,7 @@ function Lightbox({
         className="absolute inset-0"
       />
       <div
-        className="relative max-h-[92vh] max-w-[92vw] touch-pan-y"
+        className="animate-lightbox-in relative max-h-[92vh] max-w-[92vw] touch-pan-y"
         {...(images.length > 1 ? lightboxSwipe : {})}
       >
         <Image
@@ -384,7 +384,7 @@ function Lightbox({
         type="button"
         aria-label="Close zoom"
         onClick={onClose}
-        className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/15 text-white backdrop-blur hover:bg-white/25"
+        className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-[var(--color-on-dark-15)] text-[var(--color-on-dark)] backdrop-blur hover:bg-[var(--color-on-dark-25)]"
       >
         <X size={18} />
       </button>
@@ -397,7 +397,7 @@ function Lightbox({
               e.stopPropagation();
               goPrev();
             }}
-            className="absolute left-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white backdrop-blur hover:bg-white/25"
+            className="absolute left-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-[var(--color-on-dark-15)] text-[var(--color-on-dark)] backdrop-blur hover:bg-[var(--color-on-dark-25)]"
           >
             <ChevronLeft size={20} />
           </button>
@@ -408,13 +408,13 @@ function Lightbox({
               e.stopPropagation();
               goNext();
             }}
-            className="absolute right-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-white backdrop-blur hover:bg-white/25"
+            className="absolute right-4 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-[var(--color-on-dark-15)] text-[var(--color-on-dark)] backdrop-blur hover:bg-[var(--color-on-dark-25)]"
           >
             <ChevronRight size={20} />
           </button>
         </>
       )}
-      <p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white/15 px-3 py-1 text-[12px] font-semibold text-white backdrop-blur">
+      <p className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-[var(--color-on-dark-15)] px-3 py-1 text-[12px] font-semibold text-[var(--color-on-dark)] backdrop-blur">
         {index + 1} / {images.length}
       </p>
     </div>

@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
           <h1 className="text-center text-xl font-semibold tracking-[-0.02em] text-[var(--color-ink-900)]">
             Sign in
           </h1>
-          <p className="mt-1.5 text-center text-[12px] text-[var(--color-ink-500)]">
+          <p className="mx-auto mt-1.5 max-w-prose text-center text-[12px] text-[var(--color-ink-500)]">
             Use the email and password your owner shared with you.
           </p>
 
@@ -42,7 +42,7 @@ export default function AdminLoginPage() {
           </Suspense>
         </div>
 
-        <p className="mt-6 text-center text-[11px] text-[var(--color-ink-400)]">
+        <p className="mx-auto mt-6 max-w-prose text-center text-[11px] text-[var(--color-ink-400)]">
           © {new Date().getFullYear()} {siteName} · Lost access? Ask the store owner to reset your password.
         </p>
       </div>

@@ -49,7 +49,7 @@ export function EmptyCartState() {
       <h1 className="font-headline text-3xl font-semibold tracking-tight text-[var(--color-ink-900)]">
         Your cart is empty
       </h1>
-      <p className="mt-3 text-[14px] text-[var(--color-ink-600)]">
+      <p className="mx-auto mt-3 max-w-prose text-[14px] text-[var(--color-ink-600)]">
         Browse the shop, pick a phone or accessory, then come back here to check out.
       </p>
       <Link
@@ -77,11 +77,11 @@ export function CheckoutHeader() {
         <h1 className="mt-2 font-headline text-[34px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[44px]">
           Checkout
         </h1>
-        <p className="mt-1 text-[13px] text-[var(--color-ink-500)] md:text-sm">
+        <p className="mt-1 max-w-prose text-[13px] text-[var(--color-ink-500)] md:text-sm">
           Confirm your contact, address and payment — we&rsquo;ll do the rest.
         </p>
       </div>
-      <div className="hidden items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-[12px] font-semibold text-emerald-800 md:inline-flex">
+      <div className="hidden items-center gap-2 rounded-full bg-[var(--color-success-50)] px-3 py-1.5 text-[12px] font-semibold text-[var(--color-success-800)] md:inline-flex">
         <ShieldCheck size={13} />
         Secure · 15-day moneyback
       </div>
@@ -99,7 +99,7 @@ export function CheckoutSignInPanel() {
         eyebrow="Sign in required"
         title="Verify your phone to checkout"
       />
-      <p className="mt-2 text-[13px] text-[var(--color-ink-500)]">
+      <p className="mt-2 max-w-prose text-[13px] text-[var(--color-ink-500)]">
         We use your phone number for order updates and to keep your order history in one account.
       </p>
       <div className="mt-5">
@@ -439,7 +439,7 @@ export function LoyaltyPanel({
             >
               <span
                 className={classNames(
-                  "inline-block size-5 transform rounded-full bg-white shadow-[var(--shadow-sm)] transition-transform",
+                  "inline-block size-5 transform rounded-full bg-[var(--color-surface)] shadow-[var(--shadow-sm)] transition-transform",
                   isOn ? "translate-x-[18px]" : "translate-x-[2px]",
                 )}
               />
@@ -551,7 +551,7 @@ export function OrderSummaryPanel({
         {errorMessage && (
           <p
             role="alert"
-            className="rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-3 py-2 text-[12.5px] text-rose-800"
+            className="animate-banner-in rounded-[var(--radius-md)] border border-[var(--color-danger-200)] bg-[var(--color-danger-50)] px-3 py-2 text-[12.5px] text-[var(--color-danger-800)]"
           >
             {errorMessage}
           </p>
@@ -663,7 +663,7 @@ export function ChoiceTile({
               className={classNames(
                 "rounded-full px-2 py-0.5 text-[10.5px] font-semibold",
                 tagTone === "success"
-                  ? "bg-emerald-50 text-emerald-800"
+                  ? "bg-[var(--color-success-50)] text-[var(--color-success-800)]"
                   : "bg-[var(--color-ink-100)] text-[var(--color-ink-700)]",
               )}
             >
@@ -692,7 +692,7 @@ export function SummaryRow({ label, value, tone = "default" }: SummaryRowProps) 
       <span
         className={classNames(
           "font-medium",
-          tone === "success" ? "text-emerald-700" : "text-[var(--color-ink-900)]",
+          tone === "success" ? "text-[var(--color-success-700)]" : "text-[var(--color-ink-900)]",
         )}
       >
         {value}

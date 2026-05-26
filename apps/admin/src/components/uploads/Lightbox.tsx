@@ -46,7 +46,7 @@ export function Lightbox({ urls, initialIndex, alt, onClose }: LightboxProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-6"
+      className="animate-sheet-fade fixed inset-0 z-[200] flex items-center justify-center bg-[var(--color-ink-900)]/80 p-6"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -55,7 +55,7 @@ export function Lightbox({ urls, initialIndex, alt, onClose }: LightboxProps) {
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+        className="absolute right-4 top-4 rounded-full bg-[var(--color-canvas)]/10 p-2 text-[var(--color-canvas)] hover:bg-[var(--color-canvas)]/20"
       >
         <X size={16} />
       </button>
@@ -67,7 +67,7 @@ export function Lightbox({ urls, initialIndex, alt, onClose }: LightboxProps) {
             e.stopPropagation();
             goPrev();
           }}
-          className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+          className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-[var(--color-canvas)]/10 p-2 text-[var(--color-canvas)] hover:bg-[var(--color-canvas)]/20"
         >
           <ChevronLeft size={20} />
         </button>
@@ -80,7 +80,7 @@ export function Lightbox({ urls, initialIndex, alt, onClose }: LightboxProps) {
             e.stopPropagation();
             goNext();
           }}
-          className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+          className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-[var(--color-canvas)]/10 p-2 text-[var(--color-canvas)] hover:bg-[var(--color-canvas)]/20"
         >
           <ChevronRight size={20} />
         </button>
@@ -89,7 +89,7 @@ export function Lightbox({ urls, initialIndex, alt, onClose }: LightboxProps) {
       <img
         src={url}
         alt={alt ?? `Image ${index + 1} of ${total}`}
-        className="max-h-full max-w-full rounded-lg shadow-2xl"
+        className="animate-lightbox-in max-h-full max-w-full rounded-lg shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       />
     </div>

@@ -32,7 +32,7 @@ export function SignIn() {
         <h1 className="mt-4 font-headline text-[28px] font-semibold tracking-tight text-[var(--color-ink-900)] md:text-[36px]">
           Sign in to {siteName}
         </h1>
-        <p className="mt-1 text-[13px] text-[var(--color-ink-500)] md:text-sm">
+        <p className="mx-auto mt-1 max-w-prose text-[13px] text-[var(--color-ink-500)] md:text-sm">
           We&rsquo;ll send a one-time code to your phone — no password needed.
         </p>
       </div>

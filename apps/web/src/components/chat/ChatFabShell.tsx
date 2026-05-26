@@ -101,7 +101,7 @@ export function ChatFabShell({ mobileStackedAbove = null }: ChatFabShellProps) {
         aria-label={isOpen ? "Close chat" : "Ask us a question"}
         aria-expanded={isOpen}
         className={classNames(
-          "tap group relative flex cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-ink-900)] py-2.5 text-white shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink-800)] hover:shadow-[var(--shadow-lg)]",
+          "tap group relative flex cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-ink-900)] py-2.5 text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink-800)] hover:shadow-[var(--shadow-lg)]",
           isLabelVisible && !isOpen ? "gap-2 pl-3 pr-4" : "gap-0 px-2.5",
           "md:gap-2 md:pl-3 md:pr-4",
         )}
@@ -123,7 +123,7 @@ export function ChatFabShell({ mobileStackedAbove = null }: ChatFabShellProps) {
           {isOpen ? "Close" : "Ask us!"}
         </span>
         {!isOpen && unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex min-w-[18px] items-center justify-center rounded-full bg-[var(--color-danger-500)] px-1 text-[10px] font-bold text-[var(--color-on-dark)]">
             {unread > 9 ? "9+" : unread}
           </span>
         )}

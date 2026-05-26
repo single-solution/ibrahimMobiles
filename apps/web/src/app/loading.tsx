@@ -75,7 +75,7 @@ function MobileHeroSkeleton() {
 
 function MobileCategoryTilesSkeleton() {
   return (
-    <section className="app-section">
+    <section className="app-section cv-auto">
       <div className="mb-3 space-y-2">
         <Skeleton shape="text" className="h-3 w-32" />
         <Skeleton className="h-[88px] w-full" />
@@ -85,7 +85,7 @@ function MobileCategoryTilesSkeleton() {
         {Array.from({ length: SHOP_TYPE_TILE_COUNT }).map((_, index) => (
           <div
             key={index}
-            className="flex min-h-[110px] flex-row items-center gap-3 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3.5"
+            className="flex min-h-[110px] flex-row items-center gap-3 rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3.5"
           >
             <Skeleton className="size-11 rounded-[var(--radius-lg)]" />
             <div className="min-w-0 flex-1 space-y-2">
@@ -105,7 +105,7 @@ function MobileCategoryTilesSkeleton() {
 
 function MobileProcessSkeleton() {
   return (
-    <section className="app-section">
+    <section className="app-section cv-auto">
       <div className="mb-7 flex flex-col items-center gap-2 text-center">
         <Skeleton shape="text" className="h-3 w-28" />
         <Skeleton className="h-[88px] w-72" />
@@ -120,8 +120,8 @@ function MobileProcessSkeleton() {
             <div className="flex items-center gap-2.5 bg-[var(--color-ink-900)] px-3.5 py-3">
               <Skeleton shape="circle" className="size-8" />
               <div className="min-w-0 flex-1 space-y-1.5">
-                <Skeleton shape="text" className="h-2.5 w-16 bg-white/20" />
-                <Skeleton shape="text" className="h-3 w-32 bg-white/20" />
+                <Skeleton shape="text" className="h-2.5 w-16 bg-[var(--color-on-dark-20)]" />
+                <Skeleton shape="text" className="h-3 w-32 bg-[var(--color-on-dark-20)]" />
               </div>
             </div>
             <ol className="divide-y divide-[var(--color-ink-100)]">
@@ -144,21 +144,21 @@ function MobileProcessSkeleton() {
 
 function MobileGradesSkeleton() {
   return (
-    <section className="-mx-4 mt-20 bg-[var(--color-ink-900)] px-4 py-14">
+    <section className="cv-auto -mx-4 mt-20 bg-[var(--color-ink-900)] px-4 py-14">
       <div className="flex flex-col items-center gap-3 text-center">
-        <Skeleton shape="text" className="h-3 w-24 bg-white/15" />
-        <Skeleton className="h-[88px] w-72 bg-white/15" />
-        <Skeleton shape="text" className="h-3 w-3/4 bg-white/15" />
+        <Skeleton shape="text" className="h-3 w-24 bg-[var(--color-on-dark-15)]" />
+        <Skeleton className="h-[88px] w-72 bg-[var(--color-on-dark-15)]" />
+        <Skeleton shape="text" className="h-3 w-3/4 bg-[var(--color-on-dark-15)]" />
       </div>
       <ul className="mt-8 grid grid-cols-2 gap-2.5">
         {Array.from({ length: 6 }).map((_, index) => (
           <li
             key={index}
-            className="flex flex-col gap-2 rounded-[14px] border border-white/10 bg-white/[0.06] p-3"
+            className="flex flex-col gap-2 rounded-[var(--radius-xl)] border border-[var(--color-on-dark-10)] bg-[var(--color-on-dark-06)] p-3"
           >
-            <Skeleton shape="pill" className="h-5 w-20 bg-white/15" />
-            <Skeleton shape="text" className="h-3 w-full bg-white/15" />
-            <Skeleton shape="text" className="h-3 w-2/3 bg-white/15" />
+            <Skeleton shape="pill" className="h-5 w-20 bg-[var(--color-on-dark-15)]" />
+            <Skeleton shape="text" className="h-3 w-full bg-[var(--color-on-dark-15)]" />
+            <Skeleton shape="text" className="h-3 w-2/3 bg-[var(--color-on-dark-15)]" />
           </li>
         ))}
       </ul>
@@ -168,7 +168,7 @@ function MobileGradesSkeleton() {
 
 function MobileVisitStoreSkeleton() {
   return (
-    <section className="app-section">
+    <section className="app-section cv-auto">
       <div className="mb-7 flex flex-col items-center gap-2 text-center">
         <Skeleton shape="text" className="h-3 w-32" />
         <Skeleton className="h-[88px] w-72" />
@@ -243,13 +243,13 @@ function DesktopSectionHeaderSkeleton() {
 
 function DesktopCategoryTilesSkeleton() {
   return (
-    <section className="mx-auto max-w-[1440px] px-6 py-24">
+    <section className="cv-auto mx-auto max-w-[1440px] px-6 py-24">
       <DesktopSectionHeaderSkeleton />
       <div className="mt-12 grid grid-cols-3 gap-5">
         {Array.from({ length: SHOP_TYPE_TILE_COUNT }).map((_, index) => (
           <div
             key={index}
-            className="flex min-h-[240px] flex-col rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-6"
+            className="flex min-h-[240px] flex-col rounded-[var(--radius-3xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-6"
           >
             <Skeleton className="size-12 rounded-[var(--radius-lg)]" />
             <div className="mt-4 flex flex-1 flex-col gap-2">
@@ -276,7 +276,7 @@ function DesktopCategoryTilesSkeleton() {
 
 function DesktopProcessSkeleton() {
   return (
-    <section className="mx-auto max-w-[1440px] px-6 py-24">
+    <section className="cv-auto mx-auto max-w-[1440px] px-6 py-24">
       <DesktopSectionHeaderSkeleton />
       <div className="mt-8 grid grid-cols-3 gap-4">
         {Array.from({ length: 3 }).map((_, index) => (
@@ -285,10 +285,10 @@ function DesktopProcessSkeleton() {
             className="flex flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]"
           >
             <div className="flex items-center gap-3 bg-[var(--color-ink-900)] px-6 py-4">
-              <Skeleton shape="circle" className="size-9 bg-white/15" />
+              <Skeleton shape="circle" className="size-9 bg-[var(--color-on-dark-15)]" />
               <div className="min-w-0 space-y-1.5">
-                <Skeleton shape="text" className="h-2.5 w-16 bg-white/20" />
-                <Skeleton shape="text" className="h-3.5 w-32 bg-white/20" />
+                <Skeleton shape="text" className="h-2.5 w-16 bg-[var(--color-on-dark-20)]" />
+                <Skeleton shape="text" className="h-3.5 w-32 bg-[var(--color-on-dark-20)]" />
               </div>
             </div>
             <ol className="flex flex-1 flex-col gap-4 p-6">
@@ -311,25 +311,25 @@ function DesktopProcessSkeleton() {
 
 function DesktopGradesSkeleton() {
   return (
-    <section className="bg-[var(--color-ink-900)] py-24">
+    <section className="cv-auto bg-[var(--color-ink-900)] py-24">
       <div className="mx-auto max-w-[1440px] px-6">
         <div className="grid grid-cols-[1fr_2fr] gap-12">
           <div className="space-y-4">
-            <Skeleton shape="text" className="h-3 w-28 bg-white/15" />
-            <Skeleton className="h-[160px] w-full bg-white/15" />
-            <Skeleton shape="text" className="h-4 w-full bg-white/15" />
-            <Skeleton shape="text" className="h-4 w-3/4 bg-white/15" />
-            <Skeleton shape="text" className="h-4 w-40 bg-white/15" />
+            <Skeleton shape="text" className="h-3 w-28 bg-[var(--color-on-dark-15)]" />
+            <Skeleton className="h-[160px] w-full bg-[var(--color-on-dark-15)]" />
+            <Skeleton shape="text" className="h-4 w-full bg-[var(--color-on-dark-15)]" />
+            <Skeleton shape="text" className="h-4 w-3/4 bg-[var(--color-on-dark-15)]" />
+            <Skeleton shape="text" className="h-4 w-40 bg-[var(--color-on-dark-15)]" />
           </div>
           <div className="grid grid-cols-3 gap-3">
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="flex flex-col gap-2.5 rounded-[var(--radius-lg)] border border-white/10 bg-white/5 p-5"
+                className="flex flex-col gap-2.5 rounded-[var(--radius-3xl)] border border-[var(--color-on-dark-10)] bg-[var(--color-on-dark-05)] p-5"
               >
-                <Skeleton shape="pill" className="h-5 w-24 bg-white/15" />
-                <Skeleton shape="text" className="h-3 w-full bg-white/15" />
-                <Skeleton shape="text" className="h-3 w-2/3 bg-white/15" />
+                <Skeleton shape="pill" className="h-5 w-24 bg-[var(--color-on-dark-15)]" />
+                <Skeleton shape="text" className="h-3 w-full bg-[var(--color-on-dark-15)]" />
+                <Skeleton shape="text" className="h-3 w-2/3 bg-[var(--color-on-dark-15)]" />
               </div>
             ))}
           </div>
@@ -341,7 +341,7 @@ function DesktopGradesSkeleton() {
 
 function DesktopVisitStoreSkeleton() {
   return (
-    <section className="mx-auto max-w-[1440px] px-6 py-24">
+    <section className="cv-auto mx-auto max-w-[1440px] px-6 py-24">
       <div className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
         <div className="grid grid-cols-[1.15fr_1fr]">
           <div className="flex flex-col gap-7 p-10">
@@ -351,7 +351,7 @@ function DesktopVisitStoreSkeleton() {
               <Skeleton shape="text" className="h-4 w-full" />
               <Skeleton shape="text" className="h-4 w-3/4" />
             </div>
-            <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-4">
+            <div className="rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-4">
               <div className="flex items-start gap-3">
                 <Skeleton className="size-9 shrink-0 rounded-[var(--radius-md)]" />
                 <div className="min-w-0 flex-1 space-y-1.5">

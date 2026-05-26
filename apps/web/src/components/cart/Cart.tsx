@@ -27,7 +27,7 @@ export function Cart() {
         <h1 className="font-headline text-3xl font-semibold tracking-tight text-[var(--color-ink-900)]">
           Your cart is empty
         </h1>
-        <p className="mt-3 text-[14px] text-[var(--color-ink-600)]">
+        <p className="mx-auto mt-3 max-w-prose text-[14px] text-[var(--color-ink-600)]">
           Browse the shop, pick a phone or accessory, then come back to check out.
         </p>
         <Link
@@ -78,7 +78,7 @@ export function Cart() {
                 {formatPrice(cart.subtotalRupees)}
               </span>
             </div>
-            <p className="mt-1 text-[12px] text-[var(--color-ink-500)]">
+            <p className="mt-1 max-w-prose text-[12px] text-[var(--color-ink-500)]">
               Delivery, payment discount, and loyalty points are applied at the
               next step.
             </p>

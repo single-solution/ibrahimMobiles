@@ -74,6 +74,10 @@ export function Drawer({
           // Phones: edge-to-edge full-screen sheet (no rounded corners, no
           // outer margin). Tablets+: centered modal with rounded corners.
           "h-[100dvh] max-h-[100dvh] sm:h-auto sm:rounded-[var(--radius-xl)] sm:border",
+          // Mobile gets the bottom-sheet slide-up; tablets+ get the
+          // centered dialog scale-in. Both CSS-only — admin avoids any
+          // JS animation library so the panel stays light and fast.
+          "animate-sheet-up sm:animate-dialog-in",
           width === "2xl"
             ? "sm:h-[min(92vh,52rem)] sm:max-h-[calc(100dvh-2rem)]"
             : "sm:max-h-[calc(100dvh-3rem)]",
@@ -93,7 +97,12 @@ export function Drawer({
               {title}
             </h2>
             {description && (
-              <p className="mt-0.5 text-[10.5px] leading-snug text-[var(--color-ink-500)] md:text-[11px]">
+              /* Cap line length at ~65ch (`max-w-prose`) so the helper
+                 paragraph stays in the comfortable 60–70 character
+                 reading range — long descriptions in wide drawers
+                 otherwise stretch to 100+ chars and become harder to
+                 scan. */
+              <p className="mt-0.5 max-w-prose text-[10.5px] leading-snug text-[var(--color-ink-500)] md:text-[11px]">
                 {description}
               </p>
             )}

@@ -220,6 +220,8 @@ export function toStorefrontOffer(offer: OfferLean): StorefrontOffer {
     expiresAt: offer.expiresAt
       ? toIsoDate(offer.expiresAt)
       : toIsoDate(new Date()),
+    /* `#e1ff51` is the literal value of `--color-accent-500` (chartreuse).
+       Offers without an admin-chosen colour fall back to the brand accent. */
     color: asString(offer.color, "#e1ff51"),
     badgeLabel: asString(offer.badgeLabel),
     bannerImage: isStoredImage(offer.bannerImage) ? offer.bannerImage : undefined,

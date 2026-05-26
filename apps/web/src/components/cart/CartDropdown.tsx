@@ -70,7 +70,12 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
             role="dialog"
             aria-modal="true"
             aria-label="Your cart"
-            className="animate-sheet-fade pointer-events-auto flex h-[min(560px,calc(100dvh-var(--mobile-header-h)-24px))] w-full max-w-[420px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[400px]"
+            className={classNames(
+              /* Anchored to the header cart trigger — slides down + scales
+                 in for a tactile "pulling open" feel rather than a flat
+                 fade. */
+              "animate-popover-in pointer-events-auto flex h-[min(560px,calc(100dvh-var(--mobile-header-h)-24px))] w-full max-w-[420px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[400px]",
+            )}
           >
         <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-4 py-3">
           <div className="min-w-0">
@@ -99,7 +104,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
             <p className="text-[14px] font-semibold text-[var(--color-ink-900)]">
               Your cart is empty
             </p>
-            <p className="text-[12.5px] text-[var(--color-ink-500)]">
+            <p className="max-w-prose text-[12.5px] text-[var(--color-ink-500)]">
               Add a phone from the shop to get started.
             </p>
             <ButtonLink href="/shop" variant="primary" size="sm" onClick={onClose}>

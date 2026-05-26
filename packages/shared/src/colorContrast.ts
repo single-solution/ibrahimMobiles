@@ -88,3 +88,42 @@ export function coloredPillStyle(
     color: contrastTextColorForBackground(backgroundColor, options),
   };
 }
+
+/**
+ * Soft tint of `backgroundColor` over a *light* surface — the pill stays
+ * recognisable but only ~18% of the chip is the source colour, the rest is
+ * blended toward the brand canvas. Used wherever many distinct chips appear
+ * together (grade tiles, attribute swatches, offer rows) so the layout reads
+ * as a harmonious palette instead of a vivid rainbow.
+ *
+ * Returns a small inline-style record (background + text + border tint).
+ */
+export function softColoredPillStyleOnLight(backgroundColor: string): {
+  backgroundColor: string;
+  color: string;
+  borderColor: string;
+} {
+  return {
+    backgroundColor: `color-mix(in srgb, ${backgroundColor} 18%, #ffffff)`,
+    color: `color-mix(in srgb, ${backgroundColor} 65%, #00272c)`,
+    borderColor: `color-mix(in srgb, ${backgroundColor} 32%, transparent)`,
+  };
+}
+
+/**
+ * Soft tint of `backgroundColor` for *dark* surfaces (the home grades band,
+ * inverted hero callouts). Same idea, mirrored: the chip background is the
+ * brand ink with a light hue wash, and the text is a brightened version of
+ * the source colour so it still pops on `--color-ink-900`.
+ */
+export function softColoredPillStyleOnDark(backgroundColor: string): {
+  backgroundColor: string;
+  color: string;
+  borderColor: string;
+} {
+  return {
+    backgroundColor: `color-mix(in srgb, ${backgroundColor} 22%, #00272c)`,
+    color: `color-mix(in srgb, ${backgroundColor} 65%, #ffffff)`,
+    borderColor: `color-mix(in srgb, ${backgroundColor} 40%, transparent)`,
+  };
+}

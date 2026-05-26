@@ -125,7 +125,6 @@ function HeroGalleryTile({
         intensity={isCenter ? 14 : 10}
         hoverScale={isCenter ? 1.1 : 1.06}
         className="aspect-square"
-        showGlow
       >
         <div
           className={`product-media-well group relative block size-full rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] ${tone}`}

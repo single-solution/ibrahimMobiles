@@ -55,10 +55,12 @@ export function ConfirmDialog({
         onClick={onCancel}
         className="animate-sheet-fade absolute inset-0 bg-[var(--color-ink-900)]/40"
       />
-      <div className="relative w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)] md:p-5">
+      {/* Concentric: inner buttons --radius-md (8) + p-4/p-5 (16/20)
+          → outer 24/28 ≈ --radius-2xl (24). */}
+      <div className="animate-dialog-in relative w-full max-w-md rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)] md:p-5">
         <div className="flex items-start gap-2.5 md:gap-3">
           {tone === "danger" && (
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-rose-50 text-rose-600 md:size-9">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--color-danger-50)] text-[var(--color-danger-700)] md:size-9">
               <AlertTriangle size={16} />
             </span>
           )}
