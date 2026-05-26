@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
-  BadgeCheck,
   Banknote,
   ChevronDown,
   MapPin,
@@ -24,15 +23,15 @@ import {
   StructuredContentCompact,
   StructuredContentFull,
 } from "@/components/shared/StructuredContent";
-import { HeroProductGallery } from "@/components/home/HeroProductGallery";
 import { GradesByCategoryTabs } from "@/components/home/GradesByCategoryTabs";
+import { HeroMaskSweepHeadline } from "@/components/home/HeroMaskSweepHeadline";
+import { HeroTrendingProductBand } from "@/components/home/HeroTrendingProductBand";
 import { HeroAmbience } from "@/components/motion/HeroAmbience";
 import { KineticHeading } from "@/components/motion/KineticHeading";
 import { MagneticHover } from "@/components/motion/MagneticHover";
 import { SectionAmbience } from "@/components/motion/SectionAmbience";
 import {
   getPaymentMethods,
-  type Brand,
   type Product as StorefrontProductType,
   type StoreSettings,
 } from "@store/shared";
@@ -216,8 +215,11 @@ export default function HomePage() {
 // for a fetch it doesn't actually use.
 
 async function MobileHeroData() {
-  const { heroProducts, brands } = await getHomeHeroData();
-  return <MobileHero heroProducts={heroProducts} brands={brands} />;
+  const [{ heroProducts }, settings] = await Promise.all([
+    getHomeHeroData(),
+    getStoreSettingsCached(),
+  ]);
+  return <MobileHero heroProducts={heroProducts} settings={settings} />;
 }
 
 async function MobileShopTypesData() {
@@ -238,8 +240,11 @@ async function MobileVisitStoreData() {
 /* ─────────────────────────── Desktop data slots ─────────────────────────── */
 
 async function DesktopHeroData() {
-  const { heroProducts, brands } = await getHomeHeroData();
-  return <DesktopHero heroProducts={heroProducts} brands={brands} />;
+  const [{ heroProducts }, settings] = await Promise.all([
+    getHomeHeroData(),
+    getStoreSettingsCached(),
+  ]);
+  return <DesktopHero heroProducts={heroProducts} settings={settings} />;
 }
 
 async function DesktopShopTypesData() {
@@ -259,8 +264,7 @@ async function DesktopVisitStoreData() {
 
 /* ─────────────────────────── Suspense fallbacks ─────────────────────────── */
 
-const MOBILE_HERO_TILE_FALLBACK_COUNT = 3;
-const DESKTOP_HERO_TILE_FALLBACK_COUNT = 5;
+const HERO_TRUST_HINT_FALLBACK_COUNT = 3;
 const SHOP_TYPE_FALLBACK_COUNT = 6;
 const PROCESS_FLOW_FALLBACK_COUNT = 3;
 const PROCESS_STEP_FALLBACK_COUNT = 4;
@@ -268,26 +272,29 @@ const PROCESS_STEP_FALLBACK_COUNT = 4;
 function MobileHeroFallback() {
   return (
     <section
-      className="relative -mx-4 flex items-center border-b border-[var(--color-ink-100)] bg-gradient-to-b from-[var(--color-canvas-deep)] to-[var(--color-canvas)]"
+      className="relative -mx-4 flex flex-col items-center justify-evenly border-b border-[var(--color-ink-100)] bg-gradient-to-b from-[var(--color-canvas-deep)] to-[var(--color-canvas)] px-4 text-center"
       style={{
         minHeight:
           "calc(100dvh - var(--mobile-header-h) - var(--mobile-tabbar-h))",
       }}
     >
-      <div className="flex w-full flex-col items-center gap-6 px-4 pb-24 pt-8 text-center">
-        <Skeleton shape="pill" className="h-6 w-56" />
-        <Skeleton shape="text" className="h-[90px] w-3/4" />
-        <div className="grid w-full grid-cols-3 items-center gap-1.5">
-          {Array.from({ length: MOBILE_HERO_TILE_FALLBACK_COUNT }).map((_, index) => (
-            <Skeleton key={index} className="aspect-square w-full" />
+      <Skeleton shape="pill" className="h-6 w-56" />
+      <div className="flex w-full flex-col items-center gap-2 px-3">
+        <Skeleton shape="text" className="h-14 w-4/5" />
+        <Skeleton shape="text" className="h-20 w-full" />
+      </div>
+      <Skeleton className="h-[150px] w-full" />
+      <div className="flex w-full flex-col items-center gap-3">
+        <Skeleton shape="pill" className="h-11 w-40" />
+        <div className="flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
+          {Array.from({ length: HERO_TRUST_HINT_FALLBACK_COUNT }).map((_, index) => (
+            <Skeleton key={index} shape="text" className="h-3 w-28" />
           ))}
         </div>
-        <Skeleton shape="pill" className="h-11 w-full" />
-        <div className="grid w-full grid-cols-2 gap-x-4 gap-y-1.5 text-left">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} shape="text" className="h-3 w-32" />
-          ))}
-        </div>
+      </div>
+      <div className="flex flex-col items-center gap-1">
+        <Skeleton shape="text" className="h-2.5 w-24" />
+        <Skeleton shape="circle" className="size-4" />
       </div>
     </section>
   );
@@ -419,20 +426,31 @@ function MobileVisitStoreFallback() {
 
 function DesktopHeroFallback() {
   return (
-    <section className="relative flex min-h-[calc(100dvh-var(--desktop-header-h))] items-center border-b border-[var(--color-ink-100)] bg-gradient-to-b from-[var(--color-canvas-deep)] to-[var(--color-canvas)]">
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 px-6 py-16 text-center">
+    <section
+      className="relative flex border-b border-[var(--color-ink-100)] bg-gradient-to-b from-[var(--color-canvas-deep)] to-[var(--color-canvas)]"
+      style={{ minHeight: "calc(100dvh - var(--desktop-header-h))" }}
+    >
+      <div
+        className="mx-auto flex w-full max-w-5xl flex-col items-center justify-evenly px-6 text-center"
+        style={{ minHeight: "calc(100dvh - var(--desktop-header-h))" }}
+      >
         <Skeleton shape="pill" className="h-7 w-72" />
-        <Skeleton shape="text" className="h-[140px] w-2/3" />
-        <div className="grid w-full grid-cols-5 items-center gap-2">
-          {Array.from({ length: DESKTOP_HERO_TILE_FALLBACK_COUNT }).map((_, index) => (
-            <Skeleton key={index} className="aspect-square w-full" />
-          ))}
+        <div className="flex w-full flex-col items-center gap-3">
+          <Skeleton shape="text" className="h-24 w-3/4" />
+          <Skeleton shape="text" className="h-36 w-full max-w-3xl" />
         </div>
-        <Skeleton shape="pill" className="h-12 w-48" />
-        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-3">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} shape="text" className="h-4 w-40" />
-          ))}
+        <Skeleton className="h-[180px] w-full max-w-4xl" />
+        <div className="flex flex-col items-center gap-6">
+          <Skeleton shape="pill" className="h-12 w-48" />
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            {Array.from({ length: HERO_TRUST_HINT_FALLBACK_COUNT }).map((_, index) => (
+              <Skeleton key={index} shape="text" className="h-4 w-40" />
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-1">
+          <Skeleton shape="text" className="h-3 w-28" />
+          <Skeleton shape="circle" className="size-5" />
         </div>
       </div>
     </section>
@@ -562,123 +580,121 @@ function DesktopVisitStoreFallback() {
 
 /* ─────────────────────────── Mobile (native) ─────────────────────────── */
 
-/**
- * Mobile hero — structural mirror of DesktopHero:
- *   - `relative` section sized to fill the visible viewport (above the bottom
- *     tab bar, below the sticky mobile header)
- *   - vertically-centered content stack: pill → split-accent headline →
- *     3-tile gallery → primary CTA → trust row
- *   - scroll cue absolutely positioned at the bottom (out of the content flow)
- *   - same `--color-canvas-deep → --color-canvas` gradient backdrop as desktop
- *     so the visual identity is consistent across breakpoints.
- */
 interface HeroProps {
   heroProducts: StorefrontProductType[];
-  brands: Brand[];
+  settings: StoreSettings;
 }
 
-function MobileHero({ heroProducts, brands }: HeroProps) {
+function HeroTrustHints({
+  settings,
+  variant,
+}: {
+  settings: StoreSettings;
+  variant: "mobile" | "desktop";
+}) {
+  const items = [
+    { icon: Undo2, label: `${settings.moneybackDays}-day moneyback` },
+    { icon: Video, label: "Video before dispatch" },
+    {
+      icon: Banknote,
+      label: `${settings.bankTransferDiscountPercent}% off bank transfer`,
+    },
+  ] as const;
+
+  if (variant === "mobile") {
+    /* Flex-wrap + `justify-center` so the items cluster as a group in
+       the middle (not stretched into grid cells where each label would
+       hug the left of its cell and lose the centred feel). With the
+       three current labels the first two land on row 1 and the third
+       naturally wraps to a centred row 2 — the layout the design asks
+       for, without the grid's column-anchored alignment. */
+    return (
+      <ul className="flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12px] text-[var(--color-ink-600)]">
+        {items.map(({ icon: Icon, label }) => (
+          <li key={label} className="flex items-center gap-1.5">
+            <Icon size={13} className="shrink-0 text-[var(--color-accent-600)]" />
+            <span>{label}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-[var(--color-ink-500)]">
+      {items.map(({ icon: Icon, label }) => (
+        <div key={label} className="flex items-center gap-2">
+          <Icon size={15} className="text-[var(--color-accent-600)]" />
+          <span>{label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Mobile hero — `min-height` matches the visible viewport (header +
+ * floating tab bar subtracted) so the section is exactly the area the
+ * user can see. The section itself is the column-flex container and
+ * uses `justify-evenly` so every gap — above the pill, between each
+ * adjacent pair, and below the scroll cue — gets the same vertical
+ * distance. No inner wrapper, no `pb-24` slug at the bottom, no
+ * absolutely-positioned scroll cue: the cue is the last flex child so
+ * it participates in the even distribution. `HeroAmbience` is
+ * `position: absolute` and contributes nothing to the flex flow.
+ */
+function MobileHero({ heroProducts, settings }: HeroProps) {
+  const productNames = heroProducts.map((product) => product.name);
+
   return (
     <section
-      className="relative -mx-4 flex items-center overflow-hidden border-b border-[var(--color-ink-100)]"
+      className="relative -mx-4 flex flex-col items-center justify-evenly overflow-hidden border-b border-[var(--color-ink-100)] px-4 text-center"
       style={{
         minHeight:
           "calc(100dvh - var(--mobile-header-h) - var(--mobile-tabbar-h))",
         background:
-          /* Tint dialled back from 80% → 55% of accent-50 and the fade
-             band pulled up from 65% → 55% so the wash is gentler and
-             the canvas takes over sooner. */
           "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 55%, var(--color-canvas)) 0%, var(--color-canvas) 55%, var(--color-canvas) 100%)",
       }}
     >
       <HeroAmbience />
-      <div className="relative z-10 flex w-full flex-col items-center gap-6 px-4 pb-24 pt-8 text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-100)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-800)]">
-          <Recycle size={11} />
-          Phones · Accessories · Gadgets
-        </span>
-        <KineticHeading
-          as="h1"
-          lines={["pre owned", "mobiles"]}
-          immediate
-          stagger={0.045}
-          className="font-display text-[110px] leading-[0.85] tracking-[-0.02em] uppercase"
-          lineClassNames={[
-            "hero-display-outline",
-            "mt-1 text-[var(--color-accent-700)]",
-          ]}
-        />
 
-        <div className="w-full pt-1">
-          <HeroProductGallery
-            products={heroProducts}
-            brands={brands}
-            variant="mobile"
-            empty={<HeroGalleryEmpty variant="mobile" />}
-          />
-        </div>
+      <span className="relative z-10 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-100)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-800)]">
+        <Recycle size={11} />
+        Phones · Accessories · Gadgets
+      </span>
 
-        <MagneticHover className="self-stretch">
+      <div className="relative z-10">
+        <HeroMaskSweepHeadline variant="mobile" />
+      </div>
+
+      <div className="relative z-10 w-full">
+        <HeroTrendingProductBand productNames={productNames} variant="mobile" />
+      </div>
+
+      <div className="relative z-10 flex w-full flex-col items-center gap-3">
+        <MagneticHover>
           <Link
             href="/shop"
-            className="cta-arrow tap inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent-500)] px-5 text-[14px] font-semibold text-[var(--color-ink-900)] shadow-[0_8px_24px_-12px_color-mix(in_srgb,var(--color-accent-500)_70%,transparent)] transition-shadow active:bg-[var(--color-accent-600)]"
+            className="cta-arrow tap inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent-500)] px-6 text-[14px] font-semibold text-[var(--color-ink-900)] shadow-[0_8px_24px_-12px_color-mix(in_srgb,var(--color-accent-500)_70%,transparent)] transition-shadow active:bg-[var(--color-accent-600)]"
           >
             Visit store
             <ArrowUpRight size={15} strokeWidth={2.4} />
           </Link>
         </MagneticHover>
-
-        <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-1.5 pt-1 text-left text-[12px] text-[var(--color-ink-600)]">
-          <li className="flex items-center gap-1.5">
-            <Undo2 size={13} className="shrink-0 text-[var(--color-accent-600)]" />
-            <span>15-day moneyback</span>
-          </li>
-          <li className="flex items-center gap-1.5">
-            <BadgeCheck size={13} className="shrink-0 text-[var(--color-pak-green)]" />
-            <span>PTA-approved</span>
-          </li>
-          <li className="flex items-center gap-1.5">
-            <Video size={13} className="shrink-0 text-[var(--color-accent-600)]" />
-            <span>Video before dispatch</span>
-          </li>
-          <li className="flex items-center gap-1.5">
-            <Banknote size={13} className="shrink-0 text-[var(--color-accent-600)]" />
-            <span>5% off bank transfer</span>
-          </li>
-        </ul>
+        <HeroTrustHints settings={settings} variant="mobile" />
       </div>
 
-      <div className="absolute inset-x-0 bottom-6 z-10 flex w-full justify-center px-4">
-        <a
-          href="#how-to-buy"
-          aria-label="Scroll to next section"
-          className="hero-scroll-cue group inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] transition-colors active:text-[var(--color-ink-900)]"
-        >
-          <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">
-            We Are Different
-          </span>
-          <ChevronDown size={18} strokeWidth={2.2} className="animate-bounce" />
-        </a>
-      </div>
+      <a
+        href="#how-to-buy"
+        aria-label="Scroll to next section"
+        className="hero-scroll-cue group relative z-10 inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] transition-colors active:text-[var(--color-ink-900)]"
+      >
+        <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">
+          We Are Different
+        </span>
+        <ChevronDown size={18} strokeWidth={2.2} className="animate-bounce" />
+      </a>
     </section>
-  );
-}
-
-/**
- * Hero gallery placeholder shown when the catalogue has zero phones — happens
- * on a brand-new install before the admin has added inventory.
- */
-function HeroGalleryEmpty({ variant }: { variant: "mobile" | "desktop" }) {
-  return (
-    <div
-      className={`flex items-center justify-center rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] text-center text-[var(--color-ink-500)] ${
-        variant === "mobile" ? "h-[180px] text-[12px]" : "h-[260px] text-[14px]"
-      }`}
-    >
-      <p className="px-6">
-        New stock dropping soon — add your first phone in admin to light this up.
-      </p>
-    </div>
   );
 }
 
@@ -1007,77 +1023,46 @@ function StoreMapEmbed({ className = "", settings }: StoreMapEmbedProps) {
 
 /* ─────────────────────────── Desktop (preserved) ─────────────────────────── */
 
-function DesktopHero({ heroProducts, brands }: HeroProps) {
+function DesktopHero({ heroProducts, settings }: HeroProps) {
+  const productNames = heroProducts.map((product) => product.name);
+
   return (
     <section
-      className="relative flex min-h-[calc(100dvh-var(--desktop-header-h))] items-center overflow-hidden border-b border-[var(--color-ink-100)]"
+      className="relative flex overflow-hidden border-b border-[var(--color-ink-100)]"
       style={{
+        minHeight: "calc(100dvh - var(--desktop-header-h))",
         background:
-          /* Same softening as mobile: 85% → 60% of accent-50 and the
-             fade band pulled up from 70% → 60% so the gradient feels
-             lighter without losing the brand wash entirely. */
           "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 60%, var(--color-canvas)) 0%, var(--color-canvas) 60%, var(--color-canvas) 100%)",
       }}
     >
       <HeroAmbience />
-      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center gap-6 px-6 py-16 text-center">
-        <div>
-          <Pill tone="accent" size="md" leadingIcon={<Recycle size={12} />}>
-            Phones · Accessories · Gadgets — graded honestly
-          </Pill>
-        </div>
-        <KineticHeading
-          as="h1"
-          lines={["pre-owned", "mobiles"]}
-          immediate
-          stagger={0.045}
-          className="font-display text-[150px] leading-[0.82] tracking-[-0.02em] uppercase"
-          lineClassNames={[
-            "hero-display-outline",
-            "mt-1 text-[var(--color-accent-700)]",
-          ]}
-        />
-        <div className="w-full pt-2">
-          <HeroProductGallery
-            products={heroProducts}
-            brands={brands}
-            variant="desktop"
-            empty={<HeroGalleryEmpty variant="desktop" />}
-          />
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+      <div
+        className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center justify-evenly px-6 text-center"
+        style={{ minHeight: "calc(100dvh - var(--desktop-header-h))" }}
+      >
+        <Pill tone="accent" size="md" leadingIcon={<Recycle size={12} />}>
+          Phones · Accessories · Gadgets
+        </Pill>
+
+        <HeroMaskSweepHeadline variant="desktop" />
+
+        <HeroTrendingProductBand productNames={productNames} variant="desktop" />
+
+        <div className="flex flex-col items-center gap-6">
           <MagneticHover>
             <ButtonLink
               href="/shop"
               variant="primary"
               size="lg"
-              className="cta-arrow shadow-[0_12px_36px_-16px_color-mix(in_srgb,var(--color-accent-500)_75%,transparent)]"
+              className="cta-arrow !rounded-full shadow-[0_12px_36px_-16px_color-mix(in_srgb,var(--color-accent-500)_75%,transparent)]"
               trailingIcon={<ArrowUpRight size={17} strokeWidth={2.4} />}
             >
               Visit store
             </ButtonLink>
           </MagneticHover>
+          <HeroTrustHints settings={settings} variant="desktop" />
         </div>
-        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-3 text-sm text-[var(--color-ink-500)]">
-          <div className="flex items-center gap-2">
-            <Undo2 size={15} className="text-[var(--color-accent-600)]" />
-            <span>15-day moneyback</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <BadgeCheck size={15} className="text-[var(--color-pak-green)]" />
-            <span>PTA-approved options</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Video size={15} className="text-[var(--color-accent-600)]" />
-            <span>Video before dispatch</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Banknote size={15} className="text-[var(--color-accent-600)]" />
-            <span>5% off on bank transfer</span>
-          </div>
-        </div>
-      </div>
-      <div className="absolute inset-x-0 bottom-6 z-10 flex w-full justify-center px-6">
+
         <a
           href="#how-to-buy"
           aria-label="Scroll to next section"
