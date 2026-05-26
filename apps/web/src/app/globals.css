@@ -202,7 +202,12 @@
 /* Optional inner-content parallax — opt in by adding `.tilt-parallax`
    to a child of the tilt-card. The child shifts AGAINST the cursor so
    the foreground appears to sit on a plane closer to the viewer than
-   the card surface itself. */
+   the card surface itself.
+
+   Resting scale is 1.14 (always 14% larger than the tile) — combined
+   with `overflow: hidden` on the parent this guarantees that any
+   transparent / white padding baked into the source product photo is
+   cropped away and the phone properly *covers* the visible area. */
 .tilt-parallax {
   position: relative;
   transform-origin: center;
@@ -212,7 +217,7 @@
       calc((var(--mouse-y, 50%) - 50%) * -0.08),
       0
     )
-    scale(calc(1 + var(--tilt-active, 0) * 0.06));
+    scale(calc(1.14 + var(--tilt-active, 0) * 0.06));
   transition:
     transform 360ms var(--ease-out-quart);
   will-change: transform;
