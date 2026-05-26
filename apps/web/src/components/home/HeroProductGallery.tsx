@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Brand, Product as StorefrontProduct } from "@store/shared";
 
 import { ProductImage } from "@/components/shared/ProductImage";
+import { TiltCard } from "@/components/motion/TiltCard";
 import { getDefaultVariant, resolveVariantHeroImage } from "@/lib/productSummary";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
@@ -120,19 +121,26 @@ function HeroGalleryTile({
       className="hero-tile-float"
       style={{ "--hero-float-delay": floatDelay } as React.CSSProperties}
     >
-      <div
-        className={`product-media-well group relative block aspect-square rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] ${tone}`}
+      <TiltCard
+        intensity={isCenter ? 10 : 6}
+        hoverScale={isCenter ? 1.06 : 1.04}
+        className="aspect-square"
+        showGlow
       >
-        <ProductImage
-          image={heroImage}
-          variant="card"
-          name={product.name}
-          brandName={brandName}
-          brandSlug={product.brandSlug}
-          sizes={imageSizes}
-          priority={priority}
-        />
-      </div>
+        <div
+          className={`product-media-well group relative block size-full rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] ${tone}`}
+        >
+          <ProductImage
+            image={heroImage}
+            variant="card"
+            name={product.name}
+            brandName={brandName}
+            brandSlug={product.brandSlug}
+            sizes={imageSizes}
+            priority={priority}
+          />
+        </div>
+      </TiltCard>
     </div>
   );
 }

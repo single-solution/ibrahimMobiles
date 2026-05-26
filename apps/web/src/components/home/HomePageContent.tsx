@@ -26,6 +26,8 @@ import {
 } from "@/components/shared/StructuredContent";
 import { HeroProductGallery } from "@/components/home/HeroProductGallery";
 import { GradesByCategoryTabs } from "@/components/home/GradesByCategoryTabs";
+import { HeroAmbience } from "@/components/motion/HeroAmbience";
+import { MagneticHover } from "@/components/motion/MagneticHover";
 import {
   getPaymentMethods,
   type Brand,
@@ -573,10 +575,36 @@ interface HeroProps {
   brands: Brand[];
 }
 
+/**
+ * Splits a word into per-letter spans so each character can ride its
+ * own animation delay. Spaces collapse to fixed-width gaps so the
+ * sequence still tracks naturally with the surrounding text. The
+ * `aria-hidden`-on-spans + readable parent `aria-label` keeps screen
+ * readers hearing the whole word rather than each letter.
+ */
+function HeroLetterReveal({ text, startIndex = 0 }: { text: string; startIndex?: number }) {
+  return (
+    <span aria-label={text}>
+      {Array.from(text).map((char, index) => (
+        <span
+          key={`${char}-${index}`}
+          className="hero-letter"
+          style={
+            { ["--letter-i" as string]: String(startIndex + index) } as React.CSSProperties
+          }
+          aria-hidden
+        >
+          {char === " " ? "\u00A0" : char}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function MobileHero({ heroProducts, brands }: HeroProps) {
   return (
     <section
-      className="relative -mx-4 flex items-center border-b border-[var(--color-ink-100)]"
+      className="relative -mx-4 flex items-center overflow-hidden border-b border-[var(--color-ink-100)]"
       style={{
         minHeight:
           "calc(100dvh - var(--mobile-header-h) - var(--mobile-tabbar-h))",
@@ -584,15 +612,18 @@ function MobileHero({ heroProducts, brands }: HeroProps) {
           "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 80%, #fff) 0%, var(--color-canvas) 65%, var(--color-canvas) 100%)",
       }}
     >
-      <div className="flex w-full flex-col items-center gap-6 px-4 pb-24 pt-8 text-center">
+      <HeroAmbience />
+      <div className="relative z-10 flex w-full flex-col items-center gap-6 px-4 pb-24 pt-8 text-center">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-100)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-800)]">
           <Recycle size={11} />
           Phones · Accessories · Gadgets
         </span>
         <h1 className="font-display text-[110px] leading-[0.85] tracking-[-0.02em] uppercase">
-          <span className="hero-display-outline block">pre owned</span>
+          <span className="hero-display-outline block">
+            <HeroLetterReveal text="pre owned" />
+          </span>
           <span className="hero-accent-mark mt-2 block text-[var(--color-ink-800)]">
-            mobiles
+            <HeroLetterReveal text="mobiles" startIndex={9} />
           </span>
         </h1>
 
@@ -605,13 +636,15 @@ function MobileHero({ heroProducts, brands }: HeroProps) {
           />
         </div>
 
-        <Link
-          href="/shop"
-          className="cta-arrow tap inline-flex h-11 items-center justify-center gap-1.5 self-stretch rounded-full bg-[var(--color-accent-500)] px-5 text-[14px] font-semibold text-[var(--color-ink-900)] active:bg-[var(--color-accent-600)]"
-        >
-          Visit store
-          <ArrowUpRight size={15} strokeWidth={2.4} />
-        </Link>
+        <MagneticHover className="self-stretch">
+          <Link
+            href="/shop"
+            className="cta-arrow tap inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent-500)] px-5 text-[14px] font-semibold text-[var(--color-ink-900)] shadow-[0_8px_24px_-12px_color-mix(in_srgb,var(--color-accent-500)_70%,transparent)] transition-shadow active:bg-[var(--color-accent-600)]"
+          >
+            Visit store
+            <ArrowUpRight size={15} strokeWidth={2.4} />
+          </Link>
+        </MagneticHover>
 
         <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-1.5 pt-1 text-left text-[12px] text-[var(--color-ink-600)]">
           <li className="flex items-center gap-1.5">
@@ -981,22 +1014,25 @@ function StoreMapEmbed({ className = "", settings }: StoreMapEmbedProps) {
 function DesktopHero({ heroProducts, brands }: HeroProps) {
   return (
     <section
-      className="relative flex min-h-[calc(100dvh-var(--desktop-header-h))] items-center border-b border-[var(--color-ink-100)]"
+      className="relative flex min-h-[calc(100dvh-var(--desktop-header-h))] items-center overflow-hidden border-b border-[var(--color-ink-100)]"
       style={{
         background:
           "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 85%, #fff) 0%, var(--color-canvas) 70%, var(--color-canvas) 100%)",
       }}
     >
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 px-6 py-16 text-center">
+      <HeroAmbience />
+      <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center gap-6 px-6 py-16 text-center">
         <div>
           <Pill tone="accent" size="md" leadingIcon={<Recycle size={12} />}>
             Phones · Accessories · Gadgets — graded honestly
           </Pill>
         </div>
         <h1 className="font-display text-[150px] leading-[0.82] tracking-[-0.02em] uppercase">
-          <span className="hero-display-outline block">pre-owned</span>
+          <span className="hero-display-outline block">
+            <HeroLetterReveal text="pre-owned" />
+          </span>
           <span className="hero-accent-mark mt-3 block text-[var(--color-ink-800)]">
-            mobiles
+            <HeroLetterReveal text="mobiles" startIndex={9} />
           </span>
         </h1>
         <div className="w-full pt-2">
@@ -1008,15 +1044,17 @@ function DesktopHero({ heroProducts, brands }: HeroProps) {
           />
         </div>
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-          <ButtonLink
-            href="/shop"
-            variant="primary"
-            size="lg"
-            className="cta-arrow"
-            trailingIcon={<ArrowUpRight size={17} strokeWidth={2.4} />}
-          >
-            Visit store
-          </ButtonLink>
+          <MagneticHover>
+            <ButtonLink
+              href="/shop"
+              variant="primary"
+              size="lg"
+              className="cta-arrow shadow-[0_12px_36px_-16px_color-mix(in_srgb,var(--color-accent-500)_75%,transparent)]"
+              trailingIcon={<ArrowUpRight size={17} strokeWidth={2.4} />}
+            >
+              Visit store
+            </ButtonLink>
+          </MagneticHover>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-3 text-sm text-[var(--color-ink-500)]">
           <div className="flex items-center gap-2">
