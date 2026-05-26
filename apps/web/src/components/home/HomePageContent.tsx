@@ -29,7 +29,6 @@ import { GradesByCategoryTabs } from "@/components/home/GradesByCategoryTabs";
 import { HeroAmbience } from "@/components/motion/HeroAmbience";
 import { KineticHeading } from "@/components/motion/KineticHeading";
 import { MagneticHover } from "@/components/motion/MagneticHover";
-import { ScrollPinDiagram } from "@/components/motion/ScrollPinDiagram";
 import { SectionAmbience } from "@/components/motion/SectionAmbience";
 import {
   getPaymentMethods,
@@ -82,8 +81,6 @@ interface ProcessFlow {
   label: string;
   caption: string;
   icon: ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
-  /** PascalCase Lucide name — serializable for client motion components. */
-  iconName: string;
   steps: ProcessFlowStep[];
 }
 
@@ -101,7 +98,6 @@ function buildProcessFlows(settings: StoreSettings): ProcessFlow[] {
       label: "Store",
       caption: "How we curate",
       icon: PackageOpen,
-      iconName: "PackageOpen",
       steps: [
         { title: "Source", detail: "Direct from verified Pakistani importers and trusted resellers." },
         { title: "Inspect", detail: "32-point bench check — battery, screen, cameras, every button." },
@@ -114,7 +110,6 @@ function buildProcessFlows(settings: StoreSettings): ProcessFlow[] {
       label: "Order",
       caption: "How you buy",
       icon: ShoppingBag,
-      iconName: "ShoppingBag",
       steps: [
         { title: "Pick", detail: "Browse by brand, grade or budget." },
         {
@@ -130,7 +125,6 @@ function buildProcessFlows(settings: StoreSettings): ProcessFlow[] {
       label: "Return",
       caption: "What we promise",
       icon: ShieldCheck,
-      iconName: "ShieldCheck",
       steps: [
         {
           title: `${settings.moneybackDays}-day moneyback`,
@@ -1241,15 +1235,6 @@ function ShopTypeIcon({ category }: { category: HomePageCategory }) {
 }
 
 function DesktopProcessSection({ flows }: ProcessSectionProps) {
-  const stages = flows.map((flow) => ({
-    key: flow.key,
-    label: flow.label,
-    title: flow.caption,
-    description:
-      "Every step on record — no guesswork, no surprises, no hidden fees.",
-    iconName: flow.iconName,
-    steps: flow.steps,
-  }));
   return (
     <section
       id="how-to-buy"
@@ -1261,10 +1246,51 @@ function DesktopProcessSection({ flows }: ProcessSectionProps) {
           <DesktopSectionHeader
             eyebrow="How it works"
             title="Three flows behind every order."
-            description="From sourcing to refund — scroll through each stage."
+            description="From sourcing to refund — every step on record."
           />
         </div>
-        <ScrollPinDiagram stages={stages} className="mt-10" />
+        <div className="reveal-stagger mt-12 grid grid-cols-3 gap-4">
+          {flows.map((flow) => {
+            const Icon = flow.icon;
+            return (
+              <div
+                key={flow.key}
+                className="reveal flex flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] transition-shadow hover:shadow-[var(--shadow-md)]"
+              >
+                <div className="flex items-center gap-3 bg-[var(--color-ink-900)] px-6 py-4 text-[var(--color-canvas)]">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
+                    <Icon size={16} strokeWidth={2.2} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-400)]">
+                      {flow.label}
+                    </p>
+                    <p className="text-[14px] font-semibold leading-tight">
+                      {flow.caption}
+                    </p>
+                  </div>
+                </div>
+                <ol className="flex flex-1 flex-col gap-4 p-6">
+                  {flow.steps.map((step, index) => (
+                    <li key={step.title} className="flex items-start gap-3">
+                      <span className="grid size-7 shrink-0 place-items-center rounded-full border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] text-[12px] font-semibold text-[var(--color-accent-800)]">
+                        {index + 1}
+                      </span>
+                      <div className="min-w-0 flex-1 leading-snug">
+                        <p className="text-[14px] font-semibold text-[var(--color-ink-900)]">
+                          {step.title}
+                        </p>
+                        <p className="mt-0.5 text-[12.5px] text-[var(--color-ink-600)]">
+                          {step.detail}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

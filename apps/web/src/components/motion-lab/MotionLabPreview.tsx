@@ -1,7 +1,6 @@
 "use client";
 
 import { PresetCalmCinematic } from "./presets/PresetCalmCinematic";
-import { PresetEditorialDiagram } from "./presets/PresetEditorialDiagram";
 import { PresetGeometricMesh } from "./presets/PresetGeometricMesh";
 import { PresetHybridPremium } from "./presets/PresetHybridPremium";
 import { PresetKineticPunch } from "./presets/PresetKineticPunch";
@@ -13,8 +12,6 @@ export function MotionLabPreview({ presetId }: { presetId: string }) {
       return <PresetCalmCinematic />;
     case "kinetic-punch":
       return <PresetKineticPunch />;
-    case "editorial-diagram":
-      return <PresetEditorialDiagram />;
     case "hybrid-premium":
       return <PresetHybridPremium />;
     case "geometric-mesh":

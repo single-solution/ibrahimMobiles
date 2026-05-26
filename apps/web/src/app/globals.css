@@ -420,13 +420,6 @@
   }
 }
 
-/* --- Scroll-pin diagram -----------------------------------------
-   Container needs `position: relative` for the absolutely-stacked
-   detail panels to share space; the SVG path uses a `currentColor`
-   stroke so theming via `text-[var(--color-...)]` Just Works. */
-.scroll-pin-diagram [data-diagram-panel] {
-  transform: translate3d(0, 0, 0);
-}
 
 /* Fluid spacing — desktop only.
    Mobile keeps Tailwind's default --spacing (0.25rem) so tap targets, gaps,

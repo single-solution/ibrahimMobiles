@@ -29,14 +29,6 @@ export const MOTION_PRESETS: MotionPresetMeta[] = [
     bestFor: "Headlines and CTAs — memorable first impression.",
   },
   {
-    id: "editorial-diagram",
-    name: "Editorial diagram",
-    tagline: "Scroll-pinned SVG story — explains how you work.",
-    styles: ["geometric", "scroll-cinematic"],
-    vibe: "editorial",
-    bestFor: "How-it-works + grading — serious, thoughtful.",
-  },
-  {
     id: "hybrid-premium",
     name: "Hybrid premium",
     tagline: "Calm type + living geometry — our recommended blend.",
