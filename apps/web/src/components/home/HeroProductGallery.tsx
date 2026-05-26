@@ -122,23 +122,25 @@ function HeroGalleryTile({
       style={{ "--hero-float-delay": floatDelay } as React.CSSProperties}
     >
       <TiltCard
-        intensity={isCenter ? 10 : 6}
-        hoverScale={isCenter ? 1.06 : 1.04}
+        intensity={isCenter ? 14 : 10}
+        hoverScale={isCenter ? 1.1 : 1.06}
         className="aspect-square"
         showGlow
       >
         <div
           className={`product-media-well group relative block size-full rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] ${tone}`}
         >
-          <ProductImage
-            image={heroImage}
-            variant="card"
-            name={product.name}
-            brandName={brandName}
-            brandSlug={product.brandSlug}
-            sizes={imageSizes}
-            priority={priority}
-          />
+          <div className="tilt-parallax absolute inset-0 size-full">
+            <ProductImage
+              image={heroImage}
+              variant="card"
+              name={product.name}
+              brandName={brandName}
+              brandSlug={product.brandSlug}
+              sizes={imageSizes}
+              priority={priority}
+            />
+          </div>
         </div>
       </TiltCard>
     </div>

@@ -128,6 +128,7 @@ export function TiltCard({
     >
       <div className="tilt-card-surface">
         {children}
+        <span className="tilt-card-edge" aria-hidden />
         {showGlow ? (
           <span className="tilt-card-glow" aria-hidden />
         ) : null}

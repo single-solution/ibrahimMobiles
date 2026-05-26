@@ -201,21 +201,56 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  opacity: calc(var(--tilt-active, 0) * 0.55);
+  opacity: calc(var(--tilt-active, 0) * 0.6);
   transition: opacity 320ms var(--ease-out-quart);
   background: radial-gradient(
-    260px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    color-mix(in srgb, var(--color-accent-300) 55%, transparent),
+    300px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    color-mix(in srgb, var(--color-accent-300) 65%, transparent),
     transparent 70%
   );
   mix-blend-mode: plus-lighter;
+}
+/* Bright top-left rim that appears as the card tilts — sells the
+   "front-lit physical card" illusion. */
+.tilt-card-edge {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: var(--tilt-active, 0);
+  transition: opacity 320ms var(--ease-out-quart);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px color-mix(in srgb, var(--color-accent-400) 60%, transparent);
+}
+/* Optional inner-content parallax — opt in by adding `.tilt-parallax`
+   to a child of the tilt-card. The child shifts AGAINST the cursor so
+   the foreground appears to sit on a plane closer to the viewer than
+   the card surface itself. */
+.tilt-parallax {
+  position: relative;
+  transform-origin: center;
+  transform:
+    translate3d(
+      calc((var(--mouse-x, 50%) - 50%) * -0.08),
+      calc((var(--mouse-y, 50%) - 50%) * -0.08),
+      0
+    )
+    scale(calc(1 + var(--tilt-active, 0) * 0.06));
+  transition:
+    transform 360ms var(--ease-out-quart);
+  will-change: transform;
 }
 @media (prefers-reduced-motion: reduce), (pointer: coarse) {
   .tilt-card-surface {
     transform: none !important;
   }
-  .tilt-card-glow {
+  .tilt-card-glow,
+  .tilt-card-edge {
     display: none;
+  }
+  .tilt-parallax {
+    transform: none !important;
   }
 }
 
@@ -950,7 +985,7 @@ html {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-6px);
+    transform: translateY(-10px);
   }
 }
 .hero-tile-float {
