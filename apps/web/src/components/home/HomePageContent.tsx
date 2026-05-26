@@ -576,10 +576,12 @@ interface HeroProps {
 function MobileHero({ heroProducts, brands }: HeroProps) {
   return (
     <section
-      className="relative -mx-4 flex items-center border-b border-[var(--color-ink-100)] bg-gradient-to-b from-[var(--color-canvas-deep)] to-[var(--color-canvas)]"
+      className="relative -mx-4 flex items-center border-b border-[var(--color-ink-100)]"
       style={{
         minHeight:
           "calc(100dvh - var(--mobile-header-h) - var(--mobile-tabbar-h))",
+        background:
+          "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 60%, var(--color-canvas)) 0%, color-mix(in srgb, var(--color-canvas-deep) 25%, var(--color-canvas)) 55%, var(--color-canvas) 100%)",
       }}
     >
       <div className="flex w-full flex-col items-center gap-6 px-4 pb-24 pt-8 text-center">
@@ -591,11 +593,13 @@ function MobileHero({ heroProducts, brands }: HeroProps) {
           Phones · Accessories · Gadgets
         </span>
         <h1
-          className="reveal font-display text-[110px] leading-[0.85] tracking-[-0.02em] text-[var(--color-ink-900)] opacity-80 uppercase"
+          className="reveal font-display text-[110px] leading-[0.85] tracking-[-0.02em] text-[var(--color-ink-900)] uppercase"
           style={{ ["--reveal-delay" as string]: "140ms" }}
         >
           pre owned
-          <span className="block text-[var(--color-accent-700)]">mobiles</span>
+          <span className="hero-accent-mark mt-2 block text-[var(--color-ink-900)]">
+            mobiles
+          </span>
         </h1>
 
         <div
@@ -989,7 +993,13 @@ function StoreMapEmbed({ className = "", settings }: StoreMapEmbedProps) {
 
 function DesktopHero({ heroProducts, brands }: HeroProps) {
   return (
-    <section className="relative flex min-h-[calc(100dvh-var(--desktop-header-h))] items-center border-b border-[var(--color-ink-100)] bg-gradient-to-b from-[var(--color-canvas-deep)] to-[var(--color-canvas)]">
+    <section
+      className="relative flex min-h-[calc(100dvh-var(--desktop-header-h))] items-center border-b border-[var(--color-ink-100)]"
+      style={{
+        background:
+          "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 65%, var(--color-canvas)) 0%, color-mix(in srgb, var(--color-canvas-deep) 28%, var(--color-canvas)) 60%, var(--color-canvas) 100%)",
+      }}
+    >
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 px-6 py-16 text-center">
         <div
           className="reveal"
@@ -1000,11 +1010,13 @@ function DesktopHero({ heroProducts, brands }: HeroProps) {
           </Pill>
         </div>
         <h1
-          className="reveal font-display text-[150px] leading-[0.82] tracking-[-0.02em] text-[var(--color-ink-900)] opacity-80 uppercase"
+          className="reveal font-display text-[150px] leading-[0.82] tracking-[-0.02em] text-[var(--color-ink-900)] uppercase"
           style={{ ["--reveal-delay" as string]: "140ms" }}
         >
           pre-owned
-          <span className="block text-[var(--color-accent-700)]">mobiles</span>
+          <span className="hero-accent-mark mt-3 block text-[var(--color-ink-900)]">
+            mobiles
+          </span>
         </h1>
         <div
           className="reveal w-full pt-2"

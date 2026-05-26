@@ -69,16 +69,6 @@
   --color-accent-700: #3a4d00;
   --color-accent-800: #2a3800;
 
-  --color-saffron-50: #fff7ed;
-  --color-saffron-100: #ffedd5;
-  --color-saffron-200: #fed7aa;
-  --color-saffron-300: #fdba74;
-  --color-saffron-400: #fb923c;
-  --color-saffron-500: #f97316;
-  --color-saffron-600: #ea580c;
-  --color-saffron-700: #c2410c;
-  --color-saffron-800: #9a3412;
-
   --color-pak-green: #064e3b;
 
   --color-warn-500: #d97706;
@@ -137,6 +127,28 @@
     color-mix(in srgb, var(--color-canvas-deep) 18%, var(--color-canvas)) 50%,
     var(--color-canvas) 100%
   );
+}
+
+/* Hero "mobiles" highlighter — chartreuse marker behind the word so the
+   biggest type on the page reads as a deliberate brand moment rather
+   than a flat coloured caption. The bar sits behind the bottom 55% of
+   the glyph height so descenders punch through cleanly. */
+.hero-accent-mark {
+  position: relative;
+  display: inline-block;
+  isolation: isolate;
+  padding-inline: 0.18em;
+}
+.hero-accent-mark::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0.06em;
+  height: 0.55em;
+  background: var(--color-accent-500);
+  border-radius: 0.08em;
+  z-index: -1;
+  transform: skewX(-4deg);
 }
 
 /* Fluid spacing — desktop only.
