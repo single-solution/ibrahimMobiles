@@ -47,25 +47,27 @@
   --color-ink-400: #8b969b;
   --color-ink-500: #5b6669;
   --color-ink-600: #3f4a4c;
-  --color-ink-700: #2d3537;
-  --color-ink-800: #1a1f20;
-  --color-ink-900: #0d1213;
+  --color-ink-700: #1a3f44;
+  --color-ink-800: #0a3035;
+  --color-ink-900: #00272c;
 
   --color-canvas: #ffffff;
   --color-canvas-deep: #eef5f5;
   --color-surface: #ffffff;
   --color-surface-muted: #f3f7f7;
 
-  /* Amber accent — warm watch-dial yellow-orange. Pops against black. */
+  /* Chartreuse accent — primary CTA and active states.
+     Low end (50/100/200) stays warm cream so existing gradient cards
+     keep their premium warmth. Mid-high (300+) ramps into chartreuse. */
   --color-accent-50: #fffbeb;
   --color-accent-100: #fef3c7;
-  --color-accent-200: #fde68a;
-  --color-accent-300: #fcd34d;
-  --color-accent-400: #fbbf24;
-  --color-accent-500: #f59e0b;
-  --color-accent-600: #d97706;
-  --color-accent-700: #b45309;
-  --color-accent-800: #92400e;
+  --color-accent-200: #f8e9a8;
+  --color-accent-300: #ecf78a;
+  --color-accent-400: #e6ff70;
+  --color-accent-500: #e1ff51;
+  --color-accent-600: #c8e636;
+  --color-accent-700: #3a4d00;
+  --color-accent-800: #2a3800;
 
   --color-saffron-50: #fff7ed;
   --color-saffron-100: #ffedd5;

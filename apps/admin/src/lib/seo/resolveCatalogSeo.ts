@@ -143,7 +143,7 @@ export function resolveCatalogSeo(
         description: input.entity.description,
         discountLabel: "",
         expiresAt: new Date().toISOString(),
-        color: "#f59e0b",
+        color: "#e1ff51",
         badgeLabel: "",
         bannerImage: input.entity.bannerImage ?? undefined,
       };

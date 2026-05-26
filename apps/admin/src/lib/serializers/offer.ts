@@ -21,7 +21,7 @@ export function toOfferResponse(doc: OfferLean): AdminOffer {
     description: asString(doc.description),
     discountLabel: asString(doc.discountLabel),
     badgeLabel: asString(doc.badgeLabel),
-    color: asString(doc.color, "#f59e0b"),
+    color: asString(doc.color, "#e1ff51"),
     bannerImage: isStoredImage(doc.bannerImage) ? doc.bannerImage : null,
     expiresAt: doc.expiresAt
       ? toIsoDate(doc.expiresAt)

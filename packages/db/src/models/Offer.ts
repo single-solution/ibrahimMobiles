@@ -67,7 +67,7 @@ const offerSchema = new Schema<OfferAttributes>(
       trim: true,
       maxlength: 7,
       match: /^#[0-9a-f]{6}$/i,
-      default: "#f59e0b",
+      default: "#e1ff51",
     },
     expiresAt: { type: Date },
     isActive: { type: Boolean, required: true, default: true },

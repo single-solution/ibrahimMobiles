@@ -81,7 +81,7 @@ export function OfferCard({ offer, size = "md" }: OfferCardProps) {
  *  endpoint from the single admin-authored offer colour. */
 function darken(hex: string | undefined, amount: number): string {
   if (!hex || typeof hex !== "string") {
-    return "#f59e0b";
+    return "#e1ff51";
   }
   const match = /^#([0-9a-f]{6})$/i.exec(hex.trim());
   if (!match) {

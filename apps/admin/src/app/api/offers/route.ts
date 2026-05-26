@@ -73,7 +73,7 @@ interface OfferInput {
 }
 
 const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/i;
-const DEFAULT_OFFER_COLOR = "#f59e0b";
+const DEFAULT_OFFER_COLOR = "#e1ff51";
 
 function parseColor(value: unknown): string {
   if (typeof value === "string" && HEX_COLOR_REGEX.test(value)) {

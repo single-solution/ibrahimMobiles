@@ -42,11 +42,11 @@ import {
 } from "@/components/categories/previews";
 
 const OFFER_SLUG_MAX_CHARS = 96;
-const DEFAULT_OFFER_COLOR = "#f59e0b";
+const DEFAULT_OFFER_COLOR = "#e1ff51";
 
 const ACCENT_OPTIONS = [
   { value: "#10b981", label: "Emerald", swatch: "#10b981" },
-  { value: "#f59e0b", label: "Amber", swatch: "#f59e0b" },
+  { value: "#e1ff51", label: "Chartreuse", swatch: "#e1ff51" },
   { value: "#f43f5e", label: "Rose", swatch: "#f43f5e" },
   { value: "#0ea5e9", label: "Sky", swatch: "#0ea5e9" },
 ];

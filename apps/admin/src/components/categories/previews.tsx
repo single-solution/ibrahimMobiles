@@ -369,7 +369,7 @@ export function OfferCardFullPreview({ offer }: { offer: OfferDraft }) {
 
 function darkenHex(hex: string | undefined, amount: number): string {
   if (!hex || typeof hex !== "string") {
-    return "#f59e0b";
+    return "#e1ff51";
   }
   const match = /^#([0-9a-f]{6})$/i.exec(hex.trim());
   if (!match) {

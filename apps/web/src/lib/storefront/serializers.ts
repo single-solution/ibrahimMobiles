@@ -220,7 +220,7 @@ export function toStorefrontOffer(offer: OfferLean): StorefrontOffer {
     expiresAt: offer.expiresAt
       ? toIsoDate(offer.expiresAt)
       : toIsoDate(new Date()),
-    color: asString(offer.color, "#f59e0b"),
+    color: asString(offer.color, "#e1ff51"),
     badgeLabel: asString(offer.badgeLabel),
     bannerImage: isStoredImage(offer.bannerImage) ? offer.bannerImage : undefined,
     content: hasStructuredContent(content) ? content : undefined,
