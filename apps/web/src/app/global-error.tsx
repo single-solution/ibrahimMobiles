@@ -21,8 +21,8 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
           margin: 0,
           fontFamily:
             "system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif",
-          background: "#fafaf7",
-          color: "#171717",
+          background: "#ffffff",
+          color: "#00272c",
         }}
       >
         <main
@@ -40,7 +40,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 fontSize: "0.7rem",
                 letterSpacing: "0.25em",
                 textTransform: "uppercase",
-                color: "#b88a2c",
+                color: "#3a4d00",
               }}
             >
               Critical error
@@ -48,7 +48,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             <h1 style={{ marginTop: "0.5rem", fontSize: "2rem" }}>
               The site is temporarily unavailable.
             </h1>
-            <p style={{ marginTop: "0.75rem", color: "#525252" }}>
+            <p style={{ marginTop: "0.75rem", color: "#3f4a4c" }}>
               We&apos;ve been notified. Please retry in a moment.
             </p>
             {error.digest ? (
@@ -68,7 +68,8 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               style={{
                 marginTop: "1.5rem",
                 padding: "0.6rem 1.25rem",
-                background: "#f0c14b",
+                background: "#e1ff51",
+                color: "#00272c",
                 border: "none",
                 borderRadius: "9999px",
                 fontWeight: 600,

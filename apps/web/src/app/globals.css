@@ -898,8 +898,8 @@ html {
 
 /* ----- Scrollbar styling -----
    Thin, rounded, brand-matched scrollbars site-wide. Track is transparent
-   so it blends into whatever surface is scrolling; thumb uses accent-100 —
-   the same warm amber tone applied to a checked filter row in the shop
+   so it blends into whatever surface is scrolling;    thumb uses accent-100 —
+   the same warm cream tone applied to a checked filter row in the shop
    sidebar. Hover deepens to accent-300 for a clearer affordance. Padding-
    box clip on the thumb gives it air on both sides for a soft capsule look. */
 * {
