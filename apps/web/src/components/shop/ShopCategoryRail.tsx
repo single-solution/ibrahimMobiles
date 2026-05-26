@@ -112,9 +112,9 @@ interface ShopCategoryHubGridProps {
 /** Full category chooser for `/shop` when multiple categories exist. */
 export function ShopCategoryHubGrid({ categories }: ShopCategoryHubGridProps) {
   return (
-    <div className="reveal-stagger grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:grid-cols-5">
       {categories.map((category) => (
-        <div key={category.slug} className="reveal h-full">
+        <div key={category.slug} className="h-full">
           <CategoryHubCard category={category} />
         </div>
       ))}

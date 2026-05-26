@@ -581,31 +581,22 @@ function MobileHero({ heroProducts, brands }: HeroProps) {
         minHeight:
           "calc(100dvh - var(--mobile-header-h) - var(--mobile-tabbar-h))",
         background:
-          "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 60%, var(--color-canvas)) 0%, color-mix(in srgb, var(--color-canvas-deep) 25%, var(--color-canvas)) 55%, var(--color-canvas) 100%)",
+          "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 80%, #fff) 0%, var(--color-canvas) 65%, var(--color-canvas) 100%)",
       }}
     >
       <div className="flex w-full flex-col items-center gap-6 px-4 pb-24 pt-8 text-center">
-        <span
-          className="reveal inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-100)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-800)]"
-          style={{ ["--reveal-delay" as string]: "60ms" }}
-        >
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-100)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-800)]">
           <Recycle size={11} />
           Phones · Accessories · Gadgets
         </span>
-        <h1
-          className="reveal font-display text-[110px] leading-[0.85] tracking-[-0.02em] uppercase"
-          style={{ ["--reveal-delay" as string]: "140ms" }}
-        >
+        <h1 className="font-display text-[110px] leading-[0.85] tracking-[-0.02em] uppercase">
           <span className="hero-display-outline block">pre owned</span>
-          <span className="hero-accent-mark mt-2 block text-[var(--color-ink-900)]">
+          <span className="hero-accent-mark mt-2 block text-[var(--color-ink-800)]">
             mobiles
           </span>
         </h1>
 
-        <div
-          className="reveal w-full pt-1"
-          style={{ ["--reveal-delay" as string]: "240ms" }}
-        >
+        <div className="w-full pt-1">
           <HeroProductGallery
             products={heroProducts}
             brands={brands}
@@ -616,17 +607,13 @@ function MobileHero({ heroProducts, brands }: HeroProps) {
 
         <Link
           href="/shop"
-          className="cta-arrow tap reveal inline-flex h-11 items-center justify-center gap-1.5 self-stretch rounded-full bg-[var(--color-accent-500)] px-5 text-[14px] font-semibold text-[var(--color-ink-900)] active:bg-[var(--color-accent-600)]"
-          style={{ ["--reveal-delay" as string]: "320ms" }}
+          className="cta-arrow tap inline-flex h-11 items-center justify-center gap-1.5 self-stretch rounded-full bg-[var(--color-accent-500)] px-5 text-[14px] font-semibold text-[var(--color-ink-900)] active:bg-[var(--color-accent-600)]"
         >
           Visit store
           <ArrowUpRight size={15} strokeWidth={2.4} />
         </Link>
 
-        <ul
-          className="reveal grid w-full grid-cols-2 gap-x-4 gap-y-1.5 pt-1 text-left text-[12px] text-[var(--color-ink-600)]"
-          style={{ ["--reveal-delay" as string]: "400ms" }}
-        >
+        <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-1.5 pt-1 text-left text-[12px] text-[var(--color-ink-600)]">
           <li className="flex items-center gap-1.5">
             <Undo2 size={13} className="shrink-0 text-[var(--color-accent-600)]" />
             <span>15-day moneyback</span>
@@ -997,31 +984,22 @@ function DesktopHero({ heroProducts, brands }: HeroProps) {
       className="relative flex min-h-[calc(100dvh-var(--desktop-header-h))] items-center border-b border-[var(--color-ink-100)]"
       style={{
         background:
-          "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 65%, var(--color-canvas)) 0%, color-mix(in srgb, var(--color-canvas-deep) 28%, var(--color-canvas)) 60%, var(--color-canvas) 100%)",
+          "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 85%, #fff) 0%, var(--color-canvas) 70%, var(--color-canvas) 100%)",
       }}
     >
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-6 px-6 py-16 text-center">
-        <div
-          className="reveal"
-          style={{ ["--reveal-delay" as string]: "60ms" }}
-        >
+        <div>
           <Pill tone="accent" size="md" leadingIcon={<Recycle size={12} />}>
             Phones · Accessories · Gadgets — graded honestly
           </Pill>
         </div>
-        <h1
-          className="reveal font-display text-[150px] leading-[0.82] tracking-[-0.02em] uppercase"
-          style={{ ["--reveal-delay" as string]: "140ms" }}
-        >
+        <h1 className="font-display text-[150px] leading-[0.82] tracking-[-0.02em] uppercase">
           <span className="hero-display-outline block">pre-owned</span>
-          <span className="hero-accent-mark mt-3 block text-[var(--color-ink-900)]">
+          <span className="hero-accent-mark mt-3 block text-[var(--color-ink-800)]">
             mobiles
           </span>
         </h1>
-        <div
-          className="reveal w-full pt-2"
-          style={{ ["--reveal-delay" as string]: "260ms" }}
-        >
+        <div className="w-full pt-2">
           <HeroProductGallery
             products={heroProducts}
             brands={brands}
@@ -1029,10 +1007,7 @@ function DesktopHero({ heroProducts, brands }: HeroProps) {
             empty={<HeroGalleryEmpty variant="desktop" />}
           />
         </div>
-        <div
-          className="reveal flex flex-wrap items-center justify-center gap-3 pt-2"
-          style={{ ["--reveal-delay" as string]: "360ms" }}
-        >
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <ButtonLink
             href="/shop"
             variant="primary"
@@ -1043,10 +1018,7 @@ function DesktopHero({ heroProducts, brands }: HeroProps) {
             Visit store
           </ButtonLink>
         </div>
-        <div
-          className="reveal flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-3 text-sm text-[var(--color-ink-500)]"
-          style={{ ["--reveal-delay" as string]: "440ms" }}
-        >
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 pt-3 text-sm text-[var(--color-ink-500)]">
           <div className="flex items-center gap-2">
             <Undo2 size={15} className="text-[var(--color-accent-600)]" />
             <span>15-day moneyback</span>

@@ -60,7 +60,7 @@ export function ShopProductGrid({
 
   return (
     <div
-      className={`reveal-stagger grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4 xl:gap-7${isListingSwap ? " listing-swap" : ""}`}
+      className={`grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4 xl:gap-7${isListingSwap ? " listing-swap" : ""}`}
     >
       {cards.map((product, index) => {
         const catalogProduct = products.find((row) => row.id === product.id) ?? product;
@@ -69,7 +69,7 @@ export function ShopProductGrid({
         return (
           <div
             key={`${product.id}:${pinnedGradeSlug ?? "product"}`}
-            className="reveal h-full"
+            className="h-full"
           >
             <ProductCard
               product={product}

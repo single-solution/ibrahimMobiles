@@ -24,8 +24,8 @@ import { usePathname, useSearchParams } from "next/navigation";
  *     infinite scroll, modal contents all get observed without each
  *     component needing to register itself.
  *
- *   • **Above-the-fold elements reveal immediately** so route/filter
- *     swaps never leave visible content at opacity 0 waiting for idle.
+ *   • **Above-the-fold elements reveal on the first animation frame** so
+ *     route/filter swaps never leave visible content at opacity 0.
  */
 export function RevealRoot() {
   const pathname = usePathname();
@@ -106,33 +106,16 @@ export function RevealRoot() {
       }
     });
 
-    let isCancelled = false;
-    type IdleHandle = number;
-    const scheduleIdle = (callback: () => void): IdleHandle => {
-      if (typeof window.requestIdleCallback === "function") {
-        return window.requestIdleCallback(callback, { timeout: 120 });
-      }
-      return window.setTimeout(callback, 48);
-    };
-    const cancelIdle = (handle: IdleHandle): void => {
-      if (typeof window.cancelIdleCallback === "function") {
-        window.cancelIdleCallback(handle);
-        return;
-      }
-      window.clearTimeout(handle);
-    };
-
-    const handle = scheduleIdle(() => {
-      if (isCancelled) {
-        return;
-      }
+    // Run on the next frame so layout is settled, but don't defer to
+    // idle — that left above-the-fold `.reveal` nodes at opacity 0 and
+    // made the storefront feel like it was still loading.
+    const frame = window.requestAnimationFrame(() => {
       observeAll();
       mutation.observe(document.body, { childList: true, subtree: true });
     });
 
     return () => {
-      isCancelled = true;
-      cancelIdle(handle);
+      window.cancelAnimationFrame(frame);
       observer.disconnect();
       mutation.disconnect();
     };

@@ -110,11 +110,11 @@
        - ease-ios:       Apple-style critical-damping for sheets/dialogs
        - ease-spring:    overshoot for delightful confirmations (cart, save, qty)
    */
-  --motion-fast: 140ms;
-  --motion-base: 240ms;
-  --motion-slow: 420ms;
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 260ms;
   --motion-route: 480ms;
-  --motion-stagger: 72ms;
+  --motion-stagger: 28ms;
 
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
@@ -131,44 +131,42 @@
 
 /* Hero dual-tone display type.
    ----------------------------------------------------------------------
-   `hero-display-outline` — hollow gunmetal lockup for the supporting
-   line ("pre owned"). Renders as text-stroke only so it recedes and
-   lets the next line dominate.
+   `hero-display-outline` — hollow ink-700 lockup for the supporting line
+   ("pre owned"). Thin stroke keeps it airy so the eye glides over it.
 
-   `hero-accent-mark` — solid gunmetal word ("mobiles") sitting on a
-   skewed chartreuse highlighter bar, so the biggest type on the page
-   reads as a deliberate brand moment instead of a flat caption. The
-   bar sits behind the bottom 55% of the glyph height so descenders
-   punch through cleanly. */
+   `hero-accent-mark` — solid gunmetal word ("mobiles") with a slim
+   chartreuse underline sitting just below the baseline. Calm, refined,
+   reads as a deliberate brand moment without screaming for attention. */
 .hero-display-outline {
   color: transparent;
-  -webkit-text-stroke: 1.6px var(--color-ink-900);
-  text-stroke: 1.6px var(--color-ink-900);
+  -webkit-text-stroke: 1px var(--color-ink-700);
+  text-stroke: 1px var(--color-ink-700);
   paint-order: stroke fill;
 }
 .hero-accent-mark {
   position: relative;
   display: inline-block;
-  isolation: isolate;
-  padding-inline: 0.18em;
+  padding-bottom: 0.12em;
 }
-.hero-accent-mark::before {
+.hero-accent-mark::after {
   content: "";
   position: absolute;
-  inset-inline: 0;
-  bottom: 0.06em;
-  height: 0.55em;
+  inset-inline: 0.04em;
+  bottom: 0;
+  height: 0.1em;
   background: var(--color-accent-500);
-  border-radius: 0.08em;
-  z-index: -1;
-  transform: skewX(-4deg);
+  border-radius: 999px;
 }
 
-/* Tablet+ — bump the stroke so the hollow line reads at large sizes. */
+/* Tablet+ — slightly thicker stroke + underline so they still read at
+   display sizes without going heavy. */
 @media (min-width: 768px) {
   .hero-display-outline {
-    -webkit-text-stroke-width: 2.2px;
-    text-stroke-width: 2.2px;
+    -webkit-text-stroke-width: 1.4px;
+    text-stroke-width: 1.4px;
+  }
+  .hero-accent-mark::after {
+    height: 0.085em;
   }
 }
 
@@ -331,10 +329,10 @@ html {
 */
 .reveal {
   opacity: 0;
-  transform: translate3d(0, 14px, 0);
+  transform: translate3d(0, 6px, 0);
   transition:
-    opacity var(--motion-slow) var(--ease-out-quart),
-    transform var(--motion-slow) var(--ease-out-quart);
+    opacity var(--motion-base) var(--ease-out-quart),
+    transform var(--motion-base) var(--ease-out-quart);
   transition-delay: var(--reveal-delay, 0ms);
 }
 .reveal[data-reveal="visible"] {
@@ -344,7 +342,7 @@ html {
 .reveal-fade {
   opacity: 0;
   transform: none;
-  transition: opacity var(--motion-slow) var(--ease-out-quart);
+  transition: opacity var(--motion-base) var(--ease-out-quart);
   transition-delay: var(--reveal-delay, 0ms);
 }
 .reveal-fade[data-reveal="visible"] {
@@ -408,14 +406,10 @@ html {
    data-loaded attribute. */
 [data-img-fade="false"] {
   opacity: 0;
-  transform: scale(1.02);
 }
 [data-img-fade="true"] {
   opacity: 1;
-  transform: scale(1);
-  transition:
-    opacity var(--motion-base) var(--ease-out-quart),
-    transform var(--motion-slow) var(--ease-out-quart);
+  transition: opacity var(--motion-fast) var(--ease-out-quart);
 }
 
 /* Skeleton shimmer — placeholders while data/images load. */
@@ -494,8 +488,8 @@ html {
 /* Shop listing — filter/sort/pagination result swap. */
 @keyframes listing-swap-in {
   from {
-    opacity: 0;
-    transform: translateY(8px);
+    opacity: 0.6;
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -503,7 +497,7 @@ html {
   }
 }
 .listing-swap {
-  animation: listing-swap-in var(--motion-slow) var(--ease-out-quart);
+  animation: listing-swap-in var(--motion-fast) var(--ease-out-quart);
 }
 
 /* ----- Top navigation progress bar -----
