@@ -1198,23 +1198,6 @@ html {
   }
 }
 
-/* ----- Logo lockup hover -----
-   The brand mark in the header — soft tilt + saturate on hover. */
-.brand-lockup {
-  transition: transform var(--motion-base) var(--ease-out-quart);
-}
-@media (hover: hover) {
-  .brand-lockup:hover {
-    transform: translateY(-1px);
-  }
-  .brand-lockup:hover > span:first-child {
-    transform: rotate(-6deg) scale(1.05);
-  }
-}
-.brand-lockup > span:first-child {
-  transition: transform var(--motion-base) var(--ease-spring);
-}
-
 /* ----- Hero scroll cue -----
    Fades + slides down as the user scrolls past the first ~30vh. Falls back
    to a static, pulsing cue on browsers without scroll-timeline. */

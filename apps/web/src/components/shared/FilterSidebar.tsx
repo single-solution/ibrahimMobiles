@@ -26,7 +26,9 @@ import { useAttributesForCategory, useGrades } from "@/lib/storefront/storefront
  *
  * Filter groups (grade, brand, attributes) are alphabetical. Price stays
  * pinned at the bottom of the sidebar. Attribute option order is
- * alphabetical everywhere — no manual sort in admin.
+ * alphabetical everywhere — no manual sort in admin. Sort UI was removed
+ * by product request; the server falls back to the default "newest"
+ * order whenever the URL has no `sort` param.
  */
 
 interface FilterSidebarProps {
@@ -292,18 +294,10 @@ function FilterPanel({
       {!isMobile && (
         <>
           <FilterGroup title="View">
-            <div className="space-y-0.5">
-              <FilterCheckRow
-                label="By product"
-                checked={!expandGrades}
-                onToggle={() => setExpandGrades(false)}
-              />
-              <FilterCheckRow
-                label="By grade"
-                checked={expandGrades}
-                onToggle={() => setExpandGrades(true)}
-              />
-            </div>
+            <ViewToggle
+              expandGrades={expandGrades}
+              onChange={setExpandGrades}
+            />
           </FilterGroup>
           <FilterDivider />
         </>
@@ -589,6 +583,67 @@ function PriceInput({ value, onChange, placeholder, ariaLabel }: PriceInputProps
       onChange={(event) => onChange(event.target.value.replace(/[^0-9]/g, ""))}
       className="h-9 w-full flex-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2.5 text-[13px] font-medium text-[var(--color-ink-900)] outline-none transition-colors placeholder:font-normal placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-700)] focus:ring-2 focus:ring-[var(--color-accent-100)]"
     />
+  );
+}
+
+interface ViewToggleProps {
+  expandGrades: boolean;
+  onChange: (next: boolean) => void;
+}
+
+/**
+ * View-mode toggle for the desktop sidebar — a two-button segmented
+ * pill that mirrors the mobile `GradeViewModeTabs`. Was previously
+ * a checkbox-style row; the toggle reads as a mode switch rather
+ * than an opt-in filter, which matches what the control actually does.
+ */
+function ViewToggle({ expandGrades, onChange }: ViewToggleProps) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Listing view mode"
+      className="inline-flex w-full items-center gap-1 rounded-full border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-1 text-[12.5px] font-semibold"
+    >
+      <ViewToggleTab
+        label="By product"
+        isActive={!expandGrades}
+        onClick={() => {
+          if (expandGrades) onChange(false);
+        }}
+      />
+      <ViewToggleTab
+        label="By grade"
+        isActive={expandGrades}
+        onClick={() => {
+          if (!expandGrades) onChange(true);
+        }}
+      />
+    </div>
+  );
+}
+
+interface ViewToggleTabProps {
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+function ViewToggleTab({ label, isActive, onClick }: ViewToggleTabProps) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={isActive}
+      onClick={onClick}
+      className={classNames(
+        "flex flex-1 items-center justify-center rounded-full px-3 py-1.5 transition-colors",
+        isActive
+          ? "bg-[var(--color-surface)] text-[var(--color-accent-800)] shadow-[var(--shadow-sm)]"
+          : "text-[var(--color-ink-600)] hover:text-[var(--color-ink-900)]",
+      )}
+    >
+      {label}
+    </button>
   );
 }
 

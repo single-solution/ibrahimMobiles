@@ -11,8 +11,6 @@ import {
   MobileCategoryPickerSkeleton,
 } from "@/components/shop/MobileCategoryPicker";
 import { GradeViewModeTabs } from "@/components/shop/GradeViewModeTabs";
-import { SortDropdown } from "@/components/shared/SortDropdown";
-import { ResultsCountBar } from "@/components/shared/ResultsCountBar";
 import { ShopPagination } from "@/components/shared/ShopPagination";
 import {
   ShopCategoryRailFallback,
@@ -124,11 +122,10 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       <Suspense fallback={null}>
         <CategoryJsonLd meta={meta} filters={filters} />
       </Suspense>
-      {/* Mobile only — native. Single compact toolbar replaces the
-          previous (pill-rail + filter + sort) two-row layout: now a
-          [Category ▾] picker, [Filter (n)] button and [Sort ▾] pill all
-          fit on one row, with the grade view-mode segmented control
-          living above the grid where it stops crowding the toolbar. */}
+      {/* Mobile only — native. Compact toolbar: [Category ▾] picker
+          + [Filter (n)] button (sort lives inside the filter sheet,
+          alongside view mode). Grade view-mode segmented control
+          floats below the toolbar, above the grid. */}
       <div className="app-page pb-10 pt-2 md:hidden">
         <div className="shop-listing-toolbar mt-1 flex items-center gap-2 p-2">
           <Suspense fallback={<MobileCategoryPickerSkeleton />}>
@@ -137,7 +134,6 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
           <Suspense fallback={<ShopMobileToolbarFilterFallback />}>
             <FilterSidebarData categorySlug={meta.slug} filters={filters} />
           </Suspense>
-          <SortDropdown />
         </div>
 
         <div className="mt-3 px-1">
@@ -258,8 +254,7 @@ async function MobileProductsArea({ meta, filters }: ProductsAreaProps) {
   const page = await getStorefrontProductsPageCached(filters);
   return (
     <>
-      <ResultsCountBar total={page.total} page={page.page} pageSize={page.pageSize} />
-      <div className="mt-6">
+      <div className="mt-4">
         <ShopProductGrid products={page.products} categoryLabel={meta.label} />
       </div>
       {page.pageCount > 1 ? (
@@ -279,15 +274,6 @@ async function DesktopProductsArea({ meta, filters }: ProductsAreaProps) {
   const page = await getStorefrontProductsPageCached(filters);
   return (
     <div className="space-y-6">
-      <div className="shop-listing-toolbar flex flex-wrap items-center justify-between gap-4 px-4 py-3">
-        <ResultsCountBar
-          total={page.total}
-          page={page.page}
-          pageSize={page.pageSize}
-          hideOnMobile
-        />
-        <SortDropdown />
-      </div>
       <ShopProductGrid products={page.products} categoryLabel={meta.label} />
       <ShopPagination
         page={page.page}
