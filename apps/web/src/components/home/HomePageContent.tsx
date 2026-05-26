@@ -593,10 +593,10 @@ function MobileHero({ heroProducts, brands }: HeroProps) {
           Phones · Accessories · Gadgets
         </span>
         <h1
-          className="reveal font-display text-[110px] leading-[0.85] tracking-[-0.02em] text-[var(--color-ink-900)] uppercase"
+          className="reveal font-display text-[110px] leading-[0.85] tracking-[-0.02em] uppercase"
           style={{ ["--reveal-delay" as string]: "140ms" }}
         >
-          pre owned
+          <span className="hero-display-outline block">pre owned</span>
           <span className="hero-accent-mark mt-2 block text-[var(--color-ink-900)]">
             mobiles
           </span>
@@ -1010,10 +1010,10 @@ function DesktopHero({ heroProducts, brands }: HeroProps) {
           </Pill>
         </div>
         <h1
-          className="reveal font-display text-[150px] leading-[0.82] tracking-[-0.02em] text-[var(--color-ink-900)] uppercase"
+          className="reveal font-display text-[150px] leading-[0.82] tracking-[-0.02em] uppercase"
           style={{ ["--reveal-delay" as string]: "140ms" }}
         >
-          pre-owned
+          <span className="hero-display-outline block">pre-owned</span>
           <span className="hero-accent-mark mt-3 block text-[var(--color-ink-900)]">
             mobiles
           </span>

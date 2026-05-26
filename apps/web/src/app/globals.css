@@ -129,10 +129,23 @@
   );
 }
 
-/* Hero "mobiles" highlighter — chartreuse marker behind the word so the
-   biggest type on the page reads as a deliberate brand moment rather
-   than a flat coloured caption. The bar sits behind the bottom 55% of
-   the glyph height so descenders punch through cleanly. */
+/* Hero dual-tone display type.
+   ----------------------------------------------------------------------
+   `hero-display-outline` — hollow gunmetal lockup for the supporting
+   line ("pre owned"). Renders as text-stroke only so it recedes and
+   lets the next line dominate.
+
+   `hero-accent-mark` — solid gunmetal word ("mobiles") sitting on a
+   skewed chartreuse highlighter bar, so the biggest type on the page
+   reads as a deliberate brand moment instead of a flat caption. The
+   bar sits behind the bottom 55% of the glyph height so descenders
+   punch through cleanly. */
+.hero-display-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.6px var(--color-ink-900);
+  text-stroke: 1.6px var(--color-ink-900);
+  paint-order: stroke fill;
+}
 .hero-accent-mark {
   position: relative;
   display: inline-block;
@@ -149,6 +162,14 @@
   border-radius: 0.08em;
   z-index: -1;
   transform: skewX(-4deg);
+}
+
+/* Tablet+ — bump the stroke so the hollow line reads at large sizes. */
+@media (min-width: 768px) {
+  .hero-display-outline {
+    -webkit-text-stroke-width: 2.2px;
+    text-stroke-width: 2.2px;
+  }
 }
 
 /* Fluid spacing — desktop only.
