@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { SignIn } from "@/components/account/SignIn";
+import { SignIn } from "@/app/account/_components/SignIn";
 
 export const metadata: Metadata = {
   title: "Sign in",

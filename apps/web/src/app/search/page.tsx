@@ -1,13 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { getStoreSettings } from "@store/db";
+
 import { ProductCard } from "@/components/shared/ProductCard";
 import { getStorefrontProductsPageCached } from "@/lib/storefront/cached";
 
-export const metadata: Metadata = {
-  title: "Search",
-  description: "Search phones and devices available at Ibrahim Mobiles.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getStoreSettings();
+  return {
+    title: "Search",
+    description: `Search products available at ${settings.siteName}.`,
+  };
+}
 
 interface SearchPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

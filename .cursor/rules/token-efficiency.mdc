@@ -1,0 +1,40 @@
+---
+description: Token-efficient chat and tool use. Dense bullet replies; smallest correct diff; never cut investigation rigor.
+alwaysApply: true
+---
+
+# Token Efficiency
+
+Canonical source: `/Users/macbook/Github/vibeCodingRules/token-efficiency.md`
+
+## The Rule
+
+Optimize for **fewer tokens**, not for less work. Correctness, exploration, and implementation quality are non-negotiable.
+
+## Responses
+
+- Bullets only — what changed, why, how to verify.
+- No filler, recap of the prompt, or step-by-step narration of actions already taken.
+- No restating file contents the user can open.
+- Use line-range citations only when they aid a decision.
+- Ask only when blocked or a choice is required.
+
+## Code
+
+- Smallest correct diff — prefer surgical edits.
+- Align every file you open/edit with applicable rules; fix violations in scope; no repo-wide drive-by renames.
+- No verbose narrating comments. WHY only.
+- Match existing conventions; reuse helpers instead of duplicating.
+
+## Tool use
+
+- Targeted exploration; do not re-read unchanged files.
+- Parallelize independent reads/greps/searches.
+- Do not skip exploration when behavior or edge cases are unclear.
+- Run the project's formatter/linter on touched files; never bulk-reformat for style-only churn.
+
+## What NOT to cut
+
+- Investigation required for correctness
+- Tests, types, and error handling when required
+- Commit/PR messages when requested — complete sentences, no padding

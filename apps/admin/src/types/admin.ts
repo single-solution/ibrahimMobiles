@@ -11,7 +11,7 @@
  *   - Products are thin shells; all content lives on variants.
  *   - Variants carry `StoredImage[]` (shared 4-variant pipeline) +
  *     dynamic `attributes: Record<string, string | string[]>` (no more hardcoded
- *     phone / accessory fields).
+ *     per-category fields).
  *   - Inquiries are threaded chats; the legacy flat-snapshot shape is
  *     gone.
  *   - Offers use hex `color` (matching Grade); accentColor enum gone.

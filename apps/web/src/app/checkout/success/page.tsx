@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 
 import { orderPaymentToCheckoutId } from "@store/shared";
 
-import { CheckoutSuccess } from "@/components/checkout/CheckoutSuccess";
+import { CheckoutSuccess } from "@/app/checkout/_components/CheckoutSuccess";
 import { auth } from "@/lib/auth";
 import { getAccountOrder } from "@/lib/storefront/account";
 

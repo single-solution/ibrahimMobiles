@@ -41,6 +41,7 @@ export * from "./attributeVisibility";
 export * from "./catalog/gradeImages";
 export * from "./checkout/paymentInstructions";
 export * from "./slug";
+export * from "./storage/magicBytes";
 export * from "./storage/providers";
 export * from "./storage/types";
 export * from "./storage/urlPolicy";

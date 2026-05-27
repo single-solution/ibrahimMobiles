@@ -8,11 +8,11 @@ import { MobileHeader } from "@/components/layout/MobileHeader";
 import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
 import { MobileMenuSheet } from "@/components/layout/MobileMenuSheet";
 import { SearchOverlay } from "@/components/layout/SearchOverlay";
-import { ChatFabShell } from "@/components/chat/ChatFabShell";
+import { ChatFabShell } from "@/app/_components/chat/ChatFabShell";
 import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import { WebVitalsReporter } from "@/components/layout/WebVitalsReporter";
-import { RevealRoot } from "@/components/motion/RevealRoot";
-import { RouteTransition } from "@/components/motion/RouteTransition";
+import { RevealRoot } from "@/components/shared/motion/RevealRoot";
+import { RouteTransition } from "@/components/shared/motion/RouteTransition";
 
 interface StorefrontChromeProps {
   children: React.ReactNode;

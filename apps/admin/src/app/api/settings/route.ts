@@ -11,6 +11,7 @@ import {
 import { connectDB, handleMongoError, invalidateStoreSettingsCache, Setting } from "@store/db";
 
 import { bustAdminCaches } from "@/lib/cached";
+import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { recordActivity } from "@/lib/services/activityLog";
 
 import { toSettingResponse, type SettingLean } from "@/lib/serializers/setting";
@@ -23,17 +24,36 @@ export async function GET(request: Request) {
   }
 
   await connectDB();
+  const { page, limit, skip, search, searchPattern } = readListOptions(request);
   const url = new URL(request.url);
   const group = url.searchParams.get("group");
   const filter: Record<string, unknown> = {};
   if (group) {
     filter.group = group;
   }
+  if (search) {
+    filter.$or = [
+      { key: { $regex: searchPattern, $options: "i" } },
+      { description: { $regex: searchPattern, $options: "i" } },
+    ];
+  }
 
-  const docs = await Setting.find(filter).sort({ group: 1, key: 1 }).lean<SettingLean[]>();
+  const [docs, total] = await Promise.all([
+    Setting.find(filter)
+      .sort({ group: 1, key: 1 })
+      .skip(skip)
+      .limit(limit)
+      .lean<SettingLean[]>(),
+    Setting.countDocuments(filter),
+  ]);
 
-  const items: AdminSetting[] = docs.map(toSettingResponse);
-  return ok({ items });
+  const payload: ListResponse<AdminSetting> = {
+    items: docs.map(toSettingResponse),
+    total,
+    page,
+    limit,
+  };
+  return ok(payload);
 }
 
 interface SettingUpsertInput {

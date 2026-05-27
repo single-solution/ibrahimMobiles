@@ -35,7 +35,7 @@ import type {
   StorefrontOrder,
 } from "@/lib/storefront/orderSerializer";
 import type { OrderStatus } from "@store/db";
-import { SignOutButton } from "@/components/account/SignOutButton";
+import { SignOutButton } from "@/app/account/_components/SignOutButton";
 
 export const metadata: Metadata = {
   title: "Your account",
@@ -437,7 +437,7 @@ function EmptyOrders() {
         className="cta-arrow"
         trailingIcon={<ArrowUpRight size={14} strokeWidth={2.4} />}
       >
-        Browse phones
+        Browse products
       </ButtonLink>
     </Card>
   );

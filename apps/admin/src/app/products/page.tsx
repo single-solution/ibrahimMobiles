@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 
-import { AdminShell } from "@/components/AdminShell";
-import { ProductsCatalog } from "@/components/products/ProductsCatalog";
+import { AdminShell } from "@/components/layout/AdminShell";
+import { ProductsCatalog } from "@/app/products/_components/ProductsCatalog";
 import { loadProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
-import { adminCatalogPageClass } from "@/components/workspace/adminWorkspaceUi";
+import { adminCatalogPageClass } from "@/components/shared/adminWorkspaceUi";
 import { Brand, connectDB, Product } from "@store/db";
 
 import { requirePagePermission } from "@/lib/server/requirePageSession";

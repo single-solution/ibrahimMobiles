@@ -10,8 +10,6 @@
  * Validates every field server-side; the client-side form is for UX only.
  */
 
-import { Types } from "mongoose";
-
 import { Customer, connectDB } from "@store/db";
 import {
   badRequest,
@@ -24,8 +22,8 @@ import {
   validateCustomerAddresses,
 } from "@store/shared";
 
-import { auth } from "@/lib/auth";
 import { enforceSameOrigin } from "@/lib/api/sameOrigin";
+import { getVerifiedCustomer } from "@/lib/server/customerSession";
 
 export const dynamic = "force-dynamic";
 
@@ -38,11 +36,8 @@ export async function PUT(request: Request) {
   if (csrf) {
     return csrf;
   }
-  const session = await auth();
-  if (!session?.user || session.user.role !== "customer" || !session.user.customerId) {
-    return unauthorized();
-  }
-  if (!Types.ObjectId.isValid(session.user.customerId)) {
+  const actor = await getVerifiedCustomer();
+  if (!actor) {
     return unauthorized();
   }
 
@@ -59,7 +54,7 @@ export async function PUT(request: Request) {
   try {
     await connectDB();
     const updated = await Customer.findByIdAndUpdate(
-      session.user.customerId,
+      actor.id,
       { addresses: validated.addresses },
       { new: true, runValidators: true },
     );

@@ -7,14 +7,7 @@ type BadgeTone =
   | "warn"
   | "danger"
   | "info"
-  | "dark"
-  | "pak"
-  | "grade-brand-new"
-  | "grade-genuine"
-  | "grade-box-open"
-  | "grade-refurbished"
-  | "grade-china-water"
-  | "grade-lcd-shaded";
+  | "dark";
 
 type BadgeSize = "sm" | "md" | "lg";
 
@@ -32,13 +25,6 @@ const TONE_CLASSES: Record<BadgeTone, string> = {
   danger: "bg-[var(--color-danger-500)] text-[var(--color-on-dark)]",
   info: "bg-[var(--color-info-500)] text-[var(--color-on-dark)]",
   dark: "bg-[var(--color-ink-900)] text-[var(--color-on-dark)]",
-  pak: "bg-[var(--color-pak-green)] text-[var(--color-on-dark)]",
-  "grade-brand-new": "bg-[var(--color-grade-brand-new)] text-[var(--color-on-dark)]",
-  "grade-genuine": "bg-[var(--color-grade-genuine)] text-[var(--color-on-dark)]",
-  "grade-box-open": "bg-[var(--color-grade-box-open)] text-[var(--color-on-dark)]",
-  "grade-refurbished": "bg-[var(--color-grade-refurbished)] text-[var(--color-on-dark)]",
-  "grade-china-water": "bg-[var(--color-grade-china-water)] text-[var(--color-on-dark)]",
-  "grade-lcd-shaded": "bg-[var(--color-grade-lcd-shaded)] text-[var(--color-on-dark)]",
 };
 
 const SIZE_CLASSES: Record<BadgeSize, string> = {

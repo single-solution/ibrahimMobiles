@@ -41,7 +41,7 @@ import {
  * Category-agnostic product detail page.
  *
  * Schema awareness (Phase 1, PLAN.md §10):
- *   - One PDP serves every category. The previous phone/accessory fork
+ *   - One PDP serves every category. The previous per-category fork
  *     is gone — variants carry admin-defined `attributes` and `images`, so the
  *     single `<VariantSelector>` renders them all.
  *   - The URL contract is `/shop/<categorySlug>/<productSlug>` — the

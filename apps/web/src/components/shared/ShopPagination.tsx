@@ -7,7 +7,7 @@ import { FILTER_PARAM_KEYS } from "@/lib/storefront/filterParams";
 interface ShopPaginationProps {
   page: number;
   pageCount: number;
-  /** Path of the current shop page, e.g. `/shop/phones`. */
+  /** Path of the current shop page, e.g. `/shop/{category-slug}`. */
   basePath: string;
 }
 

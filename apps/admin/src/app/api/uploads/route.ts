@@ -14,10 +14,22 @@
  *   - `subjectKind` — short label used in the storage key (e.g.
  *                     "products", "categories", "offers")
  *   - `subjectId`   — optional id for the storage key prefix
+ *
+ * Content is verified by sniffing the file's magic bytes before
+ * trusting the browser-supplied MIME (`security.md` § File Upload).
  */
 
-import { NextResponse } from "next/server";
-import { logger, resolveStorageProvider } from "@store/shared";
+import {
+  assertContentTypeMatches,
+  badRequest,
+  logger,
+  ok,
+  payloadTooLarge,
+  resolveStorageProvider,
+  serverError,
+  SNIFF_BYTE_COUNT,
+  unsupportedMediaType,
+} from "@store/shared";
 
 import { requireSession } from "@/lib/api/requireSession";
 import {
@@ -63,7 +75,7 @@ function buildKeyPrefix(subjectKind: string | null, subjectId: string | null): s
   return segments.join("/");
 }
 
-export async function POST(request: Request): Promise<NextResponse> {
+export async function POST(request: Request) {
   const { actor, response } = await requireSession("media_upload");
   if (response) return response;
   const userId = actor.id;
@@ -72,18 +84,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     formData = await request.formData();
   } catch {
-    return NextResponse.json(
-      { error: "Expected multipart/form-data body." },
-      { status: 400 },
-    );
+    return badRequest("Expected multipart/form-data body.");
   }
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json(
-      { error: "Missing `file` field in multipart form data." },
-      { status: 400 },
-    );
+    return badRequest("Missing `file` field in multipart form data.");
   }
 
   const kindRaw = (formData.get("kind") ?? "image").toString().toLowerCase();
@@ -97,24 +103,20 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     if (kind === "image") {
-      if (
-        !ALLOWED_IMAGE_MIME.includes(fileType as AllowedImageMime)
-      ) {
-        return NextResponse.json(
-          {
-            error: `Unsupported image type "${fileType}". Allowed: ${ALLOWED_IMAGE_MIME.join(", ")}.`,
-          },
-          { status: 415 },
+      if (!ALLOWED_IMAGE_MIME.includes(fileType as AllowedImageMime)) {
+        return unsupportedMediaType(
+          `Unsupported image type "${fileType}". Allowed: ${ALLOWED_IMAGE_MIME.join(", ")}.`,
         );
       }
       if (fileSize > MAX_IMAGE_BYTES) {
-        return NextResponse.json(
-          { error: `Image exceeds ${MAX_IMAGE_MB} MB.` },
-          { status: 413 },
-        );
+        return payloadTooLarge(`Image exceeds ${MAX_IMAGE_MB} MB.`);
       }
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
+      const sniffError = assertContentTypeMatches(buffer.subarray(0, SNIFF_BYTE_COUNT), fileType);
+      if (sniffError) {
+        return unsupportedMediaType(sniffError);
+      }
       const storage = resolveStorageProvider();
       const keyPrefix = buildKeyPrefix(subjectKind, subjectId);
       const stored = await processImage({
@@ -133,27 +135,23 @@ export async function POST(request: Request): Promise<NextResponse> {
         },
         "uploads: image stored",
       );
-      return NextResponse.json(stored, { status: 200 });
+      return ok(stored);
     }
 
-    if (
-      !ALLOWED_VIDEO_MIME.includes(fileType as AllowedVideoMime)
-    ) {
-      return NextResponse.json(
-        {
-          error: `Unsupported video type "${fileType}". Allowed: ${ALLOWED_VIDEO_MIME.join(", ")}.`,
-        },
-        { status: 415 },
+    if (!ALLOWED_VIDEO_MIME.includes(fileType as AllowedVideoMime)) {
+      return unsupportedMediaType(
+        `Unsupported video type "${fileType}". Allowed: ${ALLOWED_VIDEO_MIME.join(", ")}.`,
       );
     }
     if (fileSize > MAX_VIDEO_BYTES) {
-      return NextResponse.json(
-        { error: `Video exceeds ${MAX_VIDEO_MB} MB.` },
-        { status: 413 },
-      );
+      return payloadTooLarge(`Video exceeds ${MAX_VIDEO_MB} MB.`);
     }
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    const sniffError = assertContentTypeMatches(buffer.subarray(0, SNIFF_BYTE_COUNT), fileType);
+    if (sniffError) {
+      return unsupportedMediaType(sniffError);
+    }
     const storage = resolveStorageProvider();
     const keyPrefix = buildKeyPrefix(subjectKind, subjectId);
     const extension = fileType === "video/webm" ? "webm" : "mp4";
@@ -163,21 +161,22 @@ export async function POST(request: Request): Promise<NextResponse> {
       { userId, subjectKind, subjectId, sizeBytes: buffer.length },
       "uploads: video stored",
     );
-    return NextResponse.json(
-      { url, contentType: fileType, sizeBytes: buffer.length },
-      { status: 200 },
-    );
+    return ok({ url, contentType: fileType, sizeBytes: buffer.length });
   } catch (error) {
     if (error instanceof UploadValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return uploadValidationResponse(error);
     }
     logger.error(
       { error, userId, kind, subjectKind, subjectId },
       "uploads: processing failed",
     );
-    return NextResponse.json(
-      { error: "Upload failed. Please try again." },
-      { status: 500 },
-    );
+    return serverError("Upload failed. Please try again.");
   }
+}
+
+/** Map `UploadValidationError.status` back to the matching shared helper. */
+function uploadValidationResponse(error: UploadValidationError) {
+  if (error.status === 413) return payloadTooLarge(error.message);
+  if (error.status === 415) return unsupportedMediaType(error.message);
+  return badRequest(error.message);
 }

@@ -203,7 +203,7 @@ export function composeBrandSeo({
 }): ResolvedSeoMeta {
   const baseTitle = brand.name;
   const path = `/shop?brand=${brand.slug}`;
-  const derivedDescription = `${brand.name} phones and accessories at ${resolveStoreName(settings)}.`;
+  const derivedDescription = `${brand.name} products at ${resolveStoreName(settings)}.`;
 
   return {
     title: resolveTitle(seo?.title, baseTitle, settings, {

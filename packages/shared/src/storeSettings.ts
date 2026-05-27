@@ -151,7 +151,7 @@ export interface StoreSettings {
 
 export const STORE_SETTING_DEFAULTS: StoreSettings = {
   siteName: "Ibrahim Mobile Store",
-  siteTagline: "Pakistan's most trusted pre-owned phone store.",
+  siteTagline: "",
   storefrontUrl: "",
 
   brandLogoLight: "",
@@ -159,20 +159,20 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
   brandFaviconLight: "",
   brandFaviconDark: "",
 
-  supportPhone: "+92 320 4862403",
-  supportLandline: "+92 42 37245459",
-  supportEmail: "alyaschudry@gmail.com",
-  whatsappNumber: "923204862403",
+  supportPhone: "",
+  supportLandline: "",
+  supportEmail: "",
+  whatsappNumber: "",
 
-  storeAddressLine1: "Hassan Centre, Hall Road",
-  storeAddressLine2: "Lahore, Pakistan",
-  storeHours: "Mon–Sat · 11 AM – 9 PM",
+  storeAddressLine1: "",
+  storeAddressLine2: "",
+  storeHours: "",
 
-  socialFacebook: "https://www.facebook.com/p/Ibrahim-Mobile-Store-100095570557900/",
-  socialInstagram: "https://www.instagram.com/ibrahimmobilestore",
-  socialTiktok: "https://www.tiktok.com/@ibrahimmobilestore",
-  socialYoutube: "https://youtube.com/@ibrahimmobilestore",
-  socialGoogleMaps: "https://maps.app.goo.gl/xzQQDXBdV6R4JXP98",
+  socialFacebook: "",
+  socialInstagram: "",
+  socialTiktok: "",
+  socialYoutube: "",
+  socialGoogleMaps: "",
 
   freeDeliveryThresholdRupees: 50_000,
   defaultWarrantyMonths: 6,
@@ -198,7 +198,7 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
   paymentJazzcashAccountTitle: "",
   paymentJazzcashNumber: "",
 
-  paymentCodNote: "Lahore only · in-person verify",
+  paymentCodNote: "",
 
   lowStockThreshold: 2,
 

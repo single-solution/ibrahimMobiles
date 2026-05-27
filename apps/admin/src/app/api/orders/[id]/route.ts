@@ -118,7 +118,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
     // Side-effects: stock reservation/release and loyalty credit/reversal.
     // Best-effort — failures are logged but do not roll back the status update,
-    // because in a pre-owned shop the human admin is the source of truth.
+    // because the human admin is the source of truth for order state.
     if (nextStatus) {
       await applyOrderTransition({
         order,

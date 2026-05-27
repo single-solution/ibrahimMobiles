@@ -25,7 +25,7 @@
  *
  * Schema awareness (Phase 1, PLAN.md §10):
  *   - The hero strip now supports featured products from any category
- *     since the legacy "phones only" carve-out is gone.
+ *     since the legacy single-category carve-out is gone.
  *   - Category tiles surface only what the dynamic Category schema
  *     exposes (`slug`, `label`, `description`, `icon`). Per-category copy like "trustChips" lived on the
  *     old hardcoded shape and is no longer part of the data model;

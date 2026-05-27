@@ -8,11 +8,10 @@ import type { StructuredContent } from "@store/shared";
 import { structuredContentSchema } from "../schemas/structuredContentSchema";
 
 /**
- * Condition grade for a category — e.g. "Brand new", "Genuine",
- * "Refurbished", "LCD shaded". After the Phase 1 refactor grades are
- * fully admin-authored and **per category** (a phone's "Brand new"
- * and an accessory's "Brand new" are distinct documents with their own
- * notes and inspection video).
+ * Condition grade for a category — e.g. "Brand new", "Like new",
+ * "Refurbished", "Pre-owned". After the Phase 1 refactor grades are
+ * fully admin-authored and **per category** — each category owns its
+ * own grade vocabulary with its own notes and inspection video.
  *
  * Fields removed in T1.4 (PLAN §10):
  *   - `grade` (enum of hardcoded slugs) → replaced by `(categorySlug, slug)`

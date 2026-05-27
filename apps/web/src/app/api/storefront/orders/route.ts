@@ -61,7 +61,7 @@ import {
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 import { enforceSameOrigin } from "@/lib/api/sameOrigin";
-import { auth } from "@/lib/auth";
+import { getVerifiedCustomer } from "@/lib/server/customerSession";
 
 const ALLOWED_DELIVERY: ReadonlyArray<DeliveryMethod> = ["pickup", "courier"];
 const ALLOWED_PAYMENT: ReadonlyArray<PaymentMethod> = [
@@ -91,7 +91,7 @@ const MIN_NAME_CHARS = 2;
 /** Inclusive minimum length for a customer phone number — short enough to
  *  accept landline-style sequences while rejecting obvious typos. */
 const MIN_PHONE_CHARS = 7;
-const DEFAULT_CUSTOMER_CITY = "Pakistan";
+const DEFAULT_CUSTOMER_CITY = "Unknown";
 
 interface OrderItemBody {
   productId?: unknown;
@@ -133,11 +133,8 @@ export async function POST(request: Request) {
     return csrf;
   }
 
-  const session = await auth();
-  if (!session?.user || session.user.role !== "customer" || !session.user.customerId) {
-    return unauthorized();
-  }
-  if (!isValidId(session.user.customerId)) {
+  const actor = await getVerifiedCustomer();
+  if (!actor) {
     return unauthorized();
   }
 
@@ -149,7 +146,7 @@ export async function POST(request: Request) {
 
   const limited = enforcePublicRateLimit(request, {
     scope: "storefront-order",
-    identifier: session.user.phoneNumber ?? session.user.customerId,
+    identifier: actor.phoneNumber ?? actor.id,
     max: MAX_ORDERS_PER_WINDOW,
     windowMs: SHORT_BURST_WINDOW_MS,
   });
@@ -176,7 +173,7 @@ export async function POST(request: Request) {
 
   await connectDB();
 
-  const existingCustomer = await Customer.findById(session.user.customerId).lean<
+  const existingCustomer = await Customer.findById(actor.id).lean<
     CustomerAttributes & { _id: Types.ObjectId }
   >();
   if (!existingCustomer) {

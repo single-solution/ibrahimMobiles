@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Checkout } from "@/components/checkout/Checkout";
+import { Checkout } from "@/app/checkout/_components/Checkout";
 import { auth } from "@/lib/auth";
 import { getAccountCustomer } from "@/lib/storefront/account";
 

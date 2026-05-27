@@ -1,7 +1,7 @@
 import { ProductGridSkeleton } from "@/components/shared/ProductCardSkeleton";
-import { ShopCategoryRailSkeleton } from "@/components/shop/ShopCategoryRail";
-import { GradeViewModeTabsSkeleton } from "@/components/shop/GradeViewModeTabs";
-import { MobileCategoryPickerSkeleton } from "@/components/shop/MobileCategoryPicker";
+import { ShopCategoryRailSkeleton } from "@/app/shop/_components/ShopCategoryRail";
+import { GradeViewModeTabsSkeleton } from "@/app/shop/_components/GradeViewModeTabs";
+import { MobileCategoryPickerSkeleton } from "@/app/shop/_components/MobileCategoryPicker";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 /**

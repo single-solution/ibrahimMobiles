@@ -1,3 +1,3 @@
 export const revalidate = 30;
 
-export { default } from "@/components/home/HomePageContent";
+export { default } from "@/app/_components/home/HomePageContent";

@@ -29,7 +29,7 @@ interface MobileMenuSheetProps {
 
 const QUICK_LINKS = [
   { href: "/", label: "Home", icon: Sparkles },
-  { href: "/shop", label: "Browse phones", icon: Award },
+  { href: "/shop", label: "Browse products", icon: Award },
   { href: "/deals", label: "Today's deals", icon: Tag },
 ];
 

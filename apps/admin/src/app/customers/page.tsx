@@ -1,10 +1,10 @@
 import type { Types } from "mongoose";
 import { Suspense } from "react";
 
-import { AdminShell } from "@/components/AdminShell";
-import { CustomersCatalog } from "@/components/customers/CustomersCatalog";
+import { AdminShell } from "@/components/layout/AdminShell";
+import { CustomersCatalog } from "@/app/customers/_components/CustomersCatalog";
 import { SalesWorkspaceSkeleton } from "@/components/loading/SalesWorkspaceSkeleton";
-import { adminWorkspacePageClass } from "@/components/workspace/adminWorkspaceUi";
+import { adminWorkspacePageClass } from "@/components/shared/adminWorkspaceUi";
 import { connectDB, Customer, LoyaltyAccount, Order } from "@store/db";
 
 import { requirePagePermission } from "@/lib/server/requirePageSession";

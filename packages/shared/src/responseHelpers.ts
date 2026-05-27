@@ -54,6 +54,16 @@ export function conflict(message: string) {
 }
 
 /**
+ * 422 Unprocessable Entity — body parsed, fields are syntactically valid, but
+ * the request violates a business rule (insufficient balance, blocked state
+ * transition, etc.). Reserve 400 for shape/format errors and 422 for
+ * semantic ones.
+ */
+export function unprocessable(message: string) {
+  return NextResponse.json({ error: message }, { status: 422 });
+}
+
+/**
  * 429 Too Many Requests — caller is being throttled. Accepts the retry-after
  * window in milliseconds (rate limiter native unit) and converts to the
  * seconds-based `Retry-After` header per RFC 9110.
@@ -68,6 +78,20 @@ export function tooManyRequests(retryAfterMs?: number, message = "Too many reque
 /** 500 Internal Server Error — unexpected failure on our side. */
 export function serverError(message = "Internal server error") {
   return NextResponse.json({ error: message }, { status: 500 });
+}
+
+/**
+ * 413 Payload Too Large — used by `parseBody` when the body trips the cap.
+ * Also re-exported for multipart upload handlers that enforce their own
+ * size limit.
+ */
+export function payloadTooLarge(message: string) {
+  return NextResponse.json({ error: message }, { status: 413 });
+}
+
+/** 415 Unsupported Media Type — file/MIME outside the allowlist. */
+export function unsupportedMediaType(message: string) {
+  return NextResponse.json({ error: message }, { status: 415 });
 }
 
 /**
@@ -105,9 +129,4 @@ export async function parseBody<T = unknown>(request: Request): Promise<T | Resp
 /** Validate a string id has Mongo ObjectId shape before querying. */
 export function isValidId(id: unknown): id is string {
   return typeof id === "string" && OBJECT_ID_PATTERN.test(id);
-}
-
-/** 413 Payload Too Large — used by `parseBody` when the body trips the cap. */
-function payloadTooLarge(message: string) {
-  return NextResponse.json({ error: message }, { status: 413 });
 }

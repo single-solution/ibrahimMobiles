@@ -192,7 +192,7 @@ function VideoFrame({ label, accentColor, videoUrl, isCompact }: VideoFrameProps
                 REC · 00:14
               </div>
               <span className="text-[10px] uppercase tracking-[0.2em] text-[var(--color-on-dark-muted)]">
-                Hall Road · Lab
+                In-store · Inspection
               </span>
             </div>
           </div>

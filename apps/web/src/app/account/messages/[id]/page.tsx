@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { AccountMessagesView } from "@/components/account/AccountMessagesView";
+import { AccountMessagesView } from "@/app/account/_components/AccountMessagesView";
 import { auth } from "@/lib/auth";
 
 interface AccountMessageDetailPageProps {

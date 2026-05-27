@@ -1,4 +1,4 @@
-import { AdminShell } from "@/components/AdminShell";
+import { AdminShell } from "@/components/layout/AdminShell";
 import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 
 /**

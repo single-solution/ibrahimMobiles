@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 import { getStoreSettings } from "@store/db";
 
-import { AdminShell } from "@/components/AdminShell";
-import { Settings } from "@/components/Settings";
+import { AdminShell } from "@/components/layout/AdminShell";
+import { Settings } from "@/app/settings/_components/Settings";
 import { SettingsWorkspaceSkeleton } from "@/components/loading/SettingsWorkspaceSkeleton";
-import { adminWorkspacePageClass } from "@/components/workspace/adminWorkspaceUi";
+import { adminWorkspacePageClass } from "@/components/shared/adminWorkspaceUi";
 import { requirePagePermission } from "@/lib/server/requirePageSession";
 
 export const dynamic = "force-dynamic";

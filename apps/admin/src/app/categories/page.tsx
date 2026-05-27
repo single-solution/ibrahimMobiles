@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 
-import { AdminShell } from "@/components/AdminShell";
-import { CategoriesCatalog } from "@/components/categories/CategoriesCatalog";
+import { AdminShell } from "@/components/layout/AdminShell";
+import { CategoriesCatalog } from "@/app/categories/_components/CategoriesCatalog";
 import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
-import { adminCatalogPageClass } from "@/components/workspace/adminWorkspaceUi";
+import { adminCatalogPageClass } from "@/components/shared/adminWorkspaceUi";
 import {
   Attribute,
   Brand,

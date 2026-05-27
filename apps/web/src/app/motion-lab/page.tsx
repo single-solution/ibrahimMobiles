@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { MotionLab } from "@/components/motion-lab/MotionLab";
+import { MotionLab } from "@/app/motion-lab/_components/MotionLab";
 
 export const metadata: Metadata = {
   title: "Motion lab — pick a direction",

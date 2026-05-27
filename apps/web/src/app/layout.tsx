@@ -4,7 +4,7 @@ import { StorefrontChrome } from "@/components/layout/StorefrontChrome";
 import {
   MarketingPixels,
   MarketingPixelsNoScript,
-} from "@/components/marketing/MarketingPixels";
+} from "@/app/_components/marketing/MarketingPixels";
 import { getStorefrontBaseUrl } from "@/lib/storefront/baseUrl";
 import {
   getStorefrontAttributesCached,

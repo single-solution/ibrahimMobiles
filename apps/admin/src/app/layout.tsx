@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { getStoreSettings } from "@store/db";
 
-import { ToastProvider } from "@/components/Toast";
-import { AdminSessionProvider } from "@/components/AdminSessionProvider";
+import { ToastProvider } from "@/components/ui/Toast";
+import { AdminSessionProvider } from "@/components/layout/AdminSessionProvider";
 import { StoreSettingsProvider } from "@/lib/storeSettingsContext";
 import "./globals.css";
 

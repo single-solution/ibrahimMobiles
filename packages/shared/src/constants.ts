@@ -35,7 +35,7 @@ export interface PaymentMethodOption {
  * (e.g.) Easypaisa when the wallet is offline. The bank-transfer "Pay full →
  * N% off" note tracks the live `bankTransferDiscountPercent` setting, and
  * the COD chip's note is taken straight from `paymentCodNote` so a busy
- * weekend can swap "Lahore only" for "Pickup only".
+ * weekend can swap "Local only" for "Pickup only".
  */
 export interface PaymentMethodSettings {
   bankTransferDiscountPercent: number;
@@ -78,7 +78,7 @@ export function getPaymentMethods(
     {
       id: "cod",
       label: "Cash on Delivery",
-      note: settings.paymentCodNote?.trim() || "Lahore only · in-person verify",
+      note: settings.paymentCodNote?.trim() || "Local only · in-person verify",
       enabled: settings.paymentCodEnabled ?? true,
     },
   ];
@@ -199,15 +199,13 @@ export const FIELD_LIMITS = {
 } as const;
 
 /**
- * Inclusive lower bound on a product's `releaseYear`. Picked well below the
- * earliest device we'd realistically ever stock (smartphones existed in the
- * mid-90s) so the schema rejects obvious typos like `19` or `199`.
+ * Inclusive lower bound on a product's `releaseYear`. Picked low enough to
+ * cover vintage stock while still rejecting obvious typos like `19` or `199`.
  */
 export const MIN_PRODUCT_RELEASE_YEAR = 1990;
 /**
- * Inclusive upper bound on a product's `releaseYear`. The catalog is for
- * pre-owned consumer devices, so anything past 2100 is certainly a typo or
- * a farcical pre-order.
+ * Inclusive upper bound on a product's `releaseYear`. Anything past 2100 is
+ * certainly a typo or a farcical pre-order.
  */
 export const MAX_PRODUCT_RELEASE_YEAR = 2100;
 

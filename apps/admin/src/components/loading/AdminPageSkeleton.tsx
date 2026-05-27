@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
-import { AdminShell } from "@/components/AdminShell";
+import { AdminShell } from "@/components/layout/AdminShell";
 
 /**
  * Shared skeleton for the standard admin page shape:

@@ -1,6 +1,6 @@
-import { AdminShell } from "@/components/AdminShell";
-import { AccountSettings } from "@/components/account/AccountSettings";
-import { adminListPageClass } from "@/components/workspace/adminWorkspaceUi";
+import { AdminShell } from "@/components/layout/AdminShell";
+import { AccountSettings } from "@/app/account/_components/AccountSettings";
+import { adminListPageClass } from "@/components/shared/adminWorkspaceUi";
 
 import { requirePageSession } from "@/lib/server/requirePageSession";
 

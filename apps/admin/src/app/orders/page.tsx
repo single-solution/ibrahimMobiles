@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 
-import { AdminShell } from "@/components/AdminShell";
-import { OrdersCatalog } from "@/components/orders/OrdersCatalog";
+import { AdminShell } from "@/components/layout/AdminShell";
+import { OrdersCatalog } from "@/app/orders/_components/OrdersCatalog";
 import { SalesWorkspaceSkeleton } from "@/components/loading/SalesWorkspaceSkeleton";
-import { adminWorkspacePageClass } from "@/components/workspace/adminWorkspaceUi";
+import { adminWorkspacePageClass } from "@/components/shared/adminWorkspaceUi";
 import { connectDB, Order } from "@store/db";
 
 import { requirePagePermission } from "@/lib/server/requirePageSession";

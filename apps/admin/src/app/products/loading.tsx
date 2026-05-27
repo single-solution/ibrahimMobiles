@@ -1,6 +1,6 @@
-import { AdminShell } from "@/components/AdminShell";
+import { AdminShell } from "@/components/layout/AdminShell";
 import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
-import { adminCatalogPageClass } from "@/components/workspace/adminWorkspaceUi";
+import { adminCatalogPageClass } from "@/components/shared/adminWorkspaceUi";
 import { SkeletonScreen } from "@/components/ui/Skeleton";
 
 export default function ProductsLoading() {

@@ -69,7 +69,9 @@
   --color-accent-800: #2a3800;
   --color-accent-900: #18250a;
 
-  --color-pak-green: #064e3b;
+  /* Deep accent — saturated mid-dark companion to the lime accent ramp.
+     Used by hero headline fill, where the lime would over-power. */
+  --color-accent-deep: #064e3b;
 
   /* Status scales — full ramps so every shade used in the UI (50, 100,
      200, 500, 700, 800) is a palette token. No more Tailwind raw
@@ -130,14 +132,6 @@
      a dark wash over light content). Used by raised cards, borders. */
   --color-on-light-10: color-mix(in srgb, var(--color-ink-900) 10%, transparent);
   --color-on-light-05: color-mix(in srgb, var(--color-ink-900) 5%, transparent);
-
-  /* Grade scale — best-to-worst stock category. */
-  --color-grade-brand-new: #0f172a;
-  --color-grade-genuine: #d97706;
-  --color-grade-box-open: #0284c7;
-  --color-grade-refurbished: #64748b;
-  --color-grade-china-water: #ea580c;
-  --color-grade-lcd-shaded: #dc2626;
 
   --color-whatsapp: #25d366;
   --color-whatsapp-dark: #128c7e;
@@ -403,7 +397,7 @@
    Resting scale is 1.14 (always 14% larger than the tile) — combined
    with `overflow: hidden` on the parent this guarantees that any
    transparent / white padding baked into the source product photo is
-   cropped away and the phone properly *covers* the visible area. */
+   cropped away and the product properly *covers* the visible area. */
 .tilt-parallax {
   position: relative;
   transform-origin: center;
@@ -1377,7 +1371,7 @@ html {
 /* Homepage hero fan — subtle ambient float so the static gallery feels
    alive without any per-card shuffling. Each tile sets a custom
    `--hero-float-delay` so the fan breathes out of phase, like a row of
-   slightly bobbing phones rather than a synchronized marching band. The
+   slightly bobbing tiles rather than a synchronized marching band. The
    amplitude is intentionally tiny (≤ 6px) so it never reads as a transition
    or a swap. */
 @keyframes hero-tile-float {

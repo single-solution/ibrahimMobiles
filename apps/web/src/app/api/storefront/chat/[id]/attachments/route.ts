@@ -11,22 +11,29 @@
  *   - body: optional, text accompanying the attachment.
  *
  * On success returns the refreshed `ChatThread` so the widget can
- * replace the optimistic stub.
+ * replace the optimistic stub. Image content is sniffed against magic
+ * bytes before trust (`security.md` § File Upload).
  */
-
-import { NextResponse } from "next/server";
 
 import { Inquiry, connectDB } from "@store/db";
 import {
-  logger,
-  resolveStorageProvider,
-  SHORT_BURST_WINDOW_MS,
+  assertContentTypeMatches,
+  badRequest,
+  created,
+  forbidden,
   guestChatLoginRequired,
+  inquiryStatusPatchAfterMessage,
+  logger,
+  payloadTooLarge,
+  resolveStorageProvider,
+  serverError,
+  SHORT_BURST_WINDOW_MS,
+  SNIFF_BYTE_COUNT,
+  unsupportedMediaType,
 } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 import { auth } from "@/lib/auth";
-import { inquiryStatusPatchAfterMessage } from "@store/shared";
 
 import { resolveChatAccess } from "@/lib/chat/access";
 import { claimAnonymousThreadIfNeeded } from "@/lib/chat/claimAnonymousThread";
@@ -61,13 +68,10 @@ function todayIsoDate(): string {
 export async function POST(request: Request, { params }: RouteContext) {
   const settings = await getChatSettings();
   if (!settings.enabled) {
-    return NextResponse.json({ error: "Chat is disabled." }, { status: 400 });
+    return badRequest("Chat is disabled.");
   }
   if (!settings.attachmentsEnabled) {
-    return NextResponse.json(
-      { error: "Attachments are disabled." },
-      { status: 400 },
-    );
+    return badRequest("Attachments are disabled.");
   }
 
   const { id } = await params;
@@ -90,12 +94,8 @@ export async function POST(request: Request, { params }: RouteContext) {
       messages: inquiry.messages,
     })
   ) {
-    return NextResponse.json(
-      {
-        error: "Sign in to keep chatting — you've used your free preview messages.",
-        code: "login_required",
-      },
-      { status: 403 },
+    return forbidden(
+      "Sign in to keep chatting — you've used your free preview messages.",
     );
   }
 
@@ -111,18 +111,12 @@ export async function POST(request: Request, { params }: RouteContext) {
   try {
     formData = await request.formData();
   } catch {
-    return NextResponse.json(
-      { error: "Expected multipart/form-data body." },
-      { status: 400 },
-    );
+    return badRequest("Expected multipart/form-data body.");
   }
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json(
-      { error: "Missing `file` field in multipart form data." },
-      { status: 400 },
-    );
+    return badRequest("Missing `file` field in multipart form data.");
   }
 
   const accompanyingBody = formData.get("body")?.toString().trim() ?? "";
@@ -131,32 +125,32 @@ export async function POST(request: Request, { params }: RouteContext) {
   const isFile = (ALLOWED_FILE_MIME as readonly string[]).includes(fileType);
 
   if (!isImage && !isFile) {
-    return NextResponse.json(
-      {
-        error: `Unsupported type "${fileType}". Allowed images: ${ALLOWED_IMAGE_MIME.join(
-          ", ",
-        )}. Allowed files: ${ALLOWED_FILE_MIME.join(", ")}.`,
-      },
-      { status: 415 },
+    return unsupportedMediaType(
+      `Unsupported type "${fileType}". Allowed images: ${ALLOWED_IMAGE_MIME.join(
+        ", ",
+      )}. Allowed files: ${ALLOWED_FILE_MIME.join(", ")}.`,
     );
   }
 
   if (isImage && file.size > MAX_IMAGE_BYTES) {
-    return NextResponse.json(
-      { error: `Image exceeds ${MAX_IMAGE_MB} MB.` },
-      { status: 413 },
-    );
+    return payloadTooLarge(`Image exceeds ${MAX_IMAGE_MB} MB.`);
   }
   if (isFile && file.size > MAX_FILE_BYTES) {
-    return NextResponse.json(
-      { error: `File exceeds ${MAX_FILE_MB} MB.` },
-      { status: 413 },
-    );
+    return payloadTooLarge(`File exceeds ${MAX_FILE_MB} MB.`);
   }
 
   try {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    if (isImage) {
+      const sniffError = assertContentTypeMatches(
+        buffer.subarray(0, SNIFF_BYTE_COUNT),
+        fileType,
+      );
+      if (sniffError) {
+        return unsupportedMediaType(sniffError);
+      }
+    }
     const storage = resolveStorageProvider();
     const keyPrefix = `chat/${inquiry._id.toString()}/${todayIsoDate()}`;
 
@@ -228,20 +222,16 @@ export async function POST(request: Request, { params }: RouteContext) {
 
     const refreshed = await Inquiry.findById(inquiry._id).lean<InquiryLean>();
     if (!refreshed) {
-      return NextResponse.json(
-        { error: "Thread vanished after upload." },
-        { status: 500 },
-      );
+      return serverError("Thread vanished after upload.");
     }
-    return NextResponse.json(toStorefrontThread(refreshed), { status: 201 });
+    return created(toStorefrontThread(refreshed));
   } catch (error) {
     if (error instanceof UploadValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      if (error.status === 413) return payloadTooLarge(error.message);
+      if (error.status === 415) return unsupportedMediaType(error.message);
+      return badRequest(error.message);
     }
     logger.error({ error, threadId: id }, "Failed to attach chat upload");
-    return NextResponse.json(
-      { error: "Upload failed. Please try again." },
-      { status: 500 },
-    );
+    return serverError("Upload failed. Please try again.");
   }
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { PhoneVisual } from "@/components/shared/PhoneVisual";
+import { ProductVisual } from "@/components/shared/ProductVisual";
 
 interface ProductImageProps {
   imageUrl: string;
@@ -30,7 +30,7 @@ export function ProductImage({
 
   if (hasFailed || !imageUrl) {
     return (
-      <PhoneVisual
+      <ProductVisual
         brandName={brandName}
         modelName={modelName}
         colorName={colorName}

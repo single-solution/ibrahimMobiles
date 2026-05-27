@@ -98,7 +98,7 @@ export async function fetchChatUnreadSummary(): Promise<number> {
 
 export async function markChatThreadRead(threadId: string): Promise<void> {
   const res = await fetch(
-    `/api/storefront/chat/${encodeURIComponent(threadId)}/read`,
+    `/api/storefront/chat/${encodeURIComponent(threadId)}/read-receipts`,
     { method: "POST", credentials: "same-origin" },
   );
   if (res.status === 204 || res.status === 304) return;
@@ -123,7 +123,7 @@ export interface StartAnonymousChatInput {
 export async function startAnonymousChatThread(
   input: StartAnonymousChatInput = {},
 ): Promise<ChatThread> {
-  const res = await fetch("/api/storefront/chat/start-anonymous", {
+  const res = await fetch("/api/storefront/chat/anonymous-threads", {
     method: "POST",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
@@ -133,7 +133,7 @@ export async function startAnonymousChatThread(
 }
 
 export async function startCustomerChatThread(): Promise<ChatThread> {
-  const res = await fetch("/api/storefront/chat/start-customer", {
+  const res = await fetch("/api/storefront/chat/customer-threads", {
     method: "POST",
     credentials: "same-origin",
   });
@@ -143,7 +143,7 @@ export async function startCustomerChatThread(): Promise<ChatThread> {
 export async function startChatThread(
   input: StartChatInput,
 ): Promise<ChatThread> {
-  const res = await fetch("/api/storefront/chat/start", {
+  const res = await fetch("/api/storefront/chat/threads", {
     method: "POST",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },

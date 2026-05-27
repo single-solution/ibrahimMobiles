@@ -55,6 +55,16 @@
 
   --color-info-500: #0284c7;
 
+  /* Offer accent presets (stored as hex on documents; tokens for UI swatches). */
+  --color-offer-emerald: #10b981;
+  --color-offer-rose: #f43f5e;
+  --color-offer-sky: #0ea5e9;
+
+  /* Google SERP preview fidelity (admin SEO panel). */
+  --color-serp-title: #1a0dab;
+  --color-serp-body: #202124;
+  --color-serp-muted: #4d5156;
+
   --color-whatsapp: #25d366;
   --color-whatsapp-dark: #128c7e;
 

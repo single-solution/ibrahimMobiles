@@ -16,17 +16,17 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { AdminShell } from "@/components/AdminShell";
-import { DashboardAccessBanner } from "@/components/dashboard/DashboardAccessBanner";
+import { AdminShell } from "@/components/layout/AdminShell";
+import { DashboardAccessBanner } from "@/app/_components/dashboard/DashboardAccessBanner";
 import {
   DashboardMobileEyebrowActions,
   DashboardSectionActionLink,
-} from "@/components/dashboard/DashboardQuickLinks";
-import { PerformancePeriodSelector } from "@/components/dashboard/PerformancePeriodSelector";
-import { ShopHealthCard } from "@/components/dashboard/ShopHealthCard";
-import { KpiCard } from "@/components/KpiCard";
-import { Sparkline } from "@/components/Sparkline";
-import { StatusPill, type StatusTone } from "@/components/StatusPill";
+} from "@/app/_components/dashboard/DashboardQuickLinks";
+import { PerformancePeriodSelector } from "@/app/_components/dashboard/PerformancePeriodSelector";
+import { ShopHealthCard } from "@/app/_components/dashboard/ShopHealthCard";
+import { KpiCard } from "@/app/_components/dashboard/KpiCard";
+import { Sparkline } from "@/app/_components/dashboard/Sparkline";
+import { StatusPill, type StatusTone } from "@/components/shared/StatusPill";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { requirePageSession } from "@/lib/server/requirePageSession";
 import {

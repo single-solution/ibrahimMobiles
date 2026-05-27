@@ -5,11 +5,11 @@ import Image from "next/image";
 
 import type { StoredImage, StoredImageVariantKey } from "@store/shared";
 
-import { PhoneVisual } from "@/components/shared/PhoneVisual";
+import { ProductVisual } from "@/components/shared/ProductVisual";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
 interface ProductImageProps {
-  /** Multi-resolution image record. Optional so we can fall back to PhoneVisual. */
+  /** Multi-resolution image record. Optional so we can fall back to ProductVisual. */
   image?: StoredImage | null;
   /** Which pre-rendered variant to prefer for this surface. */
   variant?: StoredImageVariantKey;
@@ -28,7 +28,7 @@ interface ProductImageProps {
  * Reads from a `StoredImage` (Phase 1 schema). The caller picks the
  * variant (`thumb` for tiny tiles, `card` for product cards, `detail`
  * for PDP hero, `full` for zoom). On error (CDN miss) we degrade to the
- * synthesised `<PhoneVisual>` fallback rather than render a broken
+ * synthesised `<ProductVisual>` fallback rather than render a broken
  * `<img>`.
  */
 export function ProductImage({
@@ -63,7 +63,7 @@ export function ProductImage({
 
   if (hasFailed || !image || !src) {
     return (
-      <PhoneVisual
+      <ProductVisual
         brandName={brandName}
         modelName={name}
         colorName=""

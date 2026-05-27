@@ -23,14 +23,7 @@ interface SearchResult {
   fromPriceRupees: number;
 }
 
-const TRENDING_QUERIES = [
-  "iPhone 13",
-  "Samsung A54",
-  "Pixel 7",
-  "Brand new",
-  "Under 50,000",
-  "PTA approved",
-];
+const TRENDING_QUERIES = ["New arrivals", "Best sellers", "Brand new", "Under 50,000"];
 
 const DEBOUNCE_MS = 220;
 const MIN_QUERY_LEN = 2;
@@ -162,7 +155,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search iPhone, Galaxy, Pixel…"
+            placeholder="Search products, brands, categories…"
             aria-label="Search products"
             autoComplete="off"
             spellCheck={false}
@@ -319,14 +312,14 @@ function NoResults({ query, onSearchAll }: NoResultsProps) {
         No matches for &ldquo;{query}&rdquo;
       </p>
       <p className="mt-1 text-sm text-[var(--color-ink-500)]">
-        Try a brand, a model, or an accessory like &ldquo;USB-C cable&rdquo; or &ldquo;MagSafe&rdquo;.
+        Try a brand, a model, or a category like &ldquo;accessories&rdquo; or &ldquo;new arrivals&rdquo;.
       </p>
       <button
         type="button"
         onClick={onSearchAll}
         className="mt-4 inline-flex items-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-4 py-2 text-[13px] font-semibold text-[var(--color-ink-800)] hover:border-[var(--color-ink-300)]"
       >
-        Search all phones →
+        Search all products →
       </button>
     </div>
   );

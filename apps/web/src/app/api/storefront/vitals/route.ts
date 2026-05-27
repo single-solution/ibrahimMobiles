@@ -11,7 +11,7 @@
  *   - Values clamped to sane ranges so logs stay useful.
  */
 
-import { logger, ok, PER_MINUTE_WINDOW_MS } from "@store/shared";
+import { badRequest, logger, ok, PER_MINUTE_WINDOW_MS } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 
@@ -45,17 +45,17 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as VitalsBody;
   } catch {
-    return ok({ accepted: false });
+    return badRequest("Invalid JSON body.");
   }
 
   const name = typeof body.name === "string" ? body.name.trim().toUpperCase() : "";
   if (!ALLOWED_METRICS.has(name)) {
-    return ok({ accepted: false });
+    return badRequest("Unknown metric.");
   }
 
   const rawValue = body.value;
   if (typeof rawValue !== "number" || !Number.isFinite(rawValue)) {
-    return ok({ accepted: false });
+    return badRequest("Metric value must be a finite number.");
   }
 
   const value = Math.min(Math.max(rawValue, 0), MAX_VALUE);

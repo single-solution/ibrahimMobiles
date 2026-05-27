@@ -5,12 +5,12 @@ import { Suspense } from "react";
 
 import { ShopProductGrid } from "@/components/shared/ShopProductGrid";
 import { FilterSidebar } from "@/components/shared/FilterSidebar";
-import { ShopCategoryRail } from "@/components/shop/ShopCategoryRail";
+import { ShopCategoryRail } from "@/app/shop/_components/ShopCategoryRail";
 import {
   MobileCategoryPicker,
   MobileCategoryPickerSkeleton,
-} from "@/components/shop/MobileCategoryPicker";
-import { GradeViewModeTabs } from "@/components/shop/GradeViewModeTabs";
+} from "@/app/shop/_components/MobileCategoryPicker";
+import { GradeViewModeTabs } from "@/app/shop/_components/GradeViewModeTabs";
 import { ShopPagination } from "@/components/shared/ShopPagination";
 import {
   ShopCategoryRailFallback,
@@ -48,7 +48,7 @@ import {
  *   - The URL contract is `/shop/<categorySlug>` — admin-authored slug
  *     is the URL segment (no separate `pathSegment` field).
  *   - The "category selector" rail just lists every active category by
- *     slug — no hardcoded phone/accessory/gadget icon table.
+ *     slug — no hardcoded per-category icon table.
  *   - Per-category product counts come from the same paged aggregation
  *     used to render the listing (filtered by `categorySlug`) — no
  *     separate "counts by category" lookup is needed.

@@ -125,7 +125,7 @@ export function buildPaymentInstructions(
         steps: [
           `Transfer ${totalLabel} in full and mention order ${orderRef} in the payment reference.`,
           `WhatsApp us a screenshot of the transfer to ${input.supportPhone} so we can confirm within 2 hours.`,
-          "We pack your phone after payment clears — you'll get a QC video before dispatch.",
+          "We pack your order after payment clears — you can request a QC video before dispatch.",
         ],
         accountDetails: buildBankDetails(input.paymentDetails),
         whatsappPrefill: `${whatsappBase} I've sent the bank transfer — please share account details if needed.`,
@@ -158,9 +158,9 @@ export function buildPaymentInstructions(
         steps: [
           `Keep ${totalLabel} ready — we confirm the exact amount before dispatch.`,
           orderRef
-            ? `Quote order ${orderRef} when our team calls or when you visit Hassan Centre.`
-            : "Quote your order number when our team calls or when you visit Hassan Centre.",
-          "Lahore COD is verified in person; courier COD may require a quick WhatsApp confirm.",
+            ? `Quote order ${orderRef} when our team calls or when you visit the store.`
+            : "Quote your order number when our team calls or when you visit the store.",
+          "Local COD is verified in person; courier COD may require a quick WhatsApp confirm.",
         ],
         accountDetails: [],
         whatsappPrefill: `${whatsappBase} I'd like to confirm COD / pickup details.`,

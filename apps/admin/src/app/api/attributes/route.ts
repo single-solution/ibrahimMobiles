@@ -15,6 +15,7 @@ import { ATTRIBUTE_CARD_POSITIONS } from "@store/db";
 
 import { ATTRIBUTE_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import { bustAdminCaches } from "@/lib/cached";
+import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { recordActivity } from "@/lib/services/activityLog";
 import {
   toAttributeResponse,
@@ -26,6 +27,7 @@ import {
   parseAttributeUnit,
   parseAttributeVisibilityInput,
 } from "@/lib/api/attributesPayload";
+import type { AdminAttribute } from "@/types/admin";
 
 async function hasAttributeCategoryConflict(
   categorySlug: string,
@@ -42,16 +44,34 @@ export async function GET(request: Request) {
   }
 
   await connectDB();
+  const { page, limit, skip, search, searchPattern } = readListOptions(request);
   const url = new URL(request.url);
   const categorySlug = url.searchParams.get("categorySlug");
   const filter: Record<string, unknown> = {};
   if (categorySlug) {
     filter.categorySlug = categorySlug;
   }
-  const docs = await Attribute.find(filter)
-    .sort({ categorySlug: 1, label: 1 })
-    .lean<AttributeLean[]>();
-  return ok({ items: docs.map(toAttributeResponse) });
+  if (search) {
+    filter.$or = [
+      { label: { $regex: searchPattern, $options: "i" } },
+      { slug: { $regex: searchPattern, $options: "i" } },
+    ];
+  }
+  const [docs, total] = await Promise.all([
+    Attribute.find(filter)
+      .sort({ categorySlug: 1, label: 1 })
+      .skip(skip)
+      .limit(limit)
+      .lean<AttributeLean[]>(),
+    Attribute.countDocuments(filter),
+  ]);
+  const payload: ListResponse<AdminAttribute> = {
+    items: docs.map(toAttributeResponse),
+    total,
+    page,
+    limit,
+  };
+  return ok(payload);
 }
 
 interface AttributeCreateInput {

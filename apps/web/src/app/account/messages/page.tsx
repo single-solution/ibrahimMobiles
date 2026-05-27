@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
-import { AccountMessagesView } from "@/components/account/AccountMessagesView";
+import { AccountMessagesView } from "@/app/account/_components/AccountMessagesView";
 
 export const metadata: Metadata = {
   title: "Messages",

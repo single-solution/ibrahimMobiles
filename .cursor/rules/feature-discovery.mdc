@@ -1,0 +1,37 @@
+---
+description: Grill 3–5 focused questions before implementing new or ambiguous behavior. Never silently guess requirements.
+alwaysApply: true
+---
+
+# Feature Discovery
+
+Canonical source: `/Users/macbook/Github/vibeCodingRules/feature-discovery.md`
+
+## When to Grill
+
+MUST grill (3–5 questions) when the task **changes behavior** users or clients will observe — small UX, validation, API shape, or permission changes included.
+
+### Skip triggers (any one true)
+
+- User explicitly waives discovery ("just implement", "no questions").
+- Clear bugfix with reproduction steps — no design choice.
+- Mechanical work only: dep bump, formatter/linter, copying rules, config sync.
+- Typo, copy, or formatting-only — no behavior change.
+- Rename or move with zero behavior change.
+
+If none apply → grill.
+
+## How to Grill
+
+- Ask 3–5 focused questions in one message; prefer structured choice UI when options are finite.
+- Cover: goal, acceptance criteria, out of scope, data/permissions, UX/error cases, preferred approach if options exist.
+- If the user says "just do it" or answers, stop grilling and implement.
+- If still unclear after answers, ask one more tight question — do not loop.
+
+## User signal
+
+If the user says "grill me", treat as ambiguous and run discovery even if the task looked specified.
+
+## Rule disagreements
+
+If a MUST rule seems wrong for the task: grill and propose a rulebook change. Agents MUST NOT silently override rules.

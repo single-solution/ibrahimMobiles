@@ -11,14 +11,14 @@ export default function NotFoundPage() {
       </h1>
       <p className="mt-2.5 max-w-md text-[13px] text-[var(--color-ink-600)] sm:mt-3 sm:text-base">
         It may have moved, or the link could be wrong. Head back to the shop and we&apos;ll help
-        you find a phone.
+        you find what you&apos;re looking for.
       </p>
       <div className="mt-5 flex flex-wrap justify-center gap-2 sm:mt-7 sm:gap-3">
         <ButtonLink href="/" variant="primary" size="sm" className="md:h-11 md:px-5 md:text-sm">
           Go home
         </ButtonLink>
         <ButtonLink href="/shop" variant="outline" size="sm" className="md:h-11 md:px-5 md:text-sm">
-          Browse phones
+          Browse products
         </ButtonLink>
       </div>
     </div>

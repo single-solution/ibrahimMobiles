@@ -1,7 +1,7 @@
-import { AdminShell } from "@/components/AdminShell";
+import { AdminShell } from "@/components/layout/AdminShell";
 import { SettingsWorkspaceSkeleton } from "@/components/loading/SettingsWorkspaceSkeleton";
 import { SkeletonScreen } from "@/components/ui/Skeleton";
-import { adminWorkspacePageClass } from "@/components/workspace/adminWorkspaceUi";
+import { adminWorkspacePageClass } from "@/components/shared/adminWorkspaceUi";
 
 export default function SettingsLoading() {
   return (

@@ -1,0 +1,41 @@
+---
+description: Naming rules for files, directories, components, variables, and URL segments. Apply when creating or renaming any symbol or path.
+alwaysApply: true
+---
+
+# Naming
+
+Canonical source: `/Users/macbook/Github/vibeCodingRules/naming.md`
+
+## Golden rule
+
+Prefer full, descriptive words over abbreviations. Standard industry abbreviations are fine (`id`, `url`, `api`, `dto`, `db`, `http`, `config`).
+
+## Casing (JS/TS — C-family default)
+
+- `camelCase` — variables and functions; verbs first for actions (`getUser`, `buildFilter`); boolean prefixes `is`/`has`/`can`/`should`.
+- `PascalCase` — types, interfaces, classes, components; no `I` prefix on interfaces.
+- `SCREAMING_SNAKE_CASE` — constants.
+- Files: camelCase for utilities (`userScope.ts`); PascalCase for components (`UserCard.tsx`).
+
+## Components, files & exported symbols
+
+- Apply Test 9 first (lifecycle/variant): no `New`, `Old`, `Latest`, `Legacy`, `Draft`, `Temp`, `Backup`, `Wip` anywhere in a name.
+- Apply Test 2 (UI mechanism): strip `*View`, `*Form`, `*Drawer`, `*Modal`, `*Dialog`, `*Sheet`, `*Popover`, `*Banner`, `*Panel`, `*Section`, `*Container`, `*Wrapper`, `*Box`, `*Block`, `*Grid`, `*List`, `*Table`, `*Row`, `*Item`, `*Cell`, `*Tile` on domain-bound components. Use the resource/action verb instead (`CreateProduct`, not `ProductForm`).
+- Reusable primitives in `ui/`, `primitives/`, or `design-system/` MAY keep mechanism names.
+- The `*Card` suffix is allowed only when a true `Card` primitive exists in `ui/`.
+
+## Directories
+
+- Lowercase, kebab-case for multi-word feature folders.
+- Run the Stranger Test, Content Test, Compound Name Test, and (for routes) Action Scope + Sibling Independence Tests.
+- Verb segments BANNED in REST URLs. Use plural nouns. `naming.md` Test 6 + Test 7.
+
+## Banned files
+
+- No `helpers.ts`, `misc.ts`, `utils2.ts`, `stuff.ts` — name by domain.
+- No suffixes that reveal lifecycle (`-old`, `-new`, `-v2`, `-copy`, `-backup`, `-wip`).
+
+## Single-letter variables
+
+Banned in business logic. Allowed only: `_` (unused), `i`/`j` (loop indices), `x`/`y`/`z` (coords/math), `e` (event handler param).

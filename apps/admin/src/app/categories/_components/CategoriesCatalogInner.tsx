@@ -1,0 +1,681 @@
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { compareAlphabetically } from "@store/shared";
+
+import {
+  WorkspaceFrame,
+} from "@/components/shared/adminWorkspaceUi";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
+import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
+import {
+  drawerItemFromState,
+  drawerUrlSignature,
+  formatCatalogDeleteParam,
+  parseCatalogDeleteParam,
+  resolveCatalogDrawer,
+} from "@/lib/url/catalogDrawerUrl";
+import {
+  syncAfterPendingUrl,
+  useAdminUrlParams,
+} from "@/lib/url/useAdminUrlParams";
+import type {
+  AdminAttribute,
+  AdminBrand,
+  AdminCategory,
+  AdminGrade,
+} from "@/types/admin";
+
+import { AttributeEditor } from "./AttributeEditor";
+import { BrandEditor } from "./BrandEditor";
+import { Categories } from "./Categories";
+import { CategoryEditor } from "./CategoryEditor";
+import { GradeEditor } from "./GradeEditor";
+import { CategoriesCatalogTablesPanel } from "./categoriesCatalogTablesPanel";
+import {
+  type CatalogTab,
+  type CategoryNavItem,
+  type DeleteIntent,
+  type DrawerKind,
+  type WorkspaceView,
+  isCatalogTab,
+  matchesQuery,
+} from "./categoriesCatalogTypes";
+import { CategorySidebar } from "./categoriesCatalogUi";
+
+export interface CategoriesCatalogInnerProps {
+  initialCategories: AdminCategory[];
+  initialBrands: AdminBrand[];
+  initialGrades: AdminGrade[];
+  initialAttributes: AdminAttribute[];
+}
+
+export function CategoriesCatalogInner({
+  initialCategories,
+  initialBrands,
+  initialGrades,
+  initialAttributes,
+}: CategoriesCatalogInnerProps) {
+  const { searchParams, replace } = useAdminUrlParams();
+  const toast = useToast();
+
+  const [categories, setCategories] = useState(initialCategories);
+  const [brands, setBrands] = useState(initialBrands);
+  const [grades, setGrades] = useState(initialGrades);
+  const [attributes, setAttributes] = useState(initialAttributes);
+
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(
+    null,
+  );
+  const [activeTab, setActiveTab] = useState<CatalogTab>("brands");
+  const [categoryQuery, setCategoryQuery] = useState("");
+  const [rowQuery, setRowQuery] = useState("");
+  const [drawer, setDrawer] = useState<DrawerKind>(null);
+  const [deleteIntent, setDeleteIntent] = useState<DeleteIntent | null>(null);
+  const [viewMode, setViewMode] = useState<WorkspaceView>("tables");
+  const prevViewModeRef = useRef<WorkspaceView>("tables");
+  // URL sync uses pendingWizardRef + scheduleStateUpdate to avoid replace loops.
+  const pendingCategorySlugRef = useRef<string | null>(null);
+  const pendingDrawerRef = useRef<string | null>(null);
+  const pendingRowQueryRef = useRef<string | null>(null);
+  const pendingCategoryQueryRef = useRef<string | null>(null);
+  const pendingDeleteRef = useRef<string | null>(null);
+
+  const refreshAll = useCallback(async () => {
+    try {
+      const [cats, brs, grds, attrs] = await Promise.all([
+        adminFetch<{ items: AdminCategory[] }>("/api/categories?limit=100"),
+        adminFetch<{ items: AdminBrand[] }>("/api/brands?limit=200"),
+        adminFetch<{ items: AdminGrade[] }>("/api/grades?limit=100"),
+        adminFetch<{ items: AdminAttribute[] }>("/api/attributes?limit=100"),
+      ]);
+      setCategories(cats.items);
+      setBrands(brs.items);
+      setGrades(grds.items);
+      setAttributes(attrs.items);
+    } catch (error) {
+      toast.danger(
+        error instanceof AdminApiError
+          ? error.message
+          : "Failed to refresh catalog.",
+      );
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    scheduleStateUpdate(() => {
+      setCategories(initialCategories);
+    });
+  }, [initialCategories]);
+  useEffect(() => {
+    scheduleStateUpdate(() => {
+      setBrands(initialBrands);
+    });
+  }, [initialBrands]);
+  useEffect(() => {
+    scheduleStateUpdate(() => {
+      setGrades(initialGrades);
+    });
+  }, [initialGrades]);
+  useEffect(() => {
+    scheduleStateUpdate(() => {
+      setAttributes(initialAttributes);
+    });
+  }, [initialAttributes]);
+
+  const setCategoryUrl = useCallback(
+    (categorySlug: string) => {
+      replace({
+        category: categorySlug,
+        tab: searchParams.get("tab") ?? "brands",
+      });
+    },
+    [replace, searchParams],
+  );
+
+  const setTabUrl = useCallback(
+    (tab: CatalogTab) => {
+      replace({
+        tab,
+        ...(selectedCategorySlug ? { category: selectedCategorySlug } : {}),
+        q: null,
+      });
+      setRowQuery("");
+    },
+    [replace, selectedCategorySlug],
+  );
+
+  const setViewUrl = useCallback(
+    (mode: WorkspaceView) => {
+      replace({ view: mode === "cards" ? "cards" : null });
+    },
+    [replace],
+  );
+
+  const openDrawerUrl = useCallback(
+    (next: DrawerKind) => {
+      const signature = next
+        ? drawerUrlSignature(next.kind, drawerItemFromState(next))
+        : null;
+      pendingDrawerRef.current = signature;
+      setDrawer(next);
+      if (!next) {
+        replace({ drawer: null, item: null });
+        return;
+      }
+      replace({
+        drawer: next.kind,
+        item: drawerItemFromState(next),
+      });
+    },
+    [replace],
+  );
+
+  const closeDrawerUrl = useCallback(() => {
+    openDrawerUrl(null);
+  }, [openDrawerUrl]);
+
+  const setRowQueryUrl = useCallback(
+    (query: string) => {
+      const trimmed = query.trim();
+      pendingRowQueryRef.current = trimmed || null;
+      setRowQuery(query);
+      replace({ q: trimmed || null });
+    },
+    [replace],
+  );
+
+  const setCategoryQueryUrl = useCallback(
+    (query: string) => {
+      const trimmed = query.trim();
+      pendingCategoryQueryRef.current = trimmed || null;
+      setCategoryQuery(query);
+      replace({ cq: trimmed || null });
+    },
+    [replace],
+  );
+
+  const openDeleteUrl = useCallback(
+    (intent: DeleteIntent) => {
+      const param = formatCatalogDeleteParam(intent.kind, intent.id);
+      pendingDeleteRef.current = param;
+      setDeleteIntent(intent);
+      replace({ delete: param });
+    },
+    [replace],
+  );
+
+  const closeDeleteUrl = useCallback(() => {
+    pendingDeleteRef.current = null;
+    setDeleteIntent(null);
+    replace({ delete: null });
+  }, [replace]);
+
+  const openCardView = useCallback(() => {
+    setViewMode("cards");
+    setViewUrl("cards");
+  }, [setViewUrl]);
+
+  const openTableView = useCallback(() => {
+    setViewMode("tables");
+    setViewUrl("tables");
+  }, [setViewUrl]);
+
+  useEffect(() => {
+    scheduleStateUpdate(() => {
+      const viewParam = searchParams.get("view");
+      setViewMode(viewParam === "cards" ? "cards" : "tables");
+    });
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("q") ?? "";
+    if (!syncAfterPendingUrl(pendingRowQueryRef, fromUrl || null)) return;
+    setRowQuery(fromUrl);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("cq") ?? "";
+    if (!syncAfterPendingUrl(pendingCategoryQueryRef, fromUrl || null)) return;
+    setCategoryQuery(fromUrl);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (prevViewModeRef.current === "cards" && viewMode === "tables") {
+      void refreshAll();
+    }
+    prevViewModeRef.current = viewMode;
+  }, [viewMode, refreshAll]);
+
+  const categoryNav = useMemo((): CategoryNavItem[] => {
+    return categories.map((category) => ({
+      category,
+      brandCount: brands.filter((row) =>
+        row.categorySlugs.includes(category.slug),
+      ).length,
+      gradeCount: grades.filter((row) => row.categorySlug === category.slug).length,
+      attributeCount: attributes.filter((row) => row.categorySlug === category.slug)
+        .length,
+    }));
+  }, [categories, brands, grades, attributes]);
+
+  const filteredCategoryNav = useMemo(() => {
+    if (!categoryQuery.trim()) return categoryNav;
+    return categoryNav.filter(({ category }) =>
+      matchesQuery([category.label, category.slug].join(" "), categoryQuery),
+    );
+  }, [categoryNav, categoryQuery]);
+
+  const selectCategory = useCallback(
+    (slug: string) => {
+      pendingCategorySlugRef.current = slug;
+      setSelectedCategorySlug(slug);
+      setRowQuery("");
+      setCategoryUrl(slug);
+    },
+    [setCategoryUrl],
+  );
+
+  useEffect(() => {
+    const fromUrl = searchParams.get("category");
+    const tabParam = searchParams.get("tab");
+    const pending = pendingCategorySlugRef.current;
+
+    scheduleStateUpdate(() => {
+      if (isCatalogTab(tabParam)) {
+        setActiveTab(tabParam);
+      }
+
+      if (pending) {
+        if (fromUrl === pending) {
+          pendingCategorySlugRef.current = null;
+        } else {
+          return;
+        }
+      }
+
+      if (fromUrl && categoryNav.some((row) => row.category.slug === fromUrl)) {
+        setSelectedCategorySlug(fromUrl);
+        return;
+      }
+      if (categoryNav.length === 0) {
+        setSelectedCategorySlug(null);
+        return;
+      }
+      const preferred = categoryNav[0];
+      setSelectedCategorySlug(preferred.category.slug);
+      setCategoryUrl(preferred.category.slug);
+    });
+  }, [categoryNav, searchParams, setCategoryUrl]);
+
+  useEffect(() => {
+    if (!categoryQuery.trim() || filteredCategoryNav.length === 0) return;
+    const stillVisible = filteredCategoryNav.some(
+      (row) => row.category.slug === selectedCategorySlug,
+    );
+    if (!stillVisible) {
+      scheduleStateUpdate(() => {
+        selectCategory(filteredCategoryNav[0].category.slug);
+      });
+    }
+  }, [categoryQuery, filteredCategoryNav, selectedCategorySlug, selectCategory]);
+
+  const selectedNav = categoryNav.find(
+    (row) => row.category.slug === selectedCategorySlug,
+  );
+  const selectedCategory = selectedNav?.category ?? null;
+
+  useEffect(() => {
+    const drawerParam = searchParams.get("drawer");
+    const itemParam = searchParams.get("item");
+    const signature = drawerUrlSignature(drawerParam, itemParam);
+    if (!syncAfterPendingUrl(pendingDrawerRef, signature)) return;
+    setDrawer(
+      resolveCatalogDrawer({
+        drawer: drawerParam,
+        item: itemParam,
+        category: selectedCategory,
+        categories,
+        brands,
+        grades,
+        attributes,
+      }),
+    );
+  }, [
+    searchParams,
+    selectedCategory,
+    categories,
+    brands,
+    grades,
+    attributes,
+  ]);
+
+  useEffect(() => {
+    const deleteParam = searchParams.get("delete");
+    if (!syncAfterPendingUrl(pendingDeleteRef, deleteParam)) return;
+    const parsed = parseCatalogDeleteParam(deleteParam);
+    scheduleStateUpdate(() => {
+      if (!parsed) {
+        setDeleteIntent(null);
+        return;
+      }
+      if (parsed.kind === "category") {
+        const category = categories.find((row) => row.id === parsed.id);
+        if (!category) {
+          setDeleteIntent(null);
+          return;
+        }
+        setDeleteIntent({
+          kind: "category",
+          id: category.id,
+          label: category.label,
+        });
+        return;
+      }
+      if (parsed.kind === "brand") {
+        const brand = brands.find((row) => row.id === parsed.id);
+        if (!brand || !selectedCategory) {
+          setDeleteIntent(null);
+          return;
+        }
+        setDeleteIntent({
+          kind: "brand",
+          id: brand.id,
+          label: brand.name,
+          unlinkFromCategorySlug: selectedCategory.slug,
+        });
+        return;
+      }
+      if (parsed.kind === "grade") {
+        const grade = grades.find((row) => row.id === parsed.id);
+        if (!grade) {
+          setDeleteIntent(null);
+          return;
+        }
+        setDeleteIntent({ kind: "grade", id: grade.id, label: grade.label });
+        return;
+      }
+      const attribute = attributes.find((row) => row.id === parsed.id);
+      if (!attribute) {
+        setDeleteIntent(null);
+        return;
+      }
+      setDeleteIntent({
+        kind: "attribute",
+        id: attribute.id,
+        label: attribute.label,
+      });
+    });
+  }, [
+    searchParams,
+    categories,
+    brands,
+    grades,
+    attributes,
+    selectedCategory,
+  ]);
+
+  const brandsForCategory = useMemo(() => {
+    if (!selectedCategorySlug) return [];
+    return brands
+      .filter((row) => row.categorySlugs.includes(selectedCategorySlug))
+      .sort((left, right) => compareAlphabetically(left.name, right.name));
+  }, [brands, selectedCategorySlug]);
+
+  const gradesForCategory = useMemo(() => {
+    if (!selectedCategorySlug) return [];
+    return grades
+      .filter((row) => row.categorySlug === selectedCategorySlug)
+      .sort((left, right) => compareAlphabetically(left.label, right.label));
+  }, [grades, selectedCategorySlug]);
+
+  const attributesForCategory = useMemo(() => {
+    if (!selectedCategorySlug) return [];
+    return attributes
+      .filter((row) => row.categorySlug === selectedCategorySlug)
+      .sort((left, right) => compareAlphabetically(left.label, right.label));
+  }, [attributes, selectedCategorySlug]);
+
+  const filteredBrands = useMemo(() => {
+    if (!rowQuery.trim()) return brandsForCategory;
+    return brandsForCategory.filter((row) =>
+      matchesQuery([row.name, row.slug].join(" "), rowQuery),
+    );
+  }, [brandsForCategory, rowQuery]);
+
+  const filteredGrades = useMemo(() => {
+    if (!rowQuery.trim()) return gradesForCategory;
+    return gradesForCategory.filter((row) =>
+      matchesQuery([row.label, row.slug, row.notes].join(" "), rowQuery),
+    );
+  }, [gradesForCategory, rowQuery]);
+
+  const filteredAttributes = useMemo(() => {
+    if (!rowQuery.trim()) return attributesForCategory;
+    return attributesForCategory.filter((row) =>
+      matchesQuery(
+        [row.label, row.slug, row.unit ?? "", row.cardPosition].join(" "),
+        rowQuery,
+      ),
+    );
+  }, [attributesForCategory, rowQuery]);
+
+  async function handleConfirmDelete() {
+    if (!deleteIntent) return;
+    const { kind, id, label, unlinkFromCategorySlug } = deleteIntent;
+    closeDeleteUrl();
+    try {
+      if (kind === "brand" && unlinkFromCategorySlug) {
+        const brand = brands.find((row) => row.id === id);
+        if (!brand) return;
+        const nextSlugs = brand.categorySlugs.filter(
+          (slug) => slug !== unlinkFromCategorySlug,
+        );
+        if (nextSlugs.length === 0) {
+          await adminFetch(`/api/brands/${id}`, { method: "DELETE" });
+        } else {
+          await adminFetch<AdminBrand>(`/api/brands/${id}`, {
+            method: "PUT",
+            json: { categorySlugs: nextSlugs },
+          });
+        }
+        toast.success(`Removed brand "${label}".`);
+      } else {
+        const path =
+          kind === "category"
+            ? `/api/categories/${id}`
+            : kind === "brand"
+              ? `/api/brands/${id}`
+              : kind === "grade"
+                ? `/api/grades/${id}`
+                : `/api/attributes/${id}`;
+        await adminFetch(path, { method: "DELETE" });
+        toast.success(`Deleted ${kind} "${label}".`);
+      }
+      await refreshAll();
+    } catch (error) {
+      toast.danger(
+        error instanceof AdminApiError
+          ? error.message
+          : `Failed to delete ${deleteIntent.kind}.`,
+      );
+    }
+  }
+
+  async function moveCategory(category: AdminCategory, direction: -1 | 1) {
+    const currentIndex = categories.findIndex((row) => row.id === category.id);
+    if (currentIndex === -1) return;
+    const nextIndex = currentIndex + direction;
+    if (nextIndex < 0 || nextIndex >= categories.length) return;
+    const reordered = [...categories];
+    const [moved] = reordered.splice(currentIndex, 1);
+    if (!moved) return;
+    reordered.splice(nextIndex, 0, moved);
+    try {
+      await Promise.all(
+        reordered.map((row, index) =>
+          adminFetch<AdminCategory>(`/api/categories/${row.id}`, {
+            method: "PUT",
+            json: { sortOrder: index },
+          }),
+        ),
+      );
+      await refreshAll();
+    } catch (error) {
+      toast.danger(
+        error instanceof AdminApiError
+          ? error.message
+          : "Failed to reorder category.",
+      );
+    }
+  }
+
+  function openCreateForTab() {
+    if (!selectedCategory) return;
+    if (activeTab === "brands") {
+      openDrawerUrl({ kind: "brand", category: selectedCategory, brand: null });
+      return;
+    }
+    if (activeTab === "grades") {
+      openDrawerUrl({ kind: "grade", category: selectedCategory, grade: null });
+      return;
+    }
+    openDrawerUrl({ kind: "attribute", category: selectedCategory, attribute: null });
+  }
+
+  const newButtonLabel =
+    activeTab === "brands"
+      ? "New brand"
+      : activeTab === "grades"
+        ? "New grade"
+        : "New attribute";
+
+  const rowSearchPlaceholder =
+    activeTab === "brands"
+      ? "Search brands…"
+      : activeTab === "grades"
+        ? "Search grades…"
+        : "Search attributes…";
+
+  return (
+    <>
+      <WorkspaceFrame minHeight={false}>
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          <CategorySidebar
+            items={filteredCategoryNav}
+            selectedSlug={selectedCategorySlug}
+            onSelect={selectCategory}
+            categoryQuery={categoryQuery}
+            onCategoryQueryChange={setCategoryQueryUrl}
+            isFiltered={categoryQuery.trim().length > 0}
+            viewMode={viewMode}
+            onOpenCardView={openCardView}
+            onOpenTableView={openTableView}
+          />
+
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            {viewMode === "cards" ? (
+              <div className="min-h-0 flex-1 overflow-y-auto p-2">
+                <Categories
+                  embedded
+                  initialCategories={categories}
+                  initialBrands={brands}
+                  initialGrades={grades}
+                  initialAttributes={attributes}
+                  visibleSections={[]}
+                />
+              </div>
+            ) : (
+              <CategoriesCatalogTablesPanel
+                categories={categories}
+                selectedNav={selectedNav}
+                selectedCategory={selectedCategory}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                rowQuery={rowQuery}
+                setRowQuery={setRowQuery}
+                setRowQueryUrl={setRowQueryUrl}
+                setTabUrl={setTabUrl}
+                filteredBrands={filteredBrands}
+                filteredGrades={filteredGrades}
+                filteredAttributes={filteredAttributes}
+                newButtonLabel={newButtonLabel}
+                rowSearchPlaceholder={rowSearchPlaceholder}
+                openCreateForTab={openCreateForTab}
+                moveCategory={moveCategory}
+                openDrawerUrl={openDrawerUrl}
+                openDeleteUrl={openDeleteUrl}
+              />
+            )}
+          </div>
+        </div>
+      </WorkspaceFrame>
+
+      <CategoryEditor
+        isOpen={drawer?.kind === "category"}
+        onClose={closeDrawerUrl}
+        category={drawer?.kind === "category" ? drawer.category : null}
+        onSaved={refreshAll}
+      />
+      {drawer?.kind === "brand" && (
+        <BrandEditor
+          isOpen
+          onClose={closeDrawerUrl}
+          category={drawer.category}
+          brand={drawer.brand}
+          siblings={brands.filter((row) =>
+            row.categorySlugs.includes(drawer.category.slug),
+          )}
+          onSaved={refreshAll}
+        />
+      )}
+      {drawer?.kind === "grade" && (
+        <GradeEditor
+          isOpen
+          onClose={closeDrawerUrl}
+          category={drawer.category}
+          grade={drawer.grade}
+          onSaved={refreshAll}
+        />
+      )}
+      {drawer?.kind === "attribute" && (
+        <AttributeEditor
+          isOpen
+          onClose={closeDrawerUrl}
+          category={drawer.category}
+          attribute={drawer.attribute}
+          siblingAttributes={attributes.filter(
+            (row) => row.categorySlug === drawer.category.slug,
+          )}
+          brands={brands.filter((row) =>
+            row.categorySlugs.includes(drawer.category.slug),
+          )}
+          grades={grades.filter((row) => row.categorySlug === drawer.category.slug)}
+          onSaved={refreshAll}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={deleteIntent !== null}
+        onCancel={closeDeleteUrl}
+        onConfirm={handleConfirmDelete}
+        title={deleteIntent ? `Delete "${deleteIntent.label}"?` : "Delete"}
+        message={
+          deleteIntent?.kind === "brand" && deleteIntent.unlinkFromCategorySlug
+            ? "If this brand isn't linked to any other category it will be removed entirely."
+            : "This cannot be undone."
+        }
+        confirmLabel="Delete"
+        tone="danger"
+      />
+    </>
+  );
+}

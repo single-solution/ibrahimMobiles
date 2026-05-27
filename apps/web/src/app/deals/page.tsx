@@ -49,7 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = `Today's deals · ${seo.seoStoreName || seo.siteName}`;
   const description =
     seo.defaultDescription ||
-    "Live offers, weekly drops and bank-transfer discounts on pre-owned phones.";
+    "Live offers, weekly drops and bank-transfer discounts.";
   return {
     title,
     description,
@@ -199,9 +199,9 @@ async function MobileProductsOnSale() {
   return (
     <>
       <div className="app-section-eyebrow">
-        <span>Phones on sale</span>
+        <span>Products on sale</span>
         <span className="lowercase tracking-normal text-[var(--color-ink-500)]">
-          {offeredProducts.length} phones
+          {offeredProducts.length} items
         </span>
       </div>
       {offeredProducts.length === 0 ? (

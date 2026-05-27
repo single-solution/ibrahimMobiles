@@ -1,12 +1,12 @@
 import { UserCircle } from "lucide-react";
 
-import { AdminShell } from "@/components/AdminShell";
+import { AdminShell } from "@/components/layout/AdminShell";
 import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 import {
   WorkspaceFrame,
   WorkspaceListHeader,
   adminListPageClass,
-} from "@/components/workspace/adminWorkspaceUi";
+} from "@/components/shared/adminWorkspaceUi";
 
 /**
  * Route-segment fallback for `/account`.

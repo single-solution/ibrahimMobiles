@@ -62,7 +62,6 @@ export function productJsonLd({
       variant.quantity > 0
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
-    itemCondition: "https://schema.org/RefurbishedCondition",
   };
   if (brand?.name) {
     offer.seller = {
@@ -79,7 +78,7 @@ export function productJsonLd({
     url,
     image: images.length > 0 ? images : heroImage ? [heroImage.variants.detail] : undefined,
     description:
-      `${brand?.name ?? product.brandName} ${product.name} — graded refurbished phone from ${settings.siteName}.`,
+      `${brand?.name ?? product.brandName} ${product.name} — available at ${settings.siteName}.`,
     brand: brand?.name
       ? { "@type": "Brand", name: brand.name }
       : undefined,

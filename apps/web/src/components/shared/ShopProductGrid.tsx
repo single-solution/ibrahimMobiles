@@ -12,7 +12,7 @@ import { useFilterParams } from "@/lib/storefront/useFilterParams";
 import { resolveListingVariant } from "@/lib/productSummary";
 
 import { ProductCard } from "./ProductCard";
-import { useSwapAnimation } from "@/components/motion/useSwapAnimation";
+import { useSwapAnimation } from "@/components/shared/motion/useSwapAnimation";
 
 interface ShopProductGridProps {
   products: Product[];

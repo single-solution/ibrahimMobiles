@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { classNames } from "@store/shared";
 import { Search, ShoppingBag, User } from "lucide-react";
 import { BrandLockup } from "@/components/layout/BrandLockup";
-import { CartDropdown } from "@/components/cart/CartDropdown";
+import { CartDropdown } from "@/app/cart/_components/CartDropdown";
 import { useCart } from "@/lib/cart/useCart";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 
@@ -107,11 +107,11 @@ export function Header({ onOpenSearch }: HeaderProps) {
           <button
             type="button"
             onClick={onOpenSearch}
-            aria-label="Search phones"
+            aria-label="Search products"
             className="inline-flex h-10 w-72 items-center gap-2 rounded-full border border-transparent bg-[var(--color-surface)] px-4 text-sm text-[var(--color-ink-500)] transition-colors hover:border-[var(--color-ink-100)] hover:text-[var(--color-ink-700)] focus-visible:border-[var(--color-ink-100)] focus-visible:text-[var(--color-ink-700)] focus-visible:outline-none"
           >
             <Search size={15} />
-            <span className="truncate">Search iPhone, Galaxy, Pixel…</span>
+            <span className="truncate">Search products…</span>
           </button>
           <Link
             href="/account"

@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 
-import { AdminShell } from "@/components/AdminShell";
-import { ActivityFeed } from "@/components/ActivityFeed";
+import { AdminShell } from "@/components/layout/AdminShell";
+import { ActivityFeed } from "@/app/activity/_components/ActivityFeed";
 import { ListWorkspaceSkeleton } from "@/components/loading/ListWorkspaceSkeleton";
-import { adminListPageClass } from "@/components/workspace/adminWorkspaceUi";
+import { adminListPageClass } from "@/components/shared/adminWorkspaceUi";
 import { ActivityEntry, connectDB } from "@store/db";
 
 import { requirePagePermission } from "@/lib/server/requirePageSession";

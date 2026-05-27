@@ -73,7 +73,7 @@ export function Footer() {
           <span>
             © {new Date().getFullYear()} {settings.siteName}. All rights reserved.
           </span>
-          <span>Pre-owned phones, graded honestly. Delivers across Pakistan.</span>
+          <span>Graded honestly. Delivers across the country.</span>
         </div>
       </div>
     </footer>

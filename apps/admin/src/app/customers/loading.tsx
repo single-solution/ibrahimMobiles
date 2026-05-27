@@ -1,6 +1,6 @@
-import { AdminShell } from "@/components/AdminShell";
+import { AdminShell } from "@/components/layout/AdminShell";
 import { SalesWorkspaceSkeleton } from "@/components/loading/SalesWorkspaceSkeleton";
-import { adminWorkspacePageClass } from "@/components/workspace/adminWorkspaceUi";
+import { adminWorkspacePageClass } from "@/components/shared/adminWorkspaceUi";
 import { SkeletonScreen } from "@/components/ui/Skeleton";
 
 export default function CustomersLoading() {

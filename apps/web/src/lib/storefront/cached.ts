@@ -19,7 +19,7 @@
  * Schema awareness (Phase 1, PLAN.md §10):
  *   - Categories are admin-authored and identified by `slug`. The legacy
  *     "path segment" lookup is replaced by `getStorefrontCategoryBySlug`.
- *   - Hero phones used to be a hardcoded `category === "phone"` filter.
+ *   - Hero products used to be a hardcoded single-category filter.
  *     Phase 6 will replace this with an admin-flagged "homepage hero"
  *     category selector; for now, the hero strip surfaces the newest
  *     featured products across all categories.

@@ -147,7 +147,7 @@ function PdpCard(data: PdpOgData) {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ fontSize: 56, fontWeight: 800 }}>{data.priceLabel}</div>
           <div style={{ display: "flex", fontSize: 22, opacity: 0.85 }}>
-            {`Free delivery in Pakistan · ${data.siteName}`}
+            {`Free delivery nationwide · ${data.siteName}`}
           </div>
         </div>
       </div>

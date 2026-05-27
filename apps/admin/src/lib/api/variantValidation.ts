@@ -9,9 +9,9 @@ import {
 import { Attribute, Grade, connectDB } from "@store/db";
 
 /**
- * Hard upper bound on any rupee field. Even ultra-luxury phones top out
- * around Rs 1.2M; anything past 100M is definitionally an admin typo or
- * an attempted overflow attack.
+ * Hard upper bound on any rupee field. Even the most expensive items
+ * we'd realistically stock are well under this ceiling; anything past
+ * 100M is definitionally an admin typo or an attempted overflow attack.
  */
 const MAX_RUPEE_AMOUNT = 100_000_000;
 

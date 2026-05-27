@@ -15,7 +15,9 @@ import { connectDB, Grade, handleMongoError } from "@store/db";
 
 import { GRADE_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import { bustAdminCaches } from "@/lib/cached";
+import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { recordActivity } from "@/lib/services/activityLog";
+import type { AdminGrade } from "@/types/admin";
 
 const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/i;
 
@@ -27,17 +29,41 @@ async function hasGradeCategoryConflict(
   return Boolean(existing);
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const { response } = await requireSession("product_view");
   if (response) {
     return response;
   }
 
   await connectDB();
-  const docs = await Grade.find()
-    .sort({ categorySlug: 1, label: 1 })
-    .lean<GradeLean[]>();
-  return ok({ items: docs.map(toGradeResponse) });
+  const { page, limit, skip, search, searchPattern } = readListOptions(request);
+  const url = new URL(request.url);
+  const categorySlug = url.searchParams.get("categorySlug");
+  const filter: Record<string, unknown> = {};
+  if (categorySlug) {
+    filter.categorySlug = categorySlug;
+  }
+  if (search) {
+    filter.$or = [
+      { label: { $regex: searchPattern, $options: "i" } },
+      { slug: { $regex: searchPattern, $options: "i" } },
+    ];
+  }
+  const [docs, total] = await Promise.all([
+    Grade.find(filter)
+      .sort({ categorySlug: 1, label: 1 })
+      .skip(skip)
+      .limit(limit)
+      .lean<GradeLean[]>(),
+    Grade.countDocuments(filter),
+  ]);
+  const payload: ListResponse<AdminGrade> = {
+    items: docs.map(toGradeResponse),
+    total,
+    page,
+    limit,
+  };
+  return ok(payload);
 }
 
 interface GradeCreateInput {

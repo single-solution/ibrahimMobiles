@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, ShoppingBag, User } from "lucide-react";
 import { BrandLockup } from "@/components/layout/BrandLockup";
-import { CartDropdown } from "@/components/cart/CartDropdown";
+import { CartDropdown } from "@/app/cart/_components/CartDropdown";
 import { useCart } from "@/lib/cart/useCart";
 import { classNames } from "@store/shared";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
@@ -77,7 +77,7 @@ export function MobileHeader({ onOpenSearch }: MobileHeaderProps) {
           <button
             type="button"
             onClick={onOpenSearch}
-            aria-label="Search phones"
+            aria-label="Search products"
             className="tap grid size-10 place-items-center rounded-[var(--radius-full)] text-[var(--color-ink-700)] active:bg-[var(--color-surface-muted)]"
           >
             <Search size={20} />

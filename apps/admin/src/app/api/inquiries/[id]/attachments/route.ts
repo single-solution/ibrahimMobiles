@@ -3,18 +3,29 @@
  *
  * Admin attaches an image or file to a chat reply. Behaves like the
  * regular reply endpoint (auto-claim, status flip, counters) but the
- * message also carries one attachment. Gated by `inquiry_manage`.
+ * message also carries one attachment. Gated by `inquiry_reply` (the
+ * same permission that controls regular message replies; `inquiry_manage`
+ * expands to include `inquiry_reply` so managers also pass).
+ *
+ * Image uploads are content-sniffed against magic bytes before trust —
+ * an attacker cannot ship an executable with a forged `image/png`
+ * Content-Type label.
  */
-
-import { NextResponse } from "next/server";
 
 import { Inquiry, connectDB } from "@store/db";
 import {
+  assertContentTypeMatches,
+  badRequest,
+  created,
+  inquiryStatusPatchAfterMessage,
   logger,
+  notFound,
+  payloadTooLarge,
   resolveStorageProvider,
+  serverError,
+  SNIFF_BYTE_COUNT,
+  unsupportedMediaType,
 } from "@store/shared";
-
-import { inquiryStatusPatchAfterMessage } from "@store/shared";
 
 import { requireSession } from "@/lib/api/requireSession";
 import { recordActivity } from "@/lib/services/activityLog";
@@ -64,18 +75,12 @@ export async function POST(request: Request, { params }: RouteContext) {
   try {
     formData = await request.formData();
   } catch {
-    return NextResponse.json(
-      { error: "Expected multipart/form-data body." },
-      { status: 400 },
-    );
+    return badRequest("Expected multipart/form-data body.");
   }
 
   const file = formData.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json(
-      { error: "Missing `file` field in multipart form data." },
-      { status: 400 },
-    );
+    return badRequest("Missing `file` field in multipart form data.");
   }
 
   const body = formData.get("body")?.toString().trim() ?? "";
@@ -84,34 +89,34 @@ export async function POST(request: Request, { params }: RouteContext) {
   const isFile = (ALLOWED_FILE_MIME as readonly string[]).includes(fileType);
 
   if (!isImage && !isFile) {
-    return NextResponse.json(
-      { error: `Unsupported type "${fileType}".` },
-      { status: 415 },
-    );
+    return unsupportedMediaType(`Unsupported type "${fileType}".`);
   }
 
   if (isImage && file.size > MAX_IMAGE_BYTES) {
-    return NextResponse.json(
-      { error: `Image exceeds ${MAX_IMAGE_MB} MB.` },
-      { status: 413 },
-    );
+    return payloadTooLarge(`Image exceeds ${MAX_IMAGE_MB} MB.`);
   }
   if (isFile && file.size > MAX_VIDEO_BYTES) {
-    return NextResponse.json(
-      { error: `File exceeds ${MAX_VIDEO_MB} MB.` },
-      { status: 413 },
-    );
+    return payloadTooLarge(`File exceeds ${MAX_VIDEO_MB} MB.`);
   }
 
   await connectDB();
   const existing = await Inquiry.findById(id).lean<InquiryLean>();
   if (!existing) {
-    return NextResponse.json({ error: "Inquiry not found" }, { status: 404 });
+    return notFound("Inquiry not found");
   }
 
   try {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    if (isImage) {
+      const sniffError = assertContentTypeMatches(
+        buffer.subarray(0, SNIFF_BYTE_COUNT),
+        fileType,
+      );
+      if (sniffError) {
+        return unsupportedMediaType(sniffError);
+      }
+    }
     const storage = resolveStorageProvider();
     const keyPrefix = `chat/${existing._id.toString()}/${todayIsoDate()}`;
 
@@ -166,7 +171,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
     const refreshed = await Inquiry.findById(existing._id).lean<InquiryLean>();
     if (!refreshed) {
-      return NextResponse.json({ error: "Inquiry vanished" }, { status: 500 });
+      return serverError("Inquiry vanished");
     }
     const label = refreshed.subjectProductName
       ? `${refreshed.customerName} · ${refreshed.subjectProductName}`
@@ -179,18 +184,14 @@ export async function POST(request: Request, { params }: RouteContext) {
       resourceLabel: label,
       detail: "Sent attachment",
     });
-    return NextResponse.json(
-      toInquiryResponse(refreshed, { includeInternal: true }),
-      { status: 201 },
-    );
+    return created(toInquiryResponse(refreshed, { includeInternal: true }));
   } catch (error) {
     if (error instanceof UploadValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      if (error.status === 413) return payloadTooLarge(error.message);
+      if (error.status === 415) return unsupportedMediaType(error.message);
+      return badRequest(error.message);
     }
     logger.error({ error, inquiryId: id }, "Failed to attach admin upload");
-    return NextResponse.json(
-      { error: "Upload failed. Please try again." },
-      { status: 500 },
-    );
+    return serverError("Upload failed. Please try again.");
   }
 }

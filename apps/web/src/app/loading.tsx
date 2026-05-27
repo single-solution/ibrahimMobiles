@@ -9,7 +9,7 @@ import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
  * (shop, account, etc.) override this with their own `loading.tsx`.
  */
 
-// Must stay in sync with `SHOP_TYPE_FALLBACK_COUNT` in `HomePageContent.tsx`
+// Must stay in sync with `SHOP_TYPE_FALLBACK_COUNT` in `homePageFallbacks.tsx`
 // — when the segment loading flips to the page render, the shop-type rail
 // uses its own Suspense fallback (also 6) and a count mismatch here would
 // make the rail jump in length on transition.

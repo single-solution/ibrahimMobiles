@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { CustomerProfile } from "@/components/account/CustomerProfile";
+import { CustomerProfile } from "@/app/account/_components/CustomerProfile";
 import { auth } from "@/lib/auth";
 import { getAccountCustomer } from "@/lib/storefront/account";
 

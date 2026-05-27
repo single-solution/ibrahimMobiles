@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 
-import { AdminShell } from "@/components/AdminShell";
-import { Inquiries } from "@/components/Inquiries";
+import { AdminShell } from "@/components/layout/AdminShell";
+import { Inquiries } from "@/app/inquiries/_components/Inquiries";
 import { InquiriesInboxSkeleton } from "@/components/loading/InquiriesInboxSkeleton";
-import { adminWorkspacePageClass } from "@/components/workspace/adminWorkspaceUi";
+import { adminWorkspacePageClass } from "@/components/shared/adminWorkspaceUi";
 import { connectDB, Inquiry } from "@store/db";
 
 import { requirePagePermission } from "@/lib/server/requirePageSession";

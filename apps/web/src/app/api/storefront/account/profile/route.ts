@@ -7,8 +7,6 @@
  * `customerId` comes from the verified session — never from request body.
  */
 
-import { Types } from "mongoose";
-
 import { Customer, connectDB } from "@store/db";
 import {
   FIELD_LIMITS,
@@ -24,8 +22,11 @@ import {
   validateString,
 } from "@store/shared";
 
-import { auth } from "@/lib/auth";
 import { enforceSameOrigin } from "@/lib/api/sameOrigin";
+import {
+  getVerifiedCustomer,
+  invalidateCustomerSessionCache,
+} from "@/lib/server/customerSession";
 
 export const dynamic = "force-dynamic";
 
@@ -40,11 +41,8 @@ export async function PUT(request: Request) {
   if (csrf) {
     return csrf;
   }
-  const session = await auth();
-  if (!session?.user || session.user.role !== "customer" || !session.user.customerId) {
-    return unauthorized();
-  }
-  if (!Types.ObjectId.isValid(session.user.customerId)) {
+  const actor = await getVerifiedCustomer();
+  if (!actor) {
     return unauthorized();
   }
 
@@ -83,13 +81,14 @@ export async function PUT(request: Request) {
   try {
     await connectDB();
     const updated = await Customer.findByIdAndUpdate(
-      session.user.customerId,
+      actor.id,
       { name: nameResult, email, city: cityResult },
       { new: true, runValidators: true },
     );
     if (!updated) {
       return notFound("Customer not found.");
     }
+    invalidateCustomerSessionCache(actor.id);
     return ok({
       id: updated._id.toString(),
       name: updated.name,
