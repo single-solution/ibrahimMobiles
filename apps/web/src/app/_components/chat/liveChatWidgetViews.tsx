@@ -59,9 +59,10 @@ export function ChatShell({
       aria-label={`Chat with ${title}`}
       /* Anchored popover on every breakpoint — the widget appears to
          "lift" out of the floating FAB rather than take over the screen.
-         Mobile keeps its own size band so the panel feels touch-sized
-         without becoming a full-page modal. */
-      className="animate-popover-in flex h-[min(70dvh,520px)] w-[min(360px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[560px] md:w-[min(380px,calc(100vw-2rem))]"
+         Sized to match the cart dropdown so chat and cart feel like
+         siblings, with mobile shrinking only when the viewport can't fit
+         the desktop dimensions. */
+      className="animate-popover-in flex h-[min(620px,calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h)-env(safe-area-inset-bottom,0px)-104px))] w-[min(400px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[400px]"
     >
       <header className="flex items-center gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-ink-900)] px-3 py-3 text-[var(--color-on-dark)]">
         {onBack ? (

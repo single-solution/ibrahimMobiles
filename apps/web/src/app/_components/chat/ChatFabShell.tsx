@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { MessageSquare, X } from "lucide-react";
 import { classNames } from "@store/shared";
 
@@ -16,15 +17,19 @@ const LiveChatWidget = dynamic(
 );
 
 const LABEL_AUTO_HIDE_MS = 4500;
+const HIDDEN_PREFIXES = ["/checkout", "/account/sign-in"];
 
 export function ChatFabShell() {
   const chatSettings = useChatSettings();
+  const pathname = usePathname() ?? "";
   const [isOpen, setIsOpen] = useState(false);
   const [isLabelVisible, setIsLabelVisible] = useState(true);
   const [unread, setUnread] = useState(0);
   const [openDetail, setOpenDetail] = useState<OpenChatDetail | null>(null);
 
-  const hidden = !chatSettings.enabled;
+  const hidden =
+    !chatSettings.enabled ||
+    HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
   useEffect(() => {
     const timer = window.setTimeout(() => setIsLabelVisible(false), LABEL_AUTO_HIDE_MS);
