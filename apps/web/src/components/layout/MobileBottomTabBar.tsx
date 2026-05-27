@@ -2,29 +2,25 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ShoppingBag, ShoppingCart, Tag, User } from "lucide-react";
+import { Home, ShoppingBag, Tag, User } from "lucide-react";
 import { classNames } from "@store/shared";
-import { useCart } from "@/lib/cart/useCart";
 
 interface Tab {
   href: string;
   label: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   matchPaths: string[];
-  showCartBadge?: boolean;
 }
 
 const TABS: Tab[] = [
   { href: "/", label: "Home", icon: Home, matchPaths: ["/"] },
   { href: "/shop", label: "Shop", icon: ShoppingBag, matchPaths: ["/shop"] },
   { href: "/deals", label: "Deals", icon: Tag, matchPaths: ["/deals"] },
-  { href: "/cart", label: "Cart", icon: ShoppingCart, matchPaths: ["/cart"], showCartBadge: true },
   { href: "/account", label: "Account", icon: User, matchPaths: ["/account"] },
 ];
 
 export function MobileBottomTabBar() {
   const pathname = usePathname() ?? "/";
-  const { itemCount } = useCart();
 
   return (
     <nav
@@ -33,16 +29,12 @@ export function MobileBottomTabBar() {
       style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4px)" }}
     >
       <ul
-        className="grid grid-cols-5"
+        className="grid grid-cols-4"
         style={{ height: "var(--mobile-tabbar-h)" }}
       >
         {TABS.map((tab) => (
           <li key={tab.href} className="flex p-1.5">
-            <TabLinkItem
-              tab={tab}
-              pathname={pathname}
-              badgeCount={tab.showCartBadge ? itemCount : 0}
-            />
+            <TabLinkItem tab={tab} pathname={pathname} />
           </li>
         ))}
       </ul>
@@ -63,10 +55,9 @@ function isLinkActive(href: string, matchPaths: string[], pathname: string): boo
 interface TabLinkItemProps {
   tab: Tab;
   pathname: string;
-  badgeCount: number;
 }
 
-function TabLinkItem({ tab, pathname, badgeCount }: TabLinkItemProps) {
+function TabLinkItem({ tab, pathname }: TabLinkItemProps) {
   const isActive = isLinkActive(tab.href, tab.matchPaths, pathname);
   const Icon = tab.icon;
   return (
@@ -80,17 +71,7 @@ function TabLinkItem({ tab, pathname, badgeCount }: TabLinkItemProps) {
       )}
       aria-current={isActive ? "page" : undefined}
     >
-      <span className="relative">
-        <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
-        {badgeCount > 0 && (
-          <span
-            key={badgeCount}
-            className="animate-badge-pop absolute -right-2 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--color-accent-500)] px-1 text-[10px] font-bold text-[var(--color-ink-900)]"
-          >
-            {badgeCount > 9 ? "9+" : badgeCount}
-          </span>
-        )}
-      </span>
+      <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
       <span className="leading-none">{tab.label}</span>
     </Link>
   );

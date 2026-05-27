@@ -18,8 +18,10 @@ interface CartDropdownProps {
   onClose: () => void;
 }
 
-/* Desktop-only cart popover anchored to the header trigger. Mobile uses
-   a dedicated `/cart` page instead, reached via the bottom-bar tab. */
+/* Cart popover anchored to the header trigger on every breakpoint. On
+   desktop the panel docks to the right edge under the header; on mobile
+   it stretches across the viewport just below the mobile header. The
+   `/cart` route still exists as a fallback / share target. */
 export function CartDropdown({ open, onClose }: CartDropdownProps) {
   const cart = useCart();
   const [isMounted, setIsMounted] = useState(false);
@@ -61,11 +63,11 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
         aria-label="Close cart"
         type="button"
         onClick={onClose}
-        className="animate-sheet-fade fixed inset-0 z-[60] hidden cursor-default bg-[var(--color-ink-900)]/15 md:block"
+        className="animate-sheet-fade fixed inset-0 z-[60] cursor-default bg-[var(--color-ink-900)]/15"
       />
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 z-[70] hidden justify-center px-6 pt-[calc(var(--desktop-header-h)+8px)] md:flex lg:px-8"
+        className="pointer-events-none fixed inset-x-0 top-0 z-[70] flex justify-center px-3 pt-[calc(var(--mobile-header-h)+8px)] md:px-6 md:pt-[calc(var(--desktop-header-h)+8px)] lg:px-8"
       >
         <div className="flex w-full max-w-[1440px] justify-end">
           <div
@@ -74,8 +76,10 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
             aria-label="Your cart"
             className={classNames(
               /* Drops down + scales in from the header cart trigger so
-                 the panel feels anchored to its button. */
-              "animate-popover-in pointer-events-auto flex h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] w-[400px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]",
+                 the panel feels anchored to its button. Mobile spans the
+                 viewport width; desktop docks a 400px panel to the right
+                 edge under the header. */
+              "animate-popover-in pointer-events-auto flex h-[min(620px,calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h)-32px))] w-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[400px]",
             )}
           >
             <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-4 py-3">
