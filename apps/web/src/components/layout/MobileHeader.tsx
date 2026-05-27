@@ -39,13 +39,26 @@ export function MobileHeader({ onOpenSearch, onOpenCart, isCartOpen }: MobileHea
          page the header is near-transparent so the hero gradient shows
          through; on scroll it picks up a stronger tint, ink-100 border
          and shadow. The `border-b` class only declares the side; the
-         colour is animated by `.scroll-header[data-scrolled]`. */
+         colour is animated by `.scroll-header[data-scrolled]`. The
+         z-elevation matches the desktop header: when the cart opens we
+         rise above the cart backdrop (z-[60]) so the trigger button's
+         active highlight stays visible — same effect users see on md+. */
       className={classNames(
-        "scroll-header sticky top-0 z-30 border-b safe-top md:hidden",
+        "scroll-header sticky top-0 border-b safe-top md:hidden",
+        isCartOpen ? "z-[80]" : "z-30",
       )}
       style={{ height: "var(--mobile-header-h)" }}
     >
-      <div className="flex h-full items-center gap-1 px-3">
+      {isCartOpen && (
+        <button
+          type="button"
+          onClick={onOpenCart}
+          aria-hidden
+          tabIndex={-1}
+          className="animate-sheet-fade pointer-events-none absolute inset-0 z-[1] cursor-default bg-[var(--color-ink-900)]/15"
+        />
+      )}
+      <div className="relative z-[2] flex h-full items-center gap-1 px-3">
         <BrandLockup
           href="/"
           siteName={siteName}
@@ -72,7 +85,7 @@ export function MobileHeader({ onOpenSearch, onOpenCart, isCartOpen }: MobileHea
           className={classNames(
             "tap relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors",
             isCartOpen
-              ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)]"
+              ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)] shadow-[var(--shadow-sm)]"
               : "border-transparent text-[var(--color-ink-800)] active:bg-[var(--color-surface-muted)]",
           )}
         >
