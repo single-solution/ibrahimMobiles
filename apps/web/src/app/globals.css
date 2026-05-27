@@ -4,7 +4,6 @@
   --font-sans: var(--font-bricolage), "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: var(--font-anton), "Anton", "Bebas Neue", "Oswald", sans-serif;
   --font-headline: var(--font-oswald), "Oswald", "Bebas Neue", "Bricolage Grotesque", sans-serif;
-  --font-accent: var(--font-barlow-condensed), "Barlow Condensed", "Roboto Condensed", sans-serif;
 
   /* Mobile UI < 640px, desktop UI >= 640px. Collapsed onto the `sm:` width so
      that all tablets (iPad mini 6, iPad 6th gen, iPad Pro 11", Galaxy Z Fold

@@ -60,6 +60,7 @@ const nextConfig: NextConfig = {
       dynamic: 0,
       static: 30,
     },
+    optimizePackageImports: ["lucide-react", "gsap"],
   },
   // Treat the workspace packages as part of the build so Next.js compiles
   // their TypeScript instead of expecting a published .js bundle.
@@ -80,6 +81,7 @@ const nextConfig: NextConfig = {
     "bcryptjs",
   ],
   images: {
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "cdn.simpleicons.org" },

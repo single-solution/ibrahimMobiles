@@ -3,7 +3,7 @@
 import { useGSAP } from "@gsap/react";
 import { useRef } from "react";
 
-import { ensureGsapPlugins, gsap, killScrollTriggers, prefersReducedMotion } from "@/lib/motion/gsap";
+import { killScrollTriggers, loadGsap, prefersReducedMotion } from "@/lib/motion/gsap";
 
 import { MotionLabPhoneFan, MotionLabShell } from "../MotionLabShell";
 
@@ -14,38 +14,44 @@ export function PresetCalmCinematic() {
     () => {
       const root = rootRef.current;
       if (!root || prefersReducedMotion()) return;
-      ensureGsapPlugins();
 
-      const ctx = gsap.context(() => {
-        gsap.from("[data-calm-line]", {
-          y: 48,
-          opacity: 0,
-          duration: 1.4,
-          ease: "power3.out",
-          stagger: 0.18,
-        });
-        gsap.from("[data-calm-phone]", {
-          y: 24,
-          opacity: 0,
-          scale: 0.92,
-          duration: 1.2,
-          ease: "power2.out",
-          stagger: 0.12,
-          delay: 0.35,
-        });
-        gsap.to("[data-calm-phone]", {
-          y: -8,
-          duration: 3.2,
-          ease: "sine.inOut",
-          yoyo: true,
-          repeat: -1,
-          stagger: { each: 0.4, from: "center" },
-        });
-      }, root);
+      let ctx: { revert: () => void } | undefined;
+      let cancelled = false;
+
+      void loadGsap().then(({ gsap }) => {
+        if (cancelled) return;
+        ctx = gsap.context(() => {
+          gsap.from("[data-calm-line]", {
+            y: 48,
+            opacity: 0,
+            duration: 1.4,
+            ease: "power3.out",
+            stagger: 0.18,
+          });
+          gsap.from("[data-calm-phone]", {
+            y: 24,
+            opacity: 0,
+            scale: 0.92,
+            duration: 1.2,
+            ease: "power2.out",
+            stagger: 0.12,
+            delay: 0.35,
+          });
+          gsap.to("[data-calm-phone]", {
+            y: -8,
+            duration: 3.2,
+            ease: "sine.inOut",
+            yoyo: true,
+            repeat: -1,
+            stagger: { each: 0.4, from: "center" },
+          });
+        }, root);
+      });
 
       return () => {
-        ctx.revert();
-        killScrollTriggers(root);
+        cancelled = true;
+        ctx?.revert();
+        void killScrollTriggers(root);
       };
     },
     { scope: rootRef },

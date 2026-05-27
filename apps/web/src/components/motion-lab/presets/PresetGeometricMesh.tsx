@@ -3,7 +3,7 @@
 import { useGSAP } from "@gsap/react";
 import { useRef } from "react";
 
-import { ensureGsapPlugins, gsap, prefersReducedMotion } from "@/lib/motion/gsap";
+import { loadGsap, prefersReducedMotion } from "@/lib/motion/gsap";
 
 import { MotionLabShell } from "../MotionLabShell";
 
@@ -14,34 +14,42 @@ export function PresetGeometricMesh() {
     () => {
       const root = rootRef.current;
       if (!root || prefersReducedMotion()) return;
-      ensureGsapPlugins();
 
-      const ctx = gsap.context(() => {
-        gsap.to("[data-mesh-blob]", {
-          scale: 1.12,
-          x: 12,
-          duration: 5,
-          ease: "sine.inOut",
-          repeat: -1,
-          yoyo: true,
-        });
-        gsap.from("[data-mesh-line]", {
-          scaleX: 0,
-          opacity: 0,
-          duration: 1.2,
-          stagger: 0.08,
-          ease: "power3.out",
-          transformOrigin: "left center",
-        });
-        gsap.from("[data-mesh-title]", {
-          opacity: 0,
-          y: 16,
-          duration: 0.9,
-          delay: 0.3,
-        });
-      }, root);
+      let ctx: { revert: () => void } | undefined;
+      let cancelled = false;
 
-      return () => ctx.revert();
+      void loadGsap().then(({ gsap }) => {
+        if (cancelled) return;
+        ctx = gsap.context(() => {
+          gsap.to("[data-mesh-blob]", {
+            scale: 1.12,
+            x: 12,
+            duration: 5,
+            ease: "sine.inOut",
+            repeat: -1,
+            yoyo: true,
+          });
+          gsap.from("[data-mesh-line]", {
+            scaleX: 0,
+            opacity: 0,
+            duration: 1.2,
+            stagger: 0.08,
+            ease: "power3.out",
+            transformOrigin: "left center",
+          });
+          gsap.from("[data-mesh-title]", {
+            opacity: 0,
+            y: 16,
+            duration: 0.9,
+            delay: 0.3,
+          });
+        }, root);
+      });
+
+      return () => {
+        cancelled = true;
+        ctx?.revert();
+      };
     },
     { scope: rootRef },
   );

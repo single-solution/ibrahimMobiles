@@ -1,10 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Anton,
-  Barlow_Condensed,
-  Bricolage_Grotesque,
-  Oswald,
-} from "next/font/google";
+import { Anton, Bricolage_Grotesque, Oswald } from "next/font/google";
 import { StorefrontChrome } from "@/components/layout/StorefrontChrome";
 import {
   MarketingPixels,
@@ -47,13 +42,6 @@ const oswald = Oswald({
   subsets: ["latin"],
   variable: "--font-oswald",
   display: "swap",
-});
-
-const barlowCondensed = Barlow_Condensed({
-  subsets: ["latin"],
-  variable: "--font-barlow-condensed",
-  display: "swap",
-  weight: ["400", "500", "600", "700", "800", "900"],
 });
 
 const STOREFRONT_BASE_URL = getStorefrontBaseUrl();
@@ -178,7 +166,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   return (
     <html
       lang="en"
-      className={`${bricolageGrotesque.variable} ${anton.variable} ${oswald.variable} ${barlowCondensed.variable} no-js`}
+      className={`${bricolageGrotesque.variable} ${anton.variable} ${oswald.variable} no-js`}
       // Tells Next.js the smooth scroll on <html> is intentional and that
       // it should *disable* it temporarily during route transitions
       // (otherwise jumping to a new page does a multi-second scroll

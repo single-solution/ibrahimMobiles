@@ -3,7 +3,7 @@
 import { useGSAP } from "@gsap/react";
 import { useRef } from "react";
 
-import { ensureGsapPlugins, gsap, prefersReducedMotion } from "@/lib/motion/gsap";
+import { loadGsap, prefersReducedMotion } from "@/lib/motion/gsap";
 
 import { MotionLabPhoneFan, MotionLabShell } from "../MotionLabShell";
 
@@ -14,36 +14,44 @@ export function PresetHybridPremium() {
     () => {
       const root = rootRef.current;
       if (!root || prefersReducedMotion()) return;
-      ensureGsapPlugins();
 
-      const ctx = gsap.context(() => {
-        gsap.from("[data-hybrid-char]", {
-          y: "0.4em",
-          opacity: 0,
-          filter: "blur(8px)",
-          duration: 0.75,
-          ease: "power3.out",
-          stagger: 0.035,
-        });
-        gsap.to("[data-hybrid-orb]", {
-          x: "random(-24, 24)",
-          y: "random(-18, 18)",
-          duration: "random(4, 7)",
-          ease: "sine.inOut",
-          repeat: -1,
-          yoyo: true,
-          stagger: { each: 0.5, from: "random" },
-        });
-        gsap.from("[data-hybrid-fan]", {
-          opacity: 0,
-          y: 20,
-          duration: 1,
-          delay: 0.5,
-          ease: "power2.out",
-        });
-      }, root);
+      let ctx: { revert: () => void } | undefined;
+      let cancelled = false;
 
-      return () => ctx.revert();
+      void loadGsap().then(({ gsap }) => {
+        if (cancelled) return;
+        ctx = gsap.context(() => {
+          gsap.from("[data-hybrid-char]", {
+            y: "0.4em",
+            opacity: 0,
+            filter: "blur(8px)",
+            duration: 0.75,
+            ease: "power3.out",
+            stagger: 0.035,
+          });
+          gsap.to("[data-hybrid-orb]", {
+            x: "random(-24, 24)",
+            y: "random(-18, 18)",
+            duration: "random(4, 7)",
+            ease: "sine.inOut",
+            repeat: -1,
+            yoyo: true,
+            stagger: { each: 0.5, from: "random" },
+          });
+          gsap.from("[data-hybrid-fan]", {
+            opacity: 0,
+            y: 20,
+            duration: 1,
+            delay: 0.5,
+            ease: "power2.out",
+          });
+        }, root);
+      });
+
+      return () => {
+        cancelled = true;
+        ctx?.revert();
+      };
     },
     { scope: rootRef },
   );

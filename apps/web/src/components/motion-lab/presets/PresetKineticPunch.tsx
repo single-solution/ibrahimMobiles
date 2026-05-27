@@ -3,7 +3,7 @@
 import { useGSAP } from "@gsap/react";
 import { useRef } from "react";
 
-import { ensureGsapPlugins, gsap, prefersReducedMotion } from "@/lib/motion/gsap";
+import { loadGsap, prefersReducedMotion } from "@/lib/motion/gsap";
 
 import { MotionLabShell } from "../MotionLabShell";
 
@@ -16,27 +16,35 @@ export function PresetKineticPunch() {
     () => {
       const root = rootRef.current;
       if (!root || prefersReducedMotion()) return;
-      ensureGsapPlugins();
 
-      const ctx = gsap.context(() => {
-        gsap.from("[data-punch-char]", {
-          y: 80,
-          opacity: 0,
-          rotateX: -90,
-          duration: 0.55,
-          ease: "back.out(2)",
-          stagger: 0.04,
-        });
-        gsap.from("[data-punch-sub]", {
-          scaleX: 0,
-          opacity: 0,
-          duration: 0.5,
-          ease: "power4.out",
-          delay: 0.35,
-        });
-      }, root);
+      let ctx: { revert: () => void } | undefined;
+      let cancelled = false;
 
-      return () => ctx.revert();
+      void loadGsap().then(({ gsap }) => {
+        if (cancelled) return;
+        ctx = gsap.context(() => {
+          gsap.from("[data-punch-char]", {
+            y: 80,
+            opacity: 0,
+            rotateX: -90,
+            duration: 0.55,
+            ease: "back.out(2)",
+            stagger: 0.04,
+          });
+          gsap.from("[data-punch-sub]", {
+            scaleX: 0,
+            opacity: 0,
+            duration: 0.5,
+            ease: "power4.out",
+            delay: 0.35,
+          });
+        }, root);
+      });
+
+      return () => {
+        cancelled = true;
+        ctx?.revert();
+      };
     },
     { scope: rootRef },
   );

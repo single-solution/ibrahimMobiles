@@ -58,7 +58,14 @@ const STOREFRONT_CACHE_TTL_SECONDS = 30;
 
 /* ─────────── per-render dedupe (React cache) ─────────── */
 
-export const getStoreSettingsCached = cache(getStoreSettingsRaw);
+const loadStoreSettings = unstable_cache(
+  () => getStoreSettingsRaw(),
+  ["storefront-settings"],
+  { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+/** Cross-request (30s) + per-render dedupe — settings power the root layout. */
+export const getStoreSettingsCached = cache(loadStoreSettings);
 
 /** Per-render dedupe — `generateMetadata` and the page body both call this
  *  with the same `slug` on `/shop/[category]`. */

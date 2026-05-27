@@ -3,12 +3,7 @@
 import { useGSAP } from "@gsap/react";
 import { useRef } from "react";
 
-import {
-  ensureGsapPlugins,
-  gsap,
-  killScrollTriggers,
-  prefersReducedMotion,
-} from "@/lib/motion/gsap";
+import { killScrollTriggers, loadGsap, prefersReducedMotion } from "@/lib/motion/gsap";
 
 import { MotionLabPhoneFan, MotionLabShell } from "../MotionLabShell";
 
@@ -25,43 +20,49 @@ export function PresetScrollStory() {
       const stage = stageRef.current;
       const headline = headlineRef.current;
       if (!root || !stage || !headline || prefersReducedMotion()) return;
-      ensureGsapPlugins();
 
-      const ctx = gsap.context(() => {
-        const words = gsap.utils.toArray<HTMLElement>("[data-story-word]");
-        if (words.length === 0) return;
+      let ctx: { revert: () => void } | undefined;
+      let cancelled = false;
 
-        gsap.set(words.slice(1), { opacity: 0, y: 32, position: "absolute", inset: 0 });
+      void loadGsap().then(({ gsap }) => {
+        if (cancelled) return;
+        ctx = gsap.context(() => {
+          const words = gsap.utils.toArray<HTMLElement>("[data-story-word]");
+          if (words.length === 0) return;
 
-        const timeline = gsap.timeline({
-          scrollTrigger: {
-            trigger: stage,
-            start: "top top",
-            end: "+=140%",
-            pin: true,
-            scrub: 0.65,
-          },
-        });
+          gsap.set(words.slice(1), { opacity: 0, y: 32, position: "absolute", inset: 0 });
 
-        words.forEach((word, index) => {
-          if (index === 0) return;
-          timeline.to(
-            words[index - 1],
-            { opacity: 0, y: -24, duration: 1 },
-            index,
-          );
-          timeline.fromTo(
-            word,
-            { opacity: 0, y: 32 },
-            { opacity: 1, y: 0, duration: 1 },
-            index,
-          );
-        });
-      }, root);
+          const timeline = gsap.timeline({
+            scrollTrigger: {
+              trigger: stage,
+              start: "top top",
+              end: "+=140%",
+              pin: true,
+              scrub: 0.65,
+            },
+          });
+
+          words.forEach((word, index) => {
+            if (index === 0) return;
+            timeline.to(
+              words[index - 1],
+              { opacity: 0, y: -24, duration: 1 },
+              index,
+            );
+            timeline.fromTo(
+              word,
+              { opacity: 0, y: 32 },
+              { opacity: 1, y: 0, duration: 1 },
+              index,
+            );
+          });
+        }, root);
+      });
 
       return () => {
-        ctx.revert();
-        killScrollTriggers(root);
+        cancelled = true;
+        ctx?.revert();
+        void killScrollTriggers(root);
       };
     },
     { scope: rootRef },

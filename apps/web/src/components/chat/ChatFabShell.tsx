@@ -57,11 +57,52 @@ export function ChatFabShell({ mobileStackedAbove = null }: ChatFabShellProps) {
 
   useEffect(() => {
     if (hidden) return;
-    const kickoff = window.setTimeout(() => void refreshUnread(), 0);
-    const timer = window.setInterval(() => void refreshUnread(), 60_000);
+
+    let pollTimer: number | undefined;
+    let cancelled = false;
+
+    const scheduleNextPoll = () => {
+      if (cancelled) return;
+      pollTimer = window.setTimeout(async () => {
+        if (document.visibilityState === "visible") {
+          await refreshUnread();
+        }
+        scheduleNextPoll();
+      }, 60_000);
+    };
+
+    const kickoff = () => {
+      if (cancelled || document.visibilityState !== "visible") return;
+      void refreshUnread().finally(scheduleNextPoll);
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        kickoff();
+      } else if (pollTimer != null) {
+        window.clearTimeout(pollTimer);
+        pollTimer = undefined;
+      }
+    };
+
+    const idleHandle =
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback(kickoff, { timeout: 4000 })
+        : window.setTimeout(kickoff, 2500);
+
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
-      window.clearTimeout(kickoff);
-      window.clearInterval(timer);
+      cancelled = true;
+      if (typeof idleHandle === "number") {
+        window.clearTimeout(idleHandle);
+      } else {
+        window.cancelIdleCallback(idleHandle);
+      }
+      if (pollTimer != null) {
+        window.clearTimeout(pollTimer);
+      }
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [hidden, refreshUnread]);
 

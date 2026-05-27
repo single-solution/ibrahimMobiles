@@ -3,7 +3,7 @@
 import { useGSAP } from "@gsap/react";
 import { useRef, type CSSProperties, type ElementType, type ReactNode } from "react";
 
-import { ensureGsapPlugins, gsap, prefersReducedMotion, ScrollTrigger } from "@/lib/motion/gsap";
+import { loadGsap, prefersReducedMotion } from "@/lib/motion/gsap";
 
 /**
  * Kinetic-punch headline.
@@ -139,49 +139,58 @@ export function KineticHeading({
     () => {
       const root = rootRef.current;
       if (!root) return;
-      ensureGsapPlugins();
-      const chars = root.querySelectorAll<HTMLElement>("[data-kinetic-char]");
-      if (chars.length === 0) return;
 
-      if (prefersReducedMotion()) {
-        gsap.set(chars, { opacity: 1, y: 0, rotateX: 0, filter: "none" });
-        return;
-      }
+      let trigger: { kill: () => void } | undefined;
+      let cancelled = false;
 
-      gsap.set(chars, {
-        opacity: 0,
-        y: "0.55em",
-        rotateX: -78,
-        filter: "blur(8px)",
-        transformOrigin: "50% 100%",
-      });
+      void loadGsap().then(({ gsap, ScrollTrigger }) => {
+        if (cancelled) return;
+        const chars = root.querySelectorAll<HTMLElement>("[data-kinetic-char]");
+        if (chars.length === 0) return;
 
-      const tween = {
-        opacity: 1,
-        y: 0,
-        rotateX: 0,
-        filter: "blur(0px)",
-        duration: 0.7,
-        ease: "back.out(1.7)",
-        stagger,
-        delay,
-      };
+        if (prefersReducedMotion()) {
+          gsap.set(chars, { opacity: 1, y: 0, rotateX: 0, filter: "none" });
+          return;
+        }
 
-      if (immediate) {
-        gsap.to(chars, tween);
-        return;
-      }
+        gsap.set(chars, {
+          opacity: 0,
+          y: "0.55em",
+          rotateX: -78,
+          filter: "blur(8px)",
+          transformOrigin: "50% 100%",
+        });
 
-      const trigger = ScrollTrigger.create({
-        trigger: root,
-        start,
-        once: true,
-        onEnter: () => {
+        const tween = {
+          opacity: 1,
+          y: 0,
+          rotateX: 0,
+          filter: "blur(0px)",
+          duration: 0.7,
+          ease: "back.out(1.7)",
+          stagger,
+          delay,
+        };
+
+        if (immediate) {
           gsap.to(chars, tween);
-        },
+          return;
+        }
+
+        trigger = ScrollTrigger.create({
+          trigger: root,
+          start,
+          once: true,
+          onEnter: () => {
+            gsap.to(chars, tween);
+          },
+        });
       });
 
-      return () => trigger.kill();
+      return () => {
+        cancelled = true;
+        trigger?.kill();
+      };
     },
     { scope: rootRef, dependencies: [normalisedLines.join("|"), immediate, stagger, delay, start] },
   );

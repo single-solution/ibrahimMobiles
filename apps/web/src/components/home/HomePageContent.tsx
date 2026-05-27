@@ -849,7 +849,7 @@ function MobileProcessSection({ flows }: ProcessSectionProps) {
 
 /**
  * Mirrors `DesktopGrades` — same `--color-ink-900` band, accent eyebrow,
- * Barlow Condensed accent headline, six grade cards with translucent white surfaces.
+ * Oswald headline, six grade cards with translucent white surfaces.
  * Full-bleed via `-mx-4` so the dark band runs edge-to-edge on mobile
  * (the parent `.app-page` has 16px horizontal padding we need to escape).
  */
