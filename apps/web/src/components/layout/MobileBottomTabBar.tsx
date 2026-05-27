@@ -30,7 +30,7 @@ export function MobileBottomTabBar() {
     <nav
       aria-label="Primary"
       className="fixed inset-x-3 z-30 overflow-hidden rounded-full border border-[var(--color-ink-100)] bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] md:hidden"
-      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)" }}
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4px)" }}
     >
       <ul
         className="grid grid-cols-5"
