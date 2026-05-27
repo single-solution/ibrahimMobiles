@@ -31,6 +31,9 @@ export interface ProductCardMediaSlide {
 
 /** Reserved chip row height — matches skeleton and empty cards. */
 export const CARD_CHIP_SLOT_CLASS = "min-h-[2.25rem] content-start pt-0.5";
+/** Footer band — same min-height for grid alignment, no extra top inset
+ *  (footer padding owns vertical rhythm). */
+export const CARD_FOOTER_CHIP_SLOT_CLASS = "min-h-[2.25rem] content-start";
 export const TITLE_CHIP_ROW_MAX_PX = 36;
 export const OVERLAY_CHIP_ROW_MAX_PX = 20;
 

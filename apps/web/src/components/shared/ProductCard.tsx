@@ -23,7 +23,7 @@ import {
 } from "@/lib/storefront/storefrontReferenceContext";
 
 import {
-  CARD_CHIP_SLOT_CLASS,
+  CARD_FOOTER_CHIP_SLOT_CLASS,
   OVERLAY_CHIP_ROW_MAX_PX,
   TITLE_CHIP_ROW_MAX_PX,
   getAttributeChipGroups,
@@ -241,8 +241,8 @@ export function ProductCard({
           {/* Attribute chips sit in their own tinted footer band — keeps
               card heights uniform across the grid even when an individual
               card has no chips to show. */}
-          <div className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-2 pb-1 pt-1.5 md:px-2.5 md:pb-1.5 md:pt-2">
-            <div className={CARD_CHIP_SLOT_CLASS}>
+          <div className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-2 py-1.5 md:px-2.5 md:py-1.5">
+            <div className={CARD_FOOTER_CHIP_SLOT_CLASS}>
               {shouldCycleVariantChips && variantSlides ? (
                 <ProductCardTitleChipCycle
                   activeIndex={slideCycle.activeIndex}
