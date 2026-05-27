@@ -21,7 +21,6 @@ export const EMPTY_VARIANT: StorefrontVariant = {
   priceRupees: 0,
   quantity: 0,
   warrantyDays: 0,
-  images: [],
   attributes: {},
 };
 

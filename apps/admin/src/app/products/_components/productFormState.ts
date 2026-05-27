@@ -44,8 +44,8 @@ export interface ProductDraft {
   name: string;
   seo: SeoMeta;
   variants: VariantDraft[];
-  /** gradeSlug → ordered gallery drafts (photos are per grade, not per variant). */
-  gradeImages: Record<string, GalleryImage[]>;
+  /** Ordered product gallery — single gallery per product, shared by every variant. */
+  images: GalleryImage[];
 }
 
 /** Per-category data the form needs to render. Loaded via the server page. */
@@ -69,7 +69,7 @@ export function emptyDraft(): ProductDraft {
     name: "",
     seo: {},
     variants: [],
-    gradeImages: {},
+    images: [],
   };
 }
 
@@ -352,24 +352,19 @@ function collectVariantErrors(
   return errors;
 }
 
-/** Photos required only for grades that have at least one variant. */
-export function collectGradeImageErrors(
-  variants: VariantDraft[],
-  gradeImages: Record<string, GalleryImage[]>,
+/** A product must have at least one photo in its shared gallery. */
+export function collectProductImageErrors(
+  images: GalleryImage[],
 ): ProductValidationError[] {
-  const errors: ProductValidationError[] = [];
-  const gradesWithVariants = new Set(
-    variants.map((row) => row.gradeSlug.trim()).filter(Boolean),
-  );
-  for (const gradeSlug of gradesWithVariants) {
-    if ((gradeImages[gradeSlug] ?? []).length === 0) {
-      errors.push({
-        path: `grade.${gradeSlug}.images`,
-        message: "Add at least one photo for this grade.",
-      });
-    }
+  if (images.length > 0) {
+    return [];
   }
-  return errors;
+  return [
+    {
+      path: "images",
+      message: "Add at least one product photo.",
+    },
+  ];
 }
 
 export function validateVariantDrafts(
@@ -435,11 +430,8 @@ export function validateDraft(
     draft.brandSlug,
     (index) => `variants.${index}`,
   );
-  const gradeImageErrors = collectGradeImageErrors(
-    draft.variants,
-    draft.gradeImages,
-  );
-  const allErrors = [...variantErrors, ...gradeImageErrors];
+  const imageErrors = collectProductImageErrors(draft.images);
+  const allErrors = [...variantErrors, ...imageErrors];
 
   if (allErrors.length > 0) {
     return { ok: false, errors: allErrors };

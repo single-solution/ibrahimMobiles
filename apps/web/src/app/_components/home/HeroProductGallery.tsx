@@ -6,7 +6,7 @@ import type { Brand, Product as StorefrontProduct } from "@store/shared";
 
 import { ProductImage } from "@/components/shared/ProductImage";
 import { TiltCard } from "@/components/shared/motion/TiltCard";
-import { getDefaultVariant, resolveVariantHeroImage } from "@/lib/productSummary";
+import { resolveProductHeroImage } from "@/lib/productSummary";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 
@@ -106,8 +106,7 @@ function HeroGalleryTile({
   priority,
 }: FanTileProps) {
   const brandName = brandLookup.get(product.brandSlug);
-  const defaultVariant = getDefaultVariant(product);
-  const heroImage = resolveVariantHeroImage(product, defaultVariant);
+  const heroImage = resolveProductHeroImage(product);
   // Centre tile pops forward with a soft shadow; side tiles tilt and fade
   // back a touch so the eye lands on the middle of the fan. Tone is static
   // — nothing here changes after first paint, so the only motion is the

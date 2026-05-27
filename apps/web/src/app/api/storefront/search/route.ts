@@ -83,7 +83,7 @@ export async function GET(request: Request) {
       const minPrice = product.variants.length
         ? Math.min(...product.variants.map((variant) => variant.priceRupees))
         : 0;
-      const heroImage = product.variants[0]?.images?.[0] ?? null;
+      const heroImage = product.images[0] ?? null;
       return {
         id: product.id,
         slug: product.slug,

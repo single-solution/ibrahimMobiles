@@ -1,70 +1,78 @@
+/**
+ * Product image resolution helpers.
+ *
+ * The persisted source of truth is `Product.images` (a flat gallery
+ * applied to every variant). Two legacy fallbacks exist for backwards
+ * compatibility so documents that haven't been re-saved since the
+ * grade-galleries era keep showing photos:
+ *
+ *  1. `Product.gradeImages[]` — one ordered gallery per grade slug.
+ *  2. `variant.images[]` — pre-`gradeImages` data, one gallery per variant.
+ *
+ * The resolver below collapses both fallbacks into the same flat shape
+ * the modern field already provides.
+ */
+
 import type { StoredImage } from "../storage/types";
 
-/** One gallery per product grade (condition). */
+/** @deprecated Per-grade gallery shape. Reads only — new code writes
+ *  `Product.images` directly. Kept so we can still parse documents that
+ *  haven't been migrated. */
 export interface ProductGradeImagesEntry {
   gradeSlug: string;
   images: StoredImage[];
 }
 
-export const MAX_GRADE_IMAGES = 24;
+export const MAX_PRODUCT_IMAGES = 24;
+/** @deprecated Same limit, exported under its historical name for callers
+ *  that haven't been renamed yet. */
+export const MAX_GRADE_IMAGES = MAX_PRODUCT_IMAGES;
 
-type GradeImageSource = { gradeSlug: string; images?: StoredImage[] };
-
-export function normalizeGradeSlug(gradeSlug: string): string {
-  return gradeSlug.trim().toLowerCase();
+interface LegacyGradeImagesSource {
+  gradeSlug: string;
+  images?: StoredImage[];
 }
 
-/** Resolve grade → gallery, preferring persisted `gradeImages` over legacy variant rows. */
-export function buildGradeImagesMap(
-  gradeImages: ProductGradeImagesEntry[] | undefined,
-  legacyVariants?: GradeImageSource[],
-): Map<string, StoredImage[]> {
-  const map = new Map<string, StoredImage[]>();
+interface LegacyVariantImagesSource {
+  images?: StoredImage[];
+}
 
-  if (gradeImages?.length) {
-    for (const entry of gradeImages) {
-      const slug = normalizeGradeSlug(entry.gradeSlug);
-      if (!slug || !entry.images?.length || map.has(slug)) continue;
-      map.set(slug, entry.images);
-    }
-    if (map.size > 0) {
-      return map;
+interface ResolveProductImagesInput {
+  /** Modern: persisted product-level gallery. */
+  images?: StoredImage[];
+  /** Legacy: per-grade galleries. */
+  gradeImages?: LegacyGradeImagesSource[];
+  /** Legacy: per-variant galleries (pre-`gradeImages`). */
+  variants?: LegacyVariantImagesSource[];
+}
+
+/**
+ * Return the canonical product gallery, falling back to legacy fields when
+ * the modern `images` array is missing or empty. Result is a stable
+ * `StoredImage[]` — order preserved from the source it picked.
+ */
+export function resolveProductImages(input: ResolveProductImagesInput): StoredImage[] {
+  if (input.images?.length) {
+    return input.images.filter(Boolean);
+  }
+
+  if (input.gradeImages?.length) {
+    for (const entry of input.gradeImages) {
+      const images = entry.images?.filter(Boolean) ?? [];
+      if (images.length) {
+        return images;
+      }
     }
   }
 
-  if (legacyVariants) {
-    for (const variant of legacyVariants) {
-      const slug = normalizeGradeSlug(variant.gradeSlug);
-      if (!slug || map.has(slug)) continue;
-      const images = variant.images?.filter(Boolean);
-      if (images?.length) map.set(slug, images);
+  if (input.variants?.length) {
+    for (const variant of input.variants) {
+      const images = variant.images?.filter(Boolean) ?? [];
+      if (images.length) {
+        return images;
+      }
     }
   }
 
-  return map;
-}
-
-export function imagesForProductGrade(
-  gradeSlug: string,
-  gradeImages: ProductGradeImagesEntry[] | undefined,
-  legacyVariants?: GradeImageSource[],
-): StoredImage[] {
-  const normalized = normalizeGradeSlug(gradeSlug);
-  return buildGradeImagesMap(gradeImages, legacyVariants).get(normalized) ?? [];
-}
-
-export function deriveGradeImagesFromVariants(
-  variants: GradeImageSource[],
-): ProductGradeImagesEntry[] {
-  return [...buildGradeImagesMap(undefined, variants).entries()].map(
-    ([gradeSlug, images]) => ({ gradeSlug, images }),
-  );
-}
-
-export function normalizedProductGradeImages(
-  gradeImages: ProductGradeImagesEntry[] | undefined,
-  legacyVariants?: GradeImageSource[],
-): ProductGradeImagesEntry[] {
-  const map = buildGradeImagesMap(gradeImages, legacyVariants);
-  return [...map.entries()].map(([gradeSlug, images]) => ({ gradeSlug, images }));
+  return [];
 }

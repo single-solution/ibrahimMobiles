@@ -24,7 +24,6 @@ import {
   attributeValuesOnVariant,
   findVariantBySelection,
   getRequiredAttributeSlugsForProduct,
-  GRADE_DIMENSION_KEY,
   hasPdpConfigurationInSearch,
   isPdpSelectionComplete,
   parsePdpSelectionFromSearch,
@@ -77,8 +76,7 @@ function hasSelectionValues(selection: Record<string, string>): boolean {
 }
 
 export function VariantSelector({ product, brandName }: VariantSelectorProps) {
-  const { selectedVariantId, setSelectedVariantId, setGalleryGradeSlug } =
-    useVariantSelection();
+  const { selectedVariantId, setSelectedVariantId } = useVariantSelection();
   const { searchParams, replace } = usePdpUrlParams();
   const cart = useCart();
   const [hasJustBeenAdded, setHasJustBeenAdded] = useState(false);
@@ -161,7 +159,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
       scheduleStateUpdate(() => {
         setPickerSelection(fallbackSelection);
         setSelectedVariantId(currentVariant.id);
-        setGalleryGradeSlug(currentVariant.gradeSlug);
       });
       syncSelectionToUrl(fallbackSelection);
       return;
@@ -170,7 +167,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
     scheduleStateUpdate(() => {
       setPickerSelection(fromUrl);
       setSelectedVariantId(exact.id);
-      setGalleryGradeSlug(exact.gradeSlug);
     });
   }, [
     searchParams,
@@ -178,7 +174,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
     product,
     selectedVariantId,
     setSelectedVariantId,
-    setGalleryGradeSlug,
     syncSelectionToUrl,
   ]);
 
@@ -231,7 +226,7 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 
   const activeGrade = grades.find((row) => row.slug === selected.gradeSlug);
   const gradeLabelForCopy = activeGrade?.label ?? selected.gradeSlug;
-  const heroImage = selected.images?.[0];
+  const heroImage = product.images?.[0];
 
   const attributeSummary = useMemo(
     () => describeSelection(selected, categoryAttributes),
@@ -250,9 +245,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
       dimensionKey,
     );
     pendingSelectionSigRef.current = selectionSignature(resolvedSelection);
-    if (dimensionKey === GRADE_DIMENSION_KEY) {
-      setGalleryGradeSlug(optionKey);
-    }
     setPickerSelection(resolvedSelection);
     syncSelectionToUrl(resolvedSelection);
     setSelectedVariantId(variant.id);

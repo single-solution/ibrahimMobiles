@@ -98,7 +98,7 @@ export async function generateMetadata({
   const variant =
     resolveExactVariantFromSearch(product, search, attributeSlugs) ??
     getDefaultVariant(product);
-  const heroImage = variant.images?.[0];
+  const heroImage = product.images?.[0];
   const resolved = composeProductSeo({
     product,
     variant,
@@ -215,10 +215,7 @@ export default async function ProductDetailPage({
   ]);
 
   return (
-    <VariantProvider
-      initialVariantId={initialVariant.id}
-      initialGalleryGradeSlug={initialVariant.gradeSlug}
-    >
+    <VariantProvider initialVariantId={initialVariant.id}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(productLd) }}

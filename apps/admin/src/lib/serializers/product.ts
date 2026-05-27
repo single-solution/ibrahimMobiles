@@ -1,9 +1,5 @@
 import type { Types } from "mongoose";
-import {
-  deriveGradeImagesFromVariants,
-  imagesForProductGrade,
-  type ProductGradeImagesEntry,
-} from "@store/shared";
+import { resolveProductImages, type StoredImage } from "@store/shared";
 import type {
   ProductAttributes,
   VariantAttributes,
@@ -29,54 +25,47 @@ export type ProductLean = WithTimestamps<ProductAttributes> & {
   _id: Types.ObjectId;
 };
 
-function legacyVariantImagesFromLean(product: ProductLean) {
-  return asArray<VariantAttributes>(product.variants).map((variant) => {
-    const raw = variant as VariantAttributes & { images?: unknown };
-    return {
-      gradeSlug: asString(variant.gradeSlug),
-      images: asArray<unknown>(raw.images)
-        .map(coerceStoredImage)
-        .filter((image): image is NonNullable<typeof image> => image !== null),
-    };
+/** Coerce a stored-image array off a lean document, dropping anything that
+ *  doesn't survive `coerceStoredImage`. */
+function asStoredImageArray(raw: unknown): StoredImage[] {
+  return asArray<unknown>(raw)
+    .map(coerceStoredImage)
+    .filter((image): image is StoredImage => image !== null);
+}
+
+/** Returns the canonical product gallery — prefers `product.images`, falls
+ *  back to legacy `gradeImages` (first non-empty grade) or pre-`gradeImages`
+ *  variant photos. */
+function resolveAdminProductImages(product: ProductLean): StoredImage[] {
+  const legacyGradeImages = asArray<
+    NonNullable<ProductAttributes["gradeImages"]>[number]
+  >(product.gradeImages).map((entry) => ({
+    gradeSlug: asString(entry?.gradeSlug),
+    images: asStoredImageArray(entry?.images),
+  }));
+  const legacyVariants = asArray<VariantAttributes>(product.variants).map(
+    (variant) => {
+      const raw = variant as VariantAttributes & { images?: unknown };
+      return { images: asStoredImageArray(raw.images) };
+    },
+  );
+  return resolveProductImages({
+    images: asStoredImageArray(product.images),
+    gradeImages: legacyGradeImages,
+    variants: legacyVariants,
   });
 }
 
-/** `product.gradeImages` in Mongo; unmigrated docs may still have photos on variants. */
-function resolveGradeImages(product: ProductLean): ProductGradeImagesEntry[] {
-  const persisted = asArray<NonNullable<ProductAttributes["gradeImages"]>[number]>(
-    product.gradeImages,
-  )
-    .map((entry) => ({
-      gradeSlug: asString(entry?.gradeSlug),
-      images: asArray<unknown>(entry?.images)
-        .map(coerceStoredImage)
-        .filter((image): image is NonNullable<typeof image> => image !== null),
-    }))
-    .filter((entry) => entry.gradeSlug.length > 0 && entry.images.length > 0);
-
-  if (persisted.length > 0) {
-    return persisted;
-  }
-
-  return deriveGradeImagesFromVariants(legacyVariantImagesFromLean(product));
-}
-
-function toVariantResponse(
-  variant: VariantAttributes,
-  gradeImages: ProductGradeImagesEntry[],
-  legacyVariants: ReturnType<typeof legacyVariantImagesFromLean>,
-): AdminVariant {
-  const gradeSlug = asString(variant.gradeSlug);
+function toVariantResponse(variant: VariantAttributes): AdminVariant {
   return {
     id: objectIdString(variant._id),
-    gradeSlug,
+    gradeSlug: asString(variant.gradeSlug),
     priceRupees: asNumber(variant.priceRupees),
     quantity: variant.quantity ?? 0,
     warrantyDays: resolveWarrantyDays(variant),
     warrantyMonths: variant.warrantyMonths,
     attributes: variant.attributes ?? {},
     attributeDisplay: variant.attributeDisplay,
-    images: imagesForProductGrade(gradeSlug, gradeImages, legacyVariants),
   };
 }
 
@@ -98,27 +87,15 @@ export function brandLookupKey(categorySlug: string, brandSlug: string): string 
 }
 
 /** Variant-derived rollups (count, in-stock count, starting price, hero). */
-function computeVariantRollup(product: ProductLean) {
+function computeVariantRollup(product: ProductLean, images: StoredImage[]) {
   const variants = asArray<VariantAttributes>(product.variants);
-  const gradeImages = resolveGradeImages(product);
-  const legacyVariants = legacyVariantImagesFromLean(product);
   const variantCount = variants.length;
   const inStockCount = variants.filter((variant) => (variant?.quantity ?? 0) > 0).length;
   const prices = variants
     .map((variant) => asNumber(variant?.priceRupees))
     .filter((price) => price > 0);
   const minPriceRupees = prices.length > 0 ? Math.min(...prices) : undefined;
-  const firstVariant = variants[0];
-  const heroImage =
-    (firstVariant
-      ? imagesForProductGrade(
-          asString(firstVariant.gradeSlug),
-          gradeImages,
-          legacyVariants,
-        )[0]
-      : null) ??
-    gradeImages[0]?.images[0] ??
-    null;
+  const heroImage = images[0] ?? null;
   return { variantCount, inStockCount, minPriceRupees, heroImage };
 }
 
@@ -130,7 +107,8 @@ export function summariseProduct(
   const brand = brandsByCategoryAndSlug.get(
     brandLookupKey(categorySlug, asString(product.brandSlug)),
   );
-  const rollup = computeVariantRollup(product);
+  const images = resolveAdminProductImages(product);
+  const rollup = computeVariantRollup(product, images);
 
   return {
     id: objectIdString(product._id),
@@ -151,9 +129,8 @@ export function toProductResponse(
   product: ProductLean,
   brand: BrandLean | undefined,
 ): AdminProduct {
-  const rollup = computeVariantRollup(product);
-  const gradeImages = resolveGradeImages(product);
-  const legacyVariants = legacyVariantImagesFromLean(product);
+  const images = resolveAdminProductImages(product);
+  const rollup = computeVariantRollup(product, images);
 
   return {
     id: objectIdString(product._id),
@@ -165,10 +142,8 @@ export function toProductResponse(
     isActive: product.isActive ?? true,
     isArchived: product.isArchived ?? false,
     ...rollup,
-    gradeImages,
-    variants: asArray<VariantAttributes>(product.variants).map((variant) =>
-      toVariantResponse(variant, gradeImages, legacyVariants),
-    ),
+    images,
+    variants: asArray<VariantAttributes>(product.variants).map(toVariantResponse),
     seo: product.seo,
     createdAt: toIsoDate(product.createdAt),
     updatedAt: toIsoDate(product.updatedAt),

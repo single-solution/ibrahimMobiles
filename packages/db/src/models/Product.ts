@@ -11,26 +11,28 @@ import { seoSchema } from "../schemas/seoSchema";
 import { storedImageSchema } from "../schemas/storedImageSchema";
 
 /**
- * A catalog listing. A `Product` is a thin
- * shell: an identity (name + slug), a category + brand assignment, some
- * flags, and a list of variants. **Pricing, stock, grade, and attributes
- * live on variants; product photos are keyed by grade** (`gradeImages`).
+ * A catalog listing. A `Product` is a thin shell: an identity (name +
+ * slug), a category + brand assignment, some flags, an ordered photo
+ * gallery, and a list of variants. **Photos live at the product level
+ * only.** Variants are pure inventory + attribute rows — no per-grade and
+ * no per-variant images.
  *
  * Product-level fields intentionally stay small:
  *   - `modelName` → renamed `name`.
- *   - `gradeImages[]` — one ordered gallery per grade (Brand New, Used, …).
- *   - Photos are never stored on variants (see `gradeImages` only).
+ *   - `images[]` — one ordered gallery for the whole product.
  *   - `highlights` → not used by the new storefront PDP design.
  *   - `attributes` (product-level dict) → all attributes are variant-scoped now.
  *   - Category-specific details live on category-defined `Attribute` rows.
  *
- * The variant subdocument is rewritten in lockstep (T1.6 — see
- * `variantSchema` below).
+ * `gradeImages` (per-grade galleries) is retained as a legacy read-only
+ * field so existing documents keep showing photos on the storefront until
+ * an admin re-saves the product. New writes always populate `images`.
  */
 
 /**
  * Variant — the unit of inventory + dynamic attributes. Every stock change
- * happens at the variant level. Photos are on `Product.gradeImages`.
+ * happens at the variant level. Photos live on `Product.images` and apply
+ * to every variant of the product.
  */
 export interface VariantAttributes {
   /** Mongoose-generated when pushing into the parent doc. */
@@ -40,7 +42,7 @@ export interface VariantAttributes {
   quantity: number;
   /** Whole days; storefront formats as months + days when ≥ 30. */
   warrantyDays?: number;
-  /** @deprecated Migrated to product `gradeImages`; kept for legacy reads. */
+  /** @deprecated Use `warrantyDays`; kept for legacy reads. */
   warrantyMonths?: number;
   /**
    * Per-attribute chosen option value. Keys are `Attribute.slug` (per the
@@ -56,6 +58,8 @@ export interface VariantAttributes {
   attributeDisplay?: Record<string, string>;
 }
 
+/** @deprecated Legacy per-grade gallery shape. Reads only — new writes
+ *  populate `ProductAttributes.images`. */
 export interface ProductGradeImagesAttributes {
   gradeSlug: string;
   images: StoredImage[];
@@ -69,7 +73,10 @@ export interface ProductAttributes {
   isActive: boolean;
   isArchived: boolean;
   isFeatured: boolean;
-  /** One ordered gallery per grade slug. */
+  /** Ordered product gallery — index `0` is the hero. */
+  images: StoredImage[];
+  /** @deprecated Per-grade galleries. Reads only; serializers fall back to
+   *  this when `images` is empty so existing data keeps rendering. */
   gradeImages?: ProductGradeImagesAttributes[];
   variants: VariantAttributes[];
   /**
@@ -159,6 +166,11 @@ const productSchema = new Schema<ProductAttributes>(
     isFeatured: { type: Boolean, required: true, default: false },
     isActive: { type: Boolean, required: true, default: true },
     isArchived: { type: Boolean, required: true, default: false },
+    images: {
+      type: [storedImageSchema],
+      required: true,
+      default: [],
+    },
     gradeImages: {
       type: [gradeImagesEntrySchema],
       default: [],

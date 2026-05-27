@@ -114,15 +114,26 @@ async function loadProductHealth(lowStockThreshold: number): Promise<ProductHeal
           { $match: { isActive: true, isArchived: { $ne: true } } },
           { $count: "n" },
         ],
-        // Active products with no gradeImages → can't be displayed properly.
+        // Active products with no photos (modern or legacy) → can't be
+        // displayed properly on the storefront.
         productsWithoutImages: [
           {
             $match: {
               isActive: true,
               isArchived: { $ne: true },
-              $or: [
-                { gradeImages: { $exists: false } },
-                { gradeImages: { $size: 0 } },
+              $and: [
+                {
+                  $or: [
+                    { images: { $exists: false } },
+                    { images: { $size: 0 } },
+                  ],
+                },
+                {
+                  $or: [
+                    { gradeImages: { $exists: false } },
+                    { gradeImages: { $size: 0 } },
+                  ],
+                },
               ],
             },
           },

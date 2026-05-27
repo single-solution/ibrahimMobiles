@@ -11,7 +11,6 @@
  * reference collections loaded through `storefrontReferenceContext`.
  */
 
-import type { ProductGradeImagesEntry } from "./catalog/gradeImages";
 import type { SeoMeta } from "./seo/seoMeta";
 import type { StoredImage } from "./storage/types";
 import type { StructuredContent } from "./structuredContent";
@@ -91,8 +90,6 @@ export interface StorefrontVariant {
   warrantyDays?: number;
   /** @deprecated Read via {@link resolveWarrantyDays}; new data uses `warrantyDays`. */
   warrantyMonths?: number;
-  /** Ordered gallery — index `0` is the hero. Derived from product `gradeImages`. */
-  images: StoredImage[];
   /**
    * Per-attribute chosen option value. Keys are `Attribute.slug`
    * (scoped by the product's category); values are the option `value`
@@ -111,8 +108,10 @@ export interface Product {
   brandName: string;
   categorySlug: string;
   isFeatured: boolean;
-  /** One gallery per grade; source of truth for PDP photos. */
-  gradeImages?: ProductGradeImagesEntry[];
+  /** Ordered product gallery — index `0` is the hero, shown everywhere
+   *  (PDP, cards, search, OG, JSON-LD). Always populated by the serializer
+   *  even when the persisted document still uses legacy `gradeImages`. */
+  images: StoredImage[];
   variants: StorefrontVariant[];
   /** Optional admin SEO overrides (auto-filled when absent). */
   seo?: SeoMeta;

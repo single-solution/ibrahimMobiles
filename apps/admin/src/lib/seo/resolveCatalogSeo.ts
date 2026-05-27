@@ -24,7 +24,8 @@ export interface ProductSeoInput {
   categorySlug: string;
   brand?: { slug: string; name: string };
   category?: { slug: string; label: string; description?: string };
-  variants: Array<{ images: StoredImage[] }>;
+  images: StoredImage[];
+  variants: Array<{ id: string; gradeSlug: string }>;
 }
 
 export interface CategorySeoInput {
@@ -52,14 +53,24 @@ export type CatalogSeoInput =
   | { type: "offer"; entity: OfferSeoInput };
 
 function toPreviewProduct(input: ProductSeoInput): Product {
-  const variant: StorefrontVariant = {
-    id: "preview",
-    gradeSlug: "preview",
-    priceRupees: 0,
-    quantity: 1,
-    images: input.variants[0]?.images ?? [],
-    attributes: {},
-  };
+  const variants: StorefrontVariant[] =
+    input.variants.length > 0
+      ? input.variants.map((v) => ({
+          id: v.id || "preview",
+          gradeSlug: v.gradeSlug || "preview",
+          priceRupees: 0,
+          quantity: 1,
+          attributes: {},
+        }))
+      : [
+          {
+            id: "preview",
+            gradeSlug: "preview",
+            priceRupees: 0,
+            quantity: 1,
+            attributes: {},
+          },
+        ];
   return {
     id: "preview",
     slug: input.slug,
@@ -68,11 +79,8 @@ function toPreviewProduct(input: ProductSeoInput): Product {
     brandSlug: input.brand?.slug ?? "",
     categorySlug: input.categorySlug,
     isFeatured: false,
-    variants: [variant, ...input.variants.slice(1).map((v, i) => ({
-      ...variant,
-      id: `preview-${i}`,
-      images: v.images,
-    }))],
+    images: input.images,
+    variants,
   };
 }
 
@@ -97,15 +105,11 @@ export function resolveCatalogSeo(
         seo,
       });
       const allAltsOk =
-        product.variants.length > 0 &&
-        product.variants.every((v) =>
-          v.images.length > 0
-            ? v.images.every((img) => img.alt.trim().length > 0)
-            : true,
-        );
+        product.images.length === 0 ||
+        product.images.every((img) => img.alt.trim().length > 0);
       context = {
         slug: input.entity.slug,
-        hasHeroImage: (variant?.images.length ?? 0) > 0,
+        hasHeroImage: product.images.length > 0,
         allVariantImagesHaveAlt: allAltsOk,
       };
       break;

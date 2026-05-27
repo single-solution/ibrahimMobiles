@@ -18,7 +18,6 @@ import {
   memo,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -26,11 +25,9 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 
 import type { Product, StoredImage } from "@store/shared";
-import { imagesForProductGrade } from "@store/shared";
 
 import { ProductImage } from "@/components/shared/ProductImage";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
-import { useGalleryGradeSlug } from "@/components/shared/VariantContext";
 
 /** Minimum horizontal distance for a touch gesture to register as a swipe. */
 const SWIPE_THRESHOLD_PX = 40;
@@ -439,31 +436,20 @@ interface VariantAwareGalleryProps {
 }
 
 /**
- * Server-component-friendly wrapper. Reads the currently selected
- * variant from `VariantContext` and feeds the right image stack into
- * `<PdpGallery>` — variant switches trigger the memoised gallery to
- * re-render with the new images.
+ * Server-component-friendly wrapper around `<PdpGallery>`. Images now live
+ * at the product level, so the gallery no longer changes when the visitor
+ * switches variants — the wrapper exists for compatibility with PDP call
+ * sites that previously needed grade-scoped resolution.
  */
 export function VariantAwareGallery({
   product,
   brandName,
   layout,
 }: VariantAwareGalleryProps) {
-  const galleryGradeSlug = useGalleryGradeSlug();
-  const galleryImages = useMemo(
-    () =>
-      imagesForProductGrade(
-        galleryGradeSlug,
-        product.gradeImages,
-        product.variants,
-      ),
-    [galleryGradeSlug, product.gradeImages, product.variants],
-  );
   return (
     <PdpGallery
-      key={galleryGradeSlug}
-      galleryKey={galleryGradeSlug}
-      images={galleryImages}
+      galleryKey={product.id}
+      images={product.images}
       name={product.name}
       brandName={brandName}
       brandSlug={product.brandSlug}

@@ -122,7 +122,7 @@ export function composeProductSeo({
   const brandName = brand?.name ?? product.brandName;
   const baseTitle = `${brandName} ${product.name}`.trim();
   const path = `/shop/${product.categorySlug}/${product.slug}`;
-  const heroImage = variant.images[0]?.variants?.detail ?? "";
+  const heroImage = product.images[0]?.variants?.detail ?? "";
   const derivedDescription = category
     ? `${baseTitle} — graded ${category.label.toLowerCase()} from ${resolveStoreName(
         settings,

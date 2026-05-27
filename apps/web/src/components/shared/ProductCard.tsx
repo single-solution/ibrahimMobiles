@@ -13,9 +13,8 @@ import {
   getDefaultVariant,
   getVariantsInDisplayOrder,
   isProductInStock,
-  resolveGradeListingHeroImage,
   resolveListingVariant,
-  resolveVariantHeroImage,
+  resolveProductHeroImage,
 } from "@/lib/productSummary";
 import {
   useAttributesForCategory,
@@ -63,7 +62,6 @@ export function ProductCard({
   const catalog = catalogProduct ?? product;
   const brandName = product.brandName ?? product.brandSlug;
   const displayVariant = resolveListingVariant(product);
-  const defaultVariant = getDefaultVariant(catalog);
   const attributes = useAttributesForCategory(product.categorySlug);
   const categoryGrades = useGradesForCategory(product.categorySlug);
   const inStock = isProductInStock(isGradeListing ? product : catalog);
@@ -117,16 +115,8 @@ export function ProductCard({
       })
     : productHref(catalog, { variant: getDefaultVariant(catalog) });
 
-  const gradeListingHeroImage =
-    isGradeListing && pinnedGradeSlug
-      ? resolveGradeListingHeroImage(catalog, pinnedGradeSlug)
-      : undefined;
-
   const attributeSource = isGradeListing ? product : catalog;
-  const staticHeroImage =
-    gradeListingHeroImage ??
-    resolveVariantHeroImage(product, displayVariant) ??
-    resolveVariantHeroImage(catalog, defaultVariant);
+  const productHeroImage = resolveProductHeroImage(catalog) ?? resolveProductHeroImage(product);
   const staticTitleChipGroups = getAttributeChipGroups(
     attributeSource,
     attributes,
@@ -158,6 +148,7 @@ export function ProductCard({
               brandName={brandName}
               brandSlug={product.brandSlug}
               categorySlug={product.categorySlug}
+              heroImage={productHeroImage}
               name={product.name}
               slides={gradeSlides}
               priority={priority}
@@ -168,7 +159,7 @@ export function ProductCard({
               brandName={brandName}
               brandSlug={product.brandSlug}
               categorySlug={product.categorySlug}
-              fixedHeroImage={gradeListingHeroImage}
+              heroImage={productHeroImage}
               name={product.name}
               pinnedGradeSlug={pinnedGradeSlug}
               slides={variantSlides}
@@ -178,7 +169,7 @@ export function ProductCard({
             <>
               <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.04]">
                 <ProductImage
-                  image={staticHeroImage}
+                  image={productHeroImage}
                   variant="card"
                   name={product.name}
                   brandName={brandName}

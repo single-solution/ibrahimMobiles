@@ -20,7 +20,6 @@
 import type {
   AttributeVisibility,
   IconName,
-  ProductGradeImagesEntry,
   SeoMeta,
   StoredImage,
   StructuredContent,
@@ -105,11 +104,6 @@ export interface AdminVariant {
   /** @deprecated Legacy; use `warrantyDays`. */
   warrantyMonths?: number;
   /**
-   * Resolved from product `gradeImages` at serialize time — same for every
-   * variant in the grade. Prefer `product.gradeImages` when editing photos.
-   */
-  images: StoredImage[];
-  /**
    * Per-attribute chosen option value. Keys are `Attribute.slug` (per the
    * product's category); values are option `value` strings.
    */
@@ -130,15 +124,15 @@ export interface AdminProductSummary {
   variantCount: number;
   inStockCount: number;
   minPriceRupees?: number;
-  /** First image of the first variant, or null when the catalogue is empty. */
+  /** First product image, or `null` when the gallery is empty. */
   heroImage: StoredImage | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface AdminProduct extends AdminProductSummary {
-  /** One ordered gallery per grade slug. */
-  gradeImages: ProductGradeImagesEntry[];
+  /** Ordered product gallery (shared across every variant). */
+  images: StoredImage[];
   variants: AdminVariant[];
   seo?: SeoMeta;
 }

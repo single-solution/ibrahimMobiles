@@ -47,7 +47,7 @@ async function loadCategoryOgData(
       limit: TILE_LIMIT,
     });
     const tiles = products
-      .map((product) => product.variants[0]?.images[0]?.variants.detail)
+      .map((product) => product.images[0]?.variants.detail)
       .filter((url): url is string => typeof url === "string")
       .slice(0, TILE_LIMIT);
     return {

@@ -205,7 +205,11 @@ export function ProductEditDrawer({
                       description: category.description,
                     }
                   : undefined,
-                variants: product.variants,
+                images: product.images,
+                variants: product.variants.map((v) => ({
+                  id: v.id,
+                  gradeSlug: v.gradeSlug,
+                })),
               },
             }}
           />

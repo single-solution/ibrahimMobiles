@@ -79,13 +79,10 @@ export function VariantEditor({
 
   const deferredDraft = useDeferredValue(draft);
   const errorMap = useMemo(() => errorsByPath(errors), [errors]);
-  const gradePreviewImages = useMemo(() => {
-    if (!draft.gradeSlug) return [];
-    return (
-      product.gradeImages.find((row) => row.gradeSlug === draft.gradeSlug)
-        ?.images ?? []
-    );
-  }, [product.gradeImages, draft.gradeSlug]);
+  const productPreviewImages = useMemo(
+    () => (product.images as GalleryImage[]) ?? [],
+    [product.images],
+  );
   const surface: CategorySurface | null = category
     ? {
         category,
@@ -159,7 +156,7 @@ export function VariantEditor({
   }
 
   const grade = grades.find((g) => g.slug === deferredDraft.gradeSlug);
-  const hero = gradePreviewImages[0];
+  const hero = productPreviewImages[0];
 
   return (
     <Drawer
@@ -237,7 +234,7 @@ export function VariantEditor({
             },
             {
               surfaceLabel: "Appears on: PDP gallery thumb strip",
-              body: <ThumbStripPreview images={gradePreviewImages as GalleryImage[]} />,
+              body: <ThumbStripPreview images={productPreviewImages} />,
             },
             {
               surfaceLabel: "Appears on: Lightbox zoom",

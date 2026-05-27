@@ -3,7 +3,6 @@
 import {
   resolveVariantAttributeLabel,
   type Product,
-  type StoredImage,
 } from "@store/shared";
 
 import { toAttributeLabelSource } from "@/lib/catalog/attributeLabels";
@@ -22,7 +21,6 @@ export interface AttributeChipGroup {
 
 export interface ProductCardMediaSlide {
   slideKey: string;
-  heroImage?: StoredImage;
   titleChipGroups: AttributeChipGroup[];
   overlayChipGroups: AttributeChipGroup[];
   /** Product view — badge follows the active grade slide. */

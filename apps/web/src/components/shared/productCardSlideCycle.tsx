@@ -10,8 +10,6 @@ import {
   getProductGradesInDisplayOrder,
   getProductPriceRange,
   getVariantsInDisplayOrder,
-  resolveListingVariant,
-  resolveVariantHeroImage,
   scopeProductToGrade,
 } from "@/lib/productSummary";
 import {
@@ -35,14 +33,14 @@ export function buildProductCardGradeSlides(
   attributes: ReturnType<typeof useAttributesForCategory>,
   categoryGrades: ReturnType<typeof useGradesForCategory>,
 ): ProductCardMediaSlide[] {
+  // Hero stays static across grades now that images live on the product;
+  // only the grade badge + chip rows cycle per grade.
   const orderedGradeSlugs = getProductGradesInDisplayOrder(catalog, categoryGrades);
   return orderedGradeSlugs.map((gradeSlug) => {
     const scoped = scopeProductToGrade(catalog, gradeSlug);
-    const displayVariant = resolveListingVariant(scoped);
     return {
       slideKey: gradeSlug,
       gradeSlug,
-      heroImage: resolveVariantHeroImage(catalog, displayVariant),
       titleChipGroups: getAttributeChipGroups(scoped, attributes, "title-chips"),
       overlayChipGroups: getAttributeChipGroups(scoped, attributes, "image-overlay"),
     };
@@ -72,7 +70,7 @@ export function ProductCardMediaCycle({
   brandName,
   brandSlug,
   pinnedGradeSlug,
-  fixedHeroImage,
+  heroImage,
   priority = false,
 }: {
   slides: ProductCardMediaSlide[];
@@ -82,60 +80,27 @@ export function ProductCardMediaCycle({
   brandName: string;
   brandSlug: string;
   pinnedGradeSlug?: string;
-  /** Browse-by-grade: grade gallery stays fixed while attributes cycle. */
-  fixedHeroImage?: StoredImage;
-  /**
-   * Preload the first slide's hero (and `fixedHeroImage`) — used for
-   * above-the-fold cards. We never set `priority` on more than one
-   * underlying image at a time so the LCP budget isn't blown.
-   */
+  /** Single product gallery hero shown beneath the cycling overlays. */
+  heroImage?: StoredImage;
+  /** Preload the hero — used for above-the-fold cards. */
   priority?: boolean;
 }) {
   const activeSlide = slides[activeIndex] ?? slides[0];
 
   return (
     <>
-      {/* Hero image — stacked crossfade across slides. The wrapper keeps the
-          hover zoom while the inner grid holds every slide layered in the
-          same cell, so opacity transitions produce a true crossfade with
-          no blank frame between slides. */}
+      {/* Hero stays static — images live at the product level, so the
+          background never crossfades. Overlays (grade badge, attribute
+          chips) keep cycling so each slide still has a distinct look. */}
       <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.04]">
-        {fixedHeroImage ? (
-          <div className="absolute inset-0">
-            <ProductImage
-              image={fixedHeroImage}
-              variant="card"
-              name={name}
-              brandName={brandName}
-              brandSlug={brandSlug}
-              priority={priority}
-            />
-          </div>
-        ) : (
-          <div className="card-fade-stack absolute inset-0">
-            {slides.map((slide, index) => (
-              <div
-                key={slide.slideKey}
-                className={`card-fade-stack__layer ${
-                  index === activeIndex ? "card-fade-stack__layer--active" : ""
-                }`}
-                aria-hidden={index !== activeIndex}
-              >
-                <ProductImage
-                  image={slide.heroImage}
-                  variant="card"
-                  name={name}
-                  brandName={brandName}
-                  brandSlug={brandSlug}
-                  // Only the first slide preloads. The rotating siblings
-                  // ride the standard Next/Image lazy path so a single
-                  // above-the-fold card never preloads N images.
-                  priority={priority && index === 0}
-                />
-              </div>
-            ))}
-          </div>
-        )}
+        <ProductImage
+          image={heroImage}
+          variant="card"
+          name={name}
+          brandName={brandName}
+          brandSlug={brandSlug}
+          priority={priority}
+        />
       </div>
 
       {/* Grade badge — when the badge follows the slide, stack every grade so

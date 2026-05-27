@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Multi-image ordered gallery. Used for `Variant.images[]` (and future
+ * Multi-image ordered gallery. Used for `Product.images[]` (and future
  * chat-image attachments — T8.5). The first image is the hero. Drag to
  * reorder, click the `x` to remove, click a thumb body to open the
  * full-resolution lightbox.

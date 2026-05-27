@@ -9,7 +9,7 @@ import {
   parseBody,
   slugify,
   validateString,
-  type ProductGradeImagesEntry,
+  type StoredImage,
 } from "@store/shared";
 
 import {
@@ -32,7 +32,7 @@ import {
 import { type BrandLean } from "@/lib/serializers/brand";
 import type { AdminProductSummary } from "@/types/admin";
 import { validateVariantsBatch, type VariantInput } from "@/lib/api/variantValidation";
-import { validateGradeImages } from "@/lib/api/gradeImagesValidation";
+import { validateProductImages } from "@/lib/api/productImagesValidation";
 import { parseSeoPayload } from "@/lib/api/seoPayload";
 
 export async function GET(request: Request) {
@@ -93,7 +93,7 @@ interface ProductCreateInput {
   isFeatured?: unknown;
   isActive?: unknown;
   variants?: unknown;
-  gradeImages?: unknown;
+  images?: unknown;
   seo?: unknown;
 }
 
@@ -158,34 +158,17 @@ export async function POST(request: Request) {
       variantPayload.push(...batch.values);
     }
 
-    const gradesWithVariants = new Set(
-      variantPayload.map((row) =>
-        String((row as { gradeSlug?: string }).gradeSlug ?? "")
-          .trim()
-          .toLowerCase(),
-      ),
-    );
-
-    let gradeImagesPayload: ProductGradeImagesEntry[] = [];
-    if (Array.isArray(body.gradeImages) && body.gradeImages.length > 0) {
-      const gradeImagesResult = await validateGradeImages(
-        body.gradeImages as Parameters<typeof validateGradeImages>[0],
-        categorySlug,
-        { requireImagesForGrades: gradesWithVariants },
-      );
-      if (!gradeImagesResult.ok) {
-        return badRequest(gradeImagesResult.error);
-      }
-      gradeImagesPayload = gradeImagesResult.value;
+    // A product must carry at least one photo as soon as any variant is
+    // attached — empty shells (Step 1 of the wizard) are allowed to skip.
+    let images: StoredImage[] = [];
+    const requiresImages = variantPayload.length > 0;
+    const imagesResult = validateProductImages(body.images, {
+      required: requiresImages,
+    });
+    if (!imagesResult.ok) {
+      return badRequest(imagesResult.error);
     }
-
-    if (gradesWithVariants.size > 0) {
-      for (const gradeSlug of gradesWithVariants) {
-        if (!gradeImagesPayload.some((row) => row.gradeSlug === gradeSlug)) {
-          return badRequest(`Add at least one photo for grade '${gradeSlug}'.`);
-        }
-      }
-    }
+    images = imagesResult.value;
 
     let seo: Record<string, unknown> | undefined;
     if (body.seo !== undefined) {
@@ -206,7 +189,7 @@ export async function POST(request: Request) {
       isFeatured: body.isFeatured === true,
       isActive: body.isActive !== false,
       isArchived: false,
-      gradeImages: gradeImagesPayload,
+      images,
       variants: variantPayload,
       ...(seo ? { seo } : {}),
     });

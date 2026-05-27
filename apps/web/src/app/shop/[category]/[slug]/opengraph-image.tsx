@@ -4,9 +4,9 @@
  * Renders a branded 1200×630 image used by Twitter/X, Facebook,
  * WhatsApp, LinkedIn, etc. when someone shares a product URL.
  *
- * Photo source: `selectedVariant.images[0].variants.detail` (1080w) —
- * the right size for the OG canvas without pulling the heavier `full`
- * variant. See PLAN.md §10 + §13.6.
+ * Photo source: `product.images[0].variants.detail` (1080w) — the right
+ * size for the OG canvas without pulling the heavier `full` variant.
+ * See PLAN.md §10 + §13.6.
  *
  * Failure mode: if any of the inputs are missing or `ImageResponse`
  * throws, we emit a minimal storefront-branded fallback so the social
@@ -71,7 +71,7 @@ async function loadPdpOgData(slug: string): Promise<PdpOgData | null> {
         currency: "PKR",
         maximumFractionDigits: 0,
       }).format(variant.priceRupees),
-      heroDetail: variant.images[0]?.variants.detail,
+      heroDetail: product.images[0]?.variants.detail,
       siteName: settings.siteName,
     };
   } catch {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
-import { compareAlphabetically, isValidId, normalizeGradeSlug } from "@store/shared";
+import { compareAlphabetically, isValidId } from "@store/shared";
 
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
@@ -24,11 +24,11 @@ import { VariantSidebarTile } from "./VariantSidebarTile";
 import { WizardEmptyHint } from "./productWizardUi";
 import {
   adminVariantToDraft,
+  collectProductImageErrors,
   emptyVariantDraft,
   errorsByPath,
   mergeVariantDraftAttributes,
   newVariantUid,
-  collectGradeImageErrors,
   validateVariantDrafts,
   type CategorySurface,
   type ProductValidationError,
@@ -38,7 +38,6 @@ import {
 interface GradeSectionState {
   gradeSlug: string;
   combinations: VariantDraft[];
-  images: GalleryImage[];
 }
 
 interface ProductWizardStep2Props {
@@ -63,19 +62,11 @@ function buildGradeSections(
     byGrade.set(variant.gradeSlug, bucket);
   }
 
-  const imagesByGrade = new Map<string, GalleryImage[]>();
-  for (const row of product.gradeImages ?? []) {
-    const slug = normalizeGradeSlug(row.gradeSlug);
-    if (!slug || !row.images?.length) continue;
-    imagesByGrade.set(slug, row.images as GalleryImage[]);
-  }
-
   return [...grades]
     .sort((left, right) => compareAlphabetically(left.label, right.label))
     .map((grade) => ({
       gradeSlug: grade.slug,
       combinations: byGrade.get(grade.slug) ?? [],
-      images: [...(imagesByGrade.get(normalizeGradeSlug(grade.slug)) ?? [])],
     }))
     .concat(
       [...byGrade.keys()]
@@ -84,7 +75,6 @@ function buildGradeSections(
         .map((gradeSlug) => ({
           gradeSlug,
           combinations: byGrade.get(gradeSlug) ?? [],
-          images: [...(imagesByGrade.get(normalizeGradeSlug(gradeSlug)) ?? [])],
         })),
     );
 }
@@ -114,6 +104,7 @@ export function ProductWizardStep2({
   const workspaceInitProductIdRef = useRef<string | null>(null);
   const toast = useToast();
   const [sections, setSections] = useState<GradeSectionState[]>([]);
+  const [productImages, setProductImages] = useState<GalleryImage[]>([]);
   const [selectedGradeSlug, setSelectedGradeSlug] = useState<string | null>(null);
   const [selectedVariantUid, setSelectedVariantUid] = useState<string | null>(null);
   const [errors, setErrors] = useState<ProductValidationError[]>([]);
@@ -187,6 +178,7 @@ export function ProductWizardStep2({
     ) => {
       const built = buildGradeSections(nextProduct, categoryGrades);
       setSections(built);
+      setProductImages([...(nextProduct.images as GalleryImage[])]);
       setErrors([]);
       const { gradeSlug, variantUid } = resolveWorkspaceSelection(
         built,
@@ -233,7 +225,6 @@ export function ProductWizardStep2({
     (section) => section.gradeSlug === selectedGradeSlug,
   );
   const activeVariants = activeSection?.combinations ?? [];
-  const activeGradeImages = activeSection?.images ?? [];
   const selectedVariant = activeVariants.find((row) => row.uid === selectedVariantUid);
   const selectedComboIndex = selectedVariant
     ? activeVariants.findIndex((row) => row.uid === selectedVariant.uid)
@@ -263,11 +254,9 @@ export function ProductWizardStep2({
     );
   }
 
-  function updateGradeImages(gradeSlug: string, images: GalleryImage[]) {
-    updateSection(gradeSlug, (section) => ({ ...section, images }));
-    setErrors((prev) =>
-      prev.filter((row) => row.path !== `grade.${gradeSlug}.images`),
-    );
+  function updateProductImages(images: GalleryImage[]) {
+    setProductImages(images);
+    setErrors((prev) => prev.filter((row) => row.path !== "images"));
   }
 
   function addCombination(gradeSlug: string) {
@@ -378,16 +367,10 @@ export function ProductWizardStep2({
       },
     );
 
-    const gradeImagesForSave = Object.fromEntries(
-      sections
-        .filter((row) => row.combinations.length > 0)
-        .map((row) => [row.gradeSlug, [...row.images]]),
-    );
+    const imageErrors = collectProductImageErrors(productImages);
 
-    const gradeImageErrors = collectGradeImageErrors(variants, gradeImagesForSave);
-
-    if (!result.ok || gradeImageErrors.length > 0) {
-      const merged = [...(result.ok ? [] : result.errors), ...gradeImageErrors];
+    if (!result.ok || imageErrors.length > 0) {
+      const merged = [...(result.ok ? [] : result.errors), ...imageErrors];
       setErrors(merged);
       toast.danger(
         merged.length === 1
@@ -411,31 +394,14 @@ export function ProductWizardStep2({
         );
       }
 
-      const gradeSlugsToSave = [
-        ...new Set(variants.map((row) => row.gradeSlug).filter(Boolean)),
-      ];
-      const gradeImagesPayload = await Promise.all(
-        gradeSlugsToSave.map(async (gradeSlug) => {
-          const draftImages = gradeImagesForSave[gradeSlug] ?? [];
-          return {
-            gradeSlug,
-            images: await uploadGalleryImages(draftImages, {
-              subjectKind: uploadKind,
-              subjectId: `${product.id}-${gradeSlug}`,
-            }),
-          };
-        }),
-      );
+      const uploadedImages = await uploadGalleryImages(productImages, {
+        subjectKind: uploadKind,
+        subjectId: product.id,
+      });
 
       await adminFetch<AdminProduct>(
-        `/api/products/${product.id}/grade-images`,
-        {
-          method: "PUT",
-          json: {
-            gradeImages: gradeImagesPayload,
-            requiredGradeSlugs: gradeSlugsToSave,
-          },
-        },
+        `/api/products/${product.id}/images`,
+        { method: "PUT", json: { images: uploadedImages } },
       );
 
       for (let index = 0; index < result.payload.variants.length; index += 1) {
@@ -580,38 +546,31 @@ export function ProductWizardStep2({
               onChange={selectGrade}
             />
 
-            {selectedGradeSlug && activeVariants.length > 0 ? (
-              <div className="shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-3">
-                <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-                    Photos for{" "}
-                    {grades.find((row) => row.slug === selectedGradeSlug)?.label ??
-                      selectedGradeSlug}
-                  </p>
-                  <p className="text-[11px] font-normal normal-case text-[var(--color-ink-500)]">
-                    One gallery per grade — shared by every variant in this condition.
-                  </p>
-                </div>
-                <ImageGallery
-                  key={selectedGradeSlug}
-                  value={activeGradeImages}
-                  onChange={(images) =>
-                    updateGradeImages(selectedGradeSlug, images)
-                  }
-                  altTextBase={`${product.name} ${grades.find((row) => row.slug === selectedGradeSlug)?.label ?? selectedGradeSlug}`}
-                  subjectKind={uploadKind}
-                  subjectId={`${product.id}-${selectedGradeSlug}`}
-                  maxImages={8}
-                  compact
-                  dense
-                />
-                {errorMap.get(`grade.${selectedGradeSlug}.images`) ? (
-                  <p className="mt-1.5 text-[12px] font-semibold text-[var(--color-rose-700)]">
-                    {errorMap.get(`grade.${selectedGradeSlug}.images`)}
-                  </p>
-                ) : null}
+            <div className="shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-3">
+              <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+                  Product photos
+                </p>
+                <p className="text-[11px] font-normal normal-case text-[var(--color-ink-500)]">
+                  One gallery for the whole product — shared by every variant.
+                </p>
               </div>
-            ) : null}
+              <ImageGallery
+                value={productImages}
+                onChange={updateProductImages}
+                altTextBase={product.name}
+                subjectKind={uploadKind}
+                subjectId={product.id}
+                maxImages={8}
+                compact
+                dense
+              />
+              {errorMap.get("images") ? (
+                <p className="mt-1.5 text-[12px] font-semibold text-[var(--color-rose-700)]">
+                  {errorMap.get("images")}
+                </p>
+              ) : null}
+            </div>
 
             <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
               <aside className="flex w-[17.5rem] shrink-0 flex-col border-r border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-2.5 xl:w-80">

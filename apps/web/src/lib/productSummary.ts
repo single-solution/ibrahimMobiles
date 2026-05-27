@@ -16,7 +16,7 @@
  */
 
 import type { GradeDescriptor, Product, StoredImage, StorefrontVariant } from "@store/shared";
-import { formatPrice, imagesForProductGrade } from "@store/shared";
+import { formatPrice } from "@store/shared";
 
 const isVariantInStock = (variant: StorefrontVariant): boolean =>
   (variant.quantity ?? 0) > 0;
@@ -36,7 +36,6 @@ export function getDefaultVariant(product: Product): StorefrontVariant {
       priceRupees: 0,
       quantity: 0,
       warrantyDays: 0,
-      images: [],
       attributes: {},
     };
   }
@@ -104,15 +103,9 @@ export function formatProductPriceRange(range: ProductPriceRange): string {
   return `${formatPrice(range.min)} – ${formatPrice(range.max)}`;
 }
 
-/** Hero image for a variant — prefers serialized `variant.images`, falls back to grade gallery. */
-export function resolveVariantHeroImage(
-  product: Product,
-  variant: StorefrontVariant,
-): StoredImage | undefined {
-  return (
-    variant.images?.[0] ??
-    imagesForProductGrade(variant.gradeSlug, product.gradeImages, product.variants)[0]
-  );
+/** Hero image for a product — first entry in the shared product gallery. */
+export function resolveProductHeroImage(product: Product): StoredImage | undefined {
+  return product.images?.[0];
 }
 
 /**
@@ -200,12 +193,4 @@ export function scopeProductToGrade(product: Product, gradeSlug: string): Produc
     ...product,
     variants: product.variants.filter((variant) => variant.gradeSlug === gradeSlug),
   };
-}
-
-/** Hero for browse-by-grade cards — grade gallery only, not per-variant photos. */
-export function resolveGradeListingHeroImage(
-  product: Product,
-  gradeSlug: string,
-): StoredImage | undefined {
-  return imagesForProductGrade(gradeSlug, product.gradeImages, product.variants)[0];
 }

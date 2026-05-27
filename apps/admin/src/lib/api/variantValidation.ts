@@ -128,7 +128,7 @@ export async function validateVariant(
     value.warrantyDays = DEFAULT_WARRANTY_DAYS;
   }
 
-  // Images live on product.gradeImages — ignore legacy variant image payloads.
+  // Images live on `product.images` — refuse any per-variant gallery payload.
   if (input.images !== undefined) {
     if (
       input.images !== null &&
@@ -136,7 +136,7 @@ export async function validateVariant(
     ) {
       return {
         ok: false,
-        error: "Variant photos are managed per grade on the product.",
+        error: "Variant photos aren't supported — manage product photos on the product.",
       };
     }
   }
