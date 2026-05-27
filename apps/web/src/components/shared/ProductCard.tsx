@@ -214,12 +214,12 @@ export function ProductCard({
                 </span>
                 {showGradeCountChip && (
                   <ProductListingCountChip
-                    label={`${gradeCount} ${gradeCount === 1 ? "grade" : "grades"}`}
+                    label={`${gradeCount} ${gradeCount === 1 ? "grade" : "grades"} available`}
                   />
                 )}
                 {showVariantCountChip && (
                   <ProductListingCountChip
-                    label={`${variantsInGradeCount} ${variantsInGradeCount === 1 ? "variant" : "variants"}`}
+                    label={`${variantsInGradeCount} ${variantsInGradeCount === 1 ? "variant" : "variants"} available`}
                   />
                 )}
               </div>
