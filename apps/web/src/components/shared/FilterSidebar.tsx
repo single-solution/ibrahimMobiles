@@ -673,7 +673,7 @@ function FilterCheckRow({ label, count, checked, onToggle }: FilterCheckRowProps
           className={classNames(
             "grid size-[18px] shrink-0 place-items-center rounded-[5px] border transition-colors",
             checked
-              ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)] shadow-[var(--shadow-sm)] ring-2 ring-[var(--color-accent-400)]/25"
+              ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)]"
               : "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
           )}
         >
