@@ -10,6 +10,7 @@ import { MobileMenuSheet } from "@/components/layout/MobileMenuSheet";
 import { SearchOverlay } from "@/components/layout/SearchOverlay";
 import { ChatFabShell } from "@/components/chat/ChatFabShell";
 import { NavigationProgress } from "@/components/layout/NavigationProgress";
+import { WebVitalsReporter } from "@/components/layout/WebVitalsReporter";
 import { RevealRoot } from "@/components/motion/RevealRoot";
 import { RouteTransition } from "@/components/motion/RouteTransition";
 
@@ -39,6 +40,7 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
       <Suspense fallback={null}>
         <RevealRoot />
       </Suspense>
+      <WebVitalsReporter />
       {/*
        * `NavigationProgress` reads `useSearchParams()` to detect query-only
        * route changes. In Next 16 any component that calls

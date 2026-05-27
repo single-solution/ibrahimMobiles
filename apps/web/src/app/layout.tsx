@@ -173,19 +173,27 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       // animation back to the top). Required by Next 16+ to silence the
       // "missing-data-scroll-behavior" warning.
       data-scroll-behavior="smooth"
-      // We intentionally let the inline `<script>` below strip `no-js` from
-      // <html> before React hydrates — this is the canonical progressive-
-      // enhancement pattern, so the resulting className diff is expected,
-      // not a bug.
+      // `no-js` is stripped by `RevealRoot` once it mounts — not by the
+      // old inline `<script>` that ran before the animation driver was
+      // ready. That race was leaving `.reveal` elements invisible on
+      // slow networks between the strip and hydration. Suppress here
+      // because the className will diverge after hydration as planned.
       suppressHydrationWarning
     >
       <head>
-        {/* Strip the no-js fallback the moment JS executes so reveal animations work. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "document.documentElement.classList.remove('no-js');",
-          }}
+        {/* Preconnect to the image hosts the LCP candidate will fetch
+           from. Saves ~100–250 ms on a cold visit by parallelising the
+           TLS/DNS handshake with HTML parsing. Kept tight: only hosts
+           that actually serve product imagery. */}
+        <link
+          rel="preconnect"
+          href="https://images.unsplash.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preconnect"
+          href="https://cdn.simpleicons.org"
+          crossOrigin="anonymous"
         />
         <MarketingPixels
           metaPixelId={settings.metaPixelId}

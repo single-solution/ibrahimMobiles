@@ -1,3 +1,4 @@
+import withBundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
 
 /**
@@ -8,6 +9,56 @@ import type { NextConfig } from "next";
  * upload-only) and lives in apps/admin/next.config.ts.
  */
 const isProduction = process.env.NODE_ENV === "production";
+
+/** Hosts `MarketingPixels` loads scripts from (inline loaders + `<Script src>`). */
+const MARKETING_SCRIPT_HOSTS = [
+  "https://www.googletagmanager.com",
+  "https://connect.facebook.net",
+  "https://analytics.tiktok.com",
+] as const;
+
+/** Beacon / XHR endpoints the pixels hit after load. */
+const MARKETING_CONNECT_HOSTS = [
+  "https://www.google-analytics.com",
+  "https://region1.google-analytics.com",
+  "https://www.googletagmanager.com",
+  "https://connect.facebook.net",
+  "https://www.facebook.com",
+  "https://analytics.tiktok.com",
+  "https://analytics-ipv6.tiktok.com",
+] as const;
+
+function buildContentSecurityPolicy(): string {
+  // `unsafe-eval` is only needed for Next.js dev tooling (Fast Refresh /
+  // source maps). Production bundles never call `eval`, so we drop it
+  // there for a tighter policy and slightly faster JIT. `unsafe-inline`
+  // stays — Next hydration + admin-configured pixel bootstraps rely on it.
+  const scriptSrc = isProduction
+    ? ["'self'", "'unsafe-inline'", ...MARKETING_SCRIPT_HOSTS]
+    : ["'self'", "'unsafe-eval'", "'unsafe-inline'", ...MARKETING_SCRIPT_HOSTS];
+
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    `script-src ${scriptSrc.join(" ")}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' blob: data: https://images.unsplash.com https://cdn.simpleicons.org https://*.public.blob.vercel-storage.com https://www.facebook.com",
+    "font-src 'self' data:",
+    `connect-src 'self' ${MARKETING_CONNECT_HOSTS.join(" ")}`,
+    "media-src 'self'",
+    "manifest-src 'self'",
+    // Google Maps embed lives on www.google.com / maps.google.com via
+    // the keyless `output=embed` URL. Without an explicit `frame-src`
+    // the spec falls back to `default-src 'self'` and Chrome/Firefox
+    // block the <iframe>; only Safari renders it. Listing both hosts
+    // because Google occasionally 302s `www` → `maps`.
+    "frame-src 'self' https://www.google.com https://maps.google.com",
+    ...(isProduction ? ["upgrade-insecure-requests"] : []),
+  ].join("; ");
+}
 
 const baseSecurityHeaders = [
   { key: "X-XSS-Protection", value: "0" },
@@ -20,21 +71,7 @@ const baseSecurityHeaders = [
   },
   {
     key: "Content-Security-Policy",
-    value: [
-      "default-src 'self'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-      "object-src 'none'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' blob: data: https://images.unsplash.com https://cdn.simpleicons.org https://*.public.blob.vercel-storage.com",
-      "font-src 'self' data:",
-      "connect-src 'self'",
-      "media-src 'self'",
-      "manifest-src 'self'",
-      ...(isProduction ? ["upgrade-insecure-requests"] : []),
-    ].join("; "),
+    value: buildContentSecurityPolicy(),
   },
 ];
 
@@ -48,16 +85,16 @@ const securityHeaders = isProduction
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
-  // Keep the Next.js router cache short so the storefront reflects fresh
-  // catalog data (new products, refreshed hero rail, updated prices) when
-  // a visitor navigates back to the homepage or category pages without a
-  // full reload. The defaults (5 min for prefetched static routes) were
-  // making the hero feel "stuck" until F5. `static` must be ≥ 30s; we use
-  // 30s for both buckets so client navigations refetch on roughly the same
-  // cadence as the homepage's `revalidate = 30` ISR window.
+  // Router cache windows. `dynamic` was previously 0 (no client cache for
+  // dynamic segments) which made back/forward navigation feel laggy
+  // because every return trip refetched. A short 10s window is invisible
+  // for catalog freshness (ISR + tag-revalidation already cap staleness
+  // at 30s on the server) but visibly snappier on the client. `static`
+  // matches the homepage's `revalidate = 30` so prefetched routes stay
+  // aligned with their server cadence.
   experimental: {
     staleTimes: {
-      dynamic: 0,
+      dynamic: 10,
       static: 30,
     },
     optimizePackageImports: ["lucide-react", "gsap"],
@@ -87,9 +124,10 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "cdn.simpleicons.org" },
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
-    // Cache negative remote-image responses for an hour so the optimizer
-    // does not repeatedly fetch a broken upstream asset.
-    minimumCacheTTL: 3600,
+    // Product photos rarely change once uploaded; a week-long negative/
+    // positive cache on the optimizer cuts repeat upstream fetches on hot
+    // SKUs. Admin image swaps still propagate via new URLs.
+    minimumCacheTTL: 60 * 60 * 24 * 7,
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
@@ -99,4 +137,14 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/**
+ * `ANALYZE=true npm run build` opens a treemap of every client and server
+ * bundle. Critical for catching regressions like server-only deps
+ * (`mongoose`, `pino`) accidentally leaking into a client chunk via a
+ * bad import path. Inert in normal builds — zero perf impact.
+ */
+const withAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
+
+export default withAnalyzer(nextConfig);

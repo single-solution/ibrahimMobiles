@@ -148,6 +148,15 @@ export function KineticHeading({
         const chars = root.querySelectorAll<HTMLElement>("[data-kinetic-char]");
         if (chars.length === 0) return;
 
+        // Promote the root to the "ready" state in the SAME tick we
+        // start the animation. Before this flag the CSS leaves chars
+        // at natural opacity (see globals.css `.kinetic-char` rules),
+        // so a slow GSAP chunk never produces an invisible heading.
+        // The class is added immediately before the GSAP set so the
+        // browser never paints a frame where chars are visible AND
+        // the JS thinks it owns them.
+        root.classList.add("kinetic-ready");
+
         if (prefersReducedMotion()) {
           gsap.set(chars, { opacity: 1, y: 0, rotateX: 0, filter: "none" });
           return;

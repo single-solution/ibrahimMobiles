@@ -28,12 +28,6 @@ export function loadGsap(): Promise<GsapBundle> {
   return bundlePromise;
 }
 
-/** @deprecated Prefer `loadGsap()` — kept for motion-lab presets. */
-export async function ensureGsapPlugins(): Promise<typeof gsapCore> {
-  const { gsap } = await loadGsap();
-  return gsap;
-}
-
 export function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;

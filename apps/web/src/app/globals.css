@@ -464,6 +464,20 @@
   opacity: 0.55;
   will-change: transform;
 }
+/* Mobile/low-power compositing: 80px blur on a 50vw element is a real
+   jank source on mid-tier Android. Halve it under 640px — the look is
+   indistinguishable to a human, the GPU cost is not. */
+@media (max-width: 640px) {
+  .hero-orb {
+    filter: blur(40px);
+  }
+}
+/* When `HeroAmbience` reports the section is offscreen, freeze the
+   orb keyframes so the compositor can drop the blurred layer entirely.
+   Saves continuous GPU work while the user reads further down. */
+.hero-ambience[data-ambience-visible="0"] .hero-orb {
+  animation-play-state: paused;
+}
 .hero-orb--a {
   inset: -10% auto auto -8%;
   width: 46vw;
@@ -538,9 +552,12 @@
 }
 
 /* --- Kinetic-punch heading ---------------------------------------
-   Each character ships hidden so GSAP can take over without a flash
-   of visible content. Reduced-motion users still see the heading
-   immediately because the JS path explicitly resets `opacity: 1`. */
+   Characters render at natural opacity until the JS driver promotes
+   the heading to `.kinetic-ready`. Only then do we hide them so GSAP
+   can animate them in. This avoids the slow-network failure mode
+   where a stalled GSAP chunk left the headline invisible — now the
+   user always sees the text, the kinetic punch is purely additive.
+   Reduced-motion users keep the natural state regardless. */
 .kinetic-heading {
   display: block;
   transform-style: preserve-3d;
@@ -549,13 +566,15 @@
   display: inline-block;
   white-space: pre;
   backface-visibility: hidden;
+  transform-origin: 50% 100%;
+}
+.kinetic-ready .kinetic-char {
   opacity: 0;
   transform: translateY(0.55em) rotateX(-78deg);
   filter: blur(8px);
-  transform-origin: 50% 100%;
 }
 @media (prefers-reduced-motion: reduce) {
-  .kinetic-char {
+  .kinetic-ready .kinetic-char {
     opacity: 1;
     transform: none;
     filter: none;
@@ -929,19 +948,39 @@ html {
     opacity var(--motion-base) var(--ease-out-quart),
     transform var(--motion-base) var(--ease-out-quart);
   transition-delay: var(--reveal-delay, 0ms);
+  /* Safety net: independent CSS-only fallback so a missing JS bundle
+     or a hydration race never leaves content invisible. The JS path
+     in `RevealRoot` promotes elements within ~1 frame in the happy
+     case; this keyframe only matters if that path is delayed past
+     the watchdog window. `forwards` keeps the end state. */
+  animation: reveal-safety 0.45s var(--ease-out-quart) 2.5s forwards;
 }
 .reveal[data-reveal="visible"] {
   opacity: 1;
   transform: translate3d(0, 0, 0);
+  animation: none;
 }
 .reveal-fade {
   opacity: 0;
   transform: none;
   transition: opacity var(--motion-base) var(--ease-out-quart);
   transition-delay: var(--reveal-delay, 0ms);
+  animation: reveal-fade-safety 0.45s var(--ease-out-quart) 2.5s forwards;
 }
 .reveal-fade[data-reveal="visible"] {
   opacity: 1;
+  animation: none;
+}
+@keyframes reveal-safety {
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes reveal-fade-safety {
+  to {
+    opacity: 1;
+  }
 }
 
 /* Auto-stagger up to 8 children when parent has .reveal-stagger.
@@ -1101,6 +1140,38 @@ html {
 }
 .page-enter {
   animation: page-in var(--motion-route) var(--ease-out-quart);
+}
+
+/* View Transitions API — root cross-fade on client navigations when
+   `RouteTransition` calls `document.startViewTransition`. The old/new
+   pseudo-elements replace the `.route-enter` keyframe on capable browsers. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: route-vt-out var(--motion-route) var(--ease-out-quart) both;
+  }
+  ::view-transition-new(root) {
+    animation: route-vt-in var(--motion-route) var(--ease-out-quart) both;
+  }
+}
+@keyframes route-vt-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes route-vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Route commit — soft cross-fade after client navigations / query swaps. */

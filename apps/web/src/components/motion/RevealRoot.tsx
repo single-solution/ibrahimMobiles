@@ -16,17 +16,33 @@ import { usePathname, useSearchParams } from "next/navigation";
  *     because that attribute was the root cause of React 19's hydration
  *     mismatch under Next 16's progressive Suspense hydration.
  *
+ *   • **`no-js` is stripped HERE, not by an inline `<script>`.** The
+ *     old layout shipped a tiny script that ran before this component
+ *     mounted, which on slow networks left `.reveal` nodes invisible
+ *     during the window between strip and hydration. Stripping at
+ *     mount means the CSS fallback (`.no-js .reveal { opacity: 1 }`)
+ *     stays effective until the animation driver is actually ready.
+ *
+ *   • **Watchdog reveal.** After {@link REVEAL_WATCHDOG_MS} ms any
+ *     `.reveal` element that the IO hasn't promoted yet is force-
+ *     revealed. Guarantees no content is invisible beyond that window
+ *     regardless of bundle latency, hydration race, or IO bug. The
+ *     CSS keyframe safety in `globals.css` is a second, independent
+ *     layer that fires even if this component never mounts.
+ *
+ *   • **MutationObserver scoped to `<main>`.** Most dynamic content
+ *     mounts there; observing the whole document body forced an extra
+ *     callback on every chat-widget render. We fall back to `body` if
+ *     `<main>` isn't present yet.
+ *
  *   • **One observer per app, not per element.** We disconnect on
  *     unmount/route change and rebuild — keeps memory flat as the user
  *     navigates.
- *
- *   • **MutationObserver covers dynamic content.** Lazy-loaded sections,
- *     infinite scroll, modal contents all get observed without each
- *     component needing to register itself.
- *
- *   • **Above-the-fold elements reveal on the first animation frame** so
- *     route/filter swaps never leave visible content at opacity 0.
  */
+const REVEAL_CANDIDATE = ".reveal:not([data-reveal='visible']), .reveal-fade:not([data-reveal='visible'])";
+/** Safety window: any reveal still hidden after this fires automatically. */
+const REVEAL_WATCHDOG_MS = 2500;
+
 export function RevealRoot() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -37,7 +53,10 @@ export function RevealRoot() {
       return;
     }
 
-    const REVEAL_CANDIDATE = ".reveal:not([data-reveal='visible'])";
+    // The component is mounted ⇒ the animation driver is alive ⇒ it is
+    // safe to remove the CSS fallback that kept content visible for
+    // no-JS / pre-hydration users.
+    document.documentElement.classList.remove("no-js");
 
     const reveal = (target: Element) => {
       target.setAttribute("data-reveal", "visible");
@@ -80,28 +99,38 @@ export function RevealRoot() {
       });
     };
 
+    const visitAddedNode = (node: HTMLElement) => {
+      if (node.matches?.(REVEAL_CANDIDATE)) {
+        if (isInViewport(node)) {
+          reveal(node);
+        } else {
+          observer.observe(node);
+        }
+      }
+      // Cheap pre-check — if the subtree has no reveal targets, skip
+      // the expensive `querySelectorAll` walk. Big win on chat-widget
+      // / image-fade churn where most added nodes are irrelevant.
+      const querySelector = node.querySelector?.bind(node);
+      if (!querySelector || !querySelector(".reveal, .reveal-fade")) {
+        return;
+      }
+      node
+        .querySelectorAll<HTMLElement>(REVEAL_CANDIDATE)
+        .forEach((element) => {
+          if (isInViewport(element)) {
+            reveal(element);
+          } else {
+            observer.observe(element);
+          }
+        });
+    };
+
     const mutation = new MutationObserver((records) => {
       for (const record of records) {
         record.addedNodes.forEach((node) => {
-          if (!(node instanceof HTMLElement)) {
-            return;
+          if (node instanceof HTMLElement) {
+            visitAddedNode(node);
           }
-          if (node.matches?.(REVEAL_CANDIDATE)) {
-            if (isInViewport(node)) {
-              reveal(node);
-            } else {
-              observer.observe(node);
-            }
-          }
-          node
-            .querySelectorAll?.<HTMLElement>(REVEAL_CANDIDATE)
-            .forEach((element) => {
-              if (isInViewport(element)) {
-                reveal(element);
-              } else {
-                observer.observe(element);
-              }
-            });
         });
       }
     });
@@ -111,11 +140,21 @@ export function RevealRoot() {
     // made the storefront feel like it was still loading.
     const frame = window.requestAnimationFrame(() => {
       observeAll();
-      mutation.observe(document.body, { childList: true, subtree: true });
+      const mutationRoot = document.querySelector("main") ?? document.body;
+      mutation.observe(mutationRoot, { childList: true, subtree: true });
     });
+
+    // Watchdog — force-reveal anything still hidden after the budget.
+    // This is the JS layer of the guarantee; the CSS keyframe in
+    // `globals.css` is the independent backup if the JS never reaches
+    // this point at all.
+    const watchdog = window.setTimeout(() => {
+      document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach(reveal);
+    }, REVEAL_WATCHDOG_MS);
 
     return () => {
       window.cancelAnimationFrame(frame);
+      window.clearTimeout(watchdog);
       observer.disconnect();
       mutation.disconnect();
     };

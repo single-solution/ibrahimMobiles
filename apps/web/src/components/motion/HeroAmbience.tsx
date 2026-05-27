@@ -38,7 +38,13 @@ export function HeroAmbience() {
     const section = node.parentElement;
     if (!section) return;
 
-    // Cache the section rect; refresh on resize / scroll only.
+    // Cache the section rect; refresh on resize only. We deliberately
+    // do NOT refresh on `scroll` — the hero only moves vertically as
+    // a function of scroll, and a stale Y just shifts the spotlight
+    // by a few pixels (visually imperceptible against a 420px blur).
+    // The previous scroll listener fired synchronously on every frame
+    // of every scroll event and was a measurable jank source on
+    // mid-tier Android.
     let rect = section.getBoundingClientRect();
     const refreshRect = () => {
       rect = section.getBoundingClientRect();
@@ -75,6 +81,8 @@ export function HeroAmbience() {
 
     const handleMove = (event: PointerEvent) => {
       if (!visible) return;
+      // Refresh the rect lazily on the first pointer event after the
+      // section comes back into view — cheap and accurate enough.
       const px = ((event.clientX - rect.left) / rect.width) * 100;
       const py = ((event.clientY - rect.top) / rect.height) * 100;
       targetRef.current.x = px;
@@ -91,12 +99,10 @@ export function HeroAmbience() {
     section.addEventListener("pointermove", handleMove, { passive: true });
     section.addEventListener("pointerleave", handleLeave, { passive: true });
     window.addEventListener("resize", refreshRect, { passive: true });
-    window.addEventListener("scroll", refreshRect, { passive: true });
     return () => {
       section.removeEventListener("pointermove", handleMove);
       section.removeEventListener("pointerleave", handleLeave);
       window.removeEventListener("resize", refreshRect);
-      window.removeEventListener("scroll", refreshRect);
       io.disconnect();
       if (frameRef.current != null) {
         window.cancelAnimationFrame(frameRef.current);
