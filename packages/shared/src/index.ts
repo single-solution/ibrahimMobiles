@@ -38,7 +38,7 @@ export * from "./seo/titleTemplate";
 export * from "./serverEnv";
 export * from "./attributeOption";
 export * from "./attributeVisibility";
-export * from "./catalog/gradeImages";
+export * from "./catalog/productImages";
 export * from "./checkout/paymentInstructions";
 export * from "./slug";
 export * from "./storage/magicBytes";

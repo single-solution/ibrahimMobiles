@@ -1,5 +1,5 @@
 import type { Types } from "mongoose";
-import { resolveProductImages, type StoredImage } from "@store/shared";
+import type { StoredImage } from "@store/shared";
 import type {
   ProductAttributes,
   VariantAttributes,
@@ -31,29 +31,6 @@ function asStoredImageArray(raw: unknown): StoredImage[] {
   return asArray<unknown>(raw)
     .map(coerceStoredImage)
     .filter((image): image is StoredImage => image !== null);
-}
-
-/** Returns the canonical product gallery — prefers `product.images`, falls
- *  back to legacy `gradeImages` (first non-empty grade) or pre-`gradeImages`
- *  variant photos. */
-function resolveAdminProductImages(product: ProductLean): StoredImage[] {
-  const legacyGradeImages = asArray<
-    NonNullable<ProductAttributes["gradeImages"]>[number]
-  >(product.gradeImages).map((entry) => ({
-    gradeSlug: asString(entry?.gradeSlug),
-    images: asStoredImageArray(entry?.images),
-  }));
-  const legacyVariants = asArray<VariantAttributes>(product.variants).map(
-    (variant) => {
-      const raw = variant as VariantAttributes & { images?: unknown };
-      return { images: asStoredImageArray(raw.images) };
-    },
-  );
-  return resolveProductImages({
-    images: asStoredImageArray(product.images),
-    gradeImages: legacyGradeImages,
-    variants: legacyVariants,
-  });
 }
 
 function toVariantResponse(variant: VariantAttributes): AdminVariant {
@@ -107,7 +84,7 @@ export function summariseProduct(
   const brand = brandsByCategoryAndSlug.get(
     brandLookupKey(categorySlug, asString(product.brandSlug)),
   );
-  const images = resolveAdminProductImages(product);
+  const images = asStoredImageArray(product.images);
   const rollup = computeVariantRollup(product, images);
 
   return {
@@ -129,7 +106,7 @@ export function toProductResponse(
   product: ProductLean,
   brand: BrandLean | undefined,
 ): AdminProduct {
-  const images = resolveAdminProductImages(product);
+  const images = asStoredImageArray(product.images);
   const rollup = computeVariantRollup(product, images);
 
   return {

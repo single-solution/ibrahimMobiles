@@ -55,17 +55,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
 
   try {
-    // Clear any legacy per-grade and per-variant gallery state so future
-    // reads always land on the new product-level field.
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
-      {
-        $set: { images: result.value },
-        $unset: {
-          gradeImages: "",
-          "variants.$[].images": "",
-        },
-      },
+      { $set: { images: result.value } },
       { returnDocument: "after", runValidators: true },
     ).lean<ProductLean>();
     if (!updatedProduct) {

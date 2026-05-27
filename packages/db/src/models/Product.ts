@@ -5,7 +5,7 @@ import mongoose, {
 } from "mongoose";
 
 import { slugify } from "@store/shared";
-import type { SeoMeta, StoredImage, ProductGradeImagesEntry } from "@store/shared";
+import type { SeoMeta, StoredImage } from "@store/shared";
 
 import { seoSchema } from "../schemas/seoSchema";
 import { storedImageSchema } from "../schemas/storedImageSchema";
@@ -23,10 +23,6 @@ import { storedImageSchema } from "../schemas/storedImageSchema";
  *   - `highlights` → not used by the new storefront PDP design.
  *   - `attributes` (product-level dict) → all attributes are variant-scoped now.
  *   - Category-specific details live on category-defined `Attribute` rows.
- *
- * `gradeImages` (per-grade galleries) is retained as a legacy read-only
- * field so existing documents keep showing photos on the storefront until
- * an admin re-saves the product. New writes always populate `images`.
  */
 
 /**
@@ -58,13 +54,6 @@ export interface VariantAttributes {
   attributeDisplay?: Record<string, string>;
 }
 
-/** @deprecated Legacy per-grade gallery shape. Reads only — new writes
- *  populate `ProductAttributes.images`. */
-export interface ProductGradeImagesAttributes {
-  gradeSlug: string;
-  images: StoredImage[];
-}
-
 export interface ProductAttributes {
   slug: string;
   name: string;
@@ -75,9 +64,6 @@ export interface ProductAttributes {
   isFeatured: boolean;
   /** Ordered product gallery — index `0` is the hero. */
   images: StoredImage[];
-  /** @deprecated Per-grade galleries. Reads only; serializers fall back to
-   *  this when `images` is empty so existing data keeps rendering. */
-  gradeImages?: ProductGradeImagesAttributes[];
   variants: VariantAttributes[];
   /**
    * Optional per-product SEO overrides. When fields are absent the
@@ -86,28 +72,6 @@ export interface ProductAttributes {
    */
   seo?: SeoMeta;
 }
-
-const gradeImagesEntrySchema = new Schema<ProductGradeImagesAttributes>(
-  {
-    gradeSlug: {
-      type: String,
-      required: true,
-      lowercase: true,
-      trim: true,
-      maxlength: 64,
-    },
-    images: {
-      type: [storedImageSchema],
-      required: true,
-      validate: {
-        validator: (value: StoredImage[]) =>
-          Array.isArray(value) && value.length > 0,
-        message: "Each grade gallery must have at least one image.",
-      },
-    },
-  },
-  { _id: false },
-);
 
 const variantSchema = new Schema<VariantAttributes>(
   {
@@ -169,10 +133,6 @@ const productSchema = new Schema<ProductAttributes>(
     images: {
       type: [storedImageSchema],
       required: true,
-      default: [],
-    },
-    gradeImages: {
-      type: [gradeImagesEntrySchema],
       default: [],
     },
     variants: {

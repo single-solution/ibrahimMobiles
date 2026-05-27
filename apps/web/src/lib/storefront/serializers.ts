@@ -43,7 +43,6 @@ import {
   isStoredImage,
   normalizeStructuredContent,
   objectIdString,
-  resolveProductImages,
   sortAttributeOptions,
   toIsoDate,
 } from "@store/shared";
@@ -163,25 +162,7 @@ export function toStorefrontProduct(
     return null;
   }
 
-  // Modern field first; gradeImages / legacy variant.images are read-only
-  // fallbacks so documents that haven't been re-saved still render.
-  const legacyGradeImages = asArray<
-    NonNullable<ProductAttributes["gradeImages"]>[number]
-  >(product.gradeImages).map((entry) => ({
-    gradeSlug: asString(entry?.gradeSlug),
-    images: asStoredImageArray(entry?.images),
-  }));
-  const legacyVariants = asArray<VariantAttributes>(product.variants).map(
-    (variant) => {
-      const raw = variant as VariantAttributes & { images?: unknown };
-      return { images: asStoredImageArray(raw.images) };
-    },
-  );
-  const images = resolveProductImages({
-    images: asStoredImageArray(product.images),
-    gradeImages: legacyGradeImages,
-    variants: legacyVariants,
-  });
+  const images = asStoredImageArray(product.images);
 
   return {
     id: objectIdString(product._id),

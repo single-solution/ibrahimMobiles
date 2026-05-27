@@ -109,8 +109,7 @@ export interface Product {
   categorySlug: string;
   isFeatured: boolean;
   /** Ordered product gallery — index `0` is the hero, shown everywhere
-   *  (PDP, cards, search, OG, JSON-LD). Always populated by the serializer
-   *  even when the persisted document still uses legacy `gradeImages`. */
+   *  (PDP, cards, search, OG, JSON-LD). Always populated by the serializer. */
   images: StoredImage[];
   variants: StorefrontVariant[];
   /** Optional admin SEO overrides (auto-filled when absent). */
