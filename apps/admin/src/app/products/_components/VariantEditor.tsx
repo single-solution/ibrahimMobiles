@@ -15,11 +15,6 @@ import { Drawer } from "@/components/ui/Drawer";
 import { PreviewPanel } from "@/app/categories/_components/previewPanel";
 import { useToast } from "@/components/ui/Toast";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
-import {
-  getGalleryImageKey,
-  getGalleryImageUrl,
-  type GalleryImage,
-} from "@/components/shared/uploads/imageStaging";
 import type {
   AdminAttribute,
   AdminCategory,
@@ -79,10 +74,6 @@ export function VariantEditor({
 
   const deferredDraft = useDeferredValue(draft);
   const errorMap = useMemo(() => errorsByPath(errors), [errors]);
-  const productPreviewImages = useMemo(
-    () => (product.images as GalleryImage[]) ?? [],
-    [product.images],
-  );
   const surface: CategorySurface | null = category
     ? {
         category,
@@ -156,7 +147,6 @@ export function VariantEditor({
   }
 
   const grade = grades.find((g) => g.slug === deferredDraft.gradeSlug);
-  const hero = productPreviewImages[0];
 
   return (
     <Drawer
@@ -232,66 +222,9 @@ export function VariantEditor({
                 </div>
               ),
             },
-            {
-              surfaceLabel: "Appears on: PDP gallery thumb strip",
-              body: <ThumbStripPreview images={productPreviewImages} />,
-            },
-            {
-              surfaceLabel: "Appears on: Lightbox zoom",
-              body: <LightboxPreview hero={hero ?? null} />,
-            },
           ]}
         />
       </form>
     </Drawer>
-  );
-}
-
-function ThumbStripPreview({ images }: { images: GalleryImage[] }) {
-  if (images.length === 0) {
-    return (
-      <p className="p-3 text-[11.5px] italic text-[var(--color-ink-400)]">
-        Upload an image to see the thumb strip.
-      </p>
-    );
-  }
-  return (
-    <div className="flex gap-1.5 overflow-x-auto p-3">
-      {images.slice(0, 8).map((image, index) => (
-        <span
-          key={`${getGalleryImageKey(image)}-${index}`}
-          className="block size-14 shrink-0 overflow-hidden rounded-md border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- local/remote variant thumb preview */}
-          <img
-            src={getGalleryImageUrl(image, "thumb")}
-            alt={image.alt}
-            className="size-full object-cover"
-          />
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function LightboxPreview({ hero }: { hero: GalleryImage | null }) {
-  if (!hero) {
-    return (
-      <p className="p-3 text-[11.5px] italic text-[var(--color-ink-400)]">
-        Upload an image to see the zoomed view.
-      </p>
-    );
-  }
-  return (
-    <div className="bg-[var(--color-ink-900)] p-3">
-      <div className="aspect-square overflow-hidden rounded-md">
-        {/* eslint-disable-next-line @next/next/no-img-element -- local/remote lightbox preview */}
-        <img
-          src={getGalleryImageUrl(hero, "full")}
-          alt={hero.alt}
-          className="size-full object-cover"
-        />
-      </div>
-    </div>
   );
 }

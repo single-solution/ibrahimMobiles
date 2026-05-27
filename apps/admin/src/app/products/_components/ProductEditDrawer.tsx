@@ -5,6 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { CatalogSeoPanel } from "@/app/settings/_components/CatalogSeoPanel";
+import { ImageGallery } from "@/components/shared/uploads";
+import {
+  uploadGalleryImages,
+  type GalleryImage,
+} from "@/components/shared/uploads/imageStaging";
 import { useToast } from "@/components/ui/Toast";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
@@ -12,6 +17,7 @@ import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatal
 import type { SeoMeta } from "@store/shared";
 import type { AdminProduct } from "@/types/admin";
 
+import { collectProductImageErrors } from "./productFormState";
 import { WizardFieldError, WizardSection } from "./productWizardUi";
 
 interface ProductEditDrawerProps {
@@ -35,6 +41,8 @@ export function ProductEditDrawer({
   const [name, setName] = useState("");
   const [brandSlug, setBrandSlug] = useState("");
   const [seo, setSeo] = useState<SeoMeta>({});
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [imagesError, setImagesError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const category = useMemo(
@@ -64,6 +72,8 @@ export function ProductEditDrawer({
         setName(loaded.name);
         setBrandSlug(loaded.brand.slug);
         setSeo(loaded.seo ?? {});
+        setImages((loaded.images ?? []) as GalleryImage[]);
+        setImagesError(null);
       })
       .catch((error) => {
         if (cancelled) return;
@@ -90,11 +100,30 @@ export function ProductEditDrawer({
       toast.danger("Product name is required.");
       return;
     }
+    const imageProblems = collectProductImageErrors(images);
+    if (imageProblems.length > 0) {
+      const message = imageProblems[0].message;
+      setImagesError(message);
+      toast.danger(message);
+      return;
+    }
+    setImagesError(null);
     setSaving(true);
     try {
+      const uploaded = await uploadGalleryImages(images, {
+        subjectKind: "products",
+        subjectId: product.id,
+      });
+      // Shell + photos live behind two endpoints; save them in sequence so a
+      // shell failure (e.g. duplicate name) doesn't leave the gallery in a
+      // mismatched state.
       await adminFetch<AdminProduct>(`/api/products/${product.id}`, {
         method: "PUT",
         json: { name: trimmed, brandSlug, seo },
+      });
+      await adminFetch<AdminProduct>(`/api/products/${product.id}/images`, {
+        method: "PUT",
+        json: { images: uploaded },
       });
       toast.success("Product updated.");
       onSaved();
@@ -184,6 +213,26 @@ export function ProductEditDrawer({
             {!brandSlug && (
               <WizardFieldError message="Pick a brand." />
             )}
+          </WizardSection>
+
+          <WizardSection title="Photos">
+            <p className="mb-2 text-[11.5px] text-[var(--color-ink-500)]">
+              One gallery for the whole product — shared by every variant.
+            </p>
+            <ImageGallery
+              value={images}
+              onChange={(next) => {
+                setImages(next);
+                setImagesError(null);
+              }}
+              altTextBase={name || product.name}
+              subjectKind="products"
+              subjectId={product.id}
+              maxImages={8}
+              compact
+              dense
+            />
+            <WizardFieldError message={imagesError ?? undefined} />
           </WizardSection>
 
           <CatalogSeoPanel
