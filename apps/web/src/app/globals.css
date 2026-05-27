@@ -1327,11 +1327,13 @@ html {
   }
 }
 
-/* Product card — true crossfade for cycling slides.
+/* Product card — continuous crossfade for cycling slides.
    Stacked via CSS grid so every layer overlaps in the same cell while the
    container sizes to the largest child. Toggling `--active` swaps opacity
-   on a transition, so the previous slide stays painted while the next one
-   fades in — no remount, no blank gap, no flicker. */
+   on a long linear transition that stretches across nearly the whole
+   `GRADE_CYCLE_MS` window (4800ms in TS). The previous layer is still
+   fading out as the next is fading in, so there is no static "dwell"
+   moment between slides — the animation is perceptually continuous. */
 .card-fade-stack {
   display: grid;
   grid-template-areas: "stack";
@@ -1340,7 +1342,7 @@ html {
 .card-fade-stack > .card-fade-stack__layer {
   grid-area: stack;
   opacity: 0;
-  transition: opacity 850ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: opacity 4200ms linear;
   pointer-events: none;
   will-change: opacity;
 }
