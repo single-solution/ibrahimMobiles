@@ -1327,12 +1327,15 @@ html {
   }
 }
 
-/* Product card — quick crossfade between cycling slides.
+/* Product card — quick "ticker" swap between cycling slides.
    Stacked via CSS grid so every layer overlaps in the same cell while the
-   container sizes to the largest child. Each `GRADE_CYCLE_MS` window
-   (2000ms in TS) holds a slide still, then toggling `--active` triggers a
-   short snappy fade (~350ms) into the next — clear visual stops between
-   slides without the swap ever feeling abrupt or blank. */
+   container sizes to the largest child. The incoming layer drops in from
+   above with a slight scale-up and fade; the outgoing layer fades and
+   lifts off in the same direction, so the change reads like the content
+   is being scrolled to the next entry rather than just fading. The slide
+   sits still for the rest of the `GRADE_CYCLE_MS` window (2000ms in TS).
+   `transform-origin: top center` keeps the scale anchored so chips and
+   badges never appear to grow from the wrong edge. */
 .card-fade-stack {
   display: grid;
   grid-template-areas: "stack";
@@ -1341,16 +1344,22 @@ html {
 .card-fade-stack > .card-fade-stack__layer {
   grid-area: stack;
   opacity: 0;
-  transition: opacity 350ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform: translate3d(0, -8px, 0) scale(0.96);
+  transform-origin: top center;
+  transition:
+    opacity 280ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 420ms cubic-bezier(0.34, 1.32, 0.64, 1);
   pointer-events: none;
-  will-change: opacity;
+  will-change: opacity, transform;
 }
 .card-fade-stack > .card-fade-stack__layer--active {
   opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
   pointer-events: auto;
 }
 @media (prefers-reduced-motion: reduce) {
   .card-fade-stack > .card-fade-stack__layer {
+    transform: none;
     transition: none;
   }
 }
