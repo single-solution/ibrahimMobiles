@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { classNames } from "@store/shared";
 import { Search, ShoppingBag, User } from "lucide-react";
 import { BrandLockup } from "@/components/layout/BrandLockup";
+import { CartDropdown } from "@/app/cart/_components/CartDropdown";
 import { useCart } from "@/lib/cart/useCart";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 
@@ -24,12 +25,11 @@ function isNavActive(href: string, pathname: string): boolean {
 
 interface HeaderProps {
   onOpenSearch: () => void;
-  onOpenCart: () => void;
-  isCartOpen: boolean;
 }
 
-export function Header({ onOpenSearch, onOpenCart, isCartOpen }: HeaderProps) {
+export function Header({ onOpenSearch }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const cart = useCart();
   const pathname = usePathname() ?? "/";
   const { siteName, brandLogoLight, brandLogoDark } = useStoreSettings();
@@ -42,6 +42,13 @@ export function Header({ onOpenSearch, onOpenCart, isCartOpen }: HeaderProps) {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Close the cart whenever the visitor navigates. Navigation-driven UI
+  // reset; `useEffectEvent` is still experimental in React 19.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation-driven UI reset
+    setIsCartOpen(false);
+  }, [pathname]);
 
   return (
     <header
@@ -61,10 +68,9 @@ export function Header({ onOpenSearch, onOpenCart, isCartOpen }: HeaderProps) {
       {isCartOpen && (
         <button
           type="button"
-          onClick={onOpenCart}
-          aria-hidden
-          tabIndex={-1}
-          className="animate-sheet-fade pointer-events-none absolute inset-0 z-[1] cursor-default bg-[var(--color-ink-900)]/15"
+          onClick={() => setIsCartOpen(false)}
+          aria-label="Close cart"
+          className="animate-sheet-fade absolute inset-0 z-[1] cursor-default bg-[var(--color-ink-900)]/15"
         />
       )}
       <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:px-8">
@@ -117,7 +123,7 @@ export function Header({ onOpenSearch, onOpenCart, isCartOpen }: HeaderProps) {
           </Link>
           <button
             type="button"
-            onClick={onOpenCart}
+            onClick={() => setIsCartOpen((previous) => !previous)}
             aria-label="Cart"
             aria-haspopup="dialog"
             aria-expanded={isCartOpen}
@@ -141,6 +147,8 @@ export function Header({ onOpenSearch, onOpenCart, isCartOpen }: HeaderProps) {
           </button>
         </div>
       </div>
+
+      <CartDropdown open={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </header>
   );
 }

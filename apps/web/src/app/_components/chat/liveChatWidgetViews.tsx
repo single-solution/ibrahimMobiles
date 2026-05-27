@@ -57,11 +57,11 @@ export function ChatShell({
     <div
       role="dialog"
       aria-label={`Chat with ${title}`}
-      /* Mobile gets the slide-up bottom-sheet feel (full-screen panel
-         entering from below). Desktop gets the anchored popover scale —
-         the widget appears to "lift" out of the floating FAB rather
-         than snap into place. */
-      className="animate-sheet-up md:animate-popover-in fixed inset-0 z-50 flex h-[100dvh] w-screen flex-col overflow-hidden bg-[var(--color-surface)] md:static md:h-[560px] md:w-[min(380px,calc(100vw-2rem))] md:rounded-[var(--radius-xl)] md:border md:border-[var(--color-ink-100)] md:shadow-[var(--shadow-lg)]"
+      /* Anchored popover on every breakpoint — the widget appears to
+         "lift" out of the floating FAB rather than take over the screen.
+         Mobile keeps its own size band so the panel feels touch-sized
+         without becoming a full-page modal. */
+      className="animate-popover-in flex h-[min(70dvh,520px)] w-[min(360px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[560px] md:w-[min(380px,calc(100vw-2rem))]"
     >
       <header className="flex items-center gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-ink-900)] px-3 py-3 text-[var(--color-on-dark)]">
         {onBack ? (

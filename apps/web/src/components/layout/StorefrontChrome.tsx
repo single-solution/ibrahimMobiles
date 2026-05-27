@@ -3,7 +3,6 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-import { CartDropdown } from "@/app/cart/_components/CartDropdown";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileHeader } from "@/components/layout/MobileHeader";
@@ -57,15 +56,7 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
   const isAdminRoute = pathname?.startsWith("/admin") ?? false;
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [areDeferredMounted, setAreDeferredMounted] = useState(false);
-
-  // Cart closes on every route commit — navigating from the popover should
-  // never leave the panel hanging open over the next page.
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation-driven UI reset
-    setIsCartOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     if (areDeferredMounted) return;
@@ -93,15 +84,9 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
     setIsSearchOpen(true);
   }, []);
 
-  const openCart = useCallback(() => setIsCartOpen(true), []);
-  const closeCart = useCallback(() => setIsCartOpen(false), []);
-
   if (isAdminRoute) {
     return <>{children}</>;
   }
-
-  const isProductDetail =
-    pathname?.startsWith("/shop/") && pathname !== "/shop" && pathname !== "/shop/";
 
   // We deliberately do NOT key `<main>` on `pathname`. Keying re-mounts the
   // element on every route change and makes navigation feel laggy. Instead,
@@ -126,27 +111,16 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
           <NavigationProgress />
         </Suspense>
       ) : null}
-      <Header
-        onOpenSearch={openSearch}
-        onOpenCart={openCart}
-        isCartOpen={isCartOpen}
-      />
-      <MobileHeader
-        onOpenSearch={openSearch}
-        onOpenCart={openCart}
-        isCartOpen={isCartOpen}
-      />
+      <Header onOpenSearch={openSearch} />
+      <MobileHeader onOpenSearch={openSearch} />
       <main className="page-enter min-h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h))] md:min-h-[calc(100dvh-var(--desktop-header-h))]">
         <Suspense fallback={children}>
           <RouteTransition>{children}</RouteTransition>
         </Suspense>
       </main>
       <Footer />
-      {areDeferredMounted ? (
-        <ChatFabShell mobileStackedAbove={isProductDetail ? "pdp-cta" : null} />
-      ) : null}
+      {areDeferredMounted ? <ChatFabShell /> : null}
       <MobileBottomTabBar />
-      <CartDropdown open={isCartOpen} onClose={closeCart} />
       {areDeferredMounted ? (
         <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       ) : null}

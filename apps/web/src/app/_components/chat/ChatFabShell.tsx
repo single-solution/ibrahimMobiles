@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 import { MessageSquare, X } from "lucide-react";
 import { classNames } from "@store/shared";
 
@@ -17,28 +16,15 @@ const LiveChatWidget = dynamic(
 );
 
 const LABEL_AUTO_HIDE_MS = 4500;
-const HIDDEN_PREFIXES = ["/checkout", "/account/sign-in"];
 
-interface ChatFabShellProps {
-  /**
-   * Stack the FAB above a mobile sticky CTA bar (e.g. the PDP add-to-cart bar).
-   * Adds extra bottom offset so the two don't overlap on phones; desktop
-   * positioning is unaffected.
-   */
-  mobileStackedAbove?: "pdp-cta" | null;
-}
-
-export function ChatFabShell({ mobileStackedAbove = null }: ChatFabShellProps) {
+export function ChatFabShell() {
   const chatSettings = useChatSettings();
-  const pathname = usePathname() ?? "";
   const [isOpen, setIsOpen] = useState(false);
   const [isLabelVisible, setIsLabelVisible] = useState(true);
   const [unread, setUnread] = useState(0);
   const [openDetail, setOpenDetail] = useState<OpenChatDetail | null>(null);
 
-  const hidden =
-    !chatSettings.enabled ||
-    HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  const hidden = !chatSettings.enabled;
 
   useEffect(() => {
     const timer = window.setTimeout(() => setIsLabelVisible(false), LABEL_AUTO_HIDE_MS);
@@ -119,12 +105,7 @@ export function ChatFabShell({ mobileStackedAbove = null }: ChatFabShellProps) {
   if (hidden) return null;
 
   return (
-    <div
-      className={classNames(
-        "floating-dock fixed right-4 z-40 flex flex-col items-end gap-2.5 md:right-7",
-        mobileStackedAbove === "pdp-cta" && "floating-dock--above-pdp-cta",
-      )}
-    >
+    <div className="floating-dock fixed right-4 z-40 flex flex-col items-end gap-2.5 md:right-7">
       {isOpen && (
         <LiveChatWidget
           onCollapse={() => {
@@ -141,13 +122,10 @@ export function ChatFabShell({ mobileStackedAbove = null }: ChatFabShellProps) {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label={isOpen ? "Close chat" : "Ask us a question"}
         aria-expanded={isOpen}
-        /* FAB is desktop-only now — mobile reaches the same widget from
-           the bottom tab bar's Chat slot. The shell remains mounted on
-           every breakpoint so `OPEN_CHAT_EVENT` listeners and unread
-           polling keep working when the widget is hidden. */
         className={classNames(
-          "tap group relative hidden cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-ink-900)] py-2.5 text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink-800)] hover:shadow-[var(--shadow-lg)] md:flex md:gap-2 md:pl-3 md:pr-4",
+          "tap group relative flex cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-ink-900)] py-2.5 text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink-800)] hover:shadow-[var(--shadow-lg)]",
           isLabelVisible && !isOpen ? "gap-2 pl-3 pr-4" : "gap-0 px-2.5",
+          "md:gap-2 md:pl-3 md:pr-4",
         )}
       >
         <span className="grid size-7 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-500)] text-[var(--color-ink-900)] transition-transform group-hover:scale-110">

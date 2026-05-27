@@ -1440,16 +1440,8 @@ html {
   bottom: calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px) + 24px);
 }
 
-/* On the product detail page, the PDP sticky add-to-cart bar sits just above
- * the bottom tab bar. Push the FAB another row up on phones so it doesn't
- * cover the price / quantity controls. */
-.floating-dock--above-pdp-cta {
-  bottom: calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px) + 88px);
-}
-
 @media (min-width: 40rem) {
-  .floating-dock,
-  .floating-dock--above-pdp-cta {
+  .floating-dock {
     bottom: 28px;
   }
 }
