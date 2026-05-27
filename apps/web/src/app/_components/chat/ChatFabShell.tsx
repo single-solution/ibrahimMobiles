@@ -141,10 +141,13 @@ export function ChatFabShell({ mobileStackedAbove = null }: ChatFabShellProps) {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label={isOpen ? "Close chat" : "Ask us a question"}
         aria-expanded={isOpen}
+        /* FAB is desktop-only now — mobile reaches the same widget from
+           the bottom tab bar's Chat slot. The shell remains mounted on
+           every breakpoint so `OPEN_CHAT_EVENT` listeners and unread
+           polling keep working when the widget is hidden. */
         className={classNames(
-          "tap group relative flex cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-ink-900)] py-2.5 text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink-800)] hover:shadow-[var(--shadow-lg)]",
+          "tap group relative hidden cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-ink-900)] py-2.5 text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink-800)] hover:shadow-[var(--shadow-lg)] md:flex md:gap-2 md:pl-3 md:pr-4",
           isLabelVisible && !isOpen ? "gap-2 pl-3 pr-4" : "gap-0 px-2.5",
-          "md:gap-2 md:pl-3 md:pr-4",
         )}
       >
         <span className="grid size-7 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-500)] text-[var(--color-ink-900)] transition-transform group-hover:scale-110">
