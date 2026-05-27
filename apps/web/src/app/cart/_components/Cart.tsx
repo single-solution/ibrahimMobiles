@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, ShoppingBag, Trash2 } from "lucide-react";
+import { ArrowUpRight, ShoppingBag, Trash2 } from "lucide-react";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
 import { productHref } from "@/lib/catalog/productPaths";
 import { useCart } from "@/lib/cart/useCart";
 import type { CartItem } from "@/lib/cart/types";
-import { classNames, formatPrice } from "@store/shared";
+import { formatPrice } from "@store/shared";
 
 /**
  * Full-page cart. Mirrors the cart drawer's content but at full width — used
@@ -42,16 +42,13 @@ export function Cart() {
   }
 
   return (
-    <div className="mx-auto max-w-[1100px] px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">
-      <div className="flex flex-col gap-3">
-        <Link
-          href="/shop"
-          className="cta-arrow inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-ink-500)] hover:text-[var(--color-ink-800)]"
-        >
-          <ArrowLeft size={13} />
-          Back to shop
-        </Link>
-        <h1 className="font-headline text-[32px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[42px]">
+    /* Mobile shell is a fixed-height flex column filling the viewport
+       between the mobile header and the floating tab-bar pill, so the
+       item list scrolls and the order summary sits anchored at the
+       bottom. Desktop reverts to a normal-flow two-column grid. */
+    <div className="mx-auto flex h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h)-env(safe-area-inset-bottom,0px)-32px)] max-w-[1100px] flex-col px-4 pt-4 md:block md:h-auto md:px-6 md:pb-16 md:pt-10 lg:px-8">
+      <div className="flex shrink-0 flex-col gap-2 md:gap-3">
+        <h1 className="font-headline text-[28px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[42px]">
           Your cart
         </h1>
         <p className="text-[13px] text-[var(--color-ink-500)] md:text-sm">
@@ -60,14 +57,14 @@ export function Cart() {
         </p>
       </div>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-[1fr_320px] lg:grid-cols-[1fr_360px]">
-        <ul className="divide-y divide-[var(--color-ink-100)] rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+      <div className="mt-4 flex min-h-0 flex-1 flex-col gap-3 md:mt-6 md:grid md:flex-none md:grid-cols-[1fr_320px] md:gap-6 lg:grid-cols-[1fr_360px]">
+        <ul className="min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] md:flex-none md:overflow-visible">
           {cart.items.map((line) => (
             <CartLine key={line.id} line={line} />
           ))}
         </ul>
 
-        <aside className="space-y-3">
+        <aside className="shrink-0 md:space-y-3">
           <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 md:p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
               Order summary

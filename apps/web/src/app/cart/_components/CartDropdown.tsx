@@ -18,6 +18,8 @@ interface CartDropdownProps {
   onClose: () => void;
 }
 
+/* Desktop-only cart popover anchored to the header trigger. Mobile uses
+   a dedicated `/cart` page instead, reached via the bottom-bar tab. */
 export function CartDropdown({ open, onClose }: CartDropdownProps) {
   const cart = useCart();
   const [isMounted, setIsMounted] = useState(false);
@@ -59,11 +61,11 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
         aria-label="Close cart"
         type="button"
         onClick={onClose}
-        className="animate-sheet-fade fixed inset-0 z-[60] cursor-default bg-[var(--color-ink-900)]/15"
+        className="animate-sheet-fade fixed inset-0 z-[60] hidden cursor-default bg-[var(--color-ink-900)]/15 md:block"
       />
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 z-[70] flex justify-center px-4 pt-[calc(var(--mobile-header-h)+8px)] md:px-6 md:pt-[calc(var(--desktop-header-h)+8px)] lg:px-8"
+        className="pointer-events-none fixed inset-x-0 top-0 z-[70] hidden justify-center px-6 pt-[calc(var(--desktop-header-h)+8px)] md:flex lg:px-8"
       >
         <div className="flex w-full max-w-[1440px] justify-end">
           <div
@@ -71,85 +73,84 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
             aria-modal="true"
             aria-label="Your cart"
             className={classNames(
-              /* Anchored to the header cart trigger — slides down + scales
-                 in for a tactile "pulling open" feel rather than a flat
-                 fade. */
-              "animate-popover-in pointer-events-auto flex h-[min(560px,calc(100dvh-var(--mobile-header-h)-24px))] w-full max-w-[420px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[400px]",
+              /* Drops down + scales in from the header cart trigger so
+                 the panel feels anchored to its button. */
+              "animate-popover-in pointer-events-auto flex h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] w-[400px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]",
             )}
           >
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
-              Your cart
-            </p>
-            <h2 className="text-[16px] font-semibold tracking-tight text-[var(--color-ink-900)]">
-              {totals.itemCount} {totals.itemCount === 1 ? "item" : "items"}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close cart"
-            className="tap grid size-9 shrink-0 place-items-center rounded-full text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
-          >
-            <X size={16} />
-          </button>
-        </header>
-
-        {lines.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
-            <span className="grid size-12 place-items-center rounded-full bg-[var(--color-accent-50)] text-[var(--color-accent-700)]">
-              <ShoppingBag size={20} />
-            </span>
-            <p className="text-[14px] font-semibold text-[var(--color-ink-900)]">
-              Your cart is empty
-            </p>
-            <p className="max-w-prose text-[12.5px] text-[var(--color-ink-500)]">
-              Add a product from the shop to get started.
-            </p>
-            <ButtonLink href="/shop" variant="primary" size="sm" onClick={onClose}>
-              Browse products
-            </ButtonLink>
-          </div>
-        ) : (
-          <>
-            <ul className="min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto px-1">
-              {lines.map((line) => (
-                <CartDropdownLine
-                  key={line.id}
-                  line={line}
-                  onClose={onClose}
-                  onRemove={() => cart.removeItem(line.id)}
-                  onQuantityChange={(next) => cart.updateQuantity(line.id, next)}
-                />
-              ))}
-            </ul>
-
-            <div className="shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-4">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-                  Total
-                </span>
-                <span className="font-headline text-[22px] font-semibold tabular-nums tracking-tight text-[var(--color-ink-900)]">
-                  {formatPrice(totals.subtotal)}
-                </span>
+            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
+                  Your cart
+                </p>
+                <h2 className="text-[16px] font-semibold tracking-tight text-[var(--color-ink-900)]">
+                  {totals.itemCount} {totals.itemCount === 1 ? "item" : "items"}
+                </h2>
               </div>
-              <p className="mt-0.5 text-[11px] text-[var(--color-ink-500)]">
-                Delivery &amp; payment chosen at checkout.
-              </p>
-              <ButtonLink
-                href="/checkout"
-                variant="primary"
-                size="md"
-                className="mt-3 w-full"
+              <button
+                type="button"
                 onClick={onClose}
-                trailingIcon={<ArrowUpRight size={15} strokeWidth={2.4} />}
+                aria-label="Close cart"
+                className="tap grid size-9 shrink-0 place-items-center rounded-full text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
               >
-                Proceed to checkout
-              </ButtonLink>
-            </div>
-          </>
-        )}
+                <X size={16} />
+              </button>
+            </header>
+
+            {lines.length === 0 ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
+                <span className="grid size-12 place-items-center rounded-full bg-[var(--color-accent-50)] text-[var(--color-accent-700)]">
+                  <ShoppingBag size={20} />
+                </span>
+                <p className="text-[14px] font-semibold text-[var(--color-ink-900)]">
+                  Your cart is empty
+                </p>
+                <p className="max-w-prose text-[12.5px] text-[var(--color-ink-500)]">
+                  Add a product from the shop to get started.
+                </p>
+                <ButtonLink href="/shop" variant="primary" size="sm" onClick={onClose}>
+                  Browse products
+                </ButtonLink>
+              </div>
+            ) : (
+              <>
+                <ul className="min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto px-1">
+                  {lines.map((line) => (
+                    <CartDropdownLine
+                      key={line.id}
+                      line={line}
+                      onClose={onClose}
+                      onRemove={() => cart.removeItem(line.id)}
+                      onQuantityChange={(next) => cart.updateQuantity(line.id, next)}
+                    />
+                  ))}
+                </ul>
+
+                <div className="shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-4">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+                      Total
+                    </span>
+                    <span className="font-headline text-[22px] font-semibold tabular-nums tracking-tight text-[var(--color-ink-900)]">
+                      {formatPrice(totals.subtotal)}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-[var(--color-ink-500)]">
+                    Delivery &amp; payment chosen at checkout.
+                  </p>
+                  <ButtonLink
+                    href="/checkout"
+                    variant="primary"
+                    size="md"
+                    className="mt-3 w-full"
+                    onClick={onClose}
+                    trailingIcon={<ArrowUpRight size={15} strokeWidth={2.4} />}
+                  >
+                    Proceed to checkout
+                  </ButtonLink>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -256,4 +257,3 @@ function CartDropdownLine({
     </li>
   );
 }
-

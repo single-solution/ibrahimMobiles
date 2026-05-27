@@ -22,6 +22,7 @@ export {
 } from "@/lib/storefront/queries";
 
 export { getStorefrontFacets } from "@/lib/storefront/facets";
+export { getSearchHints } from "@/lib/storefront/hints";
 export type {
   StorefrontAttributeFacet,
   StorefrontFacetOption,

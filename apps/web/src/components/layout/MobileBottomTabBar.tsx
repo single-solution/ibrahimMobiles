@@ -2,72 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Menu, ShoppingBag, Tag, User } from "lucide-react";
+import { Home, ShoppingBag, ShoppingCart, Tag, User } from "lucide-react";
 import { classNames } from "@store/shared";
+import { useCart } from "@/lib/cart/useCart";
 
-interface MobileBottomTabBarProps {
-  onOpenMenu: () => void;
-  isMenuOpen: boolean;
-}
-
-interface TabLink {
-  kind: "link";
+interface Tab {
   href: string;
   label: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   matchPaths: string[];
+  showCartBadge?: boolean;
 }
 
-interface TabAction {
-  kind: "action";
-  label: string;
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
-  isActive: boolean;
-  onClick: () => void;
-}
+const TABS: Tab[] = [
+  { href: "/", label: "Home", icon: Home, matchPaths: ["/"] },
+  { href: "/shop", label: "Shop", icon: ShoppingBag, matchPaths: ["/shop"] },
+  { href: "/deals", label: "Deals", icon: Tag, matchPaths: ["/deals"] },
+  { href: "/cart", label: "Cart", icon: ShoppingCart, matchPaths: ["/cart"], showCartBadge: true },
+  { href: "/account", label: "Account", icon: User, matchPaths: ["/account"] },
+];
 
-type Tab = TabLink | TabAction;
-
-export function MobileBottomTabBar({ onOpenMenu, isMenuOpen }: MobileBottomTabBarProps) {
+export function MobileBottomTabBar() {
   const pathname = usePathname() ?? "/";
-
-  const tabs: Tab[] = [
-    {
-      kind: "link",
-      href: "/",
-      label: "Home",
-      icon: Home,
-      matchPaths: ["/"],
-    },
-    {
-      kind: "link",
-      href: "/shop",
-      label: "Shop",
-      icon: ShoppingBag,
-      matchPaths: ["/shop"],
-    },
-    {
-      kind: "link",
-      href: "/deals",
-      label: "Deals",
-      icon: Tag,
-      matchPaths: ["/deals"],
-    },
-    {
-      kind: "link",
-      href: "/account",
-      label: "Account",
-      icon: User,
-      matchPaths: ["/account"],
-    },
-    {
-      kind: "action",
-      label: "Menu",
-      icon: Menu,
-      isActive: isMenuOpen,
-      onClick: onOpenMenu,
-    },
-  ];
+  const { itemCount } = useCart();
 
   return (
     <nav
@@ -79,13 +36,13 @@ export function MobileBottomTabBar({ onOpenMenu, isMenuOpen }: MobileBottomTabBa
         className="grid grid-cols-5"
         style={{ height: "var(--mobile-tabbar-h)" }}
       >
-        {tabs.map((tab) => (
-          <li key={tab.label} className="flex p-1.5">
-            {tab.kind === "link" ? (
-              <TabLinkItem tab={tab} pathname={pathname} />
-            ) : (
-              <TabActionItem tab={tab} />
-            )}
+        {TABS.map((tab) => (
+          <li key={tab.href} className="flex p-1.5">
+            <TabLinkItem
+              tab={tab}
+              pathname={pathname}
+              badgeCount={tab.showCartBadge ? itemCount : 0}
+            />
           </li>
         ))}
       </ul>
@@ -104,11 +61,12 @@ function isLinkActive(href: string, matchPaths: string[], pathname: string): boo
 }
 
 interface TabLinkItemProps {
-  tab: TabLink;
+  tab: Tab;
   pathname: string;
+  badgeCount: number;
 }
 
-function TabLinkItem({ tab, pathname }: TabLinkItemProps) {
+function TabLinkItem({ tab, pathname, badgeCount }: TabLinkItemProps) {
   const isActive = isLinkActive(tab.href, tab.matchPaths, pathname);
   const Icon = tab.icon;
   return (
@@ -122,32 +80,18 @@ function TabLinkItem({ tab, pathname }: TabLinkItemProps) {
       )}
       aria-current={isActive ? "page" : undefined}
     >
-      <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+      <span className="relative">
+        <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+        {badgeCount > 0 && (
+          <span
+            key={badgeCount}
+            className="animate-badge-pop absolute -right-2 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--color-accent-500)] px-1 text-[10px] font-bold text-[var(--color-ink-900)]"
+          >
+            {badgeCount > 9 ? "9+" : badgeCount}
+          </span>
+        )}
+      </span>
       <span className="leading-none">{tab.label}</span>
     </Link>
-  );
-}
-
-interface TabActionItemProps {
-  tab: TabAction;
-}
-
-function TabActionItem({ tab }: TabActionItemProps) {
-  const Icon = tab.icon;
-  return (
-    <button
-      type="button"
-      onClick={tab.onClick}
-      className={classNames(
-        "tap flex w-full flex-col items-center justify-center gap-0.5 rounded-full text-[11px] transition-colors",
-        tab.isActive
-          ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
-          : "font-medium text-[var(--color-ink-500)] active:text-[var(--color-ink-800)]",
-      )}
-      aria-pressed={tab.isActive}
-    >
-      <Icon size={20} strokeWidth={tab.isActive ? 2.4 : 2} />
-      <span className="leading-none">{tab.label}</span>
-    </button>
   );
 }

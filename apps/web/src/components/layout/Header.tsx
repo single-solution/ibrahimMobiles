@@ -108,15 +108,15 @@ export function Header({ onOpenSearch }: HeaderProps) {
             type="button"
             onClick={onOpenSearch}
             aria-label="Search products"
-            className="inline-flex h-10 w-72 items-center gap-2 rounded-full border border-transparent bg-[var(--color-surface)] px-4 text-sm text-[var(--color-ink-500)] transition-colors hover:border-[var(--color-ink-100)] hover:text-[var(--color-ink-700)] focus-visible:border-[var(--color-ink-100)] focus-visible:text-[var(--color-ink-700)] focus-visible:outline-none"
+            className="tap inline-flex h-10 items-center gap-1.5 rounded-full border border-transparent px-3.5 text-sm font-medium text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)] focus-visible:outline-none"
           >
             <Search size={15} />
-            <span className="truncate">Search products…</span>
+            <span>Search</span>
           </button>
           <Link
             href="/account"
             aria-label="Account"
-            className="tap inline-flex h-10 items-center gap-1.5 rounded-full border border-transparent bg-[var(--color-surface)] px-3.5 text-sm font-medium text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)] focus-visible:outline-none"
+            className="tap inline-flex h-10 items-center gap-1.5 rounded-full border border-transparent px-3.5 text-sm font-medium text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)] focus-visible:outline-none"
           >
             <User size={15} />
             <span>Account</span>
@@ -131,7 +131,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
               "tap relative z-[2] inline-flex h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors focus-visible:outline-none",
               isCartOpen
                 ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)] shadow-[var(--shadow-sm)]"
-                : "border-transparent bg-[var(--color-surface)] text-[var(--color-ink-800)] hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)]",
+                : "border-transparent text-[var(--color-ink-800)] hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)]",
             )}
           >
             <ShoppingBag size={15} />

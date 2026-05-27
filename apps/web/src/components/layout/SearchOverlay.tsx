@@ -23,19 +23,21 @@ interface SearchResult {
   fromPriceRupees: number;
 }
 
-const TRENDING_QUERIES = ["New arrivals", "Best sellers", "Brand new", "Under 50,000"];
-
 const DEBOUNCE_MS = 220;
 const MIN_QUERY_LEN = 2;
 const AUTOFOCUS_DELAY_MS = 60;
 const SEARCH_RESULTS_LIMIT = 10;
 /** Skeleton placeholder rows shown while results load. */
 const SKELETON_PLACEHOLDER_ROWS = 4;
+/** Static fallback chips shown when the hints endpoint is unreachable
+ *  or the catalogue is too sparse to seed any. */
+const HINT_FALLBACK: string[] = ["New arrivals", "Best sellers"];
 
 export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hints, setHints] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
 
@@ -46,6 +48,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- close-time reset of overlay-local state
       setQuery("");
       setResults([]);
+      setHints([]);
       return;
     }
 
@@ -69,6 +72,27 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       window.clearTimeout(focusTimer);
     };
   }, [isOpen, onClose]);
+
+  // Fetch a fresh set of hint chips each time the overlay opens. The
+  // server-side mix is randomized, so every open gets a different blend
+  // of categories / top sellers / bottom sellers.
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    const controller = new AbortController();
+    fetch("/api/storefront/search/hints", { signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : { hints: [] }))
+      .then((data: { hints?: string[] }) => {
+        setHints(Array.isArray(data.hints) ? data.hints : []);
+      })
+      .catch((error) => {
+        if (!(error instanceof DOMException) || error.name !== "AbortError") {
+          setHints([]);
+        }
+      });
+    return () => controller.abort();
+  }, [isOpen]);
 
   // Debounced fetch against /api/storefront/search.
   useEffect(() => {
@@ -128,7 +152,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   return (
     <div className="animate-sheet-fade fixed inset-0 z-50 flex flex-col bg-[var(--color-canvas)]">
       <div
-        className="safe-top sticky top-0 z-10 flex items-center gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2 py-2 md:mx-auto md:max-w-3xl md:px-4 md:py-3"
+        className="safe-top sticky top-0 z-10 flex items-center gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2 py-2 md:mx-auto md:w-full md:max-w-5xl md:px-4 md:py-3"
         style={{ "--safe-top-base": "0.5rem" } as CSSProperties}
       >
         <button
@@ -174,9 +198,12 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
         </form>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 md:mx-auto md:w-full md:max-w-3xl">
+      <div className="flex-1 overflow-y-auto px-4 py-4 md:mx-auto md:w-full md:max-w-5xl">
         {query.trim().length < MIN_QUERY_LEN ? (
-          <SearchEmptyState onPick={(value) => submitSearch(value)} />
+          <SearchEmptyState
+            hints={hints.length > 0 ? hints : HINT_FALLBACK}
+            onPick={(value) => submitSearch(value)}
+          />
         ) : isLoading && results.length === 0 ? (
           <SearchSkeleton />
         ) : results.length === 0 ? (
@@ -253,27 +280,31 @@ function SearchHit({ result, onNavigate }: SearchHitProps) {
 }
 
 interface SearchEmptyStateProps {
+  hints: string[];
   onPick: (value: string) => void;
 }
 
-function SearchEmptyState({ onPick }: SearchEmptyStateProps) {
+function SearchEmptyState({ hints, onPick }: SearchEmptyStateProps) {
+  if (hints.length === 0) {
+    return null;
+  }
   return (
     <div>
       <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
         <TrendingUp size={12} />
-        Trending
+        Try these
       </h3>
       <div className="sheet-stagger mt-3 flex flex-wrap gap-2">
-        {TRENDING_QUERIES.map((trending) => (
+        {hints.map((hint) => (
           <button
-            key={trending}
+            key={hint}
             type="button"
-            onClick={() => onPick(trending)}
+            onClick={() => onPick(hint)}
             className={classNames(
               "tap rounded-[var(--radius-full)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-3.5 py-2 text-sm font-medium text-[var(--color-ink-700)] active:bg-[var(--color-surface-muted)]",
             )}
           >
-            {trending}
+            {hint}
           </button>
         ))}
       </div>

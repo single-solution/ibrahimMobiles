@@ -37,11 +37,6 @@ const ChatFabShell = dynamic(
     import("@/app/_components/chat/ChatFabShell").then((m) => m.ChatFabShell),
   { ssr: false, loading: () => null },
 );
-const MobileMenuSheet = dynamic(
-  () =>
-    import("@/components/layout/MobileMenuSheet").then((m) => m.MobileMenuSheet),
-  { ssr: false, loading: () => null },
-);
 const SearchOverlay = dynamic(
   () =>
     import("@/components/layout/SearchOverlay").then((m) => m.SearchOverlay),
@@ -60,7 +55,6 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
   const pathname = usePathname();
   const isAdminRoute = pathname?.startsWith("/admin") ?? false;
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [areDeferredMounted, setAreDeferredMounted] = useState(false);
 
@@ -81,14 +75,10 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
     return () => window.clearTimeout(handle);
   }, [areDeferredMounted]);
 
-  /* If the user taps the hamburger / search trigger before the idle
-     callback fires, force-mount the deferred chunks immediately so the
-     sheet / overlay can render in response. Without this, an extremely
-     fast tap (< 1.5 s after FCP) would no-op until the gate opened. */
-  const openMenu = useCallback(() => {
-    setAreDeferredMounted(true);
-    setIsMenuOpen(true);
-  }, []);
+  /* If the user taps the search trigger before the idle callback fires,
+     force-mount the deferred chunks immediately so the overlay can render
+     in response. Without this, an extremely fast tap (< 1.5 s after FCP)
+     would no-op until the gate opened. */
   const openSearch = useCallback(() => {
     setAreDeferredMounted(true);
     setIsSearchOpen(true);
@@ -135,13 +125,7 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
       {areDeferredMounted ? (
         <ChatFabShell mobileStackedAbove={isProductDetail ? "pdp-cta" : null} />
       ) : null}
-      <MobileBottomTabBar
-        onOpenMenu={openMenu}
-        isMenuOpen={isMenuOpen}
-      />
-      {areDeferredMounted ? (
-        <MobileMenuSheet isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
-      ) : null}
+      <MobileBottomTabBar />
       {areDeferredMounted ? (
         <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       ) : null}

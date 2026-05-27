@@ -32,12 +32,9 @@ import { GroupedAttributeChipRow } from "./productCardChipRow";
 import { ProductListingCountChip } from "./productCardCountChip";
 import {
   ProductCardMediaCycle,
-  ProductCardPriceCycle,
   ProductCardTitleChipCycle,
   buildProductCardGradeSlides,
   buildProductCardVariantSlides,
-  formatListingPrice,
-  formatVariantListingPrice,
   useSlideCycle,
 } from "./productCardSlideCycle";
 
@@ -124,9 +121,6 @@ export function ProductCard({
     isGradeListing && pinnedGradeSlug
       ? resolveGradeListingHeroImage(catalog, pinnedGradeSlug)
       : undefined;
-  const priceLabel = isGradeListing
-    ? formatVariantListingPrice(listingVariant)
-    : formatListingPrice(catalog);
 
   const attributeSource = isGradeListing ? product : catalog;
   const staticHeroImage =
@@ -223,13 +217,31 @@ export function ProductCard({
         <div className="flex flex-1 flex-col">
           <div className="flex flex-1 flex-col gap-1 p-2 md:gap-1.5 md:p-2.5">
             <div className="space-y-0.5">
-              <span className="line-clamp-1 text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
-                {brandName}
-              </span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="line-clamp-1 text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
+                  {brandName}
+                </span>
+                {showGradeCountChip && (
+                  <ProductListingCountChip
+                    label={`${gradeCount} ${gradeCount === 1 ? "grade" : "grades"}`}
+                  />
+                )}
+                {showVariantCountChip && (
+                  <ProductListingCountChip
+                    label={`${variantsInGradeCount} ${variantsInGradeCount === 1 ? "variant" : "variants"}`}
+                  />
+                )}
+              </div>
               <h3 className="line-clamp-1 text-[13px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)] md:text-[15px]">
                 {product.name}
               </h3>
             </div>
+          </div>
+
+          {/* Attribute chips sit in their own tinted footer band — keeps
+              card heights uniform across the grid even when an individual
+              card has no chips to show. */}
+          <div className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-2 pb-1 pt-1.5 md:px-2.5 md:pb-1.5 md:pt-2">
             <div className={CARD_CHIP_SLOT_CLASS}>
               {shouldCycleVariantChips && variantSlides ? (
                 <ProductCardTitleChipCycle
@@ -248,29 +260,6 @@ export function ProductCard({
                 />
               )}
             </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-2 py-1.5 md:px-2.5 md:py-2">
-            {isGradeListing && shouldCycleVariantChips && variantSlides ? (
-              <ProductCardPriceCycle
-                variants={orderedVariantsInGrade}
-                activeIndex={slideCycle.activeIndex}
-              />
-            ) : (
-              <p className="min-w-0 text-[14px] font-semibold leading-snug tracking-tight text-[var(--color-ink-900)] md:text-[16px]">
-                {priceLabel ?? "Unavailable"}
-              </p>
-            )}
-            {showGradeCountChip && (
-              <ProductListingCountChip
-                label={`${gradeCount} ${gradeCount === 1 ? "grade" : "grades"}`}
-              />
-            )}
-            {showVariantCountChip && (
-              <ProductListingCountChip
-                label={`${variantsInGradeCount} ${variantsInGradeCount === 1 ? "variant" : "variants"}`}
-              />
-            )}
           </div>
         </div>
       </div>
