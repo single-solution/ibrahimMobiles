@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
 import { useToast } from "@/components/ui/Toast";
+import { ImageGallery } from "@/components/shared/uploads";
+import { uploadGalleryImages } from "@/components/shared/uploads/imageStaging";
+import type { GalleryImage } from "@/components/shared/uploads/imageStaging";
 import type { AdminProduct } from "@/types/admin";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 
@@ -19,6 +22,7 @@ import {
   WizardSection,
 } from "./productWizardUi";
 import {
+  collectProductImageErrors,
   emptyDraft,
   errorsByPath,
   validateShellDraft,
@@ -76,25 +80,40 @@ export function ProductWizardStep1({
     onClose();
   }
 
+  function updateImages(images: GalleryImage[]) {
+    setDraft((prev) => ({ ...prev, images }));
+    setErrors((prev) => prev.filter((row) => row.path !== "images"));
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (submitting) return;
-    const result = validateShellDraft(draft);
-    if (!result.ok) {
-      setErrors(result.errors);
+    const shell = validateShellDraft(draft);
+    const imageErrors = collectProductImageErrors(draft.images);
+    if (!shell.ok || imageErrors.length > 0) {
+      const merged = [...(shell.ok ? [] : shell.errors), ...imageErrors];
+      setErrors(merged);
       toast.danger(
-        result.errors.length === 1
-          ? result.errors[0].message
-          : `${result.errors.length} fields need attention.`,
+        merged.length === 1
+          ? merged[0].message
+          : `${merged.length} fields need attention.`,
       );
       return;
     }
     setErrors([]);
     setSubmitting(true);
     try {
+      // Photos exist before the product does, so stage them under a draft
+      // prefix; storage paths reorganise on the next save once we have an id.
+      const uploadedImages = await uploadGalleryImages(draft.images, {
+        subjectKind: "products/new",
+        subjectId: shell.payload.brandSlug
+          ? `${shell.payload.categorySlug}-${shell.payload.brandSlug}-${slugHint || "draft"}`
+          : "draft",
+      });
       const product = await adminFetch<AdminProduct>("/api/products", {
         method: "POST",
-        json: { ...result.payload, variants: [] },
+        json: { ...shell.payload, images: uploadedImages, variants: [] },
       });
       toast.success("Product saved. Add variations next, or skip for now.");
       setDraft(emptyDraft());
@@ -118,7 +137,7 @@ export function ProductWizardStep1({
       isOpen={isOpen}
       onClose={handleClose}
       title="New product"
-      description="Step 1 of 2 — pick category, brand, and name. Variations come next."
+      description="Step 1 of 2 — category, brand, name, and photos. Variations come next."
       width="lg"
       footer={
         <div className="flex items-center justify-end gap-2">
@@ -214,6 +233,23 @@ export function ProductWizardStep1({
                 </p>
               )}
               <WizardFieldError message={errorMap.get("name")} />
+            </WizardSection>
+
+            <WizardSection title="Photos">
+              <p className="mb-2 text-[11.5px] text-[var(--color-ink-500)]">
+                One gallery for the whole product — shared by every variant.
+              </p>
+              <ImageGallery
+                value={draft.images}
+                onChange={updateImages}
+                altTextBase={draft.name || "Product"}
+                subjectKind="products/new"
+                subjectId={slugHint || "draft"}
+                maxImages={8}
+                compact
+                dense
+              />
+              <WizardFieldError message={errorMap.get("images")} />
             </WizardSection>
           </>
         )}

@@ -546,31 +546,33 @@ export function ProductWizardStep2({
               onChange={selectGrade}
             />
 
-            <div className="shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-3">
-              <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-                  Product photos
-                </p>
-                <p className="text-[11px] font-normal normal-case text-[var(--color-ink-500)]">
-                  One gallery for the whole product — shared by every variant.
-                </p>
+            {isManage ? (
+              <div className="shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-3">
+                <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+                    Product photos
+                  </p>
+                  <p className="text-[11px] font-normal normal-case text-[var(--color-ink-500)]">
+                    One gallery for the whole product — shared by every variant.
+                  </p>
+                </div>
+                <ImageGallery
+                  value={productImages}
+                  onChange={updateProductImages}
+                  altTextBase={product.name}
+                  subjectKind={uploadKind}
+                  subjectId={product.id}
+                  maxImages={8}
+                  compact
+                  dense
+                />
+                {errorMap.get("images") ? (
+                  <p className="mt-1.5 text-[12px] font-semibold text-[var(--color-rose-700)]">
+                    {errorMap.get("images")}
+                  </p>
+                ) : null}
               </div>
-              <ImageGallery
-                value={productImages}
-                onChange={updateProductImages}
-                altTextBase={product.name}
-                subjectKind={uploadKind}
-                subjectId={product.id}
-                maxImages={8}
-                compact
-                dense
-              />
-              {errorMap.get("images") ? (
-                <p className="mt-1.5 text-[12px] font-semibold text-[var(--color-rose-700)]">
-                  {errorMap.get("images")}
-                </p>
-              ) : null}
-            </div>
+            ) : null}
 
             <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
               <aside className="flex w-[17.5rem] shrink-0 flex-col border-r border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-2.5 xl:w-80">
