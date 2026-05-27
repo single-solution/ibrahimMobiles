@@ -15,16 +15,12 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 import type { AdminAttribute, AdminGrade, AdminProduct } from "@/types/admin";
-import { ImageGallery } from "@/components/shared/uploads";
-import { uploadGalleryImages } from "@/components/shared/uploads/imageStaging";
-import type { GalleryImage } from "@/components/shared/uploads/imageStaging";
 
 import { VariantCard, VariantDetailFooter } from "./VariantCard";
 import { VariantSidebarTile } from "./VariantSidebarTile";
 import { WizardEmptyHint } from "./productWizardUi";
 import {
   adminVariantToDraft,
-  collectProductImageErrors,
   emptyVariantDraft,
   errorsByPath,
   mergeVariantDraftAttributes,
@@ -104,7 +100,6 @@ export function ProductWizardStep2({
   const workspaceInitProductIdRef = useRef<string | null>(null);
   const toast = useToast();
   const [sections, setSections] = useState<GradeSectionState[]>([]);
-  const [productImages, setProductImages] = useState<GalleryImage[]>([]);
   const [selectedGradeSlug, setSelectedGradeSlug] = useState<string | null>(null);
   const [selectedVariantUid, setSelectedVariantUid] = useState<string | null>(null);
   const [errors, setErrors] = useState<ProductValidationError[]>([]);
@@ -178,7 +173,6 @@ export function ProductWizardStep2({
     ) => {
       const built = buildGradeSections(nextProduct, categoryGrades);
       setSections(built);
-      setProductImages([...(nextProduct.images as GalleryImage[])]);
       setErrors([]);
       const { gradeSlug, variantUid } = resolveWorkspaceSelection(
         built,
@@ -229,7 +223,6 @@ export function ProductWizardStep2({
   const selectedComboIndex = selectedVariant
     ? activeVariants.findIndex((row) => row.uid === selectedVariant.uid)
     : -1;
-  const uploadKind = product ? `products/${product.id}` : "products/new";
 
   const selectGrade = useCallback(
     (gradeSlug: string) => {
@@ -252,11 +245,6 @@ export function ProductWizardStep2({
         section.gradeSlug === gradeSlug ? updater(section) : section,
       ),
     );
-  }
-
-  function updateProductImages(images: GalleryImage[]) {
-    setProductImages(images);
-    setErrors((prev) => prev.filter((row) => row.path !== "images"));
   }
 
   function addCombination(gradeSlug: string) {
@@ -367,15 +355,12 @@ export function ProductWizardStep2({
       },
     );
 
-    const imageErrors = collectProductImageErrors(productImages);
-
-    if (!result.ok || imageErrors.length > 0) {
-      const merged = [...(result.ok ? [] : result.errors), ...imageErrors];
-      setErrors(merged);
+    if (!result.ok) {
+      setErrors(result.errors);
       toast.danger(
-        merged.length === 1
-          ? merged[0].message
-          : `${merged.length} fields need attention.`,
+        result.errors.length === 1
+          ? result.errors[0].message
+          : `${result.errors.length} fields need attention.`,
       );
       return;
     }
@@ -393,16 +378,6 @@ export function ProductWizardStep2({
           { method: "DELETE" },
         );
       }
-
-      const uploadedImages = await uploadGalleryImages(productImages, {
-        subjectKind: uploadKind,
-        subjectId: product.id,
-      });
-
-      await adminFetch<AdminProduct>(
-        `/api/products/${product.id}/images`,
-        { method: "PUT", json: { images: uploadedImages } },
-      );
 
       for (let index = 0; index < result.payload.variants.length; index += 1) {
         const variant = result.payload.variants[index];
@@ -545,34 +520,6 @@ export function ProductWizardStep2({
               activeId={selectedGradeSlug ?? grades[0]?.slug ?? ""}
               onChange={selectGrade}
             />
-
-            {isManage ? (
-              <div className="shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-3">
-                <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-                    Product photos
-                  </p>
-                  <p className="text-[11px] font-normal normal-case text-[var(--color-ink-500)]">
-                    One gallery for the whole product — shared by every variant.
-                  </p>
-                </div>
-                <ImageGallery
-                  value={productImages}
-                  onChange={updateProductImages}
-                  altTextBase={product.name}
-                  subjectKind={uploadKind}
-                  subjectId={product.id}
-                  maxImages={8}
-                  compact
-                  dense
-                />
-                {errorMap.get("images") ? (
-                  <p className="mt-1.5 text-[12px] font-semibold text-[var(--color-rose-700)]">
-                    {errorMap.get("images")}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
 
             <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
               <aside className="flex w-[17.5rem] shrink-0 flex-col border-r border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-2.5 xl:w-80">
