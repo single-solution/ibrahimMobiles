@@ -26,7 +26,7 @@ import {
 } from "./productCardChipModel";
 import { GroupedAttributeChipRow } from "./productCardChipRow";
 
-const GRADE_CYCLE_MS = 4800;
+const GRADE_CYCLE_MS = 3600;
 
 export function buildProductCardGradeSlides(
   catalog: Product,
