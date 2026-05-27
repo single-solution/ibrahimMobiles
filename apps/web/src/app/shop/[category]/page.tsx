@@ -148,7 +148,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       {/* Desktop */}
       <div className="hidden md:block">
         <div className="mx-auto max-w-[1440px] px-6 pb-20 pt-4">
-          <div className="grid grid-cols-[272px_1fr] gap-10 xl:grid-cols-[280px_1fr] xl:gap-12">
+          <div className="grid grid-cols-[272px_1fr] gap-5 xl:grid-cols-[280px_1fr] xl:gap-6">
             <Suspense fallback={<ShopDesktopFilterSidebarFallback />}>
               <FilterSidebarData categorySlug={meta.slug} filters={filters} />
             </Suspense>

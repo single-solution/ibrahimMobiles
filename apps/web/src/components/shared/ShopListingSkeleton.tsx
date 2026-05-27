@@ -80,7 +80,7 @@ export function ShopDesktopFilterSidebarFallback() {
   return (
     <aside className="space-y-5">
       {/* View group — first on desktop, just two rows. */}
-      <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-accent-200)]/35 bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+      <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-accent-200)]/35 bg-[var(--color-surface)] p-4">
         <Skeleton shape="text" className="h-3 w-12" />
         <div className="space-y-2">
           {Array.from({ length: 2 }).map((_, rowIndex) => (
@@ -94,7 +94,7 @@ export function ShopDesktopFilterSidebarFallback() {
       {Array.from({ length: 4 }).map((_, groupIndex) => (
         <div
           key={groupIndex}
-          className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-accent-200)]/35 bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]"
+          className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-accent-200)]/35 bg-[var(--color-surface)] p-4"
         >
           <Skeleton shape="text" className="h-3 w-24" />
           <div className="space-y-2">

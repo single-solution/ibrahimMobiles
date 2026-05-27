@@ -419,7 +419,7 @@ function FilterPanel({
   return (
     /* Concentric: inner FilterCheckRow --radius-md (8) sits ~10px
        from sidebar edge → outer 18 ≈ --radius-xl (20, within 2px). */
-    <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-200)]/45 bg-[var(--color-surface)] shadow-[0_1px_2px_var(--color-on-light-05),0_10px_28px_-12px_var(--color-on-light-10)]">
+    <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-200)]/45 bg-[var(--color-surface)]">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {filterGroups}
       </div>
