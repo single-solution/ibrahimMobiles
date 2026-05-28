@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import { StatusPill, type StatusTone } from "@/components/shared/StatusPill";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextField } from "@/components/forms/TextField";
@@ -82,6 +83,7 @@ export function OrdersCatalog(props: OrdersCatalogProps) {
 function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { startNavigation } = useNavigationTransition();
   const { can } = useAdminPermissions();
   const canUpdate = can("order_update");
   const canDelete = can("order_delete");
@@ -99,9 +101,10 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
         params.delete("order");
       }
       const query = params.toString();
-      router.replace(query ? `/orders?${query}` : "/orders", { scroll: false });
+      const url = query ? `/orders?${query}` : "/orders";
+      startNavigation(() => router.replace(url, { scroll: false }));
     },
-    [router, searchParams],
+    [router, searchParams, startNavigation],
   );
 
   const clearActiveOrder = useCallback(() => {

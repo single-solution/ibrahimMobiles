@@ -10,6 +10,7 @@ import { GradeShowcase } from "@/components/shared/GradeShowcase";
 import { VariantAwareGallery } from "@/components/shared/PdpGallery";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { VariantProvider } from "@/components/shared/VariantContext";
 import { VariantSelector } from "@/components/shared/VariantSelector";
 import {
@@ -29,6 +30,10 @@ import {
   getStorefrontCategoryBySlugCached,
   getStorefrontProductBySlugCached,
 } from "@/lib/storefront/cached";
+import {
+  getStorefrontProductLiveCommerce,
+  mergeProductWithLiveCommerce,
+} from "@/lib/storefront/liveCommerce";
 import { composeProductSeo } from "@/lib/seo/composeSeoMeta";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
 import {
@@ -52,8 +57,18 @@ import {
  *     a single template, kept intentionally lean.
  */
 
-// Live pricing + stock change frequently — never cache the detail page.
-export const dynamic = "force-dynamic";
+/**
+ * Partial dynamism: the static shell (gallery, breadcrumbs, name,
+ * description, grade copy, related rail) is ISR-cached with admin-tag
+ * busting; live per-variant pricing + stock streams in through a
+ * `<Suspense>` boundary via `getStorefrontProductLiveCommerce`, so the
+ * shell never blocks on the freshness-critical commerce query.
+ *
+ * Result: `<Link>` prefetch can warm the page chrome, the click renders
+ * the shell instantly, and the variant card streams in within the same
+ * paint cycle.
+ */
+export const revalidate = 60;
 
 interface ProductDetailPageProps {
   params: Promise<{ category: string; slug: string }>;
@@ -235,7 +250,13 @@ export default async function ProductDetailPage({
         </div>
 
         <div className="app-page pdp-content px-4 pt-4">
-          <VariantSelector product={product} brandName={brandName} />
+          <Suspense
+            fallback={
+              <VariantSelectorSkeleton layout="mobile" product={product} brandName={brandName} />
+            }
+          >
+            <LiveVariantSelector product={product} brandName={brandName} />
+          </Suspense>
 
           <GradeShowcase product={product} variant="mobile" />
 
@@ -271,7 +292,17 @@ export default async function ProductDetailPage({
           </div>
 
           <div className="flex min-h-0 flex-col">
-            <VariantSelector product={product} brandName={brandName} />
+            <Suspense
+              fallback={
+                <VariantSelectorSkeleton
+                  layout="desktop"
+                  product={product}
+                  brandName={brandName}
+                />
+              }
+            >
+              <LiveVariantSelector product={product} brandName={brandName} />
+            </Suspense>
           </div>
         </div>
 
@@ -295,6 +326,91 @@ export default async function ProductDetailPage({
         </section>
       </div>
     </VariantProvider>
+  );
+}
+
+/* ─────────────────────── Live commerce slot ─────────────────────── */
+
+/**
+ * Streams in fresh price + stock for every variant on each request. The
+ * shell `product` arrives with cached commerce that may be up to 30s
+ * stale; this async child overlays current values and renders the live
+ * `<VariantSelector>`. Mobile + desktop boundaries share the same
+ * React-cached query, so only one Mongo round-trip per render.
+ */
+async function LiveVariantSelector({
+  product,
+  brandName,
+}: {
+  product: Product;
+  brandName: string;
+}) {
+  const live = await getStorefrontProductLiveCommerce(product.slug);
+  const merged = mergeProductWithLiveCommerce(product, live);
+  return <VariantSelector product={merged} brandName={brandName} />;
+}
+
+interface VariantSelectorSkeletonProps {
+  layout: "mobile" | "desktop";
+  product: Product;
+  brandName: string;
+}
+
+/**
+ * Shape-matched skeleton for the `<VariantSelector>` Suspense slot. We
+ * already know the product name, brand, and which variants exist (from
+ * the cached shell), so we paint everything except the parts that
+ * depend on live commerce — price, stock count, "in stock" pill, and
+ * the CTA. Those are the only blocks that shimmer.
+ */
+function VariantSelectorSkeleton({
+  layout,
+  product,
+  brandName,
+}: VariantSelectorSkeletonProps) {
+  const variantCount = Math.max(1, Math.min(product.variants.length, 6));
+  if (layout === "mobile") {
+    return (
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
+            {brandName}
+          </p>
+          <h1 className="font-headline text-[24px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)]">
+            {product.name}
+          </h1>
+        </div>
+        <Skeleton shape="text" className="h-8 w-36" />
+        <Skeleton shape="text" className="h-3 w-32" />
+        <div className="flex flex-wrap gap-1.5">
+          {Array.from({ length: variantCount }).map((_, index) => (
+            <Skeleton key={index} className="h-9 w-24" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-5">
+      <div className="space-y-1.5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-700)]">
+          {brandName}
+        </p>
+        <h1 className="font-headline text-[34px] font-semibold leading-[1.05] tracking-tight text-[var(--color-ink-900)]">
+          {product.name}
+        </h1>
+      </div>
+      <div className="space-y-1.5">
+        <Skeleton shape="text" className="h-9 w-44" />
+        <Skeleton shape="text" className="h-3 w-40" />
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {Array.from({ length: variantCount }).map((_, index) => (
+          <Skeleton key={index} className="h-10 w-28" />
+        ))}
+      </div>
+      <Skeleton shape="pill" className="h-12 w-full" />
+    </div>
   );
 }
 

@@ -1,21 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
+import { useNavigationProgressCount } from "@/lib/navigation/navigationProgress";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
+
 /**
- * Thin progress bar that gives instant tap feedback on Link clicks.
+ * Thin progress bar that gives instant tap feedback on navigation.
  *
- * We can't subscribe to Next.js' router lifecycle directly, so we listen
- * for the click that *would* start a navigation (any anchor pointing to an
- * in-app path that doesn't open in a new tab) and a forward/back gesture,
- * then settle the bar once `pathname` (or `searchParams`) actually changes
- * — i.e. once the new route segment commits.
+ * Two trigger sources feed one bar:
  *
- * Behaviour summary:
- *  - tap an internal link → bar appears instantly at ~30%, trickles to ~80%
- *  - new route commits   → bar fills to 100% and fades out
- *  - same-route click    → bar appears briefly, then auto-cancels
+ *   1. **Anchor / `<Link>` clicks + back/forward** — we listen for the
+ *      click that *would* start a navigation (any in-app anchor that
+ *      doesn't open a new tab) and `popstate`, so the bar fires the
+ *      instant the user taps.
+ *   2. **Programmatic transitions** — components that update the URL
+ *      via `useNavigationTransition().startNavigation(...)` bump a
+ *      shared counter. When the counter goes from 0 to >0, the bar
+ *      starts; when it drains, the bar completes. This covers filter
+ *      chips, segment toggles, view-mode tabs, sort dropdowns, and
+ *      anything else that calls `router.push/replace` outside an `<a>`.
+ *
+ * In both cases the new route segment commit (detected via `usePathname` /
+ * `useSearchParams`) drives the bar to 100% and the fade-out.
  *
  * `prefers-reduced-motion` collapses the bar to a flat top accent line
  * (no shimmer, no width tween) so motion-sensitive users still get the
@@ -32,6 +40,7 @@ const SAME_ROUTE_AUTO_CANCEL_MS = 600;
 export function NavigationProgress() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const programmaticCount = useNavigationProgressCount();
   const [isVisible, setIsVisible] = useState(false);
   const [percent, setPercent] = useState(0);
   const trickleIntervalRef = useRef<number | null>(null);
@@ -39,59 +48,58 @@ export function NavigationProgress() {
   const autoCancelTimeoutRef = useRef<number | null>(null);
   const lastRouteKeyRef = useRef<string>(`${pathname}?${searchParams?.toString() ?? ""}`);
 
+  const clearTrickle = useCallback(() => {
+    if (trickleIntervalRef.current !== null) {
+      window.clearInterval(trickleIntervalRef.current);
+      trickleIntervalRef.current = null;
+    }
+  }, []);
+
+  const clearFade = useCallback(() => {
+    if (fadeTimeoutRef.current !== null) {
+      window.clearTimeout(fadeTimeoutRef.current);
+      fadeTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearAutoCancel = useCallback(() => {
+    if (autoCancelTimeoutRef.current !== null) {
+      window.clearTimeout(autoCancelTimeoutRef.current);
+      autoCancelTimeoutRef.current = null;
+    }
+  }, []);
+
+  const completeNavigation = useCallback(() => {
+    clearTrickle();
+    clearAutoCancel();
+    setPercent(100);
+    clearFade();
+    fadeTimeoutRef.current = window.setTimeout(() => {
+      setIsVisible(false);
+      setPercent(0);
+    }, COMPLETION_FADE_MS);
+  }, [clearAutoCancel, clearFade, clearTrickle]);
+
+  const startNavigation = useCallback(() => {
+    clearFade();
+    clearAutoCancel();
+    setIsVisible(true);
+    setPercent(TRICKLE_START_PERCENT);
+    clearTrickle();
+    trickleIntervalRef.current = window.setInterval(() => {
+      setPercent((current) => {
+        if (current >= TRICKLE_CEILING_PERCENT) {
+          return current;
+        }
+        return Math.min(current + TRICKLE_STEP_PERCENT, TRICKLE_CEILING_PERCENT);
+      });
+    }, TRICKLE_INTERVAL_MS);
+    autoCancelTimeoutRef.current = window.setTimeout(() => {
+      completeNavigation();
+    }, SAME_ROUTE_AUTO_CANCEL_MS);
+  }, [clearAutoCancel, clearFade, clearTrickle, completeNavigation]);
+
   useEffect(() => {
-    const clearTrickle = () => {
-      if (trickleIntervalRef.current !== null) {
-        window.clearInterval(trickleIntervalRef.current);
-        trickleIntervalRef.current = null;
-      }
-    };
-    const clearFade = () => {
-      if (fadeTimeoutRef.current !== null) {
-        window.clearTimeout(fadeTimeoutRef.current);
-        fadeTimeoutRef.current = null;
-      }
-    };
-    const clearAutoCancel = () => {
-      if (autoCancelTimeoutRef.current !== null) {
-        window.clearTimeout(autoCancelTimeoutRef.current);
-        autoCancelTimeoutRef.current = null;
-      }
-    };
-
-    const startTrickle = () => {
-      clearTrickle();
-      trickleIntervalRef.current = window.setInterval(() => {
-        setPercent((current) => {
-          if (current >= TRICKLE_CEILING_PERCENT) {
-            return current;
-          }
-          return Math.min(current + TRICKLE_STEP_PERCENT, TRICKLE_CEILING_PERCENT);
-        });
-      }, TRICKLE_INTERVAL_MS);
-    };
-
-    const startNavigation = () => {
-      clearFade();
-      clearAutoCancel();
-      setIsVisible(true);
-      setPercent(TRICKLE_START_PERCENT);
-      startTrickle();
-      autoCancelTimeoutRef.current = window.setTimeout(() => {
-        completeNavigation();
-      }, SAME_ROUTE_AUTO_CANCEL_MS);
-    };
-
-    const completeNavigation = () => {
-      clearTrickle();
-      clearAutoCancel();
-      setPercent(100);
-      fadeTimeoutRef.current = window.setTimeout(() => {
-        setIsVisible(false);
-        setPercent(0);
-      }, COMPLETION_FADE_MS);
-    };
-
     const handleClick = (event: MouseEvent) => {
       // Ignore modified clicks — the browser will open a new tab / save the
       // link, not navigate the SPA.
@@ -116,7 +124,13 @@ export function NavigationProgress() {
         return;
       }
       const href = anchor.getAttribute("href");
-      if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("javascript:")) {
+      if (
+        !href ||
+        href.startsWith("#") ||
+        href.startsWith("mailto:") ||
+        href.startsWith("tel:") ||
+        href.startsWith("javascript:")
+      ) {
         return;
       }
       // External link — let the browser take over, don't show the bar.
@@ -151,9 +165,24 @@ export function NavigationProgress() {
       clearFade();
       clearAutoCancel();
     };
-    // The handlers depend only on stable refs / setters — we deliberately
-    // bind once on mount so the click listener survives every navigation.
-  }, []);
+  }, [clearAutoCancel, clearFade, clearTrickle, startNavigation]);
+
+  // Programmatic transitions (filter chips, view-mode tabs, …) bump
+  // `programmaticCount`. Rising edge starts the bar; falling edge
+  // completes it. The pathname/searchParams effect below provides a
+  // belt-and-suspenders settle in case the count somehow lags the URL.
+  useEffect(() => {
+    if (programmaticCount > 0) {
+      scheduleStateUpdate(startNavigation);
+      return;
+    }
+    if (isVisible) {
+      scheduleStateUpdate(completeNavigation);
+    }
+    // `isVisible` is intentionally not in deps — we only react to count
+    // transitions, not bar visibility flips.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [programmaticCount, startNavigation, completeNavigation]);
 
   useEffect(() => {
     const routeKey = `${pathname}?${searchParams?.toString() ?? ""}`;
@@ -161,27 +190,8 @@ export function NavigationProgress() {
       return;
     }
     lastRouteKeyRef.current = routeKey;
-
-    if (fadeTimeoutRef.current !== null) {
-      window.clearTimeout(fadeTimeoutRef.current);
-      fadeTimeoutRef.current = null;
-    }
-    if (autoCancelTimeoutRef.current !== null) {
-      window.clearTimeout(autoCancelTimeoutRef.current);
-      autoCancelTimeoutRef.current = null;
-    }
-    if (trickleIntervalRef.current !== null) {
-      window.clearInterval(trickleIntervalRef.current);
-      trickleIntervalRef.current = null;
-    }
-
-    setIsVisible(true);
-    setPercent(100);
-    fadeTimeoutRef.current = window.setTimeout(() => {
-      setIsVisible(false);
-      setPercent(0);
-    }, COMPLETION_FADE_MS);
-  }, [pathname, searchParams]);
+    completeNavigation();
+  }, [pathname, searchParams, completeNavigation]);
 
   return (
     <div

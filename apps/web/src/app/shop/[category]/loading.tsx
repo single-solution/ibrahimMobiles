@@ -1,44 +1,55 @@
-import { SkeletonScreen } from "@/components/ui/Skeleton";
+"use client";
+
+import { usePathname } from "next/navigation";
+
+import { ShopCategoryRail } from "@/app/shop/_components/ShopCategoryRail";
+import { MobileCategoryPicker } from "@/app/shop/_components/MobileCategoryPicker";
 import {
-  ShopCategoryRailFallback,
   ShopDesktopFilterSidebarFallback,
   ShopDesktopProductsAreaFallback,
   ShopMobileProductsAreaFallback,
-  ShopMobileToolbarFallback,
 } from "@/components/shared/ShopListingSkeleton";
+import { useCategories } from "@/lib/storefront/storefrontReferenceContext";
 
 /**
- * Category listing fallback — mirrors `app/shop/[category]/page.tsx`:
- *   - mobile: compact toolbar [Category][Filter][Sort] → segmented
- *             grade-mode tabs → results count → grid
- *   - desktop: sidebar (filters) + main column (category rail →
- *             toolbar with grade tabs + sort → grid)
+ * Category listing fallback.
  *
- * Every block reuses the composables in `ShopListingSkeleton.tsx` so the
- * transition from segment loading → page render is pixel-stable: no jump,
- * no flash, no "empty" frame between the two.
+ * Renders the actual category rail (desktop) and mobile category picker
+ * for the slug being navigated to, so those controls stay visible during
+ * the segment swap. Only the products column is skeletoned — the rest of
+ * the shell carries over from the outgoing page.
+ *
+ * Categories come from `StorefrontReferenceContext` (provided in the root
+ * layout) so this client component has the data without any fetch.
  */
 export default function CategoryListingLoading() {
+  const pathname = usePathname();
+  // `/shop/<slug>` or `/shop/<slug>/<product>` — segment 2 is always the
+  // category slug for any URL that resolves to this loading boundary.
+  const activeSlug = pathname?.split("/")[2] ?? "";
+  const categories = useCategories();
+
   return (
-    <SkeletonScreen label="Loading shop">
-      {/* Mobile only — match `page.tsx` paddings exactly (`pt-2 pb-10`). */}
-      <div className="app-page pb-10 pt-2 md:hidden">
-        <ShopMobileToolbarFallback />
+    <>
+      <div className="app-page pb-10 pt-1 md:hidden">
+        <div className="shop-listing-toolbar mt-0 flex items-center gap-2 p-2">
+          <MobileCategoryPicker activeSlug={activeSlug} categories={categories} />
+          <div className="ml-auto h-9 w-20" aria-hidden />
+        </div>
         <ShopMobileProductsAreaFallback />
       </div>
 
-      {/* Desktop */}
       <div className="hidden md:block">
-        <div className="mx-auto max-w-[1440px] px-6 pb-20 pt-4">
-          <div className="grid grid-cols-[272px_1fr] gap-10 xl:grid-cols-[280px_1fr] xl:gap-12">
+        <div className="mx-auto max-w-[1440px] px-6 pb-20 pt-1">
+          <div className="grid grid-cols-[272px_1fr] gap-5 xl:grid-cols-[280px_1fr] xl:gap-6">
             <ShopDesktopFilterSidebarFallback />
-            <div className="space-y-3">
-              <ShopCategoryRailFallback />
+            <div className="min-w-0 space-y-3">
+              <ShopCategoryRail activeSlug={activeSlug} categories={categories} />
               <ShopDesktopProductsAreaFallback />
             </div>
           </div>
         </div>
       </div>
-    </SkeletonScreen>
+    </>
   );
 }

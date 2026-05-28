@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/Button";
 
 /** AdminShell contentClassName for split-pane workspaces (orders, customers, inquiries). */
 export const adminWorkspacePageClass =
-  "flex min-h-0 flex-1 flex-col overflow-hidden p-1.5 md:p-2";
+  "admin-mobile-pad flex min-h-0 flex-1 flex-col overflow-hidden p-1.5 md:p-2";
 
 /** AdminShell contentClassName for scrollable catalog workspaces (products, categories). */
 export const adminCatalogPageClass =
-  "flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5 md:p-2";
+  "admin-mobile-pad flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5 md:p-2";
 
 /** AdminShell contentClassName for single-pane list workspaces (team, offers, activity). */
 export const adminListPageClass = adminCatalogPageClass;
@@ -89,8 +89,8 @@ export function WorkspaceFilterChip({
       className={classNames(
         "inline-flex items-center gap-1 font-semibold transition-colors",
         compact
-          ? "rounded-full px-2 py-0.5 text-[10px]"
-          : "rounded-full px-2.5 py-1 text-[11px]",
+          ? "rounded-full px-2 py-0.5 text-[0.625rem]"
+          : "rounded-full px-2.5 py-1 text-[0.6875rem]",
         isActive
           ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
           : "border border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-600)] hover:border-[var(--color-ink-300)] hover:text-[var(--color-ink-900)]",
@@ -100,7 +100,7 @@ export function WorkspaceFilterChip({
       {typeof count === "number" ? (
         <span
           className={classNames(
-            "rounded-full px-1 tabular-nums text-[9px]",
+            "rounded-full px-1 tabular-nums text-[0.5625rem]",
             isActive
               ? "bg-[var(--color-accent-200)]/70 text-[var(--color-accent-800)]"
               : "bg-[var(--color-canvas-deep)] text-[var(--color-ink-500)]",
@@ -159,13 +159,13 @@ export function WorkspacePaneHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="shrink-0 space-y-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2.5">
+    <header className="admin-mobile-sticky shrink-0 space-y-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2.5">
       <div className="flex items-center gap-2">
         <Icon size={15} className="shrink-0 text-[var(--color-accent-700)]" />
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold text-[var(--color-ink-900)]">{title}</h2>
           {subtitle ? (
-            <p className="max-w-prose text-[10px] text-[var(--color-ink-500)]">
+            <p className="max-w-prose text-[0.625rem] text-[var(--color-ink-500)]">
               {subtitle}
             </p>
           ) : null}
@@ -216,17 +216,17 @@ export function WorkspaceListHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 py-2 md:gap-3 md:px-4 md:py-3">
+    <header className="admin-mobile-sticky flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 py-2 md:gap-3 md:px-4 md:py-3">
       <div className="flex min-w-0 items-center gap-2 md:gap-2.5">
         <span className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-50)] text-[var(--color-accent-700)] md:size-9">
           <Icon size={15} />
         </span>
         <div className="min-w-0">
-          <h2 className="text-[13px] font-semibold text-[var(--color-ink-900)] md:text-sm">
+          <h2 className="text-[0.8125rem] font-semibold text-[var(--color-ink-900)] md:text-sm">
             {title}
           </h2>
           {subtitle ? (
-            <p className="max-w-prose text-[10px] text-[var(--color-ink-500)]">
+            <p className="max-w-prose text-[0.625rem] text-[var(--color-ink-500)]">
               {subtitle}
             </p>
           ) : null}
@@ -315,7 +315,7 @@ export function WorkspaceCatalogPaneHeader({
   action?: ReactNode;
 }) {
   return (
-    <header className="shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 py-2">
+    <header className="admin-mobile-sticky shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 py-2">
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex min-w-0 items-center gap-1.5 sm:mr-auto">{title}</div>
         <div className="flex w-full min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 sm:w-auto sm:flex-nowrap">
@@ -324,7 +324,7 @@ export function WorkspaceCatalogPaneHeader({
         </div>
       </div>
       {subtitle ? (
-        <p className="mt-1 max-w-prose text-[10px] text-[var(--color-ink-500)]">
+        <p className="mt-1 max-w-prose text-[0.625rem] text-[var(--color-ink-500)]">
           {subtitle}
         </p>
       ) : null}

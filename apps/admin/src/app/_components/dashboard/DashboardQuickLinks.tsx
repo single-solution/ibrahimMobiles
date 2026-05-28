@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import type { PermissionKey } from "@/lib/permissionsCatalog";
 import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 
 function EyebrowLink({
   href,
@@ -15,12 +16,16 @@ function EyebrowLink({
   permission?: PermissionKey;
 }) {
   const { can, isLoading } = useAdminPermissions();
+  const prefetchHandlers = usePrefetchOnIntent(href);
   if (permission && (isLoading || !can(permission))) {
     return null;
   }
   return (
     <Link
       href={href}
+      onPointerDown={prefetchHandlers.onPointerDown}
+      onTouchStart={prefetchHandlers.onTouchStart}
+      onFocus={prefetchHandlers.onFocus}
       className="text-[11px] font-semibold text-[var(--color-accent-700)] hover:underline"
     >
       {label}
@@ -52,12 +57,16 @@ export function DashboardSectionActionLink({
   permission?: PermissionKey;
 }) {
   const { can, isLoading } = useAdminPermissions();
+  const prefetchHandlers = usePrefetchOnIntent(href);
   if (permission && (isLoading || !can(permission))) {
     return null;
   }
   return (
     <Link
       href={href}
+      onPointerDown={prefetchHandlers.onPointerDown}
+      onTouchStart={prefetchHandlers.onTouchStart}
+      onFocus={prefetchHandlers.onFocus}
       className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-accent-700)] hover:underline"
     >
       {label} <ArrowRight size={12} />

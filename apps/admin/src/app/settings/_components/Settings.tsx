@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Settings as SettingsIcon } from "lucide-react";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
+import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import type { StoreSettings } from "@store/shared";
 import { HomepageSettings } from "@/app/settings/_components/HomepageSettings";
 import { SettingsCleanup } from "@/app/settings/_components/SettingsCleanup";
@@ -51,6 +52,7 @@ export function Settings({ initialSettings }: SettingsProps) {
 function SettingsInner({ initialSettings }: SettingsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { startNavigation } = useNavigationTransition();
   const { can } = useAdminPermissions();
   const canUpdate = can("settings_update");
   const canCleanup = can("data_cleanup");
@@ -102,7 +104,8 @@ function SettingsInner({ initialSettings }: SettingsProps) {
     setActiveTab(tab);
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", tab);
-    router.replace(`/settings?${params.toString()}`, { scroll: false });
+    const url = `/settings?${params.toString()}`;
+    startNavigation(() => router.replace(url, { scroll: false }));
   }
 
   const tabContent: Record<SettingsTabId, ReactNode> = {

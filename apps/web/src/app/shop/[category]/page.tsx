@@ -6,19 +6,17 @@ import { Suspense } from "react";
 import { ShopProductGrid } from "@/components/shared/ShopProductGrid";
 import { FilterSidebar } from "@/components/shared/FilterSidebar";
 import { ShopCategoryRail } from "@/app/shop/_components/ShopCategoryRail";
-import {
-  MobileCategoryPicker,
-  MobileCategoryPickerSkeleton,
-} from "@/app/shop/_components/MobileCategoryPicker";
-import { GradeViewModeTabs } from "@/app/shop/_components/GradeViewModeTabs";
+import { MobileCategoryPicker } from "@/app/shop/_components/MobileCategoryPicker";
 import { ShopPagination } from "@/components/shared/ShopPagination";
 import {
   ShopCategoryRailFallback,
   ShopDesktopFilterSidebarFallback,
   ShopDesktopProductsAreaFallback,
+  ShopMobileCategoryPickerFallback,
   ShopMobileProductsAreaFallback,
   ShopMobileToolbarFilterFallback,
 } from "@/components/shared/ShopListingSkeleton";
+import { NavigationPendingFallback } from "@/components/shared/NavigationPendingFallback";
 import { StructuredContentFull } from "@/components/shared/StructuredContent";
 import {
   parseFiltersFromSearchParams,
@@ -128,7 +126,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
           floats below the toolbar, above the grid. */}
       <div className="app-page pb-10 pt-1 md:hidden">
         <div className="shop-listing-toolbar mt-0 flex items-center gap-2 p-2">
-          <Suspense fallback={<MobileCategoryPickerSkeleton />}>
+          <Suspense fallback={<ShopMobileCategoryPickerFallback />}>
             <MobileCategoryPickerData activeSlug={meta.slug} />
           </Suspense>
           <Suspense fallback={<ShopMobileToolbarFilterFallback />}>
@@ -136,12 +134,10 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
           </Suspense>
         </div>
 
-        <div className="mt-3 px-1">
-          <GradeViewModeTabs className="w-full" />
-        </div>
-
         <Suspense fallback={<ShopMobileProductsAreaFallback />}>
-          <MobileProductsArea meta={meta} filters={filters} />
+          <NavigationPendingFallback fallback={<ShopMobileProductsAreaFallback />}>
+            <MobileProductsArea meta={meta} filters={filters} />
+          </NavigationPendingFallback>
         </Suspense>
       </div>
 
@@ -159,7 +155,9 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
               </Suspense>
 
               <Suspense fallback={<ShopDesktopProductsAreaFallback />}>
-                <DesktopProductsArea meta={meta} filters={filters} />
+                <NavigationPendingFallback fallback={<ShopDesktopProductsAreaFallback />}>
+                  <DesktopProductsArea meta={meta} filters={filters} />
+                </NavigationPendingFallback>
               </Suspense>
             </div>
           </div>

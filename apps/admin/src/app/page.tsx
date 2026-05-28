@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { DashboardAccessBanner } from "@/app/_components/dashboard/DashboardAccessBanner";
+import { AdminMobileHubSections } from "@/app/_components/dashboard/AdminMobileHubSections";
 import {
   DashboardMobileEyebrowActions,
   DashboardSectionActionLink,
@@ -145,6 +146,10 @@ export default async function AdminOverviewPage({
             Welcome back
           </h1>
         </div>
+
+        <Suspense fallback={<MobileHubFallback />}>
+          <AdminMobileHubSections />
+        </Suspense>
 
         <div className="app-section">
           <div className="app-section-eyebrow">
@@ -514,6 +519,39 @@ async function DesktopStockKpis() {
 
 const KPI_FALLBACK_COUNT = 4;
 const INQUIRY_FALLBACK_COUNT = 5;
+
+function MobileHubFallback() {
+  return (
+    <div className="app-section">
+      <div className="app-section-eyebrow">
+        <span>Jump to</span>
+      </div>
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, groupIndex) => (
+          <div key={groupIndex}>
+            <Skeleton shape="text" className="mb-1.5 ml-1 h-2.5 w-16" />
+            <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+              {Array.from({ length: 3 }).map((_, rowIndex, rowArr) => (
+                <div
+                  key={rowIndex}
+                  className={`flex h-12 items-center gap-3 px-3${
+                    rowIndex < rowArr.length - 1
+                      ? " border-b border-[var(--color-ink-100)]"
+                      : ""
+                  }`}
+                >
+                  <Skeleton className="size-8 shrink-0 rounded-[var(--radius-md)]" />
+                  <Skeleton shape="text" className="h-3 w-24 flex-1" />
+                  <Skeleton shape="text" className="h-3 w-10" />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function MobileKpiGridFallback() {
   return (

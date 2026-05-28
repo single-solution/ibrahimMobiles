@@ -4,15 +4,12 @@ import { AdminShell } from "@/components/layout/AdminShell";
 import { Inquiries } from "@/app/inquiries/_components/Inquiries";
 import { InquiriesInboxSkeleton } from "@/components/loading/InquiriesInboxSkeleton";
 import { adminWorkspacePageClass } from "@/components/shared/adminWorkspaceUi";
-import { connectDB, Inquiry } from "@store/db";
 
+import { loadAdminInquiriesCached } from "@/lib/cached";
 import { requirePagePermission } from "@/lib/server/requirePageSession";
-import { summariseInquiry, type InquiryLean } from "@/lib/serializers/inquiry";
 import type { PermissionKey } from "@/lib/permissionsCatalog";
 
 export const dynamic = "force-dynamic";
-
-const RECENT_INQUIRIES_LIMIT = 200;
 
 export interface InquiriesPageAccess {
   actorId: string;
@@ -44,11 +41,6 @@ export default async function AdminInquiriesPage() {
 }
 
 async function InquiriesData({ access }: { access: InquiriesPageAccess }) {
-  await connectDB();
-  const docs = await Inquiry.find()
-    .sort({ lastMessageAt: -1 })
-    .limit(RECENT_INQUIRIES_LIMIT)
-    .lean<InquiryLean[]>();
-  const inquiries = docs.map(summariseInquiry);
+  const inquiries = await loadAdminInquiriesCached();
   return <Inquiries inquiries={inquiries} access={access} />;
 }

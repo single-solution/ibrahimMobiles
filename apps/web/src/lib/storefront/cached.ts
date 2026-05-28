@@ -56,7 +56,7 @@ export const STOREFRONT_CACHE_TAG = "storefront";
 /** Seconds the cross-request layer holds onto storefront reads. */
 const STOREFRONT_CACHE_TTL_SECONDS = 30;
 
-/* ─────────── per-render dedupe (React cache) ─────────── */
+/* ─────────── two-tier dedupe (unstable_cache + React cache) ─────────── */
 
 const loadStoreSettings = unstable_cache(
   () => getStoreSettingsRaw(),
@@ -67,23 +67,47 @@ const loadStoreSettings = unstable_cache(
 /** Cross-request (30s) + per-render dedupe — settings power the root layout. */
 export const getStoreSettingsCached = cache(loadStoreSettings);
 
-/** Per-render dedupe — `generateMetadata` and the page body both call this
- *  with the same `slug` on `/shop/[category]`. */
+const loadStorefrontCategoryBySlug = unstable_cache(
+  (slug: string) => getStorefrontCategoryBySlugRaw(slug),
+  ["storefront-category-by-slug"],
+  { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+/** Cross-request (30s, tag-busted on admin edit) + per-render dedupe.
+ *  Powers the category meta on `/shop/[category]` and the PDP shell. */
 export const getStorefrontCategoryBySlugCached = cache(
-  getStorefrontCategoryBySlugRaw,
+  loadStorefrontCategoryBySlug,
 );
 
-/** Per-render dedupe — `generateMetadata` and the page body on
- *  `/shop/[category]/[slug]` both look up the same product. */
+const loadStorefrontProductBySlug = unstable_cache(
+  (slug: string) => getStorefrontProductBySlugRaw(slug),
+  ["storefront-product-by-slug"],
+  { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+/**
+ * Cross-request cached product shell. Pricing/stock on `variants[]` here
+ * may be up to `STOREFRONT_CACHE_TTL_SECONDS` stale — the PDP overlays
+ * fresh per-variant commerce from `getStorefrontProductLiveCommerce`
+ * inside a Suspense boundary, so the shell is fine to cache.
+ *
+ * Admin product/variant mutations call `bustAdminCaches()`, which flushes
+ * the `storefront` tag so the next render fetches a fresh shell.
+ */
 export const getStorefrontProductBySlugCached = cache(
-  getStorefrontProductBySlugRaw,
+  loadStorefrontProductBySlug,
 );
 
-/** Per-render dedupe — the product detail page's metadata fetches the
- *  brand by slug, and the page body needs the same brand for the
- *  breadcrumb. One DB hit per render instead of two. */
+const loadStorefrontBrandBySlug = unstable_cache(
+  (slug: string, categorySlug: string) =>
+    getStorefrontBrandBySlugRaw(slug, categorySlug),
+  ["storefront-brand-by-slug"],
+  { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+/** Cross-request (30s, tag-busted on admin edit) + per-render dedupe. */
 export const getStorefrontBrandBySlugCached = cache(
-  getStorefrontBrandBySlugRaw,
+  loadStorefrontBrandBySlug,
 );
 
 /* ─────────── cross-request dedupe (Next.js unstable_cache) ─────────── */

@@ -7,7 +7,6 @@ import { ChevronDown } from "lucide-react";
 import { classNames } from "@store/shared";
 
 import { LucideIconRenderer } from "@/components/shared/LucideIconRenderer";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import type { StorefrontCategory } from "@/lib/storefront/queries";
 
@@ -131,8 +130,4 @@ export function MobileCategoryPicker({
       </BottomSheet>
     </>
   );
-}
-
-export function MobileCategoryPickerSkeleton() {
-  return <Skeleton shape="pill" className="h-9 w-36" />;
 }

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { classNames } from "@store/shared";
 
 import { LucideIconRenderer } from "@/components/shared/LucideIconRenderer";
-import { Skeleton } from "@/components/ui/Skeleton";
 import type { StorefrontCategory } from "@/lib/storefront/queries";
 
 interface ShopCategoryRailProps {
@@ -92,16 +91,6 @@ function CategoryRailPill({
     >
       {inner}
     </Link>
-  );
-}
-
-export function ShopCategoryRailSkeleton({ pillCount = 6 }: { pillCount?: number }) {
-  return (
-    <div className="-mx-4 flex gap-2.5 overflow-hidden px-4 md:mx-0 md:flex-wrap md:gap-3 md:px-0">
-      {Array.from({ length: pillCount }).map((_, index) => (
-        <Skeleton key={index} shape="pill" className="h-10 w-28 shrink-0 md:h-11 md:w-32" />
-      ))}
-    </div>
   );
 }
 

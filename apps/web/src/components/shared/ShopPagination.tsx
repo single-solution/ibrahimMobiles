@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FILTER_PARAM_KEYS } from "@/lib/storefront/filterParams";
+import { pingNavigationProgress } from "@/lib/navigation/navigationProgress";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
 interface ShopPaginationProps {
   page: number;
@@ -15,10 +18,23 @@ interface ShopPaginationProps {
  * Numeric pagination that preserves all current filter params. Using
  * `next/link` instead of router.push because each page is statically
  * shareable and we want browsers to prefetch the next page on hover.
+ *
+ * The active highlight is mirrored into a local optimistic state so the
+ * click animates instantly, before Next has finished swapping the RSC
+ * page. The effect resynchronises with the resolved server `page` once
+ * the URL commits.
  */
 export function ShopPagination({ page, pageCount, basePath }: ShopPaginationProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const [optimisticPage, setOptimisticPage] = useState(page);
+
+  useEffect(() => {
+    scheduleStateUpdate(() => {
+      setOptimisticPage(page);
+    });
+  }, [page]);
+
   if (pageCount <= 1) {
     return null;
   }
@@ -35,7 +51,19 @@ export function ShopPagination({ page, pageCount, basePath }: ShopPaginationProp
     return queryString ? `${path}?${queryString}` : path;
   };
 
-  const pageEntries = buildPageList(page, pageCount);
+  const pageEntries = buildPageList(optimisticPage, pageCount);
+  const safeOptimistic = Math.min(Math.max(1, optimisticPage), pageCount);
+
+  function handleSelect(target: number) {
+    if (target < 1 || target > pageCount || target === optimisticPage) {
+      return;
+    }
+    setOptimisticPage(target);
+    // `<Link>` doesn't trip our `useNavigationTransition`, so ping the
+    // global progress bar manually. The min-hold keeps it visible long
+    // enough to feel responsive while the RSC payload streams in.
+    pingNavigationProgress(600);
+  }
 
   return (
     <nav
@@ -43,9 +71,10 @@ export function ShopPagination({ page, pageCount, basePath }: ShopPaginationProp
       aria-label="Pagination"
     >
       <PageLink
-        href={buildHref(page - 1)}
+        href={buildHref(safeOptimistic - 1)}
         label="Previous"
-        disabled={page <= 1}
+        disabled={safeOptimistic <= 1}
+        onSelect={() => handleSelect(safeOptimistic - 1)}
       />
       {pageEntries.map((entry, index) =>
         entry === "ellipsis" ? (
@@ -57,14 +86,16 @@ export function ShopPagination({ page, pageCount, basePath }: ShopPaginationProp
             key={entry}
             href={buildHref(entry)}
             label={String(entry)}
-            isActive={entry === page}
+            isActive={entry === safeOptimistic}
+            onSelect={() => handleSelect(entry)}
           />
         ),
       )}
       <PageLink
-        href={buildHref(page + 1)}
+        href={buildHref(safeOptimistic + 1)}
         label="Next"
-        disabled={page >= pageCount}
+        disabled={safeOptimistic >= pageCount}
+        onSelect={() => handleSelect(safeOptimistic + 1)}
       />
     </nav>
   );
@@ -97,9 +128,10 @@ interface PageLinkProps {
   label: string;
   isActive?: boolean;
   disabled?: boolean;
+  onSelect?: () => void;
 }
 
-function PageLink({ href, label, isActive = false, disabled = false }: PageLinkProps) {
+function PageLink({ href, label, isActive = false, disabled = false, onSelect }: PageLinkProps) {
   if (disabled) {
     return (
       <span
@@ -115,6 +147,7 @@ function PageLink({ href, label, isActive = false, disabled = false }: PageLinkP
       href={href}
       aria-current={isActive ? "page" : undefined}
       scroll
+      onClick={onSelect}
       className={
         isActive
           ? "tap inline-flex h-8 items-center rounded-[var(--radius-md)] bg-[var(--color-accent-100)] px-2.5 text-[13px] font-semibold text-[var(--color-accent-800)] transition-colors md:h-9 md:px-3 md:text-sm"

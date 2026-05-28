@@ -4,14 +4,11 @@ import { AdminShell } from "@/components/layout/AdminShell";
 import { ActivityFeed } from "@/app/activity/_components/ActivityFeed";
 import { ListWorkspaceSkeleton } from "@/components/loading/ListWorkspaceSkeleton";
 import { adminListPageClass } from "@/components/shared/adminWorkspaceUi";
-import { ActivityEntry, connectDB } from "@store/db";
 
+import { loadAdminActivityCached } from "@/lib/cached";
 import { requirePagePermission } from "@/lib/server/requirePageSession";
-import { toActivityResponse, type ActivityEntryLean } from "@/lib/serializers/activity";
 
 export const dynamic = "force-dynamic";
-
-const RECENT_ACTIVITY_LIMIT = 200;
 
 export default async function AdminActivityPage() {
   await requirePagePermission("activity_view", "/activity");
@@ -28,11 +25,6 @@ export default async function AdminActivityPage() {
 }
 
 async function ActivityData() {
-  await connectDB();
-  const docs = await ActivityEntry.find()
-    .sort({ createdAt: -1 })
-    .limit(RECENT_ACTIVITY_LIMIT)
-    .lean<ActivityEntryLean[]>();
-  const entries = docs.map(toActivityResponse);
+  const entries = await loadAdminActivityCached();
   return <ActivityFeed entries={entries} />;
 }

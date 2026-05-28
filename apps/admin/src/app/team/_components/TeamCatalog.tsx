@@ -29,6 +29,7 @@ import {
 } from "@/components/shared/adminWorkspaceUi";
 import { adminFetch } from "@/lib/adminApi";
 import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { getInitials } from "@/lib/initials";
 import { ROLE_LABEL, ROLE_ORDER, ROLE_TONE } from "@/lib/roleCatalog";
@@ -63,6 +64,7 @@ function TeamCatalogInner({
 }: TeamCatalogProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { startNavigation } = useNavigationTransition();
   const toast = useToast();
   const { can } = useAdminPermissions();
 
@@ -136,9 +138,10 @@ function TeamCatalogInner({
         params.delete("member");
       }
       const query = params.toString();
-      router.replace(query ? `/team?${query}` : "/team", { scroll: false });
+      const url = query ? `/team?${query}` : "/team";
+      startNavigation(() => router.replace(url, { scroll: false }));
     },
-    [router, searchParams],
+    [router, searchParams, startNavigation],
   );
 
   const clearActive = useCallback(() => {

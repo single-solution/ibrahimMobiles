@@ -2,14 +2,8 @@
 
 import type { Product } from "@store/shared";
 
-import { expandProductsByGrade } from "@/lib/catalog/expandProductGrades";
-import {
-  FILTER_PARAM_KEYS,
-  hasActiveListingFilters,
-  isExpandGradesView,
-} from "@/lib/storefront/filterParams";
+import { hasActiveListingFilters } from "@/lib/storefront/filterParams";
 import { useFilterParams } from "@/lib/storefront/useFilterParams";
-import { resolveListingVariant } from "@/lib/productSummary";
 
 import { ProductCard } from "./ProductCard";
 import { useSwapAnimation } from "@/components/shared/motion/useSwapAnimation";
@@ -38,17 +32,11 @@ export function ShopProductGrid({
   priorityCount = DEFAULT_PRIORITY_COUNT,
 }: ShopProductGridProps) {
   const { params } = useFilterParams();
-  const expandGrades = isExpandGradesView(params);
-  const cards = expandGrades ? expandProductsByGrade(products) : products;
-  const gradeSlugs = (params.get(FILTER_PARAM_KEYS.grades) ?? "")
-    .split(",")
-    .map((token) => token.trim())
-    .filter(Boolean);
   const filtersActive = hasActiveListingFilters(params);
   const listingKey = params.toString();
   const isListingSwap = useSwapAnimation(listingKey);
 
-  if (cards.length === 0) {
+  if (products.length === 0) {
     return (
       <ShopListingEmptyState
         categoryLabel={categoryLabel}
@@ -62,24 +50,15 @@ export function ShopProductGrid({
     <div
       className={`grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4 xl:gap-7${isListingSwap ? " listing-swap" : ""}`}
     >
-      {cards.map((product, index) => {
-        const catalogProduct = products.find((row) => row.id === product.id) ?? product;
-        const listingVariant = resolveListingVariant(product, { gradeSlugs });
-        const pinnedGradeSlug = expandGrades ? listingVariant.gradeSlug : undefined;
-        return (
-          <div
-            key={`${product.id}:${pinnedGradeSlug ?? "product"}`}
-            className="h-full"
-          >
-            <ProductCard
-              product={product}
-              catalogProduct={catalogProduct}
-              pinnedGradeSlug={pinnedGradeSlug}
-              priority={index < priorityCount}
-            />
-          </div>
-        );
-      })}
+      {products.map((product, index) => (
+        <div key={product.id} className="h-full">
+          <ProductCard
+            product={product}
+            catalogProduct={product}
+            priority={index < priorityCount}
+          />
+        </div>
+      ))}
     </div>
   );
 }

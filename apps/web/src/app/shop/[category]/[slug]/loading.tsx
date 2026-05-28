@@ -1,18 +1,31 @@
-import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
+"use client";
+
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { ChevronRight } from "lucide-react";
+
 import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
+import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
+import { useCategory } from "@/lib/storefront/storefrontReferenceContext";
 
 /**
- * Product detail fallback — mirrors `app/shop/[category]/[slug]/page.tsx`:
- *   - mobile: full-bleed gallery, thumb strip, variant selector, grade
- *             showcase, "More from brand" rail
- *   - desktop: breadcrumbs → 2-column (gallery + variant selector) →
- *             grade showcase → related grid
+ * Product detail fallback. The URL contract is
+ * `/shop/<category>/<slug>` — the category slug is in the route, and the
+ * storefront reference context already holds every category's label.
+ * That means the desktop breadcrumb (Home › Shop › Category) paints live
+ * the moment the link is clicked; only the gallery, variant selector,
+ * grade showcase, and brand rail are skeletoned.
  */
 const RELATED_SKELETON_COUNT = 4;
 const DESKTOP_THUMB_COUNT = 4;
 const MOBILE_THUMB_COUNT = 6;
 
 export default function ProductDetailLoading() {
+  const params = useParams<{ category: string; slug: string }>();
+  const categorySlug = params?.category ?? "";
+  const category = useCategory(categorySlug);
+  const categoryLabel = category?.label;
+
   return (
     <SkeletonScreen label="Loading product">
       {/* Mobile only */}
@@ -35,7 +48,10 @@ export default function ProductDetailLoading() {
 
       {/* Desktop */}
       <div className="mx-auto hidden max-w-[1440px] px-6 pb-12 pt-8 md:block">
-        <BreadcrumbsSkeleton />
+        <LiveBreadcrumbs
+          categorySlug={categorySlug}
+          categoryLabel={categoryLabel}
+        />
 
         <div className="mt-6 grid grid-cols-[1.1fr_1fr] gap-12">
           <DesktopPhotoGallerySkeleton />
@@ -60,13 +76,42 @@ export default function ProductDetailLoading() {
   );
 }
 
-function BreadcrumbsSkeleton() {
+interface LiveBreadcrumbsProps {
+  categorySlug: string;
+  categoryLabel: string | undefined;
+}
+
+function LiveBreadcrumbs({ categorySlug, categoryLabel }: LiveBreadcrumbsProps) {
   return (
-    <div className="flex items-center gap-1.5">
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Skeleton key={index} shape="text" className="h-3 w-14" />
-      ))}
-    </div>
+    <nav
+      aria-label="Breadcrumb"
+      className="flex items-center gap-1 text-[12px] text-[var(--color-ink-500)]"
+    >
+      <Link href="/" className="hover:text-[var(--color-ink-800)]">
+        Home
+      </Link>
+      <ChevronRight size={12} className="text-[var(--color-ink-300)]" />
+      <Link href="/shop" className="hover:text-[var(--color-ink-800)]">
+        Shop
+      </Link>
+      {categorySlug && (
+        <>
+          <ChevronRight size={12} className="text-[var(--color-ink-300)]" />
+          {categoryLabel ? (
+            <Link
+              href={`/shop/${categorySlug}`}
+              className="hover:text-[var(--color-ink-800)]"
+            >
+              {categoryLabel}
+            </Link>
+          ) : (
+            <Skeleton shape="text" className="h-3 w-20" />
+          )}
+        </>
+      )}
+      <ChevronRight size={12} className="text-[var(--color-ink-300)]" />
+      <Skeleton shape="text" className="h-3 w-36" />
+    </nav>
   );
 }
 

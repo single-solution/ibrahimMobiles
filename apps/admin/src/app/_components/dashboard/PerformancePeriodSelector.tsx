@@ -9,6 +9,7 @@ import {
   type PerformanceCompare,
   type PerformanceRange,
 } from "@/lib/dashboard/performancePeriod";
+import { pingNavigationProgress } from "@/lib/navigation/navigationProgress";
 
 const RANGE_LABELS: Record<PerformanceRange, string> = {
   today: "Today",
@@ -48,13 +49,20 @@ export function PerformancePeriodSelector({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // Local transition stays — the dashboard panel is Suspense-keyed on the
+  // range/compare params, so without a transition every click would flash
+  // the skeleton fallback. Pinging the global bar separately gives the
+  // operator the "something's happening" cue while React keeps the old
+  // panel painted under the cover of `startTransition`.
   const [isPending, startTransition] = useTransition();
 
   function pushParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set(key, value);
+    const url = `${pathname}?${params.toString()}`;
+    pingNavigationProgress();
     startTransition(() => {
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      router.replace(url, { scroll: false });
     });
   }
 

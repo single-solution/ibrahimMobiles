@@ -10,11 +10,13 @@
 import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FILTER_PARAM_KEYS } from "@/lib/storefront/filterParams";
+import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 
 export function useFilterParams() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { isPending, startNavigation } = useNavigationTransition();
 
   const params = useMemo(() => {
     return new URLSearchParams(searchParams?.toString() ?? "");
@@ -27,9 +29,11 @@ export function useFilterParams() {
       }
       const queryString = next.toString();
       const url = queryString ? `${pathname}?${queryString}` : pathname;
-      router.replace(url, { scroll: false });
+      startNavigation(() => {
+        router.replace(url, { scroll: false });
+      });
     },
-    [pathname, router],
+    [pathname, router, startNavigation],
   );
 
   const setMulti = useCallback(
@@ -122,5 +126,6 @@ export function useFilterParams() {
     getSingle,
     clearAll,
     replaceParams,
+    isPending,
   };
 }

@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { User, connectDB, type UserRole } from "@store/db";
 import { SESSION_CACHE_TTL_MS, logger } from "@store/shared";
 
@@ -45,11 +47,17 @@ export function invalidateSessionCache(userId: string): void {
  * super-admin status) so a session that pre-dates a role change can't keep
  * acting on stale claims.
  *
- * Result is cached in-process for {@link SESSION_CACHE_TTL_MS} so that a single
- * page load (which can fan out to multiple data fetches) only pays the DB
- * cost once.
+ * Two layers of dedupe:
+ *   1. React `cache()` — collapses every call inside a single RSC render so a
+ *      page (e.g. the dashboard with `requirePagePermission` + an async hub
+ *      section that re-checks) pays for `auth()` exactly once per request.
+ *   2. Process-local `sessionCache` — survives across requests for
+ *      {@link SESSION_CACHE_TTL_MS} so the JWT-verified user only round-trips
+ *      to Mongo when the TTL expires.
  */
-export async function getVerifiedSession(): Promise<VerifiedUser | null> {
+export const getVerifiedSession = cache(getVerifiedSessionUncached);
+
+async function getVerifiedSessionUncached(): Promise<VerifiedUser | null> {
   const session = await auth();
   if (!session?.user?.id) {
     return null;

@@ -8,7 +8,10 @@ interface RouteTransitionProps {
 }
 
 interface RouteSnapshot {
-  key: string;
+  /** Full route identity — pathname + query. Drives when children swap. */
+  contentKey: string;
+  /** Pathname only — drives the cross-fade animation. */
+  pathnameKey: string;
   node: ReactNode;
 }
 
@@ -28,10 +31,17 @@ function supportsViewTransition(): boolean {
 /**
  * Route commit transition.
  *
- * On navigation we defer swapping `children` until the browser can run a
- * View Transition (when supported). That keeps the old page visible during
- * the cross-fade instead of flashing new content before the animation
- * starts — the failure mode plain CSS `route-enter` had on fast navigations.
+ * Two kinds of URL change, two treatments:
+ *
+ *   • **Query-only** (`?grade=…`, `?grades=1`, sort, page) — swap `children`
+ *     in place with no cross-fade. Filter chips already have optimistic UI
+ *     and `NavigationPendingFallback` owns the products skeleton; a
+ *     full-page View Transition here made the header and chrome feel like
+ *     they were reloading.
+ *
+ *   • **Pathname change** (`/shop/a` → `/shop/b`, `/account` → `/cart`) —
+ *     run a View Transition scoped to `<main>` (see `.storefront-main` in
+ *     globals.css) so the header, footer, and tab bar stay visually fixed.
  *
  * Fallback: CSS `.route-enter` keyframe on browsers without the API or when
  * the user prefers reduced motion. First paint still uses `.page-enter` on
@@ -40,10 +50,12 @@ function supportsViewTransition(): boolean {
 export function RouteTransition({ children }: RouteTransitionProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const routeKey = `${pathname}?${searchParams?.toString() ?? ""}`;
+  const pathnameKey = pathname ?? "";
+  const contentKey = `${pathnameKey}?${searchParams?.toString() ?? ""}`;
 
   const [snapshot, setSnapshot] = useState<RouteSnapshot>(() => ({
-    key: routeKey,
+    contentKey,
+    pathnameKey,
     node: children,
   }));
   const [isEntering, setIsEntering] = useState(false);
@@ -53,15 +65,25 @@ export function RouteTransition({ children }: RouteTransitionProps) {
   useEffect(() => {
     if (!hasMounted.current) {
       hasMounted.current = true;
-      setSnapshot({ key: routeKey, node: children });
+      setSnapshot({ contentKey, pathnameKey, node: children });
       return;
     }
 
-    if (routeKey === snapshot.key) {
+    if (contentKey === snapshot.contentKey) {
       return;
     }
 
-    const nextSnapshot: RouteSnapshot = { key: routeKey, node: children };
+    const nextSnapshot: RouteSnapshot = { contentKey, pathnameKey, node: children };
+    const pathnameChanged = pathnameKey !== snapshot.pathnameKey;
+
+    // Filter / sort / pagination — update content only; no page-wide motion.
+    if (!pathnameChanged) {
+      const frame = window.requestAnimationFrame(() => {
+        setSnapshot(nextSnapshot);
+      });
+      return () => window.cancelAnimationFrame(frame);
+    }
+
     const useViewTransition =
       supportsViewTransition() && !prefersReducedMotion();
 
@@ -95,7 +117,7 @@ export function RouteTransition({ children }: RouteTransitionProps) {
         enterTimeoutRef.current = undefined;
       }
     };
-  }, [routeKey, children, snapshot.key]);
+  }, [contentKey, pathnameKey, children, snapshot.contentKey, snapshot.pathnameKey]);
 
   return (
     <div className={isEntering ? "route-enter" : undefined}>

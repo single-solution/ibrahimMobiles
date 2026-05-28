@@ -8,6 +8,7 @@ import { Search, ShoppingBag, User } from "lucide-react";
 import { BrandLockup } from "@/components/layout/BrandLockup";
 import { CartDropdown } from "@/app/cart/_components/CartDropdown";
 import { useCart } from "@/lib/cart/useCart";
+import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 
 const NAV_LINKS = [
@@ -86,19 +87,12 @@ export function Header({ onOpenSearch }: HeaderProps) {
           {NAV_LINKS.map((navLink) => {
             const isActive = isNavActive(navLink.href, pathname);
             return (
-              <Link
+              <HeaderNavLink
                 key={navLink.href}
                 href={navLink.href}
-                aria-current={isActive ? "page" : undefined}
-                className={classNames(
-                  "rounded-[var(--radius-md)] px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
-                    : "font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink-900)]",
-                )}
-              >
-                {navLink.label}
-              </Link>
+                label={navLink.label}
+                isActive={isActive}
+              />
             );
           })}
         </nav>
@@ -113,14 +107,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
             <Search size={15} />
             <span>Search</span>
           </button>
-          <Link
-            href="/account"
-            aria-label="Account"
-            className="tap inline-flex h-10 items-center gap-1.5 rounded-full border border-transparent px-3.5 text-sm font-medium text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)] focus-visible:outline-none"
-          >
-            <User size={15} />
-            <span>Account</span>
-          </Link>
+          <HeaderAccountLink />
           <button
             type="button"
             onClick={() => setIsCartOpen((previous) => !previous)}
@@ -150,5 +137,49 @@ export function Header({ onOpenSearch }: HeaderProps) {
 
       <CartDropdown open={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </header>
+  );
+}
+
+interface HeaderNavLinkProps {
+  href: string;
+  label: string;
+  isActive: boolean;
+}
+
+function HeaderNavLink({ href, label, isActive }: HeaderNavLinkProps) {
+  const prefetchHandlers = usePrefetchOnIntent(isActive ? null : href);
+  return (
+    <Link
+      href={href}
+      aria-current={isActive ? "page" : undefined}
+      onPointerDown={prefetchHandlers.onPointerDown}
+      onTouchStart={prefetchHandlers.onTouchStart}
+      onFocus={prefetchHandlers.onFocus}
+      className={classNames(
+        "rounded-[var(--radius-md)] px-3 py-2 text-sm transition-colors",
+        isActive
+          ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
+          : "font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink-900)]",
+      )}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function HeaderAccountLink() {
+  const prefetchHandlers = usePrefetchOnIntent("/account");
+  return (
+    <Link
+      href="/account"
+      aria-label="Account"
+      onPointerDown={prefetchHandlers.onPointerDown}
+      onTouchStart={prefetchHandlers.onTouchStart}
+      onFocus={prefetchHandlers.onFocus}
+      className="tap inline-flex h-10 items-center gap-1.5 rounded-full border border-transparent px-3.5 text-sm font-medium text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)] focus-visible:outline-none"
+    >
+      <User size={15} />
+      <span>Account</span>
+    </Link>
   );
 }

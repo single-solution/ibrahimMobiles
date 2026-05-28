@@ -1,28 +1,44 @@
-import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
+"use client";
+
+import { useSearchParams } from "next/navigation";
+
 import { ProductGridSkeleton } from "@/components/shared/ProductCardSkeleton";
+import { SkeletonScreen } from "@/components/ui/Skeleton";
 
 /**
- * Search-page-shaped fallback. Mirrors `app/search/page.tsx`:
- *   - title block (eyebrow + heading + subtitle)
- *   - product grid (2 cols mobile, 3 md, 4 lg) sized for one viewport.
- *
- * Until this file existed the segment fell back to the parent home
- * skeleton — which paints a 5-tile fan hero followed by category tiles —
- * which is the wrong shape for `/search?q=…`, causing a visible layout
- * snap when the real results arrived.
+ * Search fallback. The query lives in `?q=`, so the heading paints live
+ * the moment the link is clicked — no skeleton stand-in for text we
+ * already know. Only the results grid is skeletoned.
  */
 const SEARCH_RESULT_CARDS = 8;
 
+function normaliseQuery(value: string | string[] | undefined | null): string {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return (raw ?? "").trim().slice(0, 100);
+}
+
 export default function SearchLoading() {
+  const searchParams = useSearchParams();
+  const query = normaliseQuery(
+    searchParams?.get("q") ?? searchParams?.get("query"),
+  );
+
   return (
     <SkeletonScreen
       label="Loading search"
       className="mx-auto max-w-[1440px] px-4 pb-24 pt-6 md:px-6 md:pb-16 md:pt-10 lg:px-8"
     >
-      <div className="max-w-2xl space-y-3">
-        <Skeleton shape="text" className="h-3 w-16" />
-        <Skeleton shape="text" className="h-9 w-2/3 md:h-12 md:w-1/2" />
-        <Skeleton shape="text" className="h-3 w-3/4 md:w-1/2" />
+      <div className="max-w-2xl">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-700)]">
+          Search
+        </p>
+        <h1 className="mt-2 font-headline text-[34px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)] md:text-[48px]">
+          {query ? `Results for "${query}"` : "Search the shop"}
+        </h1>
+        <p className="mt-3 text-sm text-[var(--color-ink-500)]">
+          Use the header search for instant suggestions, or open any result
+          below to continue shopping.
+        </p>
       </div>
       <div className="cv-auto-lg mt-8 min-h-[60vh]">
         <ProductGridSkeleton

@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Search, TrendingUp, X } from "lucide-react";
 import { classNames, formatPrice, type StoredImage } from "@store/shared";
 
+import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
+
 interface SearchOverlayProps {
   isOpen: boolean;
   onClose: () => void;
@@ -40,6 +42,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const [hints, setHints] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
+  const { startNavigation } = useNavigationTransition();
 
   useEffect(() => {
     if (!isOpen) {
@@ -140,9 +143,8 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       return;
     }
     onClose();
-    // Land on the global shop view with the search query. The shop index
-    // page renders results across every active category.
-    router.push(`/shop?q=${encodeURIComponent(trimmed)}`);
+    const url = `/shop?q=${encodeURIComponent(trimmed)}`;
+    startNavigation(() => router.push(url));
   }
 
   if (!isOpen) {

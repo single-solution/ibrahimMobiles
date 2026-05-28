@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { Bell, ExternalLink, Menu, ShoppingBag } from "lucide-react";
+import { Bell, Menu, ShoppingBag } from "lucide-react";
 
 import { getInitials } from "@/lib/initials";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
-import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
 import { useAdminPermissions } from "@/lib/adminPermissionsContext";
 import {
   totalAdminAlertCount,
@@ -33,12 +32,11 @@ function bellHref(alertCount: {
 
 export function AdminMobileTopBar({ onOpenMenu }: AdminMobileTopBarProps) {
   const { data: session } = useSession();
-  const { siteName, storefrontUrl: configuredStorefrontUrl } = useStoreSettings();
+  const { siteName } = useStoreSettings();
   const { can } = useAdminPermissions();
   const alerts = useAdminAlerts();
   const initials = getInitials(session?.user?.name);
   const brandShort = siteName.split(" ")[0];
-  const storefrontUrl = getPublicSiteUrl(configuredStorefrontUrl);
 
   const visibleAlerts = {
     unreadInquiries: can("inquiry_view") ? alerts.unreadInquiries : 0,
@@ -52,14 +50,12 @@ export function AdminMobileTopBar({ onOpenMenu }: AdminMobileTopBarProps) {
   const badgeLabel = badgeCount > 9 ? "9+" : String(badgeCount);
 
   return (
-    <header
-      className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)]/85 px-3 backdrop-blur md:hidden safe-top"
-    >
+    <header className="safe-top sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)]/85 px-3 backdrop-blur md:hidden">
       <button
         type="button"
         onClick={onOpenMenu}
         aria-label="Open admin menu"
-        className="grid size-10 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-700)] active:bg-[var(--color-canvas-deep)]"
+        className="grid size-11 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-700)] active:bg-[var(--color-canvas-deep)]"
       >
         <Menu size={20} />
       </button>
@@ -68,14 +64,14 @@ export function AdminMobileTopBar({ onOpenMenu }: AdminMobileTopBarProps) {
         href="/"
         className="flex min-w-0 items-center gap-2 text-[var(--color-ink-900)]"
       >
-        <span className="grid size-7 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
-          <ShoppingBag size={13} strokeWidth={2.6} />
+        <span className="grid size-8 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
+          <ShoppingBag size={14} strokeWidth={2.6} />
         </span>
         <div className="min-w-0 leading-tight">
-          <p className="text-[9.5px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-700)]">
+          <p className="text-[0.594rem] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-700)]">
             Admin
           </p>
-          <p className="truncate text-[13px] font-semibold tracking-tight text-[var(--color-ink-900)]">
+          <p className="truncate text-[0.8125rem] font-semibold tracking-tight text-[var(--color-ink-900)]">
             {brandShort} HQ
           </p>
         </div>
@@ -83,33 +79,24 @@ export function AdminMobileTopBar({ onOpenMenu }: AdminMobileTopBarProps) {
 
       <div className="ml-auto flex items-center gap-1">
         <Link
-          href={storefrontUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="View storefront"
-          className="grid size-10 place-items-center rounded-full text-[var(--color-ink-600)] active:bg-[var(--color-canvas-deep)]"
-        >
-          <ExternalLink size={17} />
-        </Link>
-        <Link
           href={bellHref(visibleAlerts)}
           aria-label={
             badgeCount > 0
               ? `${badgeCount} pending notification${badgeCount === 1 ? "" : "s"}`
               : "No notifications"
           }
-          className="relative grid size-10 place-items-center rounded-full text-[var(--color-ink-600)] active:bg-[var(--color-canvas-deep)]"
+          className="relative grid size-11 place-items-center rounded-full text-[var(--color-ink-600)] active:bg-[var(--color-canvas-deep)]"
         >
           <Bell size={18} />
           {badgeCount > 0 ? (
-            <span className="absolute right-1.5 top-1.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-[var(--color-accent-500)] px-1 text-[9px] font-bold text-[var(--color-ink-900)]">
+            <span className="absolute right-1.5 top-1.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-[var(--color-accent-500)] px-1 text-[0.5625rem] font-bold text-[var(--color-ink-900)]">
               {badgeLabel}
             </span>
           ) : null}
         </Link>
         <span
           aria-hidden
-          className="grid size-8 place-items-center rounded-full bg-[var(--color-accent-500)] text-[11px] font-semibold text-[var(--color-ink-900)]"
+          className="grid size-9 place-items-center rounded-full bg-[var(--color-accent-500)] text-[0.6875rem] font-semibold text-[var(--color-ink-900)]"
         >
           {initials}
         </span>

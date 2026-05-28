@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, type MutableRefObject } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 
 export type UrlParamPatch = Record<string, string | null | undefined>;
 
@@ -17,11 +18,17 @@ export interface AdminUrlReplaceOptions {
 /**
  * Push admin list/workspace state into the URL (shareable, back-button friendly).
  * Uses a pending-ref guard so programmatic `replace()` does not fight URL-driven effects.
+ *
+ * Same-route updates are wrapped in `useNavigationTransition` so the global
+ * progress bar surfaces the RSC round-trip — without that, filter/segment
+ * toggles felt frozen until the new payload committed. `historyOnly`
+ * updates bypass the transition because nothing is fetched.
  */
 export function useAdminUrlParams() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { isPending, startNavigation } = useNavigationTransition();
 
   const params = useMemo(
     () => new URLSearchParams(searchParams?.toString() ?? ""),
@@ -44,12 +51,14 @@ export function useAdminUrlParams() {
         window.history.replaceState(window.history.state, "", url);
         return;
       }
-      router.replace(url, { scroll: options?.scroll ?? false });
+      startNavigation(() => {
+        router.replace(url, { scroll: options?.scroll ?? false });
+      });
     },
-    [params, pathname, router],
+    [params, pathname, router, startNavigation],
   );
 
-  return { params, searchParams, replace, pathname };
+  return { params, searchParams, replace, pathname, isPending };
 }
 
 /** Skip URL→local sync until router.replace catches up (optimistic selection). */

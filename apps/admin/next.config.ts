@@ -53,6 +53,19 @@ const securityHeaders = isProduction
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  // Router cache windows. Default `dynamic = 0` (Next 16) makes admin back/
+  // forward navigation re-fetch every page; a short 10s window keeps the
+  // operator-facing data fresh (mutations call `bustAdminCaches()` for
+  // anything sensitive) and makes the sidebar feel instant.
+  experimental: {
+    staleTimes: {
+      dynamic: 10,
+      static: 30,
+    },
+    // Tree-shake the most-imported icon set so admin's ~110 lucide-react
+    // import sites don't ship the whole icon bundle in dev or per-chunk.
+    optimizePackageImports: ["lucide-react"],
+  },
   transpilePackages: ["@store/db", "@store/shared"],
   // Keep server-only Node packages OUT of the Webpack bundle so they're
   // resolved at runtime from `node_modules`. Critical for `pino`/

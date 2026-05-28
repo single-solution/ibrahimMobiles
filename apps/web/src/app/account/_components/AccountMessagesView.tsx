@@ -22,6 +22,7 @@ import {
 } from "@store/shared";
 
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
+import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 
 import {
   ChatMessageBubble,
@@ -50,6 +51,7 @@ interface AccountMessagesViewProps {
 
 export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProps) {
   const router = useRouter();
+  const { startNavigation } = useNavigationTransition();
   const chatSettings = useChatSettings();
   const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
   const [activeId, setActiveId] = useState<string | null>(initialThreadId ?? null);
@@ -174,7 +176,8 @@ export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProp
       const fresh = await sendChatMessage(thread.id, body);
       setActiveThread(fresh);
       await loadThreads();
-      router.replace(`/account/messages/${thread.id}`);
+      const messagesUrl = `/account/messages/${thread.id}`;
+      startNavigation(() => router.replace(messagesUrl));
     } catch (err) {
       setDraft(body);
       setError(err instanceof Error ? err.message : "Could not send message.");
@@ -220,14 +223,15 @@ export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProp
   function handleSelectThread(id: string) {
     setActiveId(id);
     if (typeof window !== "undefined" && !window.matchMedia("(min-width: 40rem)").matches) {
-      router.push(`/account/messages/${id}`);
+      const url = `/account/messages/${id}`;
+      startNavigation(() => router.push(url));
     }
   }
 
   function handleBackToList() {
     setActiveId(null);
     setActiveThread(null);
-    router.push("/account/messages");
+    startNavigation(() => router.push("/account/messages"));
   }
 
   const unreadTotal = threads.reduce((sum, thread) => sum + thread.unreadByCustomer, 0);

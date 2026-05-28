@@ -6,6 +6,15 @@ import { getStoreSettings } from "@store/db";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { getStorefrontProductsPageCached } from "@/lib/storefront/cached";
 
+/**
+ * Search results lean on `getStorefrontProductsPageCached` (60s TTL) and
+ * the underlying catalog tag — the actual query is fast. Pinning the
+ * page itself at 60s ISR lets repeat searches and back-nav into a
+ * recent query hit the CDN/edge cache instead of rebuilding the RSC
+ * payload on every visit.
+ */
+export const revalidate = 60;
+
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getStoreSettings();
   return {

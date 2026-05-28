@@ -18,6 +18,7 @@ import {
 import { classNames } from "@store/shared";
 
 import { InquiriesUnreadBadge } from "@/app/inquiries/_components/InquiriesUnreadBadge";
+import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 import { useAdminPermissions } from "@/lib/adminPermissionsContext";
@@ -119,7 +120,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
         {SIDEBAR_SECTIONS.map((section) => (
           <div key={section.title} className="mb-2">
             {!isCollapsed && (
-              <p className="px-2.5 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-400)]">
+              <p className="px-2.5 pb-0.5 text-[0.625rem] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-400)]">
                 {section.title}
               </p>
             )}
@@ -128,28 +129,14 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
                 const isActive = link.exact
                   ? pathname === link.href
                   : pathname === link.href || pathname.startsWith(`${link.href}/`);
-                const Icon = link.icon;
                 return (
                   <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      title={isCollapsed ? link.label : undefined}
-                      className={classNames(
-                        "relative flex h-8 items-center gap-2 rounded-[var(--radius-md)] text-xs transition-colors",
-                        isCollapsed ? "justify-center px-0" : "px-2",
-                        isActive
-                          ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
-                          : "font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
-                      )}
-                    >
-                      <Icon size={14} strokeWidth={isActive ? 2.4 : 2} />
-                      {!isCollapsed && (
-                        <span className="truncate">{link.label}</span>
-                      )}
-                      {link.href === "/inquiries" && can("inquiry_view") ? (
-                        <InquiriesUnreadBadge />
-                      ) : null}
-                    </Link>
+                    <SidebarNavLink
+                      link={link}
+                      isActive={isActive}
+                      isCollapsed={isCollapsed}
+                      showInquiryBadge={link.href === "/inquiries" && can("inquiry_view")}
+                    />
                   </li>
                 );
               })}
@@ -165,7 +152,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
           rel="noopener noreferrer"
           title="View storefront"
           className={classNames(
-            "flex items-center gap-1.5 border border-[var(--color-ink-100)] bg-[var(--color-surface)] text-[11px] font-medium text-[var(--color-ink-700)] shadow-[var(--shadow-sm)] transition-colors hover:border-[var(--color-ink-200)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
+            "flex items-center gap-1.5 border border-[var(--color-ink-100)] bg-[var(--color-surface)] text-[0.6875rem] font-medium text-[var(--color-ink-700)] shadow-[var(--shadow-sm)] transition-colors hover:border-[var(--color-ink-200)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
             isCollapsed
               ? "mx-auto size-8 shrink-0 justify-center rounded-[var(--radius-md)]"
               : "h-8 w-full rounded-[var(--radius-md)] px-2.5",
@@ -178,5 +165,37 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
         </Link>
       </footer>
     </aside>
+  );
+}
+
+interface SidebarNavLinkProps {
+  link: SidebarItem;
+  isActive: boolean;
+  isCollapsed: boolean;
+  showInquiryBadge: boolean;
+}
+
+function SidebarNavLink({ link, isActive, isCollapsed, showInquiryBadge }: SidebarNavLinkProps) {
+  const Icon = link.icon;
+  const prefetchHandlers = usePrefetchOnIntent(isActive ? null : link.href);
+  return (
+    <Link
+      href={link.href}
+      title={isCollapsed ? link.label : undefined}
+      onPointerDown={prefetchHandlers.onPointerDown}
+      onTouchStart={prefetchHandlers.onTouchStart}
+      onFocus={prefetchHandlers.onFocus}
+      className={classNames(
+        "relative flex h-8 items-center gap-2 rounded-[var(--radius-md)] text-xs transition-colors",
+        isCollapsed ? "justify-center px-0" : "px-2",
+        isActive
+          ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
+          : "font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
+      )}
+    >
+      <Icon size={14} strokeWidth={isActive ? 2.4 : 2} />
+      {!isCollapsed && <span className="truncate">{link.label}</span>}
+      {showInquiryBadge ? <InquiriesUnreadBadge /> : null}
+    </Link>
   );
 }

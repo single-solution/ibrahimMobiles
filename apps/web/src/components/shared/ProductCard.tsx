@@ -8,6 +8,7 @@ import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { productHref } from "@/lib/catalog/productPaths";
+import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 import {
   countProductGrades,
   getDefaultVariant,
@@ -131,14 +132,21 @@ export function ProductCard({
     ? pinnedGradeSlug!
     : displayVariant.gradeSlug;
 
+  const prefetchHandlers = usePrefetchOnIntent(href);
+
   return (
     <Link
       href={href}
       className="group block h-full focus:outline-none"
       onMouseEnter={() => slideCycle.setPaused(true)}
       onMouseLeave={() => slideCycle.setPaused(false)}
-      onFocus={() => slideCycle.setPaused(true)}
       onBlur={() => slideCycle.setPaused(false)}
+      onPointerDown={prefetchHandlers.onPointerDown}
+      onTouchStart={prefetchHandlers.onTouchStart}
+      onFocus={() => {
+        slideCycle.setPaused(true);
+        prefetchHandlers.onFocus?.();
+      }}
     >
       <div className="lift flex h-full flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] hover:border-[var(--color-ink-200)]">
         <div className="product-media-well relative aspect-square bg-[var(--color-canvas-deep)]">

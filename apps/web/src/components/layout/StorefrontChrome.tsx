@@ -1,46 +1,55 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState, type ComponentType } from "react";
 import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileHeader } from "@/components/layout/MobileHeader";
 import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
+import { WebVitalsReporter } from "@/components/layout/WebVitalsReporter";
 import { RevealRoot } from "@/components/shared/motion/RevealRoot";
 import { RouteTransition } from "@/components/shared/motion/RouteTransition";
+import { prefetchAllowed } from "@/lib/navigation/prefetchAllowed";
 
-/* Deferred client islands — their JS is split into separate chunks and is
-   not part of the initial bundle. We mount them on the next idle frame
-   (or 1.5 s after FCP at the latest) to cut Total Blocking Time. If the
-   user interacts with their trigger before idle fires, the interaction
-   handlers below force the gate open immediately so the menu / search
-   still respond — at the cost of a one-frame delay during which Next.js
-   loads the chunk. Open / close animations are preserved because the
-   first render with `isOpen=true` follows React's normal mount path. */
-const WebVitalsReporter = dynamic(
-  () =>
-    import("@/components/layout/WebVitalsReporter").then(
-      (m) => m.WebVitalsReporter,
-    ),
-  { ssr: false, loading: () => null },
+/**
+ * Lazy-load a non-critical client island. Swallows `ChunkLoadError` when a
+ * dev HMR pass leaves the browser holding a stale chunk hash — the island
+ * is skipped instead of crashing the layout.
+ */
+function deferredIsland<P extends object>(
+  loader: () => Promise<{ default: ComponentType<P> }>,
+): ComponentType<P> {
+  return dynamic(
+    () => loader().catch(() => ({ default: () => null })),
+    { ssr: false, loading: () => null },
+  );
+}
+
+function deferredNamedIsland<P extends object>(
+  loader: () => Promise<Record<string, ComponentType<P>>>,
+  exportName: string,
+): ComponentType<P> {
+  return deferredIsland(() =>
+    loader().then((module) => ({ default: module[exportName] })),
+  );
+}
+
+/* Deferred client islands — split into separate chunks and mounted on the
+   next idle frame (or 1.5 s after FCP) to cut Total Blocking Time.
+   `WebVitalsReporter` is imported statically: it renders null and is
+   tiny; a dynamic chunk for it was prone to ChunkLoadError after HMR. */
+const NavigationProgress = deferredNamedIsland(
+  () => import("@/components/layout/NavigationProgress"),
+  "NavigationProgress",
 );
-const NavigationProgress = dynamic(
-  () =>
-    import("@/components/layout/NavigationProgress").then(
-      (m) => m.NavigationProgress,
-    ),
-  { ssr: false, loading: () => null },
+const ChatFabShell = deferredNamedIsland(
+  () => import("@/app/_components/chat/ChatFabShell"),
+  "ChatFabShell",
 );
-const ChatFabShell = dynamic(
-  () =>
-    import("@/app/_components/chat/ChatFabShell").then((m) => m.ChatFabShell),
-  { ssr: false, loading: () => null },
-);
-const SearchOverlay = dynamic(
-  () =>
-    import("@/components/layout/SearchOverlay").then((m) => m.SearchOverlay),
-  { ssr: false, loading: () => null },
+const SearchOverlay = deferredNamedIsland(
+  () => import("@/components/layout/SearchOverlay"),
+  "SearchOverlay",
 );
 
 interface StorefrontChromeProps {
@@ -51,8 +60,15 @@ interface StorefrontChromeProps {
  *  the chat FAB / nav progress bar / vitals reporter hidden forever. */
 const DEFERRED_MOUNT_TIMEOUT_MS = 1500;
 
+/** Routes worth warming in the router cache after first paint. These
+ *  are reached from buttons (search overlay submit) or from elsewhere
+ *  in the app (cart drawer "view full cart") where `<Link prefetch>`
+ *  doesn't see them ahead of time. */
+const IDLE_PREFETCH_ROUTES = ["/search", "/cart"];
+
 export function StorefrontChrome({ children }: StorefrontChromeProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const isAdminRoute = pathname?.startsWith("/admin") ?? false;
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -74,6 +90,30 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
     );
     return () => window.clearTimeout(handle);
   }, [areDeferredMounted]);
+
+  // Warm router cache for routes that aren't reachable through a `<Link
+  // prefetch>` visible in the current viewport. Fires once per session
+  // on the first idle frame and respects the bandwidth gate.
+  useEffect(() => {
+    if (isAdminRoute) return;
+    if (!prefetchAllowed()) return;
+    const supportsIdle = typeof window.requestIdleCallback === "function";
+    const run = () => {
+      for (const route of IDLE_PREFETCH_ROUTES) {
+        try {
+          router.prefetch(route);
+        } catch {
+          // ignore — bad URL or duplicate prefetch, neither blocks the app.
+        }
+      }
+    };
+    if (supportsIdle) {
+      const handle = window.requestIdleCallback(run, { timeout: 3000 });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const handle = window.setTimeout(run, 1500);
+    return () => window.clearTimeout(handle);
+  }, [isAdminRoute, router]);
 
   /* If the user taps the search trigger before the idle callback fires,
      force-mount the deferred chunks immediately so the overlay can render
@@ -113,7 +153,7 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
       ) : null}
       <Header onOpenSearch={openSearch} />
       <MobileHeader onOpenSearch={openSearch} />
-      <main className="page-enter min-h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h))] md:min-h-[calc(100dvh-var(--desktop-header-h))]">
+      <main className="storefront-main page-enter min-h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h))] md:min-h-[calc(100dvh-var(--desktop-header-h))]">
         <Suspense fallback={children}>
           <RouteTransition>{children}</RouteTransition>
         </Suspense>

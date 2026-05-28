@@ -8,6 +8,7 @@ import { AdminTopHeader } from "@/components/layout/AdminTopHeader";
 import { AdminFooter } from "@/components/layout/AdminFooter";
 import { AdminMobileTopBar } from "@/components/layout/AdminMobileTopBar";
 import { AdminMobileMenu } from "@/components/layout/AdminMobileMenu";
+import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import { AdminPermissionsProvider } from "@/lib/adminPermissionsContext";
 
 interface AdminShellProps {
@@ -48,6 +49,7 @@ export function AdminShell({ children, contentClassName }: AdminShellProps) {
 
   return (
     <AdminPermissionsProvider>
+      <NavigationProgress />
       <div className="flex min-h-screen flex-col bg-[var(--color-canvas-deep)] md:h-screen md:gap-2 md:overflow-hidden md:p-2">
         <div className="md:hidden">
           <AdminMobileTopBar onOpenMenu={() => setIsMobileMenuOpen(true)} />

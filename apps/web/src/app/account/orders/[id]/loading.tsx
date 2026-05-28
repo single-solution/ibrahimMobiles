@@ -1,26 +1,47 @@
+"use client";
+
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+
 import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 
 /**
- * Order detail fallback — back link → status header card → 2-column layout
- * (items + totals on the left, timeline + delivery + support on the right).
+ * Order detail fallback. The order number is in the URL (`[id]`), so the
+ * back link and headline paint live the moment the row is tapped. Only
+ * the timeline, items, totals, and sidebar (which all depend on the
+ * server-loaded order) are skeletoned.
  */
 const ITEM_ROW_COUNT = 2;
 const TIMELINE_STEP_COUNT = 4;
 const SIDEBAR_SECTION_COUNT = 3;
 
 export default function OrderDetailLoading() {
+  const params = useParams<{ id: string }>();
+  const orderNumber = params?.id ?? "";
+
   return (
     <SkeletonScreen
       label="Loading order"
       className="mx-auto max-w-5xl px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8"
     >
-      <Skeleton shape="text" className="h-3 w-32" />
+      <Link
+        href="/account/orders"
+        className="cta-arrow tap inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-ink-500)] hover:text-[var(--color-ink-800)]"
+      >
+        <ArrowLeft size={13} />
+        Back to orders
+      </Link>
 
       <div className="mt-4 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
         <div className="flex flex-col gap-4 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/40 p-5 md:flex-row md:items-center md:justify-between md:p-7">
           <div className="space-y-2">
-            <Skeleton shape="text" className="h-3 w-32" />
-            <Skeleton shape="text" className="h-9 w-56" />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
+              Order
+            </p>
+            <h1 className="font-mono text-[24px] font-semibold tracking-tight text-[var(--color-ink-900)] md:text-[30px]">
+              {orderNumber || <Skeleton shape="text" className="h-9 w-56" />}
+            </h1>
             <Skeleton shape="text" className="h-3 w-40" />
           </div>
           <div className="flex flex-col items-start gap-2 md:items-end">

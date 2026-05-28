@@ -14,12 +14,20 @@ import type { StorefrontAttributeFacet } from "@/lib/storefront/facets";
 
 import { Button } from "@/components/ui/Button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import {
-  FILTER_PARAM_KEYS,
-  isExpandGradesView,
-} from "@/lib/storefront/filterParams";
+import { FILTER_PARAM_KEYS } from "@/lib/storefront/filterParams";
 import { useFilterParams } from "@/lib/storefront/useFilterParams";
+import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import { useAttributesForCategory, useGrades } from "@/lib/storefront/storefrontReferenceContext";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
+
+function sameStringSet(left: readonly string[], right: readonly string[]): boolean {
+  if (left.length !== right.length) return false;
+  const set = new Set(left);
+  for (const value of right) {
+    if (!set.has(value)) return false;
+  }
+  return true;
+}
 
 /**
  * Filter sidebar (Phase 1 shared catalog axes).
@@ -143,6 +151,7 @@ function FilterPanel({
   const filterApi = useFilterParams();
   const router = useRouter();
   const pathname = usePathname();
+  const { startNavigation } = useNavigationTransition();
   const allGrades = useGrades();
   const categoryAttributes = useAttributesForCategory(categorySlug ?? "");
   const attributeNodes = useMemo(
@@ -157,18 +166,42 @@ function FilterPanel({
 
   const facetFetchKey = `${categorySlug ?? ""}:${filterApi.params.toString()}`;
 
-  const grades = filterApi.getMulti(FILTER_PARAM_KEYS.grades);
-  const brandSlugs = filterApi.getMulti(FILTER_PARAM_KEYS.brands);
+  // Raw URL strings — stable primitives we can use as effect deps without
+  // triggering a re-fire on every render (which `filterApi.getMulti` would,
+  // since it returns a fresh array each call).
+  const urlGradesRaw = filterApi.params.get(FILTER_PARAM_KEYS.grades) ?? "";
+  const urlBrandSlugsRaw = filterApi.params.get(FILTER_PARAM_KEYS.brands) ?? "";
   const minPriceParam = filterApi.getSingle(FILTER_PARAM_KEYS.minPrice) ?? "";
   const maxPriceParam = filterApi.getSingle(FILTER_PARAM_KEYS.maxPrice) ?? "";
-  const expandGrades = isExpandGradesView(filterApi.params);
 
-  const setExpandGrades = useCallback(
-    (next: boolean) => {
-      filterApi.setSingle(FILTER_PARAM_KEYS.expandGrades, next ? "1" : "");
-    },
-    [filterApi],
+  const splitCsv = useCallback(
+    (raw: string) => raw.split(",").map((token) => token.trim()).filter(Boolean),
+    [],
   );
+
+  // Optimistic mirrors of the URL-driven selections so the checkbox flip is
+  // immediate on tap. `router.replace` + RSC settle on their own time — when
+  // the URL eventually catches up (or changes from a back/forward) the effect
+  // below snaps the mirror back into sync.
+  //
+  // Effect deps are the RAW URL strings, NOT the parsed arrays. If we depended
+  // on the parsed arrays (fresh on every render) the effect would fire after
+  // every optimistic update and revert it.
+  const [optimisticGrades, setOptimisticGrades] = useState(() => splitCsv(urlGradesRaw));
+  const [optimisticBrandSlugs, setOptimisticBrandSlugs] = useState(() =>
+    splitCsv(urlBrandSlugsRaw),
+  );
+
+  useEffect(() => {
+    scheduleStateUpdate(() => setOptimisticGrades(splitCsv(urlGradesRaw)));
+  }, [urlGradesRaw, splitCsv]);
+
+  useEffect(() => {
+    scheduleStateUpdate(() => setOptimisticBrandSlugs(splitCsv(urlBrandSlugsRaw)));
+  }, [urlBrandSlugsRaw, splitCsv]);
+
+  const grades = optimisticGrades;
+  const brandSlugs = optimisticBrandSlugs;
 
   const [minPrice, setMinPrice] = useState(minPriceParam);
   const [maxPrice, setMaxPrice] = useState(maxPriceParam);
@@ -184,66 +217,106 @@ function FilterPanel({
 
   const toggleBrand = useCallback(
     (slug: string) => {
-      const next = new URLSearchParams(filterApi.params.toString());
-      const current = filterApi.getMulti(FILTER_PARAM_KEYS.brands);
-      const set = new Set(current);
+      const set = new Set(optimisticBrandSlugs);
       if (set.has(slug)) {
         set.delete(slug);
       } else {
         set.add(slug);
       }
-      if (set.size === 0) {
+      const nextSlugs = Array.from(set);
+      setOptimisticBrandSlugs(nextSlugs);
+
+      const next = new URLSearchParams(filterApi.params.toString());
+      if (nextSlugs.length === 0) {
         next.delete(FILTER_PARAM_KEYS.brands);
       } else {
-        next.set(FILTER_PARAM_KEYS.brands, Array.from(set).join(","));
+        next.set(FILTER_PARAM_KEYS.brands, nextSlugs.join(","));
       }
       clearDependentAttributes(next, "brand");
       filterApi.replaceParams(next);
     },
-    [clearDependentAttributes, filterApi],
+    [clearDependentAttributes, filterApi, optimisticBrandSlugs],
   );
 
   const toggleGrade = useCallback(
     (slug: string) => {
-      const next = new URLSearchParams(filterApi.params.toString());
-      const current = filterApi.getMulti(FILTER_PARAM_KEYS.grades);
-      const set = new Set(current);
+      const set = new Set(optimisticGrades);
       if (set.has(slug)) {
         set.delete(slug);
       } else {
         set.add(slug);
       }
-      if (set.size === 0) {
+      const nextSlugs = Array.from(set);
+      setOptimisticGrades(nextSlugs);
+
+      const next = new URLSearchParams(filterApi.params.toString());
+      if (nextSlugs.length === 0) {
         next.delete(FILTER_PARAM_KEYS.grades);
       } else {
-        next.set(FILTER_PARAM_KEYS.grades, Array.from(set).join(","));
+        next.set(FILTER_PARAM_KEYS.grades, nextSlugs.join(","));
       }
       clearDependentAttributes(next, "grade");
       filterApi.replaceParams(next);
     },
-    [clearDependentAttributes, filterApi],
+    [clearDependentAttributes, filterApi, optimisticGrades],
   );
+
+  // Optimistic per-attribute selections — keyed by attribute slug → array of
+  // selected values. Same shape and update story as the grades/brands mirrors
+  // above; the FilterCheckRow inside `AttributeFacetGroups` reads from this
+  // override map so taps flip the check instantly.
+  const [optimisticAttributes, setOptimisticAttributes] = useState<
+    Record<string, string[]>
+  >({});
+
+  // Drop an attribute's optimistic override the moment the URL settles on the
+  // same value. Deps: ONLY `filterApi.params` (the stable underlying signal)
+  // — including `optimisticAttributes` would revert overrides mid-flight.
+  const filterParams = filterApi.params;
+  useEffect(() => {
+    scheduleStateUpdate(() => {
+      setOptimisticAttributes((prev) => {
+        const overridden = Object.keys(prev);
+        if (overridden.length === 0) return prev;
+        let changed = false;
+        const next: Record<string, string[]> = { ...prev };
+        for (const slug of overridden) {
+          const raw = filterParams.get(`attr.${slug}`) ?? "";
+          const urlValues = splitCsv(raw);
+          if (sameStringSet(urlValues, prev[slug] ?? [])) {
+            delete next[slug];
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    });
+  }, [filterParams, splitCsv]);
 
   const toggleAttribute = useCallback(
     (attributeSlug: string, value: string) => {
       const paramKey = `attr.${attributeSlug}`;
-      const next = new URLSearchParams(filterApi.params.toString());
-      const current = filterApi.getMulti(paramKey);
+      const current =
+        optimisticAttributes[attributeSlug] ?? filterApi.getMulti(paramKey);
       const set = new Set(current);
       if (set.has(value)) {
         set.delete(value);
       } else {
         set.add(value);
       }
-      if (set.size === 0) {
+      const nextValues = Array.from(set);
+      setOptimisticAttributes((prev) => ({ ...prev, [attributeSlug]: nextValues }));
+
+      const next = new URLSearchParams(filterApi.params.toString());
+      if (nextValues.length === 0) {
         next.delete(paramKey);
       } else {
-        next.set(paramKey, Array.from(set).join(","));
+        next.set(paramKey, nextValues.join(","));
       }
       clearDependentAttributes(next, attributeSlug);
       filterApi.replaceParams(next);
     },
-    [clearDependentAttributes, filterApi],
+    [clearDependentAttributes, filterApi, optimisticAttributes],
   );
 
   const visibleGrades = useMemo(() => {
@@ -280,29 +353,14 @@ function FilterPanel({
     }
     next.delete(FILTER_PARAM_KEYS.page);
     const queryString = next.toString();
-    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-      scroll: false,
+    const url = queryString ? `${pathname}?${queryString}` : pathname;
+    startNavigation(() => {
+      router.replace(url, { scroll: false });
     });
   };
 
   const filterGroups = (
     <div className={isMobile ? "sheet-stagger space-y-6" : "space-y-3 p-2.5 pb-3"}>
-      {/* View mode (desktop only). Mobile renders this as segmented tabs
-          above the grid (`GradeViewModeTabs`) — that placement is the
-          mobile-native one, so we skip it here to avoid duplicating the
-          control in the mobile filter bottom sheet. */}
-      {!isMobile && (
-        <>
-          <FilterGroup title="View">
-            <ViewToggle
-              expandGrades={expandGrades}
-              onChange={setExpandGrades}
-            />
-          </FilterGroup>
-          <FilterDivider />
-        </>
-      )}
-
       <FilterGroup title="Grade">
         {visibleGrades.length === 0 ? (
           <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
@@ -353,7 +411,15 @@ function FilterPanel({
           categorySlug={categorySlug}
           initialFacets={initialFacets}
           filterParams={filterApi.params}
-          getMulti={filterApi.getMulti}
+          getMulti={(key) => {
+            // Strip the "attr." prefix so we can look up the optimistic mirror.
+            // Any attribute we haven't toggled yet falls back to the URL value.
+            const attrSlug = key.startsWith("attr.") ? key.slice(5) : null;
+            if (attrSlug && optimisticAttributes[attrSlug]) {
+              return optimisticAttributes[attrSlug];
+            }
+            return filterApi.getMulti(key);
+          }}
           onToggleAttribute={toggleAttribute}
         />
       ) : null}
@@ -586,66 +652,6 @@ function PriceInput({ value, onChange, placeholder, ariaLabel }: PriceInputProps
   );
 }
 
-interface ViewToggleProps {
-  expandGrades: boolean;
-  onChange: (next: boolean) => void;
-}
-
-/**
- * View-mode toggle for the desktop sidebar — a two-button segmented
- * pill that mirrors the mobile `GradeViewModeTabs`. Was previously
- * a checkbox-style row; the toggle reads as a mode switch rather
- * than an opt-in filter, which matches what the control actually does.
- */
-function ViewToggle({ expandGrades, onChange }: ViewToggleProps) {
-  return (
-    <div
-      role="tablist"
-      aria-label="Listing view mode"
-      className="inline-flex w-full items-center gap-1 rounded-full border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] p-1 text-[12.5px] font-semibold"
-    >
-      <ViewToggleTab
-        label="By product"
-        isActive={!expandGrades}
-        onClick={() => {
-          if (expandGrades) onChange(false);
-        }}
-      />
-      <ViewToggleTab
-        label="By grade"
-        isActive={expandGrades}
-        onClick={() => {
-          if (!expandGrades) onChange(true);
-        }}
-      />
-    </div>
-  );
-}
-
-interface ViewToggleTabProps {
-  label: string;
-  isActive: boolean;
-  onClick: () => void;
-}
-
-function ViewToggleTab({ label, isActive, onClick }: ViewToggleTabProps) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={isActive}
-      onClick={onClick}
-      className={classNames(
-        "flex flex-1 items-center justify-center rounded-full px-3 py-1.5 transition-colors",
-        isActive
-          ? "bg-[var(--color-surface)] text-[var(--color-accent-800)] shadow-[var(--shadow-sm)]"
-          : "text-[var(--color-ink-600)] hover:text-[var(--color-ink-900)]",
-      )}
-    >
-      {label}
-    </button>
-  );
-}
 
 interface FilterCheckRowProps {
   label: string;

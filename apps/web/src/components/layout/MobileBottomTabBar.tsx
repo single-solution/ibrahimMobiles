@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Home, ShoppingBag, ShoppingCart, Tag, User } from "lucide-react";
 import { classNames } from "@store/shared";
 import { useCart } from "@/lib/cart/useCart";
+import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 
 interface Tab {
   href: string;
@@ -69,6 +70,7 @@ interface TabLinkItemProps {
 function TabLinkItem({ tab, pathname, badgeCount }: TabLinkItemProps) {
   const isActive = isLinkActive(tab.href, tab.matchPaths, pathname);
   const Icon = tab.icon;
+  const prefetchHandlers = usePrefetchOnIntent(isActive ? null : tab.href);
   return (
     <Link
       href={tab.href}
@@ -79,6 +81,9 @@ function TabLinkItem({ tab, pathname, badgeCount }: TabLinkItemProps) {
           : "font-medium text-[var(--color-ink-500)] active:text-[var(--color-ink-800)]",
       )}
       aria-current={isActive ? "page" : undefined}
+      onPointerDown={prefetchHandlers.onPointerDown}
+      onTouchStart={prefetchHandlers.onTouchStart}
+      onFocus={prefetchHandlers.onFocus}
     >
       <span className="relative">
         <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />

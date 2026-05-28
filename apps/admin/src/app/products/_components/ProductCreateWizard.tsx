@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
+import { MobileFab } from "@/components/ui/MobileFab";
 import { WorkspacePrimaryAction } from "@/components/shared/adminWorkspaceUi";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
@@ -124,7 +125,12 @@ export function ProductCreateWizard({
 
   const trigger =
     variant === "toolbar" ? (
-      <WorkspacePrimaryAction label="New product" icon={Plus} onClick={openStep1} />
+      <>
+        <span className="hidden md:inline-flex">
+          <WorkspacePrimaryAction label="New product" icon={Plus} onClick={openStep1} />
+        </span>
+        <MobileFab label="New product" icon={Plus} onClick={openStep1} />
+      </>
     ) : variant === "sidebar" ? (
       <div className="mx-2 mb-3">
         <Button

@@ -10,6 +10,7 @@ import {
 } from "@store/shared";
 import { useCart } from "@/lib/cart/useCart";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import type { AccountAddress, AccountCustomer } from "@/lib/storefront/account";
 import {
   CheckoutHeader,
@@ -53,6 +54,7 @@ function addressToForm(address: AccountAddress | undefined): AddressFormState {
 
 export function Checkout({ customer }: CheckoutProps) {
   const router = useRouter();
+  const { startNavigation } = useNavigationTransition();
   const cart = useCart();
   const settings = useStoreSettings();
 
@@ -223,7 +225,8 @@ export function Checkout({ customer }: CheckoutProps) {
       if (serverRedeemed > 0) {
         params.set("redeemed", String(serverRedeemed));
       }
-      router.push(`/checkout/success?${params.toString()}`);
+      const url = `/checkout/success?${params.toString()}`;
+      startNavigation(() => router.push(url));
     } catch {
       setErrorMessage("Network error — could not reach the server. Please try again.");
       setIsPlacing(false);

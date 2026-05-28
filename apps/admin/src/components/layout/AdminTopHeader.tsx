@@ -42,7 +42,7 @@ export function AdminTopHeader({ isCollapsed, onToggleCollapsed }: AdminTopHeade
             <ShoppingBag size={13} strokeWidth={2.4} />
           </span>
           <div className="leading-tight">
-            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-700)]">
+            <p className="text-[0.5625rem] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-700)]">
               Admin
             </p>
             <p className="text-xs font-semibold tracking-tight text-[var(--color-ink-900)]">

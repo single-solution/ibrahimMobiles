@@ -195,6 +195,44 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           href="https://cdn.simpleicons.org"
           crossOrigin="anonymous"
         />
+        {/* Speculation Rules — Chrome/Edge will prerender same-origin
+           links once a pointer/touch lands on them. `conservative`
+           eagerness means no prerender until the user is clearly about
+           to click, so wasted bandwidth on visits that never happen is
+           minimal. Excludes admin, account, checkout, sign-in (auth /
+           dynamic-by-session) and API routes (non-navigational). Other
+           browsers silently ignore the tag — pure upside for Chromium.
+           Network Information API is respected by Chrome itself: Data
+           Saver / 2g connections skip the prerender automatically. */}
+        <script
+          type="speculationrules"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              prerender: [
+                {
+                  source: "document",
+                  where: {
+                    and: [
+                      { href_matches: "/*" },
+                      {
+                        not: {
+                          href_matches: [
+                            "/admin/*",
+                            "/account/*",
+                            "/checkout/*",
+                            "/api/*",
+                            "/sign-in*",
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                  eagerness: "conservative",
+                },
+              ],
+            }),
+          }}
+        />
         <MarketingPixels
           metaPixelId={settings.metaPixelId}
           googleAnalyticsId={settings.googleAnalyticsId}

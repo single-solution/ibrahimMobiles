@@ -19,6 +19,7 @@ import {
 import { CustomerDetailPanel } from "./CustomerDetailPanel";
 import { adminFetch } from "@/lib/adminApi";
 import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import { getInitials } from "@/lib/initials";
 import { classNames, formatPrice, formatTimeAgo } from "@store/shared";
 import type { AdminCustomerSummary } from "@/types/admin";
@@ -44,6 +45,7 @@ function CustomersCatalogInner({
 }: CustomersCatalogProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { startNavigation } = useNavigationTransition();
   const toast = useToast();
   const { can } = useAdminPermissions();
 
@@ -97,9 +99,10 @@ function CustomersCatalogInner({
         params.delete("customer");
       }
       const query = params.toString();
-      router.replace(query ? `/customers?${query}` : "/customers", { scroll: false });
+      const url = query ? `/customers?${query}` : "/customers";
+      startNavigation(() => router.replace(url, { scroll: false }));
     },
-    [router, searchParams],
+    [router, searchParams, startNavigation],
   );
 
   const clearActiveCustomer = useCallback(() => {

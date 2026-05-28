@@ -12,6 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { StatusPill } from "@/components/shared/StatusPill";
+import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import { useToast } from "@/components/ui/Toast";
 import {
   WorkspaceEmptyPane,
@@ -66,6 +67,7 @@ export function Inquiries(props: InquiriesProps) {
 function InquiriesInner({ inquiries, access }: InquiriesProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { startNavigation } = useNavigationTransition();
   const toast = useToast();
   const flags = accessFlags(access.permissions);
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,9 +91,10 @@ function InquiriesInner({ inquiries, access }: InquiriesProps) {
         params.delete("inquiry");
       }
       const query = params.toString();
-      router.replace(query ? `/inquiries?${query}` : "/inquiries", { scroll: false });
+      const url = query ? `/inquiries?${query}` : "/inquiries";
+      startNavigation(() => router.replace(url, { scroll: false }));
     },
-    [router, searchParams],
+    [router, searchParams, startNavigation],
   );
 
   const clearActiveInquiry = useCallback(() => {

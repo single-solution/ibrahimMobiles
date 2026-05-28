@@ -184,7 +184,11 @@
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --motion-slow: 260ms;
-  --motion-route: 480ms;
+  /* Route swap motion — kept short so navigation feels instant even when
+     the new RSC payload streams in over the network. Anything > ~180ms
+     starts to read as "content was lost and is fading back in" rather
+     than a polish cue. */
+  --motion-route: 140ms;
   --motion-stagger: 28ms;
 
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -1136,35 +1140,39 @@ html {
   animation: page-in var(--motion-route) var(--ease-out-quart);
 }
 
-/* View Transitions API — root cross-fade on client navigations when
-   `RouteTransition` calls `document.startViewTransition`. The old/new
-   pseudo-elements replace the `.route-enter` keyframe on capable browsers. */
+/* View Transitions API — cross-fade only the main content column on
+   pathname changes (`RouteTransition`). Query-only filter/sort updates
+   skip this entirely. Root is frozen so header/footer/tab bar do not
+   flash or slide with every URL tweak. */
+.storefront-main {
+  view-transition-name: storefront-main;
+}
 @media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+  ::view-transition-old(storefront-main) {
     animation: route-vt-out var(--motion-route) var(--ease-out-quart) both;
   }
-  ::view-transition-new(root) {
+  ::view-transition-new(storefront-main) {
     animation: route-vt-in var(--motion-route) var(--ease-out-quart) both;
   }
 }
 @keyframes route-vt-out {
   from {
     opacity: 1;
-    transform: translateY(0);
   }
   to {
     opacity: 0;
-    transform: translateY(-6px);
   }
 }
 @keyframes route-vt-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -1172,11 +1180,9 @@ html {
 @keyframes route-content-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 .route-enter {
@@ -1663,4 +1669,24 @@ html {
 
 *::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Mobile grade-view-mode segmented control pill. Slides between the two
+   tabs on toggle — desktop falls back to the `bg-surface` rule on the
+   active button (richer subtitle layout makes a sliding pill awkward at
+   that width). Pill movement is driven by `data-grade` on the wrapper. */
+.grade-tabs-pill {
+  transition: transform var(--motion-fast) var(--ease-out-quart);
+  will-change: transform;
+}
+.grade-tabs-pill[data-grade="false"] {
+  transform: translateX(0);
+}
+.grade-tabs-pill[data-grade="true"] {
+  transform: translateX(calc(100% + 0.25rem));
+}
+@media (prefers-reduced-motion: reduce) {
+  .grade-tabs-pill {
+    transition: none;
+  }
 }

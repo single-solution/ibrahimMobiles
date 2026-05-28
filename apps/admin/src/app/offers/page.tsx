@@ -4,14 +4,11 @@ import { AdminShell } from "@/components/layout/AdminShell";
 import { Offers } from "@/app/offers/_components/Offers";
 import { ListWorkspaceSkeleton } from "@/components/loading/ListWorkspaceSkeleton";
 import { adminListPageClass } from "@/components/shared/adminWorkspaceUi";
-import { connectDB, Offer } from "@store/db";
 
+import { loadAdminOffersCached } from "@/lib/cached";
 import { requirePagePermission } from "@/lib/server/requirePageSession";
-import { toOfferResponse, type OfferLean } from "@/lib/serializers/offer";
 
 export const dynamic = "force-dynamic";
-
-const OFFERS_LIST_LIMIT = 200;
 
 export default async function AdminOffersPage() {
   await requirePagePermission("offer_manage", "/offers");
@@ -28,11 +25,6 @@ export default async function AdminOffersPage() {
 }
 
 async function OffersData() {
-  await connectDB();
-  const docs = await Offer.find()
-    .sort({ sortOrder: 1, createdAt: -1 })
-    .limit(OFFERS_LIST_LIMIT)
-    .lean<OfferLean[]>();
-  const offers = docs.map(toOfferResponse);
+  const offers = await loadAdminOffersCached();
   return <Offers offers={offers} />;
 }

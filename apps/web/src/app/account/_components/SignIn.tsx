@@ -5,11 +5,13 @@ import { ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { PhoneOtpForm } from "@/app/account/_components/PhoneOtpForm";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 
 export function SignIn() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { siteName } = useStoreSettings();
+  const { startNavigation } = useNavigationTransition();
   const requestedNext = searchParams?.get("next");
   const next =
     requestedNext &&
@@ -19,8 +21,10 @@ export function SignIn() {
       : "/account";
 
   function handleVerified() {
-    router.push(next);
-    router.refresh();
+    startNavigation(() => {
+      router.push(next);
+      router.refresh();
+    });
   }
 
   return (
