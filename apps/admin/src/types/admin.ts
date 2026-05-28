@@ -126,6 +126,11 @@ export interface AdminProductSummary {
   minPriceRupees?: number;
   /** First product image, or `null` when the gallery is empty. */
   heroImage: StoredImage | null;
+  /** Distinct grade slugs across the product's variants. Powers the admin
+   *  Grade filter without forcing a per-row variant fetch. */
+  gradeSlugs: string[];
+  /** True when the product gallery has at least one image. */
+  hasImages: boolean;
   createdAt: string;
   updatedAt: string;
 }

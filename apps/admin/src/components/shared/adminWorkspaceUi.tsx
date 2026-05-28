@@ -162,12 +162,12 @@ export function WorkspacePaneHeader({
     <header className="admin-mobile-sticky shrink-0 space-y-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2.5">
       <div className="flex items-center gap-2">
         <Icon size={15} className="shrink-0 text-[var(--color-accent-700)]" />
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <h2 className="text-sm font-semibold text-[var(--color-ink-900)]">{title}</h2>
           {subtitle ? (
-            <p className="max-w-prose text-[0.625rem] text-[var(--color-ink-500)]">
+            <span className="truncate text-[10px] leading-tight text-[var(--color-ink-500)]">
               {subtitle}
-            </p>
+            </span>
           ) : null}
         </div>
         {action}
@@ -221,14 +221,14 @@ export function WorkspaceListHeader({
         <span className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-50)] text-[var(--color-accent-700)] md:size-9">
           <Icon size={15} />
         </span>
-        <div className="min-w-0">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <h2 className="text-[0.8125rem] font-semibold text-[var(--color-ink-900)] md:text-sm">
             {title}
           </h2>
           {subtitle ? (
-            <p className="max-w-prose text-[0.625rem] text-[var(--color-ink-500)]">
+            <span className="truncate text-[10px] leading-tight text-[var(--color-ink-500)]">
               {subtitle}
-            </p>
+            </span>
           ) : null}
         </div>
       </div>
@@ -317,17 +317,19 @@ export function WorkspaceCatalogPaneHeader({
   return (
     <header className="admin-mobile-sticky shrink-0 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 py-2">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex min-w-0 items-center gap-1.5 sm:mr-auto">{title}</div>
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 sm:mr-auto">
+          <div className="flex min-w-0 items-center gap-1.5">{title}</div>
+          {subtitle ? (
+            <span className="truncate text-[10px] font-normal leading-tight text-[var(--color-ink-500)]">
+              {subtitle}
+            </span>
+          ) : null}
+        </div>
         <div className="flex w-full min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5 sm:w-auto sm:flex-nowrap">
           {search}
           {action}
         </div>
       </div>
-      {subtitle ? (
-        <p className="mt-1 max-w-prose text-[0.625rem] text-[var(--color-ink-500)]">
-          {subtitle}
-        </p>
-      ) : null}
       {filters ? <div className="mt-2 flex flex-wrap gap-1.5">{filters}</div> : null}
     </header>
   );

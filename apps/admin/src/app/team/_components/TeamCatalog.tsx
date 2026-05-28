@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Plus,
@@ -37,9 +38,23 @@ import { classNames, formatTimeAgo } from "@store/shared";
 import type { AdminUser } from "@/types/admin";
 import type { UserRole } from "@store/db";
 
-import { TeamInviteDrawer } from "./TeamInviteDrawer";
 import { TeamMemberDetailPanel } from "./TeamMemberDetailPanel";
-import { TeamRolesModal } from "./TeamRolesModal";
+
+// Invite drawer + roles modal are click-gated dialogs — their JS only
+// matters once the operator opens one. Lazy chunks keep /team's cold
+// load lean.
+const TeamInviteDrawer = dynamic(
+  () =>
+    import("./TeamInviteDrawer").then((mod) => ({
+      default: mod.TeamInviteDrawer,
+    })),
+  { ssr: false },
+);
+const TeamRolesModal = dynamic(
+  () =>
+    import("./TeamRolesModal").then((mod) => ({ default: mod.TeamRolesModal })),
+  { ssr: false },
+);
 
 type SegmentFilter = "all" | UserRole | "suspended" | "super";
 
@@ -77,6 +92,11 @@ function TeamCatalogInner({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  // Track whether the dialog has ever been opened so the dynamic chunk
+  // only loads on first interaction; subsequent opens reuse the cached
+  // bundle and keep close animations smooth.
+  const [inviteDrawerMounted, setInviteDrawerMounted] = useState(false);
+  const [rolesModalMounted, setRolesModalMounted] = useState(false);
   const [toRemove, setToRemove] = useState<AdminUser | null>(null);
   const [rolesModal, setRolesModal] = useState<{ open: boolean; role: UserRole }>({
     open: false,
@@ -191,6 +211,12 @@ function TeamCatalogInner({
 
   const openRoles = useCallback((role: UserRole) => {
     setRolesModal({ open: true, role });
+    setRolesModalMounted(true);
+  }, []);
+
+  const openInvite = useCallback(() => {
+    setIsInviteOpen(true);
+    setInviteDrawerMounted(true);
   }, []);
 
   return (
@@ -263,7 +289,7 @@ function TeamCatalogInner({
                   <WorkspacePrimaryAction
                     label="Invite"
                     icon={Plus}
-                    onClick={() => setIsInviteOpen(true)}
+                    onClick={openInvite}
                   />
                 ) : undefined
               }
@@ -376,7 +402,7 @@ function TeamCatalogInner({
                       variant="primary"
                       size="sm"
                       leadingIcon={<Plus size={14} />}
-                      onClick={() => setIsInviteOpen(true)}
+                      onClick={openInvite}
                     >
                       Invite member
                     </Button>
@@ -388,23 +414,27 @@ function TeamCatalogInner({
         </div>
       </WorkspaceFrame>
 
-      <TeamInviteDrawer
-        isOpen={isInviteOpen}
-        isCurrentUserSuperAdmin={isCurrentUserSuperAdmin}
-        onClose={() => setIsInviteOpen(false)}
-        onCreated={(member) => {
-          setIsInviteOpen(false);
-          setActiveMemberUrl(member.id);
-          refresh();
-        }}
-      />
+      {inviteDrawerMounted ? (
+        <TeamInviteDrawer
+          isOpen={isInviteOpen}
+          isCurrentUserSuperAdmin={isCurrentUserSuperAdmin}
+          onClose={() => setIsInviteOpen(false)}
+          onCreated={(member) => {
+            setIsInviteOpen(false);
+            setActiveMemberUrl(member.id);
+            refresh();
+          }}
+        />
+      ) : null}
 
-      <TeamRolesModal
-        isOpen={rolesModal.open}
-        onClose={() => setRolesModal((current) => ({ ...current, open: false }))}
-        initialRole={rolesModal.role}
-        memberCounts={memberCountsByRole}
-      />
+      {rolesModalMounted ? (
+        <TeamRolesModal
+          isOpen={rolesModal.open}
+          onClose={() => setRolesModal((current) => ({ ...current, open: false }))}
+          initialRole={rolesModal.role}
+          memberCounts={memberCountsByRole}
+        />
+      ) : null}
 
       <ConfirmDialog
         isOpen={toRemove !== null}

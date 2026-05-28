@@ -19,8 +19,23 @@ interface ProductImageProps {
   brandSlug: string;
   sizes?: string;
   priority?: boolean;
+  /** Override the default per-variant quality. Defaults trade ~25% bytes for
+   *  imperceptible loss at the rendered size of each surface. */
+  quality?: number;
   onLoadComplete?: () => void;
 }
+
+/**
+ * Per-variant quality defaults. Card / thumb surfaces render small, so a
+ * lower quality knob shaves meaningful bytes without visible loss; the
+ * detail/full variants stay near max for PDP hero + lightbox.
+ */
+const QUALITY_BY_VARIANT: Record<StoredImageVariantKey, number> = {
+  thumb: 65,
+  card: 70,
+  detail: 80,
+  full: 85,
+};
 
 /**
  * Hero image for the storefront product card and PDP.
@@ -39,6 +54,7 @@ export function ProductImage({
   brandSlug,
   sizes = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw",
   priority = false,
+  quality = QUALITY_BY_VARIANT[variant],
   onLoadComplete,
 }: ProductImageProps) {
   const [hasFailed, setHasFailed] = useState(false);
@@ -84,6 +100,7 @@ export function ProductImage({
         fill
         sizes={sizes}
         priority={priority}
+        quality={quality}
         placeholder={image.blurDataURL ? "blur" : undefined}
         blurDataURL={image.blurDataURL || undefined}
         data-img-fade={showLoadFade && !hasLoaded ? "false" : "true"}

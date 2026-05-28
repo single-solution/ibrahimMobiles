@@ -8,9 +8,10 @@ import {
   useRef,
   useState,
 } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Boxes, Pencil, Trash2 } from "lucide-react";
+import { Boxes, EyeOff, MoreHorizontal, Pencil, Star, Trash2 } from "lucide-react";
 import {
   classNames,
   compareAlphabetically,
@@ -22,26 +23,22 @@ import { CatalogSearchField } from "@/components/shared/catalogWorkspaceUi";
 import { AdminTable, type AdminTableColumn } from "@/components/ui/AdminTable";
 import {
   WorkspaceCatalogPaneHeader,
-  WorkspaceFilterChip,
   WorkspaceFrame,
   WorkspaceReadOnlyBanner,
 } from "@/components/shared/adminWorkspaceUi";
 import { useAdminPermissions } from "@/lib/adminPermissionsContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { FilterDropdown, type FilterOption } from "@/components/ui/FilterDropdown";
 import { LucideIconRenderer } from "@/components/icons/LucideIconRenderer";
 import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
-import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/ui/Toast";
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { getInitials } from "@/lib/initials";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 import {
-  countByProductListFilter,
-  formatVariantStockSummary,
-  matchesProductListFilter,
-  type ProductListFilter,
-  variantStockStatusPills,
+  variantStockRollup,
+  type VariantStockRollup,
 } from "@/lib/products/productVariantStock";
 import {
   syncAfterPendingUrl,
@@ -50,8 +47,27 @@ import {
 import type { AdminCategory, AdminProductSummary } from "@/types/admin";
 
 import { ProductCreateWizard } from "./ProductCreateWizard";
-import { ProductEditDrawer } from "./ProductEditDrawer";
-import { ProductManageVariantsDrawer } from "./ProductManageVariantsDrawer";
+
+// The edit + variants drawers carry the variant editor, structured-content
+// editor, and image upload — together by far the heaviest client modules on
+// this page. Dynamic-import + render-on-demand keeps that JS out of the
+// initial /products bundle. Once a drawer opens it stays mounted, so close
+// animations and form state are preserved across subsequent opens.
+const ProductEditDrawer = dynamic(
+  () =>
+    import("./ProductEditDrawer").then((mod) => ({
+      default: mod.ProductEditDrawer,
+    })),
+  { ssr: false },
+);
+
+const ProductManageVariantsDrawer = dynamic(
+  () =>
+    import("./ProductManageVariantsDrawer").then((mod) => ({
+      default: mod.ProductManageVariantsDrawer,
+    })),
+  { ssr: false },
+);
 
 interface ProductsCatalogProps {
   products: AdminProductSummary[];
@@ -67,21 +83,156 @@ interface CategoryNavItem {
 
 const UNCATEGORIZED_SLUG = "uncategorized";
 
-const PRODUCT_LIST_FILTERS: ProductListFilter[] = [
-  "all",
-  "no_variants",
-  "partial_stock",
-  "all_out_of_stock",
-  "fully_stocked",
-  "featured",
-  "hidden",
+type StockFilter =
+  | "all"
+  | "no_variants"
+  | "all_out_of_stock"
+  | "partial_stock"
+  | "fully_stocked";
+
+type StatusFilter = "all" | "active" | "disabled";
+type FeaturedFilter = "all" | "yes" | "no";
+type PhotosFilter = "all" | "with" | "without";
+
+interface ProductFilters {
+  brands: string[];
+  grades: string[];
+  stock: StockFilter;
+  status: StatusFilter;
+  featured: FeaturedFilter;
+  photos: PhotosFilter;
+}
+
+const DEFAULT_FILTERS: ProductFilters = {
+  brands: [],
+  grades: [],
+  stock: "all",
+  status: "all",
+  featured: "all",
+  photos: "all",
+};
+
+const STOCK_OPTIONS: FilterOption[] = [
+  { value: "no_variants", label: "No variants" },
+  { value: "all_out_of_stock", label: "All out of stock" },
+  { value: "partial_stock", label: "Partial stock" },
+  { value: "fully_stocked", label: "Fully stocked" },
 ];
 
-function isProductListFilter(value: string | null): value is ProductListFilter {
+const STATUS_OPTIONS: FilterOption[] = [
+  { value: "active", label: "Live on storefront" },
+  { value: "disabled", label: "Disabled" },
+];
+
+const FEATURED_OPTIONS: FilterOption[] = [
+  { value: "yes", label: "Featured" },
+  { value: "no", label: "Not featured" },
+];
+
+const PHOTOS_OPTIONS: FilterOption[] = [
+  { value: "with", label: "Has photos" },
+  { value: "without", label: "Missing photos" },
+];
+
+const STOCK_VALUES = new Set<StockFilter>([
+  "no_variants",
+  "all_out_of_stock",
+  "partial_stock",
+  "fully_stocked",
+]);
+
+function asStockFilter(value: string | null): StockFilter {
+  return value && STOCK_VALUES.has(value as StockFilter)
+    ? (value as StockFilter)
+    : "all";
+}
+
+function asStatusFilter(value: string | null): StatusFilter {
+  return value === "active" || value === "disabled" ? value : "all";
+}
+
+function asFeaturedFilter(value: string | null): FeaturedFilter {
+  return value === "yes" || value === "no" ? value : "all";
+}
+
+function asPhotosFilter(value: string | null): PhotosFilter {
+  return value === "with" || value === "without" ? value : "all";
+}
+
+function parseCsv(value: string | null): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+/** Read every filter dimension out of the URL in one pass. */
+function readFiltersFromUrl(searchParams: URLSearchParams): ProductFilters {
+  return {
+    brands: parseCsv(searchParams.get("brand")),
+    grades: parseCsv(searchParams.get("grade")),
+    stock: asStockFilter(searchParams.get("stock")),
+    status: asStatusFilter(searchParams.get("status")),
+    featured: asFeaturedFilter(searchParams.get("featured")),
+    photos: asPhotosFilter(searchParams.get("photos")),
+  };
+}
+
+function filtersEqual(left: ProductFilters, right: ProductFilters): boolean {
+  if (
+    left.stock !== right.stock ||
+    left.status !== right.status ||
+    left.featured !== right.featured ||
+    left.photos !== right.photos
+  ) {
+    return false;
+  }
+  if (left.brands.length !== right.brands.length) return false;
+  if (left.grades.length !== right.grades.length) return false;
+  for (let index = 0; index < left.brands.length; index += 1) {
+    if (left.brands[index] !== right.brands[index]) return false;
+  }
+  for (let index = 0; index < left.grades.length; index += 1) {
+    if (left.grades[index] !== right.grades[index]) return false;
+  }
+  return true;
+}
+
+function hasActiveFilters(filters: ProductFilters): boolean {
   return (
-    value !== null &&
-    (PRODUCT_LIST_FILTERS as readonly string[]).includes(value)
+    filters.stock !== "all" ||
+    filters.status !== "all" ||
+    filters.featured !== "all" ||
+    filters.photos !== "all" ||
+    filters.brands.length > 0 ||
+    filters.grades.length > 0
   );
+}
+
+function matchesFilters(
+  product: AdminProductSummary,
+  filters: ProductFilters,
+): boolean {
+  if (filters.stock !== "all" && variantStockRollup(product) !== filters.stock) {
+    return false;
+  }
+  if (filters.status === "active" && !product.isActive) return false;
+  if (filters.status === "disabled" && product.isActive) return false;
+  if (filters.featured === "yes" && !product.isFeatured) return false;
+  if (filters.featured === "no" && product.isFeatured) return false;
+  if (filters.photos === "with" && !product.hasImages) return false;
+  if (filters.photos === "without" && product.hasImages) return false;
+  if (filters.brands.length > 0 && !filters.brands.includes(product.brand.slug)) {
+    return false;
+  }
+  if (filters.grades.length > 0) {
+    const matchesGrade = filters.grades.some((slug) =>
+      product.gradeSlugs.includes(slug),
+    );
+    if (!matchesGrade) return false;
+  }
+  return true;
 }
 
 function matchesQuery(haystack: string, query: string): boolean {
@@ -122,18 +273,24 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
   );
   const [editId, setEditId] = useState<string | null>(null);
   const [variantsId, setVariantsId] = useState<string | null>(null);
+  // Once a drawer has been opened we keep it mounted so its close
+  // animation runs and the dynamic chunk stays cached. Initial render
+  // never mounts either drawer, so its bundle stays out of the cold
+  // load until the operator actually clicks Edit / Variants.
+  const [editDrawerMounted, setEditDrawerMounted] = useState(false);
+  const [variantsDrawerMounted, setVariantsDrawerMounted] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AdminProductSummary | null>(
     null,
   );
   const [categoryQuery, setCategoryQuery] = useState("");
   const [productQuery, setProductQuery] = useState("");
-  const [listFilter, setListFilter] = useState<ProductListFilter>("all");
+  const [filters, setFilters] = useState<ProductFilters>(DEFAULT_FILTERS);
   // URL sync uses pending refs + scheduleStateUpdate to avoid replace loops.
   const pendingCategorySlugRef = useRef<string | null>(null);
   const pendingProductQueryRef = useRef<string | null>(null);
   const pendingCategoryQueryRef = useRef<string | null>(null);
-  const pendingListFilterRef = useRef<string | null>(null);
   const pendingDeleteIdRef = useRef<string | null>(null);
+  const pendingFiltersRef = useRef<ProductFilters | null>(null);
 
   const setPanelUrl = useCallback(
     (productId: string | null, panel: Panel | null) => {
@@ -166,6 +323,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     (id: string) => {
       setEditId(id);
       setVariantsId(null);
+      setEditDrawerMounted(true);
       setPanelUrl(id, "edit");
     },
     [setPanelUrl],
@@ -175,6 +333,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     (id: string) => {
       setVariantsId(id);
       setEditId(null);
+      setVariantsDrawerMounted(true);
       setPanelUrl(id, "variants");
     },
     [setPanelUrl],
@@ -204,11 +363,13 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       if (panel === "edit") {
         setEditId(productId);
         setVariantsId(null);
+        setEditDrawerMounted(true);
         return;
       }
       if (panel === "variants") {
         setVariantsId(productId);
         setEditId(null);
+        setVariantsDrawerMounted(true);
       }
     });
   }, [canUpdate, replace, searchParams]);
@@ -225,10 +386,25 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     setCategoryQuery(fromUrl);
   }, [searchParams]);
 
+  // URL → filter state sync. We re-parse every filter dimension on each
+  // searchParams change. A pending-snapshot guard (`pendingFiltersRef`)
+  // skips this sync until the URL catches up to the patch we just
+  // pushed, mirroring the pattern used for `q`, `cq`, and `delete`.
   useEffect(() => {
-    const filterParam = searchParams.get("filter");
-    if (!syncAfterPendingUrl(pendingListFilterRef, filterParam)) return;
-    setListFilter(isProductListFilter(filterParam) ? filterParam : "all");
+    const parsed = readFiltersFromUrl(
+      new URLSearchParams(searchParams.toString()),
+    );
+    const pending = pendingFiltersRef.current;
+    if (pending) {
+      if (filtersEqual(parsed, pending)) {
+        pendingFiltersRef.current = null;
+      } else {
+        return;
+      }
+    }
+    scheduleStateUpdate(() => {
+      setFilters((current) => (filtersEqual(current, parsed) ? current : parsed));
+    });
   }, [searchParams]);
 
   useEffect(() => {
@@ -264,14 +440,33 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     [replace],
   );
 
-  const setListFilterUrl = useCallback(
-    (filter: ProductListFilter) => {
-      pendingListFilterRef.current = filter === "all" ? null : filter;
-      setListFilter(filter);
-      replace({ filter: filter === "all" ? null : filter });
+  const updateFilters = useCallback(
+    (patch: Partial<ProductFilters>) => {
+      const next: ProductFilters = {
+        brands: patch.brands ?? filters.brands,
+        grades: patch.grades ?? filters.grades,
+        stock: patch.stock ?? filters.stock,
+        status: patch.status ?? filters.status,
+        featured: patch.featured ?? filters.featured,
+        photos: patch.photos ?? filters.photos,
+      };
+      pendingFiltersRef.current = next;
+      setFilters(next);
+      replace({
+        brand: next.brands.length > 0 ? next.brands.join(",") : null,
+        grade: next.grades.length > 0 ? next.grades.join(",") : null,
+        stock: next.stock === "all" ? null : next.stock,
+        status: next.status === "all" ? null : next.status,
+        featured: next.featured === "all" ? null : next.featured,
+        photos: next.photos === "all" ? null : next.photos,
+      });
     },
-    [replace],
+    [filters, replace],
   );
+
+  const clearFilters = useCallback(() => {
+    updateFilters(DEFAULT_FILTERS);
+  }, [updateFilters]);
 
   const openDeleteConfirm = useCallback(
     (product: AdminProductSummary) => {
@@ -332,9 +527,21 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     (slug: string) => {
       pendingCategorySlugRef.current = slug;
       setSelectedCategorySlug(slug);
-      setCategoryUrl(slug);
+
+      // Brand and grade are category-scoped: an Apple brand under Phones
+      // doesn't exist under Accessories, so leaving the chip active
+      // after a switch would silently exclude every product. Stock,
+      // status, featured, and photos are catalog-wide so they survive.
+      const nextFilters: ProductFilters = {
+        ...filters,
+        brands: [],
+        grades: [],
+      };
+      pendingFiltersRef.current = nextFilters;
+      setFilters(nextFilters);
+      replace({ category: slug, brand: null, grade: null });
     },
-    [setCategoryUrl],
+    [filters, replace],
   );
 
   useEffect(() => {
@@ -402,39 +609,65 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     );
   }, [categoryProducts, productQuery]);
 
-  const filterCounts = useMemo(
-    () => ({
-      all: productsMatchingSearch.length,
-      no_variants: countByProductListFilter(productsMatchingSearch, "no_variants"),
-      partial_stock: countByProductListFilter(productsMatchingSearch, "partial_stock"),
-      all_out_of_stock: countByProductListFilter(
-        productsMatchingSearch,
-        "all_out_of_stock",
-      ),
-      fully_stocked: countByProductListFilter(productsMatchingSearch, "fully_stocked"),
-      featured: countByProductListFilter(productsMatchingSearch, "featured"),
-      hidden: countByProductListFilter(productsMatchingSearch, "hidden"),
-    }),
-    [productsMatchingSearch],
-  );
+  // Brand / grade / attribute options come from the wizard catalog for
+  // the active category. Counts use `productsMatchingSearch` so they stay
+  // honest as the operator narrows the list with search.
+  const brandOptions = useMemo<FilterOption[]>(() => {
+    if (!selectedCategorySlug) return [];
+    const brands = catalog.brandsByCategory[selectedCategorySlug] ?? [];
+    return brands.map((brand) => ({
+      value: brand.slug,
+      label: brand.name,
+      count: productsMatchingSearch.filter(
+        (product) => product.brand.slug === brand.slug,
+      ).length,
+    }));
+  }, [catalog.brandsByCategory, productsMatchingSearch, selectedCategorySlug]);
+
+  const gradeOptions = useMemo<FilterOption[]>(() => {
+    if (!selectedCategorySlug) return [];
+    const grades = catalog.gradesByCategory[selectedCategorySlug] ?? [];
+    return grades.map((grade) => ({
+      value: grade.slug,
+      label: grade.label,
+      count: productsMatchingSearch.filter((product) =>
+        product.gradeSlugs.includes(grade.slug),
+      ).length,
+    }));
+  }, [catalog.gradesByCategory, productsMatchingSearch, selectedCategorySlug]);
 
   const tableRows = useMemo(
-    () =>
-      productsMatchingSearch.filter((product) =>
-        matchesProductListFilter(product, listFilter),
-      ),
-    [productsMatchingSearch, listFilter],
+    () => productsMatchingSearch.filter((product) => matchesFilters(product, filters)),
+    [productsMatchingSearch, filters],
   );
+
+  const filtersActive = hasActiveFilters(filters);
 
   async function handleDelete() {
     if (!deleteTarget) return;
+    const deletedName = deleteTarget.name;
     try {
       await adminFetch(`/api/products/${deleteTarget.id}`, {
         method: "DELETE",
       });
-      toast.success(`Deleted "${deleteTarget.name}"`);
-      closeDeleteConfirm();
-      closePanels();
+      toast.success(`Deleted "${deletedName}"`);
+      // Reset all related state + URL params in ONE replace() call. The
+      // previous code called closeDeleteConfirm() + closePanels() back to
+      // back, so both used the same memoised `params` snapshot — the
+      // second replace resurrected `?delete=ID`, the URL→state effect
+      // fired, and the confirm dialog reopened on top of the success
+      // toast. One batched patch avoids the race.
+      pendingDeleteIdRef.current = null;
+      setDeleteTarget(null);
+      setEditId(null);
+      setVariantsId(null);
+      replace({
+        delete: null,
+        product: null,
+        panel: null,
+        vgrade: null,
+        vuid: null,
+      });
       router.refresh();
     } catch (error) {
       toast.danger(
@@ -445,75 +678,90 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     }
   }
 
+  // Columns are deliberately single-line: every cell is `whitespace-nowrap`
+  // with truncation on the two flex columns (Product, Brand) so the row
+  // can never wrap. Status pills + the brand·slug subtitle that used to
+  // sit under the product name are gone — flags now render as tiny
+  // icon-only badges next to the name, and stock is one compact cell.
   const tableColumns: AdminTableColumn<AdminProductSummary>[] = [
     {
       id: "product",
       header: "Product",
       sortable: true,
       sortAccessor: (product) => product.name,
-        cell: (product) => (
-          <div className="flex items-center gap-2 py-0.5">
-            <ProductThumb product={product} />
-            <div className="min-w-0">
-              <p className="truncate text-xs font-semibold text-[var(--color-ink-900)]">
-                {product.name || "Untitled product"}
-              </p>
-              <p className="truncate text-[11px] text-[var(--color-ink-500)]">
-                {product.brand.name || product.brand.slug} · {product.slug}
-              </p>
-            </div>
-          </div>
-        ),
+      cell: (product) => (
+        <div className="flex min-w-0 items-center gap-2">
+          <ProductThumb product={product} />
+          <span
+            className="min-w-0 flex-1 truncate text-xs font-semibold text-[var(--color-ink-900)]"
+            title={product.name || "Untitled product"}
+          >
+            {product.name || "Untitled product"}
+          </span>
+          {product.isFeatured ? (
+            <ProductFlagBadge label="Featured" tone="dark">
+              <Star size={10} strokeWidth={2.4} />
+            </ProductFlagBadge>
+          ) : null}
+          {!product.isActive ? (
+            <ProductFlagBadge label="Disabled on storefront" tone="warn">
+              <EyeOff size={10} strokeWidth={2.4} />
+            </ProductFlagBadge>
+          ) : null}
+        </div>
+      ),
     },
     {
-      id: "variants",
-      header: "Variants",
+      id: "brand",
+      header: "Brand",
       hideOnMobile: true,
+      width: "11rem",
       sortable: true,
-      sortAccessor: (product) => product.variantCount,
-        cell: (product) => (
-          <span className="text-xs font-semibold text-[var(--color-ink-900)]">
-            {product.variantCount}{" "}
-            <span className="font-normal text-[var(--color-ink-500)]">
-              · {formatVariantStockSummary(product)}
-            </span>
-          </span>
-        ),
+      sortAccessor: (product) => product.brand.name ?? product.brand.slug ?? "",
+      cell: (product) => (
+        <span
+          className="block truncate text-xs text-[var(--color-ink-700)]"
+          title={product.brand.name || product.brand.slug || ""}
+        >
+          {product.brand.name || product.brand.slug || "—"}
+        </span>
+      ),
+    },
+    {
+      id: "stock",
+      header: "Stock",
+      hideOnMobile: true,
+      width: "7rem",
+      sortable: true,
+      // No-variants sort last; otherwise sort by raw in-stock count and use
+      // total variant count as a tiebreaker so identical in-stock numbers
+      // stay ordered by catalog size rather than randomly.
+      sortAccessor: (product) =>
+        product.variantCount === 0
+          ? -1
+          : product.inStockCount + product.variantCount * 0.001,
+      cell: (product) => <ProductStockCell product={product} />,
     },
     {
       id: "price",
       header: "From",
       align: "right",
+      width: "7rem",
       sortable: true,
       sortAccessor: (product) => product.minPriceRupees ?? 0,
-        cell: (product) => (
-          <span className="text-xs font-semibold text-[var(--color-ink-900)]">
-            {product.minPriceRupees !== undefined
-              ? formatPrice(product.minPriceRupees)
-              : "—"}
-          </span>
-        ),
-    },
-    {
-      id: "status",
-      header: "Status",
-      hideOnMobile: true,
       cell: (product) => (
-        <div className="flex flex-wrap gap-1">
-          {variantStockStatusPills(product).map((pill) => (
-            <StatusPill key={pill.label} tone={pill.tone}>
-              {pill.label}
-            </StatusPill>
-          ))}
-          {product.isFeatured && <StatusPill tone="dark">Featured</StatusPill>}
-          {!product.isActive && <StatusPill tone="warn">Disabled</StatusPill>}
-        </div>
+        <span className="whitespace-nowrap text-xs font-semibold tabular-nums text-[var(--color-ink-900)]">
+          {product.minPriceRupees !== undefined
+            ? formatPrice(product.minPriceRupees)
+            : "—"}
+        </span>
       ),
     },
     {
       id: "storefront",
       header: "Storefront",
       hideOnMobile: true,
+      width: "6.5rem",
       cell: (product) => (
         <ProductStorefrontToggle
           productId={product.id}
@@ -527,30 +775,16 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       id: "actions",
       header: "",
       align: "right",
+      width: "3rem",
       cell: (product) => (
-        <div className="flex flex-wrap justify-end gap-1.5">
-          {canUpdate ? (
-            <>
-              <RowActionButton
-                icon={<Pencil size={13} />}
-                label="Edit"
-                onClick={() => openEdit(product.id)}
-              />
-              <RowActionButton
-                icon={<Boxes size={13} />}
-                label="Manage variants"
-                onClick={() => openVariants(product.id)}
-              />
-            </>
-          ) : null}
-          {canDelete ? (
-            <RowActionButton
-              icon={<Trash2 size={13} />}
-              label="Delete"
-              onClick={() => openDeleteConfirm(product)}
-              tone="danger"
-            />
-          ) : null}
+        <div className="flex justify-end">
+          <RowActionMenu
+            canUpdate={canUpdate}
+            canDelete={canDelete}
+            onEdit={() => openEdit(product.id)}
+            onVariants={() => openVariants(product.id)}
+            onDelete={() => openDeleteConfirm(product)}
+          />
         </div>
       ),
     },
@@ -594,7 +828,9 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
               }
               subtitle={
                 selectedNav
-                  ? `${tableRows.length} shown · ${selectedNav.totalCount} total`
+                  ? `${tableRows.length} shown · ${selectedNav.totalCount} total${
+                      filtersActive ? " · filtered" : ""
+                    }`
                   : "Select a category to manage products."
               }
               search={
@@ -615,53 +851,80 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
               }
               filters={
                 <>
-                <WorkspaceFilterChip
-                  label="All"
-                  count={filterCounts.all}
-                  isActive={listFilter === "all"}
-                  onClick={() => setListFilterUrl("all")}
-                />
-                <WorkspaceFilterChip
-                  label="No variants"
-                  count={filterCounts.no_variants}
-                  isActive={listFilter === "no_variants"}
-                  onClick={() => setListFilterUrl("no_variants")}
-                />
-                <WorkspaceFilterChip
-                  label="Partial stock"
-                  count={filterCounts.partial_stock}
-                  isActive={listFilter === "partial_stock"}
-                  onClick={() => setListFilterUrl("partial_stock")}
-                />
-                <WorkspaceFilterChip
-                  label="All OOS"
-                  count={filterCounts.all_out_of_stock}
-                  isActive={listFilter === "all_out_of_stock"}
-                  onClick={() => setListFilterUrl("all_out_of_stock")}
-                />
-                <WorkspaceFilterChip
-                  label="Fully stocked"
-                  count={filterCounts.fully_stocked}
-                  isActive={listFilter === "fully_stocked"}
-                  onClick={() => setListFilterUrl("fully_stocked")}
-                />
-                <WorkspaceFilterChip
-                  label="Featured"
-                  count={filterCounts.featured}
-                  isActive={listFilter === "featured"}
-                  onClick={() => setListFilterUrl("featured")}
-                />
-                <WorkspaceFilterChip
-                  label="Disabled"
-                  count={filterCounts.hidden}
-                  isActive={listFilter === "hidden"}
-                  onClick={() => setListFilterUrl("hidden")}
-                />
+                  <FilterDropdown
+                    label="Brand"
+                    options={brandOptions}
+                    selected={filters.brands}
+                    onChange={(brands) => updateFilters({ brands })}
+                  />
+                  <FilterDropdown
+                    label="Grade"
+                    options={gradeOptions}
+                    selected={filters.grades}
+                    onChange={(grades) => updateFilters({ grades })}
+                  />
+                  <FilterDropdown
+                    label="Stock"
+                    single
+                    options={STOCK_OPTIONS}
+                    selected={filters.stock === "all" ? [] : [filters.stock]}
+                    onChange={(values) =>
+                      updateFilters({
+                        stock: (values[0] as StockFilter | undefined) ?? "all",
+                      })
+                    }
+                  />
+                  <FilterDropdown
+                    label="Status"
+                    single
+                    options={STATUS_OPTIONS}
+                    selected={filters.status === "all" ? [] : [filters.status]}
+                    onChange={(values) =>
+                      updateFilters({
+                        status: (values[0] as StatusFilter | undefined) ?? "all",
+                      })
+                    }
+                  />
+                  <FilterDropdown
+                    label="Featured"
+                    single
+                    options={FEATURED_OPTIONS}
+                    selected={
+                      filters.featured === "all" ? [] : [filters.featured]
+                    }
+                    onChange={(values) =>
+                      updateFilters({
+                        featured:
+                          (values[0] as FeaturedFilter | undefined) ?? "all",
+                      })
+                    }
+                  />
+                  <FilterDropdown
+                    label="Photos"
+                    single
+                    options={PHOTOS_OPTIONS}
+                    selected={filters.photos === "all" ? [] : [filters.photos]}
+                    onChange={(values) =>
+                      updateFilters({
+                        photos:
+                          (values[0] as PhotosFilter | undefined) ?? "all",
+                      })
+                    }
+                  />
+                  {filtersActive ? (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold text-[var(--color-ink-500)] underline-offset-2 hover:text-[var(--color-ink-900)] hover:underline"
+                    >
+                      Clear filters
+                    </button>
+                  ) : null}
                 </>
               }
             />
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-2 [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&_table]:text-xs [&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-[10px]">
+            <div className="min-h-0 flex-1 overflow-y-auto p-2 [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&_table]:table-fixed [&_table]:text-xs [&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-[10px]">
               <AdminTable
                 rows={tableRows}
                 columns={tableColumns}
@@ -671,7 +934,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
                     ? canCreate
                       ? "No products yet. Click New product to add one."
                       : "No products yet."
-                    : productQuery.trim() || listFilter !== "all"
+                    : productQuery.trim() || filtersActive
                       ? "No products match your search or filters."
                       : "No products in this category."
                 }
@@ -681,21 +944,25 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
         </div>
       </WorkspaceFrame>
 
-      <ProductEditDrawer
-        productId={editId}
-        catalog={catalog}
-        isOpen={editId !== null}
-        onClose={closePanels}
-        onSaved={() => router.refresh()}
-      />
+      {editDrawerMounted ? (
+        <ProductEditDrawer
+          productId={editId}
+          catalog={catalog}
+          isOpen={editId !== null}
+          onClose={closePanels}
+          onSaved={() => router.refresh()}
+        />
+      ) : null}
 
-      <ProductManageVariantsDrawer
-        productId={variantsId}
-        catalog={catalog}
-        isOpen={variantsId !== null}
-        onClose={closePanels}
-        onUpdated={() => router.refresh()}
-      />
+      {variantsDrawerMounted ? (
+        <ProductManageVariantsDrawer
+          productId={variantsId}
+          catalog={catalog}
+          isOpen={variantsId !== null}
+          onClose={closePanels}
+          onUpdated={() => router.refresh()}
+        />
+      ) : null}
 
       <ConfirmDialog
         isOpen={deleteTarget !== null}
@@ -925,30 +1192,133 @@ function ProductStorefrontToggle({
   );
 }
 
-function RowActionButton({
+interface RowActionMenuProps {
+  canUpdate: boolean;
+  canDelete: boolean;
+  onEdit: () => void;
+  onVariants: () => void;
+  onDelete: () => void;
+}
+
+/**
+ * Per-row kebab menu. Collapses Edit / Manage variants / Delete into a
+ * single 28px trigger so the products table stays one line per product.
+ * Closes on outside click, Escape, or after the user picks an action.
+ */
+function RowActionMenu({
+  canUpdate,
+  canDelete,
+  onEdit,
+  onVariants,
+  onDelete,
+}: RowActionMenuProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handlePointerDown(event: MouseEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [isOpen]);
+
+  if (!canUpdate && !canDelete) {
+    return null;
+  }
+
+  function handleSelect(action: () => void) {
+    setIsOpen(false);
+    action();
+  }
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-label="Product actions"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={classNames(
+          "inline-grid size-7 place-items-center rounded-[var(--radius-md)] border transition-colors",
+          isOpen
+            ? "border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] text-[var(--color-ink-900)]"
+            : "border-transparent text-[var(--color-ink-600)] hover:border-[var(--color-ink-200)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
+        )}
+      >
+        <MoreHorizontal size={15} />
+      </button>
+      {isOpen ? (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-20 mt-1 min-w-[10rem] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1 text-left shadow-[var(--shadow-md)]"
+        >
+          {canUpdate ? (
+            <>
+              <RowActionMenuItem
+                icon={<Pencil size={13} />}
+                label="Edit details"
+                onSelect={() => handleSelect(onEdit)}
+              />
+              <RowActionMenuItem
+                icon={<Boxes size={13} />}
+                label="Manage variants"
+                onSelect={() => handleSelect(onVariants)}
+              />
+            </>
+          ) : null}
+          {canDelete ? (
+            <RowActionMenuItem
+              icon={<Trash2 size={13} />}
+              label="Delete"
+              tone="danger"
+              onSelect={() => handleSelect(onDelete)}
+            />
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function RowActionMenuItem({
   icon,
   label,
-  onClick,
   tone = "default",
+  onSelect,
 }: {
   icon: React.ReactNode;
   label: string;
-  onClick: () => void;
   tone?: "default" | "danger";
+  onSelect: () => void;
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      role="menuitem"
+      onClick={onSelect}
       className={classNames(
-        "inline-flex items-center gap-1 rounded-[var(--radius-md)] border px-2 py-1 text-[11px] font-semibold transition-colors",
+        "flex w-full items-center gap-2 px-3 py-1.5 text-[11px] font-semibold transition-colors",
         tone === "danger"
-          ? "border-[var(--color-rose-200)] text-[var(--color-rose-700)] hover:bg-[var(--color-rose-50)]"
-          : "border-[var(--color-ink-200)] text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
+          ? "text-[var(--color-rose-700)] hover:bg-[var(--color-rose-50)]"
+          : "text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
       )}
     >
       {icon}
-      <span className="hidden md:inline">{label}</span>
+      {label}
     </button>
   );
 }
@@ -968,6 +1338,66 @@ function ProductThumb({ product }: { product: AdminProductSummary }) {
   return (
     <span className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">
       {getInitials(product.brand.name || product.name)}
+    </span>
+  );
+}
+
+/**
+ * Inline single-row flag for the products table — small enough that
+ * Featured + Disabled markers can sit next to the product name without
+ * pushing the row to wrap. Icon-only at this size; the readable label
+ * lives in `title` for screen readers and hover.
+ */
+function ProductFlagBadge({
+  label,
+  tone,
+  children,
+}: {
+  label: string;
+  tone: "dark" | "warn";
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      title={label}
+      aria-label={label}
+      className={classNames(
+        "inline-grid size-4 shrink-0 place-items-center rounded-[var(--radius-sm)]",
+        tone === "dark"
+          ? "bg-[var(--color-ink-900)] text-white"
+          : "bg-amber-100 text-amber-800",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+const STOCK_DOT_TONE: Record<VariantStockRollup, string> = {
+  no_variants: "bg-[var(--color-ink-300)]",
+  all_out_of_stock: "bg-rose-500",
+  partial_stock: "bg-amber-500",
+  fully_stocked: "bg-emerald-500",
+};
+
+function ProductStockCell({ product }: { product: AdminProductSummary }) {
+  if (product.variantCount === 0) {
+    return (
+      <span className="whitespace-nowrap text-[11px] text-[var(--color-ink-400)]">
+        No variants
+      </span>
+    );
+  }
+  const rollup = variantStockRollup(product);
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold tabular-nums text-[var(--color-ink-900)]">
+      <span
+        aria-hidden
+        className={classNames("size-1.5 shrink-0 rounded-full", STOCK_DOT_TONE[rollup])}
+      />
+      {product.inStockCount}
+      <span className="font-normal text-[var(--color-ink-400)]">/</span>
+      {product.variantCount}
     </span>
   );
 }

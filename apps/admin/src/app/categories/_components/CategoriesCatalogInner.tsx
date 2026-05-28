@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import dynamic from "next/dynamic";
 import { compareAlphabetically } from "@store/shared";
 
 import {
@@ -34,11 +35,32 @@ import type {
   AdminGrade,
 } from "@/types/admin";
 
-import { AttributeEditor } from "./AttributeEditor";
-import { BrandEditor } from "./BrandEditor";
 import { Categories } from "./Categories";
-import { CategoryEditor } from "./CategoryEditor";
-import { GradeEditor } from "./GradeEditor";
+
+// Editor drawers are heavy (StructuredContentEditor, image upload, attribute
+// option editor) and only render on click. Lazy chunks keep the categories
+// page cold-load lean. Brand / Grade / Attribute editors are already
+// conditionally mounted, so their dynamic chunk loads exactly when the
+// drawer becomes visible. CategoryEditor stays mounted (isOpen toggles
+// internally) so we gate it on a "has been opened" flag.
+const AttributeEditor = dynamic(
+  () =>
+    import("./AttributeEditor").then((mod) => ({ default: mod.AttributeEditor })),
+  { ssr: false },
+);
+const BrandEditor = dynamic(
+  () => import("./BrandEditor").then((mod) => ({ default: mod.BrandEditor })),
+  { ssr: false },
+);
+const CategoryEditor = dynamic(
+  () =>
+    import("./CategoryEditor").then((mod) => ({ default: mod.CategoryEditor })),
+  { ssr: false },
+);
+const GradeEditor = dynamic(
+  () => import("./GradeEditor").then((mod) => ({ default: mod.GradeEditor })),
+  { ssr: false },
+);
 import { CategoriesCatalogTablesPanel } from "./categoriesCatalogTablesPanel";
 import {
   type CatalogTab,
@@ -79,6 +101,10 @@ export function CategoriesCatalogInner({
   const [categoryQuery, setCategoryQuery] = useState("");
   const [rowQuery, setRowQuery] = useState("");
   const [drawer, setDrawer] = useState<DrawerKind>(null);
+  // CategoryEditor stays mounted while open/close animates, but we
+  // defer the first mount (and its dynamic chunk) until the operator
+  // actually opens one. After that it stays in memory.
+  const [categoryEditorMounted, setCategoryEditorMounted] = useState(false);
   const [deleteIntent, setDeleteIntent] = useState<DeleteIntent | null>(null);
   const [viewMode, setViewMode] = useState<WorkspaceView>("tables");
   const prevViewModeRef = useRef<WorkspaceView>("tables");
@@ -167,6 +193,9 @@ export function CategoriesCatalogInner({
         : null;
       pendingDrawerRef.current = signature;
       setDrawer(next);
+      if (next?.kind === "category") {
+        setCategoryEditorMounted(true);
+      }
       if (!next) {
         replace({ drawer: null, item: null });
         return;
@@ -338,17 +367,21 @@ export function CategoriesCatalogInner({
     const itemParam = searchParams.get("item");
     const signature = drawerUrlSignature(drawerParam, itemParam);
     if (!syncAfterPendingUrl(pendingDrawerRef, signature)) return;
-    setDrawer(
-      resolveCatalogDrawer({
-        drawer: drawerParam,
-        item: itemParam,
-        category: selectedCategory,
-        categories,
-        brands,
-        grades,
-        attributes,
-      }),
-    );
+    const resolved = resolveCatalogDrawer({
+      drawer: drawerParam,
+      item: itemParam,
+      category: selectedCategory,
+      categories,
+      brands,
+      grades,
+      attributes,
+    });
+    scheduleStateUpdate(() => {
+      setDrawer(resolved);
+      if (resolved?.kind === "category") {
+        setCategoryEditorMounted(true);
+      }
+    });
   }, [
     searchParams,
     selectedCategory,
@@ -619,12 +652,14 @@ export function CategoriesCatalogInner({
         </div>
       </WorkspaceFrame>
 
-      <CategoryEditor
-        isOpen={drawer?.kind === "category"}
-        onClose={closeDrawerUrl}
-        category={drawer?.kind === "category" ? drawer.category : null}
-        onSaved={refreshAll}
-      />
+      {categoryEditorMounted ? (
+        <CategoryEditor
+          isOpen={drawer?.kind === "category"}
+          onClose={closeDrawerUrl}
+          category={drawer?.kind === "category" ? drawer.category : null}
+          onSaved={refreshAll}
+        />
+      ) : null}
       {drawer?.kind === "brand" && (
         <BrandEditor
           isOpen

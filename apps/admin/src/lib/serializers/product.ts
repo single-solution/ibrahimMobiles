@@ -76,6 +76,21 @@ function computeVariantRollup(product: ProductLean, images: StoredImage[]) {
   return { variantCount, inStockCount, minPriceRupees, heroImage };
 }
 
+/**
+ * Distinct grade slugs across a product's variants. Used by the admin
+ * grade filter dropdown so it can match products without fetching the
+ * underlying variant documents.
+ */
+function computeVariantGradeSlugs(product: ProductLean): string[] {
+  const variants = asArray<VariantAttributes>(product.variants);
+  const gradeSet = new Set<string>();
+  for (const variant of variants) {
+    const grade = asString(variant?.gradeSlug);
+    if (grade) gradeSet.add(grade);
+  }
+  return Array.from(gradeSet).sort();
+}
+
 export function summariseProduct(
   product: ProductLean,
   brandsByCategoryAndSlug: Map<string, BrandLean>,
@@ -86,6 +101,7 @@ export function summariseProduct(
   );
   const images = asStoredImageArray(product.images);
   const rollup = computeVariantRollup(product, images);
+  const gradeSlugs = computeVariantGradeSlugs(product);
 
   return {
     id: objectIdString(product._id),
@@ -97,6 +113,8 @@ export function summariseProduct(
     isActive: product.isActive ?? true,
     isArchived: product.isArchived ?? false,
     ...rollup,
+    gradeSlugs,
+    hasImages: images.length > 0,
     createdAt: toIsoDate(product.createdAt),
     updatedAt: toIsoDate(product.updatedAt),
   };
@@ -108,6 +126,7 @@ export function toProductResponse(
 ): AdminProduct {
   const images = asStoredImageArray(product.images);
   const rollup = computeVariantRollup(product, images);
+  const gradeSlugs = computeVariantGradeSlugs(product);
 
   return {
     id: objectIdString(product._id),
@@ -119,6 +138,8 @@ export function toProductResponse(
     isActive: product.isActive ?? true,
     isArchived: product.isArchived ?? false,
     ...rollup,
+    gradeSlugs,
+    hasImages: images.length > 0,
     images,
     variants: asArray<VariantAttributes>(product.variants).map(toVariantResponse),
     seo: product.seo,
