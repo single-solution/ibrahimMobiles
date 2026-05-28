@@ -61,7 +61,7 @@ export function MobileCategoryPicker({
         onClose={() => setIsOpen(false)}
         title="Choose a category"
         description="Switch the shop to a different catalog."
-        height="auto"
+        height="md"
       >
         <ul className="space-y-1.5">
           {categories.map((category) => {
