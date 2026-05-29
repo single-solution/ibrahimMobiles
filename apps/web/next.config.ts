@@ -50,12 +50,17 @@ function buildContentSecurityPolicy(): string {
     `connect-src 'self' ${MARKETING_CONNECT_HOSTS.join(" ")}`,
     "media-src 'self'",
     "manifest-src 'self'",
-    // Google Maps embed lives on www.google.com / maps.google.com via
-    // the keyless `output=embed` URL. Without an explicit `frame-src`
-    // the spec falls back to `default-src 'self'` and Chrome/Firefox
-    // block the <iframe>; only Safari renders it. Listing both hosts
-    // because Google occasionally 302s `www` → `maps`.
-    "frame-src 'self' https://www.google.com https://maps.google.com",
+    // Iframe sources:
+    //   - Google Maps embed lives on www.google.com / maps.google.com via the
+    //     keyless `output=embed` URL. Without an explicit `frame-src`, the spec
+    //     falls back to `default-src 'self'` and Chrome/Firefox block the
+    //     <iframe>; only Safari renders it. Both hosts are listed because
+    //     Google occasionally 302s `www` → `maps`.
+    //   - YouTube inspection videos for `Grade.video` are embedded through
+    //     the privacy-enhanced `youtube-nocookie.com` host; the legacy
+    //     `youtube.com` host is also allowed in case admins paste a regular
+    //     embed link a downstream tool didn't rewrite.
+    "frame-src 'self' https://www.google.com https://maps.google.com https://www.youtube-nocookie.com https://www.youtube.com",
     ...(isProduction ? ["upgrade-insecure-requests"] : []),
   ].join("; ");
 }

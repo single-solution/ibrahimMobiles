@@ -38,6 +38,12 @@ const baseSecurityHeaders = [
       "connect-src 'self'",
       "media-src 'self'",
       "manifest-src 'self'",
+      // YouTube embed for the `Grade.video` editor preview. Without an
+      // explicit `frame-src`, the spec falls back to `default-src 'self'`
+      // and the iframe paints black. The legacy `youtube.com` host is
+      // included alongside the privacy-enhanced `youtube-nocookie.com`
+      // one because admins occasionally paste pre-rewritten embed URLs.
+      "frame-src 'self' https://www.youtube-nocookie.com https://www.youtube.com",
       ...(isProduction ? ["upgrade-insecure-requests"] : []),
     ].join("; "),
   },

@@ -7,6 +7,7 @@ import { ShopProductGrid } from "@/components/shared/ShopProductGrid";
 import { FilterSidebar } from "@/components/shared/FilterSidebar";
 import { ShopCategoryRail } from "@/app/shop/_components/ShopCategoryRail";
 import { MobileCategoryPicker } from "@/app/shop/_components/MobileCategoryPicker";
+import { ShopScrollReset } from "@/app/shop/_components/ShopScrollReset";
 import { ShopPagination } from "@/components/shared/ShopPagination";
 import {
   ShopCategoryRailFallback,
@@ -117,6 +118,9 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
   return (
     <>
+      <Suspense fallback={null}>
+        <ShopScrollReset />
+      </Suspense>
       <Suspense fallback={null}>
         <CategoryJsonLd meta={meta} filters={filters} />
       </Suspense>

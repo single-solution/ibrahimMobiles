@@ -12,6 +12,10 @@
  *   - The component is memoised on the variant id passed in by the
  *     parent — unrelated PDP re-renders (e.g. quantity changes) won't
  *     re-render the gallery tree.
+ *
+ * Hero swap uses a two-layer cross-fade so the previous image stays
+ * visible until the next one has fully decoded — no blank flash when
+ * the visitor clicks a thumbnail or swipes.
  */
 
 import {
@@ -33,6 +37,15 @@ import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 const SWIPE_THRESHOLD_PX = 40;
 /** Maximum vertical drift before we treat a gesture as a scroll, not a swipe. */
 const SWIPE_VERTICAL_TOLERANCE_PX = 60;
+
+interface HeroSlot {
+  key: string;
+  image: StoredImage;
+}
+
+function makeHeroKey(galleryKey: string, image: StoredImage | undefined): string {
+  return image ? `${galleryKey}:${image.variants.detail}` : `${galleryKey}:empty`;
+}
 
 interface SwipeHandlers {
   onTouchStart: (event: React.TouchEvent) => void;
@@ -90,16 +103,20 @@ function PdpGalleryInner({
 }: PdpGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [readyHeroKey, setReadyHeroKey] = useState<string | null>(null);
 
   const safeIndex =
     images.length === 0 ? 0 : Math.min(activeIndex, images.length - 1);
   const hero = images[safeIndex] ?? images[0];
-  const heroKey = hero
-    ? `${galleryKey}:${hero.variants.detail}`
-    : `${galleryKey}:empty`;
-  const heroReady = readyHeroKey === null || readyHeroKey === heroKey;
-  const heroVisibilityClass = heroReady ? "opacity-100" : "opacity-0";
+  const heroKey = makeHeroKey(galleryKey, hero);
+
+  // Two-layer cross-fade: `displayed` stays visible (opacity 1) until
+  // `incoming` finishes decoding. The transition end handler promotes
+  // incoming → displayed and drops the second layer.
+  const [displayed, setDisplayed] = useState<HeroSlot | null>(() =>
+    hero ? { key: heroKey, image: hero } : null,
+  );
+  const [incoming, setIncoming] = useState<HeroSlot | null>(null);
+  const [incomingReady, setIncomingReady] = useState(false);
 
   useEffect(() => {
     scheduleStateUpdate(() => {
@@ -109,16 +126,52 @@ function PdpGalleryInner({
   }, [galleryKey]);
 
   useEffect(() => {
-    if (images.length === 0) {
+    if (!hero) {
       scheduleStateUpdate(() => {
-        setReadyHeroKey(heroKey);
+        setDisplayed(null);
+        setIncoming(null);
+        setIncomingReady(false);
       });
+      return;
     }
-  }, [heroKey, images.length]);
+    if (heroKey === displayed?.key) {
+      // Already displaying this image (e.g. re-render with same hero).
+      if (incoming) {
+        scheduleStateUpdate(() => {
+          setIncoming(null);
+          setIncomingReady(false);
+        });
+      }
+      return;
+    }
+    if (heroKey === incoming?.key) {
+      return;
+    }
+    scheduleStateUpdate(() => {
+      setIncoming({ key: heroKey, image: hero });
+      setIncomingReady(false);
+    });
+  }, [hero, heroKey, displayed?.key, incoming]);
 
-  const handleHeroLoad = useCallback(() => {
-    setReadyHeroKey(heroKey);
-  }, [heroKey]);
+  const handleIncomingLoad = useCallback(() => {
+    // Defer one frame so the browser paints the opacity-0 state first;
+    // otherwise React can batch the load callback into the same paint
+    // as the mount and we'd skip the transition entirely.
+    requestAnimationFrame(() => {
+      setIncomingReady(true);
+    });
+  }, []);
+
+  const handleIncomingTransitionEnd = useCallback(
+    (event: React.TransitionEvent<HTMLDivElement>) => {
+      if (event.propertyName !== "opacity") return;
+      if (!incomingReady) return;
+      setDisplayed((current) => incoming ?? current);
+      setIncoming(null);
+      setIncomingReady(false);
+    },
+    [incoming, incomingReady],
+  );
 
   const go = useCallback(
     (delta: number) => {
@@ -135,6 +188,51 @@ function PdpGalleryInner({
     useCallback(() => go(-1), [go]),
   );
 
+  const detailSizes =
+    layout === "mobile"
+      ? "(max-width: 768px) 92vw, 50vw"
+      : "(max-width: 1024px) 50vw, 50vw";
+
+  const heroLayers = (
+    <>
+      {displayed && (
+        <div className="product-media-well absolute inset-0">
+          <ProductImage
+            key={displayed.key}
+            image={displayed.image}
+            variant="detail"
+            name={name}
+            brandName={brandName}
+            brandSlug={brandSlug}
+            sizes={detailSizes}
+            priority
+          />
+        </div>
+      )}
+      {incoming && (
+        <div
+          className={
+            "product-media-well absolute inset-0 transition-opacity duration-200 ease-out " +
+            (incomingReady ? "opacity-100" : "opacity-0")
+          }
+          onTransitionEnd={handleIncomingTransitionEnd}
+        >
+          <ProductImage
+            key={incoming.key}
+            image={incoming.image}
+            variant="detail"
+            name={name}
+            brandName={brandName}
+            brandSlug={brandSlug}
+            sizes={detailSizes}
+            priority
+            onLoadComplete={handleIncomingLoad}
+          />
+        </div>
+      )}
+    </>
+  );
+
   if (layout === "mobile") {
     return (
       <>
@@ -145,22 +243,8 @@ function PdpGalleryInner({
           className="product-media-well relative block aspect-square w-full touch-pan-y bg-[var(--color-canvas-deep)]"
           {...(images.length > 1 ? heroSwipe : {})}
         >
-          <div
-            className={`product-media-well absolute inset-0 transition-none ${heroVisibilityClass}`}
-          >
-            <ProductImage
-              key={heroKey}
-              image={hero}
-              variant="detail"
-              name={name}
-              brandName={brandName}
-              brandSlug={brandSlug}
-              sizes="(max-width: 768px) 92vw, 50vw"
-              priority
-              onLoadComplete={handleHeroLoad}
-            />
-          </div>
-          {hero && heroReady && (
+          {heroLayers}
+          {hero && (
             <span className="pointer-events-none absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-[var(--color-ink-900)]/55 text-[var(--color-on-dark)] backdrop-blur">
               <ZoomIn size={16} />
             </span>
@@ -219,22 +303,8 @@ function PdpGalleryInner({
         className="product-media-well relative block aspect-square w-full touch-pan-y rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]"
         {...(images.length > 1 ? heroSwipe : {})}
       >
-        <div
-          className={`product-media-well absolute inset-0 transition-none ${heroVisibilityClass}`}
-        >
-          <ProductImage
-            key={heroKey}
-            image={hero}
-            variant="detail"
-            name={name}
-            brandName={brandName}
-            brandSlug={brandSlug}
-            sizes="(max-width: 1024px) 50vw, 50vw"
-            priority
-            onLoadComplete={handleHeroLoad}
-          />
-        </div>
-        {hero && heroReady && (
+        {heroLayers}
+        {hero && (
           <span className="pointer-events-none absolute right-4 top-4 z-10 grid size-10 place-items-center rounded-full bg-[var(--color-ink-900)]/55 text-[var(--color-on-dark)] backdrop-blur">
             <ZoomIn size={16} />
           </span>

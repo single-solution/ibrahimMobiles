@@ -51,3 +51,4 @@ export * from "./types";
 export * from "./customerAddresses";
 export * from "./validation";
 export * from "./warranty";
+export * from "./youtube";

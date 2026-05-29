@@ -5,6 +5,7 @@ import { Camera, PlayCircle, ShieldCheck } from "lucide-react";
 import {
   formatWarrantyPeriod,
   resolveWarrantyDays,
+  toYouTubeEmbedUrl,
   type Product,
 } from "@store/shared";
 
@@ -142,13 +143,24 @@ interface VideoFrameProps {
 }
 
 function VideoFrame({ label, accentColor, videoUrl, isCompact }: VideoFrameProps) {
+  const embedUrl = toYouTubeEmbedUrl(videoUrl);
   return (
     <div
       className={`relative overflow-hidden bg-[var(--color-ink-900)] ${
         isCompact ? "aspect-video w-full" : "aspect-[4/3] rounded-[var(--radius-lg)]"
       }`}
     >
-      {videoUrl ? (
+      {embedUrl ? (
+        <iframe
+          src={embedUrl}
+          title={`${label} inspection video`}
+          loading="lazy"
+          referrerPolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="absolute inset-0 size-full"
+        />
+      ) : videoUrl ? (
         <video
           src={videoUrl}
           controls

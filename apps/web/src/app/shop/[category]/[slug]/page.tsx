@@ -6,6 +6,7 @@ import { ChevronRight } from "lucide-react";
 
 import type { Product } from "@store/shared";
 
+import { PdpScrollReset } from "./_components/PdpScrollReset";
 import { GradeShowcase } from "@/components/shared/GradeShowcase";
 import { VariantAwareGallery } from "@/components/shared/PdpGallery";
 import { ProductCard } from "@/components/shared/ProductCard";
@@ -231,6 +232,7 @@ export default async function ProductDetailPage({
 
   return (
     <VariantProvider initialVariantId={initialVariant.id}>
+      <PdpScrollReset />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(productLd) }}
