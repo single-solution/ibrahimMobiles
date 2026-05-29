@@ -205,7 +205,7 @@ function CustomersCatalogInner({
             )}
           >
             <WorkspacePaneHeader
-              icon={UserCircle}
+              iconElement={<UserCircle size={15} />}
               title="Customers"
               subtitle={`${filteredCustomers.length} shown (recent 500) · website sign-up · ${formatPrice(stats.totalBalance * programmeRupeesPerPoint)} loyalty`}
               search={
@@ -283,7 +283,7 @@ function CustomersCatalogInner({
               />
             ) : (
               <WorkspaceEmptyPane
-                icon={UserCircle}
+                iconElement={<UserCircle size={22} />}
                 title="Select a customer"
                 description="Customers register on the website (OTP sign-in or checkout). Use this workspace to view orders, adjust loyalty, and add internal notes."
               />

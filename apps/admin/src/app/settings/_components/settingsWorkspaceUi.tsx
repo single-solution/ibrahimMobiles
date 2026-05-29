@@ -16,7 +16,6 @@ export type SettingsTabId =
   | "loyalty"
   | "inventory"
   | "marketing"
-  | "homepage"
   | "seo"
   | "chat"
   | "cleanup";
@@ -87,12 +86,6 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
     id: "storefront",
     label: "Storefront",
     tabs: [
-      {
-        id: "homepage",
-        label: "Homepage hero",
-        description:
-          "Pick which categories and grades feed the rotating hero gallery, and how many products it cycles through.",
-      },
       {
         id: "social",
         label: "Social links",

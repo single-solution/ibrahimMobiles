@@ -1,7 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
 import { ArrowLeft, Search } from "lucide-react";
 import { classNames } from "@store/shared";
 import { Button } from "@/components/ui/Button";
@@ -145,14 +144,23 @@ export function WorkspaceSearchField({
   );
 }
 
+/**
+ * Icon-bearing workspace components accept a pre-rendered `ReactNode`
+ * rather than a Lucide component reference. This keeps the API safe to
+ * call from server components — React component references (forwardRefs)
+ * are not serializable across the RSC boundary, but rendered elements
+ * are. Callers render their icon with the size called out in JSDoc.
+ */
+
 export function WorkspacePaneHeader({
-  icon: Icon,
+  iconElement,
   title,
   subtitle,
   search,
   action,
 }: {
-  icon: LucideIcon;
+  /** Render at `size={15}` for visual consistency. */
+  iconElement: ReactNode;
   title: string;
   subtitle?: string;
   search?: ReactNode;
@@ -161,7 +169,7 @@ export function WorkspacePaneHeader({
   return (
     <header className="admin-mobile-sticky shrink-0 space-y-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2.5">
       <div className="flex items-center gap-2">
-        <Icon size={15} className="shrink-0 text-[var(--color-accent-700)]" />
+        <span className="shrink-0 text-[var(--color-accent-700)]">{iconElement}</span>
         <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <h2 className="text-sm font-semibold text-[var(--color-ink-900)]">{title}</h2>
           {subtitle ? (
@@ -178,12 +186,13 @@ export function WorkspacePaneHeader({
 }
 
 export function WorkspaceEmptyPane({
-  icon: Icon,
+  iconElement,
   title,
   description,
   action,
 }: {
-  icon: LucideIcon;
+  /** Render at `size={22}` for visual consistency. */
+  iconElement: ReactNode;
   title: string;
   description: string;
   action?: ReactNode;
@@ -191,7 +200,7 @@ export function WorkspaceEmptyPane({
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-5 py-8 text-center md:px-6 md:py-12">
       <span className="grid size-12 place-items-center rounded-full bg-[var(--color-accent-50)] text-[var(--color-accent-700)] md:size-14">
-        <Icon size={22} />
+        {iconElement}
       </span>
       <p className="mt-3 text-[13px] font-semibold text-[var(--color-ink-900)] md:mt-4 md:text-sm">
         {title}
@@ -205,12 +214,13 @@ export function WorkspaceEmptyPane({
 }
 
 export function WorkspaceListHeader({
-  icon: Icon,
+  iconElement,
   title,
   subtitle,
   action,
 }: {
-  icon: LucideIcon;
+  /** Render at `size={15}` for visual consistency. */
+  iconElement: ReactNode;
   title: string;
   subtitle?: string;
   action?: ReactNode;
@@ -219,7 +229,7 @@ export function WorkspaceListHeader({
     <header className="admin-mobile-sticky flex flex-wrap items-center justify-between gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 py-2 md:gap-3 md:px-4 md:py-3">
       <div className="flex min-w-0 items-center gap-2 md:gap-2.5">
         <span className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-50)] text-[var(--color-accent-700)] md:size-9">
-          <Icon size={15} />
+          {iconElement}
         </span>
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <h2 className="text-[0.8125rem] font-semibold text-[var(--color-ink-900)] md:text-sm">
@@ -240,13 +250,14 @@ export function WorkspaceListHeader({
 export function WorkspaceRowIconButton({
   label,
   onClick,
-  icon: Icon,
+  iconElement,
   tone = "default",
   disabled,
 }: {
   label: string;
   onClick: () => void;
-  icon: LucideIcon;
+  /** Render at `size={13}` for visual consistency. */
+  iconElement: ReactNode;
   tone?: "default" | "danger";
   disabled?: boolean;
 }) {
@@ -263,7 +274,7 @@ export function WorkspaceRowIconButton({
           : "text-[var(--color-ink-500)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
       )}
     >
-      <Icon size={13} />
+      {iconElement}
     </button>
   );
 }
@@ -271,19 +282,20 @@ export function WorkspaceRowIconButton({
 export function WorkspacePrimaryAction({
   label,
   onClick,
-  icon: Icon,
+  iconElement,
   disabled,
 }: {
   label: string;
   onClick: () => void;
-  icon?: LucideIcon;
+  /** Render at `size={14}` for visual consistency. */
+  iconElement?: ReactNode;
   disabled?: boolean;
 }) {
   return (
     <Button
       variant="primary"
       size="sm"
-      leadingIcon={Icon ? <Icon size={14} /> : undefined}
+      leadingIcon={iconElement}
       onClick={onClick}
       disabled={disabled}
     >

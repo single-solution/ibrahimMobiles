@@ -132,21 +132,6 @@ export interface StoreSettings {
   googleTagManagerId: string;
   /** TikTok Pixel ID, e.g. `CXXXXXXXXXXXXXXXXX`. */
   tiktokPixelId: string;
-
-  /**
-   * Comma-separated category slugs that feed the homepage hero gallery.
-   * Empty string = include every active category. Stored as CSV to keep
-   * the existing string/number-only setting schema unchanged.
-   */
-  homeHeroCategorySlugs: string;
-  /**
-   * Comma-separated grade slugs the hero gallery must match against. Each
-   * surfaced product needs at least one variant in one of these grades.
-   * Empty string = no grade filter.
-   */
-  homeHeroGradeSlugs: string;
-  /** How many products to pull into the hero fan (clamped 4–24 by the API). */
-  homeHeroLimit: number;
 }
 
 export const STORE_SETTING_DEFAULTS: StoreSettings = {
@@ -206,10 +191,6 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
   googleAnalyticsId: "",
   googleTagManagerId: "",
   tiktokPixelId: "",
-
-  homeHeroCategorySlugs: "",
-  homeHeroGradeSlugs: "",
-  homeHeroLimit: 12,
 };
 
 /** Prefix used on every `Setting.key` that backs a `StoreSettings` field. */
@@ -274,31 +255,7 @@ export const STORE_SETTING_GROUPS = {
     "googleTagManagerId",
     "tiktokPixelId",
   ] as const,
-  homepage: [
-    "homeHeroCategorySlugs",
-    "homeHeroGradeSlugs",
-    "homeHeroLimit",
-  ] as const,
 } satisfies Record<string, ReadonlyArray<keyof StoreSettings>>;
-
-/**
- * Pure helper for CSV-encoded list settings (e.g. `homeHeroCategorySlugs`).
- * Splits on commas, trims, drops empties, and de-dupes — the same shape
- * the storefront filters expect from the URL or admin form.
- */
-export function parseCsvList(value: string | undefined | null): string[] {
-  if (!value) {
-    return [];
-  }
-  const seen = new Set<string>();
-  for (const part of value.split(",")) {
-    const trimmed = part.trim();
-    if (trimmed.length > 0) {
-      seen.add(trimmed);
-    }
-  }
-  return Array.from(seen);
-}
 
 type StoreSettingGroup = keyof typeof STORE_SETTING_GROUPS;
 

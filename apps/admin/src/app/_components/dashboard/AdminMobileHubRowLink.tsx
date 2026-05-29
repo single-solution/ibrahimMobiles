@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { InquiriesUnreadBadge } from "@/app/inquiries/_components/InquiriesUnreadBadge";
@@ -11,7 +11,12 @@ import { classNames } from "@store/shared";
 interface AdminMobileHubRowLinkProps {
 	href: string;
 	label: string;
-	icon: LucideIcon;
+	/**
+	 * Pre-rendered icon JSX, not the icon component itself.
+	 * React component references (Lucide forwardRefs) are not serializable
+	 * across the server→client boundary; rendered elements are.
+	 */
+	iconElement: ReactNode;
 	trailing?: string | null;
 	showInquiriesBadge?: boolean;
 	isLast: boolean;
@@ -26,7 +31,7 @@ interface AdminMobileHubRowLinkProps {
 export function AdminMobileHubRowLink({
 	href,
 	label,
-	icon: Icon,
+	iconElement,
 	trailing,
 	showInquiriesBadge,
 	isLast,
@@ -44,7 +49,7 @@ export function AdminMobileHubRowLink({
 			)}
 		>
 			<span className="relative grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] text-[var(--color-ink-700)]">
-				<Icon size={16} strokeWidth={2} />
+				{iconElement}
 				{showInquiriesBadge ? <InquiriesUnreadBadge /> : null}
 			</span>
 			<span className="flex-1 text-[0.875rem]">{label}</span>

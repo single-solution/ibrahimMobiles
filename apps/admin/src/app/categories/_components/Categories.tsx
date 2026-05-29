@@ -290,7 +290,7 @@ export function Categories({
         {canManageCategories && (
           <WorkspacePrimaryAction
             label="New category"
-            icon={Plus}
+            iconElement={<Plus size={14} />}
             onClick={() => setDrawer({ kind: "category", category: null })}
           />
         )}

@@ -127,7 +127,7 @@ export function ProductCreateWizard({
     variant === "toolbar" ? (
       <>
         <span className="hidden md:inline-flex">
-          <WorkspacePrimaryAction label="New product" icon={Plus} onClick={openStep1} />
+          <WorkspacePrimaryAction label="New product" iconElement={<Plus size={14} />} onClick={openStep1} />
         </span>
         <MobileFab label="New product" icon={Plus} onClick={openStep1} />
       </>

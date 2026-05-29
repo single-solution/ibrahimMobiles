@@ -281,14 +281,14 @@ function TeamCatalogInner({
             )}
           >
             <WorkspacePaneHeader
-              icon={Users}
+              iconElement={<Users size={15} />}
               title="Team & roles"
               subtitle={`${filteredMembers.length} shown · ${segmentCounts.all} total members`}
               action={
                 canInvite ? (
                   <WorkspacePrimaryAction
                     label="Invite"
-                    icon={Plus}
+                    iconElement={<Plus size={14} />}
                     onClick={openInvite}
                   />
                 ) : undefined
@@ -393,7 +393,7 @@ function TeamCatalogInner({
               />
             ) : (
               <WorkspaceEmptyPane
-                icon={Users}
+                iconElement={<Users size={22} />}
                 title="Select a team member"
                 description="Pick someone on the left to view their profile, change their role, reset their password, or browse what they've changed in the admin."
                 action={

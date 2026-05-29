@@ -6,7 +6,6 @@ import { Settings as SettingsIcon } from "lucide-react";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import type { StoreSettings } from "@store/shared";
-import { HomepageSettings } from "@/app/settings/_components/HomepageSettings";
 import { SettingsCleanup } from "@/app/settings/_components/SettingsCleanup";
 import { ChatSettingsTab } from "@/app/settings/_components/ChatSettingsTab";
 import { SeoSettingsTab } from "@/app/settings/_components/SeoSettingsTab";
@@ -17,7 +16,6 @@ import { LoyaltySettings } from "@/app/settings/_components/settingsLoyaltyTab";
 import { MarketingSettings } from "@/app/settings/_components/settingsMarketingTab";
 import { PaymentSettings } from "@/app/settings/_components/settingsPaymentsTab";
 import { PolicySettings } from "@/app/settings/_components/settingsPoliciesTab";
-import { SaveableSection } from "@/app/settings/_components/settingsSaveableSection";
 import { SocialSettings } from "@/app/settings/_components/settingsSocialTab";
 import { StoreDetailsSettings } from "@/app/settings/_components/settingsStoreTab";
 import {
@@ -190,27 +188,6 @@ function SettingsInner({ initialSettings }: SettingsProps) {
         canUpdate={canUpdate}
       />
     ),
-    homepage: (
-      <HomepageSettings
-        draft={draft}
-        saved={savedSettings}
-        setField={setField}
-        onSaved={setSavedSettings}
-        canUpdate={canUpdate}
-        renderSaveable={({ fields, children }) => (
-          <SaveableSection
-            fields={fields}
-            draft={draft}
-            saved={savedSettings}
-            setField={setField}
-            onSaved={setSavedSettings}
-            canUpdate={canUpdate}
-          >
-            {children}
-          </SaveableSection>
-        )}
-      />
-    ),
     seo: <SeoSettingsTab readOnly={!canUpdate} />,
     chat: <ChatSettingsTab readOnly={!canUpdate} />,
     cleanup: <SettingsCleanup />,
@@ -219,7 +196,7 @@ function SettingsInner({ initialSettings }: SettingsProps) {
   return (
     <WorkspaceFrame minHeight={false}>
       <WorkspaceListHeader
-        icon={SettingsIcon}
+        iconElement={<SettingsIcon size={15} />}
         title="Settings"
         subtitle="Storefront, commerce rules, SEO, chat widget, and optional data cleanup."
       />

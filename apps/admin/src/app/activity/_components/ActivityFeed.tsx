@@ -83,12 +83,12 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
     return (
       <WorkspaceFrame>
         <WorkspaceListHeader
-          icon={Activity}
+          iconElement={<Activity size={15} />}
           title="Activity log"
           subtitle="Every change made by admins, with timestamps and actors."
         />
         <WorkspaceEmptyPane
-          icon={Activity}
+          iconElement={<Activity size={22} />}
           title="No activity yet"
           description="Admin actions will appear here as they happen."
         />
@@ -99,7 +99,7 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
   return (
     <WorkspaceFrame>
       <WorkspaceListHeader
-        icon={Activity}
+        iconElement={<Activity size={15} />}
         title="Activity log"
         subtitle="Every change made by admins, with timestamps and actors."
       />
@@ -121,7 +121,7 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
 
         {filtered.length === 0 ? (
           <WorkspaceEmptyPane
-            icon={Activity}
+            iconElement={<Activity size={22} />}
             title="No matching activity"
             description="Try another filter or show all actions."
             action={

@@ -66,16 +66,7 @@ export async function PUT(request: Request) {
       const expectedType = typeof STORE_SETTING_DEFAULTS[field];
       return badRequest(`"${field}" must be a ${expectedType}.`);
     }
-    // Hero gallery limits — keep within a sane window so a typo can't crash
-    // the homepage with a 10 000-product aggregation or starve it with 0.
     let value: StoreSettings[keyof StoreSettings] = coerced;
-    if (field === "homeHeroLimit") {
-      const numeric = typeof coerced === "number" ? coerced : Number(coerced);
-      if (!Number.isFinite(numeric) || numeric < 4 || numeric > 24) {
-        return badRequest("Hero gallery size must be between 4 and 24.");
-      }
-      value = Math.round(numeric) as StoreSettings[keyof StoreSettings];
-    }
     if (field === "storefrontUrl") {
       const trimmed = typeof coerced === "string" ? coerced.trim() : "";
       if (trimmed.length > 0) {

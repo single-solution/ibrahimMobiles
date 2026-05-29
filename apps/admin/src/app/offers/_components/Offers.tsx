@@ -137,12 +137,12 @@ export function Offers({ offers }: OffersProps) {
         <div className="inline-flex items-center gap-1">
           <WorkspaceRowIconButton
             label="Edit offer"
-            icon={Pencil}
+            iconElement={<Pencil size={13} />}
             onClick={() => setDrawer({ mode: "edit", offer })}
           />
           <WorkspaceRowIconButton
             label="Delete offer"
-            icon={Trash2}
+            iconElement={<Trash2 size={13} />}
             tone="danger"
             onClick={() => setToDelete(offer)}
           />
@@ -154,13 +154,13 @@ export function Offers({ offers }: OffersProps) {
   return (
     <WorkspaceFrame>
       <WorkspaceListHeader
-        icon={Tag}
+        iconElement={<Tag size={15} />}
         title="Offers & deals"
         subtitle="Promotions surfaced on the homepage and the dedicated /deals page."
         action={
           <WorkspacePrimaryAction
             label="New offer"
-            icon={Plus}
+            iconElement={<Plus size={14} />}
             onClick={() => setDrawer({ mode: "new" })}
           />
         }

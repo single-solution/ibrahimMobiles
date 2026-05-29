@@ -26,7 +26,7 @@ export default function AdminAccountLoading() {
         <section className="flex min-h-0 flex-1 flex-col">
           <WorkspaceFrame minHeight={false}>
             <WorkspaceListHeader
-              icon={UserCircle}
+              iconElement={<UserCircle size={15} />}
               title="Your profile"
               subtitle="Manage your name, email, and admin sign-in password."
             />

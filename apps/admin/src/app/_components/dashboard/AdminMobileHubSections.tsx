@@ -131,18 +131,21 @@ function HubGroupCard({ group }: { group: HubGroup }) {
         {group.title}
       </p>
       <ul className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
-        {group.rows.map((row, index) => (
-          <li key={row.href}>
-            <AdminMobileHubRowLink
-              href={row.href}
-              label={row.label}
-              icon={row.icon}
-              trailing={row.trailing}
-              showInquiriesBadge={row.showInquiriesBadge}
-              isLast={index === group.rows.length - 1}
-            />
-          </li>
-        ))}
+        {group.rows.map((row, index) => {
+          const Icon = row.icon;
+          return (
+            <li key={row.href}>
+              <AdminMobileHubRowLink
+                href={row.href}
+                label={row.label}
+                iconElement={<Icon size={16} strokeWidth={2} />}
+                trailing={row.trailing}
+                showInquiriesBadge={row.showInquiriesBadge}
+                isLast={index === group.rows.length - 1}
+              />
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

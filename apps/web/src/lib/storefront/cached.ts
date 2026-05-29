@@ -19,10 +19,8 @@
  * Schema awareness (Phase 1, PLAN.md §10):
  *   - Categories are admin-authored and identified by `slug`. The legacy
  *     "path segment" lookup is replaced by `getStorefrontCategoryBySlug`.
- *   - Hero products used to be a hardcoded single-category filter.
- *     Phase 6 will replace this with an admin-flagged "homepage hero"
- *     category selector; for now, the hero strip surfaces the newest
- *     featured products across all categories.
+ *   - Hero products surface the most recently updated in-stock items
+ *     across all categories — no admin filter on top.
  */
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
@@ -161,48 +159,27 @@ export const getStorefrontOffersCached = unstable_cache(
 );
 
 /**
- * Homepage hero — the most recently updated in-stock products, optionally
- * narrowed to a chosen set of categories and/or grades chosen by the admin
- * in Settings → Homepage. Sorting by `updatedAt` (Mongoose timestamps)
- * means a restock bumps the SKU back into the hero without flipping any
- * curated flag.
- *
- * The cache key is a JSON envelope of every input so changing the admin's
- * picks (or the requested limit) carves a fresh entry instead of poisoning
- * the unfiltered result. Empty filter arrays mean "no narrowing".
+ * Homepage hero — the most recently updated in-stock products across
+ * every active category. Sorting by `updatedAt` (Mongoose timestamps)
+ * means a restock bumps the SKU back into the hero without flipping
+ * any curated flag.
  */
-export interface HomeHeroFilters {
-  categorySlugs?: string[];
-  gradeSlugs?: string[];
-}
-
 const getHomeHeroProductsInner = unstable_cache(
-  async (cacheKey: string): Promise<StorefrontProduct[]> => {
-    const { limit, categorySlugs, gradeSlugs } = JSON.parse(cacheKey) as {
-      limit: number;
-      categorySlugs: string[];
-      gradeSlugs: string[];
-    };
+  async (limit: number): Promise<StorefrontProduct[]> => {
     return getStorefrontProductsRaw({
       sort: "recently-updated",
       inStockOnly: true,
       limit,
-      ...(categorySlugs.length > 0 ? { categorySlugs } : {}),
-      ...(gradeSlugs.length > 0 ? { gradeSlugs } : {}),
     });
   },
-  ["storefront-hero-products-v5"],
+  ["storefront-hero-products-v6"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
 export function getHomeHeroProductsCached(
   limit: number,
-  filters: HomeHeroFilters = {},
 ): Promise<StorefrontProduct[]> {
-  const categorySlugs = (filters.categorySlugs ?? []).slice().sort();
-  const gradeSlugs = (filters.gradeSlugs ?? []).slice().sort();
-  const cacheKey = JSON.stringify({ limit, categorySlugs, gradeSlugs });
-  return getHomeHeroProductsInner(cacheKey);
+  return getHomeHeroProductsInner(limit);
 }
 
 /**

@@ -217,7 +217,7 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
           )}
         >
           <WorkspacePaneHeader
-            icon={ShoppingCart}
+            iconElement={<ShoppingCart size={15} />}
             title="Orders"
             subtitle={`${filteredOrders.length} shown (recent 200) · ${formatPrice(stats.revenue)} in view`}
             search={
@@ -253,7 +253,7 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
             {filteredOrders.length === 0 ? (
               <li className="px-4 py-6">
                 <WorkspaceEmptyPane
-                  icon={ShoppingCart}
+                  iconElement={<ShoppingCart size={22} />}
                   title={searchQuery.trim() ? "No matching orders" : "No orders in this view"}
                   description={
                     searchQuery.trim()
@@ -291,7 +291,7 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
             />
           ) : (
             <WorkspaceEmptyPane
-              icon={ShoppingCart}
+              iconElement={<ShoppingCart size={22} />}
               title="Select an order"
               description="Choose an order from the list to review items, update status, and manage fulfillment."
             />

@@ -231,7 +231,7 @@ function InquiriesInner({ inquiries, access }: InquiriesProps) {
             />
           ) : (
             <WorkspaceEmptyPane
-              icon={MessageSquare}
+              iconElement={<MessageSquare size={22} />}
               title="Select a conversation"
               description="Choose a thread on the left to read messages and reply to customers."
             />
@@ -269,7 +269,7 @@ function ThreadListPane({
       )}
     >
       <WorkspacePaneHeader
-        icon={MessageSquare}
+        iconElement={<MessageSquare size={15} />}
         title="Inquiries"
         subtitle={`${inquiries.length} conversation${inquiries.length === 1 ? "" : "s"} (recent 200) · from storefront chat`}
         search={

@@ -139,7 +139,7 @@ export function AccountSettings() {
     return (
       <WorkspaceFrame minHeight={false}>
         <WorkspaceListHeader
-          icon={UserCircle}
+          iconElement={<UserCircle size={15} />}
           title="Your profile"
           subtitle="Manage your name, email, and admin sign-in password."
         />
@@ -171,7 +171,7 @@ export function AccountSettings() {
   return (
     <WorkspaceFrame minHeight={false}>
       <WorkspaceListHeader
-        icon={UserCircle}
+        iconElement={<UserCircle size={15} />}
         title="Your profile"
         subtitle="Manage your name, email, and admin sign-in password."
       />

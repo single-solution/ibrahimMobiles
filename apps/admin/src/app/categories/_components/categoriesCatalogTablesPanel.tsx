@@ -158,7 +158,7 @@ export function CategoriesCatalogTablesPanel({
               className="min-w-0 flex-1 sm:max-w-[14rem] sm:flex-none"
             />
             <WorkspacePrimaryAction
-              icon={Plus}
+              iconElement={<Plus size={14} />}
               label={newButtonLabel}
               onClick={openCreateForTab}
               disabled={!selectedCategory}
