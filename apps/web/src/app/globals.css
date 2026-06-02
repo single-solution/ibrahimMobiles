@@ -1142,21 +1142,28 @@ html {
   transition: opacity 600ms var(--ease-out-quart), transform 600ms var(--ease-out-quart);
 }
 
-/* Skeleton shimmer — placeholders while data/images load. */
+/* Skeleton shimmer — hardware-accelerated for performance. */
 @keyframes shimmer {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
+  100% { transform: translateX(100%); }
 }
 .skeleton {
-  background-image: linear-gradient(
-    110deg,
-    var(--color-canvas-deep) 25%,
-    var(--color-surface) 50%,
-    var(--color-canvas-deep) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 2s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-canvas-deep);
   border-radius: var(--radius-md);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    transparent 20%,
+    color-mix(in srgb, var(--color-surface) 60%, transparent) 50%,
+    transparent 80%
+  );
+  animation: shimmer 2s infinite;
 }
 
 /* Badge pop — for cart count, qty changes. */
