@@ -39,8 +39,8 @@ export function ColoredPill({
     tone === "solid"
       ? coloredPillStyle(backgroundColor)
       : tone === "soft-dark"
-        ? { ...softColoredPillStyleOnDark(backgroundColor), borderWidth: 1, borderStyle: "solid" as const }
-        : { ...softColoredPillStyleOnLight(backgroundColor), borderWidth: 1, borderStyle: "solid" as const };
+        ? softColoredPillStyleOnDark(backgroundColor)
+        : softColoredPillStyleOnLight(backgroundColor);
 
   return (
     <span
