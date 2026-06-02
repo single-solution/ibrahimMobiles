@@ -165,7 +165,7 @@ function HeaderNavLink({ href, label, isActive }: HeaderNavLinkProps) {
       className={classNames(
         "tap rounded-[var(--radius-md)] px-3 py-2 text-sm transition-colors",
         isActive
-          ? "font-bold text-[var(--color-ink-900)] underline decoration-[var(--color-accent-500)] decoration-[3px] underline-offset-4"
+          ? "font-bold text-[var(--color-accent-600)]"
           : "font-medium text-[var(--color-ink-600)] hover:text-[var(--color-ink-900)]",
       )}
     >
