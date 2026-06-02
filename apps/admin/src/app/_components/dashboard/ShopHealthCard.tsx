@@ -78,7 +78,10 @@ export function ShopHealthCard({ summary }: { summary: ShopHealthSummary }) {
   const remaining = summary.total - previewChecks.length;
 
   return (
-    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+    <section
+      title={summary.allClear ? "Shop is in great shape" : `${summary.total} health checks need attention`}
+      className="lift overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"
+    >
       <header
         className={classNames(
           "flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2.5 md:px-5",

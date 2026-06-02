@@ -54,6 +54,7 @@ export function KpiCard({
   // two without an empty footer eating space. Result: ~70px per card.
   return (
     <div
+      title={hint || label}
       className={classNames(
         /* Concentric: inner icon badge --radius-md (8) + px-3 (12) →
            outer 20 = --radius-xl. */

@@ -191,11 +191,10 @@ export default async function AdminOverviewPage({
         </div>
       </div>
 
-      {/* Desktop layout — primary KPI column + a dedicated right rail that
-          carries shop health and recent inquiries. `max-w` keeps the KPI
+      {/* Desktop layout — single primary column. `max-w` keeps the KPI
           cards information-dense instead of stretching on ultrawide. */}
       <div className="hidden md:block">
-        <div className="flex max-w-[1540px] flex-col gap-6 xl:flex-row xl:items-start">
+        <div className="flex max-w-[1540px] flex-col gap-6">
           <div className="min-w-0 flex-1">
             <SectionHeader
               title="Performance"
@@ -243,33 +242,26 @@ export default async function AdminOverviewPage({
               <DesktopStockKpis />
             </Suspense>
 
-            {/* Below xl there's no side rail, so shop health spans the column. */}
-            <div className="xl:hidden">
+            {/* Quick insights widgets grid. */
+             /* The side rail has been flattened into the main column layout */
+             /* to ensure all cards sit at the same structural level. */}
+            <div>
               <SectionHeader
-                title="Shop health"
-                subtitle="Configuration, catalog hygiene, and stock — the things stopping your shop from looking polished."
+                title="Quick insights & health"
+                subtitle="Configuration, catalog hygiene, and recent inquiries."
               />
-              <Suspense fallback={<ShopHealthFallback />}>
-                <ShopHealthSection />
-              </Suspense>
-            </div>
-          </div>
-
-          {/* Right rail (xl+) — its own full-height column, sticky so it
-              tracks the KPI scroll. Replaces the old bottom-pinned floating
-              panel and now leads with shop health. */}
-          <aside className="hidden w-[336px] shrink-0 xl:block">
-            <div className="sticky top-0 space-y-3 pt-0.5">
-              <Suspense fallback={<ShopHealthFallback />}>
-                <ShopHealthSection />
-              </Suspense>
-              <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
-                <Suspense fallback={<DesktopRecentInquiriesFallback />}>
-                  <DesktopRecentInquiries />
+              <div className="grid items-start gap-4 lg:grid-cols-2">
+                <Suspense fallback={<ShopHealthFallback />}>
+                  <ShopHealthSection />
                 </Suspense>
+                <div className="lift overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+                  <Suspense fallback={<DesktopRecentInquiriesFallback />}>
+                    <DesktopRecentInquiries />
+                  </Suspense>
+                </div>
               </div>
             </div>
-          </aside>
+          </div>
         </div>
       </div>
     </AdminShell>
