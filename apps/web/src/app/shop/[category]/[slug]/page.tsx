@@ -246,8 +246,8 @@ export default async function ProductDetailPage({
         dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(breadcrumbLd) }}
       />
       {/* Mobile */}
-      <div className="pdp-shell pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-2 md:hidden">
-        <div className="mx-4 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+      <div className="pdp-shell reveal-stagger pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-2 md:hidden">
+        <div className="reveal mx-4 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
           <VariantAwareGallery
             product={product}
             brandName={brandName}
@@ -256,13 +256,15 @@ export default async function ProductDetailPage({
         </div>
 
         <div className="app-page pdp-content px-4 pt-4">
-          <Suspense
-            fallback={
-              <VariantSelectorSkeleton layout="mobile" product={product} brandName={brandName} />
-            }
-          >
-            <LiveVariantSelector product={product} brandName={brandName} />
-          </Suspense>
+          <div className="reveal">
+            <Suspense
+              fallback={
+                <VariantSelectorSkeleton layout="mobile" product={product} brandName={brandName} />
+              }
+            >
+              <LiveVariantSelector product={product} brandName={brandName} />
+            </Suspense>
+          </div>
 
           <div className="reveal">
             <GradeShowcase product={product} variant="mobile" />
@@ -281,18 +283,20 @@ export default async function ProductDetailPage({
       </div>
 
       {/* Desktop */}
-      <div className="pdp-shell mx-auto hidden max-w-[1440px] px-6 pb-12 pt-8 md:block">
-        <Breadcrumbs
-          shopHref={shopHref}
-          categorySlug={categoryMeta.slug}
-          categoryLabel={categoryMeta.label}
-          brandName={brandName}
-          brandFilterHref={brandFilterHref}
-          modelName={product.name}
-        />
+      <div className="pdp-shell reveal-stagger mx-auto hidden max-w-[1440px] px-6 pb-12 pt-8 md:block">
+        <div className="reveal">
+          <Breadcrumbs
+            shopHref={shopHref}
+            categorySlug={categoryMeta.slug}
+            categoryLabel={categoryMeta.label}
+            brandName={brandName}
+            brandFilterHref={brandFilterHref}
+            modelName={product.name}
+          />
+        </div>
 
         <div className="mt-6 grid grid-cols-[1.1fr_1fr] items-stretch gap-10">
-          <div className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-sm)]">
+          <div className="reveal overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-sm)]">
             <VariantAwareGallery
               product={product}
               brandName={brandName}
@@ -300,7 +304,7 @@ export default async function ProductDetailPage({
             />
           </div>
 
-          <div className="flex min-h-0 flex-col">
+          <div className="reveal flex min-h-0 flex-col">
             <Suspense
               fallback={
                 <VariantSelectorSkeleton

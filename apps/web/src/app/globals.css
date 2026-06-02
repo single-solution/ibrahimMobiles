@@ -194,8 +194,8 @@
      the new RSC payload streams in over the network. Anything > ~180ms
      starts to read as "content was lost and is fading back in" rather
      than a polish cue. */
-  --motion-route: 140ms;
-  --motion-stagger: 28ms;
+  --motion-route: 360ms;
+  --motion-stagger: 60ms;
 
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
@@ -943,14 +943,14 @@ html {
 */
 .reveal {
   opacity: 0;
-  transform: translate3d(0, var(--reveal-distance, 10px), 0);
+  transform: translate3d(0, var(--reveal-distance, 20px), 0);
   /* Opacity fades cleanly (ease-out); the slide rides a soft spring so the
      element settles with a touch of overshoot — the "springy" feel without
      a JS animation lib. Transform gets a longer duration so the spring has
      room to read. */
   transition:
-    opacity var(--motion-base) var(--ease-out-quart),
-    transform var(--reveal-spring-duration, 0.52s) var(--ease-spring-soft);
+    opacity 480ms var(--ease-out-quart),
+    transform var(--reveal-spring-duration, 0.72s) var(--ease-spring);
   transition-delay: var(--reveal-delay, 0ms);
   /* Safety net: independent CSS-only fallback so a missing JS bundle
      or a hydration race never leaves content invisible. The JS path
@@ -1134,10 +1134,12 @@ html {
    data-loaded attribute. */
 [data-img-fade="false"] {
   opacity: 0;
+  transform: scale(0.98);
 }
 [data-img-fade="true"] {
   opacity: 1;
-  transition: opacity var(--motion-fast) var(--ease-out-quart);
+  transform: scale(1);
+  transition: opacity 600ms var(--ease-out-quart), transform 600ms var(--ease-out-quart);
 }
 
 /* Skeleton shimmer — placeholders while data/images load. */
@@ -1211,17 +1213,21 @@ html {
 @keyframes route-vt-out {
   from {
     opacity: 1;
+    transform: translateY(0) scale(1);
   }
   to {
     opacity: 0;
+    transform: translateY(-8px) scale(0.99);
   }
 }
 @keyframes route-vt-in {
   from {
     opacity: 0;
+    transform: translateY(16px) scale(0.99);
   }
   to {
     opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -1229,9 +1235,11 @@ html {
 @keyframes route-content-in {
   from {
     opacity: 0;
+    transform: translateY(16px) scale(0.99);
   }
   to {
     opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 .route-enter {

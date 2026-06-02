@@ -128,8 +128,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
           + [Filter (n)] button (sort lives inside the filter sheet,
           alongside view mode). Grade view-mode segmented control
           floats below the toolbar, above the grid. */}
-      <div className="app-page pb-10 pt-1 md:hidden">
-        <div className="shop-listing-toolbar mt-0 flex items-center gap-2 p-2">
+      <div className="app-page reveal-stagger pb-10 pt-1 md:hidden">
+        <div className="reveal shop-listing-toolbar mt-0 flex items-center gap-2 p-2">
           <Suspense fallback={<ShopMobileCategoryPickerFallback />}>
             <MobileCategoryPickerData activeSlug={meta.slug} />
           </Suspense>
@@ -138,31 +138,39 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
           </Suspense>
         </div>
 
-        <Suspense fallback={<ShopMobileProductsAreaFallback />}>
-          <NavigationPendingFallback fallback={<ShopMobileProductsAreaFallback />}>
-            <MobileProductsArea meta={meta} filters={filters} />
-          </NavigationPendingFallback>
-        </Suspense>
+        <div className="reveal">
+          <Suspense fallback={<ShopMobileProductsAreaFallback />}>
+            <NavigationPendingFallback fallback={<ShopMobileProductsAreaFallback />}>
+              <MobileProductsArea meta={meta} filters={filters} />
+            </NavigationPendingFallback>
+          </Suspense>
+        </div>
       </div>
 
       {/* Desktop */}
       <div className="hidden md:block">
-        <div className="mx-auto max-w-[1440px] px-6 pb-20 pt-1">
+        <div className="reveal-stagger mx-auto max-w-[1440px] px-6 pb-20 pt-1">
           <div className="grid grid-cols-[272px_1fr] gap-5 xl:grid-cols-[280px_1fr] xl:gap-6">
-            <Suspense fallback={<ShopDesktopFilterSidebarFallback />}>
-              <FilterSidebarData categorySlug={meta.slug} filters={filters} />
-            </Suspense>
+            <div className="reveal">
+              <Suspense fallback={<ShopDesktopFilterSidebarFallback />}>
+                <FilterSidebarData categorySlug={meta.slug} filters={filters} />
+              </Suspense>
+            </div>
 
             <div className="min-w-0 space-y-3">
-              <Suspense fallback={<ShopCategoryRailFallback />}>
-                <CategorySelectorData activeSlug={meta.slug} />
-              </Suspense>
+              <div className="reveal">
+                <Suspense fallback={<ShopCategoryRailFallback />}>
+                  <CategorySelectorData activeSlug={meta.slug} />
+                </Suspense>
+              </div>
 
-              <Suspense fallback={<ShopDesktopProductsAreaFallback />}>
-                <NavigationPendingFallback fallback={<ShopDesktopProductsAreaFallback />}>
-                  <DesktopProductsArea meta={meta} filters={filters} />
-                </NavigationPendingFallback>
-              </Suspense>
+              <div className="reveal">
+                <Suspense fallback={<ShopDesktopProductsAreaFallback />}>
+                  <NavigationPendingFallback fallback={<ShopDesktopProductsAreaFallback />}>
+                    <DesktopProductsArea meta={meta} filters={filters} />
+                  </NavigationPendingFallback>
+                </Suspense>
+              </div>
             </div>
           </div>
         </div>
