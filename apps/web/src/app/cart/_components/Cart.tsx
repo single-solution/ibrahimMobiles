@@ -133,12 +133,12 @@ function CartLine({ line }: { line: CartItem }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[10.5px] font-medium uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
               {line.brandName}
             </p>
             <Link
               href={lineProductHref}
-              className="line-clamp-2 text-[14px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)] hover:text-[var(--color-accent-800)]"
+              className="line-clamp-2 text-[15.5px] font-semibold leading-snug tracking-tight text-[var(--color-ink-900)] hover:text-[var(--color-accent-800)]"
             >
               {line.productName}
             </Link>
@@ -155,7 +155,7 @@ function CartLine({ line }: { line: CartItem }) {
             <Trash2 size={14} />
           </button>
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-[var(--color-ink-700)]">
+        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] text-[var(--color-ink-700)]">
           {attributeEntries.map(([attrKey, value]) => (
             <Chip key={attrKey}>{value}</Chip>
           ))}
@@ -167,7 +167,7 @@ function CartLine({ line }: { line: CartItem }) {
             onChange={(next) => cart.updateQuantity(line.id, next)}
             size="sm"
           />
-          <p className="text-[14.5px] font-semibold leading-none tracking-tight tabular-nums text-[var(--color-ink-900)]">
+          <p className="text-[16px] font-semibold leading-none tracking-tight tabular-nums text-[var(--color-ink-900)]">
             {formatPrice(lineTotal)}
           </p>
         </div>
@@ -178,7 +178,7 @@ function CartLine({ line }: { line: CartItem }) {
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px]">
+    <span className="inline-flex items-center rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-2 py-0.5 text-[11px] font-medium">
       {children}
     </span>
   );

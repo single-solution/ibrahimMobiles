@@ -233,13 +233,13 @@ function CartDropdownLine({
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="line-clamp-1 text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
+            <p className="line-clamp-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
               {brandName}
             </p>
             <Link
               href={lineProductHref}
               onClick={onClose}
-              className="line-clamp-1 text-[13.5px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)] hover:text-[var(--color-accent-800)]"
+              className="line-clamp-2 text-[14.5px] font-semibold leading-snug tracking-tight text-[var(--color-ink-900)] hover:text-[var(--color-accent-800)]"
             >
               {productName}
             </Link>
@@ -253,24 +253,24 @@ function CartDropdownLine({
             <Trash2 size={13} />
           </button>
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-[var(--color-ink-700)]">
+        <div className="mt-1 flex flex-wrap items-center gap-1 text-[12px] text-[var(--color-ink-700)]">
           {attributeEntries.map(([attrKey, value]) => (
             <span
               key={attrKey}
-              className="inline-flex items-center rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px]"
+              className="inline-flex items-center rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-2 py-0.5 text-[11px] font-medium"
             >
               {value}
             </span>
           ))}
         </div>
-        <div className="mt-2 flex items-center justify-between gap-2">
+        <div className="mt-2.5 flex items-center justify-between gap-2">
           <QuantityStepper
             quantity={quantity}
             max={line.maxQuantity ?? 10}
             onChange={onQuantityChange}
             size="sm"
           />
-          <p className="text-[13.5px] font-semibold leading-none tracking-tight tabular-nums text-[var(--color-ink-900)]">
+          <p className="text-[15px] font-semibold leading-none tracking-tight tabular-nums text-[var(--color-ink-900)]">
             {formatPrice(lineTotal)}
           </p>
         </div>
