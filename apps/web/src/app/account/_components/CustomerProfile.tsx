@@ -371,21 +371,22 @@ function AddressRow({
             <Button
               variant="primary"
               size="sm"
-              leadingIcon={<Trash2 size={12} />}
+              leadingIcon={!isBusy ? <Trash2 size={12} /> : undefined}
               onClick={() => {
                 setIsConfirmingRemove(false);
                 onRemove();
               }}
               disabled={isBusy}
+              isLoading={isBusy}
             >
-              Confirm remove
+              {isBusy ? "Removing…" : "Confirm remove"}
             </Button>
           </>
         ) : (
           <>
             {!isDefault && (
-              <Button variant="ghost" size="sm" onClick={onMakeDefault} disabled={isBusy}>
-                Make default
+              <Button variant="ghost" size="sm" onClick={onMakeDefault} disabled={isBusy} isLoading={isBusy}>
+                {isBusy ? "Updating…" : "Make default"}
               </Button>
             )}
             <Button

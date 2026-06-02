@@ -726,6 +726,7 @@ function NewConversationPanel({
               variant="secondary"
               size="sm"
               disabled={sending || draft.trim().length === 0}
+              isLoading={sending}
               leadingIcon={<Send size={14} />}
               className="shrink-0"
             >

@@ -333,7 +333,11 @@ export function ThreadConversation({
           disabled={sending || uploading || draft.trim().length === 0}
           className="tap grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] disabled:opacity-40"
         >
-          <Send size={14} />
+          {sending || uploading ? (
+            <span className="block size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" />
+          ) : (
+            <Send size={14} />
+          )}
         </button>
           </form>
         </>
@@ -432,7 +436,11 @@ export function ComposeConversation({
           disabled={sending || draft.trim().length === 0}
           className="tap grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] disabled:opacity-40"
         >
-          <Send size={14} />
+          {sending ? (
+            <span className="block size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" />
+          ) : (
+            <Send size={14} />
+          )}
         </button>
       </form>
     </>
