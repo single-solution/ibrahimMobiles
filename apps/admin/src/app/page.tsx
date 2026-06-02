@@ -43,7 +43,7 @@ import {
   loadPerformanceSummaryCached,
   loadShopHealthCached,
 } from "@/lib/cached";
-import { formatPrice, formatTimeAgo } from "@store/shared";
+import { classNames, formatPrice, formatTimeAgo } from "@store/shared";
 import { getInitials } from "@/lib/initials";
 import { getStoreSettings, type InquiryStatus } from "@store/db";
 
