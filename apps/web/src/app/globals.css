@@ -615,11 +615,10 @@ html {
   }
 }
 
-/* Short / form-only pages: fill the space between header and footer and
-   center their content, so the footer rests at the viewport bottom with no
-   dead-space scroll. Relies on the shell being a `min-h-dvh flex flex-col`
-   column with `<main>` and the route wrapper carrying `flex-1` (see
-   StorefrontChrome + RouteTransition). */
+/* Short / form-only pages: center their content, but enforce a minimum height
+   that ensures the footer is pushed partially below the viewport edge. This
+   provides a visual hint that there is more content to scroll to, rather than
+   locking the footer rigidly to the bottom. */
 .storefront-page-center {
   display: flex;
   flex: 1 1 auto;
@@ -628,6 +627,7 @@ html {
   justify-content: center;
   gap: 1rem;
   padding: 2rem 1rem;
+  min-height: 75dvh;
 }
 
 /* One consistent page-title size mapped to the fluid scale, so top-level
