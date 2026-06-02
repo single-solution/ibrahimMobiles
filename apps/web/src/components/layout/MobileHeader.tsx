@@ -37,7 +37,7 @@ export function MobileHeader({ onOpenSearch }: MobileHeaderProps) {
          and shadow. The `border-b` class only declares the side; the
          colour is animated by `.scroll-header[data-scrolled]`. */
       className={classNames(
-        "scroll-header sticky top-0 z-30 border-b safe-top md:hidden",
+        "scroll-header sticky top-0 z-[var(--z-sticky)] border-b safe-top md:hidden",
       )}
       style={{ height: "var(--mobile-header-h)" }}
     >
