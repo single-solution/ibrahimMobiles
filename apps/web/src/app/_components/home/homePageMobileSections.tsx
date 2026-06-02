@@ -12,12 +12,12 @@ import { HeroTrendingProductBand } from "@/app/_components/home/HeroTrendingProd
 import {
   HeroTrustHints,
   ShopTypeCard,
-  StoreMapEmbed,
   type HeroProps,
   type ProcessSectionProps,
   type ShopTypesSectionProps,
   type VisitStoreSectionProps,
 } from "@/app/_components/home/homePageDesktopSections";
+import { StoreMapEmbed } from "@/components/shared/StoreMapEmbed";
 import { KineticHeading } from "@/components/shared/motion/KineticHeading";
 import { MagneticHover } from "@/components/shared/motion/MagneticHover";
 import { getPaymentMethods } from "@store/shared";
