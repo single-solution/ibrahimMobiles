@@ -272,6 +272,7 @@ export function Checkout({ customer }: CheckoutProps) {
               fullName={fullName}
               phoneNumber={phoneNumber}
               onFullName={setFullName}
+              isPlacing={isPlacing}
             />
           </div>
           <div className="reveal">
@@ -280,10 +281,11 @@ export function Checkout({ customer }: CheckoutProps) {
               onChange={setDelivery}
               address={address}
               onAddressChange={setAddress}
+              isPlacing={isPlacing}
             />
           </div>
           <div className="reveal">
-            <PaymentPanel payment={payment} onChange={setPayment} />
+            <PaymentPanel payment={payment} onChange={setPayment} isPlacing={isPlacing} />
           </div>
         </div>
 

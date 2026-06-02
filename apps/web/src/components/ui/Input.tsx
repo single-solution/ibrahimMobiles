@@ -9,10 +9,11 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
   inputSize?: "sm" | "md" | "lg";
   rounded?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
   variant?: "default" | "search";
+  isLoading?: boolean;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, icon, error, isMonospace, inputSize = "md", rounded = "md", variant = "default", className, ...props },
+  { label, icon, error, isMonospace, inputSize = "md", rounded = "md", variant = "default", isLoading, className, ...props },
   ref,
 ) {
   return (
@@ -32,6 +33,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         <input
           ref={ref}
           {...props}
+          disabled={props.disabled || isLoading}
           className={classNames(
             "w-full border transition-colors focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-[var(--color-canvas-deep)] disabled:text-[var(--color-ink-500)]",
             inputSize === "sm" && "h-9 text-[13px]",
@@ -49,11 +51,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
                 ? "border-[var(--color-danger-300)] bg-[var(--color-canvas)] focus:border-[var(--color-danger-500)] focus:ring-[var(--color-danger-500)]/30 text-[var(--color-danger-900)] placeholder:text-[var(--color-danger-400)]"
                 : "border-[var(--color-ink-100)] bg-[var(--color-canvas)] focus:border-[var(--color-accent-500)] focus:ring-[var(--color-accent-500)]/30 text-[var(--color-ink-900)] placeholder:text-[var(--color-ink-400)]",
             icon ? "pl-9 pr-3" : "px-3.5",
-            variant === "search" && icon ? "pl-9 pr-10" : "", // specific for search clear button space
+            (variant === "search" && icon) || isLoading ? "pl-9 pr-10" : "", // specific for search clear button space or loading spinner
             isMonospace && "font-mono tracking-[0.4em]",
             props.readOnly && !props.disabled ? "cursor-not-allowed opacity-70" : "",
           )}
         />
+        {isLoading && (
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-400)]">
+            <span className="block size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" />
+          </span>
+        )}
       </span>
       {error && (
         <span

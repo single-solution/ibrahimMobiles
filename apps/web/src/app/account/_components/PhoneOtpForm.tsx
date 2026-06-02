@@ -123,76 +123,88 @@ export function PhoneOtpForm({
 
   if (step === "phone") {
     return (
-      <form onSubmit={handlePhoneSubmit} className="space-y-4">
-        <Input
-          label="Phone number"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder={phonePlaceholder}
-          icon={<PhoneIcon size={14} />}
-          inputMode="tel"
-          autoComplete="tel"
-          autoFocus={autoFocusPhone}
-          error={error}
-        />
-        <Button
-          type="submit"
-          variant="primary"
-          size="md"
-          className="w-full"
-          isLoading={isSendingCode}
-          trailingIcon={<ArrowRight size={14} />}
-          disabled={!phone.trim() || isSendingCode}
-        >
-          {phoneSubmitLabel}
-        </Button>
+      <form onSubmit={handlePhoneSubmit} className="reveal-stagger space-y-4">
+        <div className="reveal">
+          <Input
+            label="Phone number"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder={phonePlaceholder}
+            icon={<PhoneIcon size={14} />}
+            inputMode="tel"
+            autoComplete="tel"
+            autoFocus={autoFocusPhone}
+            error={error}
+            isLoading={isSendingCode}
+          />
+        </div>
+        <div className="reveal">
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            className="w-full"
+            isLoading={isSendingCode}
+            trailingIcon={<ArrowRight size={14} />}
+            disabled={!phone.trim() || isSendingCode}
+          >
+            {phoneSubmitLabel}
+          </Button>
+        </div>
       </form>
     );
   }
 
   return (
-    <form onSubmit={handleCodeSubmit} className="space-y-4">
-      <p className="max-w-prose text-[12.5px] text-[var(--color-ink-600)]">
+    <form onSubmit={handleCodeSubmit} className="reveal-stagger space-y-4">
+      <p className="reveal max-w-prose text-[12.5px] text-[var(--color-ink-600)]">
         Enter the {OTP_CODE_LENGTH}-digit code sent to{" "}
         <span className="font-semibold text-[var(--color-ink-900)]">
           {phoneTail ? `••• ${phoneTail}` : phone}
         </span>
         .
       </p>
-      <Input
-        ref={codeInputRef}
-        label="Verification code"
-        value={code}
-        onChange={(e) => setCode(e.target.value.replace(NON_DIGIT_REGEX, "").slice(0, OTP_CODE_LENGTH))}
-        placeholder="123456"
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        maxLength={OTP_CODE_LENGTH}
-        isMonospace
-        error={error}
-      />
-      <Button
-        type="submit"
-        variant="primary"
-        size="md"
-        className="w-full"
-        isLoading={isVerifying}
-        trailingIcon={<ArrowRight size={14} />}
-        disabled={code.length < OTP_CODE_LENGTH || isVerifying}
-      >
-        {codeSubmitLabel}
-      </Button>
+      <div className="reveal">
+        <Input
+          ref={codeInputRef}
+          label="Verification code"
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(NON_DIGIT_REGEX, "").slice(0, OTP_CODE_LENGTH))}
+          placeholder="123456"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={OTP_CODE_LENGTH}
+          isMonospace
+          error={error}
+          isLoading={isVerifying}
+        />
+      </div>
+      <div className="reveal">
+        <Button
+          type="submit"
+          variant="primary"
+          size="md"
+          className="w-full"
+          isLoading={isVerifying}
+          trailingIcon={<ArrowRight size={14} />}
+          disabled={code.length < OTP_CODE_LENGTH || isVerifying}
+        >
+          {codeSubmitLabel}
+        </Button>
+      </div>
 
-      <ResendControls
-        resendIn={resendIn}
-        isSendingCode={isSendingCode}
-        onUseDifferentPhone={() => {
-          setStep("phone");
-          setCode("");
-          setError(null);
-        }}
-        onResend={() => void requestCode(phone.trim())}
-      />
+      <div className="reveal">
+        <ResendControls
+          resendIn={resendIn}
+          isSendingCode={isSendingCode}
+          onUseDifferentPhone={() => {
+            setStep("phone");
+            setCode("");
+            setError(null);
+          }}
+          onResend={() => void requestCode(phone.trim())}
+        />
+      </div>
     </form>
   );
 }

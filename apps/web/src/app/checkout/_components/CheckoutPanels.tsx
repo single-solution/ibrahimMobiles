@@ -161,35 +161,45 @@ export interface ContactPanelProps {
   fullName: string;
   phoneNumber: string;
   onFullName: (value: string) => void;
+  isPlacing?: boolean;
 }
 
 export function ContactPanel({
   fullName,
   phoneNumber,
   onFullName,
+  isPlacing,
 }: ContactPanelProps) {
   return (
     <Card className="p-4 md:p-5">
       <PanelHeader icon={<User size={14} />} eyebrow="01 · Contact" title="Who is this order for?" />
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <Field
-          label="Full name"
-          value={fullName}
-          onChange={onFullName}
-          icon={<User size={14} />}
-          autoComplete="name"
-          isRequired
-          minLength={2}
-        />
-        <Field
-          label="Phone"
-          value={phoneNumber}
-          onChange={() => undefined}
-          icon={<Phone size={14} />}
-          autoComplete="tel"
-          inputMode="tel"
-          isReadOnly
-        />
+      <div className="reveal-stagger mt-4 grid gap-3 md:grid-cols-2">
+        <div className="reveal">
+          <Field
+            label="Full name"
+            value={fullName}
+            onChange={onFullName}
+            icon={<User size={14} />}
+            autoComplete="name"
+            isRequired
+            minLength={2}
+            isLoading={isPlacing}
+            disabled={isPlacing}
+          />
+        </div>
+        <div className="reveal">
+          <Field
+            label="Phone"
+            value={phoneNumber}
+            onChange={() => undefined}
+            icon={<Phone size={14} />}
+            autoComplete="tel"
+            inputMode="tel"
+            isReadOnly
+            isLoading={isPlacing}
+            disabled={isPlacing}
+          />
+        </div>
       </div>
     </Card>
   );
@@ -208,6 +218,8 @@ export interface FieldProps {
   isRequired?: boolean;
   minLength?: number;
   inputRef?: React.Ref<HTMLInputElement>;
+  isLoading?: boolean;
+  disabled?: boolean;
 }
 
 export function Field({
@@ -223,6 +235,8 @@ export function Field({
   isRequired,
   minLength,
   inputRef,
+  isLoading,
+  disabled,
 }: FieldProps) {
   return (
     <Input
@@ -238,6 +252,8 @@ export function Field({
       readOnly={isReadOnly}
       required={isRequired}
       minLength={minLength}
+      isLoading={isLoading}
+      disabled={disabled}
     />
   );
 }
@@ -247,6 +263,7 @@ export interface DeliveryPanelProps {
   onChange: (value: DeliveryMethod) => void;
   address: AddressFormState;
   onAddressChange: (next: AddressFormState) => void;
+  isPlacing?: boolean;
 }
 
 export function DeliveryPanel({
@@ -254,6 +271,7 @@ export function DeliveryPanel({
   onChange,
   address,
   onAddressChange,
+  isPlacing,
 }: DeliveryPanelProps) {
   const settings = useStoreSettings();
   return (
@@ -263,60 +281,82 @@ export function DeliveryPanel({
         eyebrow="02 · Delivery"
         title="How should we get this to you?"
       />
-      <div className="mt-4 grid gap-2 md:grid-cols-2">
-        <ChoiceTile
-          icon={<Store size={15} />}
-          title="Pickup at our store"
-          subtitle={`${settings.storeAddressLine1} · ${settings.storeHours}`}
-          tag="Free"
-          tagTone="success"
-          isSelected={delivery === "pickup"}
-          onSelect={() => onChange("pickup")}
-        />
-        <ChoiceTile
-          icon={<Truck size={15} />}
-          title="Door delivery"
-          subtitle="Nationwide tracked courier · 2–4 working days"
-          tag="Rs 1,500"
-          isSelected={delivery === "delivery"}
-          onSelect={() => onChange("delivery")}
-        />
+      <div className="reveal-stagger mt-4 grid gap-2 md:grid-cols-2">
+        <div className="reveal">
+          <ChoiceTile
+            icon={<Store size={15} />}
+            title="Pickup at our store"
+            subtitle={`${settings.storeAddressLine1} · ${settings.storeHours}`}
+            tag="Free"
+            tagTone="success"
+            isSelected={delivery === "pickup"}
+            onSelect={() => onChange("pickup")}
+            disabled={isPlacing}
+          />
+        </div>
+        <div className="reveal">
+          <ChoiceTile
+            icon={<Truck size={15} />}
+            title="Door delivery"
+            subtitle="Nationwide tracked courier · 2–4 working days"
+            tag="Rs 1,500"
+            isSelected={delivery === "delivery"}
+            onSelect={() => onChange("delivery")}
+            disabled={isPlacing}
+          />
+        </div>
       </div>
 
       {delivery === "delivery" && (
-        <div className="mt-4 space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+        <div className="reveal-stagger mt-4 space-y-3">
+          <p className="reveal text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
             Delivery address
           </p>
           <div className="grid gap-3 md:grid-cols-2">
-            <Field
-              label="Recipient name"
-              value={address.recipientName}
-              onChange={(value) => onAddressChange({ ...address, recipientName: value })}
-              autoComplete="shipping name"
-              isRequired
-              minLength={2}
-            />
-            <Field
-              label="Area / locality"
-              value={address.area}
-              onChange={(value) => onAddressChange({ ...address, area: value })}
-              autoComplete="shipping address-level3"
-            />
-            <Field
-              label="Street address"
-              value={address.street}
-              onChange={(value) => onAddressChange({ ...address, street: value })}
-              autoComplete="shipping street-address"
-              isRequired
-              minLength={2}
-            />
-            <Field
-              label="Postal code"
-              value={address.postalCode}
-              onChange={(value) => onAddressChange({ ...address, postalCode: value })}
-              autoComplete="shipping postal-code"
-            />
+            <div className="reveal">
+              <Field
+                label="Recipient name"
+                value={address.recipientName}
+                onChange={(value) => onAddressChange({ ...address, recipientName: value })}
+                autoComplete="shipping name"
+                isRequired
+                minLength={2}
+                isLoading={isPlacing}
+                disabled={isPlacing}
+              />
+            </div>
+            <div className="reveal">
+              <Field
+                label="Area / locality"
+                value={address.area}
+                onChange={(value) => onAddressChange({ ...address, area: value })}
+                autoComplete="shipping address-level3"
+                isLoading={isPlacing}
+                disabled={isPlacing}
+              />
+            </div>
+            <div className="reveal">
+              <Field
+                label="Street address"
+                value={address.street}
+                onChange={(value) => onAddressChange({ ...address, street: value })}
+                autoComplete="shipping street-address"
+                isRequired
+                minLength={2}
+                isLoading={isPlacing}
+                disabled={isPlacing}
+              />
+            </div>
+            <div className="reveal">
+              <Field
+                label="Postal code"
+                value={address.postalCode}
+                onChange={(value) => onAddressChange({ ...address, postalCode: value })}
+                autoComplete="shipping postal-code"
+                isLoading={isPlacing}
+                disabled={isPlacing}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -327,9 +367,10 @@ export function DeliveryPanel({
 export interface PaymentPanelProps {
   payment: PaymentMethodId;
   onChange: (id: PaymentMethodId) => void;
+  isPlacing?: boolean;
 }
 
-export function PaymentPanel({ payment, onChange }: PaymentPanelProps) {
+export function PaymentPanel({ payment, onChange, isPlacing }: PaymentPanelProps) {
   const settings = useStoreSettings();
   const paymentMethods = getPaymentMethods(settings);
   const bankDiscount = Math.max(0, settings.bankTransferDiscountPercent);
@@ -340,7 +381,7 @@ export function PaymentPanel({ payment, onChange }: PaymentPanelProps) {
         eyebrow="03 · Payment"
         title="How would you like to pay?"
       />
-      <div className="mt-4 grid gap-2 md:grid-cols-2">
+      <div className="reveal-stagger mt-4 grid gap-2 md:grid-cols-2">
         {paymentMethods.map((method) => {
           const Icon =
             method.id === "cod"
@@ -349,16 +390,18 @@ export function PaymentPanel({ payment, onChange }: PaymentPanelProps) {
                 ? Building2
                 : Smartphone;
           return (
-            <ChoiceTile
-              key={method.id}
-              icon={<Icon size={15} />}
-              title={method.label}
-              subtitle={method.note}
-              tag={method.id === "bank" && bankDiscount > 0 ? `−${bankDiscount}%` : undefined}
-              tagTone="success"
-              isSelected={payment === method.id}
-              onSelect={() => onChange(method.id)}
-            />
+            <div key={method.id} className="reveal">
+              <ChoiceTile
+                icon={<Icon size={15} />}
+                title={method.label}
+                subtitle={method.note}
+                tag={method.id === "bank" && bankDiscount > 0 ? `−${bankDiscount}%` : undefined}
+                tagTone="success"
+                isSelected={payment === method.id}
+                onSelect={() => onChange(method.id)}
+                disabled={isPlacing}
+              />
+            </div>
           );
         })}
       </div>
@@ -636,6 +679,7 @@ export interface ChoiceTileProps {
   tagTone?: "default" | "success";
   isSelected: boolean;
   onSelect: () => void;
+  disabled?: boolean;
 }
 
 export function ChoiceTile({
@@ -646,14 +690,17 @@ export function ChoiceTile({
   tagTone = "default",
   isSelected,
   onSelect,
+  disabled,
 }: ChoiceTileProps) {
   return (
     <button
       type="button"
       onClick={onSelect}
       aria-pressed={isSelected}
+      disabled={disabled}
       className={classNames(
         "tap flex h-full items-start gap-3 rounded-[var(--radius-lg)] border p-3 text-left transition-colors",
+        disabled && "opacity-50 cursor-not-allowed",
         isSelected
           ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)]"
           : "border-[var(--color-ink-100)] bg-[var(--color-canvas)] hover:border-[var(--color-ink-200)]",

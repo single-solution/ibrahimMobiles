@@ -188,6 +188,8 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
             onChange={setFullName}
             autoComplete="name"
             placeholder="As you want it on receipts"
+            isLoading={isSavingProfile}
+            disabled={isSavingProfile}
           />
           <Field
             label="Phone (verified)"
@@ -206,6 +208,8 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
             autoComplete="email"
             inputMode="email"
             placeholder="you@example.com"
+            isLoading={isSavingProfile}
+            disabled={isSavingProfile}
           />
           <Field
             label="City"
@@ -214,6 +218,8 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
             onChange={setCity}
             autoComplete="address-level2"
             placeholder="e.g. your city"
+            isLoading={isSavingProfile}
+            disabled={isSavingProfile}
           />
         </div>
         {profileError && <ErrorBanner message={profileError} />}
@@ -435,6 +441,8 @@ function AddressEditor({ draft, onSave, onCancel, isSaving }: AddressEditorProps
           onChange={setRecipientName}
           autoComplete="name"
           placeholder="Who will receive this parcel?"
+          isLoading={isSaving}
+          disabled={isSaving}
         />
         <Field
           label="Phone"
@@ -444,6 +452,8 @@ function AddressEditor({ draft, onSave, onCancel, isSaving }: AddressEditorProps
           inputMode="tel"
           autoComplete="tel"
           placeholder="+92 320 4862403"
+          isLoading={isSaving}
+          disabled={isSaving}
         />
         <div className="md:col-span-2">
           <Field
@@ -453,6 +463,8 @@ function AddressEditor({ draft, onSave, onCancel, isSaving }: AddressEditorProps
             onChange={setStreet}
             placeholder="House #, Street"
             autoComplete="address-line1"
+            isLoading={isSaving}
+            disabled={isSaving}
           />
         </div>
         <div className="md:col-span-2">
@@ -462,6 +474,8 @@ function AddressEditor({ draft, onSave, onCancel, isSaving }: AddressEditorProps
             onChange={setArea}
             placeholder="Sector / Block / Neighbourhood"
             autoComplete="address-line2"
+            isLoading={isSaving}
+            disabled={isSaving}
           />
         </div>
         <Field
@@ -470,6 +484,8 @@ function AddressEditor({ draft, onSave, onCancel, isSaving }: AddressEditorProps
           onChange={setCity}
           placeholder="e.g. your city"
           autoComplete="address-level2"
+          isLoading={isSaving}
+          disabled={isSaving}
         />
         <Field
           label="Postcode (optional)"
@@ -478,6 +494,8 @@ function AddressEditor({ draft, onSave, onCancel, isSaving }: AddressEditorProps
           placeholder="54000"
           inputMode="numeric"
           autoComplete="postal-code"
+          isLoading={isSaving}
+          disabled={isSaving}
         />
       </div>
       <div className="mt-4 flex items-center justify-end gap-2">
@@ -517,6 +535,7 @@ interface FieldProps {
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   placeholder?: string;
   disabled?: boolean;
+  isLoading?: boolean;
 }
 
 function Field({
@@ -528,6 +547,7 @@ function Field({
   inputMode,
   placeholder,
   disabled,
+  isLoading,
 }: FieldProps) {
   return (
     <label className="block">
@@ -546,12 +566,18 @@ function Field({
           autoComplete={autoComplete}
           inputMode={inputMode}
           placeholder={placeholder}
-          disabled={disabled}
+          disabled={disabled || isLoading}
           className={classNames(
             "h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] text-sm text-[var(--color-ink-900)] transition-colors placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-500)]/30 disabled:cursor-not-allowed disabled:bg-[var(--color-canvas-deep)] disabled:text-[var(--color-ink-500)]",
             icon ? "pl-9 pr-3" : "px-3.5",
+            isLoading ? "pr-10" : ""
           )}
         />
+        {isLoading && (
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-400)]">
+            <span className="block size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" />
+          </span>
+        )}
       </span>
     </label>
   );

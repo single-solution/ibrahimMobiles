@@ -226,6 +226,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             variant="search"
             inputSize="md"
             rounded="full"
+            isLoading={isLoading}
           />
           {query && (
             <button
