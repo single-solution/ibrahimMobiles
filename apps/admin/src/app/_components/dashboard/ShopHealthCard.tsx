@@ -133,14 +133,15 @@ function ShopHealthRow({ check }: { check: ShopHealthCheck }) {
   const Icon = tone.icon;
   const content = (
     <div
+      title={check.description}
       className={classNames(
-        "flex items-start gap-3 px-4 py-2.5 md:px-5",
+        "flex items-center gap-3 px-4 py-2.5 md:px-5",
         check.href && "transition-colors hover:bg-[var(--color-canvas-deep)]",
       )}
     >
       <span
         className={classNames(
-          "mt-0.5 grid size-7 shrink-0 place-items-center rounded-[var(--radius-md)]",
+          "grid size-7 shrink-0 place-items-center rounded-[var(--radius-md)]",
           tone.pill,
         )}
         aria-hidden
@@ -148,19 +149,14 @@ function ShopHealthRow({ check }: { check: ShopHealthCheck }) {
         <Icon size={13} />
       </span>
       <div className="min-w-0 flex-1 leading-tight">
-        <p className="text-[12.5px] font-semibold text-[var(--color-ink-900)] md:text-[13px]">
+        <p className="truncate text-[12.5px] font-semibold text-[var(--color-ink-900)] md:text-[13px]">
           {check.title}
         </p>
-        {check.description ? (
-          <p className="mt-0.5 text-[11px] text-[var(--color-ink-500)] md:text-[11.5px]">
-            {check.description}
-          </p>
-        ) : null}
       </div>
       {check.href ? (
         <ArrowRight
           size={13}
-          className="mt-1 shrink-0 text-[var(--color-ink-400)]"
+          className="shrink-0 text-[var(--color-ink-400)]"
           aria-hidden
         />
       ) : null}

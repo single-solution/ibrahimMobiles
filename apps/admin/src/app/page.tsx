@@ -358,6 +358,7 @@ async function MobileRecentInquiries() {
             <li key={inquiry.id}>
               <Link
                 href={`/inquiries?inquiry=${inquiry.id}`}
+                title={inquiry.subjectProductName ?? inquiry.lastMessagePreview}
                 className="app-list-row tap flex"
               >
               <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
@@ -372,19 +373,15 @@ async function MobileRecentInquiries() {
                     {INQUIRY_LABEL[status] ?? inquiry.status}
                   </StatusPill>
                 </div>
-                <p className="mt-0.5 truncate text-[11.5px] text-[var(--color-ink-500)]">
-                  {inquiry.subjectProductName ?? inquiry.lastMessagePreview}
-                </p>
               </div>
               <div className="text-right">
                 {inquiry.unreadByTeam > 0 ? (
                   <StatusPill tone="danger">{inquiry.unreadByTeam}</StatusPill>
                 ) : (
-                  <span className="text-[10.5px] text-[var(--color-ink-400)]">—</span>
+                  <span className="text-[10.5px] font-medium text-[var(--color-ink-400)]">
+                    {formatTimeAgo(inquiry.lastMessageAt, nowReferenceIso)}
+                  </span>
                 )}
-                <p className="mt-0.5 text-[10.5px] text-[var(--color-ink-400)]">
-                  {formatTimeAgo(inquiry.lastMessageAt, nowReferenceIso)}
-                </p>
               </div>
               </Link>
             </li>
@@ -562,6 +559,7 @@ async function DesktopRecentInquiries() {
               <li key={inquiry.id}>
                 <Link
                   href={`/inquiries?inquiry=${inquiry.id}`}
+                  title={inquiry.subjectProductName ?? inquiry.lastMessagePreview}
                   className="tap flex items-center gap-2.5 px-3 py-2 hover:bg-[var(--color-canvas-deep)]"
                 >
                   <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[10.5px] font-semibold text-[var(--color-ink-700)]">
@@ -569,18 +567,15 @@ async function DesktopRecentInquiries() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <p className="truncate text-[12px] font-semibold text-[var(--color-ink-900)]">
+                      <p className="truncate text-[12.5px] font-semibold text-[var(--color-ink-900)]">
                         {inquiry.customerName}
                       </p>
                       {inquiry.unreadByTeam > 0 && (
                         <StatusPill tone="danger">{inquiry.unreadByTeam}</StatusPill>
                       )}
                     </div>
-                    <p className="mt-0.5 truncate text-[11px] text-[var(--color-ink-500)]">
-                      {inquiry.subjectProductName ?? inquiry.lastMessagePreview}
-                    </p>
                   </div>
-                  <span className="shrink-0 text-[10px] text-[var(--color-ink-400)]">
+                  <span className="shrink-0 text-[10.5px] font-medium text-[var(--color-ink-400)]">
                     {formatTimeAgo(inquiry.lastMessageAt, nowReferenceIso)}
                   </span>
                 </Link>
@@ -783,18 +778,22 @@ function MobileStat({ label, value, icon, changePercent }: MobileStatProps) {
           {icon}
         </span>
       </div>
-      <p className="mt-2 text-[16px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)]">
-        {value}
-      </p>
-      {typeof changePercent === "number" && (
-        <p
-          className={`mt-1 text-[10.5px] font-semibold ${
-            isPositive ? "text-[var(--color-accent-700)]" : "text-rose-600"
-          }`}
-        >
-          {isPositive ? "↑" : "↓"} {Math.abs(changePercent)}%
+      <div className="mt-2">
+        <p className="text-[18px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
+          {value}
         </p>
-      )}
+        {typeof changePercent === "number" && (
+          <p
+            className={classNames(
+              "mt-1.5 flex items-center gap-0.5 text-[10.5px] font-semibold",
+              isPositive ? "text-[var(--color-accent-700)]" : "text-rose-600",
+            )}
+          >
+            {isPositive ? <TrendingUp size={11} /> : <TrendingUp size={11} className="rotate-180" />}
+            {Math.abs(changePercent)}%
+          </p>
+        )}
+      </div>
     </div>
   );
 }
