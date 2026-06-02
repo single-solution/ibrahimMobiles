@@ -147,7 +147,6 @@ export function OrderSummaryPreview({
       delivery={delivery}
       hasAgreed
       onAgreedChange={() => undefined}
-      onPlaceOrder={() => undefined}
       isPlacing={false}
       isValid={false}
       pointsEarnedOnThisOrder={0}
