@@ -96,7 +96,7 @@ function PdpCard(data: PdpOgData) {
         height: "100%",
         display: "flex",
         background: `linear-gradient(135deg, ${data.gradeColor}26 0%, #00272c 70%)`,
-        color: "#ffffff",
+        color: "#f8fbf8",
         fontFamily: "system-ui, sans-serif",
         padding: 64,
       }}
@@ -189,7 +189,7 @@ function notFoundImage() {
           alignItems: "center",
           justifyContent: "center",
           background: "#00272c",
-          color: "#ffffff",
+          color: "#f8fbf8",
           fontFamily: "system-ui, sans-serif",
           fontSize: 64,
         }}

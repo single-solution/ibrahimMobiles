@@ -27,6 +27,15 @@ interface MagneticHoverProps {
   strength?: number;
   /** Max translation in px on each axis. Defaults to 10. */
   maxOffset?: number;
+  /**
+   * Optional ancestor selector resolving the magnetic "field". When set,
+   * the child leans toward the pointer anywhere inside that ancestor
+   * (resolved via `closest`) instead of only while the pointer is over
+   * the child itself. The child still stays inside its own container —
+   * only its inner transform shifts toward the cursor (capped to
+   * `maxOffset`). Falls back to the child when the selector matches nothing.
+   */
+  fieldSelector?: string;
   className?: string;
   style?: CSSProperties;
 }
@@ -35,6 +44,7 @@ export function MagneticHover({
   children,
   strength = 0.28,
   maxOffset = 10,
+  fieldSelector,
   className = "",
   style,
 }: MagneticHoverProps) {
@@ -49,7 +59,15 @@ export function MagneticHover({
       return;
     }
 
-    // Cache rect — only refresh on enter / resize / scroll.
+    // The element listening for pointer movement. Defaults to the child
+    // itself; a `fieldSelector` widens it to an ancestor so the magnet
+    // tracks the cursor across a whole region (e.g. the hero banner).
+    const field: HTMLElement =
+      (fieldSelector && node.closest<HTMLElement>(fieldSelector)) || node;
+
+    // Cache rect — only refresh on enter / resize / scroll. The rect is
+    // always the child's box, so attraction is measured from the child's
+    // centre even when the field (listener) is a larger ancestor.
     let rect = node.getBoundingClientRect();
     const refreshRect = () => {
       rect = node.getBoundingClientRect();
@@ -102,22 +120,22 @@ export function MagneticHover({
       ensureLoop();
     };
 
-    node.addEventListener("pointerenter", handleEnter, { passive: true });
-    node.addEventListener("pointermove", handleMove, { passive: true });
-    node.addEventListener("pointerleave", handleLeave, { passive: true });
+    field.addEventListener("pointerenter", handleEnter, { passive: true });
+    field.addEventListener("pointermove", handleMove, { passive: true });
+    field.addEventListener("pointerleave", handleLeave, { passive: true });
     window.addEventListener("resize", refreshRect, { passive: true });
     window.addEventListener("scroll", refreshRect, { passive: true });
     return () => {
-      node.removeEventListener("pointerenter", handleEnter);
-      node.removeEventListener("pointermove", handleMove);
-      node.removeEventListener("pointerleave", handleLeave);
+      field.removeEventListener("pointerenter", handleEnter);
+      field.removeEventListener("pointermove", handleMove);
+      field.removeEventListener("pointerleave", handleLeave);
       window.removeEventListener("resize", refreshRect);
       window.removeEventListener("scroll", refreshRect);
       if (frame != null) {
         window.cancelAnimationFrame(frame);
       }
     };
-  }, [maxOffset, strength]);
+  }, [maxOffset, strength, fieldSelector]);
 
   return (
     <div

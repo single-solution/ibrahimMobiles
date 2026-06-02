@@ -23,11 +23,13 @@ import { getDefaultVariant } from "@/lib/productSummary";
 import {
   productAbsoluteUrl,
   productHref,
+  shopHrefFromCategories,
 } from "@/lib/catalog/productPaths";
 import { getStorefrontProducts } from "@/lib/storefront";
 import {
   getStorefrontAttributesCached,
   getStorefrontBrandBySlugCached,
+  getStorefrontCategoriesCached,
   getStorefrontCategoryBySlugCached,
   getStorefrontProductBySlugCached,
 } from "@/lib/storefront/cached";
@@ -201,12 +203,14 @@ export default async function ProductDetailPage({
   // client-side via `history.replaceState` (see usePdpUrlParams) so configurator
   // picks never refetch this RSC page.
 
-  const [brand, seoSettings] = await Promise.all([
+  const [brand, seoSettings, categories] = await Promise.all([
     getStorefrontBrandBySlugCached(product.brandSlug, product.categorySlug),
     getSeoSettings(),
+    getStorefrontCategoriesCached(),
   ]);
   const brandName = brand?.name ?? product.brandSlug;
   const brandFilterHref = `/shop/${categoryMeta.slug}?brand=${product.brandSlug}`;
+  const shopHref = shopHrefFromCategories(categories);
 
   const productLd = productJsonLd({
     product,
@@ -260,9 +264,11 @@ export default async function ProductDetailPage({
             <LiveVariantSelector product={product} brandName={brandName} />
           </Suspense>
 
-          <GradeShowcase product={product} variant="mobile" />
+          <div className="reveal">
+            <GradeShowcase product={product} variant="mobile" />
+          </div>
 
-          <section className="pdp-related-panel cv-auto">
+          <section className="reveal pdp-related-panel cv-auto">
             <div className="app-section-eyebrow mb-3">
               <span className="text-[var(--color-accent-800)]">More from {brandName}</span>
               <Link href={brandFilterHref}>See all</Link>
@@ -277,6 +283,7 @@ export default async function ProductDetailPage({
       {/* Desktop */}
       <div className="pdp-shell mx-auto hidden max-w-[1440px] px-6 pb-12 pt-8 md:block">
         <Breadcrumbs
+          shopHref={shopHref}
           categorySlug={categoryMeta.slug}
           categoryLabel={categoryMeta.label}
           brandName={brandName}
@@ -308,9 +315,11 @@ export default async function ProductDetailPage({
           </div>
         </div>
 
-        <GradeShowcase product={product} />
+        <div className="reveal">
+          <GradeShowcase product={product} />
+        </div>
 
-        <section className="pdp-related-panel cv-auto mt-16">
+        <section className="reveal pdp-related-panel cv-auto mt-16">
           <div className="flex items-end justify-between gap-3">
             <h2 className="text-3xl font-semibold tracking-tight text-[var(--color-ink-900)]">
               More from {brandName}
@@ -445,9 +454,9 @@ async function MobileRelatedRail({
     );
   }
   return (
-    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
+    <div className="reveal-stagger grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
       {related.map((relatedProduct) => (
-        <div key={relatedProduct.id} className="h-full">
+        <div key={relatedProduct.id} className="reveal h-full">
           <ProductCard product={relatedProduct} />
         </div>
       ))}
@@ -471,9 +480,9 @@ async function DesktopRelatedRail({
     );
   }
   return (
-    <div className="mt-6 grid grid-cols-4 gap-5">
+    <div className="reveal-stagger mt-6 grid grid-cols-4 gap-5">
       {related.map((relatedProduct) => (
-        <div key={relatedProduct.id} className="h-full">
+        <div key={relatedProduct.id} className="reveal h-full">
           <ProductCard product={relatedProduct} />
         </div>
       ))}
@@ -504,6 +513,7 @@ function DesktopRelatedRailSkeleton() {
 /* ─────────────────────── Static layout pieces ─────────────────────── */
 
 interface BreadcrumbsProps {
+  shopHref: string;
   categorySlug: string;
   categoryLabel: string;
   brandName: string;
@@ -512,6 +522,7 @@ interface BreadcrumbsProps {
 }
 
 function Breadcrumbs({
+  shopHref,
   categorySlug,
   categoryLabel,
   brandName,
@@ -524,7 +535,7 @@ function Breadcrumbs({
         Home
       </Link>
       <ChevronRight size={14} />
-      <Link href="/shop" className="hover:text-[var(--color-ink-800)]">
+      <Link href={shopHref} className="hover:text-[var(--color-ink-800)]">
         Shop
       </Link>
       <ChevronRight size={14} />

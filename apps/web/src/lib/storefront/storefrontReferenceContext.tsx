@@ -11,7 +11,7 @@ import {
   type StorefrontVariant,
 } from "@store/shared";
 
-import { productHref } from "@/lib/catalog/productPaths";
+import { productHref, shopHrefFromCategories } from "@/lib/catalog/productPaths";
 import type { StorefrontCategory } from "@/lib/storefront";
 
 /**
@@ -49,6 +49,7 @@ export interface StorefrontCategoryReference {
   label: string;
   description: string;
   icon: StorefrontCategory["icon"];
+  iconNode: StorefrontCategory["iconNode"];
   isActive: boolean;
   sortOrder: number;
 }
@@ -153,6 +154,16 @@ export function useCategory(
     () => categories.find((category) => category.slug === slug),
     [categories, slug],
   );
+}
+
+/**
+ * Storefront entry URL pointing straight at the first active category, so
+ * "Shop"/"Store" links skip the `/shop` → first-category server redirect.
+ * Falls back to `/shop` when no category is configured.
+ */
+export function useShopHref(): string {
+  const categories = useCategories();
+  return useMemo(() => shopHrefFromCategories(categories), [categories]);
 }
 
 /**

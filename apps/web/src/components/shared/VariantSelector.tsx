@@ -18,6 +18,7 @@ import { toAttributeLabelSource } from "@/lib/catalog/attributeLabels";
 
 import { Button } from "@/components/ui/Button";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
+import { useToast } from "@/components/ui/Toast";
 import { useVariantSelection } from "@/components/shared/VariantContext";
 
 import {
@@ -79,6 +80,7 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
   const { selectedVariantId, setSelectedVariantId } = useVariantSelection();
   const { searchParams, replace } = usePdpUrlParams();
   const cart = useCart();
+  const { toast } = useToast();
   const [hasJustBeenAdded, setHasJustBeenAdded] = useState(false);
   const [addQuantity, setAddQuantity] = useState(1);
   const categoryAttributes = useAttributesForCategory(product.categorySlug);
@@ -276,6 +278,7 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
     });
     setHasJustBeenAdded(true);
     window.setTimeout(() => setHasJustBeenAdded(false), ADD_TO_CART_FLASH_MS);
+    toast(`${product.name} added to cart`);
   };
 
   return (

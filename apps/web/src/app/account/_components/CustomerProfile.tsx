@@ -164,7 +164,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
         <ArrowLeft size={13} />
         Back to account
       </Link>
-      <div className="mt-2">
+      <div className="reveal mt-2">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
           Profile
         </p>
@@ -176,7 +176,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
         </p>
       </div>
 
-      <Card className="mt-5 p-4 md:mt-6 md:p-5">
+      <Card className="reveal mt-5 p-4 md:mt-6 md:p-5">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
           Contact
         </p>
@@ -234,7 +234,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
         </div>
       </Card>
 
-      <div className="mt-5 flex items-end justify-between md:mt-6">
+      <div className="reveal mt-5 flex items-end justify-between md:mt-6">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
           Saved addresses
           {hasSavedAddresses && (
@@ -256,16 +256,16 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
       </div>
       {addressError && <ErrorBanner message={addressError} />}
 
-      <ul className="cv-auto mt-3 space-y-3">
+      <ul className="reveal-stagger cv-auto mt-3 space-y-3">
         {addresses.length === 0 ? (
-          <li>
+          <li className="reveal">
             <Card className="p-6 text-center text-[12.5px] text-[var(--color-ink-500)]">
               No saved addresses yet — add one to speed up future checkouts.
             </Card>
           </li>
         ) : (
           addresses.map((address, index) => (
-            <li key={index}>
+            <li key={index} className="reveal">
               {editingIndex === index ? (
                 <AddressEditor
                   draft={address}

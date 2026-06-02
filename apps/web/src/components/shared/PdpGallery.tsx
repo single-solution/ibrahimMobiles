@@ -31,10 +31,14 @@ import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 import type { Product, StoredImage } from "@store/shared";
 
 import { ProductImage } from "@/components/shared/ProductImage";
+import { usePresence } from "@/components/shared/motion/usePresence";
+import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
 /** Minimum horizontal distance for a touch gesture to register as a swipe. */
 const SWIPE_THRESHOLD_PX = 40;
+/** Matches the `lightbox-out` / `sheet-fade-out` exit duration in globals.css. */
+const LIGHTBOX_EXIT_MS = 220;
 /** Maximum vertical drift before we treat a gesture as a scroll, not a swipe. */
 const SWIPE_VERTICAL_TOLERANCE_PX = 60;
 
@@ -103,6 +107,11 @@ function PdpGalleryInner({
 }: PdpGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const { isMounted: lightboxMounted, status: lightboxStatus } = usePresence(
+    lightboxOpen,
+    LIGHTBOX_EXIT_MS,
+  );
+  const lightboxClosing = lightboxStatus === "closing";
 
   const safeIndex =
     images.length === 0 ? 0 : Math.min(activeIndex, images.length - 1);
@@ -260,7 +269,7 @@ function PdpGalleryInner({
                 aria-label={`Show image ${index + 1}`}
                 aria-pressed={index === activeIndex}
                 className={
-                  "product-media-well relative aspect-square w-24 shrink-0 rounded-md border bg-[var(--color-canvas-deep)] transition-colors " +
+                  "tap product-media-well relative aspect-square w-24 shrink-0 rounded-md border bg-[var(--color-canvas-deep)] " +
                   (index === activeIndex
                     ? "border-[var(--color-ink-900)]"
                     : "border-[var(--color-ink-100)] hover:border-[var(--color-ink-300)]")
@@ -278,11 +287,12 @@ function PdpGalleryInner({
             ))}
           </div>
         )}
-        {lightboxOpen && (
+        {lightboxMounted && (
           <Lightbox
             images={images}
             initialIndex={activeIndex}
             name={name}
+            closing={lightboxClosing}
             onClose={() => setLightboxOpen(false)}
             onNavigate={(next) => setActiveIndex(next)}
             showArrows
@@ -320,7 +330,7 @@ function PdpGalleryInner({
               aria-label={`Photo ${index + 1}`}
               aria-pressed={index === activeIndex}
               className={
-                "product-media-well relative aspect-square w-24 shrink-0 rounded-[var(--radius-sm)] border bg-[var(--color-canvas-deep)] transition-colors " +
+                "tap product-media-well relative aspect-square w-24 shrink-0 rounded-[var(--radius-sm)] border bg-[var(--color-canvas-deep)] " +
                 (index === activeIndex
                   ? "border-[var(--color-ink-900)]"
                   : "border-[var(--color-ink-100)] hover:border-[var(--color-ink-300)]")
@@ -338,11 +348,12 @@ function PdpGalleryInner({
           ))}
         </div>
       )}
-      {lightboxOpen && (
+      {lightboxMounted && (
         <Lightbox
           images={images}
           initialIndex={activeIndex}
           name={name}
+          closing={lightboxClosing}
           onClose={() => setLightboxOpen(false)}
           onNavigate={(next) => {
             setActiveIndex(next);
@@ -360,6 +371,8 @@ interface LightboxProps {
   images: StoredImage[];
   initialIndex: number;
   name: string;
+  /** True while the parent is closing us; swaps enter classes for exits. */
+  closing?: boolean;
   onClose: () => void;
   onNavigate?: (index: number) => void;
   showArrows?: boolean;
@@ -371,6 +384,7 @@ function Lightbox({
   images,
   initialIndex,
   name,
+  closing = false,
   onClose,
   onNavigate,
   showArrows,
@@ -393,6 +407,9 @@ function Lightbox({
   }, [images.length, onPrev]);
 
   const lightboxSwipe = useHorizontalSwipe(goNext, goPrev);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(dialogRef, !closing);
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
@@ -417,10 +434,15 @@ function Lightbox({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-label={`Zoom view of ${name}`}
-      className="animate-sheet-fade fixed inset-0 z-[60] flex items-center justify-center bg-[var(--color-ink-900)]/90 p-4"
+      tabIndex={-1}
+      className={
+        "fixed inset-0 z-[60] flex items-center justify-center bg-[var(--color-ink-900)]/90 p-4 outline-none " +
+        (closing ? "animate-sheet-fade-out" : "animate-sheet-fade")
+      }
     >
       <button
         type="button"
@@ -429,7 +451,10 @@ function Lightbox({
         className="absolute inset-0"
       />
       <div
-        className="animate-lightbox-in relative max-h-[92vh] max-w-[92vw] touch-pan-y"
+        className={
+          "relative max-h-[92vh] max-w-[92vw] touch-pan-y " +
+          (closing ? "animate-lightbox-out" : "animate-lightbox-in")
+        }
         {...(images.length > 1 ? lightboxSwipe : {})}
       >
         <Image

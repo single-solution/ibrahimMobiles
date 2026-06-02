@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { ArrowUpRight, ShoppingBag, Trash2, X } from "lucide-react";
@@ -10,6 +10,9 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
 import { productHref } from "@/lib/catalog/productPaths";
 import { useCart } from "@/lib/cart/useCart";
+import { usePresence } from "@/components/shared/motion/usePresence";
+import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
+import { useToast } from "@/components/ui/Toast";
 import type { CartItem } from "@/lib/cart/types";
 import { classNames, formatPrice } from "@store/shared";
 
@@ -18,17 +21,26 @@ interface CartDropdownProps {
   onClose: () => void;
 }
 
+/** Matches the `popover-out` / `sheet-fade-out` exit duration in globals.css. */
+const CART_EXIT_MS = 180;
+
 /* Desktop-only cart popover anchored to the header trigger. Mobile uses
    a dedicated `/cart` page instead, reached via the bottom-bar tab. */
 export function CartDropdown({ open, onClose }: CartDropdownProps) {
   const cart = useCart();
-  const [isMounted, setIsMounted] = useState(false);
+  const { toast } = useToast();
+  const [isHydrated, setIsHydrated] = useState(false);
+  const { isMounted: isPresent, status } = usePresence(open, CART_EXIT_MS);
+  const isClosing = status === "closing";
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(dialogRef, open);
 
   // Mount-detection flag so we can skip the portal render on the SSR pass
   // and avoid a hydration mismatch. Single setState on mount, never again.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot hydration detection
-    setIsMounted(true);
+    setIsHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -49,7 +61,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
     };
   }, [open, onClose]);
 
-  if (!open || !isMounted) {
+  if (!isPresent || !isHydrated) {
     return null;
   }
   const totals = { subtotal: cart.subtotalRupees, itemCount: cart.itemCount };
@@ -61,7 +73,10 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
         aria-label="Close cart"
         type="button"
         onClick={onClose}
-        className="animate-sheet-fade fixed inset-0 z-[60] hidden cursor-default bg-[var(--color-ink-900)]/15 md:block"
+        className={classNames(
+          "fixed inset-0 z-[60] hidden cursor-default bg-[var(--color-ink-900)]/15 md:block",
+          isClosing ? "animate-sheet-fade-out" : "animate-sheet-fade",
+        )}
       />
       <div
         aria-hidden
@@ -69,13 +84,16 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
       >
         <div className="flex w-full max-w-[1440px] justify-end">
           <div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-label="Your cart"
+            tabIndex={-1}
             className={classNames(
               /* Drops down + scales in from the header cart trigger so
                  the panel feels anchored to its button. */
-              "animate-popover-in pointer-events-auto flex h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] w-[400px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]",
+              "pointer-events-auto flex h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] w-[400px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] outline-none",
+              isClosing ? "animate-popover-out" : "animate-popover-in",
             )}
           >
             <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-4 py-3">
@@ -91,7 +109,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
                 type="button"
                 onClick={onClose}
                 aria-label="Close cart"
-                className="tap grid size-9 shrink-0 place-items-center rounded-full text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
+                className="tap focus-ring grid size-9 shrink-0 place-items-center rounded-full text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
               >
                 <X size={16} />
               </button>
@@ -114,13 +132,16 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
               </div>
             ) : (
               <>
-                <ul className="min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto px-1">
+                <ul className="sheet-stagger min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto px-1">
                   {lines.map((line) => (
                     <CartDropdownLine
                       key={line.id}
                       line={line}
                       onClose={onClose}
-                      onRemove={() => cart.removeItem(line.id)}
+                      onRemove={() => {
+                        cart.removeItem(line.id);
+                        toast(`${line.productName} removed`, { tone: "info" });
+                      }}
                       onQuantityChange={(next) => cart.updateQuantity(line.id, next)}
                     />
                   ))}
@@ -227,7 +248,7 @@ function CartDropdownLine({
             type="button"
             onClick={onRemove}
             aria-label={`Remove ${productName}`}
-            className="grid size-7 shrink-0 place-items-center rounded-full text-[var(--color-ink-400)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-danger-500)]"
+            className="tap focus-ring grid size-7 shrink-0 place-items-center rounded-full text-[var(--color-ink-400)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-danger-500)]"
           >
             <Trash2 size={13} />
           </button>

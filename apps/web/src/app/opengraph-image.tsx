@@ -11,7 +11,7 @@
  *   #00272c -> --color-ink-900
  *   #0a3035 -> --color-ink-800
  *   #1a3f44 -> --color-ink-700
- *   #ffffff -> --color-canvas
+ *   #f8fbf8 -> --color-canvas
  */
 
 import { ImageResponse } from "next/og";
@@ -70,7 +70,7 @@ function HomeCard(data: HomeOgData) {
         justifyContent: "space-between",
         background:
           "linear-gradient(135deg, #1a3f44 0%, #0a3035 60%, #00272c 100%)",
-        color: "#ffffff",
+        color: "#f8fbf8",
         fontFamily: "system-ui, sans-serif",
         padding: 80,
       }}
@@ -138,7 +138,7 @@ function fallbackImage() {
           alignItems: "center",
           justifyContent: "center",
           background: "#00272c",
-          color: "#ffffff",
+          color: "#f8fbf8",
           fontFamily: "system-ui, sans-serif",
           fontSize: 84,
           fontWeight: 800,

@@ -15,7 +15,7 @@ interface GlobalErrorProps {
 
 /* Every hex literal below is mirrored from the official palette so this
    boundary stays brand-correct even when no CSS variables are loaded.
-     #ffffff -> --color-canvas
+     #f8fbf8 -> --color-canvas
      #00272c -> --color-ink-900
      #3a4d00 -> --color-accent-700
      #3f4a4c -> --color-ink-600
@@ -29,7 +29,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
           margin: 0,
           fontFamily:
             "system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif",
-          background: "#ffffff",
+          background: "#f8fbf8",
           color: "#00272c",
         }}
       >

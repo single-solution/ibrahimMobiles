@@ -115,7 +115,7 @@ export function ProductCardMediaCycle({
           />
         </div>
       ) : slides.some((slide) => slide.gradeSlug) ? (
-        <div className="card-fade-stack absolute right-1.5 top-1.5 z-10 md:right-3 md:top-3">
+        <div className="card-fade-stack absolute right-1.5 top-1.5 z-10 justify-items-end md:right-3 md:top-3">
           {slides.map((slide, index) =>
             slide.gradeSlug ? (
               <div

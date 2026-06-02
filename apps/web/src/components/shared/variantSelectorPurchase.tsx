@@ -180,7 +180,7 @@ export function MobileStickyCta({
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Inquire on WhatsApp"
-              className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-full)] bg-[var(--color-whatsapp)] text-[var(--color-on-dark)] shadow-[var(--shadow-sm)] active:bg-[var(--color-whatsapp-dark)]"
+              className="tap grid size-8 shrink-0 place-items-center rounded-[var(--radius-full)] bg-[var(--color-whatsapp)] text-[var(--color-on-dark)] shadow-[var(--shadow-sm)] active:bg-[var(--color-whatsapp-dark)]"
             >
               <MessageCircle size={14} className="fill-[var(--color-on-dark)]" />
             </a>
@@ -189,7 +189,7 @@ export function MobileStickyCta({
               onClick={onAddToCart}
               disabled={maxQuantity <= 0}
               aria-live="polite"
-              className="inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-[var(--radius-full)] bg-[var(--color-accent-500)] px-3 text-[12px] font-semibold text-[var(--color-ink-900)] active:bg-[var(--color-accent-600)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="tap inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-[var(--radius-full)] bg-[var(--color-accent-500)] px-3 text-[12px] font-semibold text-[var(--color-ink-900)] active:bg-[var(--color-accent-600)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {hasJustBeenAdded ? <Check size={13} /> : <ShoppingBag size={13} />}
               {hasJustBeenAdded ? "Added" : "Add to cart"}

@@ -96,7 +96,7 @@ export default function DealsPage() {
     <>
       {/* Mobile only — native */}
       <div className="app-page pb-6 pt-3 md:hidden">
-        <section className="app-section flex flex-col items-center text-center">
+        <section className="reveal app-section flex flex-col items-center text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-100)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-800)]">
             <Sparkles size={11} />
             Live offers
@@ -122,7 +122,7 @@ export default function DealsPage() {
 
       {/* Desktop — single layout */}
       <div className="mx-auto hidden max-w-[1440px] px-6 py-12 md:block">
-        <header className="space-y-3">
+        <header className="reveal space-y-3">
           <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
             <Sparkles size={12} />
             Live offers
@@ -161,10 +161,10 @@ async function MobileOffers() {
       <div className="app-section-eyebrow">
         <span>Active offers</span>
       </div>
-      <ul className="app-list">
+      <ul className="reveal-stagger app-list">
         {offers.map((offer) => (
-          <li key={offer.id} id={offer.slug}>
-            <Link href={`/deals#${offer.slug}`} className="app-list-row">
+          <li key={offer.id} id={offer.slug} className="reveal">
+            <Link href={`/deals#${offer.slug}`} className="tap app-list-row">
               <span
                 className="grid size-9 shrink-0 place-items-center rounded-full text-[11px] font-bold uppercase whitespace-nowrap"
                 style={{
@@ -198,7 +198,7 @@ async function MobileProductsOnSale() {
   const offeredProducts = await loadProductsOnSale(PRODUCTS_ON_OFFER_LIMIT);
   return (
     <>
-      <div className="app-section-eyebrow">
+      <div className="reveal app-section-eyebrow">
         <span>Products on sale</span>
         <span className="lowercase tracking-normal text-[var(--color-ink-500)]">
           {offeredProducts.length} items
@@ -207,9 +207,9 @@ async function MobileProductsOnSale() {
       {offeredProducts.length === 0 ? (
         <DealsEmpty />
       ) : (
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
+        <div className="reveal-stagger grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3.5 md:grid-cols-4">
           {offeredProducts.map((product, index) => (
-            <div key={product.id} className="h-full">
+            <div key={product.id} className={index < 2 ? "h-full" : "reveal h-full"}>
               <ProductCard product={product} priority={index < 2} />
             </div>
           ))}
@@ -227,9 +227,9 @@ async function DesktopOffers() {
     return null;
   }
   return (
-    <section className="cv-auto mt-16 grid grid-cols-2 gap-4">
+    <section className="reveal-stagger cv-auto mt-16 grid grid-cols-2 gap-4">
       {offers.map((offer) => (
-        <div key={offer.id} id={offer.slug}>
+        <div key={offer.id} id={offer.slug} className="reveal">
           <OfferCard offer={offer} size="lg" />
         </div>
       ))}
@@ -242,22 +242,22 @@ async function DesktopProductsSection() {
   const offeredProducts = await loadProductsOnSale(PRODUCTS_ON_OFFER_LIMIT);
   return (
     <>
-      <div className="flex items-end justify-between gap-3">
+      <div className="reveal flex items-end justify-between gap-3">
         <div>
           <h2 className="text-4xl font-semibold leading-tight tracking-tight text-[var(--color-ink-900)]">
-            Phones on sale
+            Products on sale
           </h2>
           <p className="mt-1 text-sm text-[var(--color-ink-500)]">
-            {offeredProducts.length} device{offeredProducts.length === 1 ? "" : "s"} with an active offer.
+            {offeredProducts.length} product{offeredProducts.length === 1 ? "" : "s"} with an active offer.
           </p>
         </div>
       </div>
       {offeredProducts.length === 0 ? (
         <DealsEmpty />
       ) : (
-        <div className="grid grid-cols-4 gap-5">
+        <div className="reveal-stagger grid grid-cols-4 gap-5">
           {offeredProducts.map((product, index) => (
-            <div key={product.id} className="h-full">
+            <div key={product.id} className={index < 2 ? "h-full" : "reveal h-full"}>
               <ProductCard product={product} priority={index < 2} />
             </div>
           ))}
@@ -269,7 +269,7 @@ async function DesktopProductsSection() {
 
 function DealsEmpty() {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]/40 p-10 text-center text-[13px] text-[var(--color-ink-500)]">
+    <div className="reveal rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]/40 p-10 text-center text-[13px] text-[var(--color-ink-500)]">
       No active deals right now — fresh ones every Friday.
     </div>
   );

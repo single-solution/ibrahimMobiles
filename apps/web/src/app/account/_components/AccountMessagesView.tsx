@@ -240,7 +240,7 @@ export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProp
     <div className="mx-auto max-w-[1440px] px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">
       <MessagesBreadcrumbs activeThread={activeThread} />
 
-      <header className="mt-4 md:mt-6">
+      <header className="reveal mt-4 md:mt-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
           Support
         </p>
@@ -282,7 +282,7 @@ export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProp
           welcomeMessageCustomer={chatSettings.welcomeMessageCustomer}
         />
       ) : (
-        <div className="mt-6 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] md:mt-8">
+        <div className="reveal-rise mt-6 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] md:mt-8">
           <div className="grid min-h-[min(72vh,680px)] md:grid-cols-[minmax(280px,340px)_1fr]">
             <ThreadSidebar
               threads={threads}
@@ -316,7 +316,7 @@ export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProp
           <button
             type="button"
             onClick={() => openChatWidget()}
-            className="font-semibold text-[var(--color-accent-700)] hover:underline"
+            className="tap font-semibold text-[var(--color-accent-700)] hover:underline"
           >
             Open live chat
           </button>{" "}
@@ -341,11 +341,11 @@ function MessagesBreadcrumbs({
       aria-label="Breadcrumb"
       className="hidden items-center gap-1.5 text-sm text-[var(--color-ink-500)] md:flex"
     >
-        <Link href="/account" className="hover:text-[var(--color-ink-800)]">
+        <Link href="/account" className="tap hover:text-[var(--color-ink-800)]">
           Account
         </Link>
         <ChevronRight size={14} aria-hidden />
-        <Link href="/account/messages" className="hover:text-[var(--color-ink-800)]">
+        <Link href="/account/messages" className="tap hover:text-[var(--color-ink-800)]">
           Messages
         </Link>
         {activeThread && (
@@ -389,7 +389,7 @@ function ThreadSidebar({
         </p>
       </div>
 
-      <ul className="flex-1 space-y-1 overflow-y-auto p-2 md:p-3">
+      <ul className="sheet-stagger flex-1 space-y-1 overflow-y-auto p-2 md:p-3">
         {threads.map((thread) => {
           const isActive = thread.id === activeId;
           const status = chatStatusMeta(thread.status);
@@ -400,7 +400,7 @@ function ThreadSidebar({
                 type="button"
                 onClick={() => onSelect(thread.id)}
                 className={classNames(
-                  "flex w-full gap-3 rounded-[var(--radius-lg)] px-3 py-3 text-left transition-colors",
+                  "tap flex w-full gap-3 rounded-[var(--radius-lg)] px-3 py-3 text-left",
                   isActive
                     ? "bg-[var(--color-surface)] shadow-[var(--shadow-sm)] ring-1 ring-[var(--color-accent-200)]"
                     : "hover:bg-[var(--color-surface)]/80",
@@ -515,7 +515,7 @@ function ConversationPane({
           type="button"
           aria-label="Back to inbox"
           onClick={onBack}
-          className="grid size-9 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-600)] transition-colors hover:bg-[var(--color-canvas-deep)] md:hidden"
+          className="tap grid size-9 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-600)] hover:bg-[var(--color-canvas-deep)] md:hidden"
         >
           <ArrowLeft size={16} />
         </button>
@@ -675,7 +675,7 @@ function NewConversationPanel({
   welcomeMessageCustomer?: string;
 }) {
   return (
-    <div className="mt-6 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] md:mt-8">
+    <div className="reveal-rise mt-6 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] md:mt-8">
       <section className="flex min-h-[min(60vh,520px)] flex-col bg-[var(--color-canvas)]">
         <div className="border-b border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-4 md:px-6">
           <p className="text-base font-semibold text-[var(--color-ink-900)]">Support</p>
@@ -759,27 +759,24 @@ function MessagesSkeleton() {
     <div className="mt-6 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] md:mt-8">
       <div className="grid min-h-[520px] md:grid-cols-[minmax(280px,340px)_1fr]">
         <div className="hidden border-r border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/50 p-4 md:block">
-          <div className="h-4 w-24 animate-pulse rounded bg-[var(--color-ink-100)]" />
+          <div className="skeleton h-4 w-24" />
           <div className="mt-4 space-y-2">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-[76px] animate-pulse rounded-[var(--radius-lg)] bg-[var(--color-ink-100)]/70"
-              />
+              <div key={index} className="skeleton h-[76px] rounded-[var(--radius-lg)]" />
             ))}
           </div>
         </div>
         <div className="flex flex-col">
           <div className="border-b border-[var(--color-ink-100)] px-5 py-4">
-            <div className="h-5 w-40 animate-pulse rounded bg-[var(--color-ink-100)]" />
-            <div className="mt-2 h-3 w-28 animate-pulse rounded bg-[var(--color-ink-100)]" />
+            <div className="skeleton h-5 w-40" />
+            <div className="skeleton mt-2 h-3 w-28" />
           </div>
           <div className="flex-1 space-y-4 p-5">
             {Array.from({ length: 5 }).map((_, index) => (
               <div
                 key={index}
                 className={classNames(
-                  "h-14 animate-pulse rounded-[var(--radius-lg)] bg-[var(--color-ink-100)]/70",
+                  "skeleton h-14 rounded-[var(--radius-lg)]",
                   index % 2 === 0 ? "ml-auto w-[58%]" : "w-[62%]",
                 )}
               />

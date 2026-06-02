@@ -136,7 +136,7 @@ export function ChatMessageBubble({
   return (
     <div
       className={classNames(
-        "flex gap-2.5",
+        "chat-msg-in flex gap-2.5",
         isCustomer ? "justify-end" : "justify-start",
       )}
     >

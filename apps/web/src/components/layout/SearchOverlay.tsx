@@ -7,6 +7,8 @@ import { ArrowLeft, Search, TrendingUp, X } from "lucide-react";
 import { classNames, formatPrice, type StoredImage } from "@store/shared";
 
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
+import { usePresence } from "@/components/shared/motion/usePresence";
+import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -34,8 +36,14 @@ const SKELETON_PLACEHOLDER_ROWS = 4;
 /** Static fallback chips shown when the hints endpoint is unreachable
  *  or the catalogue is too sparse to seed any. */
 const HINT_FALLBACK: string[] = ["New arrivals", "Best sellers"];
+/** Matches the `sheet-fade-out` exit duration in globals.css. */
+const SEARCH_EXIT_MS = 200;
 
 export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
+  const { isMounted, status } = usePresence(isOpen, SEARCH_EXIT_MS);
+  const isClosing = status === "closing";
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(overlayRef, isOpen);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -147,12 +155,21 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     startNavigation(() => router.push(url));
   }
 
-  if (!isOpen) {
+  if (!isMounted) {
     return null;
   }
 
   return (
-    <div className="animate-sheet-fade fixed inset-0 z-50 flex flex-col bg-[var(--color-canvas)]">
+    <div
+      ref={overlayRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search"
+      className={classNames(
+        "fixed inset-0 z-50 flex flex-col bg-[var(--color-canvas)] outline-none",
+        isClosing ? "animate-sheet-fade-out" : "animate-sheet-fade",
+      )}
+    >
       <div
         className="safe-top sticky top-0 z-10 flex items-center gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2 py-2 md:mx-auto md:w-full md:max-w-5xl md:px-4 md:py-3"
         style={{ "--safe-top-base": "0.5rem" } as CSSProperties}
@@ -161,7 +178,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
           type="button"
           onClick={onClose}
           aria-label="Close search"
-          className="grid size-10 place-items-center rounded-full text-[var(--color-ink-700)] active:bg-[var(--color-surface-muted)]"
+          className="tap focus-ring grid size-10 place-items-center rounded-full text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)] active:bg-[var(--color-surface-muted)]"
         >
           <ArrowLeft size={20} />
         </button>
@@ -322,10 +339,10 @@ function SearchSkeleton() {
           key={index}
           className="flex items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-canvas-deep)] px-3 py-3"
         >
-          <span className="size-12 shrink-0 animate-pulse rounded-[var(--radius-md)] bg-[var(--color-surface-muted)]" />
+          <span className="skeleton size-12 shrink-0" />
           <div className="flex-1 space-y-1.5">
-            <span className="block h-3 w-2/3 animate-pulse rounded bg-[var(--color-surface-muted)]" />
-            <span className="block h-2 w-1/3 animate-pulse rounded bg-[var(--color-surface-muted)]" />
+            <span className="skeleton block h-3 w-2/3" />
+            <span className="skeleton block h-2 w-1/3" />
           </div>
         </li>
       ))}

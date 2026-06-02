@@ -30,11 +30,10 @@
 import type { CSSProperties } from "react";
 import {
   hasStructuredContent,
-  STRUCTURED_CONTENT_DEFAULT_BULLET_ICON,
   type StructuredContent,
 } from "@store/shared";
 
-import { LucideIconRenderer } from "@/components/shared/LucideIconRenderer";
+import { Icon } from "@/components/shared/Icon";
 
 interface BaseProps {
   /** Resolved structured payload (already serializer-normalized). */
@@ -53,8 +52,6 @@ interface CompactProps extends BaseProps {
 interface FullProps extends BaseProps {
   /** Cap on bullet rows; surfaces that need equal-height clamp per breakpoint. */
   maxBullets?: number;
-  /** Lucide icon name used when a bullet's authored icon is missing. */
-  fallbackIcon?: string;
   /** Tailwind size class applied to bullet icons (defaults to size-3). */
   iconSizeClass?: string;
   /** Numeric icon size for `lucide-react` (matches `iconSizeClass` visually). */
@@ -104,7 +101,6 @@ export function StructuredContentFull({
   fallback,
   className,
   maxBullets,
-  fallbackIcon = STRUCTURED_CONTENT_DEFAULT_BULLET_ICON,
   iconSizeClass = "size-3",
   iconSize = 11,
   iconColor,
@@ -133,14 +129,15 @@ export function StructuredContentFull({
                 (bulletItemClassName ?? "text-[12.5px] text-[var(--color-ink-700)]")
               }
             >
-              <LucideIconRenderer
-                name={bullet.icon || fallbackIcon}
-                size={iconSize}
-                strokeWidth={2}
-                className={`${iconSizeClass} shrink-0`}
-                style={iconStyle}
-                aria-hidden
-              />
+              {bullet.iconNode && bullet.iconNode.length > 0 ? (
+                <Icon
+                  node={bullet.iconNode}
+                  size={iconSize}
+                  strokeWidth={2}
+                  className={`${iconSizeClass} shrink-0`}
+                  style={iconStyle}
+                />
+              ) : null}
               <span className="min-w-0 flex-1">{bullet.text}</span>
             </li>
           ))}

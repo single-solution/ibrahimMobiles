@@ -33,6 +33,7 @@ import type {
   StorefrontVariant,
   StoredImage,
 } from "@store/shared";
+import type { StructuredContent } from "@store/shared";
 import { resolveWarrantyDays } from "@store/shared";
 import {
   asArray,
@@ -46,6 +47,8 @@ import {
   sortAttributeOptions,
   toIsoDate,
 } from "@store/shared";
+
+import { resolveIconNode } from "@/lib/icons/iconNode";
 
 /** Mongoose lean shape for a brand. */
 export type BrandLean = WithTimestamps<BrandAttributes> & {
@@ -122,6 +125,26 @@ export function toStorefrontAttribute(
   };
 }
 
+/**
+ * Attach server-resolved lucide geometry to each bullet so the storefront
+ * renders structured-content icons with no client-side registry. Returns
+ * `undefined` when there is nothing to render.
+ */
+export function attachBulletIconNodes(
+  content: StructuredContent,
+): StructuredContent | undefined {
+  if (!hasStructuredContent(content)) {
+    return undefined;
+  }
+  return {
+    ...content,
+    bullets: content.bullets.map((bullet) => ({
+      ...bullet,
+      iconNode: resolveIconNode(bullet.icon),
+    })),
+  };
+}
+
 /** Coerce a raw stored-image array off a lean document into a clean
  *  `StoredImage[]`, dropping anything that doesn't pass `coerceStoredImage`. */
 function asStoredImageArray(raw: unknown): StoredImage[] {
@@ -195,7 +218,7 @@ export function toStorefrontOffer(offer: OfferLean): StorefrontOffer {
     color: asString(offer.color, "#e1ff51"),
     badgeLabel: asString(offer.badgeLabel),
     bannerImage: isStoredImage(offer.bannerImage) ? offer.bannerImage : undefined,
-    content: hasStructuredContent(content) ? content : undefined,
+    content: attachBulletIconNodes(content),
     seo: offer.seo,
   };
 }
@@ -210,6 +233,6 @@ export function toStorefrontGrade(grade: GradeLean): GradeDescriptor {
     notes,
     color: asString(grade.color),
     video: grade.video || undefined,
-    content: hasStructuredContent(content) ? content : undefined,
+    content: attachBulletIconNodes(content),
   };
 }

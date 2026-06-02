@@ -102,7 +102,7 @@ const nextConfig: NextConfig = {
       dynamic: 10,
       static: 30,
     },
-    optimizePackageImports: ["lucide-react", "gsap"],
+    optimizePackageImports: ["lucide-react"],
   },
   // Treat the workspace packages as part of the build so Next.js compiles
   // their TypeScript instead of expecting a published .js bundle.

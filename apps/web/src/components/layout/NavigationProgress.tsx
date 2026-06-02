@@ -200,8 +200,8 @@ export function NavigationProgress() {
       className="nav-progress pointer-events-none fixed inset-x-0 top-0 z-[100] h-[2px]"
     >
       <div
-        className="nav-progress-bar h-full bg-[var(--color-accent-500)]"
-        style={{ width: `${percent}%` }}
+        className="nav-progress-bar h-full w-full bg-[var(--color-accent-500)]"
+        style={{ transform: `scaleX(${percent / 100})` }}
       />
     </div>
   );

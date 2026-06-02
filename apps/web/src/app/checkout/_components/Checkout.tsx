@@ -242,9 +242,13 @@ export function Checkout({ customer }: CheckoutProps) {
       <div className="mx-auto max-w-[1440px] px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">
         <CheckoutHeader />
         <div className="mt-5 grid gap-6 md:mt-8 md:grid-cols-[minmax(0,1fr)_360px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
-          <CheckoutSignInPanel />
+          <div className="reveal">
+            <CheckoutSignInPanel />
+          </div>
           <aside className="space-y-3 md:space-y-4">
-            <OrderSummaryPreview totals={totals} delivery={delivery} payment={payment} />
+            <div className="reveal">
+              <OrderSummaryPreview totals={totals} delivery={delivery} payment={payment} />
+            </div>
           </aside>
         </div>
       </div>
@@ -256,43 +260,53 @@ export function Checkout({ customer }: CheckoutProps) {
       <CheckoutHeader />
 
       <div className="mt-5 grid gap-6 md:mt-8 md:grid-cols-[1fr_360px] lg:grid-cols-[1fr_400px] lg:gap-8">
-        <div className="space-y-3 md:space-y-4">
-          <ContactPanel
-            fullName={fullName}
-            phoneNumber={phoneNumber}
-            onFullName={setFullName}
-          />
-          <DeliveryPanel
-            delivery={delivery}
-            onChange={setDelivery}
-            address={address}
-            onAddressChange={setAddress}
-          />
-          <PaymentPanel payment={payment} onChange={setPayment} />
+        <div className="reveal-stagger space-y-3 md:space-y-4">
+          <div className="reveal">
+            <ContactPanel
+              fullName={fullName}
+              phoneNumber={phoneNumber}
+              onFullName={setFullName}
+            />
+          </div>
+          <div className="reveal">
+            <DeliveryPanel
+              delivery={delivery}
+              onChange={setDelivery}
+              address={address}
+              onAddressChange={setAddress}
+            />
+          </div>
+          <div className="reveal">
+            <PaymentPanel payment={payment} onChange={setPayment} />
+          </div>
         </div>
 
-        <aside className="space-y-3 md:space-y-4">
+        <aside className="reveal-stagger space-y-3 md:space-y-4">
           {loyaltyBalance > 0 && (
-            <LoyaltyPanel
-              balance={loyaltyBalance}
-              maxPointsForOrder={maxPointsForOrder}
-              shouldRedeemLoyalty={shouldRedeemLoyalty}
-              onToggle={setShouldRedeemLoyalty}
-            />
+            <div className="reveal">
+              <LoyaltyPanel
+                balance={loyaltyBalance}
+                maxPointsForOrder={maxPointsForOrder}
+                shouldRedeemLoyalty={shouldRedeemLoyalty}
+                onToggle={setShouldRedeemLoyalty}
+              />
+            </div>
           )}
-          <OrderSummaryPanel
-            totals={totals}
-            payment={payment}
-            delivery={delivery}
-            hasAgreed={hasAgreed}
-            onAgreedChange={setHasAgreed}
-            onPlaceOrder={handlePlaceOrder}
-            isPlacing={isPlacing}
-            isValid={isValid}
-            pointsEarnedOnThisOrder={pointsEarnedOnThisOrder}
-            pointsRedeemed={cappedPointsToUse}
-            errorMessage={errorMessage}
-          />
+          <div className="reveal">
+            <OrderSummaryPanel
+              totals={totals}
+              payment={payment}
+              delivery={delivery}
+              hasAgreed={hasAgreed}
+              onAgreedChange={setHasAgreed}
+              onPlaceOrder={handlePlaceOrder}
+              isPlacing={isPlacing}
+              isValid={isValid}
+              pointsEarnedOnThisOrder={pointsEarnedOnThisOrder}
+              pointsRedeemed={cappedPointsToUse}
+              errorMessage={errorMessage}
+            />
+          </div>
         </aside>
       </div>
     </div>

@@ -67,7 +67,7 @@ export function QuantityStepper({
         aria-label="Decrease quantity"
         onClick={decrement}
         className={classNames(
-          "tap grid h-full place-items-center text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]",
+          "tap focus-ring-inset grid h-full place-items-center text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]",
           isMd ? "w-9 md:w-10" : "w-7 md:w-8",
           "disabled:cursor-not-allowed disabled:text-[var(--color-ink-300)] disabled:hover:bg-transparent",
         )}
@@ -109,7 +109,7 @@ export function QuantityStepper({
         aria-label="Increase quantity"
         onClick={increment}
         className={classNames(
-          "tap grid h-full place-items-center text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]",
+          "tap focus-ring-inset grid h-full place-items-center text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]",
           isMd ? "w-9 md:w-10" : "w-7 md:w-8",
           "disabled:cursor-not-allowed disabled:text-[var(--color-ink-300)] disabled:hover:bg-transparent",
         )}

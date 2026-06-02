@@ -1,25 +1,24 @@
 "use client";
 
-import { useGSAP } from "@gsap/react";
-import { useRef, type CSSProperties, type ElementType, type ReactNode } from "react";
-
-import { loadGsap, prefersReducedMotion } from "@/lib/motion/gsap";
+import { useEffect, useRef, type CSSProperties, type ElementType, type ReactNode } from "react";
 
 /**
- * Kinetic-punch headline.
+ * Kinetic-punch headline (CSS-driven).
  *
- * Splits the provided text into per-character spans and fires a GSAP
- * timeline when the heading enters the viewport. Each character drops
- * in from below with rotateX + blur and settles on a back-out spring
- * for the signature "punch" feel.
+ * Splits the provided text into per-character spans and runs a pure-CSS
+ * keyframe when the heading enters the viewport. Each character drops in
+ * from below with rotateX + blur and settles on a back-out spring for the
+ * signature "punch" feel — identical to the original GSAP timeline, now
+ * with zero JS animation library (an IntersectionObserver only toggles a
+ * class; the compositor does the rest).
  *
  *   • Lines are kept as separate blocks so descenders/x-heights line up
  *     with the surrounding type — we never collapse them into one row.
- *   • Whitespace is rendered as fixed-width non-breaking gaps so the
- *     character indices stay continuous (animation timing reads cleanly
- *     across the whole headline).
- *   • Respect for `prefers-reduced-motion` — we skip the timeline and
- *     render the final visible state immediately.
+ *   • Whitespace is a normal text node so the line-break algorithm only
+ *     breaks between words; per-character `--kinetic-i` keeps the stagger
+ *     continuous across multi-line headings.
+ *   • `prefers-reduced-motion` is honoured in CSS — chars stay at their
+ *     natural visible state and never animate.
  *   • The wrapper element type can be overridden via `as` (h1/h2/p).
  *
  * Usage:
@@ -124,7 +123,6 @@ export function KineticHeading({
   as: Tag = "span",
   stagger = 0.04,
   delay = 0,
-  start = "top 85%",
   immediate = false,
   className = "",
   lineClassName = "",
@@ -135,74 +133,37 @@ export function KineticHeading({
   const normalisedLines: readonly string[] = Array.isArray(lines) ? lines : [lines as string];
   const accessibleLabel = normalisedLines.join(" ").trim();
 
-  useGSAP(
-    () => {
-      const root = rootRef.current;
-      if (!root) return;
-
-      let trigger: { kill: () => void } | undefined;
-      let cancelled = false;
-
-      void loadGsap().then(({ gsap, ScrollTrigger }) => {
-        if (cancelled) return;
-        const chars = root.querySelectorAll<HTMLElement>("[data-kinetic-char]");
-        if (chars.length === 0) return;
-
-        // Promote the root to the "ready" state in the SAME tick we
-        // start the animation. Before this flag the CSS leaves chars
-        // at natural opacity (see globals.css `.kinetic-char` rules),
-        // so a slow GSAP chunk never produces an invisible heading.
-        // The class is added immediately before the GSAP set so the
-        // browser never paints a frame where chars are visible AND
-        // the JS thinks it owns them.
-        root.classList.add("kinetic-ready");
-
-        if (prefersReducedMotion()) {
-          gsap.set(chars, { opacity: 1, y: 0, rotateX: 0, filter: "none" });
-          return;
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) {
+      return;
+    }
+    // Reduced-motion is handled in CSS; chars stay in their natural
+    // visible state, so we never need to arm the animation.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+    if (immediate) {
+      root.classList.add("kinetic-animate");
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            root.classList.add("kinetic-animate");
+            observer.disconnect();
+            break;
+          }
         }
-
-        gsap.set(chars, {
-          opacity: 0,
-          y: "0.55em",
-          rotateX: -78,
-          filter: "blur(8px)",
-          transformOrigin: "50% 100%",
-        });
-
-        const tween = {
-          opacity: 1,
-          y: 0,
-          rotateX: 0,
-          filter: "blur(0px)",
-          duration: 0.7,
-          ease: "back.out(1.7)",
-          stagger,
-          delay,
-        };
-
-        if (immediate) {
-          gsap.to(chars, tween);
-          return;
-        }
-
-        trigger = ScrollTrigger.create({
-          trigger: root,
-          start,
-          once: true,
-          onEnter: () => {
-            gsap.to(chars, tween);
-          },
-        });
-      });
-
-      return () => {
-        cancelled = true;
-        trigger?.kill();
-      };
-    },
-    { scope: rootRef, dependencies: [normalisedLines.join("|"), immediate, stagger, delay, start] },
-  );
+      },
+      // Mirrors the old GSAP "top 85%" start — fire once the heading is
+      // ~15% into the viewport.
+      { rootMargin: "0px 0px -15% 0px", threshold: 0.01 },
+    );
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [immediate, accessibleLabel]);
 
   // Compute per-line character offsets up front (immutable map step)
   // so we never mutate a running cursor during the render mapping.
@@ -220,7 +181,14 @@ export function KineticHeading({
     <Tag
       ref={rootRef as never}
       className={`kinetic-heading ${className}`.trim()}
-      style={{ perspective: "640px", ...style }}
+      style={
+        {
+          perspective: "640px",
+          "--kinetic-stagger": `${stagger}s`,
+          "--kinetic-delay": `${delay}s`,
+          ...style,
+        } as CSSProperties
+      }
       aria-label={accessibleLabel || undefined}
     >
       {normalisedLines.map((line, lineIndex) => {

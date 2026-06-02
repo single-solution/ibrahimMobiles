@@ -40,7 +40,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
   return (
     <main className="mx-auto max-w-[1440px] px-4 pb-24 pt-6 md:px-6 md:pb-16 md:pt-10 lg:px-8">
-      <div className="max-w-2xl">
+      <div className="reveal max-w-2xl">
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-700)]">
           Search
         </p>
@@ -56,12 +56,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       {!query ? (
         <EmptySearchState message="Enter a search term from the header search box." />
       ) : page && page.products.length > 0 ? (
-        <section className="cv-auto-lg mt-8 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4">
+        <section className="reveal-stagger cv-auto-lg mt-8 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 lg:grid-cols-4">
           {page.products.map((product, index) => (
-            <div key={product.id} className="h-full">
-              {/* First two cards preload as priority — covers the LCP
-                  candidate on mobile (2-col first row) without splitting
-                  bandwidth across the rest. */}
+            // First two cards preload as priority (mobile LCP row) and stay
+            // visible immediately; the rest spring/cascade in on scroll.
+            <div key={product.id} className={index < 2 ? "h-full" : "reveal h-full"}>
               <ProductCard product={product} priority={index < 2} />
             </div>
           ))}
@@ -75,13 +74,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
 
 function EmptySearchState({ message }: { message: string }) {
   return (
-    <div className="mt-8 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface-muted)] px-5 py-12 text-center">
+    <div className="reveal mt-8 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface-muted)] px-5 py-12 text-center">
       <p className="text-sm font-semibold text-[var(--color-ink-900)]">
         {message}
       </p>
       <Link
         href="/shop"
-        className="mt-4 inline-flex rounded-[var(--radius-full)] bg-[var(--color-accent-500)] px-4 py-2 text-sm font-semibold text-[var(--color-ink-900)]"
+        className="tap mt-4 inline-flex rounded-[var(--radius-full)] bg-[var(--color-accent-500)] px-4 py-2 text-sm font-semibold text-[var(--color-ink-900)] hover:bg-[var(--color-accent-600)]"
       >
         Browse all products
       </Link>

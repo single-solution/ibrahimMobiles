@@ -6,7 +6,7 @@ import { ChevronDown } from "lucide-react";
 
 import { classNames } from "@store/shared";
 
-import { LucideIconRenderer } from "@/components/shared/LucideIconRenderer";
+import { Icon } from "@/components/shared/Icon";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import type { StorefrontCategory } from "@/lib/storefront/queries";
 
@@ -42,11 +42,10 @@ export function MobileCategoryPicker({
         aria-expanded={isOpen}
       >
         {active ? (
-          <LucideIconRenderer
-            name={active.icon}
+          <Icon
+            node={active.iconNode}
             size={14}
             strokeWidth={2.2}
-            aria-hidden
             className="shrink-0 text-[var(--color-accent-700)]"
           />
         ) : null}
@@ -86,12 +85,7 @@ export function MobileCategoryPicker({
                       : "bg-[var(--color-accent-50)] text-[var(--color-accent-700)]",
                   )}
                 >
-                  <LucideIconRenderer
-                    name={category.icon}
-                    size={16}
-                    strokeWidth={2.2}
-                    aria-hidden
-                  />
+                  <Icon node={category.iconNode} size={16} strokeWidth={2.2} />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13.5px] font-semibold leading-tight">

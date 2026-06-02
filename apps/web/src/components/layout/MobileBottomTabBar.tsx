@@ -6,9 +6,14 @@ import { Home, ShoppingBag, ShoppingCart, Tag, User } from "lucide-react";
 import { classNames } from "@store/shared";
 import { useCart } from "@/lib/cart/useCart";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
+import { useShopHref } from "@/lib/storefront/storefrontReferenceContext";
 
 interface Tab {
-  href: string;
+  // `matchBase` drives active highlighting (e.g. every `/shop/*` route lights
+  // up Shop); `href` is the actual destination, which Shop resolves at render
+  // to the first category so the tap skips the `/shop` redirect.
+  matchBase: string;
+  href?: string;
   label: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   matchPaths: string[];
@@ -16,15 +21,16 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { href: "/", label: "Home", icon: Home, matchPaths: ["/"] },
-  { href: "/shop", label: "Shop", icon: ShoppingBag, matchPaths: ["/shop"] },
-  { href: "/deals", label: "Deals", icon: Tag, matchPaths: ["/deals"] },
-  { href: "/cart", label: "Cart", icon: ShoppingCart, matchPaths: ["/cart"], showCartBadge: true },
-  { href: "/account", label: "Account", icon: User, matchPaths: ["/account"] },
+  { matchBase: "/", label: "Home", icon: Home, matchPaths: ["/"] },
+  { matchBase: "/shop", label: "Shop", icon: ShoppingBag, matchPaths: ["/shop"] },
+  { matchBase: "/deals", label: "Deals", icon: Tag, matchPaths: ["/deals"] },
+  { matchBase: "/cart", label: "Cart", icon: ShoppingCart, matchPaths: ["/cart"], showCartBadge: true },
+  { matchBase: "/account", label: "Account", icon: User, matchPaths: ["/account"] },
 ];
 
 export function MobileBottomTabBar() {
   const pathname = usePathname() ?? "/";
+  const shopHref = useShopHref();
   const { itemCount } = useCart();
 
   return (
@@ -38,9 +44,10 @@ export function MobileBottomTabBar() {
         style={{ height: "var(--mobile-tabbar-h)" }}
       >
         {TABS.map((tab) => (
-          <li key={tab.href} className="flex p-1.5">
+          <li key={tab.matchBase} className="flex p-1.5">
             <TabLinkItem
               tab={tab}
+              href={tab.matchBase === "/shop" ? shopHref : tab.href ?? tab.matchBase}
               pathname={pathname}
               badgeCount={tab.showCartBadge ? itemCount : 0}
             />
@@ -51,11 +58,11 @@ export function MobileBottomTabBar() {
   );
 }
 
-function isLinkActive(href: string, matchPaths: string[], pathname: string): boolean {
+function isLinkActive(matchBase: string, matchPaths: string[], pathname: string): boolean {
   if (matchPaths.includes(pathname)) {
     return true;
   }
-  if (href !== "/" && pathname.startsWith(href)) {
+  if (matchBase !== "/" && pathname.startsWith(matchBase)) {
     return true;
   }
   return false;
@@ -63,19 +70,20 @@ function isLinkActive(href: string, matchPaths: string[], pathname: string): boo
 
 interface TabLinkItemProps {
   tab: Tab;
+  href: string;
   pathname: string;
   badgeCount: number;
 }
 
-function TabLinkItem({ tab, pathname, badgeCount }: TabLinkItemProps) {
-  const isActive = isLinkActive(tab.href, tab.matchPaths, pathname);
+function TabLinkItem({ tab, href, pathname, badgeCount }: TabLinkItemProps) {
+  const isActive = isLinkActive(tab.matchBase, tab.matchPaths, pathname);
   const Icon = tab.icon;
-  const prefetchHandlers = usePrefetchOnIntent(isActive ? null : tab.href);
+  const prefetchHandlers = usePrefetchOnIntent(isActive ? null : href);
   return (
     <Link
-      href={tab.href}
+      href={href}
       className={classNames(
-        "tap flex w-full flex-col items-center justify-center gap-0.5 rounded-full text-[11px] transition-colors",
+        "tap focus-ring-inset flex w-full flex-col items-center justify-center gap-0.5 rounded-full text-[11px] transition-colors",
         isActive
           ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
           : "font-medium text-[var(--color-ink-500)] active:text-[var(--color-ink-800)]",

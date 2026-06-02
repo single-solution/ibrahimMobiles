@@ -4,12 +4,12 @@ import { Suspense, useCallback, useEffect, useState, type ComponentType } from "
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 import { MobileHeader } from "@/components/layout/MobileHeader";
 import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
 import { WebVitalsReporter } from "@/components/layout/WebVitalsReporter";
 import { RevealRoot } from "@/components/shared/motion/RevealRoot";
 import { RouteTransition } from "@/components/shared/motion/RouteTransition";
+import { ToastProvider } from "@/components/ui/Toast";
 import { prefetchAllowed } from "@/lib/navigation/prefetchAllowed";
 
 /**
@@ -54,6 +54,9 @@ const SearchOverlay = deferredNamedIsland(
 
 interface StorefrontChromeProps {
   children: React.ReactNode;
+  /** Server-rendered footer element, injected as a slot so it stays out of
+   *  the client bundle. */
+  footer: React.ReactNode;
 }
 
 /** Hard ceiling on the idle wait so even a busy main thread can't keep
@@ -66,7 +69,7 @@ const DEFERRED_MOUNT_TIMEOUT_MS = 1500;
  *  doesn't see them ahead of time. */
 const IDLE_PREFETCH_ROUTES = ["/search", "/cart"];
 
-export function StorefrontChrome({ children }: StorefrontChromeProps) {
+export function StorefrontChrome({ children, footer }: StorefrontChromeProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isAdminRoute = pathname?.startsWith("/admin") ?? false;
@@ -132,38 +135,50 @@ export function StorefrontChrome({ children }: StorefrontChromeProps) {
   // element on every route change and makes navigation feel laggy. Instead,
   // `RouteTransition` applies a light cross-fade when the route commits.
   return (
-    <div className="app-shell-pad">
-      <Suspense fallback={null}>
-        <RevealRoot />
-      </Suspense>
-      {areDeferredMounted ? <WebVitalsReporter /> : null}
-      {/*
-       * `NavigationProgress` reads `useSearchParams()` to detect query-only
-       * route changes. In Next 16 any component that calls
-       * `useSearchParams()` must sit inside a Suspense boundary on routes
-       * that are statically prerendered — otherwise the build bails on
-       * `/_not-found` with "missing-suspense-with-csr-bailout". The
-       * progress bar has no SSR-visible state worth showing (it's a 2px
-       * accent line that appears on click), so a null fallback is correct.
-       */}
-      {areDeferredMounted ? (
+    <ToastProvider>
+      <div className="app-shell-pad">
+        <a
+          href="#main-content"
+          className="sr-only rounded-full bg-[var(--color-ink-900)] px-4 py-2 text-[13px] font-semibold text-[var(--color-canvas)] focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-[90]"
+        >
+          Skip to content
+        </a>
         <Suspense fallback={null}>
-          <NavigationProgress />
+          <RevealRoot />
         </Suspense>
-      ) : null}
-      <Header onOpenSearch={openSearch} />
-      <MobileHeader onOpenSearch={openSearch} />
-      <main className="storefront-main page-enter min-h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h))] md:min-h-[calc(100dvh-var(--desktop-header-h))]">
-        <Suspense fallback={children}>
-          <RouteTransition>{children}</RouteTransition>
-        </Suspense>
-      </main>
-      <Footer />
-      {areDeferredMounted ? <ChatFabShell /> : null}
-      <MobileBottomTabBar />
-      {areDeferredMounted ? (
-        <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-      ) : null}
-    </div>
+        {areDeferredMounted ? <WebVitalsReporter /> : null}
+        {/*
+         * `NavigationProgress` reads `useSearchParams()` to detect query-only
+         * route changes. In Next 16 any component that calls
+         * `useSearchParams()` must sit inside a Suspense boundary on routes
+         * that are statically prerendered — otherwise the build bails on
+         * `/_not-found` with "missing-suspense-with-csr-bailout". The
+         * progress bar has no SSR-visible state worth showing (it's a 2px
+         * accent line that appears on click), so a null fallback is correct.
+         */}
+        {areDeferredMounted ? (
+          <Suspense fallback={null}>
+            <NavigationProgress />
+          </Suspense>
+        ) : null}
+        <Header onOpenSearch={openSearch} />
+        <MobileHeader onOpenSearch={openSearch} />
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="storefront-main page-enter min-h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h))] outline-none md:min-h-[calc(100dvh-var(--desktop-header-h))]"
+        >
+          <Suspense fallback={children}>
+            <RouteTransition>{children}</RouteTransition>
+          </Suspense>
+        </main>
+        {footer}
+        {areDeferredMounted ? <ChatFabShell /> : null}
+        <MobileBottomTabBar />
+        {areDeferredMounted ? (
+          <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+        ) : null}
+      </div>
+    </ToastProvider>
   );
 }

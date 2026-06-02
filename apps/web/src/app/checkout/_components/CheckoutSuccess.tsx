@@ -78,7 +78,7 @@ export function CheckoutSuccess({
               <span className="mt-1 size-1.5 rounded-full bg-[var(--color-accent-600)]" />
               <p>
                 <strong className="text-[var(--color-ink-900)]">Within 2 hours</strong> — we verify
-                your payment and prep the device for final QC.
+                your payment and prep your order for final QC.
               </p>
             </li>
             <li className="flex items-start gap-3">

@@ -70,7 +70,7 @@ export function ChatShell({
             type="button"
             aria-label="Back to thread list"
             onClick={onBack}
-            className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--color-on-dark-soft)] transition-colors hover:bg-[var(--color-on-dark-10)] hover:text-[var(--color-on-dark)]"
+            className="tap grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--color-on-dark-soft)] hover:bg-[var(--color-on-dark-10)] hover:text-[var(--color-on-dark)]"
           >
             <ArrowLeft size={16} />
           </button>
@@ -90,7 +90,7 @@ export function ChatShell({
             type="button"
             aria-label="Close chat"
             onClick={onClose}
-            className="grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-on-dark-soft)] transition-colors hover:bg-[var(--color-on-dark-10)] hover:text-[var(--color-on-dark)]"
+            className="tap grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-on-dark-soft)] hover:bg-[var(--color-on-dark-10)] hover:text-[var(--color-on-dark)]"
           >
             <X size={16} />
           </button>
@@ -118,19 +118,19 @@ export function ThreadList({ threads, onOpen, onNew }: ThreadListProps) {
         <button
           type="button"
           onClick={onNew}
-          className="inline-flex items-center gap-1 rounded-full bg-[var(--color-ink-900)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-on-dark)] transition-colors hover:bg-[var(--color-ink-800)]"
+          className="tap inline-flex items-center gap-1 rounded-full bg-[var(--color-ink-900)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-on-dark)] hover:bg-[var(--color-ink-800)]"
         >
           <Plus size={12} aria-hidden />
           New chat
         </button>
       </div>
-      <ul className="flex flex-col gap-2">
+      <ul className="sheet-stagger flex flex-col gap-2">
         {threads.map((thread) => (
           <li key={thread.id}>
             <button
               type="button"
               onClick={() => onOpen(thread.id)}
-              className="flex w-full flex-col gap-1 rounded-[var(--radius-md)] bg-[var(--color-surface)] px-3 py-2.5 text-left shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--color-accent-50)]"
+              className="tap flex w-full flex-col gap-1 rounded-[var(--radius-md)] bg-[var(--color-surface)] px-3 py-2.5 text-left shadow-[var(--shadow-sm)] hover:bg-[var(--color-accent-50)]"
             >
               <div className="flex items-baseline justify-between gap-2">
                 <span className="truncate text-sm font-semibold text-[var(--color-ink-900)]">
@@ -311,7 +311,7 @@ export function ThreadConversation({
               aria-label="Attach file"
               disabled={uploading}
               onClick={() => fileInputRef.current?.click()}
-              className="grid size-9 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-800)] disabled:opacity-40"
+              className="tap grid size-9 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-800)] disabled:opacity-40"
             >
               <Paperclip size={16} />
             </button>
@@ -331,7 +331,7 @@ export function ThreadConversation({
           type="submit"
           aria-label="Send message"
           disabled={sending || uploading || draft.trim().length === 0}
-          className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] transition-opacity disabled:opacity-40"
+          className="tap grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] disabled:opacity-40"
         >
           <Send size={14} />
         </button>
@@ -430,7 +430,7 @@ export function ComposeConversation({
           type="submit"
           aria-label="Send message"
           disabled={sending || draft.trim().length === 0}
-          className="grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] transition-opacity disabled:opacity-40"
+          className="tap grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] disabled:opacity-40"
         >
           <Send size={14} />
         </button>
@@ -455,7 +455,7 @@ function ChatLoginGate({ signInHref }: { signInHref: string }) {
       </p>
       <Link
         href={signInHref}
-        className="mt-3 flex h-10 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-sm font-semibold text-[var(--color-ink-900)] transition-colors hover:bg-[var(--color-accent-600)]"
+        className="tap mt-3 flex h-10 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-sm font-semibold text-[var(--color-ink-900)] hover:bg-[var(--color-accent-600)]"
       >
         Sign in
       </Link>

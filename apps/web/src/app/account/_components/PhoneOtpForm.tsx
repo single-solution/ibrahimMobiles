@@ -211,7 +211,7 @@ function ResendControls({
       <button
         type="button"
         onClick={onUseDifferentPhone}
-        className="font-semibold text-[var(--color-ink-600)] hover:text-[var(--color-ink-900)]"
+        className="tap font-semibold text-[var(--color-ink-600)] hover:text-[var(--color-ink-900)]"
       >
         Use a different phone
       </button>
@@ -225,7 +225,7 @@ function ResendControls({
         }}
         disabled={resendIn > 0 || isSendingCode}
         className={classNames(
-          "font-semibold",
+          "tap font-semibold",
           resendIn > 0 || isSendingCode
             ? "cursor-not-allowed text-[var(--color-ink-400)]"
             : "text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]",

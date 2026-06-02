@@ -2,9 +2,9 @@ import Link from "next/link";
 import {
   ArrowRight,
   ArrowUpRight,
+  BadgeCheck,
   ChevronDown,
   MapPin,
-  Recycle,
 } from "lucide-react";
 import { GradesByCategoryTabs } from "@/app/_components/home/GradesByCategoryTabs";
 import { HeroMaskSweepHeadline } from "@/app/_components/home/HeroMaskSweepHeadline";
@@ -86,7 +86,7 @@ export function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
           One shop. One graded standard. Tap a category to start browsing.
         </p>
       </div>
-      <div className={getHomeCategoryGridClass(featured.length, "mobile")}>
+      <div className={`reveal-stagger ${getHomeCategoryGridClass(featured.length, "mobile")}`}>
         {featured.map((meta, index) => (
           <ShopTypeCard
             key={meta.slug}
@@ -109,8 +109,9 @@ export function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
   );
 }
 
-export function MobileHero({ heroProducts, settings }: HeroProps) {
+export function MobileHero({ heroProducts, settings, categoryLabels, shopHref }: HeroProps) {
   const productNames = heroProducts.map((product) => product.name);
+  const pillLabel = categoryLabels.length > 0 ? categoryLabels.join(" · ") : "Shop every category";
 
   return (
     <section
@@ -125,8 +126,8 @@ export function MobileHero({ heroProducts, settings }: HeroProps) {
       <HeroAmbience />
 
       <span className="relative z-10 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-100)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-800)]">
-        <Recycle size={11} />
-        Phones · Accessories · Gadgets
+        <BadgeCheck size={11} />
+        {pillLabel}
       </span>
 
       <div className="relative z-10">
@@ -140,7 +141,7 @@ export function MobileHero({ heroProducts, settings }: HeroProps) {
       <div className="relative z-10 flex w-full flex-col items-center gap-3">
         <MagneticHover>
           <Link
-            href="/shop"
+            href={shopHref}
             className="cta-arrow tap inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent-500)] px-6 text-[14px] font-semibold text-[var(--color-ink-900)] shadow-[0_8px_24px_-12px_color-mix(in_srgb,var(--color-accent-500)_70%,transparent)] transition-shadow active:bg-[var(--color-accent-600)]"
           >
             Visit store
@@ -153,7 +154,7 @@ export function MobileHero({ heroProducts, settings }: HeroProps) {
       <a
         href="#how-to-buy"
         aria-label="Scroll to next section"
-        className="hero-scroll-cue group relative z-10 inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] transition-colors active:text-[var(--color-ink-900)]"
+        className="hero-scroll-cue tap group relative z-10 inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] active:text-[var(--color-ink-900)]"
       >
         <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">
           We Are Different

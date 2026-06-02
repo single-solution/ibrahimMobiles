@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { classNames } from "@store/shared";
+
+import { usePresence } from "@/components/shared/motion/usePresence";
+import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
+
+/** Matches the `flyout-out-*` / `sheet-fade-out` exit duration in globals.css. */
+const FLYOUT_EXIT_MS = 240;
 
 interface FlyoutProps {
   isOpen: boolean;
@@ -35,6 +41,12 @@ export function Flyout({
   showCloseButton = true,
   contentClassName,
 }: FlyoutProps) {
+  const { isMounted, status } = usePresence(isOpen, FLYOUT_EXIT_MS);
+  const isClosing = status === "closing";
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(dialogRef, isOpen);
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -57,7 +69,7 @@ export function Flyout({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) {
+  if (!isMounted) {
     return null;
   }
 
@@ -69,16 +81,22 @@ export function Flyout({
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 animate-sheet-fade bg-[var(--color-ink-900)]/40"
+        className={classNames(
+          "absolute inset-0 bg-[var(--color-ink-900)]/40",
+          isClosing ? "animate-sheet-fade-out" : "animate-sheet-fade",
+        )}
       />
 
       {!isRight && (
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label={title}
+          tabIndex={-1}
           className={classNames(
-            "relative flex h-[100dvh] flex-col overflow-hidden bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] safe-top animate-flyout-left",
+            "relative flex h-[100dvh] flex-col overflow-hidden bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] safe-top outline-none",
+            isClosing ? "animate-flyout-out-left" : "animate-flyout-left",
             WIDTH_CLASSES[width],
           )}
         >
@@ -99,11 +117,14 @@ export function Flyout({
         <>
           <div className="flex-1" />
           <div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-label={title}
+            tabIndex={-1}
             className={classNames(
-              "relative flex h-[100dvh] flex-col overflow-hidden bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] safe-top animate-flyout-right",
+              "relative flex h-[100dvh] flex-col overflow-hidden bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] safe-top outline-none",
+              isClosing ? "animate-flyout-out-right" : "animate-flyout-right",
               WIDTH_CLASSES[width],
             )}
           >
@@ -162,7 +183,7 @@ function FlyoutInner({
               type="button"
               aria-label="Close"
               onClick={onClose}
-              className="grid size-9 shrink-0 place-items-center rounded-full text-[var(--color-ink-600)] active:bg-[var(--color-surface-muted)]"
+              className="tap focus-ring grid size-9 shrink-0 place-items-center rounded-full text-[var(--color-ink-600)] transition-colors hover:bg-[var(--color-canvas-deep)] active:bg-[var(--color-surface-muted)]"
             >
               <X size={18} />
             </button>

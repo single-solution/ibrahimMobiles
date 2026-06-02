@@ -9,19 +9,24 @@ import { BrandLockup } from "@/components/layout/BrandLockup";
 import { CartDropdown } from "@/app/cart/_components/CartDropdown";
 import { useCart } from "@/lib/cart/useCart";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
+import { useShopHref } from "@/lib/storefront/storefrontReferenceContext";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 
+// `matchBase` is the path used to highlight the active nav link; `href` (when
+// set) is the destination the link actually points to. Shop resolves its href
+// at render to the first category so the click skips the `/shop` redirect,
+// while still lighting up across every `/shop/*` route.
 const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop" },
-  { href: "/deals", label: "Deals" },
+  { matchBase: "/", label: "Home" },
+  { matchBase: "/shop", label: "Shop" },
+  { matchBase: "/deals", label: "Deals" },
 ] as const;
 
-function isNavActive(href: string, pathname: string): boolean {
-  if (href === "/") {
+function isNavActive(matchBase: string, pathname: string): boolean {
+  if (matchBase === "/") {
     return pathname === "/";
   }
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return pathname === matchBase || pathname.startsWith(`${matchBase}/`);
 }
 
 interface HeaderProps {
@@ -33,6 +38,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const cart = useCart();
   const pathname = usePathname() ?? "/";
+  const shopHref = useShopHref();
   const { siteName, brandLogoLight, brandLogoDark } = useStoreSettings();
 
   useEffect(() => {
@@ -85,11 +91,12 @@ export function Header({ onOpenSearch }: HeaderProps) {
 
         <nav className="flex items-center gap-1">
           {NAV_LINKS.map((navLink) => {
-            const isActive = isNavActive(navLink.href, pathname);
+            const isActive = isNavActive(navLink.matchBase, pathname);
+            const href = navLink.matchBase === "/shop" ? shopHref : navLink.matchBase;
             return (
               <HeaderNavLink
-                key={navLink.href}
-                href={navLink.href}
+                key={navLink.matchBase}
+                href={href}
                 label={navLink.label}
                 isActive={isActive}
               />
@@ -156,7 +163,7 @@ function HeaderNavLink({ href, label, isActive }: HeaderNavLinkProps) {
       onTouchStart={prefetchHandlers.onTouchStart}
       onFocus={prefetchHandlers.onFocus}
       className={classNames(
-        "rounded-[var(--radius-md)] px-3 py-2 text-sm transition-colors",
+        "tap rounded-[var(--radius-md)] px-3 py-2 text-sm",
         isActive
           ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
           : "font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink-900)]",

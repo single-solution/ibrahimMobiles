@@ -35,7 +35,7 @@ export const CARD_CHIP_SLOT_CLASS = "min-h-[2.25rem] content-start pt-0.5";
 export const CARD_FOOTER_CHIP_SLOT_CLASS =
   "flex min-h-[2.25rem] items-center";
 export const TITLE_CHIP_ROW_MAX_PX = 36;
-export const OVERLAY_CHIP_ROW_MAX_PX = 20;
+export const OVERLAY_CHIP_ROW_MAX_PX = 26;
 
 export interface ChipRowLayout {
   segmentCount: number;

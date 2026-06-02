@@ -42,7 +42,7 @@ export interface AddressFormState {
 
 export function EmptyCartState() {
   return (
-    <div className="mx-auto max-w-xl px-6 py-24 text-center">
+    <div className="reveal mx-auto max-w-xl px-6 py-24 text-center">
       <span className="grid mx-auto mb-4 size-12 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[var(--color-ink-500)]">
         <ShoppingBag size={20} />
       </span>
@@ -54,7 +54,7 @@ export function EmptyCartState() {
       </p>
       <Link
         href="/shop"
-        className="cta-arrow mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[var(--color-accent-500)] px-5 text-[14px] font-semibold text-[var(--color-ink-900)]"
+        className="cta-arrow tap mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[var(--color-accent-500)] px-5 text-[14px] font-semibold text-[var(--color-ink-900)] hover:bg-[var(--color-accent-600)]"
       >
         Visit the shop
         <ArrowUpRight size={16} strokeWidth={2.4} />
@@ -65,7 +65,7 @@ export function EmptyCartState() {
 
 export function CheckoutHeader() {
   return (
-    <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+    <div className="reveal flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
         <Link
           href="/shop"

@@ -15,22 +15,24 @@ interface KpiCardProps {
   tone?: KpiTone;
 }
 
+// Card bodies stay neutral so the dashboard reads calm — only the single
+// accent (headline Sales) tints its surface. Semantic tones (info/warn/
+// danger) survive solely as a muted icon-badge tint, enough to signal
+// "needs attention" without painting the whole grid in colour.
 const TONE_CONTAINER: Record<KpiTone, string> = {
-  default:
-    "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
-  accent:
-    "border-[var(--color-accent-200)] bg-[var(--color-accent-50)]",
-  info: "border-sky-200 bg-sky-50/60",
-  warn: "border-amber-200 bg-amber-50/60",
-  danger: "border-rose-200 bg-rose-50/60",
+  default: "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
+  accent: "border-[var(--color-accent-200)] bg-[var(--color-accent-50)]",
+  info: "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
+  warn: "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
+  danger: "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
 };
 
 const TONE_ICON_BADGE: Record<KpiTone, string> = {
   default: "bg-[var(--color-canvas-deep)] text-[var(--color-ink-700)]",
   accent: "bg-[var(--color-accent-500)] text-[var(--color-ink-900)]",
-  info: "bg-sky-500/15 text-sky-700",
-  warn: "bg-amber-500/15 text-amber-800",
-  danger: "bg-rose-500/15 text-rose-700",
+  info: "bg-sky-500/10 text-sky-600",
+  warn: "bg-amber-500/12 text-amber-700",
+  danger: "bg-rose-500/12 text-rose-600",
 };
 
 export function KpiCard({

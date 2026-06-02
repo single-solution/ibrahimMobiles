@@ -56,10 +56,11 @@ export function Button({
     <button
       {...rest}
       disabled={isDisabled}
+      aria-busy={isLoading || undefined}
       className={classNames(
-        "tap inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-medium transition-colors duration-150",
+        "tap inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-medium hover:-translate-y-px active:translate-y-0",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-canvas)]",
-        "disabled:cursor-not-allowed disabled:opacity-50",
+        "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0",
         trailingIcon ? "cta-arrow" : null,
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],
@@ -88,7 +89,7 @@ export function ButtonLink({
       {...rest}
       href={href}
       className={classNames(
-        "tap inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-medium transition-colors duration-150",
+        "tap inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-medium hover:-translate-y-px active:translate-y-0",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-canvas)]",
         trailingIcon ? "cta-arrow" : null,
         VARIANT_CLASSES[variant],

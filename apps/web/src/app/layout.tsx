@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, Bricolage_Grotesque, Oswald } from "next/font/google";
+import { Bricolage_Grotesque, Oswald } from "next/font/google";
+import { Footer } from "@/components/layout/Footer";
 import { StorefrontChrome } from "@/components/layout/StorefrontChrome";
 import {
   MarketingPixels,
@@ -29,13 +30,6 @@ const bricolageGrotesque = Bricolage_Grotesque({
   variable: "--font-bricolage",
   display: "swap",
   axes: ["opsz"],
-});
-
-const anton = Anton({
-  subsets: ["latin"],
-  variable: "--font-anton",
-  display: "swap",
-  weight: "400",
 });
 
 const oswald = Oswald({
@@ -123,7 +117,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
   /* Mirrors `--color-canvas` — the browser chrome tints to match the
      storefront's light surface. */
-  themeColor: "#ffffff",
+  themeColor: "#f8fbf8",
 };
 
 interface RootLayoutProps {
@@ -145,6 +139,7 @@ async function loadStorefrontReference(): Promise<StorefrontReferenceData> {
         label: category.label,
         description: category.description,
         icon: category.icon,
+        iconNode: category.iconNode,
         isActive: category.isActive,
         sortOrder: category.sortOrder,
       }),
@@ -166,7 +161,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   return (
     <html
       lang="en"
-      className={`${bricolageGrotesque.variable} ${anton.variable} ${oswald.variable} no-js`}
+      className={`${bricolageGrotesque.variable} ${oswald.variable} no-js`}
       // Tells Next.js the smooth scroll on <html> is intentional and that
       // it should *disable* it temporarily during route transitions
       // (otherwise jumping to a new page does a multi-second scroll
@@ -252,7 +247,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <StoreSettingsProvider value={settings}>
           <ChatSettingsProvider value={chatSettings}>
             <StorefrontReferenceProvider value={reference}>
-              <StorefrontChrome>{children}</StorefrontChrome>
+              <StorefrontChrome footer={<Footer settings={settings} />}>
+                {children}
+              </StorefrontChrome>
             </StorefrontReferenceProvider>
           </ChatSettingsProvider>
         </StoreSettingsProvider>

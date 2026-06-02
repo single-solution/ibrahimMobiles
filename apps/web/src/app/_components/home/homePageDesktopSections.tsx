@@ -2,17 +2,17 @@ import Link from "next/link";
 import {
   ArrowRight,
   ArrowUpRight,
+  BadgeCheck,
   Banknote,
   ChevronDown,
   MapPin,
-  Recycle,
   Sparkles,
   Undo2,
   Video,
 } from "lucide-react";
 import { ButtonLink } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
-import { LucideIconRenderer } from "@/components/shared/LucideIconRenderer";
+import { Icon } from "@/components/shared/Icon";
 import {
   StructuredContentCompact,
   StructuredContentFull,
@@ -52,7 +52,18 @@ export const MAP_EMBED_ZOOM = 17;
 export interface HeroProps {
   heroProducts: StorefrontProductType[];
   settings: StoreSettings;
+  /** Active storefront category labels, shown in the hero scope pill. */
+  categoryLabels: string[];
+  /**
+   * Pre-resolved storefront entry URL — the first active category
+   * (`/shop/<slug>`) so the CTA lands on real content directly instead
+   * of bouncing through the `/shop` → first-category server redirect.
+   */
+  shopHref: string;
 }
+
+/** Neutral fallback when no categories are configured yet. */
+const HERO_PILL_FALLBACK = "Shop every category";
 
 export interface ShopTypesSectionProps {
   categories: HomePageCategory[];
@@ -113,11 +124,13 @@ export function HeroTrustHints({
   );
 }
 
-export function DesktopHero({ heroProducts, settings }: HeroProps) {
+export function DesktopHero({ heroProducts, settings, categoryLabels, shopHref }: HeroProps) {
   const productNames = heroProducts.map((product) => product.name);
+  const pillLabel = categoryLabels.length > 0 ? categoryLabels.join(" · ") : HERO_PILL_FALLBACK;
 
   return (
     <section
+      data-magnetic-field
       className="relative flex overflow-hidden border-b border-[var(--color-ink-100)]"
       style={{
         minHeight: "calc(100dvh - var(--desktop-header-h))",
@@ -130,8 +143,8 @@ export function DesktopHero({ heroProducts, settings }: HeroProps) {
         className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center justify-evenly px-6 text-center"
         style={{ minHeight: "calc(100dvh - var(--desktop-header-h))" }}
       >
-        <Pill tone="accent" size="md" leadingIcon={<Recycle size={12} />}>
-          Phones · Accessories · Gadgets
+        <Pill tone="accent" size="md" leadingIcon={<BadgeCheck size={12} />}>
+          {pillLabel}
         </Pill>
 
         <HeroMaskSweepHeadline variant="desktop" />
@@ -139,9 +152,9 @@ export function DesktopHero({ heroProducts, settings }: HeroProps) {
         <HeroTrendingProductBand productNames={productNames} variant="desktop" />
 
         <div className="flex flex-col items-center gap-6">
-          <MagneticHover>
+          <MagneticHover fieldSelector="[data-magnetic-field]" strength={0.08} maxOffset={14}>
             <ButtonLink
-              href="/shop"
+              href={shopHref}
               variant="primary"
               size="lg"
               className="cta-arrow !rounded-full shadow-[0_12px_36px_-16px_color-mix(in_srgb,var(--color-accent-500)_75%,transparent)]"
@@ -156,7 +169,7 @@ export function DesktopHero({ heroProducts, settings }: HeroProps) {
         <a
           href="#how-to-buy"
           aria-label="Scroll to next section"
-          className="hero-scroll-cue group inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] transition-colors hover:text-[var(--color-ink-900)]"
+          className="hero-scroll-cue tap group inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] hover:text-[var(--color-ink-900)]"
         >
           <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">We Are Different</span>
           <ChevronDown size={20} strokeWidth={2.2} className="animate-bounce" />
@@ -203,7 +216,7 @@ export function DesktopShopTypesSection({ categories }: ShopTypesSectionProps) {
         <div className="relative z-10 reveal mt-8 text-center">
           <Link
             href="/shop"
-            className="cta-arrow inline-flex items-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-5 py-2.5 text-[14px] font-semibold text-[var(--color-accent-700)] hover:border-[var(--color-ink-300)]"
+            className="cta-arrow tap inline-flex items-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-5 py-2.5 text-[14px] font-semibold text-[var(--color-accent-700)] hover:border-[var(--color-ink-300)]"
           >
             Browse all categories
             <ArrowRight size={14} />
@@ -240,7 +253,7 @@ export function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
          within 6px). See radius table in globals.css. */
       className={`reveal lift relative flex h-full overflow-hidden border bg-gradient-to-br ${SHOP_TYPE_DEFAULT_GRADIENT} ${
         isActive
-          ? "border-[var(--color-ink-100)] hover:border-[var(--color-ink-200)]"
+          ? "lift-3d border-[var(--color-ink-100)] hover:border-[var(--color-ink-200)]"
           : "cursor-not-allowed border-dashed border-[var(--color-ink-200)] opacity-80"
       } ${variant === "desktop" ? "min-h-[240px] flex-col rounded-[var(--radius-3xl)] p-6" : "min-h-[110px] flex-row items-center gap-3 rounded-[var(--radius-2xl)] p-3.5"}`}
       style={{ ["--reveal-delay" as string]: `${delayMs}ms` }}
@@ -313,7 +326,7 @@ export function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
     return inner;
   }
   return (
-    <Link href={`/shop/${meta.slug}`} className="group block focus:outline-none">
+    <Link href={`/shop/${meta.slug}`} className="tap group block focus:outline-none">
       {inner}
     </Link>
   );
@@ -321,7 +334,7 @@ export function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
 
 export function ShopTypeIcon({ category }: { category: HomePageCategory }) {
   return (
-    <LucideIconRenderer name={category.icon} className="size-full" aria-hidden />
+    <Icon node={category.iconNode} className="size-full" />
   );
 }
 
@@ -429,7 +442,7 @@ export async function DesktopGrades() {
             </p>
             <Link
               href="#how-to-buy"
-              className="cta-arrow inline-flex items-center gap-1 text-sm font-medium text-[var(--color-accent-400)] hover:text-[var(--color-accent-300)]"
+              className="cta-arrow tap inline-flex items-center gap-1 text-sm font-medium text-[var(--color-accent-400)] hover:text-[var(--color-accent-300)]"
             >
               Read our inspection process
               <ArrowRight size={14} />
@@ -557,7 +570,7 @@ export function DesktopSectionHeader({ eyebrow, title, description, ctaHref, cta
       {ctaHref && ctaLabel && (
         <Link
           href={ctaHref}
-          className="cta-arrow inline-flex shrink-0 items-center gap-1 text-sm font-medium text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
+          className="cta-arrow tap inline-flex shrink-0 items-center gap-1 text-sm font-medium text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
         >
           {ctaLabel}
           <ArrowRight size={14} />
@@ -589,7 +602,7 @@ export function StoreMapEmbed({ className = "", settings }: StoreMapEmbedProps) 
         href={settings.socialGoogleMaps}
         target="_blank"
         rel="noopener noreferrer"
-        className="absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-surface)]/95 px-3 py-1.5 text-xs font-semibold text-[var(--color-ink-900)] shadow-[var(--shadow-md)] backdrop-blur transition-colors hover:bg-[var(--color-surface)]"
+        className="tap absolute right-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-surface)]/95 px-3 py-1.5 text-xs font-semibold text-[var(--color-ink-900)] shadow-[var(--shadow-md)] backdrop-blur hover:bg-[var(--color-surface)]"
       >
         <MapPin size={12} className="text-[var(--color-accent-700)]" />
         Open in Maps

@@ -104,7 +104,7 @@ export function ProductImage({
         placeholder={image.blurDataURL ? "blur" : undefined}
         blurDataURL={image.blurDataURL || undefined}
         data-img-fade={showLoadFade && !hasLoaded ? "false" : "true"}
-        className="object-cover object-center"
+        className="object-contain object-center"
         onLoad={() => {
           setHasLoaded(true);
           onLoadComplete?.();

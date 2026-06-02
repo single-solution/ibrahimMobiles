@@ -45,6 +45,19 @@ function hasSelectionValues(selection: Record<string, string>): boolean {
   return Object.values(selection).some((value) => Boolean(value));
 }
 
+/**
+ * Resolve the storefront entry URL to the first active category, in the same
+ * catalog order the `/shop` route redirects to — so "Shop"/"Store" links skip
+ * the `/shop` → first-category server redirect. Falls back to `/shop` when no
+ * active category exists (the route then handles the edge case).
+ */
+export function shopHrefFromCategories(
+  categories: ReadonlyArray<{ slug: string; isActive: boolean }>,
+): string {
+  const firstActive = categories.find((category) => category.isActive);
+  return firstActive ? `/shop/${firstActive.slug}` : "/shop";
+}
+
 /** Resolve the active variant from URL search params (server or client). */
 export function resolveProductVariant(
   product: Product,

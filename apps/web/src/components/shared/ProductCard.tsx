@@ -148,8 +148,8 @@ export function ProductCard({
         prefetchHandlers.onFocus?.();
       }}
     >
-      <div className="lift flex h-full flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] hover:border-[var(--color-ink-200)]">
-        <div className="product-media-well relative aspect-square bg-[var(--color-canvas-deep)]">
+      <div className="lift lift-3d flex h-full flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] hover:border-[var(--color-ink-200)]">
+        <div className="product-media-well relative aspect-square shrink-0 bg-[var(--color-canvas-deep)]">
           {shouldCycleGradeMedia && gradeSlides ? (
             <ProductCardMediaCycle
               activeIndex={slideCycle.activeIndex}

@@ -1,5 +1,3 @@
-"use client";
-
 /**
  * Storefront brand lockup — the linked logo + wordmark that sits at
  * the top-left of every shell (desktop header, mobile header, footer).

@@ -29,7 +29,9 @@ import {
 import {
   getHomeHeroData,
   loadHomeCategoryTiles,
+  type HomePageCategory,
 } from "@/lib/storefront/pageData";
+import { shopHrefFromCategories } from "@/lib/catalog/productPaths";
 import { getStoreSettingsCached } from "@/lib/storefront/cached";
 
 // ISR interval is set on `app/page.tsx` (Next.js requires segment config there).
@@ -103,6 +105,17 @@ export default function HomePage() {
   );
 }
 
+/** Active category labels for the hero scope pill, capped so the pill
+ *  never overflows on narrow viewports. */
+const HERO_PILL_CATEGORY_LIMIT = 3;
+
+function toHeroCategoryLabels(categories: HomePageCategory[]): string[] {
+  return categories
+    .filter((category) => category.isActive)
+    .slice(0, HERO_PILL_CATEGORY_LIMIT)
+    .map((category) => category.label);
+}
+
 /* ─────────────────────────── Mobile data slots ─────────────────────────── */
 //
 // Each slot awaits only the reads its own section consumes. That way the
@@ -112,11 +125,19 @@ export default function HomePage() {
 // for a fetch it doesn't actually use.
 
 async function MobileHeroData() {
-  const [{ heroProducts }, settings] = await Promise.all([
+  const [{ heroProducts }, settings, categories] = await Promise.all([
     getHomeHeroData(),
     getStoreSettingsCached(),
+    loadHomeCategoryTiles(),
   ]);
-  return <MobileHero heroProducts={heroProducts} settings={settings} />;
+  return (
+    <MobileHero
+      heroProducts={heroProducts}
+      settings={settings}
+      categoryLabels={toHeroCategoryLabels(categories)}
+      shopHref={shopHrefFromCategories(categories)}
+    />
+  );
 }
 
 async function MobileShopTypesData() {
@@ -137,11 +158,19 @@ async function MobileVisitStoreData() {
 /* ─────────────────────────── Desktop data slots ─────────────────────────── */
 
 async function DesktopHeroData() {
-  const [{ heroProducts }, settings] = await Promise.all([
+  const [{ heroProducts }, settings, categories] = await Promise.all([
     getHomeHeroData(),
     getStoreSettingsCached(),
+    loadHomeCategoryTiles(),
   ]);
-  return <DesktopHero heroProducts={heroProducts} settings={settings} />;
+  return (
+    <DesktopHero
+      heroProducts={heroProducts}
+      settings={settings}
+      categoryLabels={toHeroCategoryLabels(categories)}
+      shopHref={shopHrefFromCategories(categories)}
+    />
+  );
 }
 
 async function DesktopShopTypesData() {

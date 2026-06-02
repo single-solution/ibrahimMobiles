@@ -7,6 +7,7 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
 import { productHref } from "@/lib/catalog/productPaths";
 import { useCart } from "@/lib/cart/useCart";
+import { useToast } from "@/components/ui/Toast";
 import type { CartItem } from "@/lib/cart/types";
 import { formatPrice } from "@store/shared";
 
@@ -95,6 +96,7 @@ export function Cart() {
 
 function CartLine({ line }: { line: CartItem }) {
   const cart = useCart();
+  const { toast } = useToast();
   const lineTotal = line.unitPriceRupees * line.quantity;
   const cartSelection: Record<string, string> = {
     [GRADE_DIMENSION_KEY]: line.gradeSlug,
@@ -143,9 +145,12 @@ function CartLine({ line }: { line: CartItem }) {
           </div>
           <button
             type="button"
-            onClick={() => cart.removeItem(line.id)}
+            onClick={() => {
+              cart.removeItem(line.id);
+              toast(`${line.productName} removed`, { tone: "info" });
+            }}
             aria-label={`Remove ${line.productName}`}
-            className="grid size-8 shrink-0 place-items-center rounded-full text-[var(--color-ink-400)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-danger-500)]"
+            className="tap focus-ring grid size-8 shrink-0 place-items-center rounded-full text-[var(--color-ink-400)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-danger-500)]"
           >
             <Trash2 size={14} />
           </button>

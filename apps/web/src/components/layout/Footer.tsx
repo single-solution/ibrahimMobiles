@@ -1,8 +1,6 @@
-"use client";
-
 import { MessageCircle } from "lucide-react";
 
-import { buildWhatsAppLink } from "@store/shared";
+import { buildWhatsAppLink, type StoreSettings } from "@store/shared";
 
 import { BrandLockup } from "@/components/layout/BrandLockup";
 import {
@@ -11,10 +9,17 @@ import {
   TiktokIcon,
   YoutubeIcon,
 } from "@/components/ui/SocialIcons";
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 
-export function Footer() {
-  const settings = useStoreSettings();
+interface FooterProps {
+  settings: StoreSettings;
+}
+
+/**
+ * Server-rendered site footer. Receives `settings` as a prop (rather than
+ * reading `useStoreSettings()`) so it can render on the server and stay out
+ * of the client bundle — it is injected as a slot by the client chrome.
+ */
+export function Footer({ settings }: FooterProps) {
   const socialButtons = [
     { href: settings.socialFacebook, label: "Facebook", icon: <FacebookIcon size={15} /> },
     { href: settings.socialInstagram, label: "Instagram", icon: <InstagramIcon size={15} /> },
@@ -47,7 +52,7 @@ export function Footer() {
               href={buildWhatsAppLink("Salam!", settings.whatsappNumber)}
               target="_blank"
               rel="noopener noreferrer"
-              className="tap inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-whatsapp)] px-4 text-sm font-semibold text-[var(--color-on-dark)] transition-colors hover:bg-[var(--color-whatsapp-dark)]"
+              className="tap focus-ring inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-whatsapp)] px-4 text-sm font-semibold text-[var(--color-on-dark)] transition-colors hover:bg-[var(--color-whatsapp-dark)]"
             >
               <MessageCircle size={15} className="fill-[var(--color-on-dark)]" />
               Chat on WhatsApp
@@ -60,7 +65,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={socialButton.label}
-                  className="tap grid size-9 place-items-center rounded-[var(--radius-md)] border border-[var(--color-ink-700)] bg-[var(--color-ink-800)] text-[var(--color-ink-300)] transition-colors hover:border-[var(--color-accent-500)] hover:bg-[var(--color-accent-500)] hover:text-[var(--color-ink-900)]"
+                  className="tap focus-ring grid size-9 place-items-center rounded-[var(--radius-md)] border border-[var(--color-ink-700)] bg-[var(--color-ink-800)] text-[var(--color-ink-300)] transition-colors hover:border-[var(--color-accent-500)] hover:bg-[var(--color-accent-500)] hover:text-[var(--color-ink-900)]"
                 >
                   {socialButton.icon}
                 </a>

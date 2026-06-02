@@ -47,6 +47,7 @@ export interface HomePageCategory {
   label: string;
   description: string;
   icon: StorefrontCategory["icon"];
+  iconNode: StorefrontCategory["iconNode"];
   isActive: boolean;
   sortOrder: number;
   /** Optional admin-authored structured copy (summary + bullet rows). */
@@ -93,6 +94,7 @@ export async function loadHomeCategoryTiles(): Promise<HomePageCategory[]> {
         label: category.label,
         description: category.description,
         icon: category.icon,
+        iconNode: category.iconNode,
         isActive: category.isActive,
         sortOrder: category.sortOrder,
         content: category.content,

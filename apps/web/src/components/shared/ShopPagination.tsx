@@ -150,8 +150,8 @@ function PageLink({ href, label, isActive = false, disabled = false, onSelect }:
       onClick={onSelect}
       className={
         isActive
-          ? "tap inline-flex h-8 items-center rounded-[var(--radius-md)] bg-[var(--color-accent-100)] px-2.5 text-[13px] font-semibold text-[var(--color-accent-800)] transition-colors md:h-9 md:px-3 md:text-sm"
-          : "tap inline-flex h-8 items-center rounded-[var(--radius-md)] px-2.5 text-[13px] font-medium text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-surface-muted)] md:h-9 md:px-3 md:text-sm"
+          ? "tap focus-ring inline-flex h-8 items-center rounded-[var(--radius-md)] bg-[var(--color-accent-100)] px-2.5 text-[13px] font-semibold text-[var(--color-accent-800)] transition-colors md:h-9 md:px-3 md:text-sm"
+          : "tap focus-ring inline-flex h-8 items-center rounded-[var(--radius-md)] px-2.5 text-[13px] font-medium text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-surface-muted)] md:h-9 md:px-3 md:text-sm"
       }
     >
       {label}

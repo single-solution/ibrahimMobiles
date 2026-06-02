@@ -18,7 +18,7 @@
  * `Grade.notes`, `Offer.description`).
  */
 
-import { DEFAULT_ICON, normalizeIconName, type IconName } from "./icons";
+import { DEFAULT_ICON, normalizeIconName, type IconName, type IconNode } from "./icons";
 
 /** Default lucide icon for structured-content bullets when none is chosen. */
 export const STRUCTURED_CONTENT_DEFAULT_BULLET_ICON: IconName = "ShieldCheck";
@@ -35,6 +35,12 @@ export const STRUCTURED_CONTENT_SUMMARY_MAX_LENGTH = 400;
 export interface StructuredContentBullet {
   text: string;
   icon: IconName;
+  /**
+   * Render-only lucide geometry for `icon`, resolved server-side by the
+   * storefront serializers so clients draw the bullet icon with no
+   * registry. Never persisted; admin/storage code leaves it unset.
+   */
+  iconNode?: IconNode;
 }
 
 export interface StructuredContent {

@@ -111,43 +111,51 @@ export default async function AccountPage() {
         <NotALoyaltyMember />
       )}
 
-      <div className="mt-4 grid gap-4 md:mt-6 md:grid-cols-3 md:gap-4">
-        <StatCard
-          icon={<Truck size={16} />}
-          label="Active orders"
-          value={String(overview.activeCount)}
-          href="/account/orders"
-          accent="amber"
-        />
-        <StatCard
-          icon={<Package size={16} />}
-          label="All-time orders"
-          value={String(overview.totalCount)}
-          href="/account/orders"
-          accent="ink"
-        />
-        <StatCard
-          icon={<ShieldCheck size={16} />}
-          label="Total spent"
-          value={formatPrice(overview.totalSpentRupees)}
-          accent="emerald"
-        />
+      <div className="reveal-stagger mt-4 grid gap-4 md:mt-6 md:grid-cols-3 md:gap-4">
+        <div className="reveal">
+          <StatCard
+            icon={<Truck size={16} />}
+            label="Active orders"
+            value={String(overview.activeCount)}
+            href="/account/orders"
+            accent="amber"
+          />
+        </div>
+        <div className="reveal">
+          <StatCard
+            icon={<Package size={16} />}
+            label="All-time orders"
+            value={String(overview.totalCount)}
+            href="/account/orders"
+            accent="ink"
+          />
+        </div>
+        <div className="reveal">
+          <StatCard
+            icon={<ShieldCheck size={16} />}
+            label="Total spent"
+            value={formatPrice(overview.totalSpentRupees)}
+            accent="emerald"
+          />
+        </div>
       </div>
 
       <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-[1fr_320px] md:gap-6 lg:gap-8">
         <div className="cv-auto space-y-4">
-          <SectionHeader
-            eyebrow="Recent orders"
-            title="What you&rsquo;ve been buying"
-            ctaHref="/account/orders"
-            ctaLabel="See all orders"
-          />
+          <div className="reveal">
+            <SectionHeader
+              eyebrow="Recent orders"
+              title="What you&rsquo;ve been buying"
+              ctaHref="/account/orders"
+              ctaLabel="See all orders"
+            />
+          </div>
           {overview.recentOrders.length === 0 ? (
             <EmptyOrders />
           ) : (
-            <ul className="space-y-3">
+            <ul className="reveal-stagger space-y-3">
               {overview.recentOrders.map((order) => (
-                <li key={order.id}>
+                <li key={order.id} className="reveal">
                   <RecentOrderRow order={order} />
                 </li>
               ))}
@@ -155,10 +163,16 @@ export default async function AccountPage() {
           )}
         </div>
 
-        <aside className="space-y-4 md:sticky md:top-[calc(var(--desktop-header-h)+24px)] md:self-start">
-          <ProfileCard customer={overview.customer} />
-          <QuickActions />
-          <SupportCard />
+        <aside className="reveal-stagger space-y-4 md:sticky md:top-[calc(var(--desktop-header-h)+24px)] md:self-start">
+          <div className="reveal">
+            <ProfileCard customer={overview.customer} />
+          </div>
+          <div className="reveal">
+            <QuickActions />
+          </div>
+          <div className="reveal">
+            <SupportCard />
+          </div>
         </aside>
       </div>
     </div>
@@ -167,7 +181,7 @@ export default async function AccountPage() {
 
 function AccountHeader({ name, joinedAt }: { name: string; joinedAt: string }) {
   return (
-    <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+    <div className="reveal flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
           Salam, {name.split(" ")[0]}
@@ -199,7 +213,7 @@ function LoyaltyCard({
 }) {
   const { balance, lifetimeEarned, pendingFromShipping } = loyalty;
   return (
-    <div className="mt-5 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-200)] bg-gradient-to-br from-[var(--color-accent-100)] via-[var(--color-accent-50)] to-[var(--color-canvas)] shadow-[var(--shadow-sm)] md:mt-8">
+    <div className="reveal-rise mt-5 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-200)] bg-gradient-to-br from-[var(--color-accent-100)] via-[var(--color-accent-50)] to-[var(--color-canvas)] shadow-[var(--shadow-sm)] md:mt-8">
       <div className="grid gap-5 p-5 md:grid-cols-[1fr_1px_1.1fr] md:gap-7 md:p-6">
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -295,7 +309,7 @@ function LoyaltyCard({
 
 function NotALoyaltyMember() {
   return (
-    <Card className="mt-5 flex items-center gap-3 p-4 md:mt-8 md:p-5">
+    <Card className="reveal mt-5 flex items-center gap-3 p-4 md:mt-8 md:p-5">
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--color-accent-100)] text-[var(--color-accent-700)]">
         <Sparkles size={16} />
       </span>
@@ -332,7 +346,7 @@ function StatCard({ icon, label, value, href, accent }: StatCardProps) {
       {...props}
       /* Concentric: inner icon well --radius-md (8) + p-4/p-5 (16/20)
          → outer 24/28 ≈ --radius-2xl (24, within 4px of p-5). */
-      className="lift block rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5"
+      className="tap lift block rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5"
     >
       <div className="flex items-center justify-between">
         <span
@@ -364,7 +378,7 @@ function RecentOrderRow({ order }: RecentOrderRowProps) {
   return (
     <Link
       href={`/account/orders/${order.orderNumber}`}
-      className="lift group block overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"
+      className="tap lift group block overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"
     >
       <div className="flex items-center justify-between gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-4 py-2.5 md:px-5">
         <div className="flex items-center gap-2 text-[12px]">
@@ -420,7 +434,7 @@ function RecentOrderRow({ order }: RecentOrderRowProps) {
 
 function EmptyOrders() {
   return (
-    <Card className="flex flex-col items-center gap-4 p-8 text-center">
+    <Card className="reveal flex flex-col items-center gap-4 p-8 text-center">
       <span className="grid size-12 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[var(--color-ink-500)]">
         <Package size={20} />
       </span>
@@ -598,7 +612,7 @@ function SectionHeader({ eyebrow, title, ctaHref, ctaLabel }: SectionHeaderProps
       {ctaHref && ctaLabel && (
         <Link
           href={ctaHref}
-          className="cta-arrow inline-flex shrink-0 items-center gap-1 text-[12.5px] font-medium text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
+          className="cta-arrow tap inline-flex shrink-0 items-center gap-1 text-[12.5px] font-medium text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
         >
           {ctaLabel}
           <ArrowUpRight size={13} />

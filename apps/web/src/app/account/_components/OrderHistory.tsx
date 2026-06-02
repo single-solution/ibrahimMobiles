@@ -62,7 +62,7 @@ export function OrderHistory({ orders }: OrderHistoryProps) {
         <ArrowLeft size={13} />
         Back to account
       </Link>
-      <div className="mt-2 flex items-end justify-between gap-3">
+      <div className="reveal mt-2 flex items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
             History
@@ -112,7 +112,7 @@ export function OrderHistory({ orders }: OrderHistoryProps) {
         {filtered.length === 0 ? (
           <Empty filter={filter} />
         ) : (
-          <ul className="space-y-3">
+          <ul className="reveal-stagger space-y-3">
             {filtered.map((order) => (
               <li key={order.id} className="reveal">
                 <OrderRow order={order} />
@@ -137,7 +137,7 @@ function OrderRow({ order }: OrderRowProps) {
   return (
     <Link
       href={`/account/orders/${order.orderNumber}`}
-      className="lift group block overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"
+      className="tap lift group block overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"
     >
       <div className="flex items-center justify-between gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-4 py-2.5 md:px-5">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]">
@@ -203,7 +203,7 @@ function Empty({ filter }: { filter: FilterId }) {
     cancelled: "Nothing cancelled.",
   };
   return (
-    <Card className="flex flex-col items-center gap-4 p-10 text-center">
+    <Card className="reveal flex flex-col items-center gap-4 p-10 text-center">
       <span className="grid size-12 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[var(--color-ink-500)]">
         <Package size={20} />
       </span>

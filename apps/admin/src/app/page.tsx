@@ -191,61 +191,86 @@ export default async function AdminOverviewPage({
         </div>
       </div>
 
-      {/* Desktop layout */}
+      {/* Desktop layout — primary KPI column + a dedicated right rail that
+          carries shop health and recent inquiries. `max-w` keeps the KPI
+          cards information-dense instead of stretching on ultrawide. */}
       <div className="hidden md:block">
-        <SectionHeader
-          title="Performance"
-          subtitle="Pick a window — every tile re-runs against your chosen range and comparison."
-          action={
-            <Suspense fallback={<PeriodSelectorFallback />}>
-              <PerformancePeriodSelector range={range} compare={compare} />
+        <div className="flex max-w-[1540px] flex-col gap-6 xl:flex-row xl:items-start">
+          <div className="min-w-0 flex-1">
+            <SectionHeader
+              title="Performance"
+              subtitle="Pick a window — every tile re-runs against your chosen range and comparison."
+              action={
+                <Suspense fallback={<PeriodSelectorFallback />}>
+                  <PerformancePeriodSelector range={range} compare={compare} />
+                </Suspense>
+              }
+            />
+            <Suspense
+              key={`${range}-${compare}`}
+              fallback={<DesktopPerformanceFallback />}
+            >
+              <DesktopPerformancePanel range={range} compare={compare} />
             </Suspense>
-          }
-        />
-        <Suspense
-          key={`${range}-${compare}`}
-          fallback={<DesktopPerformanceFallback />}
-        >
-          <DesktopPerformancePanel range={range} compare={compare} />
-        </Suspense>
 
-        <SectionHeader
-          title="What needs your attention"
-          subtitle="Pending payments first, then dispatch and delivery."
-          action={
-            <DashboardSectionActionLink
-              href="/inquiries"
-              label="Open inquiries"
-              permission="inquiry_view"
+            <SectionHeader
+              title="What needs your attention"
+              subtitle="Pending payments first, then dispatch and delivery."
+              action={
+                <DashboardSectionActionLink
+                  href="/inquiries"
+                  label="Open inquiries"
+                  permission="inquiry_view"
+                />
+              }
             />
-          }
-        />
-        <Suspense fallback={<DesktopKpiGridFallback />}>
-          <DesktopAttentionKpis />
-        </Suspense>
+            <Suspense fallback={<DesktopKpiGridFallback />}>
+              <DesktopAttentionKpis />
+            </Suspense>
 
-        <SectionHeader
-          title="What's in stock and what's hot"
-          subtitle="Stock, low-stock alerts, listings, and inquiry inbox."
-          action={
-            <DashboardSectionActionLink
-              href="/products"
-              label="Manage products"
-              permission="product_view"
+            <SectionHeader
+              title="What's in stock and what's hot"
+              subtitle="Stock, low-stock alerts, listings, and inquiry inbox."
+              action={
+                <DashboardSectionActionLink
+                  href="/products"
+                  label="Manage products"
+                  permission="product_view"
+                />
+              }
             />
-          }
-        />
-        <Suspense fallback={<DesktopKpiGridFallback />}>
-          <DesktopStockKpis />
-        </Suspense>
+            <Suspense fallback={<DesktopKpiGridFallback />}>
+              <DesktopStockKpis />
+            </Suspense>
 
-        <SectionHeader
-          title="Shop health"
-          subtitle="Configuration, catalog hygiene, and stock — the things stopping your shop from looking polished."
-        />
-        <Suspense fallback={<ShopHealthFallback />}>
-          <ShopHealthSection />
-        </Suspense>
+            {/* Below xl there's no side rail, so shop health spans the column. */}
+            <div className="xl:hidden">
+              <SectionHeader
+                title="Shop health"
+                subtitle="Configuration, catalog hygiene, and stock — the things stopping your shop from looking polished."
+              />
+              <Suspense fallback={<ShopHealthFallback />}>
+                <ShopHealthSection />
+              </Suspense>
+            </div>
+          </div>
+
+          {/* Right rail (xl+) — its own full-height column, sticky so it
+              tracks the KPI scroll. Replaces the old bottom-pinned floating
+              panel and now leads with shop health. */}
+          <aside className="hidden w-[336px] shrink-0 xl:block">
+            <div className="sticky top-0 space-y-3 pt-0.5">
+              <Suspense fallback={<ShopHealthFallback />}>
+                <ShopHealthSection />
+              </Suspense>
+              <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+                <Suspense fallback={<DesktopRecentInquiriesFallback />}>
+                  <DesktopRecentInquiries />
+                </Suspense>
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
     </AdminShell>
   );
@@ -451,14 +476,12 @@ async function DesktopAttentionKpis() {
         hint="Awaiting confirmation"
       />
       <KpiCard
-        tone="accent"
         label="Confirmed payments"
         value={String(kpis.confirmedPayments)}
         icon={<CheckCircle2 size={15} />}
         hint="Ready to dispatch"
       />
       <KpiCard
-        tone="info"
         label="Dispatched"
         value={String(kpis.dispatched)}
         icon={<Truck size={15} />}
@@ -512,6 +535,92 @@ async function DesktopStockKpis() {
         icon={<Inbox size={15} />}
       />
     </div>
+  );
+}
+
+/** Compact recent-inquiries count for the desktop right-rail panel. */
+const DESKTOP_RECENT_INQUIRIES_COUNT = 4;
+
+async function DesktopRecentInquiries() {
+  const recentInquiries = await loadDashboardRecentInquiriesCached();
+  const nowReferenceIso = new Date().toISOString();
+  const items = recentInquiries.slice(0, DESKTOP_RECENT_INQUIRIES_COUNT);
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2 border-b border-[var(--color-ink-100)] px-3 py-2">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+          Recent inquiries
+        </p>
+        <Link
+          href="/inquiries"
+          className="tap text-[10.5px] font-semibold text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
+        >
+          View all
+        </Link>
+      </div>
+      {items.length === 0 ? (
+        <p className="px-3 py-4 text-center text-[11.5px] text-[var(--color-ink-500)]">
+          No inquiries yet.
+        </p>
+      ) : (
+        <ul className="divide-y divide-[var(--color-ink-100)]">
+          {items.map((inquiry) => {
+            const status = inquiry.status as InquiryStatus;
+            return (
+              <li key={inquiry.id}>
+                <Link
+                  href={`/inquiries?inquiry=${inquiry.id}`}
+                  className="tap flex items-center gap-2.5 px-3 py-2 hover:bg-[var(--color-canvas-deep)]"
+                >
+                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[10.5px] font-semibold text-[var(--color-ink-700)]">
+                    {getInitials(inquiry.customerName)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate text-[12px] font-semibold text-[var(--color-ink-900)]">
+                        {inquiry.customerName}
+                      </p>
+                      {inquiry.unreadByTeam > 0 && (
+                        <StatusPill tone="danger">{inquiry.unreadByTeam}</StatusPill>
+                      )}
+                    </div>
+                    <p className="mt-0.5 truncate text-[11px] text-[var(--color-ink-500)]">
+                      {inquiry.subjectProductName ?? inquiry.lastMessagePreview}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-[10px] text-[var(--color-ink-400)]">
+                    {formatTimeAgo(inquiry.lastMessageAt, nowReferenceIso)}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </>
+  );
+}
+
+function DesktopRecentInquiriesFallback() {
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2 border-b border-[var(--color-ink-100)] px-3 py-2">
+        <Skeleton shape="text" className="h-3 w-24" />
+        <Skeleton shape="text" className="h-3 w-12" />
+      </div>
+      <ul className="divide-y divide-[var(--color-ink-100)]">
+        {Array.from({ length: DESKTOP_RECENT_INQUIRIES_COUNT }).map((_, index) => (
+          <li key={index} className="flex items-center gap-2.5 px-3 py-2">
+            <Skeleton shape="circle" className="size-7 shrink-0" />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <Skeleton shape="text" className="h-3 w-20" />
+              <Skeleton shape="text" className="h-2.5 w-28" />
+            </div>
+            <Skeleton shape="text" className="h-2.5 w-8" />
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

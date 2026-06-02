@@ -360,8 +360,8 @@ function FilterPanel({
   };
 
   const filterGroups = (
-    <div className={isMobile ? "sheet-stagger space-y-6" : "space-y-3 p-2.5 pb-3"}>
-      <FilterGroup title="Grade">
+    <div className={isMobile ? "sheet-stagger space-y-6" : "reveal-stagger space-y-3 p-2.5 pb-3"}>
+      <FilterGroup title="Grade" reveal={!isMobile}>
         {visibleGrades.length === 0 ? (
           <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
             No grades configured yet.
@@ -383,7 +383,7 @@ function FilterPanel({
 
       <FilterDivider />
 
-      <FilterGroup title="Brand">
+      <FilterGroup title="Brand" reveal={!isMobile}>
         {sortedBrands.length === 0 ? (
           <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
             No brands available yet.
@@ -406,22 +406,24 @@ function FilterPanel({
       <FilterDivider />
 
       {categorySlug ? (
-        <AttributeFacetGroups
-          key={facetFetchKey}
-          categorySlug={categorySlug}
-          initialFacets={initialFacets}
-          filterParams={filterApi.params}
-          getMulti={(key) => {
-            // Strip the "attr." prefix so we can look up the optimistic mirror.
-            // Any attribute we haven't toggled yet falls back to the URL value.
-            const attrSlug = key.startsWith("attr.") ? key.slice(5) : null;
-            if (attrSlug && optimisticAttributes[attrSlug]) {
-              return optimisticAttributes[attrSlug];
-            }
-            return filterApi.getMulti(key);
-          }}
-          onToggleAttribute={toggleAttribute}
-        />
+        <div className={isMobile ? undefined : "reveal"}>
+          <AttributeFacetGroups
+            key={facetFetchKey}
+            categorySlug={categorySlug}
+            initialFacets={initialFacets}
+            filterParams={filterApi.params}
+            getMulti={(key) => {
+              // Strip the "attr." prefix so we can look up the optimistic mirror.
+              // Any attribute we haven't toggled yet falls back to the URL value.
+              const attrSlug = key.startsWith("attr.") ? key.slice(5) : null;
+              if (attrSlug && optimisticAttributes[attrSlug]) {
+                return optimisticAttributes[attrSlug];
+              }
+              return filterApi.getMulti(key);
+            }}
+            onToggleAttribute={toggleAttribute}
+          />
+        </div>
       ) : null}
 
       {!isMobile && countActiveFilters(filterApi.params) > 0 && (
@@ -613,11 +615,13 @@ function countActiveFilters(params: URLSearchParams): number {
 interface FilterGroupProps {
   title: string;
   children: React.ReactNode;
+  /** Desktop-only scroll reveal. Off on mobile, where `sheet-stagger` drives entrance. */
+  reveal?: boolean;
 }
 
-function FilterGroup({ title, children }: FilterGroupProps) {
+function FilterGroup({ title, children, reveal = false }: FilterGroupProps) {
   return (
-    <div className="space-y-2">
+    <div className={classNames("space-y-2", reveal && "reveal")}>
       <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
         {title}
       </h3>
@@ -667,7 +671,7 @@ function FilterCheckRow({ label, count, checked, onToggle }: FilterCheckRowProps
       onClick={onToggle}
       aria-pressed={checked}
       className={classNames(
-        "flex w-full cursor-pointer items-center justify-between gap-2 rounded-[var(--radius-md)] px-2 py-1 text-[13.5px] transition-colors",
+        "tap flex w-full cursor-pointer items-center justify-between gap-2 rounded-[var(--radius-md)] px-2 py-1 text-[13.5px]",
         checked
           ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
           : "font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",

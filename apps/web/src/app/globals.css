@@ -2,7 +2,6 @@
 
 @theme {
   --font-sans: var(--font-bricolage), "Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: var(--font-anton), "Anton", "Bebas Neue", "Oswald", sans-serif;
   --font-headline: var(--font-oswald), "Oswald", "Bebas Neue", "Bricolage Grotesque", sans-serif;
 
   /* Mobile UI < 640px, desktop UI >= 640px. Collapsed onto the `sm:` width so
@@ -50,9 +49,9 @@
   --color-ink-800: #0a3035;
   --color-ink-900: #00272c;
 
-  --color-canvas: #ffffff;
+  --color-canvas: #f8fbf8;
   --color-canvas-deep: #eef5f5;
-  --color-surface: #ffffff;
+  --color-surface: #f8fbf8;
   --color-surface-muted: #f3f7f7;
 
   /* Chartreuse accent — primary CTA and active states.
@@ -194,6 +193,15 @@
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Gentler overshoot than `--ease-spring` — for entrances that should
+     settle without the pronounced bounce (cards, floating dock). */
+  --ease-spring-soft: cubic-bezier(0.34, 1.32, 0.64, 1);
+  /* Decelerate-to-rest with a long tail (ease-out-expo) — graceful
+     fade-ins where the element keeps drifting as it arrives. */
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Symmetric accelerate/decelerate (Material "standard") — for paired
+     opacity+transform transitions that read as a single smooth move. */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Soft accent wash at top of every storefront page (see html/body). */
   --storefront-page-gradient: linear-gradient(
@@ -280,12 +288,12 @@
     transform: translate(-50%, -50%) scale(0.55);
   }
   10% {
-    opacity: 0.5;
+    opacity: 0.28;
     transform: translate(-50%, -50%) scale(1.08);
   }
   16%,
   68% {
-    opacity: 0.5;
+    opacity: 0.28;
     transform: translate(-50%, -50%) scale(1);
   }
   80%,
@@ -342,7 +350,7 @@
 
   .hero-trending-pop {
     animation: none;
-    opacity: 0.5;
+    opacity: 0.28;
     transform: translate(-50%, -50%) scale(1);
   }
 }
@@ -351,82 +359,6 @@
    Premium motion system — used by the hero stage and any CTA /
    card that opts in via the matching React wrapper.
    ============================================================ */
-
-/* --- 3D tilt card -----------------------------------------------
-   The wrapper sets the perspective and an empty transform; the
-   `.tilt-card-surface` child reads `--tilt-x` / `--tilt-y` set by
-   JavaScript on pointer move. `--tilt-active` toggles the hover
-   scale so the lift only happens while the cursor is inside.
-
-   `will-change` is intentionally *only* applied while the card is
-   actively being interacted with — the GPU layer is otherwise idle
-   memory pressure. The `[data-tilt-active]` attribute is set/cleared
-   by `TiltCard` on pointerenter/leave. */
-.tilt-card {
-  perspective: 1000px;
-  transform-style: preserve-3d;
-}
-.tilt-card-surface {
-  position: relative;
-  height: 100%;
-  width: 100%;
-  transform-origin: center;
-  transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg))
-    scale(calc(1 + (var(--tilt-hover-scale, 1.03) - 1) * var(--tilt-active, 0)));
-  transition:
-    transform 320ms var(--ease-spring),
-    box-shadow 320ms var(--ease-out-quart);
-}
-.tilt-card[data-tilt-active] .tilt-card-surface {
-  will-change: transform;
-}
-/* Bright top-left rim that appears as the card tilts — sells the
-   "front-lit physical card" illusion. */
-.tilt-card-edge {
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  opacity: var(--tilt-active, 0);
-  transition: opacity 320ms var(--ease-out-quart);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, var(--color-canvas) 55%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--color-accent-400) 60%, transparent);
-}
-/* Optional inner-content parallax — opt in by adding `.tilt-parallax`
-   to a child of the tilt-card. The child shifts AGAINST the cursor so
-   the foreground appears to sit on a plane closer to the viewer than
-   the card surface itself.
-
-   Resting scale is 1.14 (always 14% larger than the tile) — combined
-   with `overflow: hidden` on the parent this guarantees that any
-   transparent / white padding baked into the source product photo is
-   cropped away and the product properly *covers* the visible area. */
-.tilt-parallax {
-  position: relative;
-  transform-origin: center;
-  transform:
-    translate3d(
-      calc((var(--mouse-x, 50%) - 50%) * -0.08),
-      calc((var(--mouse-y, 50%) - 50%) * -0.08),
-      0
-    )
-    scale(calc(1.14 + var(--tilt-active, 0) * 0.06));
-  transition:
-    transform 360ms var(--ease-out-quart);
-  will-change: transform;
-}
-@media (prefers-reduced-motion: reduce), (pointer: coarse) {
-  .tilt-card-surface {
-    transform: none !important;
-  }
-  .tilt-card-edge {
-    display: none;
-  }
-  .tilt-parallax {
-    transform: none !important;
-  }
-}
 
 /* --- Magnetic hover ---------------------------------------------
    The wrapper translates in/out via JS; `will-change` is set inline
@@ -550,12 +482,12 @@
 }
 
 /* --- Kinetic-punch heading ---------------------------------------
-   Characters render at natural opacity until the JS driver promotes
-   the heading to `.kinetic-ready`. Only then do we hide them so GSAP
-   can animate them in. This avoids the slow-network failure mode
-   where a stalled GSAP chunk left the headline invisible — now the
-   user always sees the text, the kinetic punch is purely additive.
-   Reduced-motion users keep the natural state regardless. */
+   Characters render at their natural visible state until an
+   IntersectionObserver adds `.kinetic-animate`. Only then does each
+   char run the CSS punch keyframe, staggered by its `--kinetic-i`
+   index. Because text is visible by default, a heading is never blank
+   if JS is slow/absent — the punch is purely additive. Reduced-motion
+   users keep the natural state and never animate. */
 .kinetic-heading {
   display: block;
   transform-style: preserve-3d;
@@ -566,16 +498,30 @@
   backface-visibility: hidden;
   transform-origin: 50% 100%;
 }
-.kinetic-ready .kinetic-char {
-  opacity: 0;
-  transform: translateY(0.55em) rotateX(-78deg);
-  filter: blur(8px);
+@keyframes kinetic-char-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.55em) rotateX(-78deg);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateX(0);
+    filter: blur(0);
+  }
+}
+.kinetic-animate .kinetic-char {
+  /* back.out(1.7)-style spring overshoot. The `both` fill holds the
+     hidden start state through the per-char delay so later characters
+     drop in after the earlier ones. */
+  animation: kinetic-char-in 0.7s var(--ease-spring) both;
+  animation-delay: calc(
+    var(--kinetic-delay, 0s) + var(--kinetic-i, 0) * var(--kinetic-stagger, 0.04s)
+  );
 }
 @media (prefers-reduced-motion: reduce) {
-  .kinetic-ready .kinetic-char {
-    opacity: 1;
-    transform: none;
-    filter: none;
+  .kinetic-animate .kinetic-char {
+    animation: none;
   }
 }
 
@@ -654,8 +600,8 @@
    For sections containing ambient orbs, scroll-driven motion, or
    image grids, this is the single largest paint optimisation
    available: off-screen ambience keyframes don't composite,
-   off-screen TiltCards don't repaint, off-screen Lottie-style
-   motion is paused — automatically.
+   off-screen hover-tilt surfaces don't repaint, off-screen
+   Lottie-style motion is paused — automatically.
 
    `contain-intrinsic-size: auto <fallback>` reserves a placeholder
    height before the section has ever rendered. The `auto` keyword
@@ -739,7 +685,7 @@ html {
   }
 
   .product-media-well img {
-    object-fit: cover;
+    object-fit: contain;
     object-position: center;
   }
 }
@@ -823,7 +769,7 @@ html {
 }
 
 .animate-sheet-up {
-  animation: sheet-up 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  animation: sheet-up 220ms var(--ease-ios);
 }
 
 .animate-sheet-fade {
@@ -831,11 +777,69 @@ html {
 }
 
 .animate-flyout-right {
-  animation: flyout-in-right 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  animation: flyout-in-right 240ms var(--ease-ios);
 }
 
 .animate-flyout-left {
-  animation: flyout-in-left 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  animation: flyout-in-left 240ms var(--ease-ios);
+}
+
+/* ----- Sheet / flyout EXIT -----
+   Symmetric reverses of the entry animations, played while a
+   `usePresence`-managed overlay is closing (kept mounted until the
+   exit finishes). `forwards` holds the off-screen end-state so the
+   panel never flashes back before unmount. Durations mirror entry. */
+@keyframes sheet-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes flyout-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes flyout-out-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+.animate-sheet-down {
+  animation: sheet-down 220ms var(--ease-ios) forwards;
+}
+.animate-sheet-fade-out {
+  animation: sheet-fade-out 200ms ease-in forwards;
+}
+.animate-flyout-out-right {
+  animation: flyout-out-right 240ms var(--ease-ios) forwards;
+}
+.animate-flyout-out-left {
+  animation: flyout-out-left 240ms var(--ease-ios) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheet-down,
+  .animate-sheet-fade-out,
+  .animate-flyout-out-right,
+  .animate-flyout-out-left {
+    animation: none;
+  }
 }
 
 /* ----- Anchored popover / dropdown enter -----
@@ -893,6 +897,80 @@ html {
   animation: lightbox-in 260ms var(--ease-out-quart);
 }
 
+/* ----- Popover / dialog / lightbox EXIT -----
+   Symmetric reverses of the scale-in entries, played while a
+   `usePresence`-managed overlay closes. `forwards` holds the faded
+   end-state until unmount so nothing flashes back. */
+@keyframes popover-out {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0) scale(0.97);
+  }
+}
+@keyframes lightbox-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+.animate-popover-out {
+  animation: popover-out 160ms var(--ease-standard) forwards;
+  transform-origin: top center;
+}
+.animate-lightbox-out {
+  animation: lightbox-out 220ms var(--ease-standard) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-popover-out,
+  .animate-lightbox-out {
+    animation: none;
+  }
+}
+
+/* ----- Toast enter / exit -----
+   Bottom-anchored toasts rise in and settle out. Exit uses `forwards`
+   so the toast holds its faded state until the host unmounts it. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.98);
+  }
+}
+.animate-toast-in {
+  animation: toast-in 240ms var(--ease-spring-soft);
+}
+.animate-toast-out {
+  animation: toast-out 180ms var(--ease-standard) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-toast-in,
+  .animate-toast-out {
+    animation: none;
+  }
+}
+
 /* ----- Slide-down banner enter -----
    Inline error / success banners that appear above a form. Tiny vertical
    slide + fade so the form doesn't jump. */
@@ -941,10 +1019,14 @@ html {
 */
 .reveal {
   opacity: 0;
-  transform: translate3d(0, 6px, 0);
+  transform: translate3d(0, var(--reveal-distance, 10px), 0);
+  /* Opacity fades cleanly (ease-out); the slide rides a soft spring so the
+     element settles with a touch of overshoot — the "springy" feel without
+     a JS animation lib. Transform gets a longer duration so the spring has
+     room to read. */
   transition:
     opacity var(--motion-base) var(--ease-out-quart),
-    transform var(--motion-base) var(--ease-out-quart);
+    transform var(--reveal-spring-duration, 0.52s) var(--ease-spring-soft);
   transition-delay: var(--reveal-delay, 0ms);
   /* Safety net: independent CSS-only fallback so a missing JS bundle
      or a hydration race never leaves content invisible. The JS path
@@ -957,6 +1039,16 @@ html {
   opacity: 1;
   transform: translate3d(0, 0, 0);
   animation: none;
+}
+
+/* Stronger entrance for hero/section-level blocks — more travel + scale
+   pop so big surfaces feel like they spring into place. */
+.reveal-rise {
+  --reveal-distance: 22px;
+  --reveal-spring-duration: 0.62s;
+}
+.reveal-rise:not([data-reveal="visible"]) {
+  transform: translate3d(0, var(--reveal-distance), 0) scale(0.985);
 }
 .reveal-fade {
   opacity: 0;
@@ -998,26 +1090,76 @@ html {
 .reveal-stagger > *:nth-child(12) { --reveal-delay: calc(var(--motion-stagger) * 11); }
 
 /* Tap feedback — apply on any interactive element to get a soft press. */
+/* The single fluid-interaction primitive. `.tap` is unlayered, so its
+   `transition` would otherwise clobber any Tailwind `transition-*` on the
+   same element — so it owns the full interaction set (transform + the
+   colour/shadow props that hover states animate). Press rides a soft
+   spring so the release "pops" back rather than easing flatly. */
 .tap {
   transition:
-    transform var(--motion-fast) var(--ease-out-quart),
-    box-shadow var(--motion-base) var(--ease-out-quart);
+    transform var(--motion-fast) var(--ease-spring-soft),
+    box-shadow var(--motion-base) var(--ease-out-quart),
+    background-color var(--motion-base) var(--ease-out-quart),
+    border-color var(--motion-base) var(--ease-out-quart),
+    color var(--motion-base) var(--ease-out-quart);
 }
 .tap:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
+}
+
+/* Keyboard focus ring for ad-hoc controls that aren't the design-system
+   Button (which carries its own ring). Two-stop shadow = canvas gap +
+   accent ring, so it reads on any surface without layout shift. */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-canvas),
+    0 0 0 4px var(--color-accent-500);
+}
+
+/* Inset variant for controls inside `overflow-hidden` parents (segmented
+   steppers, tab bars) where an outer ring would be clipped. */
+.focus-ring-inset:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--color-accent-500);
 }
 
 /* Hover lift — cards, tiles. Pairs with default hover styles. */
 .lift {
   transition:
-    transform var(--motion-base) var(--ease-out-quart),
+    transform var(--motion-base) var(--ease-spring-soft),
     box-shadow var(--motion-base) var(--ease-out-quart),
     border-color var(--motion-base) var(--ease-out-quart);
 }
 @media (hover: hover) {
   .lift:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     box-shadow: var(--shadow-md);
+  }
+}
+
+/* --- 3D lift enhancement -----------------------------------------
+   Layer `lift-3d` ALONGSIDE `lift` (`class="lift lift-3d"`). On a
+   real pointer with motion enabled, hover adds a gentle perspective
+   tilt + scale so the tile reads as a physical card rising toward
+   the viewer. Defined after `.lift` so it overrides the flat hover
+   only when this media matches; touch / reduced-motion users keep
+   the plain `.lift` translate. Origin-aware: the tilt pivots from
+   the tile's centre-bottom so it hinges up rather than rocking. */
+@media (hover: hover) and (pointer: fine) {
+  @media (prefers-reduced-motion: no-preference) {
+    .lift-3d {
+      transform-style: preserve-3d;
+      transform-origin: center bottom;
+      transition:
+        transform var(--motion-base) var(--ease-spring-soft),
+        box-shadow var(--motion-base) var(--ease-out-quart),
+        border-color var(--motion-base) var(--ease-out-quart);
+    }
+    .lift-3d:hover {
+      transform: perspective(900px) translateY(-4px) rotateX(2.6deg) scale(1.012);
+      box-shadow: var(--shadow-lg);
+    }
   }
 }
 
@@ -1217,8 +1359,13 @@ html {
   opacity: 1;
 }
 .nav-progress-bar {
-  transition: width var(--motion-base) var(--ease-out-quart);
+  /* GPU-composited fill: the bar is full-width and scaled on the X axis
+     (origin left) rather than animating `width`, so the tween never
+     triggers layout. */
+  transform-origin: left center;
+  transition: transform var(--motion-base) var(--ease-out-quart);
   box-shadow: 0 0 8px 0 var(--color-accent-500);
+  will-change: transform;
 }
 @media (prefers-reduced-motion: reduce) {
   .nav-progress-bar {
@@ -1353,8 +1500,8 @@ html {
   transform: translate3d(0, -8px, 0) scale(0.96);
   transform-origin: top center;
   transition:
-    opacity 280ms cubic-bezier(0.4, 0, 0.2, 1),
-    transform 420ms cubic-bezier(0.34, 1.32, 0.64, 1);
+    opacity 280ms var(--ease-standard),
+    transform 420ms var(--ease-spring-soft);
   pointer-events: none;
   will-change: opacity, transform;
 }
@@ -1381,7 +1528,7 @@ html {
   }
 }
 .card-grade-fade {
-  animation: card-grade-fade-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: card-grade-fade-in 600ms var(--ease-out-expo) both;
 }
 
 /* Homepage hero fan — subtle ambient float so the static gallery feels
@@ -1428,7 +1575,7 @@ html {
 /* ----- BottomSheet content stagger -----
    Children of `.sheet-stagger > *` fade-up on sheet open. */
 .sheet-stagger > * {
-  animation: sheet-child-in 320ms var(--ease-out-quart) backwards;
+  animation: sheet-child-in 360ms var(--ease-spring-soft) backwards;
 }
 .sheet-stagger > *:nth-child(1) { animation-delay: 60ms; }
 .sheet-stagger > *:nth-child(2) { animation-delay: 110ms; }
@@ -1440,6 +1587,15 @@ html {
 @keyframes sheet-child-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Chat message bubbles spring in on mount (initial open + each new message). */
+.chat-msg-in {
+  animation: chat-msg-in 340ms var(--ease-spring-soft) backwards;
+}
+@keyframes chat-msg-in {
+  from { opacity: 0; transform: translateY(7px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .floating-dock {
@@ -1466,7 +1622,7 @@ html {
   }
 }
 .floating-dock {
-  animation: floating-dock-in 360ms cubic-bezier(0.34, 1.32, 0.64, 1) both;
+  animation: floating-dock-in 360ms var(--ease-spring-soft) both;
   transform-origin: bottom right;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1688,5 +1844,121 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .grade-tabs-pill {
     transition: none;
+  }
+}
+
+/* ============================================================
+   2026 motion toolkit
+   ------------------------------------------------------------
+   Additive, progressively-enhanced building blocks for the hero
+   and product/category tiles. Everything here is either
+   `@supports`-guarded or degrades to a static, fully-visible
+   state, so a browser without the feature simply shows the
+   content with no motion. All motion is disabled under
+   `prefers-reduced-motion: reduce`.
+   ============================================================ */
+
+/* --- Animatable custom properties --------------------------------
+   Registering these with `@property` gives them a type, so the
+   browser can INTERPOLATE them across transitions/animations
+   (un-registered custom props snap instead of tweening). Used by
+   the conic glow ring and the 3D tilt helpers below. */
+@property --glow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@property --tilt-rx {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@property --tilt-ry {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@property --lift-z {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* --- GPU 3D primitives -------------------------------------------
+   `.scene-3d` establishes the shared perspective; `.depth-3d`
+   children transform on the Z axis inside it. `translateZ(0)` on
+   the scene also promotes it to its own compositor layer. */
+.scene-3d {
+  perspective: 1200px;
+  perspective-origin: center;
+}
+.depth-3d {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* Conic glow ring — animate the registered `--glow-angle` so the
+   highlight orbits the border. Pure paint on a single element; no
+   layout. Opt in with `.glow-ring`. */
+@keyframes glow-orbit {
+  to {
+    --glow-angle: 360deg;
+  }
+}
+.glow-ring {
+  position: relative;
+  isolation: isolate;
+}
+.glow-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--glow-angle),
+    transparent 0deg,
+    color-mix(in srgb, var(--color-accent-500) 70%, transparent) 90deg,
+    transparent 200deg
+  );
+  /* Mask the fill so only the 1px ring shows. */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--motion-base) var(--ease-out-quart);
+  pointer-events: none;
+}
+.glow-ring:hover::before,
+.glow-ring:focus-within::before {
+  opacity: 1;
+  animation: glow-orbit 4s linear infinite;
+}
+
+/* --- Native scroll-driven reveal ---------------------------------
+   When the browser supports scroll-driven animations we let the
+   compositor run the reveal off the main thread, tied to the
+   element's own view progress — no IntersectionObserver, no JS.
+   Falls back (no `@supports`) to a plain visible element. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .scroll-reveal {
+      animation: scroll-reveal-in both;
+      animation-timeline: view();
+      /* Start as the top edge enters, finish ~35% up the viewport. */
+      animation-range: entry 0% cover 35%;
+    }
+  }
+}
+@keyframes scroll-reveal-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 24px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
   }
 }

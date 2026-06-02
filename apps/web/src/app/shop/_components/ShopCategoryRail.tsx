@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { classNames } from "@store/shared";
 
-import { LucideIconRenderer } from "@/components/shared/LucideIconRenderer";
+import { Icon } from "@/components/shared/Icon";
 import type { StorefrontCategory } from "@/lib/storefront/queries";
 
 interface ShopCategoryRailProps {
@@ -25,7 +25,7 @@ export function ShopCategoryRail({ activeSlug, categories }: ShopCategoryRailPro
 
       <nav
         aria-label="Shop categories"
-        className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 scrollbar-none snap-x snap-mandatory md:mx-0 md:flex-wrap md:gap-3 md:overflow-visible md:px-0 md:pb-0"
+        className="reveal-stagger -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 scrollbar-none snap-x snap-mandatory md:mx-0 md:flex-wrap md:gap-3 md:overflow-visible md:px-0 md:pb-0"
       >
         {categories.map((category) => (
           <CategoryRailPill
@@ -48,7 +48,7 @@ function CategoryRailPill({
 }) {
   const isAvailable = category.isActive;
   const className = classNames(
-    "tap inline-flex shrink-0 snap-start items-center gap-2 rounded-[var(--radius-full)] border px-3.5 py-2 text-[13px] font-semibold tracking-tight transition-[border-color,background-color,color] duration-[var(--motion-fast)] md:px-4 md:py-2.5 md:text-[14px]",
+    "tap inline-flex w-full items-center gap-2 rounded-[var(--radius-full)] border px-3.5 py-2 text-[13px] font-semibold tracking-tight transition-[border-color,background-color,color] duration-[var(--motion-fast)] md:px-4 md:py-2.5 md:text-[14px]",
     isActive
       ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)]"
       : isAvailable
@@ -58,11 +58,10 @@ function CategoryRailPill({
 
   const inner = (
     <>
-      <LucideIconRenderer
-        name={category.icon}
+      <Icon
+        node={category.iconNode}
         size={16}
         strokeWidth={2.2}
-        aria-hidden
         className="shrink-0"
       />
       <span className="whitespace-nowrap">{category.label}</span>
@@ -74,15 +73,11 @@ function CategoryRailPill({
     </>
   );
 
-  if (!isAvailable) {
-    return (
-      <span aria-disabled className={className}>
-        {inner}
-      </span>
-    );
-  }
-
-  return (
+  const pill = !isAvailable ? (
+    <span aria-disabled className={className}>
+      {inner}
+    </span>
+  ) : (
     <Link
       href={`/shop/${category.slug}`}
       scroll={false}
@@ -92,6 +87,11 @@ function CategoryRailPill({
       {inner}
     </Link>
   );
+
+  // Reveal lives on the wrapper so the pill keeps its own interaction
+  // transitions (`.tap`, hover border) — `.reveal` is unlayered and would
+  // otherwise clobber the pill's `transition-*` utilities.
+  return <div className="reveal flex shrink-0 snap-start">{pill}</div>;
 }
 
 interface ShopCategoryHubGridProps {
@@ -101,9 +101,9 @@ interface ShopCategoryHubGridProps {
 /** Full category chooser for `/shop` when multiple categories exist. */
 export function ShopCategoryHubGrid({ categories }: ShopCategoryHubGridProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="reveal-stagger grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:grid-cols-5">
       {categories.map((category) => (
-        <div key={category.slug} className="h-full">
+        <div key={category.slug} className="reveal h-full">
           <CategoryHubCard category={category} />
         </div>
       ))}
@@ -125,7 +125,7 @@ function CategoryHubCard({ category }: { category: StorefrontCategory }) {
       )}
     >
       <span className="grid size-12 place-items-center rounded-[var(--radius-md)] border border-[var(--color-accent-400)]/30 bg-gradient-to-br from-[var(--color-accent-50)] to-[var(--color-accent-100)]/60 text-[var(--color-accent-800)] shadow-[var(--shadow-sm)]">
-        <LucideIconRenderer name={category.icon} size={22} strokeWidth={2.2} aria-hidden />
+        <Icon node={category.iconNode} size={22} strokeWidth={2.2} />
       </span>
       <div className="min-w-0 w-full space-y-1">
         <p className="font-semibold tracking-tight text-[var(--color-ink-900)] md:text-[17px]">

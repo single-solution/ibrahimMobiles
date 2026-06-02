@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { classNames } from "@store/shared";
+
+import { usePresence } from "@/components/shared/motion/usePresence";
+import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
+
+/** Matches the `sheet-down` / `sheet-fade-out` exit duration in globals.css. */
+const SHEET_EXIT_MS = 240;
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -37,6 +43,12 @@ export function BottomSheet({
   showCloseButton = true,
   contentClassName,
 }: BottomSheetProps) {
+  const { isMounted, status } = usePresence(isOpen, SHEET_EXIT_MS);
+  const isClosing = status === "closing";
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(dialogRef, isOpen);
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -59,7 +71,7 @@ export function BottomSheet({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) {
+  if (!isMounted) {
     return null;
   }
 
@@ -71,15 +83,21 @@ export function BottomSheet({
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 animate-sheet-fade bg-[var(--color-ink-900)]/40"
+        className={classNames(
+          "absolute inset-0 bg-[var(--color-ink-900)]/40",
+          isClosing ? "animate-sheet-fade-out" : "animate-sheet-fade",
+        )}
       />
 
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        tabIndex={-1}
         className={classNames(
-          "relative flex flex-col overflow-hidden bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] animate-sheet-up",
+          "relative flex flex-col overflow-hidden bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] outline-none",
+          isClosing ? "animate-sheet-down" : "animate-sheet-up",
           HEIGHT_CLASSES[height],
           isFull ? "rounded-none" : "rounded-t-[var(--radius-xl)]",
         )}
@@ -112,7 +130,7 @@ export function BottomSheet({
                 type="button"
                 aria-label="Close"
                 onClick={onClose}
-                className="-mr-2 grid size-9 shrink-0 place-items-center rounded-full text-[var(--color-ink-600)] active:bg-[var(--color-surface-muted)]"
+                className="tap focus-ring -mr-2 grid size-9 shrink-0 place-items-center rounded-full text-[var(--color-ink-600)] transition-colors hover:bg-[var(--color-canvas-deep)] active:bg-[var(--color-surface-muted)]"
               >
                 <X size={18} />
               </button>

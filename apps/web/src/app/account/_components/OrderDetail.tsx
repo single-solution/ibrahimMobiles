@@ -96,7 +96,7 @@ export function OrderDetail({ order }: OrderDetailProps) {
         All orders
       </Link>
 
-      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div className="reveal mt-2 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
             Order
@@ -127,25 +127,41 @@ export function OrderDetail({ order }: OrderDetailProps) {
       </div>
 
       <div className="mt-5 grid gap-4 md:mt-8 md:grid-cols-[1fr_360px] md:gap-6 lg:gap-8">
-        <div className="space-y-4">
+        <div className="reveal-stagger space-y-4">
           {order.status === "pending-payment" && (
-            <PaymentInstructionsCard
-              payment={order.payment}
-              orderNumber={order.orderNumber}
-              totalRupees={order.totals.totalRupees}
-            />
+            <div className="reveal">
+              <PaymentInstructionsCard
+                payment={order.payment}
+                orderNumber={order.orderNumber}
+                totalRupees={order.totals.totalRupees}
+              />
+            </div>
           )}
-          {!isCancelled && order.timeline.length > 0 && <StatusTimelinePanel order={order} />}
-          <ItemsCard order={order} />
-          <SupportCard orderNumber={order.orderNumber} />
+          {!isCancelled && order.timeline.length > 0 && (
+            <div className="reveal">
+              <StatusTimelinePanel order={order} />
+            </div>
+          )}
+          <div className="reveal">
+            <ItemsCard order={order} />
+          </div>
+          <div className="reveal">
+            <SupportCard orderNumber={order.orderNumber} />
+          </div>
         </div>
 
-        <aside className="space-y-4 md:sticky md:top-[calc(var(--desktop-header-h)+24px)] md:self-start">
-          <SummaryCard order={order} paymentLabel={paymentLabel} />
+        <aside className="reveal-stagger space-y-4 md:sticky md:top-[calc(var(--desktop-header-h)+24px)] md:self-start">
+          <div className="reveal">
+            <SummaryCard order={order} paymentLabel={paymentLabel} />
+          </div>
           {order.address && order.delivery === "courier" ? (
-            <AddressCard address={order.address} />
+            <div className="reveal">
+              <AddressCard address={order.address} />
+            </div>
           ) : order.delivery === "pickup" ? (
-            <PickupCard />
+            <div className="reveal">
+              <PickupCard />
+            </div>
           ) : null}
         </aside>
       </div>

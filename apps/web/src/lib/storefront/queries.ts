@@ -32,7 +32,6 @@ import {
 } from "@store/db";
 import {
   escapeRegex,
-  hasStructuredContent,
   logger,
   normalizeIconName,
   normalizeStructuredContent,
@@ -47,6 +46,7 @@ import {
 } from "@store/shared";
 
 import {
+  attachBulletIconNodes,
   toStorefrontBrand,
   toStorefrontAttribute,
   toStorefrontGrade,
@@ -58,6 +58,8 @@ import {
   type OfferLean,
   type ProductLean,
 } from "@/lib/storefront/serializers";
+import { resolveIconNode } from "@/lib/icons/iconNode";
+import type { IconNode } from "@/lib/icons/types";
 
 // Public visibility filter — re-used by every product query so a draft / off
 // product can't slip through.
@@ -519,6 +521,8 @@ export interface StorefrontCategory {
   label: string;
   description: string;
   icon: IconName;
+  /** Pre-resolved lucide geometry so the client renders icons with no registry. */
+  iconNode: IconNode;
   isActive: boolean;
   sortOrder: number;
   /** Optional structured copy (summary + icon-tagged bullets). */
@@ -550,14 +554,16 @@ export async function getStorefrontCategories(): Promise<StorefrontCategory[]> {
       return [];
     }
     const content = normalizeStructuredContent(category.content, category.description);
+    const icon = normalizeIconName(category.icon);
     return {
       slug,
       label: category.label,
       description: category.description,
-      icon: normalizeIconName(category.icon),
+      icon,
+      iconNode: resolveIconNode(icon),
       isActive: category.isActive,
       sortOrder: category.sortOrder ?? 0,
-      content: hasStructuredContent(content) ? content : undefined,
+      content: attachBulletIconNodes(content),
     };
   });
 }
@@ -604,14 +610,16 @@ export async function getStorefrontCategoryBySlug(
     return null;
   }
   const content = normalizeStructuredContent(category.content, category.description);
+  const icon = normalizeIconName(category.icon);
   return {
     slug: resolvedSlug,
     label: category.label,
     description: category.description,
-    icon: normalizeIconName(category.icon),
+    icon,
+    iconNode: resolveIconNode(icon),
     isActive: category.isActive,
     sortOrder: category.sortOrder ?? 0,
-    content: hasStructuredContent(content) ? content : undefined,
+    content: attachBulletIconNodes(content),
   };
 }
 
