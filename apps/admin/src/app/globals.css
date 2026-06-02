@@ -237,11 +237,11 @@ html {
 /* Tap feedback — apply on any interactive element to get a soft press. */
 .tap {
   transition:
-    transform var(--motion-fast) var(--ease-out-quart),
+    transform var(--motion-fast) var(--ease-spring),
     box-shadow var(--motion-base) var(--ease-out-quart);
 }
 .tap:active {
-  transform: scale(0.97);
+  transform: scale(0.92);
 }
 
 /* Hover lift — KPI cards, list rows. */
