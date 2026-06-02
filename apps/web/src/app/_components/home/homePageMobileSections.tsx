@@ -136,7 +136,7 @@ export function MobileHero({ heroProducts, settings, categoryLabels, shopHref }:
       </div>
 
       <div className="relative z-10 flex w-full flex-col items-center gap-3">
-        <MagneticHover>
+        <MagneticHover strength={0.2} maxOffset={16} className="p-8">
           <Link
             href={shopHref}
             className="cta-arrow tap inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent-500)] px-6 text-[14px] font-semibold text-[var(--color-ink-900)] shadow-[0_8px_24px_-12px_color-mix(in_srgb,var(--color-accent-500)_70%,transparent)] transition-shadow active:bg-[var(--color-accent-600)]"
