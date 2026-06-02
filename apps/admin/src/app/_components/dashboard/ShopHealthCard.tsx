@@ -36,57 +36,6 @@ const SEVERITY_TONE: Record<
 };
 
 const HEADER_TONE: Record<ShopHealthSeverity, string> = {
-  error: "bg-rose-50/80 text-rose-900 border-rose-200",
-  warn: "bg-amber-50/80 text-amber-900 border-amber-200",
-  info: "bg-sky-50/70 text-sky-900 border-sky-200",
-};
-
-const HEADER_TONE_BADGE: Record<ShopHealthSeverity, string> = {
-  error: "bg-rose-500 text-white",
-  warn: "bg-amber-500 text-white",
-  info: "bg-sky-500 text-white",
-};
-
-const PREVIEW_LIMIT = 4;
-
-import Link from "next/link";
-import {
-  AlertTriangle,
-  ArrowRight,
-  CheckCircle2,
-  Info,
-  ShieldCheck,
-} from "lucide-react";
-import { classNames } from "@store/shared";
-
-import type {
-  ShopHealthCheck,
-  ShopHealthSeverity,
-  ShopHealthSummary,
-} from "@/lib/server/shopHealth";
-
-const SEVERITY_TONE: Record<
-  ShopHealthSeverity,
-  { row: string; pill: string; icon: typeof AlertTriangle }
-> = {
-  error: {
-    row: "border-rose-200 bg-rose-50/70",
-    pill: "bg-rose-500/15 text-rose-700",
-    icon: AlertTriangle,
-  },
-  warn: {
-    row: "border-amber-200 bg-amber-50/60",
-    pill: "bg-amber-500/15 text-amber-800",
-    icon: AlertTriangle,
-  },
-  info: {
-    row: "border-[var(--color-ink-100)] bg-[var(--color-canvas)]",
-    pill: "bg-[var(--color-canvas-deep)] text-[var(--color-ink-600)]",
-    icon: Info,
-  },
-};
-
-const HEADER_TONE: Record<ShopHealthSeverity, string> = {
   error: "text-rose-900 border-rose-200",
   warn: "text-amber-900 border-amber-200",
   info: "text-sky-900 border-sky-200",
