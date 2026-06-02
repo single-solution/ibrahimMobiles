@@ -92,7 +92,7 @@ export function GradeShowcase({ product, variant = "desktop" }: GradeShowcasePro
   }
 
   return (
-    <section className="cv-auto mt-16 grid grid-cols-[1fr_1.1fr] gap-8 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-8">
+    <section className="cv-auto mt-16 grid grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-8 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-8">
       <VideoFrame
         label={descriptor.label}
         accentColor={accentColor}

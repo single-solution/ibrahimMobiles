@@ -283,7 +283,7 @@ export default async function ProductDetailPage({
       </div>
 
       {/* Desktop */}
-      <div className="pdp-shell reveal-stagger mx-auto hidden max-w-[1440px] px-6 pb-12 pt-8 md:block">
+      <div className="pdp-shell reveal-stagger mx-auto hidden w-full max-w-[1440px] px-6 pb-12 pt-8 md:block">
         <div className="reveal">
           <Breadcrumbs
             shopHref={shopHref}
