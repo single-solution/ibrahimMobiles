@@ -50,43 +50,45 @@ export function KpiCard({
     <div
       title={hint || changeLabel || label}
       className={classNames(
-        "lift flex h-full flex-col justify-center rounded-[var(--radius-lg)] border px-4 py-3",
-        TONE_CONTAINER[tone],
+        "group relative flex h-full flex-col justify-center px-4 py-4 transition-colors sm:px-5 sm:py-5",
+        tone === "accent"
+          ? "bg-[var(--color-accent-50)] hover:bg-[var(--color-accent-100)]/60"
+          : "bg-[var(--color-surface)] hover:bg-[var(--color-canvas-deep)]/50",
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+        <p className="text-[13px] font-medium text-[var(--color-ink-600)] transition-colors group-hover:text-[var(--color-ink-900)]">
           {label}
         </p>
         {icon && (
           <span
             className={classNames(
-              "grid size-7 place-items-center rounded-[var(--radius-md)]",
-              TONE_ICON_BADGE[tone],
+              "text-[var(--color-ink-400)] transition-colors group-hover:text-[var(--color-ink-600)]",
+              tone === "accent" && "text-[var(--color-accent-700)] group-hover:text-[var(--color-accent-800)]",
             )}
           >
             {icon}
           </span>
         )}
       </div>
-      <div className="mt-2 flex items-end justify-between gap-2">
+      <div className="mt-3 flex items-end justify-between gap-2">
         <div>
-          <p className="text-[20px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
+          <p className="text-[24px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)] sm:text-[28px]">
             {value}
           </p>
           {typeof changePercent === "number" && (
             <p
               className={classNames(
-                "mt-1.5 flex items-center gap-0.5 text-[11px] font-semibold",
+                "mt-2 flex items-center gap-0.5 text-[11.5px] font-semibold",
                 isPositive ? "text-[var(--color-accent-700)]" : "text-rose-600",
               )}
             >
-              {isPositive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+              {isPositive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
               {Math.abs(changePercent)}%
             </p>
           )}
         </div>
-        {spark && <div className="shrink-0 pb-0.5 opacity-90">{spark}</div>}
+        {spark && <div className="shrink-0 pb-1 opacity-90 transition-opacity group-hover:opacity-100">{spark}</div>}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import {
   AlertTriangle,
+  ArrowRight,
   Boxes,
   CalendarDays,
   CheckCircle2,
@@ -276,14 +277,14 @@ export default async function AdminOverviewPage({
  * is no longer the grid, it's the dashboard container.
  */
 const DESKTOP_KPI_GRID =
-  "grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4";
+  "reveal-stagger grid grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--color-ink-100)] border border-[var(--color-ink-100)] rounded-[var(--radius-lg)] overflow-hidden shadow-[var(--shadow-sm)]";
 
 /* ─────────────────────────── Mobile data slots ─────────────────────────── */
 
 async function MobileTodayKpis() {
   const kpis = await loadDashboardKpisCached();
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="reveal-stagger grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-ink-100)] shadow-[var(--shadow-sm)]">
       <MobileStat
         label="Orders"
         value={String(kpis.ordersToday)}
@@ -313,7 +314,7 @@ async function MobileTodayKpis() {
 async function MobileMonthKpis() {
   const kpis = await loadDashboardKpisCached();
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="reveal-stagger grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-ink-100)] shadow-[var(--shadow-sm)]">
       <MobileStat
         label="Orders"
         value={String(kpis.ordersThisMonth)}
@@ -536,19 +537,19 @@ async function DesktopRecentInquiries() {
   const items = recentInquiries.slice(0, DESKTOP_RECENT_INQUIRIES_COUNT);
   return (
     <>
-      <div className="flex items-center justify-between gap-2 border-b border-[var(--color-ink-100)] px-3 py-2">
-        <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+      <div className="flex items-center justify-between gap-2 border-b border-[var(--color-ink-100)] px-4 py-2.5 md:px-5 bg-[var(--color-canvas-deep)]">
+        <p className="text-[13px] font-semibold text-[var(--color-ink-900)] md:text-sm">
           Recent inquiries
         </p>
         <Link
           href="/inquiries"
-          className="tap text-[10.5px] font-semibold text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
+          className="tap inline-flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
         >
-          View all
+          View all <ArrowRight size={11} />
         </Link>
       </div>
       {items.length === 0 ? (
-        <p className="px-3 py-4 text-center text-[11.5px] text-[var(--color-ink-500)]">
+        <p className="px-4 py-4 text-center text-[12.5px] text-[var(--color-ink-500)] md:px-5">
           No inquiries yet.
         </p>
       ) : (
@@ -560,22 +561,24 @@ async function DesktopRecentInquiries() {
                 <Link
                   href={`/inquiries?inquiry=${inquiry.id}`}
                   title={inquiry.subjectProductName ?? inquiry.lastMessagePreview}
-                  className="tap flex items-center gap-2.5 px-3 py-2 hover:bg-[var(--color-canvas-deep)]"
+                  className="tap flex items-center gap-3 px-4 py-3 md:px-5 hover:bg-[var(--color-canvas-deep)] transition-colors"
                 >
-                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[10.5px] font-semibold text-[var(--color-ink-700)]">
+                  <span className="grid size-6 shrink-0 place-items-center rounded-[var(--radius-sm)] bg-[var(--color-canvas-deep)] text-[10px] font-semibold text-[var(--color-ink-700)]">
                     {getInitials(inquiry.customerName)}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <p className="truncate text-[12.5px] font-semibold text-[var(--color-ink-900)]">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-[12.5px] font-medium text-[var(--color-ink-900)]">
                         {inquiry.customerName}
                       </p>
                       {inquiry.unreadByTeam > 0 && (
-                        <StatusPill tone="danger">{inquiry.unreadByTeam}</StatusPill>
+                        <span className="inline-flex items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                          {inquiry.unreadByTeam}
+                        </span>
                       )}
                     </div>
                   </div>
-                  <span className="shrink-0 text-[10.5px] font-medium text-[var(--color-ink-400)]">
+                  <span className="shrink-0 text-[11px] font-medium text-[var(--color-ink-400)]">
                     {formatTimeAgo(inquiry.lastMessageAt, nowReferenceIso)}
                   </span>
                 </Link>
@@ -591,14 +594,14 @@ async function DesktopRecentInquiries() {
 function DesktopRecentInquiriesFallback() {
   return (
     <>
-      <div className="flex items-center justify-between gap-2 border-b border-[var(--color-ink-100)] px-3 py-2">
-        <Skeleton shape="text" className="h-3 w-24" />
+      <div className="flex items-center justify-between gap-2 border-b border-[var(--color-ink-100)] px-4 py-2.5 md:px-5 bg-[var(--color-canvas-deep)]">
+        <Skeleton shape="text" className="h-3.5 w-24" />
         <Skeleton shape="text" className="h-3 w-12" />
       </div>
       <ul className="divide-y divide-[var(--color-ink-100)]">
         {Array.from({ length: DESKTOP_RECENT_INQUIRIES_COUNT }).map((_, index) => (
-          <li key={index} className="flex items-center gap-2.5 px-3 py-2">
-            <Skeleton shape="circle" className="size-7 shrink-0" />
+          <li key={index} className="flex items-center gap-3 px-4 py-3 md:px-5">
+            <Skeleton shape="circle" className="size-6 shrink-0" />
             <div className="min-w-0 flex-1 space-y-1.5">
               <Skeleton shape="text" className="h-3 w-20" />
               <Skeleton shape="text" className="h-2.5 w-28" />
@@ -723,8 +726,8 @@ function DesktopPerformanceFallback() {
 
 function ShopHealthFallback() {
   return (
-    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
-      <div className="border-b border-[var(--color-ink-100)] px-4 py-3 md:px-5">
+    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+      <div className="border-b border-[var(--color-ink-100)] px-4 py-2.5 md:px-5 bg-[var(--color-canvas-deep)]">
         <Skeleton shape="text" className="h-4 w-28" />
       </div>
       <div className="divide-y divide-[var(--color-ink-100)]">
@@ -739,7 +742,7 @@ function ShopHealthFallback() {
 function ShopHealthRowSkeleton() {
   return (
     <div className="flex items-center gap-3 px-4 py-3 md:px-5">
-      <Skeleton className="size-7 shrink-0" />
+      <Skeleton className="size-6 shrink-0" />
       <div className="flex-1 space-y-1.5">
         <Skeleton shape="text" className="h-3 w-48" />
         <Skeleton shape="text" className="h-2.5 w-64" />
@@ -769,27 +772,27 @@ interface MobileStatProps {
 function MobileStat({ label, value, icon, changePercent }: MobileStatProps) {
   const isPositive = (changePercent ?? 0) >= 0;
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-3">
+    <div className="bg-[var(--color-surface)] p-3.5 transition-colors hover:bg-[var(--color-canvas-deep)]">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+        <p className="text-[12px] font-medium text-[var(--color-ink-600)]">
           {label}
         </p>
-        <span className="grid size-6 place-items-center rounded-md bg-[var(--color-canvas-deep)] text-[var(--color-ink-600)]">
+        <span className="text-[var(--color-ink-400)]">
           {icon}
         </span>
       </div>
-      <div className="mt-2">
-        <p className="text-[18px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
+      <div className="mt-2.5">
+        <p className="text-[20px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
           {value}
         </p>
         {typeof changePercent === "number" && (
           <p
             className={classNames(
-              "mt-1.5 flex items-center gap-0.5 text-[10.5px] font-semibold",
+              "mt-2 flex items-center gap-0.5 text-[11px] font-semibold",
               isPositive ? "text-[var(--color-accent-700)]" : "text-rose-600",
             )}
           >
-            {isPositive ? <TrendingUp size={11} /> : <TrendingUp size={11} className="rotate-180" />}
+            {isPositive ? <TrendingUp size={12} /> : <TrendingUp size={12} className="rotate-180" />}
             {Math.abs(changePercent)}%
           </p>
         )}
