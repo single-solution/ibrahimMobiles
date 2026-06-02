@@ -269,7 +269,7 @@ function PdpGalleryInner({
                 aria-label={`Show image ${index + 1}`}
                 aria-pressed={index === activeIndex}
                 className={
-                  "tap product-media-well relative aspect-square w-24 shrink-0 rounded-md border bg-[var(--color-canvas-deep)] " +
+                  "tap product-media-well relative size-24 shrink-0 rounded-md border bg-[var(--color-canvas-deep)] " +
                   (index === activeIndex
                     ? "border-[var(--color-ink-900)]"
                     : "border-[var(--color-ink-100)] hover:border-[var(--color-ink-300)]")
@@ -329,8 +329,8 @@ function PdpGalleryInner({
               onClick={() => setActiveIndex(index)}
               aria-label={`Photo ${index + 1}`}
               aria-pressed={index === activeIndex}
-              className={
-                "tap product-media-well relative aspect-square w-24 shrink-0 rounded-[var(--radius-sm)] border bg-[var(--color-canvas-deep)] " +
+                className={
+                  "tap product-media-well relative size-24 shrink-0 rounded-[var(--radius-sm)] border bg-[var(--color-canvas-deep)] " +
                 (index === activeIndex
                   ? "border-[var(--color-ink-900)]"
                   : "border-[var(--color-ink-100)] hover:border-[var(--color-ink-300)]")

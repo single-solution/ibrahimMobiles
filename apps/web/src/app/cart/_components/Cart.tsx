@@ -116,10 +116,10 @@ function CartLine({ line }: { line: CartItem }) {
       : "/shop";
   const attributeEntries = Object.entries(line.attributes ?? {});
   return (
-    <li className="flex gap-4 p-4">
+    <li className="flex items-start gap-4 p-4">
       <Link
         href={lineProductHref}
-        className="product-media-well relative aspect-square w-20 shrink-0 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
+        className="product-media-well relative size-20 shrink-0 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
       >
         <ProductImage
           image={line.image}

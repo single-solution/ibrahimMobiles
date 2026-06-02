@@ -215,11 +215,11 @@ function CartDropdownLine({
   const attributeEntries = Object.entries(line.attributes ?? {});
 
   return (
-    <li className="flex gap-3 px-3 py-3">
+    <li className="flex items-start gap-3 px-3 py-3">
       <Link
         href={lineProductHref}
         onClick={onClose}
-        className="product-media-well relative aspect-square w-16 shrink-0 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
+        className="product-media-well relative size-16 shrink-0 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
       >
         <ProductImage
           image={image}
