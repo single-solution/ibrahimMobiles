@@ -34,7 +34,7 @@ export function CheckoutSuccess({
   const orderPayment = payment ? CHECKOUT_TO_ORDER_PAYMENT[payment] : null;
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h)-80px)] max-w-3xl items-center px-4 pb-16 pt-8 md:min-h-[calc(100dvh-var(--desktop-header-h)-160px)] md:px-6">
+    <div className="storefront-page-center mx-auto max-w-3xl">
       <div className="w-full">
         <div className="reveal" style={{ ["--reveal-delay" as string]: "60ms" }}>
           <div className="mx-auto grid size-16 place-items-center rounded-full bg-[var(--color-success-50)] text-[var(--color-success-700)] md:size-20">
@@ -48,7 +48,7 @@ export function CheckoutSuccess({
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
             Order placed
           </p>
-          <h1 className="mt-2 font-headline text-[36px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[52px]">
+          <h1 className="mt-2 font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
             Thank you, your order is in.
           </h1>
           <p className="mt-2 text-[14px] text-[var(--color-ink-600)] md:text-[15px]">

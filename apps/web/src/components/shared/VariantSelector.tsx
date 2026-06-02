@@ -33,6 +33,7 @@ import {
   selectionSignature,
   selectionToUrlPatch,
 } from "@/lib/catalog/pdpSelection";
+import { CART_MAX_LINES } from "@/lib/cart/store";
 import { useCart } from "@/lib/cart/useCart";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { usePdpUrlParams } from "@/lib/storefront/usePdpUrlParams";
@@ -261,7 +262,7 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
     if (quantityToAdd <= 0) {
       return;
     }
-    cart.addItem({
+    const added = cart.addItem({
       productId: product.id,
       variantId: selected.id,
       productName: product.name,
@@ -276,6 +277,12 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
       quantity: quantityToAdd,
       maxQuantity: stockQuantity,
     });
+    if (!added) {
+      toast(`Cart is full — you can hold up to ${CART_MAX_LINES} different items.`, {
+        tone: "info",
+      });
+      return;
+    }
     setHasJustBeenAdded(true);
     window.setTimeout(() => setHasJustBeenAdded(false), ADD_TO_CART_FLASH_MS);
     toast(`${product.name} added to cart`);

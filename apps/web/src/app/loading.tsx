@@ -115,7 +115,7 @@ function MobileProcessSkeleton() {
         {Array.from({ length: 3 }).map((_, index) => (
           <div
             key={index}
-            className="overflow-hidden rounded-[14px] border border-[var(--color-ink-100)] bg-[var(--color-surface)]"
+            className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]"
           >
             <div className="flex items-center gap-2.5 bg-[var(--color-ink-900)] px-3.5 py-3">
               <Skeleton shape="circle" className="size-8" />
@@ -174,7 +174,7 @@ function MobileVisitStoreSkeleton() {
         <Skeleton className="h-[88px] w-72" />
         <Skeleton shape="text" className="h-3 w-3/4" />
       </div>
-      <div className="overflow-hidden rounded-[14px] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+      <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
         <Skeleton className="aspect-[16/9] w-full rounded-none" />
         <div className="flex items-start gap-2.5 p-3.5">
           <Skeleton shape="circle" className="size-8" />

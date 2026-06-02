@@ -189,7 +189,7 @@ export function websiteJsonLd(settings: SeoSettings): Record<string, unknown> {
     url: settings.siteUrl,
     potentialAction: {
       "@type": "SearchAction",
-      target: `${settings.siteUrl}/search?q={search_term_string}`,
+      target: `${settings.siteUrl}/shop?q={search_term_string}`,
       "query-input": "required name=search_term_string",
     },
   };

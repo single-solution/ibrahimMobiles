@@ -97,6 +97,13 @@
   --shadow-md: 0 4px 14px -4px rgb(28 25 23 / 0.07);
   --shadow-lg: 0 14px 36px -10px rgb(28 25 23 / 0.12);
 
+  --z-sticky: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-dropdown: 70;
+  --z-toast: 80;
+  --z-max: 100;
+
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --motion-slow: 360ms;
@@ -111,51 +118,8 @@
   --mobile-header-h: 56px;
 }
 
-/* Desktop scale ramp — admin was deliberately compact at <=1024px (looks
-   perfect there). On wider monitors the same layout reads as tiny, so we
-   raise the rem base in steps. Every rem-based Tailwind utility (text,
-   spacing, gaps, sizes) lifts proportionally; mobile is untouched.
-       <1280px  : 16px (today's compact baseline — mobile + small laptops)
-       >=1280px : 17px  (+6.25%, user-confirmed "perfect")
-       >=1440px : 20px  (+25%, main desktop step)
-       >=1920px : 22px  (+37.5%, 1080p monitors)
-       >=2160px : 30px  (+87.5%, treats 2160 as 1.5x the 1440 step)
-       >=2880px : 36px  (+125%, 4K UHD work area)
-       >=3840px : 42px  (+162.5%, ultrawide / kiosk displays)
-   Note: @media (min-width: Nrem) uses the user-agent root font-size
-   (16px), NOT the page's html font-size — so these rem thresholds map
-   to true pixel widths even when an earlier step has already lifted
-   html font-size. */
-@media (min-width: 80rem) {
-  html {
-    font-size: 17px;
-  }
-}
-@media (min-width: 90rem) {
-  html {
-    font-size: 20px;
-  }
-}
-@media (min-width: 120rem) {
-  html {
-    font-size: 22px;
-  }
-}
-@media (min-width: 135rem) {
-  html {
-    font-size: 30px;
-  }
-}
-@media (min-width: 180rem) {
-  html {
-    font-size: 36px;
-  }
-}
-@media (min-width: 240rem) {
-  html {
-    font-size: 42px;
-  }
-}
+/* Desktop scale ramp — Temporarily disabled as requested to fix "zoomed in" feel.
+   Standard 16px base font size will be used across all breakpoints. */
 
 /* Lucide icons in flex rows — keep a stable box so strokes stay visible.
    Wrapped in @layer base so Tailwind utilities like `hidden` / `md:hidden`

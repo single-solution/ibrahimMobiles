@@ -5,6 +5,7 @@ import {
   BadgeCheck,
   Banknote,
   ChevronDown,
+  Clock,
   MapPin,
   Sparkles,
   Undo2,
@@ -21,7 +22,6 @@ import { GradesByCategoryTabs } from "@/app/_components/home/GradesByCategoryTab
 import { HeroMaskSweepHeadline } from "@/app/_components/home/HeroMaskSweepHeadline";
 import { HeroTrendingProductBand } from "@/app/_components/home/HeroTrendingProductBand";
 import type { ProcessFlow } from "@/app/_components/home/homeProcessFlows";
-import { HeroAmbience } from "@/components/shared/motion/HeroAmbience";
 import { KineticHeading } from "@/components/shared/motion/KineticHeading";
 import { MagneticHover } from "@/components/shared/motion/MagneticHover";
 import { SectionAmbience } from "@/components/shared/motion/SectionAmbience";
@@ -138,7 +138,6 @@ export function DesktopHero({ heroProducts, settings, categoryLabels, shopHref }
           "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 60%, var(--color-canvas)) 0%, var(--color-canvas) 60%, var(--color-canvas) 100%)",
       }}
     >
-      <HeroAmbience />
       <div
         className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center justify-evenly px-6 text-center"
         style={{ minHeight: "calc(100dvh - var(--desktop-header-h))" }}
@@ -253,7 +252,7 @@ export function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
          within 6px). See radius table in globals.css. */
       className={`reveal lift relative flex h-full overflow-hidden border bg-gradient-to-br ${SHOP_TYPE_DEFAULT_GRADIENT} ${
         isActive
-          ? "lift-3d border-[var(--color-ink-100)] hover:border-[var(--color-ink-200)]"
+          ? "border-[var(--color-ink-100)] hover:border-[var(--color-ink-200)]"
           : "cursor-not-allowed border-dashed border-[var(--color-ink-200)] opacity-80"
       } ${variant === "desktop" ? "min-h-[240px] flex-col rounded-[var(--radius-3xl)] p-6" : "min-h-[110px] flex-row items-center gap-3 rounded-[var(--radius-2xl)] p-3.5"}`}
       style={{ ["--reveal-delay" as string]: `${delayMs}ms` }}
@@ -278,7 +277,7 @@ export function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
           </h3>
           {!isActive && (
             <span className="inline-flex items-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)]/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-500)]">
-              <Sparkles size={10} /> Soon
+              <Clock size={10} /> Soon
             </span>
           )}
         </div>

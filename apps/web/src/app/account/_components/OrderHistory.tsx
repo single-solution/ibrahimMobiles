@@ -67,7 +67,7 @@ export function OrderHistory({ orders }: OrderHistoryProps) {
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
             History
           </p>
-          <h1 className="mt-1 font-headline text-[34px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[44px]">
+          <h1 className="mt-1 font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
             Your orders
           </h1>
         </div>
@@ -110,7 +110,7 @@ export function OrderHistory({ orders }: OrderHistoryProps) {
 
       <div className="cv-auto mt-5 md:mt-6">
         {filtered.length === 0 ? (
-          <Empty filter={filter} />
+          <Empty filter={filter} onClearFilter={() => setFilter("all")} />
         ) : (
           <ul className="reveal-stagger space-y-3">
             {filtered.map((order) => (
@@ -195,7 +195,7 @@ function OrderRow({ order }: OrderRowProps) {
   );
 }
 
-function Empty({ filter }: { filter: FilterId }) {
+function Empty({ filter, onClearFilter }: { filter: FilterId; onClearFilter: () => void }) {
   const messages: Record<FilterId, string> = {
     all: "Your orders will live here once you place your first one.",
     active: "No active orders right now — everything is delivered or pending checkout.",
@@ -208,15 +208,25 @@ function Empty({ filter }: { filter: FilterId }) {
         <Package size={20} />
       </span>
       <p className="max-w-xs text-[13px] text-[var(--color-ink-600)]">{messages[filter]}</p>
-      <ButtonLink
-        href="/shop"
-        variant="primary"
-        size="sm"
-        className="cta-arrow"
-        trailingIcon={<ArrowUpRight size={14} strokeWidth={2.4} />}
-      >
-        Browse products
-      </ButtonLink>
+      {filter === "all" ? (
+        <ButtonLink
+          href="/shop"
+          variant="primary"
+          size="sm"
+          className="cta-arrow"
+          trailingIcon={<ArrowUpRight size={14} strokeWidth={2.4} />}
+        >
+          Browse products
+        </ButtonLink>
+      ) : (
+        <button
+          type="button"
+          onClick={onClearFilter}
+          className="tap focus-ring inline-flex h-9 items-center rounded-[var(--radius-full)] bg-[var(--color-accent-500)] px-4 text-[13px] font-semibold text-[var(--color-ink-900)] transition-colors hover:bg-[var(--color-accent-600)]"
+        >
+          Clear filter
+        </button>
+      )}
     </Card>
   );
 }

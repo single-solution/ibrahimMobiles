@@ -28,29 +28,30 @@ export function SignIn() {
   }
 
   return (
-    <div className="mx-auto max-w-md px-4 pb-24 pt-8 md:pb-16 md:pt-16">
-      <div className="reveal text-center">
-        <span className="inline-grid size-12 place-items-center rounded-2xl bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
-          <ShieldCheck size={20} strokeWidth={2.4} />
-        </span>
-        <h1 className="mt-4 font-headline text-[28px] font-semibold tracking-tight text-[var(--color-ink-900)] md:text-[36px]">
-          Sign in to {siteName}
-        </h1>
-        <p className="mx-auto mt-1 max-w-prose text-[13px] text-[var(--color-ink-500)] md:text-sm">
-          We&rsquo;ll send a one-time code to your phone — no password needed.
-        </p>
+    <div className="storefront-page-center">
+      <div className="w-full max-w-md">
+        <div className="reveal text-center">
+          <span className="inline-grid size-12 place-items-center rounded-2xl bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
+            <ShieldCheck size={20} strokeWidth={2.4} />
+          </span>
+          <h1 className="mt-4 font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
+            Sign in to {siteName}
+          </h1>
+          <p className="mx-auto mt-1 max-w-prose text-[13px] text-[var(--color-ink-500)] md:text-sm">
+            We&rsquo;ll send a one-time code to your phone — no password needed.
+          </p>
+        </div>
+
+        <Card className="reveal mt-6 p-5 md:mt-8 md:p-6">
+          <PhoneOtpForm
+            phoneSubmitLabel="Send code"
+            codeSubmitLabel="Verify and sign in"
+            onVerified={handleVerified}
+            phonePlaceholder="+92 320 4862403"
+            autoFocusPhone
+          />
+        </Card>
       </div>
-
-      <Card className="reveal mt-6 p-5 md:mt-8 md:p-6">
-        <PhoneOtpForm
-          phoneSubmitLabel="Send code"
-          codeSubmitLabel="Verify and sign in"
-          onVerified={handleVerified}
-          phonePlaceholder="+92 320 4862403"
-          autoFocusPhone
-        />
-      </Card>
-
     </div>
   );
 }

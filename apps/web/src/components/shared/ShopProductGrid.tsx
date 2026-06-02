@@ -31,7 +31,7 @@ export function ShopProductGrid({
   categoryLabel,
   priorityCount = DEFAULT_PRIORITY_COUNT,
 }: ShopProductGridProps) {
-  const { params } = useFilterParams();
+  const { params, clearAll } = useFilterParams();
   const filtersActive = hasActiveListingFilters(params);
   const listingKey = params.toString();
   const isListingSwap = useSwapAnimation(listingKey);
@@ -42,6 +42,7 @@ export function ShopProductGrid({
         categoryLabel={categoryLabel}
         filtersActive={filtersActive}
         isListingSwap={isListingSwap}
+        onClearFilters={clearAll}
       />
     );
   }
@@ -69,10 +70,12 @@ function ShopListingEmptyState({
   categoryLabel,
   filtersActive,
   isListingSwap,
+  onClearFilters,
 }: {
   categoryLabel: string;
   filtersActive: boolean;
   isListingSwap: boolean;
+  onClearFilters: () => void;
 }) {
   return (
     <div
@@ -89,6 +92,15 @@ function ShopListingEmptyState({
           ? "Try clearing a filter or choosing a different grade or brand."
           : "Check back soon — we add new stock regularly."}
       </p>
+      {filtersActive ? (
+        <button
+          type="button"
+          onClick={onClearFilters}
+          className="tap focus-ring mt-5 inline-flex h-9 items-center rounded-[var(--radius-full)] bg-[var(--color-accent-500)] px-4 text-[13px] font-semibold text-[var(--color-ink-900)] transition-colors hover:bg-[var(--color-accent-600)]"
+        >
+          Clear filters
+        </button>
+      ) : null}
     </div>
   );
 }

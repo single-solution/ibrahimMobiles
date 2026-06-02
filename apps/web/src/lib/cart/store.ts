@@ -129,10 +129,13 @@ export function subscribeToCart(listener: Listener): () => void {
 
 /**
  * Add a line to the cart, merging onto an existing variant if present.
- * Silently no-ops when the cart already holds `MAX_LINES` distinct lines —
- * UI should disable add buttons before this guard ever fires.
+ * Returns `false` when the cart already holds `MAX_LINES` distinct lines so
+ * the caller can surface feedback (toast) instead of the add being a silent
+ * no-op. Merging onto an existing line always succeeds.
  */
-export function addCartItem(item: Omit<CartItem, "id" | "quantity"> & { quantity?: number }) {
+export function addCartItem(
+  item: Omit<CartItem, "id" | "quantity"> & { quantity?: number },
+): boolean {
   hydrateOnce();
   const id = `${item.productId}:${item.variantId}`;
   const maxQuantity = item.maxQuantity;
@@ -154,7 +157,7 @@ export function addCartItem(item: Omit<CartItem, "id" | "quantity"> & { quantity
     });
   } else {
     if (cachedState.items.length >= MAX_LINES) {
-      return;
+      return false;
     }
     nextItems = [
       ...cachedState.items,
@@ -162,7 +165,11 @@ export function addCartItem(item: Omit<CartItem, "id" | "quantity"> & { quantity
     ];
   }
   setState({ items: nextItems });
+  return true;
 }
+
+/** Max distinct cart lines — exported so the UI can message the cap. */
+export const CART_MAX_LINES = MAX_LINES;
 
 /** Drop a line by its compound `productId:variantId` cart ID. */
 export function removeCartItem(id: string) {

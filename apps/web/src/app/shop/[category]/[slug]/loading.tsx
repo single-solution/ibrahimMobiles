@@ -30,10 +30,12 @@ export default function ProductDetailLoading() {
     <SkeletonScreen label="Loading product">
       {/* Mobile only */}
       <div className="pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-2 md:hidden">
-        <Skeleton className="aspect-square w-full rounded-none" />
-        <div className="flex gap-2 overflow-x-auto px-4 py-2.5">
+        <div className="mx-4 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+          <Skeleton className="aspect-square w-full rounded-none" />
+        </div>
+        <div className="flex gap-2 overflow-x-auto px-4 py-2.5 mt-2">
           {Array.from({ length: MOBILE_THUMB_COUNT }).map((_, index) => (
-            <Skeleton key={index} className="aspect-square w-14 shrink-0" />
+            <Skeleton key={index} className="aspect-square w-14 shrink-0 rounded-[var(--radius-md)]" />
           ))}
         </div>
 
@@ -53,14 +55,16 @@ export default function ProductDetailLoading() {
           categoryLabel={categoryLabel}
         />
 
-        <div className="mt-6 grid grid-cols-[1.1fr_1fr] gap-12">
+        <div className="mt-6 grid grid-cols-[1.1fr_1fr] items-stretch gap-10">
           <DesktopPhotoGallerySkeleton />
-          <DesktopVariantSelectorSkeleton />
+          <div className="flex min-h-0 flex-col">
+            <DesktopVariantSelectorSkeleton />
+          </div>
         </div>
 
         <DesktopGradeShowcaseSkeleton />
 
-        <section className="cv-auto mt-20">
+        <section className="cv-auto mt-16">
           <div className="flex items-end justify-between gap-3">
             <Skeleton shape="text" className="h-8 w-72" />
             <Skeleton shape="text" className="h-3 w-28" />
@@ -117,12 +121,14 @@ function LiveBreadcrumbs({ categorySlug, categoryLabel }: LiveBreadcrumbsProps) 
 
 function DesktopPhotoGallerySkeleton() {
   return (
-    <div className="space-y-3">
-      <Skeleton className="aspect-square w-full rounded-[var(--radius-lg)]" />
-      <div className="grid grid-cols-4 gap-3">
-        {Array.from({ length: DESKTOP_THUMB_COUNT }).map((_, index) => (
-          <Skeleton key={index} className="aspect-square w-full" />
-        ))}
+    <div className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-sm)]">
+      <div className="space-y-2">
+        <Skeleton className="aspect-square w-full rounded-[var(--radius-lg)]" />
+        <div className="grid grid-cols-4 gap-2">
+          {Array.from({ length: DESKTOP_THUMB_COUNT }).map((_, index) => (
+            <Skeleton key={index} className="aspect-square w-full rounded-[var(--radius-md)]" />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -172,23 +178,27 @@ function DesktopVariantSelectorSkeleton() {
 function MobileGradeShowcaseSkeleton() {
   return (
     <section className="app-section cv-auto">
-      <div className="mb-4 space-y-1.5">
+      <div className="app-section-eyebrow mb-3">
         <Skeleton shape="text" className="h-3 w-24" />
-        <Skeleton shape="text" className="h-6 w-2/3" />
       </div>
-      <div className="space-y-2.5">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <div
-            key={index}
-            className="flex items-start gap-3 rounded-[14px] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3"
-          >
-            <Skeleton shape="pill" className="h-6 w-16 shrink-0" />
-            <div className="min-w-0 flex-1 space-y-1.5">
-              <Skeleton shape="text" className="h-3.5 w-1/2" />
-              <Skeleton shape="text" className="h-3 w-full" />
+      <div className="overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+        <div className="relative overflow-hidden bg-[var(--color-ink-900)] aspect-video w-full">
+          <Skeleton className="absolute inset-0 size-full rounded-none" />
+        </div>
+        <div className="space-y-3 p-3.5 bg-[var(--color-canvas-deep)]">
+          <div className="space-y-2">
+            <Skeleton shape="text" className="h-3.5 w-full" />
+            <Skeleton shape="text" className="h-3.5 w-[90%]" />
+            <Skeleton shape="text" className="h-3.5 w-[80%]" />
+          </div>
+          <div className="flex items-start gap-2.5 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] p-3">
+            <Skeleton shape="pill" className="h-4 w-4 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <Skeleton shape="text" className="h-3 w-24" />
+              <Skeleton shape="text" className="h-2.5 w-full mt-1" />
             </div>
           </div>
-        ))}
+        </div>
       </div>
     </section>
   );
@@ -196,22 +206,33 @@ function MobileGradeShowcaseSkeleton() {
 
 function DesktopGradeShowcaseSkeleton() {
   return (
-    <section className="cv-auto mt-20 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/40 p-8">
-      <div className="mb-6 space-y-2">
-        <Skeleton shape="text" className="h-3 w-32" />
-        <Skeleton shape="text" className="h-8 w-1/3" />
+    <section className="cv-auto mt-16 grid grid-cols-[1fr_1.1fr] gap-8 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-8">
+      <div className="relative overflow-hidden bg-[var(--color-ink-900)] aspect-[4/3] rounded-[var(--radius-lg)]">
+        <Skeleton className="absolute inset-0 size-full rounded-none" />
       </div>
-      <div className="grid grid-cols-3 gap-4">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div
-            key={index}
-            className="flex flex-col gap-2.5 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4"
-          >
-            <Skeleton shape="pill" className="h-6 w-24" />
-            <Skeleton shape="text" className="h-3 w-full" />
-            <Skeleton shape="text" className="h-3 w-3/4" />
+      <div>
+        <div className="flex items-center gap-3">
+          <Skeleton shape="pill" className="h-10 w-24" />
+          <div>
+            <Skeleton shape="text" className="h-3 w-20" />
+            <Skeleton shape="text" className="h-7 w-32 mt-1" />
           </div>
-        ))}
+        </div>
+        <div className="mt-4 space-y-2">
+          <Skeleton shape="text" className="h-4 w-full" />
+          <Skeleton shape="text" className="h-4 w-[90%]" />
+          <Skeleton shape="text" className="h-4 w-[95%]" />
+          <Skeleton shape="text" className="h-4 w-[80%]" />
+        </div>
+        <div className="mt-5 grid grid-cols-1 gap-2.5">
+          <div className="flex items-start gap-2.5 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] p-3">
+            <Skeleton shape="pill" className="h-4 w-4 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <Skeleton shape="text" className="h-3.5 w-32" />
+              <Skeleton shape="text" className="h-3 w-64 mt-1" />
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );

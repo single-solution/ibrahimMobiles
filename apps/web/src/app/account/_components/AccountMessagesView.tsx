@@ -246,7 +246,7 @@ export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProp
         </p>
         <div className="mt-1 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="font-headline text-[34px] font-semibold leading-[1.02] tracking-tight text-[var(--color-ink-900)] md:text-[44px]">
+            <h1 className="font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
               Messages
             </h1>
             <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-[var(--color-ink-500)] md:text-sm">

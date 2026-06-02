@@ -78,7 +78,7 @@ export function BottomSheet({
   const isFull = height === "full";
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end md:hidden">
+    <div className="fixed inset-0 z-modal flex flex-col justify-end md:hidden">
       <button
         type="button"
         aria-label="Close"

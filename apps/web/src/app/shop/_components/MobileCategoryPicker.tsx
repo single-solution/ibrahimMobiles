@@ -69,7 +69,7 @@ export function MobileCategoryPicker({
             const inner = (
               <span
                 className={classNames(
-                  "flex w-full items-center gap-3 rounded-[12px] border px-3 py-2.5 text-left transition-colors",
+                  "flex w-full items-center gap-3 rounded-[var(--radius-lg)] border px-3 py-2.5 text-left transition-colors",
                   isActive
                     ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-900)]"
                     : isAvailable

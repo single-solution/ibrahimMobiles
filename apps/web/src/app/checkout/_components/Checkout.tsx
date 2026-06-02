@@ -256,7 +256,13 @@ export function Checkout({ customer }: CheckoutProps) {
   }
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void handlePlaceOrder();
+      }}
+      className="mx-auto max-w-[1440px] px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8"
+    >
       <CheckoutHeader />
 
       <div className="mt-5 grid gap-6 md:mt-8 md:grid-cols-[1fr_360px] lg:grid-cols-[1fr_400px] lg:gap-8">
@@ -299,7 +305,6 @@ export function Checkout({ customer }: CheckoutProps) {
               delivery={delivery}
               hasAgreed={hasAgreed}
               onAgreedChange={setHasAgreed}
-              onPlaceOrder={handlePlaceOrder}
               isPlacing={isPlacing}
               isValid={isValid}
               pointsEarnedOnThisOrder={pointsEarnedOnThisOrder}
@@ -309,6 +314,6 @@ export function Checkout({ customer }: CheckoutProps) {
           </div>
         </aside>
       </div>
-    </div>
+    </form>
   );
 }

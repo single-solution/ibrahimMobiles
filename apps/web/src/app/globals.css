@@ -172,6 +172,13 @@
   /* Desktop header height = 64px nav row. */
   --desktop-header-h: 64px;
 
+  --z-sticky: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-dropdown: 70;
+  --z-toast: 80;
+  --z-max: 100;
+
   /* ----- Motion design tokens -----
      Durations are tuned for native-feel: 120ms for tap reactions,
      200ms for layout transitions, 360ms for entrances.
@@ -203,11 +210,14 @@
      opacity+transform transitions that read as a single smooth move. */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Soft accent wash at top of every storefront page (see html/body). */
+  /* Gentle warm wash carried down the whole page (see html/body). Warmest
+     at the top, settling to a faint warm canvas rather than cutting to flat
+     white, so long pages keep the brand tone instead of going cold. */
   --storefront-page-gradient: linear-gradient(
     180deg,
     color-mix(in srgb, var(--color-accent-50) 55%, var(--color-canvas)) 0%,
-    color-mix(in srgb, var(--color-canvas-deep) 18%, var(--color-canvas)) 50%,
+    color-mix(in srgb, var(--color-canvas-deep) 18%, var(--color-canvas)) 26%,
+    color-mix(in srgb, var(--color-canvas-deep) 7%, var(--color-canvas)) 64%,
     var(--color-canvas) 100%
   );
 }
@@ -285,21 +295,17 @@
   0%,
   4% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.55);
+    transform: translate(-50%, calc(-50% + 12px));
   }
-  10% {
+  12%,
+  72% {
     opacity: 0.28;
-    transform: translate(-50%, -50%) scale(1.08);
-  }
-  16%,
-  68% {
-    opacity: 0.28;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translate(-50%, -50%);
   }
   80%,
   100% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.85);
+    transform: translate(-50%, calc(-50% - 8px));
   }
 }
 
@@ -374,112 +380,6 @@
   }
 }
 
-/* --- Hero ambience: drifting orbs + cursor spotlight -----------
-   The component renders three blurred chartreuse/cream blobs and a
-   single radial-gradient spotlight that follows the cursor. All of
-   it sits behind the hero content (z-0, pointer-events: none). */
-.hero-ambience {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-  border-radius: inherit;
-}
-.hero-orb {
-  position: absolute;
-  display: block;
-  border-radius: 9999px;
-  filter: blur(80px);
-  opacity: 0.55;
-  will-change: transform;
-}
-/* Mobile/low-power compositing: 80px blur on a 50vw element is a real
-   jank source on mid-tier Android. Halve it under 640px — the look is
-   indistinguishable to a human, the GPU cost is not. */
-@media (max-width: 640px) {
-  .hero-orb {
-    filter: blur(40px);
-  }
-}
-/* When `HeroAmbience` reports the section is offscreen, freeze the
-   orb keyframes so the compositor can drop the blurred layer entirely.
-   Saves continuous GPU work while the user reads further down. */
-.hero-ambience[data-ambience-visible="0"] .hero-orb {
-  animation-play-state: paused;
-}
-.hero-orb--a {
-  inset: -10% auto auto -8%;
-  width: 46vw;
-  height: 46vw;
-  max-width: 520px;
-  max-height: 520px;
-  background: radial-gradient(
-    circle at 30% 30%,
-    color-mix(in srgb, var(--color-accent-200) 75%, transparent),
-    transparent 70%
-  );
-  animation: hero-orb-drift-a 22s ease-in-out infinite;
-}
-.hero-orb--b {
-  inset: auto -12% -18% auto;
-  width: 52vw;
-  height: 52vw;
-  max-width: 560px;
-  max-height: 560px;
-  background: radial-gradient(
-    circle at 60% 40%,
-    color-mix(in srgb, var(--color-accent-100) 90%, transparent),
-    transparent 72%
-  );
-  animation: hero-orb-drift-b 28s ease-in-out infinite;
-}
-.hero-orb--c {
-  inset: 30% auto auto 55%;
-  width: 32vw;
-  height: 32vw;
-  max-width: 360px;
-  max-height: 360px;
-  background: radial-gradient(
-    circle at 40% 60%,
-    color-mix(in srgb, var(--color-accent-300) 35%, transparent),
-    transparent 75%
-  );
-  opacity: 0.35;
-  animation: hero-orb-drift-c 32s ease-in-out infinite;
-}
-@keyframes hero-orb-drift-a {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50%      { transform: translate3d(4%, 6%, 0) scale(1.08); }
-}
-@keyframes hero-orb-drift-b {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50%      { transform: translate3d(-5%, -4%, 0) scale(1.1); }
-}
-@keyframes hero-orb-drift-c {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50%      { transform: translate3d(3%, -7%, 0) scale(0.92); }
-}
-.hero-spotlight {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    420px circle at var(--spot-x, 50%) var(--spot-y, 40%),
-    color-mix(in srgb, var(--color-accent-200) 38%, transparent),
-    transparent 65%
-  );
-  opacity: calc(var(--spot-active, 0) * 0.7);
-  transition: opacity 360ms var(--ease-out-quart);
-  mix-blend-mode: multiply;
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-orb {
-    animation: none;
-  }
-  .hero-spotlight {
-    display: none;
-  }
-}
 
 /* --- Kinetic-punch heading ---------------------------------------
    Characters render at their natural visible state until an
@@ -490,24 +390,20 @@
    users keep the natural state and never animate. */
 .kinetic-heading {
   display: block;
-  transform-style: preserve-3d;
 }
 .kinetic-char {
   display: inline-block;
   white-space: pre;
-  backface-visibility: hidden;
   transform-origin: 50% 100%;
 }
 @keyframes kinetic-char-in {
   from {
     opacity: 0;
-    transform: translateY(0.55em) rotateX(-78deg);
-    filter: blur(8px);
+    transform: translateY(0.5em);
   }
   to {
     opacity: 1;
-    transform: translateY(0) rotateX(0);
-    filter: blur(0);
+    transform: translateY(0);
   }
 }
 .kinetic-animate .kinetic-char {
@@ -648,7 +544,11 @@ body {
   background-color: var(--color-canvas);
   background-image: var(--storefront-page-gradient);
   background-repeat: no-repeat;
-  background-size: 100% 28rem;
+  /* Anchor the wash to the viewport so it stays a gentle full-page tint as
+     you scroll, instead of only painting the top 28rem. `fixed` is cheap
+     here — a single static gradient layer, no scroll-linked repaint. */
+  background-size: cover;
+  background-attachment: fixed;
   color: var(--color-ink-800);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -713,6 +613,30 @@ html {
   .app-shell-pad {
     padding-bottom: 0;
   }
+}
+
+/* Short / form-only pages: fill the space between header and footer and
+   center their content, so the footer rests at the viewport bottom with no
+   dead-space scroll. Relies on the shell being a `min-h-dvh flex flex-col`
+   column with `<main>` and the route wrapper carrying `flex-1` (see
+   StorefrontChrome + RouteTransition). */
+.storefront-page-center {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem 1rem;
+}
+
+/* One consistent page-title size mapped to the fluid scale, so top-level
+   headings stay symmetric across pages instead of each route picking an
+   ad-hoc px size (28/34/36/44/48/52 drift). Pair with `font-headline`. */
+.text-page-title {
+  font-size: var(--text-4xl);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
 }
 
 .safe-bottom {
@@ -1124,6 +1048,23 @@ html {
   box-shadow: inset 0 0 0 2px var(--color-accent-500);
 }
 
+/* Premium glass shine — a hairline light catching the top inner edge, so a
+   surface reads like glass without any blur/backdrop-filter. Pure box-shadow
+   paint on a pointer-events-none overlay: cheap enough for product-card grids
+   (the hard perf gate) and it never washes the content/image beneath it. */
+.glass-shine {
+  position: relative;
+}
+.glass-shine::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--color-canvas) 60%, transparent);
+}
+
 /* Hover lift — cards, tiles. Pairs with default hover styles. */
 .lift {
   transition:
@@ -1135,31 +1076,6 @@ html {
   .lift:hover {
     transform: translateY(-3px);
     box-shadow: var(--shadow-md);
-  }
-}
-
-/* --- 3D lift enhancement -----------------------------------------
-   Layer `lift-3d` ALONGSIDE `lift` (`class="lift lift-3d"`). On a
-   real pointer with motion enabled, hover adds a gentle perspective
-   tilt + scale so the tile reads as a physical card rising toward
-   the viewer. Defined after `.lift` so it overrides the flat hover
-   only when this media matches; touch / reduced-motion users keep
-   the plain `.lift` translate. Origin-aware: the tilt pivots from
-   the tile's centre-bottom so it hinges up rather than rocking. */
-@media (hover: hover) and (pointer: fine) {
-  @media (prefers-reduced-motion: no-preference) {
-    .lift-3d {
-      transform-style: preserve-3d;
-      transform-origin: center bottom;
-      transition:
-        transform var(--motion-base) var(--ease-spring-soft),
-        box-shadow var(--motion-base) var(--ease-out-quart),
-        border-color var(--motion-base) var(--ease-out-quart);
-    }
-    .lift-3d:hover {
-      transform: perspective(900px) translateY(-4px) rotateX(2.6deg) scale(1.012);
-      box-shadow: var(--shadow-lg);
-    }
   }
 }
 
@@ -1271,15 +1187,6 @@ html {
 }
 [data-item-state="entering"] {
   animation: item-in 280ms var(--ease-out-quart);
-}
-
-/* Page mount fade — applied at the route segment level. */
-@keyframes page-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.page-enter {
-  animation: page-in var(--motion-route) var(--ease-out-quart);
 }
 
 /* View Transitions API — cross-fade only the main content column on
@@ -1640,7 +1547,6 @@ html {
   }
   .reveal,
   .reveal-fade,
-  .page-enter,
   .route-enter,
   .listing-swap {
     opacity: 1 !important;
@@ -1857,85 +1763,6 @@ html {
    content with no motion. All motion is disabled under
    `prefers-reduced-motion: reduce`.
    ============================================================ */
-
-/* --- Animatable custom properties --------------------------------
-   Registering these with `@property` gives them a type, so the
-   browser can INTERPOLATE them across transitions/animations
-   (un-registered custom props snap instead of tweening). Used by
-   the conic glow ring and the 3D tilt helpers below. */
-@property --glow-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-@property --tilt-rx {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-@property --tilt-ry {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-@property --lift-z {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-/* --- GPU 3D primitives -------------------------------------------
-   `.scene-3d` establishes the shared perspective; `.depth-3d`
-   children transform on the Z axis inside it. `translateZ(0)` on
-   the scene also promotes it to its own compositor layer. */
-.scene-3d {
-  perspective: 1200px;
-  perspective-origin: center;
-}
-.depth-3d {
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-
-/* Conic glow ring — animate the registered `--glow-angle` so the
-   highlight orbits the border. Pure paint on a single element; no
-   layout. Opt in with `.glow-ring`. */
-@keyframes glow-orbit {
-  to {
-    --glow-angle: 360deg;
-  }
-}
-.glow-ring {
-  position: relative;
-  isolation: isolate;
-}
-.glow-ring::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  padding: 1px;
-  background: conic-gradient(
-    from var(--glow-angle),
-    transparent 0deg,
-    color-mix(in srgb, var(--color-accent-500) 70%, transparent) 90deg,
-    transparent 200deg
-  );
-  /* Mask the fill so only the 1px ring shows. */
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity var(--motion-base) var(--ease-out-quart);
-  pointer-events: none;
-}
-.glow-ring:hover::before,
-.glow-ring:focus-within::before {
-  opacity: 1;
-  animation: glow-orbit 4s linear infinite;
-}
 
 /* --- Native scroll-driven reveal ---------------------------------
    When the browser supports scroll-driven animations we let the

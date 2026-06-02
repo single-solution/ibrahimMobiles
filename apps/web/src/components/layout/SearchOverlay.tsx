@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Search, TrendingUp, X } from "lucide-react";
+import { ArrowLeft, History, Search, TrendingUp, X } from "lucide-react";
 import { classNames, formatPrice, type StoredImage } from "@store/shared";
 
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import { usePresence } from "@/components/shared/motion/usePresence";
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
+import { Input } from "@/components/ui/Input";
 
 interface SearchOverlayProps {
   isOpen: boolean;
@@ -33,11 +34,11 @@ const AUTOFOCUS_DELAY_MS = 60;
 const SEARCH_RESULTS_LIMIT = 10;
 /** Skeleton placeholder rows shown while results load. */
 const SKELETON_PLACEHOLDER_ROWS = 4;
-/** Static fallback chips shown when the hints endpoint is unreachable
- *  or the catalogue is too sparse to seed any. */
-const HINT_FALLBACK: string[] = ["New arrivals", "Best sellers"];
 /** Matches the `sheet-fade-out` exit duration in globals.css. */
 const SEARCH_EXIT_MS = 200;
+
+const RECENT_SEARCHES_KEY = "storefront-recent-searches";
+const MAX_RECENT_SEARCHES = 5;
 
 export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const { isMounted, status } = usePresence(isOpen, SEARCH_EXIT_MS);
@@ -48,6 +49,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hints, setHints] = useState<string[]>([]);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
   const { startNavigation } = useNavigationTransition();
@@ -61,6 +63,15 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       setResults([]);
       setHints([]);
       return;
+    }
+
+    try {
+      const stored = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+      if (stored) {
+        setRecentSearches(JSON.parse(stored).slice(0, MAX_RECENT_SEARCHES));
+      }
+    } catch {
+      // ignore
     }
 
     const previousOverflow = document.body.style.overflow;
@@ -150,8 +161,21 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     if (!trimmed) {
       return;
     }
+
+    try {
+      const stored = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+      const recent = stored ? JSON.parse(stored) : [];
+      const updated = [
+        trimmed,
+        ...recent.filter((q: string) => q.toLowerCase() !== trimmed.toLowerCase()),
+      ].slice(0, MAX_RECENT_SEARCHES);
+      window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+
     onClose();
-    const url = `/shop?q=${encodeURIComponent(trimmed)}`;
+    const url = `/search?q=${encodeURIComponent(trimmed)}`;
     startNavigation(() => router.push(url));
   }
 
@@ -166,7 +190,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       aria-modal="true"
       aria-label="Search"
       className={classNames(
-        "fixed inset-0 z-50 flex flex-col bg-[var(--color-canvas)] outline-none",
+        "fixed inset-0 z-modal flex flex-col bg-[var(--color-canvas)] outline-none",
         isClosing ? "animate-sheet-fade-out" : "animate-sheet-fade",
       )}
     >
@@ -189,11 +213,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             submitSearch(query);
           }}
         >
-          <Search
-            size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-400)]"
-          />
-          <input
+          <Input
             ref={inputRef}
             type="search"
             value={query}
@@ -202,7 +222,10 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
             aria-label="Search products"
             autoComplete="off"
             spellCheck={false}
-            className="h-11 w-full rounded-[var(--radius-full)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] pl-9 pr-10 text-[15px] text-[var(--color-ink-900)] placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:bg-[var(--color-canvas)] focus:outline-none"
+            icon={<Search size={16} />}
+            variant="search"
+            inputSize="md"
+            rounded="full"
           />
           {query && (
             <button
@@ -220,7 +243,8 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       <div className="flex-1 overflow-y-auto px-4 py-4 md:mx-auto md:w-full md:max-w-5xl">
         {query.trim().length < MIN_QUERY_LEN ? (
           <SearchEmptyState
-            hints={hints.length > 0 ? hints : HINT_FALLBACK}
+            hints={hints}
+            recentSearches={recentSearches}
             onPick={(value) => submitSearch(value)}
           />
         ) : isLoading && results.length === 0 ? (
@@ -300,33 +324,61 @@ function SearchHit({ result, onNavigate }: SearchHitProps) {
 
 interface SearchEmptyStateProps {
   hints: string[];
+  recentSearches: string[];
   onPick: (value: string) => void;
 }
 
-function SearchEmptyState({ hints, onPick }: SearchEmptyStateProps) {
-  if (hints.length === 0) {
+function SearchEmptyState({ hints, recentSearches, onPick }: SearchEmptyStateProps) {
+  if (hints.length === 0 && recentSearches.length === 0) {
     return null;
   }
   return (
-    <div>
-      <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
-        <TrendingUp size={12} />
-        Try these
-      </h3>
-      <div className="sheet-stagger mt-3 flex flex-wrap gap-2">
-        {hints.map((hint) => (
-          <button
-            key={hint}
-            type="button"
-            onClick={() => onPick(hint)}
-            className={classNames(
-              "tap rounded-[var(--radius-full)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-3.5 py-2 text-sm font-medium text-[var(--color-ink-700)] active:bg-[var(--color-surface-muted)]",
-            )}
-          >
-            {hint}
-          </button>
-        ))}
-      </div>
+    <div className="space-y-8">
+      {recentSearches.length > 0 && (
+        <div>
+          <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
+            <History size={12} />
+            Recent searches
+          </h3>
+          <div className="sheet-stagger mt-3 flex flex-wrap gap-2">
+            {recentSearches.map((search) => (
+              <button
+                key={search}
+                type="button"
+                onClick={() => onPick(search)}
+                className={classNames(
+                  "tap rounded-[var(--radius-full)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-3.5 py-2 text-sm font-medium text-[var(--color-ink-700)] active:bg-[var(--color-surface-muted)]",
+                )}
+              >
+                {search}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hints.length > 0 && (
+        <div>
+          <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
+            <TrendingUp size={12} />
+            Suggested
+          </h3>
+          <div className="sheet-stagger mt-3 flex flex-wrap gap-2">
+            {hints.map((hint) => (
+              <button
+                key={hint}
+                type="button"
+                onClick={() => onPick(hint)}
+                className={classNames(
+                  "tap rounded-[var(--radius-full)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-3.5 py-2 text-sm font-medium text-[var(--color-ink-700)] active:bg-[var(--color-surface-muted)]",
+                )}
+              >
+                {hint}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -362,7 +414,7 @@ function NoResults({ query, onSearchAll }: NoResultsProps) {
         No matches for &ldquo;{query}&rdquo;
       </p>
       <p className="mt-1 text-sm text-[var(--color-ink-500)]">
-        Try a brand, a model, or a category like &ldquo;accessories&rdquo; or &ldquo;new arrivals&rdquo;.
+        Try a brand, a model, or a category like &ldquo;accessories&rdquo; or &ldquo;smartphones&rdquo;.
       </p>
       <button
         type="button"

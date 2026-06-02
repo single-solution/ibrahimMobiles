@@ -106,7 +106,7 @@ function StatsRowSkeleton() {
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5"
+          className="rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5"
         >
           <div className="flex items-center justify-between">
             <Skeleton className="size-8 rounded-[var(--radius-md)]" />
@@ -146,7 +146,7 @@ function RecentOrderRowSkeleton() {
 
 function ProfileCardSkeleton() {
   return (
-    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+    <div className="overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
       <div className="flex items-center gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 p-4 md:p-5">
         <Skeleton shape="circle" className="size-10" />
         <div className="min-w-0 flex-1 space-y-1.5">
@@ -168,7 +168,7 @@ function ProfileCardSkeleton() {
 
 function QuickActionsSkeleton() {
   return (
-    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+    <div className="overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
       <div className="border-b border-[var(--color-ink-100)] px-4 py-3 md:px-5">
         <Skeleton shape="text" className="h-3 w-28" />
       </div>
@@ -190,7 +190,7 @@ function QuickActionsSkeleton() {
 
 function SupportCardSkeleton() {
   return (
-    <div className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
+    <div className="space-y-3 rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
       <div className="flex items-center gap-2">
         <Skeleton className="size-8 rounded-[var(--radius-md)]" />
         <Skeleton shape="text" className="h-4 w-32" />

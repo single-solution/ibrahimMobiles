@@ -668,7 +668,7 @@ function MobileKpiGridFallback() {
       {Array.from({ length: KPI_FALLBACK_COUNT }).map((_, index) => (
         <div
           key={index}
-          className="rounded-[12px] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-3"
+          className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-3"
         >
           <div className="flex items-center justify-between gap-2">
             <Skeleton shape="text" className="h-3 w-16" />
@@ -782,7 +782,7 @@ interface MobileStatProps {
 function MobileStat({ label, value, icon, changePercent }: MobileStatProps) {
   const isPositive = (changePercent ?? 0) >= 0;
   return (
-    <div className="rounded-[12px] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-3">
+    <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
           {label}

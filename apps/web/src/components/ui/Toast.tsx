@@ -125,7 +125,7 @@ function ToastViewport({ toasts, onDismiss }: ToastViewportProps) {
     <div
       aria-live="polite"
       aria-atomic="false"
-      className="pointer-events-none fixed inset-x-0 z-[80] flex flex-col items-center gap-2 px-4"
+      className="pointer-events-none fixed inset-x-0 z-toast flex flex-col items-center gap-2 px-4"
       style={{
         bottom: "calc(var(--mobile-tabbar-h, 0px) + env(safe-area-inset-bottom, 0px) + 16px)",
       }}

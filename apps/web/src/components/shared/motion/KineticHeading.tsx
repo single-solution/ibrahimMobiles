@@ -7,10 +7,10 @@ import { useEffect, useRef, type CSSProperties, type ElementType, type ReactNode
  *
  * Splits the provided text into per-character spans and runs a pure-CSS
  * keyframe when the heading enters the viewport. Each character drops in
- * from below with rotateX + blur and settles on a back-out spring for the
- * signature "punch" feel — identical to the original GSAP timeline, now
- * with zero JS animation library (an IntersectionObserver only toggles a
- * class; the compositor does the rest).
+ * from below (2D translate + fade) on a back-out spring for the signature
+ * "punch" feel, with zero JS animation library (an IntersectionObserver
+ * only toggles a class; the compositor does the rest). Strictly 2D — no
+ * perspective/rotateX — so settled text stays pixel-crisp.
  *
  *   • Lines are kept as separate blocks so descenders/x-heights line up
  *     with the surrounding type — we never collapse them into one row.
@@ -94,7 +94,7 @@ function splitCharacters(
       chars.push(
         <span
           key={`l${lineIndex}-c${cursor + i}`}
-          className="kinetic-char inline-block will-change-transform"
+          className="kinetic-char inline-block"
           data-kinetic-char
           style={{ ["--kinetic-i" as string]: String(globalIndex) } as CSSProperties}
           aria-hidden
@@ -183,7 +183,6 @@ export function KineticHeading({
       className={`kinetic-heading ${className}`.trim()}
       style={
         {
-          perspective: "640px",
           "--kinetic-stagger": `${stagger}s`,
           "--kinetic-delay": `${delay}s`,
           ...style,

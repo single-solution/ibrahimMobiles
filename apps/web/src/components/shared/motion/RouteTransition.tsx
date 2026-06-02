@@ -44,8 +44,9 @@ function supportsViewTransition(): boolean {
  *     globals.css) so the header, footer, and tab bar stay visually fixed.
  *
  * Fallback: CSS `.route-enter` keyframe on browsers without the API or when
- * the user prefers reduced motion. First paint still uses `.page-enter` on
- * `<main>`.
+ * the user prefers reduced motion. First paint has no page-wide entrance —
+ * the per-section `.reveal` motion owns it, so the same content never
+ * animates twice (page fade + section slide).
  */
 export function RouteTransition({ children }: RouteTransitionProps) {
   const pathname = usePathname();
@@ -119,8 +120,13 @@ export function RouteTransition({ children }: RouteTransitionProps) {
     };
   }, [contentKey, pathnameKey, children, snapshot.contentKey, snapshot.pathnameKey]);
 
+  // `flex min-h-0 flex-1 flex-col` passes the shell's flex stretch through to
+  // the page root, so a page that opts into `.storefront-page-center` can fill
+  // exactly the space between header and footer.
   return (
-    <div className={isEntering ? "route-enter" : undefined}>
+    <div
+      className={`flex min-h-0 flex-1 flex-col${isEntering ? " route-enter" : ""}`}
+    >
       {snapshot.node}
     </div>
   );

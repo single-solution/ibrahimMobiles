@@ -18,7 +18,6 @@ import {
   type ShopTypesSectionProps,
   type VisitStoreSectionProps,
 } from "@/app/_components/home/homePageDesktopSections";
-import { HeroAmbience } from "@/components/shared/motion/HeroAmbience";
 import { KineticHeading } from "@/components/shared/motion/KineticHeading";
 import { MagneticHover } from "@/components/shared/motion/MagneticHover";
 import { getPaymentMethods } from "@store/shared";
@@ -123,8 +122,6 @@ export function MobileHero({ heroProducts, settings, categoryLabels, shopHref }:
           "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 55%, var(--color-canvas)) 0%, var(--color-canvas) 55%, var(--color-canvas) 100%)",
       }}
     >
-      <HeroAmbience />
-
       <span className="relative z-10 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-100)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-800)]">
         <BadgeCheck size={11} />
         {pillLabel}
@@ -188,7 +185,7 @@ export function MobileProcessSection({ flows }: ProcessSectionProps) {
           return (
             <div
               key={flow.key}
-              className="reveal overflow-hidden rounded-[14px] border border-[var(--color-ink-100)] bg-[var(--color-surface)]"
+              className="reveal overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]"
             >
               <div className="flex items-center gap-2.5 bg-[var(--color-ink-900)] px-3.5 py-3 text-[var(--color-canvas)]">
                 <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
@@ -302,7 +299,7 @@ export function MobileVisitStoreSection({ settings }: VisitStoreSectionProps) {
       </div>
 
       <div
-        className="reveal overflow-hidden rounded-[14px] border border-[var(--color-ink-100)] bg-[var(--color-surface)]"
+        className="reveal overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]"
       >
         <StoreMapEmbed className="aspect-[16/9]" settings={settings} />
         <div className="flex items-start gap-2.5 p-3.5">

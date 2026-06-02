@@ -2,7 +2,7 @@ import { ButtonLink } from "@/components/ui/Button";
 
 export default function NotFoundPage() {
   return (
-    <div className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center px-4 py-12 text-center sm:py-16">
+    <div className="storefront-page-center mx-auto max-w-xl text-center">
       <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--color-accent-700)] sm:text-xs">
         404
       </p>

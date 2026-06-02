@@ -60,7 +60,7 @@ export function Drawer({
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-50 flex items-stretch justify-center sm:items-center sm:justify-center sm:p-6"
+      className="fixed inset-0 z-modal flex items-stretch justify-center sm:items-center sm:justify-center sm:p-6"
     >
       <button
         type="button"

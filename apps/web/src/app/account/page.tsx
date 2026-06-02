@@ -20,6 +20,7 @@ import {
   Package,
   Phone,
   ShieldCheck,
+  ShoppingCart,
   Sparkles,
   Star,
   Truck,
@@ -186,7 +187,7 @@ function AccountHeader({ name, joinedAt }: { name: string; joinedAt: string }) {
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
           Salam, {name.split(" ")[0]}
         </p>
-        <h1 className="mt-1 font-headline text-[36px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[52px]">
+        <h1 className="mt-1 font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
           Welcome back.
         </h1>
         <p className="mt-1 max-w-prose text-[13px] text-[var(--color-ink-500)] md:text-sm">
@@ -519,7 +520,7 @@ function ProfileCard({ customer }: ProfileCardProps) {
 
 const QUICK_ACTIONS = [
   { href: "/account/messages", icon: Headset, label: "Messages", subtitle: "Chat with our team" },
-  { href: "/checkout", icon: Package, label: "Continue checkout", subtitle: "Pick up where you left off" },
+  { href: "/checkout", icon: ShoppingCart, label: "Continue checkout", subtitle: "Pick up where you left off" },
   { href: "/account/orders", icon: Package, label: "Your orders", subtitle: "Status and order history" },
 ];
 

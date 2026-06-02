@@ -440,7 +440,7 @@ function Lightbox({
       aria-label={`Zoom view of ${name}`}
       tabIndex={-1}
       className={
-        "fixed inset-0 z-[60] flex items-center justify-center bg-[var(--color-ink-900)]/90 p-4 outline-none " +
+        "fixed inset-0 z-modal flex items-center justify-center bg-[var(--color-ink-900)]/90 p-4 outline-none " +
         (closing ? "animate-sheet-fade-out" : "animate-sheet-fade")
       }
     >

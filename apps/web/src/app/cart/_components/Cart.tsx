@@ -21,7 +21,7 @@ export function Cart() {
 
   if (cart.isEmpty) {
     return (
-      <div className="mx-auto max-w-xl px-6 py-24 text-center">
+      <div className="storefront-page-center mx-auto max-w-xl text-center">
         <span className="grid mx-auto mb-4 size-12 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[var(--color-ink-500)]">
           <ShoppingBag size={20} />
         </span>
@@ -49,7 +49,7 @@ export function Cart() {
        bottom. Desktop reverts to a normal-flow two-column grid. */
     <div className="mx-auto flex h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h)-env(safe-area-inset-bottom,0px)-32px)] max-w-[1100px] flex-col px-4 pt-4 md:block md:h-auto md:px-6 md:pb-16 md:pt-10 lg:px-8">
       <div className="flex shrink-0 flex-col gap-2 md:gap-3">
-        <h1 className="font-headline text-[28px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[42px]">
+        <h1 className="font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
           Your cart
         </h1>
         <p className="text-[13px] text-[var(--color-ink-500)] md:text-sm">

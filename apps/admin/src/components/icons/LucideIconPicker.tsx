@@ -73,7 +73,7 @@ export function LucideIconPicker({
           role="dialog"
           aria-modal="true"
           aria-label="Pick icon"
-          className="animate-sheet-fade fixed inset-0 z-[90] flex items-center justify-center bg-[var(--color-ink-900)]/35 p-4"
+          className="animate-sheet-fade fixed inset-0 z-modal flex items-center justify-center bg-[var(--color-ink-900)]/35 p-4"
         >
           {/* Concentric: inner icon grid tiles use Tailwind rounded-md
               (6) at p-4 (16) → outer 22 ≈ --radius-2xl (24, within 2px). */}

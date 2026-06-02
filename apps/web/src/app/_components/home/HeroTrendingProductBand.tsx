@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { classNames } from "@store/shared";
 
 type BandVariant = "mobile" | "desktop";
 
@@ -10,34 +11,16 @@ interface SlotLayout {
   left: number;
 }
 
+// Reduced slot count for better performance and less clutter
 const DESKTOP_SLOTS: SlotLayout[] = [
-  { size: "lg", top: 28, left: 12 },
-  { size: "md", top: 68, left: 26 },
-  { size: "sm", top: 22, left: 42 },
-  { size: "md", top: 60, left: 56 },
-  { size: "lg", top: 30, left: 72 },
-  { size: "sm", top: 66, left: 88 },
+  { size: "lg", top: 40, left: 20 },
+  { size: "md", top: 60, left: 50 },
+  { size: "sm", top: 30, left: 80 },
 ];
 
-/**
- * Mobile slot positions are tighter than desktop because the band is
- * only ~328px wide on a 360px viewport. Each label is centred on its
- * (top, left) anchor via `translate(-50%, -50%)` in the pop keyframe,
- * so its half-width extends past the anchor on each side. Approx
- * half-widths at the configured sizes (longest realistic product
- * name): sm ≈ 21%, md ≈ 27%, lg ≈ 35% of band width. Centres are
- * kept inside those safe zones so the band's `overflow-hidden` never
- * crops a label:
- *   sm  → 25 %–75 %
- *   md  → 30 %–70 %
- *   lg  → 35 %–65 %
- * Smaller sizes are placed at the outer rim, lg in the middle.
- */
 const MOBILE_SLOTS: SlotLayout[] = [
-  { size: "sm", top: 22, left: 26 },
-  { size: "lg", top: 58, left: 50 },
-  { size: "md", top: 30, left: 68 },
-  { size: "sm", top: 78, left: 30 },
+  { size: "md", top: 35, left: 30 },
+  { size: "sm", top: 65, left: 70 },
 ];
 
 const DESKTOP_SIZE_CLASS: Record<SlotLayout["size"], string> = {
@@ -52,7 +35,7 @@ const MOBILE_SIZE_CLASS: Record<SlotLayout["size"], string> = {
   sm: "text-xs",
 };
 
-const POP_CYCLE_S = 8;
+const POP_CYCLE_S = 6;
 
 interface HeroTrendingProductBandProps {
   productNames: string[];
@@ -63,9 +46,19 @@ export function HeroTrendingProductBand({
   productNames,
   variant,
 }: HeroTrendingProductBandProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Delay mounting to let the main page load smoothly without hanging
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsMounted(true);
+    }, 600); // 600ms delay to let initial paint and LCP settle
+    return () => clearTimeout(timer);
+  }, []);
+
   const slots = variant === "desktop" ? DESKTOP_SLOTS : MOBILE_SLOTS;
   const sizeClass = variant === "desktop" ? DESKTOP_SIZE_CLASS : MOBILE_SIZE_CLASS;
-  const heightClass = variant === "desktop" ? "h-[180px]" : "h-[150px]";
+  const heightClass = variant === "desktop" ? "h-[140px]" : "h-[100px]";
 
   const labels = useMemo(() => {
     if (productNames.length === 0) return [];
@@ -79,19 +72,28 @@ export function HeroTrendingProductBand({
 
   return (
     <div
-      className={`relative w-full overflow-hidden ${heightClass}`}
+      className={classNames(
+        "relative w-full overflow-hidden transition-all duration-[800ms] ease-out-quart",
+        isMounted ? heightClass : "h-0 opacity-0"
+      )}
       aria-hidden
     >
-      {labels.map((item, index) => {
+      {isMounted && labels.map((item, index) => {
         const delay = (POP_CYCLE_S / labels.length) * index;
         return (
           <span
             key={`${item.name}-${index}`}
-            className={`hero-trending-pop pointer-events-none absolute whitespace-nowrap font-bold tracking-tight text-[var(--color-ink-900)] ${sizeClass[item.size]}`}
+            className={classNames(
+              "card-chip-cycle pointer-events-none absolute whitespace-nowrap font-bold tracking-tight text-[var(--color-ink-900)]",
+              sizeClass[item.size]
+            )}
             style={{
               top: `${item.top}%`,
               left: `${item.left}%`,
+              animationDuration: `${POP_CYCLE_S}s`,
               animationDelay: `${delay}s`,
+              animationIterationCount: "infinite",
+              animationName: "hero-product-pop", // We'll redefine this to be smoother
             }}
           >
             {item.name}

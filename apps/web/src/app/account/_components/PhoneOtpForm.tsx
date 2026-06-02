@@ -4,6 +4,7 @@ import { forwardRef, useEffect, useRef, useState, type FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { ArrowRight, Phone as PhoneIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { classNames, OTP_CODE_LENGTH } from "@store/shared";
 
 const RESEND_AFTER_SECONDS = 30;
@@ -97,6 +98,7 @@ export function PhoneOtpForm({
   async function handleCodeSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (code.length < OTP_CODE_LENGTH) {
+      setError(`Please enter the full ${OTP_CODE_LENGTH}-digit code.`);
       return;
     }
     setIsVerifying(true);
@@ -122,15 +124,16 @@ export function PhoneOtpForm({
   if (step === "phone") {
     return (
       <form onSubmit={handlePhoneSubmit} className="space-y-4">
-        <OtpField
+        <Input
           label="Phone number"
           value={phone}
-          onChange={setPhone}
+          onChange={(e) => setPhone(e.target.value)}
           placeholder={phonePlaceholder}
           icon={<PhoneIcon size={14} />}
           inputMode="tel"
           autoComplete="tel"
           autoFocus={autoFocusPhone}
+          error={error}
         />
         <Button
           type="submit"
@@ -143,7 +146,6 @@ export function PhoneOtpForm({
         >
           {phoneSubmitLabel}
         </Button>
-        {error && <OtpFormError message={error} />}
       </form>
     );
   }
@@ -157,16 +159,17 @@ export function PhoneOtpForm({
         </span>
         .
       </p>
-      <OtpField
+      <Input
         ref={codeInputRef}
         label="Verification code"
         value={code}
-        onChange={(value) => setCode(value.replace(NON_DIGIT_REGEX, "").slice(0, OTP_CODE_LENGTH))}
+        onChange={(e) => setCode(e.target.value.replace(NON_DIGIT_REGEX, "").slice(0, OTP_CODE_LENGTH))}
         placeholder="123456"
         inputMode="numeric"
         autoComplete="one-time-code"
         maxLength={OTP_CODE_LENGTH}
         isMonospace
+        error={error}
       />
       <Button
         type="submit"
@@ -179,7 +182,6 @@ export function PhoneOtpForm({
       >
         {codeSubmitLabel}
       </Button>
-      {error && <OtpFormError message={error} />}
 
       <ResendControls
         resendIn={resendIn}
@@ -237,72 +239,4 @@ function ResendControls({
   );
 }
 
-export function OtpFormError({ message }: { message: string }) {
-  return (
-    <div
-      role="alert"
-      className="animate-banner-in rounded-[var(--radius-md)] border border-[var(--color-danger-100)] bg-[var(--color-danger-50)] p-3 text-[12.5px] text-[var(--color-danger-800)]"
-    >
-      {message}
-    </div>
-  );
-}
 
-interface OtpFieldProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  icon?: React.ReactNode;
-  placeholder?: string;
-  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
-  autoFocus?: boolean;
-  autoComplete?: string;
-  maxLength?: number;
-  isMonospace?: boolean;
-}
-
-const OtpField = forwardRef<HTMLInputElement, OtpFieldProps>(function OtpField(
-  {
-    label,
-    value,
-    onChange,
-    icon,
-    placeholder,
-    inputMode,
-    autoFocus,
-    autoComplete,
-    maxLength,
-    isMonospace,
-  },
-  ref,
-) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-        {label}
-      </span>
-      <span className="relative block">
-        {icon && (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-400)]">
-            {icon}
-          </span>
-        )}
-        <input
-          ref={ref}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-          inputMode={inputMode}
-          autoFocus={autoFocus}
-          autoComplete={autoComplete}
-          maxLength={maxLength}
-          className={classNames(
-            "h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] text-sm text-[var(--color-ink-900)] transition-colors placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-500)]/30",
-            icon ? "pl-9 pr-3" : "px-3.5",
-            isMonospace && "font-mono tracking-[0.4em]",
-          )}
-        />
-      </span>
-    </label>
-  );
-});

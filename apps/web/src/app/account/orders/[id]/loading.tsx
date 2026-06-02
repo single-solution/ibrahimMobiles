@@ -33,72 +33,71 @@ export default function OrderDetailLoading() {
         Back to orders
       </Link>
 
-      <div className="mt-4 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
-        <div className="flex flex-col gap-4 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/40 p-5 md:flex-row md:items-center md:justify-between md:p-7">
-          <div className="space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
-              Order
-            </p>
-            <h1 className="font-mono text-[24px] font-semibold tracking-tight text-[var(--color-ink-900)] md:text-[30px]">
-              {orderNumber || <Skeleton shape="text" className="h-9 w-56" />}
-            </h1>
-            <Skeleton shape="text" className="h-3 w-40" />
-          </div>
-          <div className="flex flex-col items-start gap-2 md:items-end">
-            <Skeleton shape="pill" className="h-6 w-32" />
-            <Skeleton shape="text" className="h-8 w-28" />
-          </div>
+      <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
+            Order
+          </p>
+          <h1 className="font-mono text-[24px] font-semibold tracking-tight text-[var(--color-ink-900)] md:text-[30px]">
+            {orderNumber || <Skeleton shape="text" className="h-9 w-56 inline-block" />}
+          </h1>
+          <Skeleton shape="text" className="h-3 w-40" />
+        </div>
+        <div className="flex flex-col items-start gap-2 md:items-end">
+          <Skeleton shape="pill" className="h-6 w-32" />
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-4 md:mt-8 md:grid-cols-[1fr_360px] md:gap-6 lg:gap-8">
+        <div className="space-y-4">
+          <section className="space-y-3 rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+            <div className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-4 py-3 md:px-5">
+              <Skeleton shape="text" className="h-3 w-28" />
+            </div>
+            <ul className="divide-y divide-[var(--color-ink-100)]">
+              {Array.from({ length: ITEM_ROW_COUNT }).map((_, index) => (
+                <li key={index} className="flex items-center gap-3 p-4 md:p-5">
+                  <Skeleton className="size-12 shrink-0 rounded-[var(--radius-md)]" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <Skeleton shape="text" className="h-3 w-20" />
+                    <Skeleton shape="text" className="h-3 w-3/4" />
+                  </div>
+                  <div className="space-y-1.5 text-right">
+                    <Skeleton shape="text" className="ml-auto h-3.5 w-16" />
+                    <Skeleton shape="text" className="ml-auto h-2.5 w-10" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="space-y-2 rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
+            <Skeleton shape="text" className="h-3 w-24" />
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="flex items-center justify-between gap-2 py-1">
+                <Skeleton shape="text" className="h-3 w-32" />
+                <Skeleton shape="text" className="h-3 w-20" />
+              </div>
+            ))}
+          </section>
         </div>
 
-        <div className="grid gap-6 p-5 md:grid-cols-[1fr_320px] md:gap-8 md:p-7 lg:grid-cols-[1fr_360px]">
-          <div className="space-y-5">
-            <section className="space-y-3">
-              <Skeleton shape="text" className="h-3 w-28" />
-              <ul className="divide-y divide-[var(--color-ink-100)] rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
-                {Array.from({ length: ITEM_ROW_COUNT }).map((_, index) => (
-                  <li key={index} className="flex gap-3 p-4">
-                    <Skeleton className="size-16 shrink-0" />
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <Skeleton shape="text" className="h-3 w-20" />
-                      <Skeleton shape="text" className="h-4 w-3/4" />
-                      <div className="flex gap-1.5">
-                        <Skeleton shape="pill" className="h-5 w-14" />
-                        <Skeleton shape="pill" className="h-5 w-16" />
-                      </div>
-                    </div>
-                    <div className="space-y-1.5 text-right">
-                      <Skeleton shape="text" className="ml-auto h-4 w-20" />
-                      <Skeleton shape="text" className="ml-auto h-3 w-10" />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section className="space-y-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 md:p-5">
-              <Skeleton shape="text" className="h-3 w-24" />
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="flex items-center justify-between gap-2 py-1">
-                  <Skeleton shape="text" className="h-3 w-32" />
-                  <Skeleton shape="text" className="h-3 w-20" />
-                </div>
-              ))}
-            </section>
-          </div>
-
-          <aside className="space-y-4">
-            {Array.from({ length: SIDEBAR_SECTION_COUNT }).map((_, sectionIndex) => (
-              <div
-                key={sectionIndex}
-                className="space-y-3 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 md:p-5"
-              >
+        <aside className="space-y-4">
+          {Array.from({ length: SIDEBAR_SECTION_COUNT }).map((_, sectionIndex) => (
+            <div
+              key={sectionIndex}
+              className="space-y-3 rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"
+            >
+              <div className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-4 py-3 md:px-5">
                 <Skeleton shape="text" className="h-3 w-32" />
+              </div>
+              <div className="p-4 md:p-5">
                 {sectionIndex === 0 ? (
                   <ol className="space-y-3">
                     {Array.from({ length: TIMELINE_STEP_COUNT }).map((_, stepIndex) => (
                       <li key={stepIndex} className="flex items-start gap-3">
-                        <Skeleton shape="circle" className="size-6 shrink-0" />
-                        <div className="min-w-0 flex-1 space-y-1.5">
+                        <Skeleton shape="circle" className="size-5 shrink-0" />
+                        <div className="min-w-0 flex-1 space-y-1.5 pb-1">
                           <Skeleton shape="text" className="h-3.5 w-2/3" />
                           <Skeleton shape="text" className="h-3 w-1/3" />
                         </div>
@@ -113,9 +112,9 @@ export default function OrderDetailLoading() {
                   </div>
                 )}
               </div>
-            ))}
-          </aside>
-        </div>
+            </div>
+          ))}
+        </aside>
       </div>
     </SkeletonScreen>
   );

@@ -67,7 +67,7 @@ const DEFERRED_MOUNT_TIMEOUT_MS = 1500;
  *  are reached from buttons (search overlay submit) or from elsewhere
  *  in the app (cart drawer "view full cart") where `<Link prefetch>`
  *  doesn't see them ahead of time. */
-const IDLE_PREFETCH_ROUTES = ["/search", "/cart"];
+const IDLE_PREFETCH_ROUTES = ["/shop", "/cart"];
 
 export function StorefrontChrome({ children, footer }: StorefrontChromeProps) {
   const pathname = usePathname();
@@ -136,7 +136,7 @@ export function StorefrontChrome({ children, footer }: StorefrontChromeProps) {
   // `RouteTransition` applies a light cross-fade when the route commits.
   return (
     <ToastProvider>
-      <div className="app-shell-pad">
+      <div className="app-shell-pad flex min-h-dvh flex-col">
         <a
           href="#main-content"
           className="sr-only rounded-full bg-[var(--color-ink-900)] px-4 py-2 text-[13px] font-semibold text-[var(--color-canvas)] focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-[90]"
@@ -166,7 +166,7 @@ export function StorefrontChrome({ children, footer }: StorefrontChromeProps) {
         <main
           id="main-content"
           tabIndex={-1}
-          className="storefront-main page-enter min-h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h))] outline-none md:min-h-[calc(100dvh-var(--desktop-header-h))]"
+          className="storefront-main flex flex-1 flex-col outline-none"
         >
           <Suspense fallback={children}>
             <RouteTransition>{children}</RouteTransition>

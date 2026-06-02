@@ -14,6 +14,7 @@ import type { StorefrontAttributeFacet } from "@/lib/storefront/facets";
 
 import { Button } from "@/components/ui/Button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { Input } from "@/components/ui/Input";
 import { FILTER_PARAM_KEYS } from "@/lib/storefront/filterParams";
 import { useFilterParams } from "@/lib/storefront/useFilterParams";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
@@ -643,16 +644,18 @@ interface PriceInputProps {
 
 function PriceInput({ value, onChange, placeholder, ariaLabel }: PriceInputProps) {
   return (
-    <input
-      type="number"
-      inputMode="numeric"
-      min={0}
-      value={value}
-      aria-label={ariaLabel}
-      placeholder={placeholder}
-      onChange={(event) => onChange(event.target.value.replace(/[^0-9]/g, ""))}
-      className="h-9 w-full flex-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2.5 text-[13px] font-medium text-[var(--color-ink-900)] outline-none transition-colors placeholder:font-normal placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-700)] focus:ring-2 focus:ring-[var(--color-accent-100)]"
-    />
+    <div className="flex-1">
+      <Input
+        type="number"
+        inputMode="numeric"
+        min={0}
+        value={value}
+        aria-label={ariaLabel}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value.replace(/[^0-9]/g, ""))}
+        inputSize="sm"
+      />
+    </div>
   );
 }
 

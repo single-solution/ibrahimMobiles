@@ -103,7 +103,7 @@ export function UserMenu({
           /* Concentric: inner full-pill menu rows live behind p-1 gutter
              — pill geometry makes the formula a soft target; --radius-xl
              keeps the popover visually proportional to its dense rows. */
-          className="animate-popover-in absolute right-0 top-[calc(100%+6px)] z-50 w-56 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1.5 shadow-[var(--shadow-lg)]"
+          className="animate-popover-in absolute right-0 top-[calc(100%+6px)] z-dropdown w-56 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1.5 shadow-[var(--shadow-lg)]"
         >
           <div className="border-b border-[var(--color-ink-100)] px-3 py-2">
             <p className="truncate text-[11px] font-semibold text-[var(--color-ink-900)]">

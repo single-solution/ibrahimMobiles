@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowUpRight,
+  Banknote,
   Building2,
   CreditCard,
   Phone,
   ShieldCheck,
   ShoppingBag,
+  Smartphone,
   Sparkles,
   Store,
   Truck,
@@ -28,6 +30,7 @@ import {
 import { PhoneOtpForm } from "@/app/account/_components/PhoneOtpForm";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 
 export type DeliveryMethod = "pickup" | "delivery";
@@ -74,7 +77,7 @@ export function CheckoutHeader() {
           <ArrowLeft size={13} />
           Back to shop
         </Link>
-        <h1 className="mt-2 font-headline text-[34px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[44px]">
+        <h1 className="mt-2 font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
           Checkout
         </h1>
         <p className="mt-1 max-w-prose text-[13px] text-[var(--color-ink-500)] md:text-sm">
@@ -149,7 +152,8 @@ export function OrderSummaryPreview({
       isValid={false}
       pointsEarnedOnThisOrder={0}
       pointsRedeemed={0}
-      errorMessage="Sign in to place this order."
+      errorMessage={null}
+      infoMessage="Sign in to place this order."
     />
   );
 }
@@ -175,6 +179,8 @@ export function ContactPanel({
           onChange={onFullName}
           icon={<User size={14} />}
           autoComplete="name"
+          isRequired
+          minLength={2}
         />
         <Field
           label="Phone"
@@ -200,6 +206,8 @@ export interface FieldProps {
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   placeholder?: string;
   isReadOnly?: boolean;
+  isRequired?: boolean;
+  minLength?: number;
   inputRef?: React.Ref<HTMLInputElement>;
 }
 
@@ -213,36 +221,25 @@ export function Field({
   inputMode,
   placeholder,
   isReadOnly,
+  isRequired,
+  minLength,
   inputRef,
 }: FieldProps) {
   return (
-    <label className="block">
-      <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-        {label}
-      </span>
-      <span className="relative block">
-        {icon && (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-ink-400)]">
-            {icon}
-          </span>
-        )}
-        <input
-          ref={inputRef}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          onBlur={onBlur}
-          autoComplete={autoComplete}
-          inputMode={inputMode}
-          placeholder={placeholder}
-          readOnly={isReadOnly}
-          className={classNames(
-            "h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] text-sm text-[var(--color-ink-900)] transition-colors placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-500)]/30",
-            isReadOnly ? "cursor-not-allowed opacity-70" : "",
-            icon ? "pl-9 pr-3" : "px-3.5",
-          )}
-        />
-      </span>
-    </label>
+    <Input
+      ref={inputRef}
+      label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
+      icon={icon}
+      autoComplete={autoComplete}
+      inputMode={inputMode}
+      placeholder={placeholder}
+      readOnly={isReadOnly}
+      required={isRequired}
+      minLength={minLength}
+    />
   );
 }
 
@@ -298,6 +295,8 @@ export function DeliveryPanel({
               value={address.recipientName}
               onChange={(value) => onAddressChange({ ...address, recipientName: value })}
               autoComplete="shipping name"
+              isRequired
+              minLength={2}
             />
             <Field
               label="Area / locality"
@@ -310,6 +309,8 @@ export function DeliveryPanel({
               value={address.street}
               onChange={(value) => onAddressChange({ ...address, street: value })}
               autoComplete="shipping street-address"
+              isRequired
+              minLength={2}
             />
             <Field
               label="Postal code"
@@ -341,18 +342,26 @@ export function PaymentPanel({ payment, onChange }: PaymentPanelProps) {
         title="How would you like to pay?"
       />
       <div className="mt-4 grid gap-2 md:grid-cols-2">
-        {paymentMethods.map((method) => (
-          <ChoiceTile
-            key={method.id}
-            icon={<Building2 size={15} />}
-            title={method.label}
-            subtitle={method.note}
-            tag={method.id === "bank" && bankDiscount > 0 ? `−${bankDiscount}%` : undefined}
-            tagTone="success"
-            isSelected={payment === method.id}
-            onSelect={() => onChange(method.id)}
-          />
-        ))}
+        {paymentMethods.map((method) => {
+          const Icon =
+            method.id === "cod"
+              ? Banknote
+              : method.id === "bank"
+                ? Building2
+                : Smartphone;
+          return (
+            <ChoiceTile
+              key={method.id}
+              icon={<Icon size={15} />}
+              title={method.label}
+              subtitle={method.note}
+              tag={method.id === "bank" && bankDiscount > 0 ? `−${bankDiscount}%` : undefined}
+              tagTone="success"
+              isSelected={payment === method.id}
+              onSelect={() => onChange(method.id)}
+            />
+          );
+        })}
       </div>
     </Card>
   );
@@ -464,12 +473,12 @@ export interface OrderSummaryPanelProps {
   delivery: DeliveryMethod;
   hasAgreed: boolean;
   onAgreedChange: (value: boolean) => void;
-  onPlaceOrder: () => void;
   isPlacing: boolean;
   isValid: boolean;
   pointsEarnedOnThisOrder: number;
   pointsRedeemed: number;
   errorMessage: string | null;
+  infoMessage?: string | null;
 }
 
 export function OrderSummaryPanel({
@@ -478,12 +487,12 @@ export function OrderSummaryPanel({
   delivery,
   hasAgreed,
   onAgreedChange,
-  onPlaceOrder,
   isPlacing,
   isValid,
   pointsEarnedOnThisOrder,
   pointsRedeemed,
   errorMessage,
+  infoMessage,
 }: OrderSummaryPanelProps) {
   const settings = useStoreSettings();
   const paymentMethods = getPaymentMethods(settings);
@@ -556,26 +565,32 @@ export function OrderSummaryPanel({
             {errorMessage}
           </p>
         )}
+        {infoMessage && (
+          <p className="animate-banner-in rounded-[var(--radius-md)] border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3 py-2 text-[12.5px] text-[var(--color-accent-800)]">
+            {infoMessage}
+          </p>
+        )}
         <label className="flex items-start gap-2.5 text-[12.5px] text-[var(--color-ink-700)]">
           <input
             type="checkbox"
             checked={hasAgreed}
+            required
             onChange={(event) => onAgreedChange(event.target.checked)}
             className="mt-0.5 size-4 shrink-0 rounded border-[var(--color-ink-300)] text-[var(--color-accent-600)] focus:ring-[var(--color-accent-500)]"
           />
           <span>
             I&rsquo;ve reviewed my order and agree to the 15-day moneyback &amp;{" "}
-            <Link href="#" className="link-underline text-[var(--color-accent-700)]">
+            <Link href="/return-policy" target="_blank" className="link-underline text-[var(--color-accent-700)]">
               return policy
             </Link>
             .
           </span>
         </label>
         <Button
+          type="submit"
           variant="primary"
           size="md"
           className="cta-arrow w-full"
-          onClick={onPlaceOrder}
           disabled={!isValid || isPlacing}
           isLoading={isPlacing}
           trailingIcon={!isPlacing ? <ArrowUpRight size={16} strokeWidth={2.4} /> : undefined}

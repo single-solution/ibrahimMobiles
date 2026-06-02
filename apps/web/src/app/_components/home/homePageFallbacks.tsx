@@ -78,7 +78,7 @@ export function MobileProcessFallback() {
         {Array.from({ length: PROCESS_FLOW_FALLBACK_COUNT }).map((_, index) => (
           <div
             key={index}
-            className="overflow-hidden rounded-[14px] border border-[var(--color-ink-100)] bg-[var(--color-surface)]"
+            className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]"
           >
             <div className="flex items-center gap-2.5 bg-[var(--color-ink-900)] px-3.5 py-3">
               <Skeleton shape="circle" className="size-8 shrink-0" />
@@ -127,7 +127,7 @@ export function MobileGradesFallback() {
           {Array.from({ length: GRADES_CARD_FALLBACK_COUNT }).map((_, index) => (
             <li
               key={index}
-              className="flex flex-col gap-2 rounded-[14px] border border-[var(--color-on-dark-10)] bg-[var(--color-on-dark-06)] p-3"
+              className="flex flex-col gap-2 rounded-[var(--radius-lg)] border border-[var(--color-on-dark-10)] bg-[var(--color-on-dark-06)] p-3"
             >
               <Skeleton shape="pill" className="h-5 w-20 bg-[var(--color-on-dark-15)]" />
               <Skeleton shape="text" className="h-3 w-full bg-[var(--color-on-dark-10)]" />
@@ -148,7 +148,7 @@ export function MobileVisitStoreFallback() {
         <Skeleton shape="text" className="mx-auto h-12 w-3/4" />
         <Skeleton shape="text" className="mx-auto h-3 w-2/3" />
       </div>
-      <div className="overflow-hidden rounded-[14px] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+      <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
         <Skeleton className="aspect-[16/9] w-full rounded-none" />
         <div className="space-y-3 p-3.5">
           <div className="flex items-start gap-2.5">

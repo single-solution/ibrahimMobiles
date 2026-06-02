@@ -168,7 +168,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
           Profile
         </p>
-        <h1 className="mt-1 font-headline text-[34px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[44px]">
+        <h1 className="mt-1 font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
           Your details
         </h1>
         <p className="mt-1 max-w-prose text-[13px] text-[var(--color-ink-500)] md:text-sm">
@@ -322,6 +322,7 @@ function AddressRow({
   disableRemove,
   isBusy,
 }: AddressRowProps) {
+  const [isConfirmingRemove, setIsConfirmingRemove] = useState(false);
   return (
     <Card className="p-4 md:p-5">
       <div className="flex items-start gap-3">
@@ -348,29 +349,59 @@ function AddressRow({
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {!isDefault && (
-          <Button variant="ghost" size="sm" onClick={onMakeDefault} disabled={isBusy}>
-            Make default
-          </Button>
+        {isConfirmingRemove ? (
+          <>
+            <p className="text-[12.5px] font-medium text-[var(--color-ink-700)]">
+              Remove this address?
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsConfirmingRemove(false)}
+              disabled={isBusy}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              leadingIcon={<Trash2 size={12} />}
+              onClick={() => {
+                setIsConfirmingRemove(false);
+                onRemove();
+              }}
+              disabled={isBusy}
+            >
+              Confirm remove
+            </Button>
+          </>
+        ) : (
+          <>
+            {!isDefault && (
+              <Button variant="ghost" size="sm" onClick={onMakeDefault} disabled={isBusy}>
+                Make default
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              leadingIcon={<Pencil size={12} />}
+              onClick={onEdit}
+              disabled={isBusy}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              leadingIcon={<Trash2 size={12} />}
+              onClick={() => setIsConfirmingRemove(true)}
+              disabled={isBusy || disableRemove}
+            >
+              Remove
+            </Button>
+          </>
         )}
-        <Button
-          variant="outline"
-          size="sm"
-          leadingIcon={<Pencil size={12} />}
-          onClick={onEdit}
-          disabled={isBusy}
-        >
-          Edit
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          leadingIcon={<Trash2 size={12} />}
-          onClick={onRemove}
-          disabled={isBusy || disableRemove}
-        >
-          Remove
-        </Button>
       </div>
     </Card>
   );

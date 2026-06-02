@@ -32,7 +32,7 @@ export default function SearchLoading() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-700)]">
           Search
         </p>
-        <h1 className="mt-2 font-headline text-[34px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)] md:text-[48px]">
+        <h1 className="mt-2 font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
           {query ? `Results for "${query}"` : "Search the shop"}
         </h1>
         <p className="mt-3 text-sm text-[var(--color-ink-500)]">
@@ -43,7 +43,7 @@ export default function SearchLoading() {
       <div className="cv-auto-lg mt-8 min-h-[60vh]">
         <ProductGridSkeleton
           count={SEARCH_RESULT_CARDS}
-          className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5 lg:grid-cols-4"
+          className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 lg:grid-cols-4"
         />
       </div>
     </SkeletonScreen>

@@ -11,22 +11,22 @@ export function ProductCardSkeleton() {
     <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
       <div className="product-media-well relative aspect-square shrink-0 bg-[var(--color-canvas-deep)]">
         <Skeleton className="absolute inset-0 h-full w-full rounded-none" />
-        <Skeleton shape="pill" className="absolute right-1.5 top-1.5 h-5 w-14 md:right-2.5 md:top-2.5 md:h-5 md:w-16" />
+        <Skeleton shape="pill" className="absolute right-1.5 top-1.5 h-5 w-14 md:right-3 md:top-3 md:h-5 md:w-16" />
       </div>
-      <div className="flex flex-1 flex-col gap-1 p-2 md:gap-1.5 md:p-2.5">
-        <div className="space-y-0.5">
-          <Skeleton shape="text" className="h-2.5 w-16" />
-          <Skeleton shape="text" className="h-3.5 w-3/4" />
+      <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col gap-1 p-2 md:gap-1.5 md:p-2.5">
+          <div className="space-y-1">
+            <Skeleton shape="text" className="h-2.5 w-16" />
+            <Skeleton shape="text" className="h-3.5 w-3/4" />
+          </div>
         </div>
-        <div className="flex min-h-[2.25rem] content-start gap-1.5 pt-0.5 md:gap-2">
-          <Skeleton shape="pill" className="h-5 w-14" />
-          <Skeleton shape="pill" className="h-5 w-16" />
-          <Skeleton shape="pill" className="h-5 w-12" />
+        <div className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-2 py-1.5 md:px-2.5 md:py-1.5">
+          <div className="flex min-h-[2.25rem] content-start gap-1.5 pt-0.5 md:gap-2">
+            <Skeleton shape="pill" className="h-[22px] w-14" />
+            <Skeleton shape="pill" className="h-[22px] w-16" />
+            <Skeleton shape="pill" className="h-[22px] w-12" />
+          </div>
         </div>
-      </div>
-      <div className="flex items-center justify-between gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-2 py-1.5 md:px-2.5 md:py-2">
-        <Skeleton shape="text" className="h-3.5 w-20" />
-        <Skeleton shape="pill" className="h-4 w-10" />
       </div>
     </div>
   );

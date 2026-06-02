@@ -69,7 +69,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
          the global stylesheet. */
       className={classNames(
         "scroll-header sticky top-0 hidden border-b md:block",
-        isCartOpen ? "z-[80]" : "z-30",
+        isCartOpen ? "z-dropdown" : "z-sticky",
       )}
     >
       {isCartOpen && (

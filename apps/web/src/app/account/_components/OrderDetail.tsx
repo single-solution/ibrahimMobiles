@@ -101,7 +101,7 @@ export function OrderDetail({ order }: OrderDetailProps) {
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
             Order
           </p>
-          <h1 className="mt-1 font-headline text-[34px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[44px]">
+          <h1 className="mt-1 font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
             {order.orderNumber}
           </h1>
           <p className="mt-1 text-[13px] text-[var(--color-ink-500)] md:text-sm">

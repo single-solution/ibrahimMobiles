@@ -25,7 +25,7 @@ export function Footer({ settings }: FooterProps) {
     { href: settings.socialInstagram, label: "Instagram", icon: <InstagramIcon size={15} /> },
     { href: settings.socialTiktok, label: "TikTok", icon: <TiktokIcon size={15} /> },
     { href: settings.socialYoutube, label: "YouTube", icon: <YoutubeIcon size={15} /> },
-  ];
+  ].filter((btn) => Boolean(btn.href && btn.href.trim()));
 
   return (
     <footer className="cv-auto mt-14 border-t border-[var(--color-ink-100)] bg-[var(--color-ink-900)] text-[var(--color-ink-200)] sm:mt-24">
@@ -78,7 +78,6 @@ export function Footer({ settings }: FooterProps) {
           <span>
             © {new Date().getFullYear()} {settings.siteName}. All rights reserved.
           </span>
-          <span>Graded honestly. Delivers across the country.</span>
         </div>
       </div>
     </footer>

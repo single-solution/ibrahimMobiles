@@ -35,6 +35,7 @@ export function usePresence(isOpen: boolean, exitDurationMs: number): PresenceSt
     }
 
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsMounted(true);
       setStatus("open");
       return;

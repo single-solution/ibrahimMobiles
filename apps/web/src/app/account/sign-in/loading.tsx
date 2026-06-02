@@ -22,7 +22,7 @@ export default function SignInLoading() {
           <span className="inline-grid size-12 place-items-center rounded-2xl bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
             <ShieldCheck size={20} strokeWidth={2.4} />
           </span>
-          <h1 className="mt-4 font-headline text-[28px] font-semibold tracking-tight text-[var(--color-ink-900)] md:text-[36px]">
+          <h1 className="mt-4 font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
             Sign in to {siteName}
           </h1>
           <p className="mx-auto mt-1 max-w-prose text-[13px] text-[var(--color-ink-500)] md:text-sm">
