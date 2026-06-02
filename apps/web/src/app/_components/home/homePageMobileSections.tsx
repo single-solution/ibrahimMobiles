@@ -114,7 +114,7 @@ export function MobileHero({ heroProducts, settings, categoryLabels, shopHref }:
 
   return (
     <section
-      className="relative -mx-4 flex flex-col items-center justify-evenly overflow-hidden border-b border-[var(--color-ink-100)] px-4 text-center"
+      className="reveal-stagger relative -mx-4 flex flex-col items-center justify-evenly overflow-hidden border-b border-[var(--color-ink-100)] px-4 text-center"
       style={{
         minHeight:
           "calc(100dvh - var(--mobile-header-h) - var(--mobile-tabbar-h))",
@@ -122,20 +122,20 @@ export function MobileHero({ heroProducts, settings, categoryLabels, shopHref }:
           "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 55%, var(--color-canvas)) 0%, var(--color-canvas) 55%, var(--color-canvas) 100%)",
       }}
     >
-      <span className="relative z-10 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-100)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-800)]">
+      <span className="reveal relative z-10 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-100)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-800)]">
         <BadgeCheck size={11} />
         {pillLabel}
       </span>
 
-      <div className="relative z-10">
+      <div className="reveal relative z-10 w-full">
         <HeroMaskSweepHeadline variant="mobile" />
       </div>
 
-      <div className="relative z-10 w-full">
+      <div className="reveal relative z-10 w-full">
         <HeroTrendingProductBand productNames={productNames} variant="mobile" />
       </div>
 
-      <div className="relative z-10 flex w-full flex-col items-center gap-3">
+      <div className="reveal relative z-10 flex w-full flex-col items-center gap-3">
         <MagneticHover strength={0.3} maxOffset={25}>
           <Link
             href={shopHref}
@@ -150,7 +150,7 @@ export function MobileHero({ heroProducts, settings, categoryLabels, shopHref }:
       <a
         href="#how-to-buy"
         aria-label="Scroll to next section"
-        className="hero-scroll-cue tap group relative z-10 inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] active:text-[var(--color-ink-900)]"
+        className="reveal hero-scroll-cue tap group relative z-10 inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] active:text-[var(--color-ink-900)]"
       >
         <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">
           We Are Different

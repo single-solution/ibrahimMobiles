@@ -139,18 +139,24 @@ export function DesktopHero({ heroProducts, settings, categoryLabels, shopHref }
       }}
     >
       <div
-        className="relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center justify-evenly px-6 text-center"
+        className="reveal-stagger relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center justify-evenly px-6 text-center"
         style={{ minHeight: "calc(100dvh - var(--desktop-header-h))" }}
       >
-        <Pill tone="accent" size="md" leadingIcon={<BadgeCheck size={12} />}>
-          {pillLabel}
-        </Pill>
+        <div className="reveal">
+          <Pill tone="accent" size="md" leadingIcon={<BadgeCheck size={12} />}>
+            {pillLabel}
+          </Pill>
+        </div>
 
-        <HeroMaskSweepHeadline variant="desktop" />
+        <div className="reveal w-full">
+          <HeroMaskSweepHeadline variant="desktop" />
+        </div>
 
-        <HeroTrendingProductBand productNames={productNames} variant="desktop" />
+        <div className="reveal w-full">
+          <HeroTrendingProductBand productNames={productNames} variant="desktop" />
+        </div>
 
-        <div className="flex flex-col items-center gap-6">
+        <div className="reveal flex flex-col items-center gap-6">
           <MagneticHover fieldSelector="[data-magnetic-field]" strength={0.2} maxOffset={30}>
             <ButtonLink
               href={shopHref}
@@ -164,14 +170,16 @@ export function DesktopHero({ heroProducts, settings, categoryLabels, shopHref }
           </MagneticHover>
         </div>
 
-        <a
-          href="#how-to-buy"
-          aria-label="Scroll to next section"
-          className="hero-scroll-cue tap group inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] hover:text-[var(--color-ink-900)]"
-        >
-          <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">We Are Different</span>
-          <ChevronDown size={20} strokeWidth={2.2} className="animate-bounce" />
-        </a>
+        <div className="reveal">
+          <a
+            href="#how-to-buy"
+            aria-label="Scroll to next section"
+            className="hero-scroll-cue tap group inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] hover:text-[var(--color-ink-900)]"
+          >
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">We Are Different</span>
+            <ChevronDown size={20} strokeWidth={2.2} className="animate-bounce" />
+          </a>
+        </div>
       </div>
     </section>
   );
