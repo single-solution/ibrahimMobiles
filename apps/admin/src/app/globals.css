@@ -549,3 +549,110 @@ html {
 *::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* ----- Reveal-on-scroll animations ported from storefront ----- */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, var(--reveal-distance, 20px), 0);
+  transition:
+    opacity 480ms var(--ease-out-quart),
+    transform var(--reveal-spring-duration, 0.72s) var(--ease-spring);
+  transition-delay: var(--reveal-delay, 0ms);
+  animation: reveal-safety 0.45s var(--ease-out-quart) 2.5s forwards;
+}
+.reveal[data-reveal="visible"],
+.reveal.animate-in { /* Also triggered via class for immediate renders */
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  animation: none;
+}
+
+.reveal-rise {
+  --reveal-distance: 22px;
+  --reveal-spring-duration: 0.62s;
+}
+.reveal-rise:not([data-reveal="visible"]):not(.animate-in) {
+  transform: translate3d(0, var(--reveal-distance), 0) scale(0.985);
+}
+
+.reveal-fade {
+  opacity: 0;
+  transform: none;
+  transition: opacity var(--motion-base) var(--ease-out-quart);
+  transition-delay: var(--reveal-delay, 0ms);
+  animation: reveal-fade-safety 0.45s var(--ease-out-quart) 2.5s forwards;
+}
+.reveal-fade[data-reveal="visible"],
+.reveal-fade.animate-in {
+  opacity: 1;
+  animation: none;
+}
+
+@keyframes reveal-safety {
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+@keyframes reveal-fade-safety {
+  to {
+    opacity: 1;
+  }
+}
+
+.reveal-stagger > *:nth-child(1) { --reveal-delay: 0ms; }
+.reveal-stagger > *:nth-child(2) { --reveal-delay: calc(var(--motion-stagger, 40ms) * 1); }
+.reveal-stagger > *:nth-child(3) { --reveal-delay: calc(var(--motion-stagger, 40ms) * 2); }
+.reveal-stagger > *:nth-child(4) { --reveal-delay: calc(var(--motion-stagger, 40ms) * 3); }
+.reveal-stagger > *:nth-child(5) { --reveal-delay: calc(var(--motion-stagger, 40ms) * 4); }
+.reveal-stagger > *:nth-child(6) { --reveal-delay: calc(var(--motion-stagger, 40ms) * 5); }
+.reveal-stagger > *:nth-child(7) { --reveal-delay: calc(var(--motion-stagger, 40ms) * 6); }
+.reveal-stagger > *:nth-child(8) { --reveal-delay: calc(var(--motion-stagger, 40ms) * 7); }
+.reveal-stagger > *:nth-child(9) { --reveal-delay: calc(var(--motion-stagger, 40ms) * 8); }
+.reveal-stagger > *:nth-child(10) { --reveal-delay: calc(var(--motion-stagger, 40ms) * 9); }
+.reveal-stagger > *:nth-child(11) { --reveal-delay: calc(var(--motion-stagger, 40ms) * 10); }
+.reveal-stagger > *:nth-child(12) { --reveal-delay: calc(var(--motion-stagger, 40ms) * 11); }
+
+/* Premium glass shine */
+.glass-shine {
+  position: relative;
+}
+.glass-shine::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow: inset 0 1px 0 0 color-mix(in srgb, var(--color-canvas) 60%, transparent);
+}
+
+/* Slide-down banner enter */
+@keyframes banner-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -6px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.animate-banner-in {
+  animation: banner-in 200ms var(--ease-out-quart);
+}
+
+/* Tab panel cross-fade */
+@keyframes tab-panel-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 4px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.animate-tab-panel-in {
+  animation: tab-panel-in 180ms var(--ease-out-quart);
+}

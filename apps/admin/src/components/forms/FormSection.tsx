@@ -16,7 +16,7 @@ interface FormSectionProps {
  */
 export function FormSection({ title, description, children }: FormSectionProps) {
   return (
-    <section className="border-b border-[var(--color-ink-100)] py-4 first:pt-0 last:border-b-0 md:py-6">
+    <section className="reveal animate-in border-b border-[var(--color-ink-100)] py-4 first:pt-0 last:border-b-0 md:py-6">
       <header className="mb-3 md:mb-4">
         <h3 className="text-[13px] font-semibold tracking-tight text-[var(--color-ink-900)] md:text-sm">
           {title}
@@ -27,7 +27,7 @@ export function FormSection({ title, description, children }: FormSectionProps) 
           </p>
         )}
       </header>
-      <div className="space-y-3 md:space-y-4">{children}</div>
+      <div className="reveal-stagger space-y-3 md:space-y-4">{children}</div>
     </section>
   );
 }

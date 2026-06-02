@@ -201,7 +201,7 @@ export function SettingsPanelHeader({
   description: string;
 }) {
   return (
-    <header className="px-4 pt-4 md:px-5 md:pt-5">
+    <header className="reveal animate-in px-4 pt-4 md:px-5 md:pt-5">
       <h2 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--color-ink-900)] md:text-base">
         {title}
       </h2>

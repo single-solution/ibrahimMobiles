@@ -162,7 +162,7 @@ export function AdminTable<TRow>({
               skipped, the first remaining column becomes the card title, and
               columns with an empty header (typically action icons) are
               rendered as a label-less footer row. */}
-          <ul className="divide-y divide-[var(--color-ink-100)] md:hidden">
+          <ul className="reveal-stagger divide-y divide-[var(--color-ink-100)] md:hidden">
             {visibleRows.map((row) => {
               const mobileColumns = columns.filter((column) => !column.hideOnMobile);
               const hasLabel = (column: AdminTableColumn<TRow>) =>
@@ -172,7 +172,7 @@ export function AdminTable<TRow>({
               const [primaryColumn, ...detailColumns] = labelled;
               const interactive = Boolean(onRowClick);
               return (
-                <li key={rowKey(row)}>
+                <li key={rowKey(row)} className="reveal animate-in">
                   <div
                     role={interactive ? "button" : undefined}
                     tabIndex={interactive ? 0 : undefined}
@@ -282,13 +282,13 @@ export function AdminTable<TRow>({
                 })}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--color-ink-100)]">
+            <tbody className="reveal-stagger divide-y divide-[var(--color-ink-100)]">
               {visibleRows.map((row) => (
                 <tr
                   key={rowKey(row)}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   className={classNames(
-                    "transition-colors",
+                    "reveal animate-in transition-colors",
                     onRowClick && "cursor-pointer hover:bg-[var(--color-canvas-deep)]/50",
                   )}
                 >

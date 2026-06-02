@@ -18,7 +18,7 @@ export function TextArea({
 }: TextAreaProps) {
   const fieldId = id ?? `area-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
-    <div className={classNames("flex flex-col gap-1.5", containerClassName)}>
+    <div className={classNames("reveal animate-in flex flex-col gap-1.5", containerClassName)}>
       <label
         htmlFor={fieldId}
         className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-700)]"

@@ -38,7 +38,7 @@ export function Switch({
   return (
     <label
       className={classNames(
-        "flex items-start justify-between gap-4 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2.5",
+        "reveal animate-in flex items-start justify-between gap-4 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2.5",
         disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
       )}
     >

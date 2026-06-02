@@ -103,7 +103,7 @@ export function StructuredContentEditor({
   }
 
   return (
-    <div className="space-y-4 rounded-md border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/40 p-3">
+    <div className="reveal animate-in space-y-4 rounded-md border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/40 p-3">
       <div>
         <div className="mb-1 flex items-baseline justify-between gap-2">
           <label

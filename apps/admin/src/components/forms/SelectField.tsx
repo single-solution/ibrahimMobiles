@@ -16,7 +16,7 @@ interface SelectFieldProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>,
 export function SelectField({ label, options, hint, id, className, ...rest }: SelectFieldProps) {
   const fieldId = id ?? `select-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="reveal animate-in flex flex-col gap-1.5">
       <label
         htmlFor={fieldId}
         className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-700)]"

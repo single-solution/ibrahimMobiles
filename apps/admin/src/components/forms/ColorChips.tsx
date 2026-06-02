@@ -39,7 +39,7 @@ export function ColorChips({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="reveal animate-in flex flex-col gap-2">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-700)]">
         {label}
       </p>
