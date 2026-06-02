@@ -27,7 +27,7 @@ export function AdminTopHeader({ isCollapsed, onToggleCollapsed }: AdminTopHeade
   }
 
   return (
-    <header className="hidden relative z-40 h-11 shrink-0 items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 shadow-[var(--shadow-sm)] md:flex">
+    <header className="hidden h-11 shrink-0 items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 shadow-[var(--shadow-sm)] md:flex">
       <div className="flex items-center gap-2">
         <button
           type="button"

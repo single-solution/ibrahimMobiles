@@ -50,7 +50,7 @@ export function KpiCard({
     <div
       title={hint || changeLabel || label}
       className={classNames(
-        "group relative flex h-full flex-col justify-center px-4 py-4 transition-colors sm:px-5 sm:py-5",
+        "group flex h-full flex-col justify-center px-4 py-4 transition-colors sm:px-5 sm:py-5",
         tone === "accent"
           ? "bg-[var(--color-accent-50)] hover:bg-[var(--color-accent-100)]/60"
           : "bg-[var(--color-surface)] hover:bg-[var(--color-canvas-deep)]/50",
