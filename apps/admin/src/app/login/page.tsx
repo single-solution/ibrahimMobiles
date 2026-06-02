@@ -2,6 +2,7 @@
 
 import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { ArrowRight, Lock, Mail, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -43,7 +44,13 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="reveal mx-auto mt-8 max-w-prose text-center text-[12px] text-[var(--color-ink-400)]">
-          © {new Date().getFullYear()} {siteName} · Lost access? Ask the store owner to reset your password.
+          © {new Date().getFullYear()} {siteName} ·{" "}
+          <Link 
+            href="/login/forgot-password"
+            className="font-medium hover:text-[var(--color-ink-600)] underline underline-offset-2 transition-colors"
+          >
+            Forgot password?
+          </Link>
         </p>
       </div>
     </div>

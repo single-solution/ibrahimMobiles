@@ -35,6 +35,8 @@ interface UserAttributes {
   isSuperAdmin: boolean;
   lastLoginAt?: Date;
   passwordChangedAt?: Date;
+  resetPasswordToken?: string;
+  resetPasswordExpiresAt?: Date;
 }
 
 const userSchema = new Schema<UserAttributes>(
@@ -81,6 +83,8 @@ const userSchema = new Schema<UserAttributes>(
     },
     lastLoginAt: { type: Date },
     passwordChangedAt: { type: Date },
+    resetPasswordToken: { type: String, select: false },
+    resetPasswordExpiresAt: { type: Date },
   },
   { timestamps: true },
 );
