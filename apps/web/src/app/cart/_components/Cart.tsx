@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ShoppingBag, Trash2 } from "lucide-react";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
@@ -97,6 +98,7 @@ export function Cart() {
 function CartLine({ line }: { line: CartItem }) {
   const cart = useCart();
   const { toast } = useToast();
+  const [isRemoving, setIsRemoving] = useState(false);
   const lineTotal = line.unitPriceRupees * line.quantity;
   const cartSelection: Record<string, string> = {
     [GRADE_DIMENSION_KEY]: line.gradeSlug,
@@ -115,20 +117,34 @@ function CartLine({ line }: { line: CartItem }) {
         )
       : "/shop";
   const attributeEntries = Object.entries(line.attributes ?? {});
+
+  const handleRemove = () => {
+    setIsRemoving(true);
+    setTimeout(() => {
+      cart.removeItem(line.id);
+      toast(`${line.productName} removed`, { tone: "info" });
+    }, 320); // matches --motion-slow for item-out animation
+  };
+
   return (
-    <li className="reveal flex items-start gap-4 p-4">
+    <li
+      className="reveal group flex items-start gap-4 p-4"
+      data-item-state={isRemoving ? "removing" : undefined}
+    >
       <Link
         href={lineProductHref}
-        className="product-media-well relative size-20 shrink-0 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
+        className="product-media-well relative size-20 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
       >
-        <ProductImage
-          image={line.image}
-          variant="thumb"
-          name={line.productName}
-          brandName={line.brandName}
-          brandSlug={line.brandSlug}
-          sizes="80px"
-        />
+        <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.05]">
+          <ProductImage
+            image={line.image}
+            variant="thumb"
+            name={line.productName}
+            brandName={line.brandName}
+            brandSlug={line.brandSlug}
+            sizes="80px"
+          />
+        </div>
       </Link>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start justify-between gap-2">
@@ -145,10 +161,7 @@ function CartLine({ line }: { line: CartItem }) {
           </div>
           <button
             type="button"
-            onClick={() => {
-              cart.removeItem(line.id);
-              toast(`${line.productName} removed`, { tone: "info" });
-            }}
+            onClick={handleRemove}
             aria-label={`Remove ${line.productName}`}
             className="tap focus-ring grid size-8 shrink-0 place-items-center rounded-full text-[var(--color-ink-400)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-danger-500)]"
           >

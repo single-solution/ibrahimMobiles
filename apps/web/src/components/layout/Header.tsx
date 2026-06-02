@@ -58,29 +58,18 @@ export function Header({ onOpenSearch }: HeaderProps) {
   }, [pathname]);
 
   return (
-    <header
-      data-scrolled={isScrolled ? "true" : "false"}
-      /* `.scroll-header` (in globals.css) owns the frosted-glass look:
-         real `backdrop-filter` + a near-transparent canvas tint at the
-         top of the page so the header dissolves into the hero gradient,
-         then a stronger 20px / 160%-saturation blur + ink-100 border +
-         soft shadow once content scrolls under it. The `border-b` class
-         only carves out the bottom border; the *color* is animated by
-         the global stylesheet. */
-      className={classNames(
-        "scroll-header sticky top-0 hidden border-b md:block",
-        isCartOpen ? "z-[var(--z-dropdown)]" : "z-[var(--z-sticky)]",
-      )}
-    >
-      {isCartOpen && (
-        <button
-          type="button"
-          onClick={() => setIsCartOpen(false)}
-          aria-label="Close cart"
-          className="animate-sheet-fade absolute inset-0 z-[1] cursor-default bg-[var(--color-ink-900)]/15"
-        />
-      )}
-      <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:px-8">
+      <header
+        data-scrolled={isScrolled ? "true" : "false"}
+        /* `.scroll-header` (in globals.css) owns the frosted-glass look:
+           real `backdrop-filter` + a near-transparent canvas tint at the
+           top of the page so the header dissolves into the hero gradient,
+           then a stronger 20px / 160%-saturation blur + ink-100 border +
+           soft shadow once content scrolls under it. The `border-b` class
+           only carves out the bottom border; the *color* is animated by
+           the global stylesheet. */
+        className="scroll-header sticky top-0 z-[var(--z-sticky)] hidden border-b md:block"
+      >
+        <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:px-8">
         <BrandLockup
           href="/"
           siteName={siteName}

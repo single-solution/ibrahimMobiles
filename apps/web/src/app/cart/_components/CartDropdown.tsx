@@ -194,6 +194,7 @@ function CartDropdownLine({
   onQuantityChange,
   onRemove,
 }: CartDropdownLineProps) {
+  const [isRemoving, setIsRemoving] = useState(false);
   const { quantity, productName, brandName, brandSlug, image } = line;
   const lineTotal = line.unitPriceRupees * quantity;
   const cartSelection: Record<string, string> = {
@@ -214,21 +215,33 @@ function CartDropdownLine({
       : "/shop";
   const attributeEntries = Object.entries(line.attributes ?? {});
 
+  const handleRemove = () => {
+    setIsRemoving(true);
+    setTimeout(() => {
+      onRemove();
+    }, 320); // matches --motion-slow for item-out animation
+  };
+
   return (
-    <li className="flex items-start gap-3 px-3 py-3">
+    <li
+      className="group flex items-start gap-3 px-3 py-3"
+      data-item-state={isRemoving ? "removing" : undefined}
+    >
       <Link
         href={lineProductHref}
         onClick={onClose}
-        className="product-media-well relative size-16 shrink-0 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
+        className="product-media-well relative size-16 shrink-0 overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
       >
-        <ProductImage
-          image={image}
-          variant="thumb"
-          name={productName}
-          brandName={brandName}
-          brandSlug={brandSlug}
-          sizes="64px"
-        />
+        <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.05]">
+          <ProductImage
+            image={image}
+            variant="thumb"
+            name={productName}
+            brandName={brandName}
+            brandSlug={brandSlug}
+            sizes="64px"
+          />
+        </div>
       </Link>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start justify-between gap-2">
@@ -246,7 +259,7 @@ function CartDropdownLine({
           </div>
           <button
             type="button"
-            onClick={onRemove}
+            onClick={handleRemove}
             aria-label={`Remove ${productName}`}
             className="tap focus-ring grid size-7 shrink-0 place-items-center rounded-full text-[var(--color-ink-400)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-danger-500)]"
           >

@@ -674,7 +674,7 @@ function FilterCheckRow({ label, count, checked, onToggle }: FilterCheckRowProps
       onClick={onToggle}
       aria-pressed={checked}
       className={classNames(
-        "tap flex w-full cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-md)] px-2.5 py-1.5 text-[14.5px]",
+        "tap flex w-full cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-md)] px-2.5 py-1.5 text-[14.5px] transition-all duration-300 ease-out-quart",
         checked
           ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
           : "font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
@@ -690,7 +690,7 @@ function FilterCheckRow({ label, count, checked, onToggle }: FilterCheckRowProps
               : "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
           )}
         >
-          {checked && <Check size={14} strokeWidth={3} />}
+          {checked && <Check size={14} strokeWidth={3} className="animate-badge-pop" />}
         </span>
         <span>{label}</span>
       </span>

@@ -80,9 +80,9 @@ export function PurchaseSummary({
             variant="primary"
             size="sm"
             leadingIcon={
-              hasJustBeenAdded ? <Check size={14} /> : <ShoppingBag size={14} />
+              hasJustBeenAdded ? <Check size={14} className="animate-badge-pop" /> : <ShoppingBag size={14} />
             }
-            className="min-w-0 flex-1"
+            className="min-w-0 flex-1 transition-all duration-300 ease-out-quart"
             disabled={!isInStock || maxQuantity <= 0}
             onClick={onAddToCart}
           >
@@ -189,9 +189,9 @@ export function MobileStickyCta({
               onClick={onAddToCart}
               disabled={maxQuantity <= 0}
               aria-live="polite"
-              className="tap inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-[var(--radius-full)] bg-[var(--color-accent-500)] px-3 text-[12px] font-semibold text-[var(--color-ink-900)] active:bg-[var(--color-accent-600)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="tap inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-[var(--radius-full)] bg-[var(--color-accent-500)] px-3 text-[12px] font-semibold text-[var(--color-ink-900)] transition-all duration-300 ease-out-quart active:bg-[var(--color-accent-600)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {hasJustBeenAdded ? <Check size={13} /> : <ShoppingBag size={13} />}
+              {hasJustBeenAdded ? <Check size={13} className="animate-badge-pop" /> : <ShoppingBag size={13} />}
               {hasJustBeenAdded ? "Added" : "Add to cart"}
             </button>
           </>

@@ -1143,18 +1143,18 @@ html {
 
 /* Skeleton shimmer — placeholders while data/images load. */
 @keyframes shimmer {
-  from { background-position: -180% 0; }
-  to { background-position: 180% 0; }
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--color-ink-100) 0%,
-    var(--color-ink-50) 45%,
-    var(--color-ink-100) 90%
+  background-image: linear-gradient(
+    110deg,
+    var(--color-canvas-deep) 25%,
+    var(--color-surface) 50%,
+    var(--color-canvas-deep) 75%
   );
   background-size: 200% 100%;
-  animation: shimmer 1.6s linear infinite;
+  animation: shimmer 2s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
   border-radius: var(--radius-md);
 }
 
