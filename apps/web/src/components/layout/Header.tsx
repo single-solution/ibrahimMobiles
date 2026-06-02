@@ -163,10 +163,10 @@ function HeaderNavLink({ href, label, isActive }: HeaderNavLinkProps) {
       onTouchStart={prefetchHandlers.onTouchStart}
       onFocus={prefetchHandlers.onFocus}
       className={classNames(
-        "tap rounded-[var(--radius-md)] px-3 py-2 text-sm",
+        "tap rounded-[var(--radius-md)] px-3 py-2 text-sm transition-colors",
         isActive
-          ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
-          : "font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink-900)]",
+          ? "font-semibold text-[var(--color-accent-700)]"
+          : "font-medium text-[var(--color-ink-600)] hover:text-[var(--color-ink-900)]",
       )}
     >
       {label}

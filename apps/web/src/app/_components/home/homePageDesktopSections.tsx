@@ -151,7 +151,7 @@ export function DesktopHero({ heroProducts, settings, categoryLabels, shopHref }
         <HeroTrendingProductBand productNames={productNames} variant="desktop" />
 
         <div className="flex flex-col items-center gap-6">
-          <MagneticHover strength={0.15} maxOffset={24} className="p-10">
+          <MagneticHover fieldSelector="[data-magnetic-field]" strength={0.2} maxOffset={30}>
             <ButtonLink
               href={shopHref}
               variant="primary"
