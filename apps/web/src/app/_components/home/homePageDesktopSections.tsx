@@ -586,6 +586,8 @@ export function DesktopSectionHeader({ eyebrow, title, description, ctaHref, cta
   );
 }
 
+import { useGlobalEagerLoad } from "@/lib/useGlobalEagerLoad";
+
 export interface StoreMapEmbedProps {
   className?: string;
   settings: StoreSettings;
@@ -594,12 +596,14 @@ export interface StoreMapEmbedProps {
 export function StoreMapEmbed({ className = "", settings }: StoreMapEmbedProps) {
   const mapQuery = `${settings.storeAddressLine1}, ${settings.storeAddressLine2}`;
   const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=${MAP_EMBED_ZOOM}&output=embed`;
+  const globalEager = useGlobalEagerLoad();
+  
   return (
     <div className={`relative w-full overflow-hidden bg-[var(--color-canvas-deep)] ${className}`}>
       <iframe
         title={`Map of ${mapQuery}`}
         src={mapEmbedUrl}
-        loading="lazy"
+        loading={globalEager ? "eager" : "lazy"}
         referrerPolicy="no-referrer-when-downgrade"
         allowFullScreen
         className="absolute inset-0 h-full w-full border-0"

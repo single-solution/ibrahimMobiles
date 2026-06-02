@@ -13,6 +13,7 @@ import { GradeBadge } from "@/components/shared/GradeBadge";
 import { StructuredContentFull } from "@/components/shared/StructuredContent";
 import { useSelectedVariantId } from "@/components/shared/VariantContext";
 import { useGrade } from "@/lib/storefront/storefrontReferenceContext";
+import { useGlobalEagerLoad } from "@/lib/useGlobalEagerLoad";
 
 /**
  * Per-grade detail strip beneath a product's variants.
@@ -144,6 +145,7 @@ interface VideoFrameProps {
 
 function VideoFrame({ label, accentColor, videoUrl, isCompact }: VideoFrameProps) {
   const embedUrl = toYouTubeEmbedUrl(videoUrl);
+  const globalEager = useGlobalEagerLoad();
   return (
     <div
       className={`relative overflow-hidden bg-[var(--color-ink-900)] ${
@@ -154,7 +156,7 @@ function VideoFrame({ label, accentColor, videoUrl, isCompact }: VideoFrameProps
         <iframe
           src={embedUrl}
           title={`${label} inspection video`}
-          loading="lazy"
+          loading={globalEager ? "eager" : "lazy"}
           referrerPolicy="strict-origin-when-cross-origin"
           allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen

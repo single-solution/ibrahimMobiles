@@ -471,6 +471,7 @@ function Lightbox({
           width={image.width}
           height={image.height}
           sizes="100vw"
+          loading="eager"
           placeholder={image.blurDataURL ? "blur" : undefined}
           blurDataURL={image.blurDataURL || undefined}
           className="max-h-[92vh] max-w-[92vw] object-contain"

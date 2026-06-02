@@ -273,6 +273,8 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   );
 }
 
+import { useGlobalEagerLoad } from "@/lib/useGlobalEagerLoad";
+
 interface SearchHitProps {
   result: SearchResult;
   onNavigate: () => void;
@@ -284,6 +286,8 @@ function SearchHit({ result, onNavigate }: SearchHitProps) {
       ? `/shop/${result.categorySlug}/${result.slug}`
       : "/shop";
   const thumb = result.image?.variants.thumb ?? null;
+  const globalEager = useGlobalEagerLoad();
+  
   return (
     <li>
       <Link
@@ -298,7 +302,7 @@ function SearchHit({ result, onNavigate }: SearchHitProps) {
               src={thumb}
               alt=""
               className="size-full object-cover"
-              loading="lazy"
+              loading={globalEager ? "eager" : "lazy"}
             />
           ) : (
             (result.brandName || result.name).charAt(0).toUpperCase()

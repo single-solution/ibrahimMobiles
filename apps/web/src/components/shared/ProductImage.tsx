@@ -7,6 +7,7 @@ import type { StoredImage, StoredImageVariantKey } from "@store/shared";
 
 import { ProductVisual } from "@/components/shared/ProductVisual";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
+import { useGlobalEagerLoad } from "@/lib/useGlobalEagerLoad";
 
 interface ProductImageProps {
   /** Multi-resolution image record. Optional so we can fall back to ProductVisual. */
@@ -59,6 +60,7 @@ export function ProductImage({
 }: ProductImageProps) {
   const [hasFailed, setHasFailed] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const globalEager = useGlobalEagerLoad();
   // Logical OR (not `??`) so an empty-string variant (legacy seed data that
   // wrote `""` instead of dropping the key) still falls through to the next
   // best variant rather than producing `<Image src="">`. Without this the PDP
@@ -100,6 +102,7 @@ export function ProductImage({
         fill
         sizes={sizes}
         priority={priority}
+        loading={priority ? "eager" : globalEager ? "eager" : "lazy"}
         quality={quality}
         placeholder={image.blurDataURL ? "blur" : undefined}
         blurDataURL={image.blurDataURL || undefined}
