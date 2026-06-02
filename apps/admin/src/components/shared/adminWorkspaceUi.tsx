@@ -126,7 +126,7 @@ export function WorkspaceSearchField({
   "aria-label": string;
 }) {
   return (
-    <label className={classNames("relative flex h-10 items-center", className)}>
+    <label className={classNames("relative flex h-9 items-center", className)}>
       <Search
         size={14}
         className="pointer-events-none absolute left-3 text-[var(--color-ink-400)]"
@@ -138,7 +138,7 @@ export function WorkspaceSearchField({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         aria-label={ariaLabel}
-        className="h-full w-full rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] pl-9 pr-3 text-[13px] text-[var(--color-ink-900)] placeholder:text-[var(--color-ink-400)] shadow-[var(--shadow-sm)] transition-all hover:border-[var(--color-ink-300)] focus:border-[var(--color-accent-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-100)] md:text-sm"
+        className="h-full w-full rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] pl-9 pr-3 text-[12.5px] text-[var(--color-ink-900)] placeholder:text-[var(--color-ink-400)] shadow-[var(--shadow-sm)] transition-all hover:border-[var(--color-ink-300)] focus:border-[var(--color-accent-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-100)]"
       />
     </label>
   );
