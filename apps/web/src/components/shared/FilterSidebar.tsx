@@ -622,8 +622,8 @@ interface FilterGroupProps {
 
 function FilterGroup({ title, children, reveal = false }: FilterGroupProps) {
   return (
-    <div className={classNames("space-y-2", reveal && "reveal")}>
-      <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+    <div className={classNames("space-y-3", reveal && "reveal")}>
+      <h3 className="px-1 text-[12.5px] font-bold tracking-wide text-[var(--color-ink-900)]">
         {title}
       </h3>
       {children}
@@ -674,30 +674,30 @@ function FilterCheckRow({ label, count, checked, onToggle }: FilterCheckRowProps
       onClick={onToggle}
       aria-pressed={checked}
       className={classNames(
-        "tap flex w-full cursor-pointer items-center justify-between gap-2 rounded-[var(--radius-md)] px-2 py-1 text-[13.5px]",
+        "tap flex w-full cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-md)] px-2.5 py-1.5 text-[14.5px]",
         checked
           ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
           : "font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
       )}
     >
-      <span className="flex items-center gap-2.5">
+      <span className="flex items-center gap-3">
         <span
           aria-hidden
           className={classNames(
-            "grid size-[18px] shrink-0 place-items-center rounded-[5px] border transition-colors",
+            "grid size-[20px] shrink-0 place-items-center rounded-[6px] border transition-colors",
             checked
               ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)]"
               : "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
           )}
         >
-          {checked && <Check size={12} strokeWidth={3} />}
+          {checked && <Check size={14} strokeWidth={3} />}
         </span>
         <span>{label}</span>
       </span>
       {count !== undefined && (
         <span
           className={classNames(
-            "text-[11.5px]",
+            "text-[12px]",
             checked ? "text-[var(--color-accent-700)]" : "text-[var(--color-ink-400)]",
           )}
         >
