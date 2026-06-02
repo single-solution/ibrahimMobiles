@@ -14,26 +14,26 @@ export default function AdminLoginPage() {
   const { siteName } = useStoreSettings();
   return (
     <div className="grid min-h-screen place-items-center bg-[var(--color-canvas-deep)] px-4 py-12">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center gap-3">
-          <span className="grid size-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)] shadow-[var(--shadow-sm)]">
+      <div className="w-full max-w-sm reveal-stagger">
+        <div className="reveal flex flex-col items-center gap-3">
+          <span className="glass-shine grid size-12 place-items-center rounded-[var(--radius-lg)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)] shadow-[var(--shadow-sm)]">
             <ShoppingBag size={20} strokeWidth={2.4} />
           </span>
           <div className="text-center leading-tight">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
+            <p className="text-[11.5px] font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)]">
               Admin console
             </p>
-            <p className="mt-1 text-base font-semibold tracking-tight text-[var(--color-ink-900)]">
+            <p className="mt-1 text-xl font-semibold tracking-tight text-[var(--color-ink-900)]">
               {siteName}
             </p>
           </div>
         </div>
 
-        <div className="mt-10 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-8 shadow-[var(--shadow-sm)]">
-          <h1 className="text-center text-xl font-semibold tracking-[-0.02em] text-[var(--color-ink-900)]">
+        <div className="reveal mt-10 rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-8 shadow-[var(--shadow-md)] sm:p-10">
+          <h1 className="text-center text-2xl font-semibold tracking-tight text-[var(--color-ink-900)]">
             Sign in
           </h1>
-          <p className="mx-auto mt-1.5 max-w-prose text-center text-[12px] text-[var(--color-ink-500)]">
+          <p className="mx-auto mt-2 max-w-prose text-center text-[13px] text-[var(--color-ink-500)]">
             Use the email and password your owner shared with you.
           </p>
 
@@ -42,7 +42,7 @@ export default function AdminLoginPage() {
           </Suspense>
         </div>
 
-        <p className="mx-auto mt-6 max-w-prose text-center text-[11px] text-[var(--color-ink-400)]">
+        <p className="reveal mx-auto mt-8 max-w-prose text-center text-[12px] text-[var(--color-ink-400)]">
           © {new Date().getFullYear()} {siteName} · Lost access? Ask the store owner to reset your password.
         </p>
       </div>
@@ -104,35 +104,37 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-7 space-y-5">
+    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
       <TextField
         label="Email"
         type="email"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
-        leadingIcon={<Mail size={14} />}
+        leadingIcon={<Mail size={16} />}
         placeholder="you@store.example"
         autoComplete="email"
         inputMode="email"
         required
         disabled={isSubmitting}
+        className="text-[15px]"
       />
       <TextField
         label="Password"
         type="password"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
-        leadingIcon={<Lock size={14} />}
+        leadingIcon={<Lock size={16} />}
         placeholder="Your admin password"
         autoComplete="current-password"
         required
         disabled={isSubmitting}
+        className="text-[15px]"
       />
 
       {error ? (
         <p
           role="alert"
-          className="rounded-[var(--radius-md)] border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700"
+          className="animate-banner-in rounded-[var(--radius-md)] border border-[var(--color-danger-200)] bg-[var(--color-danger-50)] px-3 py-2.5 text-[13px] font-medium text-[var(--color-danger-700)]"
         >
           {error}
         </p>
@@ -141,10 +143,10 @@ function LoginForm() {
       <Button
         type="submit"
         variant="primary"
-        size="md"
-        className="w-full"
+        size="lg"
+        className="w-full shadow-[var(--shadow-sm)]"
         isLoading={isSubmitting}
-        trailingIcon={!isSubmitting ? <ArrowRight size={14} /> : undefined}
+        trailingIcon={!isSubmitting ? <ArrowRight size={16} /> : undefined}
       >
         {isSubmitting ? "Signing in…" : "Sign in"}
       </Button>
