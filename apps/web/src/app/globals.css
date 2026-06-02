@@ -860,12 +860,12 @@ html {
 }
 
 /* ----- Toast enter / exit -----
-   Bottom-anchored toasts rise in and settle out. Exit uses `forwards`
+   Top-anchored toasts drop in and settle out. Exit uses `forwards`
    so the toast holds its faded state until the host unmounts it. */
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translate3d(0, 14px, 0) scale(0.98);
+    transform: translate3d(0, -14px, 0) scale(0.98);
   }
   to {
     opacity: 1;
@@ -879,7 +879,7 @@ html {
   }
   to {
     opacity: 0;
-    transform: translate3d(0, 8px, 0) scale(0.98);
+    transform: translate3d(0, -8px, 0) scale(0.98);
   }
 }
 .animate-toast-in {

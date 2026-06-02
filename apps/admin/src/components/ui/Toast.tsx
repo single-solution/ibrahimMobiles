@@ -81,7 +81,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
       <div
         aria-live="polite"
         aria-atomic="false"
-        className="pointer-events-none fixed right-4 top-4 z-toast flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2"
+        className="pointer-events-none fixed inset-x-0 top-0 z-[var(--z-toast)] flex flex-col items-center gap-2 px-4 pt-[calc(env(safe-area-inset-top,0px)+16px)] sm:inset-x-auto sm:right-4 sm:items-end sm:pt-4"
       >
         {toasts.map((toast) => (
           <ToastItem
@@ -137,7 +137,7 @@ function ToastItem({ message, tone, onDismiss }: ToastItemProps) {
         }
       }}
       className={classNames(
-        "pointer-events-auto flex items-start gap-2.5 rounded-[var(--radius-md)] border px-3.5 py-3 shadow-[var(--shadow-md)] backdrop-blur",
+        "pointer-events-auto w-full max-w-sm sm:w-80 flex items-start gap-2.5 rounded-[var(--radius-md)] border px-3.5 py-3 shadow-[var(--shadow-md)] backdrop-blur",
         TONE_CLASSES[tone],
       )}
     >
