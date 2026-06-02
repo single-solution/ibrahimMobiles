@@ -81,7 +81,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
       <div
         aria-live="polite"
         aria-atomic="false"
-        className="pointer-events-none fixed inset-x-0 top-0 z-[var(--z-toast)] flex flex-col items-center gap-2 px-4 pt-[calc(env(safe-area-inset-top,0px)+16px)] sm:inset-x-auto sm:right-4 sm:items-end sm:pt-4"
+        className="pointer-events-none fixed inset-x-0 top-0 z-[var(--z-toast)] flex flex-col items-center gap-2 px-4 pt-[calc(env(safe-area-inset-top,0px)+16px)]"
       >
         {toasts.map((toast) => (
           <ToastItem

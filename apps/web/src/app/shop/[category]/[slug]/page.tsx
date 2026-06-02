@@ -295,8 +295,8 @@ export default async function ProductDetailPage({
           />
         </div>
 
-        <div className="mt-6 grid grid-cols-[1.1fr_1fr] items-start gap-10">
-          <div className="reveal overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-sm)]">
+        <div className="mt-6 grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] items-start gap-10">
+          <div className="reveal min-w-0 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-sm)]">
             <VariantAwareGallery
               product={product}
               brandName={brandName}
@@ -304,7 +304,7 @@ export default async function ProductDetailPage({
             />
           </div>
 
-          <div className="reveal flex min-h-0 flex-col">
+          <div className="reveal flex min-h-0 min-w-0 flex-col">
             <Suspense
               fallback={
                 <VariantSelectorSkeleton
