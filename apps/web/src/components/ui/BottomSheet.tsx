@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { classNames } from "@store/shared";
 
@@ -46,6 +47,11 @@ export function BottomSheet({
   const { isMounted, status } = usePresence(isOpen, SHEET_EXIT_MS);
   const isClosing = status === "closing";
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useFocusTrap(dialogRef, isOpen);
 
@@ -71,13 +77,13 @@ export function BottomSheet({
     };
   }, [isOpen, onClose]);
 
-  if (!isMounted) {
+  if (!isMounted || !isHydrated) {
     return null;
   }
 
   const isFull = height === "full";
 
-  return (
+  const sheetElement = (
     <div className="fixed inset-0 z-modal flex flex-col justify-end md:hidden">
       <button
         type="button"
@@ -158,4 +164,6 @@ export function BottomSheet({
       </div>
     </div>
   );
+
+  return createPortal(sheetElement, document.body);
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { classNames } from "@store/shared";
 
@@ -33,6 +34,12 @@ export function Drawer({
   width = "md",
   bodyClassName,
 }: DrawerProps) {
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -51,11 +58,11 @@ export function Drawer({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) {
+  if (!isOpen || !isHydrated) {
     return null;
   }
 
-  return (
+  const drawerElement = (
     <div
       role="dialog"
       aria-modal="true"
@@ -151,4 +158,6 @@ export function Drawer({
       </div>
     </div>
   );
+
+  return createPortal(drawerElement, document.body);
 }

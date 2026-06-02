@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { icons as lucideIcons, Search, X } from "lucide-react";
 
 import { LucideIconRenderer } from "./LucideIconRenderer";
@@ -32,7 +33,13 @@ export function LucideIconPicker({
   description = "Search and pick any lucide icon.",
 }: LucideIconPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   const trimmedQuery = query.trim().toLowerCase();
   const visibleOptions = useMemo(() => {
     if (!trimmedQuery) {
@@ -68,7 +75,7 @@ export function LucideIconPicker({
           {value}
         </p>
       </div>
-      {isOpen && (
+      {isOpen && isHydrated && createPortal(
         <div
           role="dialog"
           aria-modal="true"
@@ -133,7 +140,8 @@ export function LucideIconPicker({
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, History, Search, TrendingUp, X } from "lucide-react";
@@ -50,9 +51,14 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [hints, setHints] = useState<string[]>([]);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
   const { startNavigation } = useNavigationTransition();
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -179,11 +185,11 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     startNavigation(() => router.push(url));
   }
 
-  if (!isMounted) {
+  if (!isMounted || !isHydrated) {
     return null;
   }
 
-  return (
+  const overlayElement = (
     <div
       ref={overlayRef}
       role="dialog"
@@ -271,6 +277,8 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       </div>
     </div>
   );
+
+  return createPortal(overlayElement, document.body);
 }
 
 import { useGlobalEagerLoad } from "@/lib/useGlobalEagerLoad";

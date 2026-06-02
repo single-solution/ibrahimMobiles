@@ -11,7 +11,8 @@
  * parent can include it in its submit payload.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowDown,
   ArrowUp,
@@ -240,7 +241,13 @@ function InlineIconPicker({
   onChange: (icon: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   const trimmed = query.trim().toLowerCase();
   const visibleOptions = useMemo(() => {
     if (!trimmed) return LUCIDE_ICON_NAMES;
@@ -259,7 +266,7 @@ function InlineIconPicker({
       >
         <LucideIconRenderer name={value} size={16} strokeWidth={2.2} />
       </button>
-      {isOpen && (
+      {isOpen && isHydrated && createPortal(
         <div
           role="dialog"
           aria-modal="true"
@@ -325,7 +332,8 @@ function InlineIconPicker({
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

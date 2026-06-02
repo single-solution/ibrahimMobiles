@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
@@ -25,6 +26,12 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -38,11 +45,11 @@ export function ConfirmDialog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onCancel]);
 
-  if (!isOpen) {
+  if (!isOpen || !isHydrated) {
     return null;
   }
 
-  return (
+  const dialogElement = (
     <div
       role="dialog"
       aria-modal="true"
@@ -88,4 +95,6 @@ export function ConfirmDialog({
       </div>
     </div>
   );
+
+  return createPortal(dialogElement, document.body);
 }

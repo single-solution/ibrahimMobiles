@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { classNames } from "@store/shared";
 
@@ -35,6 +36,12 @@ export function Flyout({
   showCloseButton = true,
   contentClassName,
 }: FlyoutProps) {
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -57,13 +64,13 @@ export function Flyout({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) {
+  if (!isOpen || !isHydrated) {
     return null;
   }
 
   const isRight = side === "right";
 
-  return (
+  const flyoutElement = (
     <div className="fixed inset-0 z-modal flex md:hidden">
       <button
         type="button"
@@ -122,6 +129,8 @@ export function Flyout({
       )}
     </div>
   );
+
+  return createPortal(flyoutElement, document.body);
 }
 
 interface FlyoutInnerProps {

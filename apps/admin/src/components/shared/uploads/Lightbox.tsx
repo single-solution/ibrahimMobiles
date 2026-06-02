@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 interface LightboxProps {
@@ -22,7 +23,12 @@ interface LightboxProps {
 
 export function Lightbox({ urls, initialIndex, alt, onClose }: LightboxProps) {
   const [index, setIndex] = useState(initialIndex);
+  const [isHydrated, setIsHydrated] = useState(false);
   const total = urls.length;
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const goPrev = useCallback(() => {
     setIndex((current) => (current - 1 + total) % total);
@@ -41,10 +47,10 @@ export function Lightbox({ urls, initialIndex, alt, onClose }: LightboxProps) {
     return () => document.removeEventListener("keydown", onKey);
   }, [goNext, goPrev, onClose]);
 
-  if (total === 0) return null;
+  if (total === 0 || !isHydrated) return null;
   const url = urls[Math.max(0, Math.min(index, total - 1))];
 
-  return (
+  const lightboxElement = (
     <div
       className="animate-sheet-fade fixed inset-0 z-[200] flex items-center justify-center bg-[var(--color-ink-900)]/80 p-6"
       onClick={onClose}
@@ -94,4 +100,6 @@ export function Lightbox({ urls, initialIndex, alt, onClose }: LightboxProps) {
       />
     </div>
   );
+
+  return createPortal(lightboxElement, document.body);
 }

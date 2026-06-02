@@ -25,6 +25,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 
@@ -412,6 +413,11 @@ function Lightbox({
 
   const lightboxSwipe = useHorizontalSwipe(goNext, goPrev);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useFocusTrap(dialogRef, !closing);
 
@@ -434,9 +440,9 @@ function Lightbox({
     onNavigate?.(index);
   }, [index, onNavigate]);
 
-  if (!image) return null;
+  if (!image || !isHydrated) return null;
 
-  return (
+  const lightboxElement = (
     <div
       ref={dialogRef}
       role="dialog"
@@ -516,6 +522,8 @@ function Lightbox({
       </p>
     </div>
   );
+
+  return createPortal(lightboxElement, document.body);
 }
 
 export const PdpGallery = memo(

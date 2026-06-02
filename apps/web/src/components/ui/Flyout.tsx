@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { classNames } from "@store/shared";
 
@@ -44,6 +45,11 @@ export function Flyout({
   const { isMounted, status } = usePresence(isOpen, FLYOUT_EXIT_MS);
   const isClosing = status === "closing";
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useFocusTrap(dialogRef, isOpen);
 
@@ -69,13 +75,13 @@ export function Flyout({
     };
   }, [isOpen, onClose]);
 
-  if (!isMounted) {
+  if (!isMounted || !isHydrated) {
     return null;
   }
 
   const isRight = side === "right";
 
-  return (
+  const flyoutElement = (
     <div className="fixed inset-0 z-modal flex md:hidden">
       <button
         type="button"
@@ -143,6 +149,8 @@ export function Flyout({
       )}
     </div>
   );
+
+  return createPortal(flyoutElement, document.body);
 }
 
 interface FlyoutInnerProps {
