@@ -293,19 +293,19 @@
 
 @keyframes hero-product-pop {
   0%,
-  4% {
+  5% {
     opacity: 0;
     transform: translate(-50%, calc(-50% + 12px));
   }
-  12%,
-  72% {
+  15%,
+  35% {
     opacity: 0.28;
     transform: translate(-50%, -50%);
   }
-  80%,
+  45%,
   100% {
     opacity: 0;
-    transform: translate(-50%, calc(-50% - 8px));
+    transform: translate(-50%, calc(-50% - 12px));
   }
 }
 

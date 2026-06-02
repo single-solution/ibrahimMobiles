@@ -39,8 +39,11 @@ function generateDistributedSlots(count: number, products: string[]): SlotLayout
     // Give it a random left within the segment to avoid spilling over
     const left = baseLeft + Math.random() * (segmentWidth * 0.6); 
     
-    // Top: random between 20 and 80 to stay within vertical bounds
-    const top = 20 + Math.random() * 60;
+    // Top: alternate between top half and bottom half to prevent vertical overlap
+    const isTopHalf = i % 2 === 0;
+    const top = isTopHalf 
+      ? 15 + Math.random() * 20   // 15% to 35%
+      : 65 + Math.random() * 20;  // 65% to 85%
     
     slots.push({
       size: sizes[Math.floor(Math.random() * sizes.length)],
