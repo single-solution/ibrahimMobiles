@@ -568,6 +568,7 @@ body {
 html {
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
+  scrollbar-gutter: stable;
 }
 
 /* Product/listing frames — Next fill images always cover (lightbox excluded).
