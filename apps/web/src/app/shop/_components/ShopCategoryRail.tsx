@@ -48,12 +48,12 @@ function CategoryRailPill({
 }) {
   const isAvailable = category.isActive;
   const className = classNames(
-    "tap inline-flex w-full items-center gap-2 rounded-[var(--radius-full)] border px-3.5 py-2 text-[13px] font-semibold tracking-tight transition-[border-color,background-color,color] duration-[var(--motion-fast)] md:px-4 md:py-2.5 md:text-[14px]",
+    "tap inline-flex w-full items-center gap-2 rounded-[var(--radius-full)] px-3.5 py-2 text-[13px] font-semibold tracking-tight transition-[background-color,color] duration-[var(--motion-fast)] md:px-4 md:py-2.5 md:text-[14px]",
     isActive
-      ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)]"
+      ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
       : isAvailable
-        ? "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-900)] hover:border-[var(--color-accent-300)]/60"
-        : "cursor-not-allowed border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)]/50 text-[var(--color-ink-500)] opacity-80",
+        ? "bg-[var(--color-surface)] text-[var(--color-ink-900)] shadow-[var(--shadow-sm)] hover:bg-[var(--color-canvas-deep)]"
+        : "cursor-not-allowed bg-[var(--color-canvas-deep)]/50 text-[var(--color-ink-500)] opacity-80",
   );
 
   const inner = (

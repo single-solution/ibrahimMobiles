@@ -37,7 +37,7 @@ export function MobileCategoryPicker({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex h-9 min-w-0 max-w-[12rem] flex-1 items-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-ink-900)] transition-colors active:bg-[var(--color-canvas-deep)]"
+        className="flex h-9 min-w-0 max-w-[12rem] flex-1 items-center gap-1.5 rounded-full bg-[var(--color-surface)] shadow-[var(--shadow-sm)] px-3 text-[13px] font-medium text-[var(--color-ink-900)] transition-colors active:bg-[var(--color-canvas-deep)]"
         aria-haspopup="dialog"
         aria-expanded={isOpen}
       >
