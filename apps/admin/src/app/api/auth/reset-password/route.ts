@@ -2,7 +2,19 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { connectDB, User } from "@store/db";
-import { logger, validatePassword, isValidationError, BCRYPT_ROUNDS } from "@store/shared";
+import { 
+  logger, 
+  validatePassword, 
+  isValidationError, 
+  BCRYPT_ROUNDS,
+  checkRateLimit,
+  clearRateLimit,
+  getClientIp,
+  LOGIN_RATE_LIMIT_ATTEMPTS,
+  LOGIN_RATE_LIMIT_WINDOW_MS
+} from "@store/shared";
+
+const RESET_PASSWORD_RATE_LIMIT_SCOPE = "admin:reset-password";
 
 export async function POST(request: Request) {
   try {
@@ -12,6 +24,27 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Invalid or missing token." },
         { status: 400 }
+      );
+    }
+
+    // Rate limit the token submission attempt to prevent brute-forcing tokens
+    const ip = getClientIp(request);
+    const rateLimitKey = `${ip}`; // Rate limit by IP for reset attempts
+    const rateLimit = checkRateLimit({
+      scope: RESET_PASSWORD_RATE_LIMIT_SCOPE,
+      key: rateLimitKey,
+      max: LOGIN_RATE_LIMIT_ATTEMPTS,
+      windowMs: LOGIN_RATE_LIMIT_WINDOW_MS,
+    });
+
+    if (!rateLimit.isAllowed) {
+      logger.warn(
+        { ip, retryAfterMs: rateLimit.retryAfterMs },
+        "Admin reset password rate limit exceeded"
+      );
+      return NextResponse.json(
+        { error: "Too many attempts. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(rateLimit.retryAfterMs / 1000)) } }
       );
     }
 
@@ -53,6 +86,8 @@ export async function POST(request: Request) {
     user.resetPasswordExpiresAt = undefined;
     
     await user.save();
+    
+    clearRateLimit(RESET_PASSWORD_RATE_LIMIT_SCOPE, rateLimitKey);
     
     logger.info({ userId: user.id }, "User password successfully reset via token");
 

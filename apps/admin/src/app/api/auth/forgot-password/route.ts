@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { connectDB, User } from "@store/db";
-import { logger } from "@store/shared";
+import { 
+  logger, 
+  checkRateLimit, 
+  getClientIp, 
+  PASSWORD_RESET_RATE_LIMIT_ATTEMPTS, 
+  LOGIN_RATE_LIMIT_WINDOW_MS 
+} from "@store/shared";
+
+const FORGOT_PASSWORD_RATE_LIMIT_SCOPE = "admin:forgot-password";
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +23,27 @@ export async function POST(request: Request) {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+
+    // Rate-limit BEFORE hitting the DB
+    const ip = getClientIp(request);
+    const rateLimitKey = `${ip}:${normalizedEmail}`;
+    const rateLimit = checkRateLimit({
+      scope: FORGOT_PASSWORD_RATE_LIMIT_SCOPE,
+      key: rateLimitKey,
+      max: PASSWORD_RESET_RATE_LIMIT_ATTEMPTS,
+      windowMs: LOGIN_RATE_LIMIT_WINDOW_MS,
+    });
+    
+    if (!rateLimit.isAllowed) {
+      logger.warn(
+        { ip, email: normalizedEmail, retryAfterMs: rateLimit.retryAfterMs },
+        "Admin forgot password rate limit exceeded"
+      );
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(rateLimit.retryAfterMs / 1000)) } }
+      );
+    }
 
     await connectDB();
     const user = await User.findOne({ email: normalizedEmail, isActive: true });

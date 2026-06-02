@@ -230,6 +230,9 @@ export const MAX_REQUEST_BODY_BYTES = 1_000_000;
 /** Login attempts per IP+identifier before throttling kicks in (security.md § Rate Limiting). */
 export const LOGIN_RATE_LIMIT_ATTEMPTS = 8;
 
+/** Password reset request attempts per IP+email before throttling kicks in. */
+export const PASSWORD_RESET_RATE_LIMIT_ATTEMPTS = 3;
+
 /**
  * Standard 15-minute window used by login + sensitive public POST endpoints
  * (sign-in, OTP issuance, public order placement) — matches the security
@@ -237,7 +240,7 @@ export const LOGIN_RATE_LIMIT_ATTEMPTS = 8;
  */
 export const SHORT_BURST_WINDOW_MS = 15 * MS_PER_MINUTE;
 
-/** Window for the login rate limiter (milliseconds). */
+/** Window for the login and reset rate limiter (milliseconds). */
 export const LOGIN_RATE_LIMIT_WINDOW_MS = SHORT_BURST_WINDOW_MS;
 
 /** Authenticated admin API requests per IP per minute (security.md § Rate Limiting). */
