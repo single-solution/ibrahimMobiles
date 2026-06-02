@@ -23,12 +23,12 @@ export function SelectField({ label, options, hint, id, className, ...rest }: Se
       >
         {label}
       </label>
-      <div className="relative flex h-10 items-center rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] transition-colors focus-within:border-[var(--color-accent-700)] focus-within:ring-2 focus-within:ring-[var(--color-accent-100)]">
+      <div className="relative flex h-10 items-center rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] transition-all hover:border-[var(--color-ink-300)] focus-within:border-[var(--color-accent-700)] focus-within:ring-2 focus-within:ring-[var(--color-accent-100)]">
         <select
           id={fieldId}
           {...rest}
           className={classNames(
-            "h-full w-full appearance-none bg-transparent pl-3 pr-9 text-sm text-[var(--color-ink-900)] focus:outline-none",
+            "h-full w-full appearance-none bg-transparent pl-3 pr-9 text-[13px] text-[var(--color-ink-900)] focus:outline-none md:text-sm",
             className,
           )}
         >

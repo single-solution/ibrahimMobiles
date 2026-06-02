@@ -6,25 +6,23 @@ import { adminListPageClass } from "@/components/shared/adminWorkspaceUi";
 import { ListWorkspaceSkeleton } from "@/components/loading/ListWorkspaceSkeleton";
 
 export function AdminListPageShell({
-  label,
   children,
 }: {
-  label: string;
   children: ReactNode;
 }) {
   return (
-    <SkeletonScreen label={label}>
-      <AdminShell contentClassName={adminListPageClass}>
-        <section className="flex min-h-0 flex-1 flex-col">{children}</section>
-      </AdminShell>
-    </SkeletonScreen>
+    <AdminShell contentClassName={adminListPageClass}>
+      <section className="flex min-h-0 flex-1 flex-col">{children}</section>
+    </AdminShell>
   );
 }
 
 export function AdminListPageLoading({ label }: { label: string }) {
   return (
-    <AdminListPageShell label={label}>
-      <ListWorkspaceSkeleton />
-    </AdminListPageShell>
+    <SkeletonScreen label={label}>
+      <AdminListPageShell>
+        <ListWorkspaceSkeleton />
+      </AdminListPageShell>
+    </SkeletonScreen>
   );
 }

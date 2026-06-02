@@ -1,6 +1,5 @@
-import { AdminShell } from "@/components/layout/AdminShell";
+import { AdminListPageShell } from "@/components/shared/AdminListPageShell";
 import { AccountSettings } from "@/app/account/_components/AccountSettings";
-import { adminListPageClass } from "@/components/shared/adminWorkspaceUi";
 
 import { requirePageSession } from "@/lib/server/requirePageSession";
 
@@ -10,10 +9,8 @@ export default async function AdminAccountPage() {
   await requirePageSession("/account");
 
   return (
-    <AdminShell contentClassName={adminListPageClass}>
-      <section className="flex min-h-0 flex-1 flex-col">
-        <AccountSettings />
-      </section>
-    </AdminShell>
+    <AdminListPageShell>
+      <AccountSettings />
+    </AdminListPageShell>
   );
 }

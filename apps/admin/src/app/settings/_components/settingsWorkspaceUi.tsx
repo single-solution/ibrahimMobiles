@@ -149,10 +149,10 @@ export function SettingsNavItem({
         type="button"
         onClick={onClick}
         className={classNames(
-          "flex w-full rounded-[var(--radius-md)] px-2 py-1.5 text-left text-xs transition-colors",
+          "flex w-full rounded-[var(--radius-md)] px-2.5 py-1.5 text-left text-[13px] transition-all",
           isActive
-            ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-900)]"
-            : "text-[var(--color-ink-700)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink-900)]",
+            ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-900)] shadow-sm"
+            : "text-[var(--color-ink-700)] hover:-translate-y-px hover:bg-[var(--color-surface)] hover:text-[var(--color-ink-900)] hover:shadow-sm",
         )}
       >
         <span className="truncate">{label}</span>
@@ -175,10 +175,10 @@ export function SettingsMobileTabChip({
       type="button"
       onClick={onClick}
       className={classNames(
-        "inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors",
+        "inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold transition-all hover:-translate-y-px hover:shadow-sm",
         isActive
-          ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
-          : "border border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-600)]",
+          ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)] shadow-sm"
+          : "border border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-600)] shadow-[var(--shadow-sm)] hover:border-[var(--color-ink-300)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
       )}
     >
       {label}

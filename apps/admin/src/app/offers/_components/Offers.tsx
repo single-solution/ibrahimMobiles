@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Pencil, Plus, Tag, Trash2 } from "lucide-react";
+import { Tag, Trash2, Plus, Pencil, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AdminTable, type AdminTableColumn } from "@/components/ui/AdminTable";
 import {
@@ -172,7 +172,13 @@ export function Offers({ offers }: OffersProps) {
           rowKey={(offer) => offer.id}
           searchAccessor={(offer) => `${offer.title} ${offer.description} ${offer.badgeLabel}`}
           searchPlaceholder="Search offers…"
-          emptyState="No offers yet. Create one to show on the storefront."
+          emptyState={
+            <WorkspaceEmptyPane
+              iconElement={<Tag size={22} />}
+              title="No offers found"
+              description="Create promotional bundles or holiday deals to display on the storefront."
+            />
+          }
         />
       </div>
 

@@ -55,14 +55,14 @@ export function WorkspaceSidebarNavItem({
         type="button"
         onClick={onClick}
         className={classNames(
-          "flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] px-2 py-1.5 text-left text-xs transition-colors",
+          "flex w-full items-center justify-between gap-2 rounded-[var(--radius-md)] px-2.5 py-1.5 text-left text-[13px] transition-all",
           isActive
-            ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-900)]"
-            : "text-[var(--color-ink-700)] hover:bg-[var(--color-surface)] hover:text-[var(--color-ink-900)]",
+            ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-900)] shadow-sm"
+            : "text-[var(--color-ink-700)] hover:-translate-y-px hover:bg-[var(--color-surface)] hover:text-[var(--color-ink-900)] hover:shadow-sm",
         )}
       >
         <span className="truncate">{label}</span>
-        <span className="shrink-0 tabular-nums text-[10px] opacity-70">{count}</span>
+        <span className="shrink-0 tabular-nums text-[10.5px] opacity-70">{count}</span>
       </button>
     </li>
   );
@@ -86,13 +86,13 @@ export function WorkspaceFilterChip({
       type="button"
       onClick={onClick}
       className={classNames(
-        "inline-flex items-center gap-1 font-semibold transition-colors",
+        "inline-flex items-center gap-1 font-semibold transition-all hover:-translate-y-px hover:shadow-sm",
         compact
           ? "rounded-full px-2 py-0.5 text-[0.625rem]"
-          : "rounded-full px-2.5 py-1 text-[0.6875rem]",
+          : "rounded-full px-3 py-1 text-[11px]",
         isActive
-          ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
-          : "border border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-600)] hover:border-[var(--color-ink-300)] hover:text-[var(--color-ink-900)]",
+          ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)] shadow-sm"
+          : "border border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-600)] shadow-[var(--shadow-sm)] hover:border-[var(--color-ink-300)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
       )}
     >
       {label}
@@ -126,10 +126,10 @@ export function WorkspaceSearchField({
   "aria-label": string;
 }) {
   return (
-    <label className={classNames("relative flex h-8 items-center", className)}>
+    <label className={classNames("relative flex h-10 items-center", className)}>
       <Search
-        size={13}
-        className="pointer-events-none absolute left-2 text-[var(--color-ink-400)]"
+        size={14}
+        className="pointer-events-none absolute left-3 text-[var(--color-ink-400)]"
         aria-hidden
       />
       <input
@@ -138,7 +138,7 @@ export function WorkspaceSearchField({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         aria-label={ariaLabel}
-        className="h-full w-full rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] pl-7 pr-2 text-xs text-[var(--color-ink-900)] placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-100)]"
+        className="h-full w-full rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] pl-9 pr-3 text-[13px] text-[var(--color-ink-900)] placeholder:text-[var(--color-ink-400)] shadow-[var(--shadow-sm)] transition-all hover:border-[var(--color-ink-300)] focus:border-[var(--color-accent-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-100)] md:text-sm"
       />
     </label>
   );

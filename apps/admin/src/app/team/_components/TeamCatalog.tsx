@@ -344,16 +344,22 @@ function TeamCatalogInner({
             />
             <ul className="min-h-0 flex-1 overflow-y-auto">
               {filteredMembers.length === 0 ? (
-                <li className="px-4 py-8 text-center text-xs leading-relaxed text-[var(--color-ink-500)]">
-                  {searchQuery.trim()
-                    ? "No team members match your search."
-                    : segment === "all"
-                      ? "No team members yet."
-                      : segment === "suspended"
-                        ? "No suspended members."
-                        : segment === "super"
-                          ? "No super admins."
-                          : `No ${ROLE_LABEL[segment as UserRole].toLowerCase()}s yet.`}
+                <li className="flex h-full items-center justify-center pb-8 pt-4">
+                  <WorkspaceEmptyPane
+                    iconElement={<Users size={22} />}
+                    title={searchQuery.trim() ? "No matching team members" : "No team members yet"}
+                    description={
+                      searchQuery.trim()
+                        ? "Try adjusting your search query."
+                        : segment === "suspended"
+                          ? "No suspended members."
+                          : segment === "super"
+                            ? "No super admins."
+                            : segment === "all"
+                              ? "No members added yet."
+                              : `No ${ROLE_LABEL[segment as UserRole].toLowerCase()}s yet.`
+                    }
+                  />
                 </li>
               ) : (
                 filteredMembers.map((member) => (

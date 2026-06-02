@@ -23,17 +23,16 @@ export function TextField({
 }: TextFieldProps) {
   const inputId = id ?? `field-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
-    <div className={classNames("flex flex-col gap-1 md:gap-1.5", containerClassName)}>
+    <div className={classNames("flex flex-col gap-1.5", containerClassName)}>
       <label
         htmlFor={inputId}
-        className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-700)] md:text-[11px] md:tracking-[0.14em]"
+        className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-700)]"
       >
         {label}
       </label>
       <div
         className={classNames(
-          // 36px wrapper on phones (native-app input height) → 40px on tablets/desktop.
-          "flex h-9 items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2.5 transition-colors focus-within:border-[var(--color-accent-700)] focus-within:ring-2 focus-within:ring-[var(--color-accent-100)] md:h-10 md:px-3",
+          "flex h-10 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 shadow-[var(--shadow-sm)] transition-all hover:border-[var(--color-ink-300)] focus-within:border-[var(--color-accent-700)] focus-within:ring-2 focus-within:ring-[var(--color-accent-100)]",
           errorText && "border-rose-300 focus-within:border-rose-400 focus-within:ring-rose-100",
         )}
       >
@@ -44,10 +43,7 @@ export function TextField({
           id={inputId}
           {...rest}
           className={classNames(
-            // Global `input { font-size: 16px }` mobile rule (admin globals.css)
-            // overrides text-sm under 640px to stop iOS Safari from zooming on
-            // focus — visual size on phones is 16px, on desktop 14px (text-sm).
-            "h-full w-full bg-transparent text-sm text-[var(--color-ink-900)] placeholder:text-[var(--color-ink-400)] focus:outline-none",
+            "h-full w-full bg-transparent text-[13px] text-[var(--color-ink-900)] placeholder:text-[var(--color-ink-400)] focus:outline-none md:text-sm",
             className,
           )}
         />
