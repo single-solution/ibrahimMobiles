@@ -114,7 +114,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
             <Search size={15} />
             <span>Search</span>
           </button>
-          <HeaderAccountLink />
+          <HeaderAccountLink isActive={pathname.startsWith("/account")} />
           <button
             type="button"
             onClick={() => setIsCartOpen((previous) => !previous)}
@@ -165,7 +165,7 @@ function HeaderNavLink({ href, label, isActive }: HeaderNavLinkProps) {
       className={classNames(
         "tap rounded-[var(--radius-md)] px-3 py-2 text-sm transition-colors",
         isActive
-          ? "font-bold text-[var(--color-accent-600)]"
+          ? "font-semibold text-[var(--color-accent-800)]"
           : "font-medium text-[var(--color-ink-600)] hover:text-[var(--color-ink-900)]",
       )}
     >
@@ -174,7 +174,7 @@ function HeaderNavLink({ href, label, isActive }: HeaderNavLinkProps) {
   );
 }
 
-function HeaderAccountLink() {
+function HeaderAccountLink({ isActive }: { isActive: boolean }) {
   const prefetchHandlers = usePrefetchOnIntent("/account");
   return (
     <Link
@@ -183,7 +183,12 @@ function HeaderAccountLink() {
       onPointerDown={prefetchHandlers.onPointerDown}
       onTouchStart={prefetchHandlers.onTouchStart}
       onFocus={prefetchHandlers.onFocus}
-      className="tap inline-flex h-10 items-center gap-1.5 rounded-full border border-transparent px-3.5 text-sm font-medium text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)] focus-visible:outline-none"
+      className={classNames(
+        "tap inline-flex h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors focus-visible:outline-none",
+        isActive
+          ? "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-900)] shadow-[var(--shadow-sm)]"
+          : "border-transparent text-[var(--color-ink-800)] hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)]"
+      )}
     >
       <User size={15} />
       <span>Account</span>
