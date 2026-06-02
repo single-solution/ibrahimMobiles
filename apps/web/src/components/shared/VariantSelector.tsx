@@ -322,7 +322,7 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
         )}
       </div>
 
-      <div className="shrink-0 space-y-3 md:mt-auto md:pt-3">
+      <div className="shrink-0 space-y-3 md:mt-4 md:pt-3">
         {isComplete ? (
           <PurchaseSummary
             isInStock={inStock}
