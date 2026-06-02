@@ -162,7 +162,6 @@ export function DesktopHero({ heroProducts, settings, categoryLabels, shopHref }
               Visit store
             </ButtonLink>
           </MagneticHover>
-          <HeroTrustHints settings={settings} variant="desktop" />
         </div>
 
         <a

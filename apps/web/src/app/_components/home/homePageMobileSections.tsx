@@ -145,7 +145,6 @@ export function MobileHero({ heroProducts, settings, categoryLabels, shopHref }:
             <ArrowUpRight size={15} strokeWidth={2.4} />
           </Link>
         </MagneticHover>
-        <HeroTrustHints settings={settings} variant="mobile" />
       </div>
 
       <a
