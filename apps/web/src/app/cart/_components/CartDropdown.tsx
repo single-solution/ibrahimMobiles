@@ -80,7 +80,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
       />
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-x-0 top-0 z-dropdown hidden justify-center px-6 pt-[calc(var(--desktop-header-h)+8px)] md:flex lg:px-8"
+        className="pointer-events-none fixed inset-x-0 top-0 z-50 hidden justify-center px-6 pt-[calc(var(--desktop-header-h)+8px)] md:flex lg:px-8"
       >
         <div className="flex w-full max-w-[1440px] justify-end">
           <div
