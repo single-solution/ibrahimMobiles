@@ -192,76 +192,87 @@ export default async function AdminOverviewPage({
         </div>
       </div>
 
-      {/* Desktop layout — single primary column. `max-w` keeps the KPI
-          cards information-dense instead of stretching on ultrawide. */}
+      {/* Desktop layout — Bento-style grid to maximize horizontal space.
+          Uses a 12-column grid on xl screens (8 for main metrics, 4 for insights). */}
       <div className="hidden md:block">
-        <div className="flex max-w-[1540px] flex-col gap-6">
-          <div className="min-w-0 flex-1">
-            <SectionHeader
-              title="Performance"
-              subtitle="Pick a window — every tile re-runs against your chosen range and comparison."
-              action={
-                <Suspense fallback={<PeriodSelectorFallback />}>
-                  <PerformancePeriodSelector range={range} compare={compare} />
-                </Suspense>
-              }
-            />
-            <Suspense
-              key={`${range}-${compare}`}
-              fallback={<DesktopPerformanceFallback />}
-            >
-              <DesktopPerformancePanel range={range} compare={compare} />
-            </Suspense>
-
-            <SectionHeader
-              title="What needs your attention"
-              subtitle="Pending payments first, then dispatch and delivery."
-              action={
-                <DashboardSectionActionLink
-                  href="/inquiries"
-                  label="Open inquiries"
-                  permission="inquiry_view"
+        <div className="mx-auto max-w-[1600px]">
+          <div className="grid items-start gap-6 xl:grid-cols-12">
+            
+            {/* Main Metric Column */}
+            <div className="min-w-0 flex-1 space-y-6 xl:col-span-8">
+              <section>
+                <SectionHeader
+                  title="Performance"
+                  subtitle="Pick a window — every tile re-runs against your chosen range and comparison."
+                  action={
+                    <Suspense fallback={<PeriodSelectorFallback />}>
+                      <PerformancePeriodSelector range={range} compare={compare} />
+                    </Suspense>
+                  }
                 />
-              }
-            />
-            <Suspense fallback={<DesktopKpiGridFallback />}>
-              <DesktopAttentionKpis />
-            </Suspense>
-
-            <SectionHeader
-              title="What's in stock and what's hot"
-              subtitle="Stock, low-stock alerts, listings, and inquiry inbox."
-              action={
-                <DashboardSectionActionLink
-                  href="/products"
-                  label="Manage products"
-                  permission="product_view"
-                />
-              }
-            />
-            <Suspense fallback={<DesktopKpiGridFallback />}>
-              <DesktopStockKpis />
-            </Suspense>
-
-            {/* Quick insights widgets grid. */
-             /* The side rail has been flattened into the main column layout */
-             /* to ensure all cards sit at the same structural level. */}
-            <div>
-              <SectionHeader
-                title="Quick insights & health"
-                subtitle="Configuration, catalog hygiene, and recent inquiries."
-              />
-              <div className="grid items-start gap-4 lg:grid-cols-2">
-                <Suspense fallback={<ShopHealthFallback />}>
-                  <ShopHealthSection />
+                <Suspense
+                  key={`${range}-${compare}`}
+                  fallback={<DesktopPerformanceFallback />}
+                >
+                  <DesktopPerformancePanel range={range} compare={compare} />
                 </Suspense>
-                <div className="lift overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
-                  <Suspense fallback={<DesktopRecentInquiriesFallback />}>
-                    <DesktopRecentInquiries />
-                  </Suspense>
-                </div>
-              </div>
+              </section>
+
+              <section>
+                <SectionHeader
+                  title="What needs your attention"
+                  subtitle="Pending payments first, then dispatch and delivery."
+                  action={
+                    <DashboardSectionActionLink
+                      href="/inquiries"
+                      label="Open inquiries"
+                      permission="inquiry_view"
+                    />
+                  }
+                />
+                <Suspense fallback={<DesktopKpiGridFallback />}>
+                  <DesktopAttentionKpis />
+                </Suspense>
+              </section>
+
+              <section>
+                <SectionHeader
+                  title="What's in stock and what's hot"
+                  subtitle="Stock, low-stock alerts, listings, and inquiry inbox."
+                  action={
+                    <DashboardSectionActionLink
+                      href="/products"
+                      label="Manage products"
+                      permission="product_view"
+                    />
+                  }
+                />
+                <Suspense fallback={<DesktopKpiGridFallback />}>
+                  <DesktopStockKpis />
+                </Suspense>
+              </section>
             </div>
+
+            {/* Insights & Health Column */}
+            <div className="min-w-0 flex-1 space-y-6 xl:col-span-4">
+              <section>
+                <SectionHeader
+                  title="Quick insights & health"
+                  subtitle="Configuration, catalog hygiene, and recent inquiries."
+                />
+                <div className="flex flex-col gap-4">
+                  <Suspense fallback={<ShopHealthFallback />}>
+                    <ShopHealthSection />
+                  </Suspense>
+                  <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+                    <Suspense fallback={<DesktopRecentInquiriesFallback />}>
+                      <DesktopRecentInquiries />
+                    </Suspense>
+                  </div>
+                </div>
+              </section>
+            </div>
+
           </div>
         </div>
       </div>
