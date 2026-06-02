@@ -1021,14 +1021,14 @@ html {
    spring so the release "pops" back rather than easing flatly. */
 .tap {
   transition:
-    transform var(--motion-fast) var(--ease-spring),
+    transform 320ms var(--ease-spring),
     box-shadow var(--motion-base) var(--ease-out-quart),
     background-color var(--motion-base) var(--ease-out-quart),
     border-color var(--motion-base) var(--ease-out-quart),
     color var(--motion-base) var(--ease-out-quart);
 }
 .tap:active {
-  transform: scale(0.92);
+  transform: scale(0.85);
 }
 
 /* Keyboard focus ring for ad-hoc controls that aren't the design-system

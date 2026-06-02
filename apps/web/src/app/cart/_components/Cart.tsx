@@ -47,8 +47,8 @@ export function Cart() {
        between the mobile header and the floating tab-bar pill, so the
        item list scrolls and the order summary sits anchored at the
        bottom. Desktop reverts to a normal-flow two-column grid. */
-    <div className="mx-auto flex h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h)-env(safe-area-inset-bottom,0px)-32px)] max-w-[1100px] flex-col px-4 pt-4 md:block md:h-auto md:px-6 md:pb-16 md:pt-10 lg:px-8">
-      <div className="flex shrink-0 flex-col gap-2 md:gap-3">
+    <div className="reveal-stagger mx-auto flex h-[calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h)-env(safe-area-inset-bottom,0px)-32px)] max-w-[1100px] flex-col px-4 pt-4 md:block md:h-auto md:px-6 md:pb-16 md:pt-10 lg:px-8">
+      <div className="reveal flex shrink-0 flex-col gap-2 md:gap-3">
         <h1 className="font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
           Your cart
         </h1>
@@ -58,14 +58,14 @@ export function Cart() {
         </p>
       </div>
 
-      <div className="mt-4 flex min-h-0 flex-1 flex-col gap-3 md:mt-6 md:grid md:flex-none md:grid-cols-[1fr_320px] md:gap-6 lg:grid-cols-[1fr_360px]">
-        <ul className="min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] md:flex-none md:overflow-visible">
+      <div className="reveal mt-4 flex min-h-0 flex-1 flex-col gap-3 md:mt-6 md:grid md:flex-none md:grid-cols-[1fr_320px] md:gap-6 lg:grid-cols-[1fr_360px]">
+        <ul className="reveal-stagger min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] md:flex-none md:overflow-visible">
           {cart.items.map((line) => (
             <CartLine key={line.id} line={line} />
           ))}
         </ul>
 
-        <aside className="shrink-0 md:space-y-3">
+        <aside className="reveal shrink-0 md:space-y-3">
           <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 md:p-5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
               Order summary
@@ -116,7 +116,7 @@ function CartLine({ line }: { line: CartItem }) {
       : "/shop";
   const attributeEntries = Object.entries(line.attributes ?? {});
   return (
-    <li className="flex items-start gap-4 p-4">
+    <li className="reveal flex items-start gap-4 p-4">
       <Link
         href={lineProductHref}
         className="product-media-well relative size-20 shrink-0 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)]"
