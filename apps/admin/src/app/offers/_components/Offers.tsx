@@ -6,6 +6,7 @@ import { Tag, Trash2, Plus, Pencil, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AdminTable, type AdminTableColumn } from "@/components/ui/AdminTable";
 import {
+  WorkspaceEmptyPane,
   WorkspaceFrame,
   WorkspaceListHeader,
   WorkspacePrimaryAction,
