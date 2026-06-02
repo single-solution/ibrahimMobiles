@@ -9,6 +9,8 @@ import {
   pointsToRupees,
 } from "@store/shared";
 import { useCart } from "@/lib/cart/useCart";
+import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
+import { evaluateOffers } from "@store/shared";
 import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import type { AccountAddress, AccountCustomer } from "@/lib/storefront/account";
@@ -57,6 +59,21 @@ export function Checkout({ customer }: CheckoutProps) {
   const { startNavigation } = useNavigationTransition();
   const cart = useCart();
   const settings = useStoreSettings();
+  const { offers } = useActiveOffers();
+
+  const evaluatableItems = useMemo(() => cart.items.map(item => ({
+    id: item.id,
+    productId: item.productId,
+    variantId: item.variantId,
+    categorySlug: item.categorySlug,
+    brandSlug: item.brandSlug,
+    gradeSlug: item.gradeSlug,
+    price: item.unitPriceRupees,
+    quantity: item.quantity,
+    attributes: item.attributes,
+  })), [cart.items]);
+
+  const pricing = useMemo(() => evaluateOffers(evaluatableItems, offers), [evaluatableItems, offers]);
 
   const defaultAddress =
     customer?.addresses.find((candidate) => candidate.isDefault) ??
@@ -85,6 +102,7 @@ export function Checkout({ customer }: CheckoutProps) {
 
   const totals = useMemo(() => {
     const itemCount = cart.itemCount;
+    const subtotalRupees = pricing.finalTotal;
     const discountRupees =
       payment === "bank"
         ? Math.round((subtotalRupees * settings.bankTransferDiscountPercent) / 100)
@@ -95,14 +113,15 @@ export function Checkout({ customer }: CheckoutProps) {
           ? 0
           : DELIVERY_FEE_RUPEES
         : 0;
-    const pointsRedeemedRupees = pointsToRupees(cappedPointsToUse);
+    const pointsRedeemedRupees = pricing.isLoyaltyPointsAllowed ? pointsToRupees(cappedPointsToUse) : 0;
     const totalRupees = Math.max(
       0,
       subtotalRupees - discountRupees + deliveryRupees - pointsRedeemedRupees,
     );
     return {
       itemCount,
-      subtotalRupees,
+      subtotalRupees: cart.subtotalRupees,
+      offersDiscountRupees: pricing.totalDiscount,
       discountRupees,
       deliveryRupees,
       pointsRedeemedRupees,
@@ -110,7 +129,10 @@ export function Checkout({ customer }: CheckoutProps) {
     };
   }, [
     cart.itemCount,
-    subtotalRupees,
+    cart.subtotalRupees,
+    pricing.finalTotal,
+    pricing.totalDiscount,
+    pricing.isLoyaltyPointsAllowed,
     delivery,
     payment,
     cappedPointsToUse,

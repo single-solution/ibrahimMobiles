@@ -506,6 +506,7 @@ export interface OrderSummaryPanelProps {
   totals: {
     itemCount: number;
     subtotalRupees: number;
+    offersDiscountRupees?: number;
     discountRupees: number;
     deliveryRupees: number;
     pointsRedeemedRupees: number;
@@ -554,6 +555,13 @@ export function OrderSummaryPanel({
 
       <div className="space-y-2.5 p-4 md:p-5">
         <SummaryRow label="Subtotal" value={formatPrice(totals.subtotalRupees)} />
+        {totals.offersDiscountRupees && totals.offersDiscountRupees > 0 ? (
+          <SummaryRow
+            label="Offers discount"
+            value={`− ${formatPrice(totals.offersDiscountRupees)}`}
+            tone="success"
+          />
+        ) : null}
         {totals.discountRupees > 0 && (
           <SummaryRow
             label="Bank transfer discount"

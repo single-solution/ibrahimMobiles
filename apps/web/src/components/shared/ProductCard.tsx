@@ -5,6 +5,8 @@ import Link from "next/link";
 
 import { type Product } from "@store/shared";
 import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
+import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
+import { evaluateOffers } from "@store/shared";
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { productHref } from "@/lib/catalog/productPaths";
@@ -134,6 +136,26 @@ export function ProductCard({
 
   const prefetchHandlers = usePrefetchOnIntent(href);
 
+  const { offers } = useActiveOffers();
+
+  // Evaluate offers for the display variant
+  const evaluatableItem = useMemo(() => {
+    return {
+      id: "product_card_eval",
+      productId: catalog.id,
+      variantId: listingVariant.id,
+      categorySlug: catalog.categorySlug,
+      brandSlug: catalog.brandSlug,
+      gradeSlug: listingVariant.gradeSlug,
+      price: listingVariant.priceRupees,
+      quantity: 1,
+      attributes: listingVariant.attributes,
+    };
+  }, [catalog, listingVariant]);
+
+  const pricing = useMemo(() => evaluateOffers([evaluatableItem], offers), [evaluatableItem, offers]);
+  const activeOffer = pricing.itemDiscounts.get("product_card_eval")?.[0];
+
   return (
     <Link
       href={href}
@@ -186,6 +208,11 @@ export function ProductCard({
                 />
               </div>
               <div className="absolute right-1.5 top-1.5 z-10 flex flex-col items-end gap-1 md:right-3 md:top-3 md:gap-1.5">
+                {activeOffer && (
+                  <span className="rounded-sm bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-accent-800)] shadow-sm backdrop-blur-md">
+                    {activeOffer.offerTitle}
+                  </span>
+                )}
                 <GradeBadge
                   categorySlug={product.categorySlug}
                   gradeSlug={staticGradeSlug}

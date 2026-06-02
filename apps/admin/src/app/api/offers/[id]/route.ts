@@ -58,6 +58,10 @@ interface OfferUpdateInput {
   sortOrder?: unknown;
   content?: unknown;
   seo?: unknown;
+  conditions?: unknown;
+  action?: unknown;
+  schedule?: unknown;
+  constraints?: unknown;
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -165,6 +169,21 @@ export async function PUT(request: Request, { params }: RouteContext) {
     if ("seo" in parsed) {
       update.seo = parsed.seo;
     }
+  }
+
+  if (body.conditions !== undefined) {
+    if (Array.isArray(body.conditions)) {
+      update.conditions = body.conditions;
+    }
+  }
+  if (body.action !== undefined && typeof body.action === "object" && body.action !== null) {
+    update.action = body.action;
+  }
+  if (body.schedule !== undefined && typeof body.schedule === "object" && body.schedule !== null) {
+    update.schedule = body.schedule;
+  }
+  if (body.constraints !== undefined && typeof body.constraints === "object" && body.constraints !== null) {
+    update.constraints = body.constraints;
   }
 
   if (Object.keys(update).length === 0) {

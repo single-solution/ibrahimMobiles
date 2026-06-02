@@ -41,6 +41,8 @@ import {
   OfferCardCompactPreview,
   OfferCardFullPreview,
 } from "@/app/categories/_components/previews";
+import { OfferRulesEditor } from "./OfferRulesEditor";
+import type { OfferCondition, OfferAction, OfferSchedule, OfferConstraints } from "@store/shared";
 
 const OFFER_SLUG_MAX_CHARS = 96;
 /** Matches `--color-accent-500` — persisted on offer documents as hex. */
@@ -239,6 +241,12 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
   const [expiresAt, setExpiresAt] = useState(initial?.expiresAt?.slice(0, ISO_DATE_LENGTH) ?? "");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
   const [seo, setSeo] = useState<SeoMeta>(initial?.seo ?? {});
+  
+  const [conditions, setConditions] = useState<OfferCondition[]>(initial?.conditions ?? []);
+  const [action, setAction] = useState<OfferAction>(initial?.action ?? { type: "percentage_discount", value: 10, target: "matched_items" });
+  const [schedule, setSchedule] = useState<OfferSchedule>(initial?.schedule ?? {});
+  const [constraints, setConstraints] = useState<OfferConstraints>(initial?.constraints ?? { allowLoyaltyPoints: false, isStackable: false, usageCount: 0 });
+
   const [isSaving, setIsSaving] = useState(false);
 
   const deferredContent = useDeferredValue(content);
@@ -276,6 +284,10 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
         expiresAt: expiresAt || null,
         isActive,
         seo,
+        conditions,
+        action,
+        schedule,
+        constraints,
       };
       if (isEdit && initial) {
         await adminFetch(`/api/offers/${initial.id}`, { method: "PUT", json: payload });
@@ -399,6 +411,20 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
             },
           }}
         />
+
+        <div className="mt-8 border-t border-[var(--color-ink-100)] pt-8">
+          <h2 className="mb-4 text-lg font-bold text-[var(--color-ink-900)]">Offer Rules Engine</h2>
+          <OfferRulesEditor
+            conditions={conditions}
+            onChangeConditions={setConditions}
+            action={action}
+            onChangeAction={setAction}
+            schedule={schedule}
+            onChangeSchedule={setSchedule}
+            constraints={constraints}
+            onChangeConstraints={setConstraints}
+          />
+        </div>
       </form>
       <PreviewPanel
         hint="Updates as you type. Mirrors offer cards on the deals page."

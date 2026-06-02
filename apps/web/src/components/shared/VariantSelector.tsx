@@ -6,6 +6,7 @@ import { Check, MessageCircle, Settings2, ShoppingBag } from "lucide-react";
 import {
   buildWhatsAppLink,
   classNames,
+  evaluateOffers,
   formatPrice,
   resolveVariantAttributeLabel,
   type AttributeDescriptor,
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/Button";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
 import { useToast } from "@/components/ui/Toast";
 import { useVariantSelection } from "@/components/shared/VariantContext";
+import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
 
 import {
   attributeValuesOnVariant,
@@ -231,6 +233,24 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
   const gradeLabelForCopy = activeGrade?.label ?? selected.gradeSlug;
   const heroImage = product.images?.[0];
 
+  const { offers } = useActiveOffers();
+  const evaluatableItem = useMemo(() => {
+    return {
+      id: "pdp_eval",
+      productId: product.id,
+      variantId: selected.id,
+      categorySlug: product.categorySlug,
+      brandSlug: product.brandSlug,
+      gradeSlug: selected.gradeSlug,
+      price: selected.priceRupees,
+      quantity: 1,
+      attributes: selected.attributes,
+    };
+  }, [product, selected]);
+
+  const pricing = useMemo(() => evaluateOffers([evaluatableItem], offers), [evaluatableItem, offers]);
+  const activeOffer = pricing.itemDiscounts.get("pdp_eval")?.[0];
+
   const attributeSummary = useMemo(
     () => describeSelection(selected, categoryAttributes),
     [selected, categoryAttributes],
@@ -334,6 +354,8 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
             onQuantityChange={setAddQuantity}
             onAddToCart={handleAddToCart}
             hasJustBeenAdded={hasJustBeenAdded}
+            activeOffer={activeOffer}
+            discountAmount={activeOffer?.discountAmount ?? 0}
           />
         ) : (
           <SelectToSeePrice attributeLabels={missingAttributeLabels} />
@@ -352,6 +374,8 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
           maxQuantity={maxSelectableQuantity}
           onQuantityChange={setAddQuantity}
           whatsappMessage={whatsappMessage}
+          activeOffer={activeOffer}
+          discountAmount={activeOffer?.discountAmount ?? 0}
         />
       ) : (
         <MobileStickyPlaceholder attributeLabels={missingAttributeLabels} />

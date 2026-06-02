@@ -8,6 +8,8 @@ import { ProductImage } from "@/components/shared/ProductImage";
 import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
 import { productHref } from "@/lib/catalog/productPaths";
 import { useCart } from "@/lib/cart/useCart";
+import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
+import { evaluateOffers } from "@store/shared";
 import { useToast } from "@/components/ui/Toast";
 import type { CartItem } from "@/lib/cart/types";
 import { formatPrice } from "@store/shared";
@@ -19,6 +21,21 @@ import { formatPrice } from "@store/shared";
  */
 export function Cart() {
   const cart = useCart();
+  const { offers } = useActiveOffers();
+
+  const evaluatableItems = cart.items.map(item => ({
+    id: item.id,
+    productId: item.productId,
+    variantId: item.variantId,
+    categorySlug: item.categorySlug,
+    brandSlug: item.brandSlug,
+    gradeSlug: item.gradeSlug,
+    price: item.unitPriceRupees,
+    quantity: item.quantity,
+    attributes: item.attributes,
+  }));
+
+  const pricing = evaluateOffers(evaluatableItems, offers);
 
   if (cart.isEmpty) {
     return (
@@ -62,7 +79,7 @@ export function Cart() {
       <div className="reveal mt-4 flex min-h-0 flex-1 flex-col gap-3 md:mt-6 md:grid md:flex-none md:grid-cols-[1fr_320px] md:gap-6 lg:grid-cols-[1fr_360px]">
         <ul className="reveal-stagger min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] md:flex-none md:overflow-visible">
           {cart.items.map((line) => (
-            <CartLine key={line.id} line={line} />
+            <CartLine key={line.id} line={line} discounts={pricing.itemDiscounts.get(line.id) || []} />
           ))}
         </ul>
 
@@ -77,8 +94,22 @@ export function Cart() {
                 {formatPrice(cart.subtotalRupees)}
               </span>
             </div>
-            <p className="mt-1 max-w-prose text-[12px] text-[var(--color-ink-500)]">
-              Delivery, payment discount, and loyalty points are applied at the
+            {pricing.totalDiscount > 0 && (
+              <div className="mt-2 flex items-baseline justify-between">
+                <span className="text-[13px] text-[var(--color-accent-700)]">Discounts</span>
+                <span className="text-[15px] font-semibold tabular-nums tracking-tight text-[var(--color-accent-700)]">
+                  -{formatPrice(pricing.totalDiscount)}
+                </span>
+              </div>
+            )}
+            <div className="mt-2 flex items-baseline justify-between border-t border-[var(--color-ink-100)] pt-2">
+              <span className="text-[14px] font-semibold text-[var(--color-ink-900)]">Total</span>
+              <span className="text-[16px] font-bold tabular-nums tracking-tight text-[var(--color-ink-900)]">
+                {formatPrice(pricing.finalTotal)}
+              </span>
+            </div>
+            <p className="mt-2 max-w-prose text-[12px] text-[var(--color-ink-500)]">
+              Delivery, payment discount, and {pricing.isLoyaltyPointsAllowed ? "loyalty points" : "loyalty points (disabled for these offers)"} are applied at the
               next step.
             </p>
             <Link
@@ -95,7 +126,9 @@ export function Cart() {
   );
 }
 
-function CartLine({ line }: { line: CartItem }) {
+import type { DiscountApplication } from "@store/shared";
+
+function CartLine({ line, discounts = [] }: { line: CartItem; discounts?: DiscountApplication[] }) {
   const cart = useCart();
   const { toast } = useToast();
   const [isRemoving, setIsRemoving] = useState(false);
@@ -180,9 +213,25 @@ function CartLine({ line }: { line: CartItem }) {
             onChange={(next) => cart.updateQuantity(line.id, next)}
             size="sm"
           />
-          <p className="text-[16px] font-semibold leading-none tracking-tight tabular-nums text-[var(--color-ink-900)]">
-            {formatPrice(lineTotal)}
-          </p>
+          <div className="flex flex-col items-end gap-0.5">
+            {discounts.length > 0 && (
+              <p className="text-[12px] font-medium text-[var(--color-ink-500)] line-through">
+                {formatPrice(lineTotal)}
+              </p>
+            )}
+            <p className="text-[16px] font-semibold leading-none tracking-tight tabular-nums text-[var(--color-ink-900)]">
+              {formatPrice(lineTotal - discounts.reduce((sum, d) => sum + d.discountAmount, 0))}
+            </p>
+            {discounts.length > 0 && (
+              <div className="flex flex-col items-end mt-1">
+                {discounts.map(d => (
+                  <span key={d.offerId} className="inline-flex items-center rounded-sm bg-[var(--color-accent-100)] px-1 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--color-accent-800)]">
+                    {d.offerTitle}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </li>

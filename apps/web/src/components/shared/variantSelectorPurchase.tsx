@@ -10,6 +10,8 @@ import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
 
 import { formatMissingPrompt } from "./variantSelectorDimensions";
 
+import type { DiscountApplication } from "@store/shared";
+
 interface PurchaseSummaryProps {
   isInStock: boolean;
   stockQuantity: number;
@@ -20,6 +22,8 @@ interface PurchaseSummaryProps {
   onQuantityChange: (quantity: number) => void;
   onAddToCart: () => void;
   hasJustBeenAdded: boolean;
+  activeOffer?: DiscountApplication;
+  discountAmount?: number;
 }
 
 export function PurchaseSummary({
@@ -32,6 +36,8 @@ export function PurchaseSummary({
   onQuantityChange,
   onAddToCart,
   hasJustBeenAdded,
+  activeOffer,
+  discountAmount,
 }: PurchaseSummaryProps) {
   const stockLabel = isInStock
     ? `${stockQuantity} in stock${
@@ -62,9 +68,27 @@ export function PurchaseSummary({
               </button>
             ) : null}
           </div>
-          <p className="text-xl font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
-            {formatPrice(priceRupees)}
-          </p>
+          <div className="flex flex-col items-end">
+            {discountAmount && discountAmount > 0 ? (
+              <>
+                <p className="text-[12px] font-medium text-[var(--color-ink-500)] line-through">
+                  {formatPrice(priceRupees)}
+                </p>
+                <p className="text-xl font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
+                  {formatPrice(priceRupees - discountAmount)}
+                </p>
+                {activeOffer && (
+                  <span className="mt-1 rounded-sm bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--color-accent-800)]">
+                    {activeOffer.offerTitle}
+                  </span>
+                )}
+              </>
+            ) : (
+              <p className="text-xl font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
+                {formatPrice(priceRupees)}
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="mt-2 flex items-center gap-2">
@@ -113,6 +137,8 @@ interface MobileStickyCtaProps {
   whatsappMessage: string;
   onAddToCart: () => void;
   hasJustBeenAdded: boolean;
+  activeOffer?: DiscountApplication;
+  discountAmount?: number;
 }
 
 export function MobileStickyCta({
@@ -126,6 +152,8 @@ export function MobileStickyCta({
   whatsappMessage,
   onAddToCart,
   hasJustBeenAdded,
+  activeOffer,
+  discountAmount,
 }: MobileStickyCtaProps) {
   const { whatsappNumber } = useStoreSettings();
   const showBuyAll = isInStock && maxQuantity > 1 && quantity < maxQuantity;
@@ -162,9 +190,22 @@ export function MobileStickyCta({
             </button>
           ) : null}
         </div>
-        <p className="text-[15px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
-          {formatPrice(priceRupees)}
-        </p>
+        <div className="flex flex-col items-end">
+          {discountAmount && discountAmount > 0 ? (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium text-[var(--color-ink-500)] line-through">
+                {formatPrice(priceRupees)}
+              </span>
+              <p className="text-[15px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
+                {formatPrice(priceRupees - discountAmount)}
+              </p>
+            </div>
+          ) : (
+            <p className="text-[15px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
+              {formatPrice(priceRupees)}
+            </p>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-1.5">
         {isInStock ? (

@@ -30,6 +30,10 @@ export function toOfferResponse(doc: OfferLean): AdminOffer {
     sortOrder: doc.sortOrder ?? 0,
     content: normalizeStructuredContent(doc.content, asString(doc.description)),
     seo: doc.seo,
+    conditions: doc.conditions ?? [],
+    action: doc.action ?? { type: "percentage_discount", value: 10, target: "matched_items" },
+    schedule: doc.schedule ?? {},
+    constraints: doc.constraints ?? { allowLoyaltyPoints: false, isStackable: false, usageCount: 0 },
     createdAt: toIsoDate(doc.createdAt),
     updatedAt: toIsoDate(doc.updatedAt),
   };

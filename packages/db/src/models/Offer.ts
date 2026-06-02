@@ -8,6 +8,8 @@ import type { SeoMeta, StoredImage, StructuredContent } from "@store/shared";
 import { seoSchema } from "../schemas/seoSchema";
 import { storedImageSchema } from "../schemas/storedImageSchema";
 import { structuredContentSchema } from "../schemas/structuredContentSchema";
+import { offerConditionSchema, offerActionSchema, offerScheduleSchema, offerConstraintsSchema } from "../schemas/offerRulesSchema";
+import type { OfferCondition, OfferAction, OfferSchedule, OfferConstraints } from "@store/shared";
 
 /**
  * Promotional offer surfaced on the home offers strip and (optionally)
@@ -44,6 +46,12 @@ export interface OfferAttributes {
   content?: StructuredContent;
   /** Optional per-offer SEO overrides (auto-filled when absent). */
   seo?: SeoMeta;
+  
+  // Rules Engine
+  conditions: OfferCondition[];
+  action: OfferAction;
+  schedule: OfferSchedule;
+  constraints: OfferConstraints;
 }
 
 const offerSchema = new Schema<OfferAttributes>(
@@ -75,6 +83,10 @@ const offerSchema = new Schema<OfferAttributes>(
     bannerImage: { type: storedImageSchema, required: false },
     content: { type: structuredContentSchema, required: false, default: undefined },
     seo: { type: seoSchema, default: () => ({}) },
+    conditions: { type: [offerConditionSchema], required: true, default: [] },
+    action: { type: offerActionSchema, required: true },
+    schedule: { type: offerScheduleSchema, required: true, default: () => ({}) },
+    constraints: { type: offerConstraintsSchema, required: true, default: () => ({ allowLoyaltyPoints: false, isStackable: false, usageCount: 0 }) },
   },
   { timestamps: true },
 );

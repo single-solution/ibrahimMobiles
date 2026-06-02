@@ -70,6 +70,10 @@ interface OfferInput {
   sortOrder?: unknown;
   content?: unknown;
   seo?: unknown;
+  conditions?: unknown;
+  action?: unknown;
+  schedule?: unknown;
+  constraints?: unknown;
 }
 
 const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/i;
@@ -159,6 +163,10 @@ export async function POST(request: Request) {
       isActive: body.isActive !== false,
       sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : 0,
       content,
+      conditions: Array.isArray(body.conditions) ? body.conditions : [],
+      action: typeof body.action === "object" && body.action !== null ? body.action : { type: "percentage_discount", value: 10, target: "matched_items" },
+      schedule: typeof body.schedule === "object" && body.schedule !== null ? body.schedule : {},
+      constraints: typeof body.constraints === "object" && body.constraints !== null ? body.constraints : { allowLoyaltyPoints: false, isStackable: false, usageCount: 0 },
       ...(seo ? { seo } : {}),
     });
     await recordActivity({

@@ -322,6 +322,8 @@ export interface AdminLoyaltyAccount {
 // Offers
 // ============================================================================
 
+import type { OfferCondition, OfferAction, OfferSchedule, OfferConstraints } from "@store/shared";
+
 export interface AdminOffer {
   id: string;
   slug: string;
@@ -336,6 +338,10 @@ export interface AdminOffer {
   sortOrder: number;
   content: StructuredContent;
   seo?: SeoMeta;
+  conditions: OfferCondition[];
+  action: OfferAction;
+  schedule: OfferSchedule;
+  constraints: OfferConstraints;
   createdAt: string;
   updatedAt: string;
 }
