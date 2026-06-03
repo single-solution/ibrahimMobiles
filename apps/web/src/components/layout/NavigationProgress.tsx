@@ -197,7 +197,7 @@ export function NavigationProgress() {
     <div
       aria-hidden
       data-visible={isVisible ? "true" : "false"}
-      className="nav-progress pointer-events-none fixed inset-x-0 top-0 z-max h-[2px]"
+      className="nav-progress pointer-events-none fixed inset-x-0 top-0 z-[var(--z-max)] h-[2px]"
     >
       <div
         className="nav-progress-bar h-full w-full bg-[var(--color-accent-500)]"

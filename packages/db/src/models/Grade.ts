@@ -47,6 +47,8 @@ export interface GradeAttributes {
   video: string;
   /** Optional structured copy (summary + icon-tagged bullets). */
   content?: StructuredContent;
+  /** Storefront visibility — hidden grades drop out of filters and chips. */
+  isActive: boolean;
 }
 
 const gradeSchema = new Schema<GradeAttributes>(
@@ -83,6 +85,7 @@ const gradeSchema = new Schema<GradeAttributes>(
       default: "",
     },
     content: { type: structuredContentSchema, required: false, default: undefined },
+    isActive: { type: Boolean, required: true, default: true },
   },
   { timestamps: true },
 );
@@ -97,7 +100,7 @@ gradeSchema.pre<HydratedDocument<GradeAttributes>>(
 );
 
 gradeSchema.index({ categorySlug: 1, slug: 1 }, { unique: true });
-gradeSchema.index({ categorySlug: 1 });
+gradeSchema.index({ categorySlug: 1, isActive: 1 });
 
 export const Grade: Model<GradeAttributes> =
   (mongoose.models.Grade as Model<GradeAttributes>) ??

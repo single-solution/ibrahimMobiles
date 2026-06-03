@@ -19,6 +19,8 @@ export async function GET() {
     // Derived property from constraints for evaluator compatibility
     allowLoyaltyPoints: doc.constraints?.allowLoyaltyPoints ?? false,
     isStackable: doc.constraints?.isStackable ?? false,
+    usageLimit: doc.constraints?.usageLimit,
+    usageCount: doc.constraints?.usageCount ?? 0,
   }));
 
   const now = new Date();

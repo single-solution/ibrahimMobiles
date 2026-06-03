@@ -15,8 +15,9 @@ export function useActiveOffers() {
           const data = await res.json();
           setOffers(data);
         }
-      } catch (e) {
-        console.error("Failed to fetch active offers", e);
+      } catch {
+        // Offers are non-critical pricing hints; a fetch failure just leaves
+        // the cart at list price until the next load.
       } finally {
         setIsLoading(false);
       }

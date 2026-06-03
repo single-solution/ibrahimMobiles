@@ -38,7 +38,6 @@ export interface OfferAttributes {
   discountLabel: string;
   badgeLabel: string;
   color: string;
-  expiresAt?: Date;
   isActive: boolean;
   sortOrder: number;
   bannerImage?: StoredImage;
@@ -77,7 +76,6 @@ const offerSchema = new Schema<OfferAttributes>(
       match: /^#[0-9a-f]{6}$/i,
       default: "#e1ff51",
     },
-    expiresAt: { type: Date },
     isActive: { type: Boolean, required: true, default: true },
     sortOrder: { type: Number, required: true, default: 0 },
     bannerImage: { type: storedImageSchema, required: false },

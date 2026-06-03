@@ -30,6 +30,8 @@ import type { Product } from "@store/shared";
 
 import {
   PUBLIC_PRODUCT_FILTER,
+  applyCatalogVisibility,
+  resolveCatalogVisibility,
   getBrandBySlug as getBrandBySlugRaw,
   getBrands as getBrandsRaw,
   getGradeCounts as getGradeCountsRaw,
@@ -205,7 +207,9 @@ const SITEMAP_PRODUCT_LIMIT = 5_000;
 const loadSitemapProductsInner = unstable_cache(
   async () => {
     await connectDB();
-    return ProductModel.find(PUBLIC_PRODUCT_FILTER)
+    const filter: Record<string, unknown> = { ...PUBLIC_PRODUCT_FILTER };
+    applyCatalogVisibility(filter, await resolveCatalogVisibility());
+    return ProductModel.find(filter)
       .select({ slug: 1, categorySlug: 1, updatedAt: 1 })
       .sort({ updatedAt: -1 })
       .limit(SITEMAP_PRODUCT_LIMIT)

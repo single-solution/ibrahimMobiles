@@ -82,7 +82,7 @@ export function Flyout({
   const isRight = side === "right";
 
   const flyoutElement = (
-    <div className="fixed inset-0 z-modal flex md:hidden">
+    <div className="fixed inset-0 z-[var(--z-modal)] flex md:hidden">
       <button
         type="button"
         aria-label="Close"

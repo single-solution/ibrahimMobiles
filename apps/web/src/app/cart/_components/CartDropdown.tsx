@@ -74,7 +74,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
         type="button"
         onClick={onClose}
         className={classNames(
-          "fixed inset-0 z-modal hidden cursor-default bg-[var(--color-ink-900)]/15 md:block",
+          "fixed inset-0 z-[var(--z-modal)] hidden cursor-default bg-[var(--color-ink-900)]/15 md:block",
           isClosing ? "animate-sheet-fade-out" : "animate-sheet-fade",
         )}
       />

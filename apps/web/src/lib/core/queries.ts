@@ -75,6 +75,66 @@ export const PUBLIC_PRODUCT_FILTER = {
   "variants.0": { $exists: true },
 } as const;
 
+/**
+ * Catalog cascade: a product is only visible when its own `isActive` is true
+ * AND its parent category is live AND its (category-scoped) brand is live.
+ * Hidden categories/brands therefore drop their products from every shopper
+ * surface even though the product row itself is still active.
+ *
+ * `isActive: { $ne: false }` (not `=== true`) keeps legacy rows that predate
+ * the field — a missing flag is treated as live.
+ */
+interface CatalogVisibility {
+  activeCategorySlugs: string[];
+  hiddenBrandPairs: Array<{ categorySlug: string; brandSlug: string }>;
+}
+
+export async function resolveCatalogVisibility(): Promise<CatalogVisibility> {
+  const [categories, hiddenBrands] = await Promise.all([
+    CategoryModel.find({ isActive: { $ne: false } })
+      .select("slug")
+      .lean<Array<{ slug: string }>>(),
+    BrandModel.find({ isActive: false })
+      .select("slug categorySlugs")
+      .lean<Array<{ slug: string; categorySlugs: string[] }>>(),
+  ]);
+  return {
+    activeCategorySlugs: categories.map((category) => category.slug),
+    hiddenBrandPairs: hiddenBrands.flatMap((brand) =>
+      (brand.categorySlugs ?? []).map((categorySlug) => ({
+        categorySlug,
+        brandSlug: brand.slug,
+      })),
+    ),
+  };
+}
+
+/**
+ * Mutates a product `$match` / `findOne` filter in place, ANDing the cascade
+ * constraints so they compose with any caller-supplied `categorySlug` /
+ * `brandSlug` filter without clobbering it.
+ */
+export function applyCatalogVisibility(
+  filter: Record<string, unknown>,
+  visibility: CatalogVisibility,
+): void {
+  const andClauses: Record<string, unknown>[] = [
+    { categorySlug: { $in: visibility.activeCategorySlugs } },
+  ];
+  if (visibility.hiddenBrandPairs.length > 0) {
+    andClauses.push({
+      $nor: visibility.hiddenBrandPairs.map((pair) => ({
+        categorySlug: pair.categorySlug,
+        brandSlug: pair.brandSlug,
+      })),
+    });
+  }
+  const existing = Array.isArray(filter.$and)
+    ? (filter.$and as Record<string, unknown>[])
+    : [];
+  filter.$and = [...existing, ...andClauses];
+}
+
 /** Default page size when a caller doesn't override `limit`. */
 const DEFAULT_PRODUCT_PAGE_SIZE = 24;
 /** Hard cap on page size — guards against scraping/over-fetch. */
@@ -379,6 +439,7 @@ export async function getProductsPage(
   if (variantMatch) {
     matchStage.variants = { $elemMatch: variantMatch };
   }
+  applyCatalogVisibility(matchStage, await resolveCatalogVisibility());
 
   const sortSpec = buildSort(options.sort);
   const needsMinPrice = sortNeedsMinPrice(options.sort);
@@ -467,10 +528,9 @@ export async function getProductById(
   id: string,
 ): Promise<Product | null> {
   await connectDB();
-  const product = await ProductModel.findOne({
-    _id: id,
-    ...PUBLIC_PRODUCT_FILTER,
-  }).lean<ProductLean>();
+  const filter: Record<string, unknown> = { _id: id, ...PUBLIC_PRODUCT_FILTER };
+  applyCatalogVisibility(filter, await resolveCatalogVisibility());
+  const product = await ProductModel.findOne(filter).lean<ProductLean>();
   if (!product) {
     return null;
   }
@@ -483,10 +543,12 @@ export async function getProductBySlug(
   slug: string,
 ): Promise<Product | null> {
   await connectDB();
-  const product = await ProductModel.findOne({
+  const filter: Record<string, unknown> = {
     slug: slug.toLowerCase(),
     ...PUBLIC_PRODUCT_FILTER,
-  }).lean<ProductLean>();
+  };
+  applyCatalogVisibility(filter, await resolveCatalogVisibility());
+  const product = await ProductModel.findOne(filter).lean<ProductLean>();
   if (!product) {
     return null;
   }
@@ -495,15 +557,32 @@ export async function getProductBySlug(
 }
 
 /**
- * Active offers in display order. Filters out offers whose `expiresAt`
- * is in the past so stale promos don't keep rendering on the home page.
+ * Active offers in display order. Filters to the schedule's date window
+ * (`schedule.startDate`/`endDate`) so a promo only renders once it has
+ * started and disappears the moment it ends. Recurring day/time rules
+ * are evaluated at checkout, not for storefront visibility.
  */
 export async function getOffers(): Promise<Offer[]> {
   await connectDB();
   const now = new Date();
   const offers = await OfferModel.find({
     isActive: true,
-    $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: now } }],
+    $and: [
+      {
+        $or: [
+          { "schedule.startDate": { $exists: false } },
+          { "schedule.startDate": null },
+          { "schedule.startDate": { $lte: now } },
+        ],
+      },
+      {
+        $or: [
+          { "schedule.endDate": { $exists: false } },
+          { "schedule.endDate": null },
+          { "schedule.endDate": { $gt: now } },
+        ],
+      },
+    ],
   })
     .sort({ sortOrder: 1, createdAt: -1 })
     .limit(DEFAULT_OFFER_LIMIT)
@@ -577,7 +656,7 @@ export async function getCategories(): Promise<CategoryMeta[]> {
  */
 export async function getGrades(): Promise<GradeDescriptor[]> {
   await connectDB();
-  const grades = await GradeModel.find()
+  const grades = await GradeModel.find({ isActive: { $ne: false } })
     .sort({ categorySlug: 1, label: 1 })
     .lean<GradeLean[]>();
   if (grades.length === 0) {

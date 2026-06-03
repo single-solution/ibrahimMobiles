@@ -20,12 +20,37 @@ export interface ActiveOffer {
   schedule: OfferSchedule;
   isStackable: boolean;
   allowLoyaltyPoints: boolean;
+  /** Max total redemptions; `undefined`/`0` means unlimited. */
+  usageLimit?: number;
+  /** Redemptions so far — used with `usageLimit` to retire exhausted offers. */
+  usageCount?: number;
 }
 
 export interface DiscountApplication {
   offerId: string;
   offerTitle: string;
   discountAmount: number;
+}
+
+export interface OfferEvaluationResult {
+  itemDiscounts: Map<string, DiscountApplication[]>;
+  cartDiscounts: DiscountApplication[];
+  totalDiscount: number;
+  finalTotal: number;
+  isLoyaltyPointsAllowed: boolean;
+  /** True when an applicable offer grants free shipping. */
+  freeShipping: boolean;
+  /** IDs of offers that actually applied — used to bump `usageCount`. */
+  appliedOfferIds: string[];
+}
+
+/** An offer is retired once it reaches a positive usage limit. */
+function isOfferUsageExhausted(offer: ActiveOffer): boolean {
+  return (
+    typeof offer.usageLimit === "number" &&
+    offer.usageLimit > 0 &&
+    (offer.usageCount ?? 0) >= offer.usageLimit
+  );
 }
 
 export function isOfferActiveSchedule(schedule: OfferSchedule, now = new Date()): boolean {
@@ -126,29 +151,30 @@ function matchesCondition(
 export function evaluateOffers(
   items: EvaluatableItem[],
   offers: ActiveOffer[]
-) {
+): OfferEvaluationResult {
   let cartTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   let totalDiscount = 0;
 
-  const validOffers = offers.filter((offer) => isOfferActiveSchedule(offer.schedule));
+  const validOffers = offers.filter(
+    (offer) => isOfferActiveSchedule(offer.schedule) && !isOfferUsageExhausted(offer),
+  );
 
   const itemDiscounts = new Map<string, DiscountApplication[]>();
   const cartDiscounts: DiscountApplication[] = [];
+  const appliedOfferIds: string[] = [];
 
   let isLoyaltyPointsAllowed = true;
-  let appliedStackableCount = 0;
+  let freeShipping = false;
   let appliedNonStackableCount = 0;
 
-  // Sort offers by value/priority if needed. For now, apply sequentially.
+  // Apply sequentially in the order offers arrive (admin `sortOrder`). One
+  // non-stackable offer ends the run; stackable offers keep accumulating.
   for (const offer of validOffers) {
     if (appliedNonStackableCount > 0) {
-      break; // Only one non-stackable offer allowed
+      break;
     }
 
-    let appliesToCart = true;
     const matchedItems: EvaluatableItem[] = [];
-
-    // Evaluate conditions
     for (const item of items) {
       const itemMatches = offer.conditions.every((cond) =>
         matchesCondition(item, cond, cartTotal)
@@ -158,23 +184,24 @@ export function evaluateOffers(
       }
     }
 
+    // A conditioned offer only applies when at least one line matches; an
+    // unconditioned offer applies to the whole cart.
     if (offer.conditions.length > 0 && matchedItems.length === 0) {
-      appliesToCart = false;
+      continue;
     }
 
-    if (!appliesToCart) continue;
+    let applied = false;
 
-    // Execute Action
-    let offerDiscount = 0;
-
-    if (offer.action.target === "cart_total") {
+    if (offer.action.type === "free_shipping") {
+      freeShipping = true;
+      applied = true;
+    } else if (offer.action.target === "cart_total") {
+      let offerDiscount = 0;
       if (offer.action.type === "percentage_discount") {
         offerDiscount = cartTotal * (offer.action.value / 100);
       } else if (offer.action.type === "fixed_amount_discount") {
         offerDiscount = Math.min(offer.action.value, cartTotal);
       }
-      // buy_x_get_y and free_shipping handled differently or not at cart level for money discount
-      
       if (offerDiscount > 0) {
         cartDiscounts.push({
           offerId: offer.id,
@@ -183,6 +210,7 @@ export function evaluateOffers(
         });
         cartTotal -= offerDiscount;
         totalDiscount += offerDiscount;
+        applied = true;
       }
     } else if (offer.action.target === "matched_items") {
       for (const item of matchedItems) {
@@ -204,17 +232,17 @@ export function evaluateOffers(
           itemDiscounts.set(item.id, currentItemDiscounts);
           totalDiscount += itemDiscount;
           cartTotal -= itemDiscount;
+          applied = true;
         }
       }
     }
 
-    if (offerDiscount > 0 || itemDiscounts.size > 0) {
+    if (applied) {
+      appliedOfferIds.push(offer.id);
       if (!offer.allowLoyaltyPoints) {
         isLoyaltyPointsAllowed = false;
       }
-      if (offer.isStackable) {
-        appliedStackableCount++;
-      } else {
+      if (!offer.isStackable) {
         appliedNonStackableCount++;
       }
     }
@@ -226,5 +254,7 @@ export function evaluateOffers(
     totalDiscount,
     finalTotal: cartTotal,
     isLoyaltyPointsAllowed,
+    freeShipping,
+    appliedOfferIds,
   };
 }

@@ -30,12 +30,14 @@ import {
   createWithUniqueOrderNumber,
   Customer,
   LoyaltyAccount,
+  Offer as OfferModel,
   Order as OrderModel,
   Product as ProductModel,
   getStoreSettings,
   type CustomerAddressAttributes,
   type CustomerAttributes,
   type DeliveryMethod,
+  type OfferAttributes,
   type PaymentMethod,
   type ProductAttributes,
   type VariantAttributes,
@@ -45,6 +47,7 @@ import {
   badRequest,
   conflict,
   created,
+  evaluateOffers,
   formatStorage,
   isValidId,
   isValidationError,
@@ -57,6 +60,8 @@ import {
   SHORT_BURST_WINDOW_MS,
   unauthorized,
   validateString,
+  type ActiveOffer,
+  type EvaluatableItem,
 } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
@@ -296,12 +301,37 @@ export async function POST(request: Request) {
     (sum, line) => sum + line.variant.priceRupees * line.quantity,
     0,
   );
-  const discountRupees =
+
+  // Promotional offers — server-authoritative. The client computes the same
+  // numbers for display, but the discount that actually bills the customer is
+  // re-evaluated here from live offer documents so a tampered cart can't claim
+  // a discount that doesn't apply. Schedule/usage-limit gating happens inside
+  // `evaluateOffers`.
+  const offerDocs = await OfferModel.find({ isActive: true }).lean<
+    (OfferAttributes & { _id: Types.ObjectId })[]
+  >();
+  const evaluatableItems: EvaluatableItem[] = resolvedItems.map((line) => ({
+    id: line.variant._id.toString(),
+    productId: line.productDoc._id.toString(),
+    variantId: line.variant._id.toString(),
+    categorySlug: line.productDoc.categorySlug,
+    brandSlug: line.productDoc.brandSlug,
+    gradeSlug: line.variant.gradeSlug ?? "",
+    price: line.variant.priceRupees,
+    quantity: line.quantity,
+    attributes: line.variant.attributes ?? {},
+  }));
+  const offerPricing = evaluateOffers(evaluatableItems, offerDocs.map(toActiveOffer));
+  const offerDiscountRupees = Math.round(offerPricing.totalDiscount);
+
+  const paymentDiscountRupees =
     payment === "bank-transfer"
       ? Math.round((subtotalRupees * settings.bankTransferDiscountPercent) / PERCENT_DENOMINATOR)
       : 0;
+  // Single discount line on the order = payment-method discount + offer engine.
+  const discountRupees = paymentDiscountRupees + offerDiscountRupees;
   const shippingRupees =
-    delivery === "courier"
+    delivery === "courier" && !offerPricing.freeShipping
       ? subtotalRupees >= settings.freeDeliveryThresholdRupees
         ? 0
         : COURIER_FLAT_FEE_RUPEES
@@ -320,6 +350,9 @@ export async function POST(request: Request) {
   const pointsRedeemed = requestedRedeemPoints
     ? Math.floor(requestedRedeemPoints)
     : 0;
+  if (pointsRedeemed > 0 && !offerPricing.isLoyaltyPointsAllowed) {
+    return badRequest("Loyalty points can't be combined with the current offers.");
+  }
   const maxRedeemablePoints = loyaltyAccount
     ? maxRedeemable(subtotalRupees, loyaltyAccount.balance)
     : 0;
@@ -412,6 +445,18 @@ export async function POST(request: Request) {
         orderRef: createdOrder.orderNumber,
       });
       await loyaltyAccount.save();
+    }
+
+    // Best-effort usage tracking — a failure here must not fail a placed order.
+    if (offerPricing.appliedOfferIds.length > 0) {
+      try {
+        await OfferModel.updateMany(
+          { _id: { $in: offerPricing.appliedOfferIds } },
+          { $inc: { "constraints.usageCount": 1 } },
+        );
+      } catch (error) {
+        logger.warn({ error }, "Failed to increment offer usage counts");
+      }
     }
 
     return created({
@@ -555,6 +600,21 @@ function mergeCheckoutAddress(
  * insertion order followed by the grade slug; the storefront has the
  * actual `Grade.label` cached and uses it on the order detail page.
  */
+/** Map a stored offer document to the evaluator's `ActiveOffer` shape. */
+function toActiveOffer(doc: OfferAttributes & { _id: Types.ObjectId }): ActiveOffer {
+  return {
+    id: doc._id.toString(),
+    title: doc.title,
+    conditions: doc.conditions ?? [],
+    action: doc.action ?? { type: "percentage_discount", value: 0, target: "cart_total" },
+    schedule: doc.schedule ?? {},
+    isStackable: doc.constraints?.isStackable ?? false,
+    allowLoyaltyPoints: doc.constraints?.allowLoyaltyPoints ?? false,
+    usageLimit: doc.constraints?.usageLimit,
+    usageCount: doc.constraints?.usageCount ?? 0,
+  };
+}
+
 function buildVariantSummary(variant: VariantAttributes): string {
   const parts: string[] = [];
   const attributes = variant.attributes ?? {};

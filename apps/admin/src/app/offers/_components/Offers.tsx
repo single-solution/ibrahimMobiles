@@ -2,24 +2,24 @@
 
 import { useDeferredValue, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Tag, Trash2, Plus, Pencil, CalendarClock } from "lucide-react";
+import { Tag, Trash2, Plus, Pencil, CalendarClock, Layers, Percent, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Table, type TableColumn } from "@/components/ui/Table";
 import {
+  WorkspaceCatalogPaneHeader,
   WorkspaceEmptyPane,
+  WorkspaceFilterChip,
   WorkspaceFrame,
-  WorkspaceListHeader,
   WorkspacePrimaryAction,
   WorkspaceRowIconButton,
+  WorkspaceSearchField,
 } from "@/components/shared/workspaceUi";
 import { Drawer } from "@/components/ui/Drawer";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Stepper } from "@/components/ui/Stepper";
-import { StatusPill } from "@/components/shared/StatusPill";
+import { StatusPill, type StatusTone } from "@/components/shared/StatusPill";
 import { TextField } from "@/components/forms/TextField";
 import { ColorChips } from "@/components/forms/ColorChips";
 import { StructuredContentEditor } from "@/components/forms/StructuredContentEditor";
-import { Switch } from "@/components/forms/Switch";
 import { Toggle } from "@/components/ui/Toggle";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, ApiError } from "@/lib/api";
@@ -29,7 +29,6 @@ import {
   classNames,
   emptyStructuredContent,
   formatRelativeDate,
-  ISO_DATE_LENGTH,
   normalizeStructuredContent,
 } from "@store/shared";
 import type { SeoMeta, StructuredContent } from "@store/shared";
@@ -65,6 +64,88 @@ interface OffersProps {
 
 type DrawerState = { mode: "new" } | { mode: "edit"; offer: AdminOffer } | null;
 
+type OfferStatus = "live" | "scheduled" | "expired" | "hidden";
+type OfferStatusFilter = OfferStatus | "all";
+
+const STATUS_FILTERS: { id: OfferStatusFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "live", label: "Live" },
+  { id: "scheduled", label: "Scheduled" },
+  { id: "expired", label: "Expired" },
+  { id: "hidden", label: "Hidden" },
+];
+
+const STATUS_META: Record<OfferStatus, { label: string; tone: StatusTone }> = {
+  live: { label: "Live", tone: "success" },
+  scheduled: { label: "Scheduled", tone: "info" },
+  expired: { label: "Expired", tone: "danger" },
+  hidden: { label: "Hidden", tone: "neutral" },
+};
+
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function getOfferStatus(offer: AdminOffer, now: number): OfferStatus {
+  if (!offer.isActive) {
+    return "hidden";
+  }
+  const start = offer.schedule?.startDate ? new Date(offer.schedule.startDate).getTime() : null;
+  const end = offer.schedule?.endDate ? new Date(offer.schedule.endDate).getTime() : null;
+  if (end !== null && now > end) {
+    return "expired";
+  }
+  if (start !== null && now < start) {
+    return "scheduled";
+  }
+  return "live";
+}
+
+function summarizeAction(action: OfferAction): string {
+  const target = action?.target === "cart_total" ? "cart total" : "matched items";
+  if (action?.type === "free_shipping") {
+    return "Free shipping";
+  }
+  if (action?.type === "percentage_discount") {
+    return `${action.value}% off ${target}`;
+  }
+  if (action?.type === "fixed_amount_discount") {
+    return `Rs ${action.value} off ${target}`;
+  }
+  return "Discount";
+}
+
+function summarizeSchedule(schedule: OfferSchedule): string | null {
+  const parts: string[] = [];
+  const days = schedule?.daysOfWeek;
+  if (days?.length) {
+    parts.push(
+      [...days]
+        .sort((first, second) => first - second)
+        .map((day) => WEEKDAY_LABELS[day])
+        .filter(Boolean)
+        .join(", "),
+    );
+  }
+  if (schedule?.startTime || schedule?.endTime) {
+    parts.push(`${schedule.startTime ?? "00:00"}–${schedule.endTime ?? "23:59"}`);
+  }
+  return parts.length ? parts.join(" · ") : null;
+}
+
+function summarizeWindow(offer: AdminOffer, status: OfferStatus): string {
+  const start = offer.schedule?.startDate;
+  const end = offer.schedule?.endDate;
+  if (status === "scheduled" && start) {
+    return `Starts ${formatRelativeDate(new Date(start).toISOString())}`;
+  }
+  if (status === "expired" && end) {
+    return `Ended ${formatRelativeDate(new Date(end).toISOString())}`;
+  }
+  if (end) {
+    return `Ends ${formatRelativeDate(new Date(end).toISOString())}`;
+  }
+  return "Open-ended";
+}
+
 export function Offers({ offers }: OffersProps) {
   const router = useRouter();
   const toast = useToast();
@@ -89,87 +170,60 @@ export function Offers({ offers }: OffersProps) {
     }
   }
 
-  const columns: TableColumn<AdminOffer>[] = [
-    {
-      id: "title",
-      header: "Offer",
-      cell: (offer) => (
-        <div className="flex items-center gap-3">
-          <span
-            className="size-9 shrink-0 rounded-[var(--radius-md)]"
-            style={{ backgroundColor: offer.color }}
-          />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-semibold text-[var(--color-ink-900)]">
-                {offer.title}
-              </p>
-              <StatusPill tone="dark">{offer.badgeLabel}</StatusPill>
-              {!offer.isActive ? <StatusPill tone="neutral">Hidden</StatusPill> : null}
-            </div>
-            <p className="truncate text-[11px] text-[var(--color-ink-500)]">
-              /deals#{offer.slug}
-            </p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      id: "discount",
-      header: "Discount",
-      hideOnMobile: true,
-      cell: (offer) => (
-        <span className="text-sm font-semibold text-[var(--color-ink-900)]">
-          {offer.discountLabel}
-        </span>
-      ),
-    },
-    {
-      id: "expires",
-      header: "Expires",
-      hideOnMobile: true,
-      cell: (offer) => (
-        <span className="inline-flex items-center gap-1 text-xs text-[var(--color-ink-600)]">
-          <CalendarClock size={12} />
-          {offer.expiresAt ? formatRelativeDate(offer.expiresAt) : "No expiry"}
-        </span>
-      ),
-    },
-    {
-      id: "actions",
-      header: "",
-      align: "right",
-      cell: (offer) => (
-        <div className="flex flex-nowrap whitespace-nowrap items-center justify-end gap-2">
-          <OfferVisibilityToggle
-            offerId={offer.id}
-            offerTitle={offer.title}
-            isActive={offer.isActive}
-            onUpdated={refresh}
-          />
-          <div className="h-4 w-px bg-[var(--color-ink-200)]" />
-          <WorkspaceRowIconButton
-            label="Edit offer"
-            iconElement={<Pencil size={13} />}
-            onClick={() => setDrawer({ mode: "edit", offer })}
-          />
-          <WorkspaceRowIconButton
-            label="Delete offer"
-            iconElement={<Trash2 size={13} />}
-            tone="danger"
-            onClick={() => setToDelete(offer)}
-          />
-        </div>
-      ),
-    },
-  ];
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<OfferStatusFilter>("all");
+  const deferredQuery = useDeferredValue(query);
+
+  const now = Date.now();
+
+  const counts = useMemo(() => {
+    const tally: Record<OfferStatusFilter, number> = {
+      all: offers.length,
+      live: 0,
+      scheduled: 0,
+      expired: 0,
+      hidden: 0,
+    };
+    for (const offer of offers) {
+      tally[getOfferStatus(offer, now)] += 1;
+    }
+    return tally;
+  }, [offers, now]);
+
+  const visibleOffers = useMemo(() => {
+    const term = deferredQuery.trim().toLowerCase();
+    return offers.filter((offer) => {
+      if (statusFilter !== "all" && getOfferStatus(offer, now) !== statusFilter) {
+        return false;
+      }
+      if (!term) {
+        return true;
+      }
+      return `${offer.title} ${offer.description} ${offer.badgeLabel} ${offer.discountLabel}`
+        .toLowerCase()
+        .includes(term);
+    });
+  }, [offers, deferredQuery, statusFilter, now]);
 
   return (
     <WorkspaceFrame>
-      <WorkspaceListHeader
-        iconElement={<Tag size={15} />}
-        title="Offers & deals"
-        subtitle="Promotions surfaced on the homepage and the dedicated /deals page."
+      <WorkspaceCatalogPaneHeader
+        title={
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Tag size={15} className="shrink-0 text-[var(--color-accent-700)]" />
+            <h2 className="text-sm font-semibold text-[var(--color-ink-900)]">Offers &amp; deals</h2>
+          </div>
+        }
+        subtitle={`${visibleOffers.length} shown · ${offers.length} total`}
+        search={
+          <WorkspaceSearchField
+            value={query}
+            onChange={setQuery}
+            placeholder="Search offers…"
+            aria-label="Search offers"
+            className="min-w-0 flex-1 sm:max-w-[14rem] sm:flex-none"
+          />
+        }
         action={
           <WorkspacePrimaryAction
             label="New offer"
@@ -177,22 +231,37 @@ export function Offers({ offers }: OffersProps) {
             onClick={() => setDrawer({ mode: "new" })}
           />
         }
+        filters={STATUS_FILTERS.map((filter) => (
+          <WorkspaceFilterChip
+            key={filter.id}
+            label={filter.label}
+            count={counts[filter.id]}
+            isActive={statusFilter === filter.id}
+            onClick={() => setStatusFilter(filter.id)}
+          />
+        ))}
       />
       <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
-        <Table
-          rows={offers}
-          columns={columns}
-          rowKey={(offer) => offer.id}
-          searchAccessor={(offer) => `${offer.title} ${offer.description} ${offer.badgeLabel}`}
-          searchPlaceholder="Search offers…"
-          emptyState={
-            <WorkspaceEmptyPane
-              iconElement={<Tag size={22} />}
-              title="No offers found"
-              description="Create promotional bundles or holiday deals to display on the storefront."
-            />
-          }
-        />
+        {visibleOffers.length === 0 ? (
+          <WorkspaceEmptyPane
+            iconElement={<Tag size={22} />}
+            title="No offers found"
+            description="Create promotional bundles or holiday deals to display on the storefront."
+          />
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {visibleOffers.map((offer) => (
+              <OfferCard
+                key={offer.id}
+                offer={offer}
+                status={getOfferStatus(offer, now)}
+                onEdit={() => setDrawer({ mode: "edit", offer })}
+                onDelete={() => setToDelete(offer)}
+                onToggled={refresh}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {drawer ? (
@@ -223,6 +292,119 @@ export function Offers({ offers }: OffersProps) {
   );
 }
 
+interface OfferCardProps {
+  offer: AdminOffer;
+  status: OfferStatus;
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggled: () => void;
+}
+
+function OfferCard({ offer, status, onEdit, onDelete, onToggled }: OfferCardProps) {
+  const accent = offer.color?.trim() || DEFAULT_OFFER_COLOR;
+  const background = `linear-gradient(135deg, color-mix(in srgb, ${accent} 82%, var(--color-ink-900)) 0%, color-mix(in srgb, ${accent} 48%, var(--color-ink-900)) 100%)`;
+  const statusMeta = STATUS_META[status];
+  const scheduleSummary = summarizeSchedule(offer.schedule);
+  const conditionsLabel =
+    offer.conditions?.length > 0
+      ? `${offer.conditions.length} condition${offer.conditions.length === 1 ? "" : "s"}`
+      : "Whole cart";
+
+  return (
+    <article className="group flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]">
+      <div
+        className="relative flex min-h-32 flex-col justify-between overflow-hidden p-3.5 text-white"
+        style={{ background }}
+      >
+        <div className="relative flex items-start justify-between gap-2">
+          <span className="inline-flex rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] backdrop-blur">
+            {offer.badgeLabel || "Offer"}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium backdrop-blur">
+            <CalendarClock size={11} />
+            {summarizeWindow(offer, status)}
+          </span>
+        </div>
+        <div className="relative space-y-0.5">
+          {offer.discountLabel ? (
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-white/85">
+              {offer.discountLabel}
+            </p>
+          ) : null}
+          <h3 className="line-clamp-2 text-sm font-semibold leading-tight tracking-tight">
+            {offer.title}
+          </h3>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-2.5 p-3.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <StatusPill tone={statusMeta.tone}>{statusMeta.label}</StatusPill>
+          <StatusPill tone="accent" leadingIcon={<Percent size={11} />}>
+            {summarizeAction(offer.action)}
+          </StatusPill>
+          <StatusPill tone="neutral" leadingIcon={<Tag size={11} />}>
+            {conditionsLabel}
+          </StatusPill>
+          {scheduleSummary ? (
+            <StatusPill tone="info" leadingIcon={<CalendarClock size={11} />}>
+              {scheduleSummary}
+            </StatusPill>
+          ) : null}
+          {offer.constraints?.isStackable ? (
+            <StatusPill tone="neutral" leadingIcon={<Layers size={11} />}>
+              Stackable
+            </StatusPill>
+          ) : null}
+          {offer.constraints?.allowLoyaltyPoints ? (
+            <StatusPill tone="neutral" leadingIcon={<Sparkles size={11} />}>
+              Loyalty
+            </StatusPill>
+          ) : null}
+          {typeof offer.constraints?.usageLimit === "number" ? (
+            <StatusPill tone="neutral">
+              {offer.constraints.usageCount}/{offer.constraints.usageLimit} used
+            </StatusPill>
+          ) : null}
+        </div>
+
+        {offer.description ? (
+          <p className="line-clamp-2 text-[11.5px] leading-relaxed text-[var(--color-ink-500)]">
+            {offer.description}
+          </p>
+        ) : null}
+
+        <p className="truncate text-[11px] text-[var(--color-ink-400)]">/deals#{offer.slug}</p>
+
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--color-ink-100)] pt-2.5">
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--color-ink-600)]">
+            <OfferVisibilityToggle
+              offerId={offer.id}
+              offerTitle={offer.title}
+              isActive={offer.isActive}
+              onUpdated={onToggled}
+            />
+            Live
+          </span>
+          <div className="flex items-center gap-1">
+            <WorkspaceRowIconButton
+              label="Edit offer"
+              iconElement={<Pencil size={13} />}
+              onClick={onEdit}
+            />
+            <WorkspaceRowIconButton
+              label="Delete offer"
+              iconElement={<Trash2 size={13} />}
+              tone="danger"
+              onClick={onDelete}
+            />
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 interface OfferDrawerProps {
   state: { mode: "new" } | { mode: "edit"; offer: AdminOffer };
   onClose: () => void;
@@ -249,8 +431,6 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
   const [bannerImage, setBannerImage] = useState<GalleryImage | null>(
     initial?.bannerImage ?? null,
   );
-  const [expiresAt, setExpiresAt] = useState(initial?.expiresAt?.slice(0, ISO_DATE_LENGTH) ?? "");
-  const [isActive, setIsActive] = useState(initial?.isActive ?? false);
   const [seo, setSeo] = useState<SeoMeta>(initial?.seo ?? {});
   const [offerId, setOfferId] = useState<string | null>(initial?.id ?? null);
   
@@ -275,10 +455,10 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
       discountLabel,
       badgeLabel,
       color,
-      expiresAt: expiresAt ? new Date(expiresAt).toISOString() : new Date().toISOString(),
+      expiresAt: schedule.endDate ? new Date(schedule.endDate).toISOString() : "",
       content: deferredContent,
     }),
-    [title, discountLabel, badgeLabel, color, expiresAt, deferredContent],
+    [title, discountLabel, badgeLabel, color, schedule.endDate, deferredContent],
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>, isNext = false) {
@@ -306,7 +486,6 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
         content,
         color,
         bannerImage: storedBannerImage ?? null,
-        expiresAt: expiresAt || null,
         isActive: initial ? initial.isActive : (isFinalStep ? true : false),
         seo,
         conditions,
@@ -437,13 +616,6 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
               summaryRows={4}
               maxSummaryLength={OFFER_FIELD_LIMITS.description}
               bulletsHint="Optional bullets surfaced on the deals page below the offer headline."
-            />
-            <TextField
-              label="Expires"
-              type="date"
-              value={expiresAt}
-              onChange={(event) => setExpiresAt(event.target.value)}
-              hint="Leave blank for an open-ended offer."
             />
             <ImageUpload
               label="Offer banner"

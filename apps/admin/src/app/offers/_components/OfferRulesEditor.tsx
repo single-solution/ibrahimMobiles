@@ -23,9 +23,13 @@ const CONDITION_TYPES = [
   { value: "categories", label: "Categories (Slugs)" },
   { value: "brands", label: "Brands (Slugs)" },
   { value: "grades", label: "Grades (Slugs)" },
+  { value: "attributes", label: "Attribute (slug + value)" },
   { value: "price_range", label: "Price Range" },
   { value: "cart_total", label: "Cart Total" },
 ];
+
+/** Fields compared as numbers — their condition values cast to `Number`. */
+const NUMERIC_CONDITION_TYPES = new Set(["price_range", "cart_total"]);
 
 const OPERATORS = [
   { value: "in", label: "In / Equals" },
@@ -38,7 +42,6 @@ const OPERATORS = [
 const ACTION_TYPES = [
   { value: "percentage_discount", label: "Percentage Discount (%)" },
   { value: "fixed_amount_discount", label: "Fixed Amount Discount (Rs)" },
-  { value: "buy_x_get_y", label: "Buy X Get Y (Coming Soon)" },
   { value: "free_shipping", label: "Free Shipping" },
 ];
 
@@ -88,21 +91,25 @@ export function OfferRulesEditor({
             onChange={(e) => onChangeAction({ ...action, type: e.target.value as any })}
             options={ACTION_TYPES}
           />
-          <TextField
-            label="Value"
-            type="number"
-            min="0"
-            step="0.01"
-            value={action.value}
-            onChange={(e) => onChangeAction({ ...action, value: parseFloat(e.target.value) || 0 })}
-            hint={action.type === "percentage_discount" ? "% off" : "Rs off"}
-          />
-          <SelectField
-            label="Applies To"
-            value={action.target}
-            onChange={(e) => onChangeAction({ ...action, target: e.target.value as any })}
-            options={ACTION_TARGETS}
-          />
+          {action.type !== "free_shipping" && (
+            <>
+              <TextField
+                label="Value"
+                type="number"
+                min="0"
+                step="0.01"
+                value={action.value}
+                onChange={(e) => onChangeAction({ ...action, value: parseFloat(e.target.value) || 0 })}
+                hint={action.type === "percentage_discount" ? "% off" : "Rs off"}
+              />
+              <SelectField
+                label="Applies To"
+                value={action.target}
+                onChange={(e) => onChangeAction({ ...action, target: e.target.value as any })}
+                options={ACTION_TARGETS}
+              />
+            </>
+          )}
         </div>
       </section>
 
@@ -129,34 +136,84 @@ export function OfferRulesEditor({
                   <SelectField
                     label="Field"
                     value={cond.type}
-                    onChange={(e) => updateCondition(i, { type: e.target.value as any })}
+                    onChange={(e) => {
+                      const nextType = e.target.value;
+                      updateCondition(i, {
+                        type: nextType as any,
+                        value: nextType === "attributes" ? { slug: "", value: "" } : "",
+                      });
+                    }}
                     options={CONDITION_TYPES}
                   />
                 </div>
-                <div className="flex-1">
-                  <SelectField
-                    label="Operator"
-                    value={cond.operator}
-                    onChange={(e) => updateCondition(i, { operator: e.target.value as any })}
-                    options={OPERATORS}
-                  />
-                </div>
-                <div className="flex-1">
-                  <TextField
-                    label="Value"
-                    value={Array.isArray(cond.value) ? cond.value.join(",") : cond.value || ""}
-                    onChange={(e) => {
-                      let val: any = e.target.value;
-                      if (cond.operator === "in" || cond.operator === "not_in" || cond.operator === "between") {
-                        val = val.split(",").map((s: string) => s.trim());
-                      } else if (cond.type === "price_range" || cond.type === "cart_total") {
-                        val = parseFloat(val);
-                      }
-                      updateCondition(i, { value: val });
-                    }}
-                    hint={cond.operator === "in" || cond.operator === "not_in" || cond.operator === "between" ? "Comma separated list" : ""}
-                  />
-                </div>
+                {cond.type === "attributes" ? (
+                  <>
+                    <div className="flex-1">
+                      <TextField
+                        label="Attribute slug"
+                        value={cond.value?.slug ?? ""}
+                        onChange={(e) =>
+                          updateCondition(i, {
+                            value: { slug: e.target.value, value: cond.value?.value ?? "" },
+                          })
+                        }
+                        hint="e.g. color, storage"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <TextField
+                        label="Match value"
+                        value={cond.value?.value ?? ""}
+                        onChange={(e) =>
+                          updateCondition(i, {
+                            value: { slug: cond.value?.slug ?? "", value: e.target.value },
+                          })
+                        }
+                        hint="Variant attribute value to match"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex-1">
+                      <SelectField
+                        label="Operator"
+                        value={cond.operator}
+                        onChange={(e) => updateCondition(i, { operator: e.target.value as any })}
+                        options={OPERATORS}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <TextField
+                        label="Value"
+                        value={Array.isArray(cond.value) ? cond.value.join(",") : cond.value ?? ""}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const isList =
+                            cond.operator === "in" ||
+                            cond.operator === "not_in" ||
+                            cond.operator === "between";
+                          const isNumeric = NUMERIC_CONDITION_TYPES.has(cond.type);
+                          let val: any;
+                          if (isList) {
+                            const parts = raw.split(",").map((s) => s.trim()).filter(Boolean);
+                            val = isNumeric || cond.operator === "between" ? parts.map(Number) : parts;
+                          } else {
+                            val = isNumeric ? parseFloat(raw) : raw;
+                          }
+                          updateCondition(i, { value: val });
+                        }}
+                        hint={
+                          cond.operator === "in" ||
+                          cond.operator === "not_in" ||
+                          cond.operator === "between"
+                            ? "Comma separated list"
+                            : ""
+                        }
+                      />
+                    </div>
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => removeCondition(i)}
@@ -173,7 +230,7 @@ export function OfferRulesEditor({
       {/* SCHEDULE BUILDER */}
       <section className="space-y-4 border-t border-[var(--color-ink-100)] pt-6">
         <h3 className="text-[13px] font-semibold tracking-tight text-[var(--color-ink-900)]">
-          Advanced Schedule
+          Active window &amp; schedule
         </h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
@@ -181,12 +238,14 @@ export function OfferRulesEditor({
             type="datetime-local"
             value={schedule.startDate ? new Date(schedule.startDate).toISOString().slice(0, 16) : ""}
             onChange={(e) => onChangeSchedule({ ...schedule, startDate: e.target.value ? new Date(e.target.value) : undefined })}
+            hint="Offer goes live at this moment. Blank = live immediately."
           />
           <TextField
             label="End Date & Time"
             type="datetime-local"
             value={schedule.endDate ? new Date(schedule.endDate).toISOString().slice(0, 16) : ""}
             onChange={(e) => onChangeSchedule({ ...schedule, endDate: e.target.value ? new Date(e.target.value) : undefined })}
+            hint="Offer ends here — also drives the storefront countdown. Blank = open-ended."
           />
           <TextField
             label="Daily Start Time"

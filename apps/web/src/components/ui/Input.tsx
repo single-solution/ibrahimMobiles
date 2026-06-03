@@ -33,7 +33,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         <input
           ref={ref}
           {...props}
-          disabled={props.disabled || isLoading}
+          disabled={props.disabled}
           className={classNames(
             "w-full border transition-colors focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:bg-[var(--color-canvas-deep)] disabled:text-[var(--color-ink-500)]",
             inputSize === "sm" && "h-9 text-[13px]",

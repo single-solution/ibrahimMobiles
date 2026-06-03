@@ -181,7 +181,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     }
 
     onClose();
-    const url = `/search?q=${encodeURIComponent(trimmed)}`;
+    const url = `/shop?q=${encodeURIComponent(trimmed)}`;
     startNavigation(() => router.push(url));
   }
 
@@ -196,7 +196,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       aria-modal="true"
       aria-label="Search"
       className={classNames(
-        "fixed inset-0 z-modal flex flex-col bg-[var(--color-canvas)] outline-none",
+        "fixed inset-0 z-[var(--z-modal)] flex flex-col bg-[var(--color-canvas)] outline-none",
         isClosing ? "animate-sheet-fade-out" : "animate-sheet-fade",
       )}
     >

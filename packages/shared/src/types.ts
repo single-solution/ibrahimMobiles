@@ -126,7 +126,9 @@ export interface Offer {
   title: string;
   description: string;
   discountLabel: string;
-  expiresAt: string;
+  /** When the offer's active window closes — derived from `schedule.endDate`.
+   *  Absent for open-ended offers (drives the storefront countdown only). */
+  expiresAt?: string;
   /** Accent color — hex (`#RRGGBB`) authored in the admin offer drawer. */
   color: string;
   badgeLabel: string;

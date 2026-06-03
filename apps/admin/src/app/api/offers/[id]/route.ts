@@ -53,7 +53,6 @@ interface OfferUpdateInput {
   badgeLabel?: unknown;
   color?: unknown;
   bannerImage?: unknown;
-  expiresAt?: unknown;
   isActive?: unknown;
   sortOrder?: unknown;
   content?: unknown;
@@ -128,19 +127,6 @@ export async function PUT(request: Request, { params }: RouteContext) {
       return badRequest("Slug cannot be empty.");
     }
     update.slug = slug;
-  }
-  if (body.expiresAt !== undefined) {
-    if (body.expiresAt === null || body.expiresAt === "") {
-      update.expiresAt = null;
-    } else if (typeof body.expiresAt === "string") {
-      const parsed = new Date(body.expiresAt);
-      if (Number.isNaN(parsed.getTime())) {
-        return badRequest("Invalid expiry date.");
-      }
-      update.expiresAt = parsed;
-    } else {
-      return badRequest("Invalid expiry date.");
-    }
   }
   if (body.isActive !== undefined) {
     update.isActive = Boolean(body.isActive);

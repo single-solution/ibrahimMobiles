@@ -210,9 +210,9 @@ export function toOffer(offer: OfferLean): Offer {
     title: asString(offer.title),
     description,
     discountLabel: asString(offer.discountLabel),
-    expiresAt: offer.expiresAt
-      ? toIsoDate(offer.expiresAt)
-      : toIsoDate(new Date()),
+    expiresAt: offer.schedule?.endDate
+      ? toIsoDate(offer.schedule.endDate)
+      : undefined,
     /* `#e1ff51` is the literal value of `--color-accent-500` (chartreuse).
        Offers without an admin-chosen colour fall back to the brand accent. */
     color: asString(offer.color, "#e1ff51"),

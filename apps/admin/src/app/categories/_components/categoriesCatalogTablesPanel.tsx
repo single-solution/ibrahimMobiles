@@ -20,6 +20,7 @@ import {
   buildBrandColumns,
   buildGradeColumns,
 } from "./categoriesCatalogColumns";
+import { CatalogVisibilityToggle } from "./CatalogVisibilityToggle";
 import type { CatalogTab, CategoryNavItem, DeleteIntent } from "./categoriesCatalogTypes";
 import { IconButton } from "./categoriesCatalogUi";
 
@@ -105,6 +106,16 @@ export function CategoriesCatalogTablesPanel({
                 </p>
               </div>
               <div className="ml-1 flex shrink-0 items-center gap-0.5">
+                <span
+                  className="mr-0.5"
+                  title={selectedNav.category.isActive ? "Live on storefront" : "Hidden from storefront"}
+                >
+                  <CatalogVisibilityToggle
+                    endpoint={`/api/categories/${selectedNav.category.id}`}
+                    label={selectedNav.category.label}
+                    isActive={selectedNav.category.isActive}
+                  />
+                </span>
                 <IconButton
                   label="Move category up"
                   disabled={categoryIndex <= 0}

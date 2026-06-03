@@ -21,7 +21,11 @@ import { cache } from "react";
 import { connectDB, Product as ProductModel } from "@store/db";
 import type { Product } from "@store/shared";
 
-import { PUBLIC_PRODUCT_FILTER } from "@/lib/core/queries";
+import {
+	applyCatalogVisibility,
+	PUBLIC_PRODUCT_FILTER,
+	resolveCatalogVisibility,
+} from "@/lib/core/queries";
 
 export interface LiveVariantCommerce {
 	id: string;
@@ -43,14 +47,16 @@ async function fetchProductLiveCommerce(
 	slug: string,
 ): Promise<LiveVariantCommerce[] | null> {
 	await connectDB();
-	const product = await ProductModel.findOne(
-		{ slug: slug.toLowerCase(), ...PUBLIC_PRODUCT_FILTER },
-		{
-			"variants._id": 1,
-			"variants.priceRupees": 1,
-			"variants.quantity": 1,
-		},
-	).lean<ProductLiveLean>();
+	const filter: Record<string, unknown> = {
+		slug: slug.toLowerCase(),
+		...PUBLIC_PRODUCT_FILTER,
+	};
+	applyCatalogVisibility(filter, await resolveCatalogVisibility());
+	const product = await ProductModel.findOne(filter, {
+		"variants._id": 1,
+		"variants.priceRupees": 1,
+		"variants.quantity": 1,
+	}).lean<ProductLiveLean>();
 
 	if (!product) {
 		return null;

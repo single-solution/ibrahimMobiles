@@ -55,6 +55,7 @@ interface AttributeUpdateInput {
   options?: unknown;
   cardPosition?: unknown;
   visibility?: unknown;
+  isActive?: unknown;
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -133,6 +134,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
       return badRequest(visibilityResult.error);
     }
     update.visibility = visibilityResult;
+  }
+  if (body.isActive !== undefined) {
+    update.isActive = Boolean(body.isActive);
   }
   if (Object.keys(update).length === 0 && Object.keys(unset).length === 0) {
     return badRequest("No fields to update.");

@@ -65,7 +65,6 @@ interface OfferInput {
   badgeLabel?: unknown;
   color?: unknown;
   bannerImage?: unknown;
-  expiresAt?: unknown;
   isActive?: unknown;
   sortOrder?: unknown;
   content?: unknown;
@@ -124,15 +123,6 @@ export async function POST(request: Request) {
     return badRequest("Slug could not be derived.");
   }
 
-  let expiresAt: Date | undefined;
-  if (typeof body.expiresAt === "string" && body.expiresAt.length > 0) {
-    const parsed = new Date(body.expiresAt);
-    if (Number.isNaN(parsed.getTime())) {
-      return badRequest("Invalid expiry date.");
-    }
-    expiresAt = parsed;
-  }
-
   let seo: Record<string, unknown> | undefined;
   if (body.seo !== undefined) {
     const parsed = parseSeoPayload(body.seo);
@@ -159,7 +149,6 @@ export async function POST(request: Request) {
         body.bannerImage && typeof body.bannerImage === "object"
           ? body.bannerImage
           : undefined,
-      expiresAt,
       isActive: body.isActive !== false,
       sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : 0,
       content,

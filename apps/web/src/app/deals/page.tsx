@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { getOffersCached } from "@/lib/core/cached";
 import { getProductsOnOffer } from "@/lib/core";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
-import { formatRelativeDate, logger, type Offer, type Product } from "@store/shared";
+import { classNames, formatRelativeDate, logger, type Offer, type Product } from "@store/shared";
 
 /**
  * Safe wrappers around the two reads this page consumes.
@@ -180,10 +180,12 @@ async function MobileOffers() {
                 <p className="line-clamp-1 text-[13.5px] font-semibold leading-tight text-[var(--color-ink-900)]">
                   {offer.title}
                 </p>
-                <p className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-[var(--color-ink-500)]">
-                  <Clock size={11} />
-                  {formatRelativeDate(offer.expiresAt)}
-                </p>
+                {offer.expiresAt ? (
+                  <p className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-[var(--color-ink-500)]">
+                    <Clock size={11} />
+                    {formatRelativeDate(offer.expiresAt)}
+                  </p>
+                ) : null}
               </div>
               <ArrowRight size={13} className="shrink-0 text-[var(--color-ink-400)]" />
             </Link>
@@ -227,7 +229,12 @@ async function DesktopOffers() {
     return null;
   }
   return (
-    <section className="reveal-stagger cv-auto mt-16 grid grid-cols-2 gap-4">
+    <section
+      className={classNames(
+        "reveal-stagger cv-auto mt-16 grid gap-4",
+        offers.length === 1 ? "grid-cols-1" : "grid-cols-2",
+      )}
+    >
       {offers.map((offer) => (
         <div key={offer.id} id={offer.slug} className="reveal">
           <OfferCard offer={offer} size="lg" />

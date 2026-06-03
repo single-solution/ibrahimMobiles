@@ -56,6 +56,7 @@ interface GradeUpdateInput {
   color?: unknown;
   video?: unknown;
   content?: unknown;
+  isActive?: unknown;
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -120,6 +121,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
     if (content.summary) {
       update.notes = content.summary.slice(0, GRADE_FIELD_LIMITS.notes);
     }
+  }
+  if (body.isActive !== undefined) {
+    update.isActive = Boolean(body.isActive);
   }
 
   if (Object.keys(update).length === 0) {

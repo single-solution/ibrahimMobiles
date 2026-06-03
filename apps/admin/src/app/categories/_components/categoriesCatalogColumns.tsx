@@ -1,5 +1,4 @@
 import { ColoredPill } from "@/components/shared/ColoredPill";
-import { StatusPill } from "@/components/shared/StatusPill";
 import type { TableColumn } from "@/components/ui/Table";
 import type {
   AdminAttribute,
@@ -9,6 +8,7 @@ import type {
 } from "@/types/models";
 import type { CatalogDrawerState } from "@/lib/url/catalogDrawerUrl";
 
+import { CatalogVisibilityToggle } from "./CatalogVisibilityToggle";
 import type { DeleteIntent } from "./categoriesCatalogTypes";
 import { AttributeOptionsCell, RowActions } from "./categoriesCatalogUi";
 
@@ -40,18 +40,19 @@ export function buildBrandColumns({
     },
     {
       id: "status",
-      header: "Status",
+      header: "Live",
       hideOnMobile: true,
       cell: (row) => (
-        <StatusPill tone={row.isActive ? "success" : "warn"}>
-          {row.isActive ? "Active" : "Hidden"}
-        </StatusPill>
+        <CatalogVisibilityToggle
+          endpoint={`/api/brands/${row.id}`}
+          label={row.name}
+          isActive={row.isActive}
+        />
       ),
     },
     {
       id: "actions",
       header: "",
-      align: "right",
       cell: (row) =>
         selectedCategory ? (
           <RowActions
@@ -108,9 +109,20 @@ export function buildGradeColumns({
       ),
     },
     {
+      id: "status",
+      header: "Live",
+      hideOnMobile: true,
+      cell: (row) => (
+        <CatalogVisibilityToggle
+          endpoint={`/api/grades/${row.id}`}
+          label={row.label}
+          isActive={row.isActive}
+        />
+      ),
+    },
+    {
       id: "actions",
       header: "",
-      align: "right",
       cell: (row) =>
         selectedCategory ? (
           <RowActions
@@ -181,18 +193,19 @@ export function buildAttributeColumns({
     },
     {
       id: "status",
-      header: "Status",
+      header: "Live",
       hideOnMobile: true,
       cell: (row) => (
-        <StatusPill tone={row.isActive ? "success" : "warn"}>
-          {row.isActive ? "Active" : "Hidden"}
-        </StatusPill>
+        <CatalogVisibilityToggle
+          endpoint={`/api/attributes/${row.id}`}
+          label={row.label}
+          isActive={row.isActive}
+        />
       ),
     },
     {
       id: "actions",
       header: "",
-      align: "right",
       cell: (row) =>
         selectedCategory ? (
           <RowActions

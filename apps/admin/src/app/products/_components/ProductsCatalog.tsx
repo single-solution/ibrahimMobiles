@@ -655,11 +655,10 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     }
   }
 
-  // Columns are deliberately single-line: every cell is `whitespace-nowrap`
-  // with truncation on the two flex columns (Product, Brand) so the row
-  // can never wrap. Status pills + the brand·slug subtitle that used to
-  // sit under the product name are gone — flags now render as tiny
-  // icon-only badges next to the name, and stock is one compact cell.
+  // Cell containers may wrap so content never overflows its column; only the
+  // atomic pills/badges and the product name stay on a single line (the name
+  // truncates within its 18rem cap). Flags render as icon-only badges next to
+  // the name, and stock is one compact cell.
   const tableColumns: TableColumn<AdminProductSummary>[] = [
     {
       id: "product",
@@ -669,7 +668,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       cell: (product) => (
         <div className="flex min-w-0 items-center gap-3">
           <ProductThumb product={product} />
-          <div className="flex min-w-0 flex-col py-1">
+          <div className="flex min-w-0 max-w-[18rem] flex-col py-1">
             <div className="flex items-center gap-2">
               <span
                 className="truncate text-xs font-semibold text-[var(--color-ink-900)]"
@@ -718,7 +717,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       hideOnMobile: true,
       width: "12rem",
       cell: (product) => (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap justify-center gap-1">
           {product.gradeSlugs.length === 0 ? (
             <span className="text-[11px] text-[var(--color-ink-400)]">—</span>
           ) : (
@@ -752,7 +751,6 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     {
       id: "price",
       header: "Price",
-      align: "right",
       width: "9rem",
       sortable: true,
       sortAccessor: (product) => product.minPriceRupees ?? 0,
@@ -764,7 +762,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
         const hasRange = product.maxPriceRupees !== undefined && product.maxPriceRupees > product.minPriceRupees;
         
         return (
-          <div className="flex flex-col items-end">
+          <div className="flex flex-col items-center">
             <span className="whitespace-nowrap text-xs font-semibold tabular-nums text-[var(--color-ink-900)]">
               {formatPrice(product.minPriceRupees)}
             </span>
@@ -779,10 +777,9 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     },
     {
       id: "storefront",
-      header: "Storefront",
+      header: "Live",
       hideOnMobile: true,
-      align: "center",
-      width: "5.5rem",
+      width: "3.5rem",
       cell: (product) => (
         <div className="flex justify-center">
           <ProductVisibilityToggle
@@ -797,12 +794,11 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     {
       id: "actions",
       header: "Actions",
-      align: "right",
       cell: (product) => {
-        const productUrl = `${publicUrl}/shop/p/${product.slug}`;
+        const productUrl = `${publicUrl}/shop/${product.categorySlug}/${product.slug}`;
         
         return (
-          <div className="flex flex-nowrap whitespace-nowrap justify-end gap-1.5">
+          <div className="flex flex-wrap justify-end gap-1.5">
             <button
               type="button"
               onClick={() => {
@@ -987,8 +983,9 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
               }
             />
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-2 [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&_table]:table-fixed [&_table]:text-xs [&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-[10px]">
+            <div className="flex min-h-0 flex-1 flex-col p-2 [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&_table]:text-xs [&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-[10px]">
               <Table
+                fillHeight
                 rows={tableRows}
                 columns={tableColumns}
                 rowKey={(product) => product.id}
@@ -1291,7 +1288,7 @@ function ProductStockCell({ product }: { product: AdminProductSummary }) {
     );
   }
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col items-center">
       <span className="whitespace-nowrap text-xs font-semibold tabular-nums text-[var(--color-ink-900)]">
         {product.totalStockQuantity} items
       </span>

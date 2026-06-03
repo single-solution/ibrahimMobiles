@@ -22,6 +22,7 @@ export function toGradeResponse(grade: GradeLean): AdminGrade {
     color: asString(grade.color, "#1f2937"),
     video: grade.video ?? "",
     content: normalizeStructuredContent(grade.content, asString(grade.notes)),
+    isActive: grade.isActive ?? true,
     createdAt: toIsoDate(grade.createdAt),
     updatedAt: toIsoDate(grade.updatedAt),
   };

@@ -59,6 +59,7 @@ export interface AdminGrade {
   color: string;
   video: string;
   content: StructuredContent;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -337,7 +338,6 @@ export interface AdminOffer {
   badgeLabel: string;
   color: string;
   bannerImage: StoredImage | null;
-  expiresAt?: string;
   isActive: boolean;
   sortOrder: number;
   content: StructuredContent;

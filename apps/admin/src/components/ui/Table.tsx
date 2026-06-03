@@ -12,7 +12,6 @@ export interface TableColumn<TRow> {
   id: string;
   header: ReactNode;
   cell: (row: TRow) => ReactNode;
-  align?: "left" | "right" | "center";
   width?: string;
   hideOnMobile?: boolean;
   /** When true, the header becomes a button that toggles ascending/descending
@@ -36,6 +35,14 @@ interface TableProps<TRow> {
   /** Optional content rendered above the table (inside the same card) — used
    *  for chip-style filters that share the table's chrome. */
   filterBar?: ReactNode;
+  /**
+   * When true, the table card fills its (height-constrained) parent and the
+   * row area becomes the only vertical scroller — toolbar, filter bar, sticky
+   * header, and pagination stay pinned. Requires a parent with a bounded
+   * height (e.g. a `flex-1 min-h-0` flex column). Left `false` for callers
+   * that rely on natural page scroll, so their layout is unchanged.
+   */
+  fillHeight?: boolean;
 }
 
 function deriveSortableValue<TRow>(
@@ -63,6 +70,7 @@ export function Table<TRow>({
   pageSize = 50,
   toolbar,
   filterBar,
+  fillHeight = false,
 }: TableProps<TRow>) {
   const [query, setQuery] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
@@ -95,6 +103,20 @@ export function Table<TRow>({
     });
   }, [filteredRows, sort, columns]);
 
+  // Alignment is positional, not per-column: the first column is left-aligned,
+  // the last is right-aligned, and everything in between is centered — applied
+  // identically to header and body cells so columns always read as one block.
+  const lastColumnIndex = columns.length - 1;
+  const alignFor = (index: number): "left" | "center" | "right" => {
+    if (index === 0) {
+      return "left";
+    }
+    if (index === lastColumnIndex) {
+      return "right";
+    }
+    return "center";
+  };
+
   const totalPages = Math.max(1, Math.ceil(sortedRows.length / pageSize));
   const safePageIndex = Math.min(pageIndex, totalPages - 1);
   const visibleRows = sortedRows.slice(
@@ -124,9 +146,14 @@ export function Table<TRow>({
   }
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
+    <div
+      className={classNames(
+        "rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]",
+        fillHeight && "flex h-full flex-col overflow-hidden",
+      )}
+    >
       {(searchAccessor || toolbar) && (
-          <div className="relative z-30 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-3 py-3 sm:px-5 sm:py-3.5">
+          <div className="relative z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-3 py-3 sm:px-5 sm:py-3.5">
           {searchAccessor ? (
             <WorkspaceSearchField
               value={query}
@@ -146,7 +173,7 @@ export function Table<TRow>({
       )}
 
       {filterBar && (
-        <div className="relative z-20 border-b border-[var(--color-ink-100)] px-3 py-2.5 sm:px-5 sm:py-3">
+        <div className="relative z-20 shrink-0 border-b border-[var(--color-ink-100)] px-3 py-2.5 sm:px-5 sm:py-3">
           {filterBar}
         </div>
       )}
@@ -162,7 +189,12 @@ export function Table<TRow>({
               skipped, the first remaining column becomes the card title, and
               columns with an empty header (typically action icons) are
               rendered as a label-less footer row. */}
-          <ul className="reveal-stagger divide-y divide-[var(--color-ink-100)] md:hidden">
+          <ul
+            className={classNames(
+              "reveal-stagger divide-y divide-[var(--color-ink-100)] md:hidden",
+              fillHeight && "min-h-0 flex-1 overflow-y-auto",
+            )}
+          >
             {visibleRows.map((row) => {
               const mobileColumns = columns.filter((column) => !column.hideOnMobile);
               const hasLabel = (column: TableColumn<TRow>) =>
@@ -232,12 +264,18 @@ export function Table<TRow>({
           </ul>
 
           {/* Desktop table — at md+ we keep the original sortable table layout. */}
-          <div className="hidden overflow-x-auto md:block">
+          <div
+            className={classNames(
+              "hidden overflow-x-auto md:block",
+              fillHeight && "min-h-0 flex-1 overflow-y-auto",
+            )}
+          >
             <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-[var(--color-canvas-deep)] shadow-[inset_0_-1px_0_var(--color-ink-100)]">
               <tr className="text-[var(--color-ink-500)]">
-                {columns.map((column) => {
+                {columns.map((column, index) => {
                   const isSorted = sort?.columnId === column.id;
+                  const align = alignFor(index);
                   return (
                     <th
                       key={column.id}
@@ -248,9 +286,9 @@ export function Table<TRow>({
                       }
                       className={classNames(
                         "px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] md:px-5 md:py-2.5 md:text-[11px]",
-                        column.align === "right" && "text-right",
-                        column.align === "center" && "text-center",
-                        column.align !== "right" && column.align !== "center" && "text-left",
+                        align === "right" && "text-right",
+                        align === "center" && "text-center",
+                        align === "left" && "text-left",
                         column.hideOnMobile && "hidden md:table-cell",
                       )}
                     >
@@ -260,7 +298,7 @@ export function Table<TRow>({
                           onClick={() => toggleSort(column.id)}
                           className={classNames(
                             "inline-flex items-center gap-1.5 transition-colors hover:text-[var(--color-ink-800)]",
-                            column.align === "right" && "flex-row-reverse",
+                            align === "right" && "flex-row-reverse",
                           )}
                         >
                           {column.header}
@@ -292,19 +330,22 @@ export function Table<TRow>({
                     onRowClick && "cursor-pointer hover:bg-[var(--color-canvas-deep)]/50",
                   )}
                 >
-                  {columns.map((column) => (
-                    <td
-                      key={column.id}
-                      className={classNames(
-                        "px-3 py-2 align-middle text-[13px] text-[var(--color-ink-800)] md:px-5 md:py-3 md:text-sm",
-                        column.align === "right" && "text-right",
-                        column.align === "center" && "text-center",
-                        column.hideOnMobile && "hidden md:table-cell",
-                      )}
-                    >
-                      {column.cell(row)}
-                    </td>
-                  ))}
+                  {columns.map((column, index) => {
+                    const align = alignFor(index);
+                    return (
+                      <td
+                        key={column.id}
+                        className={classNames(
+                          "px-3 py-2 align-middle text-[13px] text-[var(--color-ink-800)] md:px-5 md:py-3 md:text-sm",
+                          align === "right" && "text-right",
+                          align === "center" && "text-center",
+                          column.hideOnMobile && "hidden md:table-cell",
+                        )}
+                      >
+                        {column.cell(row)}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -314,7 +355,7 @@ export function Table<TRow>({
       )}
 
       {sortedRows.length > pageSize && (
-        <div className="flex items-center justify-between gap-3 border-t border-[var(--color-ink-100)] px-3 py-2.5 text-[11px] text-[var(--color-ink-500)] sm:px-5 sm:py-3 sm:text-xs">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[var(--color-ink-100)] px-3 py-2.5 text-[11px] text-[var(--color-ink-500)] sm:px-5 sm:py-3 sm:text-xs">
           <span>
             Showing{" "}
             <span className="font-semibold text-[var(--color-ink-800)]">

@@ -23,9 +23,6 @@ export function toOfferResponse(doc: OfferLean): AdminOffer {
     badgeLabel: asString(doc.badgeLabel),
     color: asString(doc.color, "#e1ff51"),
     bannerImage: isStoredImage(doc.bannerImage) ? doc.bannerImage : null,
-    expiresAt: doc.expiresAt
-      ? toIsoDate(doc.expiresAt)
-      : undefined,
     isActive: doc.isActive ?? true,
     sortOrder: doc.sortOrder ?? 0,
     content: normalizeStructuredContent(doc.content, asString(doc.description)),

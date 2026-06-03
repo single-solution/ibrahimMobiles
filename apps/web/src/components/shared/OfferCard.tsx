@@ -42,10 +42,12 @@ export function OfferCard({ offer, size = "md" }: OfferCardProps) {
         >
           {offer.badgeLabel}
         </Pill>
-        <span className="inline-flex items-center gap-1 text-[10px] text-[var(--color-on-dark-strong)] md:text-xs">
-          <Clock size={11} />
-          {formatRelativeDate(offer.expiresAt)}
-        </span>
+        {offer.expiresAt ? (
+          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--color-on-dark-strong)] md:text-xs">
+            <Clock size={11} />
+            {formatRelativeDate(offer.expiresAt)}
+          </span>
+        ) : null}
       </div>
 
       <div className="relative space-y-1 md:space-y-2">

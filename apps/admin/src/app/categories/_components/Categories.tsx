@@ -34,6 +34,7 @@ import type {
 
 import { AttributeEditor } from "./AttributeEditor";
 import { BrandEditor } from "./BrandEditor";
+import { CatalogVisibilityToggle } from "./CatalogVisibilityToggle";
 import { CategoryEditor } from "./CategoryEditor";
 import { LucideIconRenderer } from "@/components/icons/LucideIconRenderer";
 import { GradeEditor } from "./GradeEditor";
@@ -536,10 +537,20 @@ function CategoryCard({
             <h2 className="truncate text-[17px] font-semibold text-[var(--color-ink-900)]">
               {category.label}
             </h2>
-            {!category.isActive && (
-              <span className="rounded-full bg-[var(--color-ink-100)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-500)]">
-                Hidden
+            {canManageCategories ? (
+              <span title={category.isActive ? "Live on storefront" : "Hidden from storefront"}>
+                <CatalogVisibilityToggle
+                  endpoint={`/api/categories/${category.id}`}
+                  label={category.label}
+                  isActive={category.isActive}
+                />
               </span>
+            ) : (
+              !category.isActive && (
+                <span className="rounded-full bg-[var(--color-ink-100)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-500)]">
+                  Hidden
+                </span>
+              )
             )}
           </div>
           {categoryOnly ? (

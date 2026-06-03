@@ -272,7 +272,7 @@ function InlineIconPicker({
           role="dialog"
           aria-modal="true"
           aria-label="Pick bullet icon"
-          className="animate-sheet-fade fixed inset-0 z-modal flex items-center justify-center bg-[var(--color-ink-900)]/35 p-4"
+          className="animate-sheet-fade fixed inset-0 z-[var(--z-modal)] flex items-center justify-center bg-[var(--color-ink-900)]/35 p-4"
           onClick={(event) => {
             if (event.target === event.currentTarget) setIsOpen(false);
           }}
