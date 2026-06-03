@@ -268,7 +268,7 @@ export function WorkspaceRowIconButton({
       disabled={disabled}
       onClick={onClick}
       className={classNames(
-        "grid size-8 place-items-center rounded-[var(--radius-md)] transition-colors disabled:opacity-40",
+        "tap grid size-8 place-items-center rounded-[var(--radius-md)] transition-colors disabled:opacity-40",
         tone === "danger"
           ? "text-rose-500 hover:bg-rose-50 hover:text-rose-600"
           : "text-[var(--color-ink-500)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",

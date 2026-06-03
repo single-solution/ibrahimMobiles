@@ -998,12 +998,12 @@ function CategorySidebar({
               No categories match your search.
             </p>
           ) : (
-          <ul className="flex flex-col gap-0.5">
+          <ul className="reveal-stagger flex flex-col gap-0.5">
             {items.map(({ category, totalCount }) => {
               const isSelected = category.slug === selectedSlug;
 
               return (
-                <li key={category.slug}>
+                <li key={category.slug} className="reveal">
                   <button
                     type="button"
                     onClick={() => onSelect(category.slug)}
@@ -1051,7 +1051,7 @@ function CategorySidebar({
         />
         <nav
           aria-label="Product categories"
-          className="-mx-1 flex gap-1 overflow-x-auto"
+          className="reveal-stagger -mx-1 flex gap-1 overflow-x-auto"
         >
           {items.length === 0 ? (
             <p className="px-1 text-[11px] text-[var(--color-ink-500)]">
@@ -1067,7 +1067,7 @@ function CategorySidebar({
                 type="button"
                 onClick={() => onSelect(category.slug)}
                 className={classNames(
-                  "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
+                  "reveal inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors",
                   isSelected
                     ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-900)]"
                     : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)]",

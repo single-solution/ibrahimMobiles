@@ -138,8 +138,8 @@ export default async function AdminOverviewPage({
         <DashboardAccessBanner />
       </Suspense>
       {/* Mobile only — compact native layout */}
-      <div className="md:hidden">
-        <div>
+      <div className="reveal-stagger md:hidden">
+        <div className="reveal">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
             Overview
           </p>
@@ -152,7 +152,7 @@ export default async function AdminOverviewPage({
           <MobileHubSections />
         </Suspense>
 
-        <div className="app-section">
+        <div className="reveal app-section">
           <div className="app-section-eyebrow">
             <span>Today</span>
             <DashboardMobileEyebrowActions variant="today" />
@@ -162,7 +162,7 @@ export default async function AdminOverviewPage({
           </Suspense>
         </div>
 
-        <div className="app-section">
+        <div className="reveal app-section">
           <div className="app-section-eyebrow">
             <span>This month</span>
             <DashboardMobileEyebrowActions variant="month" />
@@ -172,7 +172,7 @@ export default async function AdminOverviewPage({
           </Suspense>
         </div>
 
-        <div className="app-section">
+        <div className="reveal app-section">
           <div className="app-section-eyebrow">
             <span>Shop health</span>
           </div>
@@ -181,7 +181,7 @@ export default async function AdminOverviewPage({
           </Suspense>
         </div>
 
-        <div className="app-section">
+        <div className="reveal app-section">
           <div className="app-section-eyebrow">
             <span>Recent inquiries</span>
             <DashboardMobileEyebrowActions variant="inquiries" />
@@ -194,13 +194,13 @@ export default async function AdminOverviewPage({
 
       {/* Desktop layout — Bento-style grid to maximize horizontal space.
           Uses a 12-column grid on xl screens (8 for main metrics, 4 for insights). */}
-      <div className="hidden md:block">
+      <div className="reveal-stagger hidden md:block">
         <div className="mx-auto max-w-[1600px]">
           <div className="grid items-start gap-6 xl:grid-cols-12">
             
             {/* Main Metric Column */}
             <div className="min-w-0 flex-1 space-y-6 xl:col-span-8">
-              <section>
+              <section className="reveal">
                 <SectionHeader
                   title="Performance"
                   subtitle="Pick a window — every tile re-runs against your chosen range and comparison."
@@ -218,7 +218,7 @@ export default async function AdminOverviewPage({
                 </Suspense>
               </section>
 
-              <section>
+              <section className="reveal">
                 <SectionHeader
                   title="What needs your attention"
                   subtitle="Pending payments first, then dispatch and delivery."
@@ -235,7 +235,7 @@ export default async function AdminOverviewPage({
                 </Suspense>
               </section>
 
-              <section>
+              <section className="reveal">
                 <SectionHeader
                   title="What's in stock and what's hot"
                   subtitle="Stock, low-stock alerts, listings, and inquiry inbox."
@@ -255,7 +255,7 @@ export default async function AdminOverviewPage({
 
             {/* Insights & Health Column */}
             <div className="min-w-0 flex-1 space-y-6 xl:col-span-4">
-              <section>
+              <section className="reveal">
                 <SectionHeader
                   title="Quick insights & health"
                   subtitle="Configuration, catalog hygiene, and recent inquiries."
@@ -564,11 +564,11 @@ async function DesktopRecentInquiries() {
           No inquiries yet.
         </p>
       ) : (
-        <ul className="divide-y divide-[var(--color-ink-100)]">
+        <ul className="reveal-stagger divide-y divide-[var(--color-ink-100)]">
           {items.map((inquiry) => {
             const status = inquiry.status as InquiryStatus;
             return (
-              <li key={inquiry.id}>
+              <li key={inquiry.id} className="reveal">
                 <Link
                   href={`/inquiries?inquiry=${inquiry.id}`}
                   title={inquiry.subjectProductName ?? inquiry.lastMessagePreview}

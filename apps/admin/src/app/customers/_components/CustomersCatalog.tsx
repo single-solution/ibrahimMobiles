@@ -240,7 +240,7 @@ function CustomersCatalogInner({
                 </>
               }
             />
-            <ul className="min-h-0 flex-1 overflow-y-auto">
+            <ul className="reveal-stagger min-h-0 flex-1 overflow-y-auto">
               {filteredCustomers.length === 0 ? (
                 <li className="px-4 py-8 text-center text-xs leading-relaxed text-[var(--color-ink-500)]">
                   {searchQuery.trim()
@@ -251,7 +251,7 @@ function CustomersCatalogInner({
                 </li>
               ) : (
                 filteredCustomers.map((customer) => (
-                  <li key={customer.id}>
+                  <li key={customer.id} className="reveal">
                     <CustomerListItem
                       customer={customer}
                       isActive={customer.id === activeId}

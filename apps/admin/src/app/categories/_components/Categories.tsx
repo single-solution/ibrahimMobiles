@@ -269,8 +269,8 @@ export function Categories({
       <header
         className={
           embedded
-            ? "mb-3 flex flex-wrap items-end justify-between gap-2"
-            : "flex flex-wrap items-end justify-between gap-3"
+            ? "reveal mb-3 flex flex-wrap items-end justify-between gap-2"
+            : "reveal flex flex-wrap items-end justify-between gap-3"
         }
       >
         <div>
@@ -300,8 +300,8 @@ export function Categories({
         <div
           className={
             embedded
-              ? "rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-6 py-12 text-center"
-              : "mt-8 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface-muted)] px-6 py-16 text-center"
+              ? "reveal rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-6 py-12 text-center"
+              : "reveal mt-8 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface-muted)] px-6 py-16 text-center"
           }
         >
           <Sparkles
@@ -335,8 +335,8 @@ export function Categories({
         <ul
           className={
             embedded
-              ? "grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3"
-              : "mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3"
+              ? "reveal-stagger grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3"
+              : "reveal-stagger mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3"
           }
         >
           {grouped.map(
@@ -344,7 +344,7 @@ export function Categories({
               { category, brands: brandsForCategory, grades: gradesForCategory, attributes: attrsForCategory },
               index,
             ) => (
-              <li key={category.id}>
+              <li key={category.id} className="reveal h-full">
                 <CategoryCard
                   category={category}
                   brands={brandsForCategory}

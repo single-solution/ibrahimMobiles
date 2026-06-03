@@ -106,7 +106,7 @@ export function ShopHealthCard({ summary }: { summary: ShopHealthSummary }) {
           View details <ArrowRight size={11} />
         </Link>
       </header>
-      <ul className="divide-y divide-[var(--color-ink-100)]">
+      <ul className="reveal-stagger divide-y divide-[var(--color-ink-100)]">
         {previewChecks.map((check) => (
           <ShopHealthRow key={check.id} check={check} />
         ))}
@@ -137,7 +137,7 @@ function ShopHealthRow({ check }: { check: ShopHealthCheck }) {
     <div
       title={check.description}
       className={classNames(
-        "flex items-center gap-3 px-4 py-3 md:px-5",
+        "reveal flex items-center gap-3 px-4 py-3 md:px-5",
         check.href && "transition-colors hover:bg-[var(--color-canvas-deep)]",
       )}
     >

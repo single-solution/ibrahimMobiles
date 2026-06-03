@@ -249,7 +249,7 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
               </>
             }
           />
-          <ul className="min-h-0 flex-1 overflow-y-auto">
+          <ul className="reveal-stagger min-h-0 flex-1 overflow-y-auto">
             {filteredOrders.length === 0 ? (
               <li className="px-4 py-6">
                 <WorkspaceEmptyPane
@@ -264,7 +264,7 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
               </li>
             ) : (
               filteredOrders.map((order) => (
-                <li key={order.id}>
+                <li key={order.id} className="reveal">
                   <OrderListItem
                     order={order}
                     isActive={order.id === activeOrderId}

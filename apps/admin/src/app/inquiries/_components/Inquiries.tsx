@@ -283,7 +283,7 @@ function ThreadListPane({
         }
       />
 
-      <ul className="min-h-0 flex-1 overflow-y-auto">
+      <ul className="reveal-stagger min-h-0 flex-1 overflow-y-auto">
         {inquiries.length === 0 ? (
           <li className="px-4 py-8 text-center text-xs text-[var(--color-ink-500)]">
             {searchQuery.trim()
@@ -292,7 +292,7 @@ function ThreadListPane({
           </li>
         ) : (
           inquiries.map((inquiry) => (
-            <li key={inquiry.id}>
+            <li key={inquiry.id} className="reveal">
               <ThreadListItem
                 inquiry={inquiry}
                 isActive={inquiry.id === activeId}

@@ -72,7 +72,7 @@ export function UserMenu({
         aria-haspopup="menu"
         onClick={() => setOpen((current) => !current)}
         className={classNames(
-          "flex min-w-[12.5rem] max-w-[15rem] items-center gap-2 rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1 pl-1 pr-2.5 text-left shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--color-canvas-deep)]",
+          "tap flex min-w-[12.5rem] max-w-[15rem] items-center gap-2 rounded-[var(--radius-full)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1 pl-1 pr-2.5 text-left shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--color-canvas-deep)]",
           open && "ring-2 ring-[var(--color-accent-100)]",
         )}
       >

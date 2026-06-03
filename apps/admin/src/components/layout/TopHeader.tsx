@@ -33,7 +33,7 @@ export function TopHeader({ isCollapsed, onToggleCollapsed }: TopHeaderProps) {
           type="button"
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           onClick={onToggleCollapsed}
-          className="grid size-7 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
+          className="tap grid size-7 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
         >
           {isCollapsed ? <ChevronsRight size={14} /> : <ChevronsLeft size={14} />}
         </button>

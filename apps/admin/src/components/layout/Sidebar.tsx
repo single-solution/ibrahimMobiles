@@ -186,7 +186,7 @@ function SidebarNavLink({ link, isActive, isCollapsed, showInquiryBadge }: Sideb
       onTouchStart={prefetchHandlers.onTouchStart}
       onFocus={prefetchHandlers.onFocus}
       className={classNames(
-        "relative flex h-8 items-center gap-2 rounded-[var(--radius-md)] text-xs transition-colors",
+        "tap relative flex h-8 items-center gap-2 rounded-[var(--radius-md)] text-xs transition-colors",
         isCollapsed ? "justify-center px-0" : "px-2",
         isActive
           ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
