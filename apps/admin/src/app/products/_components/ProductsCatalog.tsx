@@ -48,7 +48,7 @@ import type { AdminCategory, AdminProductSummary } from "@/types/models";
 
 import { ProductCreateWizard } from "./ProductCreateWizard";
 
-// The edit + variants drawers carry the variant editor, structured-content
+// The edit drawer carries the variant editor, structured-content
 // editor, and image upload — together by far the heaviest client modules on
 // this page. Dynamic-import + render-on-demand keeps that JS out of the
 // initial /products bundle. Once a drawer opens it stays mounted, so close
@@ -61,20 +61,12 @@ const ProductEditDrawer = dynamic(
   { ssr: false },
 );
 
-const ProductManageVariantsDrawer = dynamic(
-  () =>
-    import("./ProductManageVariantsDrawer").then((mod) => ({
-      default: mod.ProductManageVariantsDrawer,
-    })),
-  { ssr: false },
-);
-
 interface ProductsCatalogProps {
   products: AdminProductSummary[];
   catalog: ProductWizardCatalog;
 }
 
-type Panel = "edit" | "variants";
+type Panel = "edit";
 
 interface CategoryNavItem {
   category: AdminCategory;
@@ -272,13 +264,11 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     null,
   );
   const [editId, setEditId] = useState<string | null>(null);
-  const [variantsId, setVariantsId] = useState<string | null>(null);
   // Once a drawer has been opened we keep it mounted so its close
   // animation runs and the dynamic chunk stays cached. Initial render
   // never mounts either drawer, so its bundle stays out of the cold
-  // load until the operator actually clicks Edit / Variants.
+  // load until the operator actually clicks Edit.
   const [editDrawerMounted, setEditDrawerMounted] = useState(false);
-  const [variantsDrawerMounted, setVariantsDrawerMounted] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AdminProductSummary | null>(
     null,
   );
@@ -298,7 +288,8 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
         replace({
           product: productId,
           panel,
-          ...(panel !== "variants" ? { vgrade: null, vuid: null } : {}),
+          vgrade: null,
+          vuid: null,
         });
       } else {
         replace({
@@ -322,26 +313,14 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
   const openEdit = useCallback(
     (id: string) => {
       setEditId(id);
-      setVariantsId(null);
       setEditDrawerMounted(true);
       setPanelUrl(id, "edit");
     },
     [setPanelUrl],
   );
 
-  const openVariants = useCallback(
-    (id: string) => {
-      setVariantsId(id);
-      setEditId(null);
-      setVariantsDrawerMounted(true);
-      setPanelUrl(id, "variants");
-    },
-    [setPanelUrl],
-  );
-
   const closePanels = useCallback(() => {
     setEditId(null);
-    setVariantsId(null);
     setPanelUrl(null, null);
   }, [setPanelUrl]);
 
@@ -351,25 +330,17 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     scheduleStateUpdate(() => {
       if (!productId) {
         setEditId(null);
-        setVariantsId(null);
         return;
       }
-      if (!canUpdate && (panel === "edit" || panel === "variants")) {
+      if (!canUpdate && (panel === "edit")) {
         setEditId(null);
-        setVariantsId(null);
         replace({ product: productId, panel: null, vgrade: null, vuid: null });
         return;
       }
       if (panel === "edit") {
         setEditId(productId);
-        setVariantsId(null);
         setEditDrawerMounted(true);
         return;
-      }
-      if (panel === "variants") {
-        setVariantsId(productId);
-        setEditId(null);
-        setVariantsDrawerMounted(true);
       }
     });
   }, [canUpdate, replace, searchParams]);
@@ -660,7 +631,6 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       pendingDeleteIdRef.current = null;
       setDeleteTarget(null);
       setEditId(null);
-      setVariantsId(null);
       replace({
         delete: null,
         product: null,
@@ -777,28 +747,17 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       align: "right",
       width: "1%",
       cell: (product) => (
-        <div className="flex flex-wrap justify-end gap-1.5">
+        <div className="flex flex-nowrap whitespace-nowrap justify-end gap-1.5">
           {canUpdate && (
-            <>
-              <button
-                type="button"
-                onClick={() => openEdit(product.id)}
-                title="Edit details"
-                className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]"
-              >
-                <Pencil size={13} aria-hidden />
-                <span className="hidden xl:inline">Edit</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => openVariants(product.id)}
-                title="Manage variants"
-                className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]"
-              >
-                <Boxes size={13} aria-hidden />
-                <span className="hidden xl:inline">Variants</span>
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={() => openEdit(product.id)}
+              title="Edit details"
+              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]"
+            >
+              <Pencil size={13} aria-hidden />
+              <span className="hidden xl:inline">Edit</span>
+            </button>
           )}
           {canDelete && (
             <button
@@ -977,16 +936,6 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
           isOpen={editId !== null}
           onClose={closePanels}
           onSaved={() => router.refresh()}
-        />
-      ) : null}
-
-      {variantsDrawerMounted ? (
-        <ProductManageVariantsDrawer
-          productId={variantsId}
-          catalog={catalog}
-          isOpen={variantsId !== null}
-          onClose={closePanels}
-          onUpdated={() => router.refresh()}
         />
       ) : null}
 
