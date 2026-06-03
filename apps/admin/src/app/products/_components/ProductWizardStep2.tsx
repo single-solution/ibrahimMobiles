@@ -44,6 +44,9 @@ interface ProductWizardStep2Props {
   onSaved: (product?: AdminProduct) => void;
   /** `wizard` = after create; `manage` = catalog row action. */
   purpose?: "wizard" | "manage";
+  stepLabel?: string;
+  onBack?: () => void;
+  nextLabel?: string;
 }
 
 function buildGradeSections(
@@ -92,6 +95,9 @@ export function ProductWizardStep2({
   onSkip,
   onSaved,
   purpose = "wizard",
+  stepLabel = "Step 2 of 2",
+  onBack,
+  nextLabel,
 }: ProductWizardStep2Props) {
   const isManage = purpose === "manage";
   const { searchParams, replace } = useUrlParams();
@@ -394,12 +400,6 @@ export function ProductWizardStep2({
             ));
       }
       
-      // Make product active since wizard is complete
-      await apiFetch(`/api/products/${product.id}`, {
-        method: "PUT",
-        json: { isActive: true },
-      });
-      
       const reloadedProduct = await apiFetch<AdminProduct>(
         `/api/products/${product.id}`,
       );
@@ -611,10 +611,10 @@ export function ProductWizardStep2({
       <div className="safe-bottom shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-3 md:px-5 md:py-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-sm font-medium text-[var(--color-ink-500)]">
-            Step 2 of 2
+            {stepLabel}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {!isManage && (
+            {!isManage && !onBack && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -626,9 +626,23 @@ export function ProductWizardStep2({
                 Skip for now
               </Button>
             )}
-            <Button variant="ghost" size="sm" type="button" onClick={handleClose} disabled={submitting}>
-              {isManage ? "Close" : "Cancel"}
-            </Button>
+            
+            {onBack ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={onBack}
+                disabled={submitting}
+              >
+                Back
+              </Button>
+            ) : (
+              <Button variant="ghost" size="sm" type="button" onClick={handleClose} disabled={submitting}>
+                {isManage ? "Close" : "Cancel"}
+              </Button>
+            )}
+            
             <Button
               variant="primary"
               size="sm"
@@ -636,7 +650,7 @@ export function ProductWizardStep2({
               form="product-wizard-step2"
               isLoading={submitting}
             >
-              {isManage ? "Save changes" : "Save variations"}
+              {nextLabel ?? (isManage ? "Save changes" : "Save variations")}
             </Button>
           </div>
         </div>

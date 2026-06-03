@@ -214,16 +214,6 @@ export function CategoryEditor({
             onChange={(icon) => setForm((prev) => ({ ...prev, icon }))}
             description="This icon appears on category cards and navigation chips."
           />
-          <label className="flex items-center gap-2 text-[13px] text-[var(--color-ink-800)]">
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, isActive: e.target.checked }))
-              }
-            />
-            Visible to customers
-          </label>
           <CatalogSeoPanel
             value={form.seo}
             onChange={(seo) => setForm((prev) => ({ ...prev, seo }))}

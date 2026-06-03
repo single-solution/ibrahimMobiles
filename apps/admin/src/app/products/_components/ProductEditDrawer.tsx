@@ -21,6 +21,7 @@ import type { AdminProduct } from "@/types/models";
 import { collectProductImageErrors } from "./productFormState";
 import { Stepper } from "@/components/ui/Stepper";
 import { WizardFieldError, WizardSection } from "./productWizardUi";
+import { ProductWizardStep2 } from "./ProductWizardStep2";
 
 interface ProductEditDrawerProps {
   productId: string | null;
@@ -48,7 +49,7 @@ export function ProductEditDrawer({
   const [imagesError, setImagesError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState(1);
-  const totalSteps = 2;
+  const totalSteps = 3;
 
   const category = useMemo(
     () =>
@@ -153,8 +154,58 @@ export function ProductEditDrawer({
 
   const steps = [
     { id: 1, label: "Details & Photos" },
-    { id: 2, label: "SEO & Entity" },
+    { id: 2, label: "Variants" },
+    { id: 3, label: "SEO & Entity" },
   ];
+
+  const renderFooter = () => (
+    <div className="safe-bottom shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-3 md:px-5 md:py-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm font-medium text-[var(--color-ink-500)]">
+          Step {step} of {totalSteps}
+        </div>
+        <div className="flex items-center gap-2">
+          {step === 1 ? (
+            <Button variant="ghost" size="sm" type="button" onClick={onClose} disabled={saving}>
+              Cancel
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              onClick={() => setStep((s) => Math.max(1, s - 1))}
+            >
+              Back
+            </Button>
+          )}
+          {step < totalSteps ? (
+            <Button
+              variant="primary"
+              size="sm"
+              type="submit"
+              form="product-edit-drawer"
+              isLoading={saving}
+              disabled={loading || !product}
+            >
+              Next
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              size="sm"
+              type="submit"
+              form="product-edit-drawer"
+              isLoading={saving}
+              disabled={loading || !product}
+            >
+              Save
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <Drawer
@@ -162,61 +213,16 @@ export function ProductEditDrawer({
       onClose={onClose}
       title="Edit product"
       description={product?.name ?? (loading ? "Loading…" : undefined)}
-      width="lg"
+      width="2xl"
+      bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden !p-0"
       topBar={
         <div className="flex justify-center py-2">
           <Stepper steps={steps} currentStep={step} className="max-w-md" />
         </div>
       }
-      footer={
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-sm font-medium text-[var(--color-ink-500)]">
-            Step {step} of {totalSteps}
-          </div>
-          <div className="flex items-center gap-2">
-            {step === 1 ? (
-              <Button variant="ghost" size="sm" type="button" onClick={onClose} disabled={saving}>
-                Cancel
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                type="button"
-                onClick={() => setStep((s) => Math.max(1, s - 1))}
-              >
-                Back
-              </Button>
-            )}
-            {step < totalSteps ? (
-              <Button
-                variant="primary"
-                size="sm"
-                type="submit"
-                form="product-edit-drawer"
-                isLoading={saving}
-                disabled={loading || !product}
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                size="sm"
-                type="submit"
-                form="product-edit-drawer"
-                isLoading={saving}
-                disabled={loading || !product}
-              >
-                Save
-              </Button>
-            )}
-          </div>
-        </div>
-      }
     >
       {loading ? (
-        <div className="flex flex-col gap-5 animate-pulse">
+        <div className="flex flex-col gap-5 animate-pulse p-4 md:p-6">
           <WizardSection title="Details">
             <div className="flex flex-col gap-1">
               <div className="h-3 w-12 bg-[var(--color-ink-200)] rounded" />
@@ -240,12 +246,16 @@ export function ProductEditDrawer({
           </WizardSection>
         </div>
       ) : product ? (
-        <form id="product-edit-drawer" onSubmit={(e) => {
-          handleSubmit(e, step < totalSteps);
-        }} className="flex flex-col gap-5">
-          {step === 1 && (
-            <>
-              <WizardSection title="Details">
+        <>
+          {(step === 1 || step === 3) && (
+            <form id="product-edit-drawer" onSubmit={(e) => {
+              handleSubmit(e, step < totalSteps);
+            }} className="flex min-h-0 flex-1 flex-col">
+              <div className="flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
+                <div className="flex flex-col gap-5">
+                  {step === 1 && (
+                    <>
+                      <WizardSection title="Details">
                 <label className="flex flex-col gap-1">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
                     Name
@@ -314,7 +324,7 @@ export function ProductEditDrawer({
             </>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <CatalogSeoPanel
               value={seo}
               onChange={setSeo}
@@ -343,7 +353,30 @@ export function ProductEditDrawer({
               }}
             />
           )}
-        </form>
+                </div>
+              </div>
+              {renderFooter()}
+            </form>
+          )}
+
+          {step === 2 && (
+            <ProductWizardStep2
+              product={product}
+              catalog={catalog}
+              onClose={onClose}
+              onSkip={() => { setStep(3); router.refresh(); }}
+              onSaved={(latest) => {
+                if (latest) setProduct(latest);
+                setStep(3);
+                router.refresh();
+              }}
+              purpose="manage"
+              stepLabel={`Step 2 of ${totalSteps}`}
+              onBack={() => setStep(1)}
+              nextLabel="Next"
+            />
+          )}
+        </>
       ) : null}
     </Drawer>
   );
