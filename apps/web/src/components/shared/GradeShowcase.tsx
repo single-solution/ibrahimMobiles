@@ -12,7 +12,7 @@ import {
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { StructuredContentFull } from "@/components/shared/StructuredContent";
 import { useSelectedVariantId } from "@/components/shared/VariantContext";
-import { useGrade } from "@/lib/storefront/storefrontReferenceContext";
+import { useGrade } from "@/lib/core/storefrontReferenceContext";
 import { useGlobalEagerLoad } from "@/lib/useGlobalEagerLoad";
 
 /**

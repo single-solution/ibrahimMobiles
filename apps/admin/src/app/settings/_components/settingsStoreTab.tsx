@@ -13,7 +13,7 @@ import type { SectionProps } from "@/app/settings/_components/settingsSectionPro
 export function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
   const hasName = draft.siteName.trim().length > 0;
   const hasTagline = draft.siteTagline.trim().length > 0;
-  const hasUrl = draft.storefrontUrl.trim().length > 0;
+  const hasUrl = draft.publicSiteUrl.trim().length > 0;
   const brandAssetCount = [
     draft.brandLogoLight,
     draft.brandLogoDark,
@@ -35,7 +35,7 @@ export function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdat
     },
     {
       label: "Storefront URL",
-      value: hasUrl ? draft.storefrontUrl : "Auto (env)",
+      value: hasUrl ? draft.publicSiteUrl : "Auto (env)",
       tone: hasUrl ? "good" : "neutral",
       icon: Globe2,
     },
@@ -66,7 +66,7 @@ export function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdat
           actions={
             hasUrl ? (
               <a
-                href={draft.storefrontUrl}
+                href={draft.publicSiteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-ink-800)] hover:border-[var(--color-accent-300)] hover:text-[var(--color-accent-800)]"
@@ -96,8 +96,8 @@ export function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdat
           <TextField
             label="Storefront URL"
             type="url"
-            value={draft.storefrontUrl}
-            onChange={(event) => setField("storefrontUrl", event.target.value)}
+            value={draft.publicSiteUrl}
+            onChange={(event) => setField("publicSiteUrl", event.target.value)}
             placeholder="https://ibrahimmobiles.com"
             inputMode="url"
             autoComplete="url"

@@ -15,7 +15,7 @@ import {
 import {
   useAttributesForCategory,
   useGradesForCategory,
-} from "@/lib/storefront/storefrontReferenceContext";
+} from "@/lib/core/storefrontReferenceContext";
 
 import {
   OVERLAY_CHIP_ROW_MAX_PX,

@@ -18,7 +18,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { classNames } from "@store/shared";
-import type { AccountAddress, AccountCustomer } from "@/lib/storefront/account";
+import type { AccountAddress, AccountCustomer } from "@/lib/core/account";
 
 const SAVED_FLASH_MS = 1_800;
 
@@ -72,7 +72,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
     setIsSavingProfile(true);
     setProfileError(null);
     try {
-      const response = await fetch("/api/storefront/account/profile", {
+      const response = await fetch("/api/account/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: fullName.trim(), email: email.trim() || null, city: city.trim() }),
@@ -96,7 +96,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
     setIsSavingAddresses(true);
     setAddressError(null);
     try {
-      const response = await fetch("/api/storefront/account/addresses", {
+      const response = await fetch("/api/account/addresses", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ addresses: next }),

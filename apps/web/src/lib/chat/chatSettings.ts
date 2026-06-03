@@ -12,7 +12,7 @@ import {
   type ChatSettingsValues,
 } from "@store/shared";
 
-import { STOREFRONT_CACHE_TAG } from "@/lib/storefront/cached";
+import { STOREFRONT_CACHE_TAG } from "@/lib/core/cached";
 
 export type ChatSettings = ChatSettingsValues;
 

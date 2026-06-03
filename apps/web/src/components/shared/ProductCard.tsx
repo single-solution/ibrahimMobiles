@@ -22,7 +22,7 @@ import {
 import {
   useAttributesForCategory,
   useGradesForCategory,
-} from "@/lib/storefront/storefrontReferenceContext";
+} from "@/lib/core/storefrontReferenceContext";
 
 import {
   CARD_FOOTER_CHIP_SLOT_CLASS,

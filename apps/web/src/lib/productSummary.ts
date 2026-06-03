@@ -15,10 +15,10 @@
  *     individual variants and live on the `Offer` collection.
  */
 
-import type { GradeDescriptor, Product, StoredImage, StorefrontVariant } from "@store/shared";
+import type { GradeDescriptor, Product, StoredImage, Variant } from "@store/shared";
 import { formatPrice } from "@store/shared";
 
-const isVariantInStock = (variant: StorefrontVariant): boolean =>
+const isVariantInStock = (variant: Variant): boolean =>
   (variant.quantity ?? 0) > 0;
 
 /**
@@ -27,7 +27,7 @@ const isVariantInStock = (variant: StorefrontVariant): boolean =>
  * Stable across renders because we always pick from a deterministic order
  * (price asc, ties broken by id) — no flicker when re-fetching.
  */
-export function getDefaultVariant(product: Product): StorefrontVariant {
+export function getDefaultVariant(product: Product): Variant {
   const variants = product.variants;
   if (variants.length === 0) {
     return {
@@ -115,7 +115,7 @@ export function resolveProductHeroImage(product: Product): StoredImage | undefin
 export function resolveListingVariant(
   product: Product,
   options?: { gradeSlugs?: string[] },
-): StorefrontVariant {
+): Variant {
   const gradeSlugs = options?.gradeSlugs?.filter(Boolean) ?? [];
   if (gradeSlugs.length === 1) {
     const matches = product.variants.filter((row) => row.gradeSlug === gradeSlugs[0]);
@@ -139,8 +139,8 @@ export function resolveListingVariant(
 
 /** Variants in stable card order — cheapest in-stock first, then by id. */
 export function getVariantsInDisplayOrder(
-  variants: StorefrontVariant[],
-): StorefrontVariant[] {
+  variants: Variant[],
+): Variant[] {
   const inStock = variants.filter(isVariantInStock);
   const pool = inStock.length > 0 ? inStock : variants;
   return [...pool].sort((left, right) => {

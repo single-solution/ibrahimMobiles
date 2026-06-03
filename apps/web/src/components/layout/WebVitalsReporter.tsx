@@ -7,7 +7,7 @@ import { useReportWebVitals } from "next/web-vitals";
  *
  * Dual sink:
  *   1. GA4 via `gtag` when `MarketingPixels` configured a measurement id.
- *   2. `POST /api/storefront/vitals` as a fallback — structured logs via
+ *   2. `POST /api/vitals` as a fallback — structured logs via
  *      pino so we still have RUM when GA isn't set up yet.
  *
  * The beacon uses `keepalive` so it survives navigations away from the page.
@@ -43,7 +43,7 @@ function reportToServer(metric: {
 }) {
   if (!ALLOWED_METRICS.has(metric.name)) return;
 
-  void fetch("/api/storefront/vitals", {
+  void fetch("/api/vitals", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

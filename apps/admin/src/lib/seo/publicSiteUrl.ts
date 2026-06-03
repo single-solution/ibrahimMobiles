@@ -4,7 +4,7 @@ const LOCAL_FALLBACK = "http://localhost:3000";
  * Public storefront origin for SERP preview breadcrumbs and canonicals.
  *
  * Resolution order (first non-empty wins):
- *   1. `override` — admin-managed `StoreSettings.storefrontUrl`. Pass it from
+ *   1. `override` — admin-managed `StoreSettings.publicSiteUrl`. Pass it from
  *      a client component via `useStoreSettings()` so a non-engineer can
  *      change "View storefront" / SEO base without a deploy.
  *   2. Env vars — kept as a safety net so existing deploys keep working

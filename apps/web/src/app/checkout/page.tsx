@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Checkout } from "@/app/checkout/_components/Checkout";
 import { auth } from "@/lib/auth";
-import { getAccountCustomer } from "@/lib/storefront/account";
+import { getAccountCustomer } from "@/lib/core/account";
 
 export const metadata: Metadata = {
   title: "Checkout",

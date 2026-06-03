@@ -11,7 +11,7 @@ import type { MetadataRoute } from "next";
 
 import { connectDB, Setting } from "@store/db";
 
-import { getStorefrontBaseUrl } from "@/lib/storefront/baseUrl";
+import { getBaseUrl } from "@/lib/core/baseUrl";
 
 const HARD_DISALLOW = ["/api/"];
 const FALLBACK_DISALLOW = ["/admin", "/account", "/cart", "/checkout"];
@@ -39,7 +39,7 @@ async function loadDisallowList(): Promise<string[]> {
 }
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
-  const base = getStorefrontBaseUrl();
+  const base = getBaseUrl();
   const adminDisallow = await loadDisallowList();
   const disallow = Array.from(new Set([...adminDisallow, ...HARD_DISALLOW]));
   return {

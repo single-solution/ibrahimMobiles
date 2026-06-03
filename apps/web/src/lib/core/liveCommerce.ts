@@ -2,7 +2,7 @@
  * Fresh per-variant commerce data (price, stock count) for the PDP.
  *
  * The PDP shell (gallery, name, breadcrumbs, related products, grade
- * showcase) comes from `getStorefrontProductBySlugCached` — cross-request
+ * showcase) comes from `getProductBySlugCached` — cross-request
  * cached with 30s TTL and bust-on-admin-edit. Pricing and stock on that
  * shell can be slightly stale; this helper is what the page renders
  * inside a Suspense boundary to overlay current values without ever
@@ -18,10 +18,10 @@
  */
 import { cache } from "react";
 
-import { connectDB, Product } from "@store/db";
-import type { Product as StorefrontProduct } from "@store/shared";
+import { connectDB, Product as ProductModel } from "@store/db";
+import type { Product } from "@store/shared";
 
-import { PUBLIC_PRODUCT_FILTER } from "@/lib/storefront/queries";
+import { PUBLIC_PRODUCT_FILTER } from "@/lib/core/queries";
 
 export interface LiveVariantCommerce {
 	id: string;
@@ -39,11 +39,11 @@ interface ProductLiveLean {
 	variants?: LiveVariantLean[];
 }
 
-async function fetchStorefrontProductLiveCommerce(
+async function fetchProductLiveCommerce(
 	slug: string,
 ): Promise<LiveVariantCommerce[] | null> {
 	await connectDB();
-	const product = await Product.findOne(
+	const product = await ProductModel.findOne(
 		{ slug: slug.toLowerCase(), ...PUBLIC_PRODUCT_FILTER },
 		{
 			"variants._id": 1,
@@ -68,8 +68,8 @@ async function fetchStorefrontProductLiveCommerce(
  * boundaries on the same PDP share one Mongo hit; cross-request is
  * always fresh.
  */
-export const getStorefrontProductLiveCommerce = cache(
-	fetchStorefrontProductLiveCommerce,
+export const getProductLiveCommerce = cache(
+	fetchProductLiveCommerce,
 );
 
 /**
@@ -78,9 +78,9 @@ export const getStorefrontProductLiveCommerce = cache(
  * their reference identity from the shell.
  */
 export function mergeProductWithLiveCommerce(
-	product: StorefrontProduct,
+	product: Product,
 	live: LiveVariantCommerce[] | null,
-): StorefrontProduct {
+): Product {
 	if (!live || live.length === 0) {
 		return product;
 	}

@@ -9,9 +9,9 @@ import { ResultsCountBar } from "@/components/shared/ResultsCountBar";
 import { ShopPagination } from "@/components/shared/ShopPagination";
 import {
   getStoreSettingsCached,
-  getStorefrontCategoriesCached,
-  getStorefrontProductsPageCached,
-} from "@/lib/storefront/cached";
+  getCategoriesCached,
+  getProductsPageCached,
+} from "@/lib/core/cached";
 
 /**
  * `/shop`
@@ -54,9 +54,9 @@ export default async function ShopIndexPage({ searchParams }: ShopIndexPageProps
     return <ShopSearchResults query={query} requestedPage={normalisePage(params.page)} />;
   }
 
-  let categories: Awaited<ReturnType<typeof getStorefrontCategoriesCached>> = [];
+  let categories: Awaited<ReturnType<typeof getCategoriesCached>> = [];
   try {
-    categories = await getStorefrontCategoriesCached();
+    categories = await getCategoriesCached();
   } catch (error) {
     logger.error(
       { error },
@@ -81,7 +81,7 @@ async function ShopSearchResults({
   query: string;
   requestedPage: number;
 }) {
-  const page = await getStorefrontProductsPageCached({
+  const page = await getProductsPageCached({
     search: query,
     limit: SEARCH_PAGE_SIZE,
     page: requestedPage,

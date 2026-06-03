@@ -6,12 +6,12 @@ import { getStoreSettings } from "@store/db";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { ResultsCountBar } from "@/components/shared/ResultsCountBar";
 import { ShopPagination } from "@/components/shared/ShopPagination";
-import { getStorefrontProductsPageCached } from "@/lib/storefront/cached";
+import { getProductsPageCached } from "@/lib/core/cached";
 
 const SEARCH_PAGE_SIZE = 24;
 
 /**
- * Search results lean on `getStorefrontProductsPageCached` (60s TTL) and
+ * Search results lean on `getProductsPageCached` (60s TTL) and
  * the underlying catalog tag — the actual query is fast. Pinning the
  * page itself at 60s ISR lets repeat searches and back-nav into a
  * recent query hit the CDN/edge cache instead of rebuilding the RSC
@@ -36,7 +36,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const query = normaliseQuery(params.q ?? params.query);
   const requestedPage = normalisePage(params.page);
   const page = query
-    ? await getStorefrontProductsPageCached({
+    ? await getProductsPageCached({
         search: query,
         limit: SEARCH_PAGE_SIZE,
         page: requestedPage,

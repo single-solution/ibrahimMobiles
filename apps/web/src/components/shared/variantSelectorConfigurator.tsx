@@ -3,9 +3,9 @@
 import { MessageCircle, Settings2 } from "lucide-react";
 
 import { buildWhatsAppLink, classNames } from "@store/shared";
-import type { StorefrontVariant } from "@store/shared";
+import type { Variant } from "@store/shared";
 
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 import {
   computeOptionState,
@@ -14,7 +14,7 @@ import {
 
 interface ConfiguratorProps {
   dimensions: Dimension[];
-  variants: StorefrontVariant[];
+  variants: Variant[];
   currentSelection: Record<string, string>;
   onPick: (dimensionKey: string, optionKey: string) => void;
 }
@@ -63,7 +63,7 @@ export function Configurator({
 
 interface DimensionRowProps {
   dimension: Dimension;
-  variants: StorefrontVariant[];
+  variants: Variant[];
   currentSelection: Record<string, string>;
   onPick: (dimensionKey: string, optionKey: string) => void;
   isFirst?: boolean;

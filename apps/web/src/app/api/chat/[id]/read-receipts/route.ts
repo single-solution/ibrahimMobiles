@@ -1,12 +1,12 @@
 /**
- * POST /api/storefront/chat/[id]/read-receipts
+ * POST /api/chat/[id]/read-receipts
  *
  * Customer marks a thread's agent messages as read. Creates a read
  * receipt (resource-noun URL) rather than the previous verb URL
  * (`/[id]/read`).
  */
 
-import { Inquiry, connectDB } from "@store/db";
+import { Inquiry as InquiryModel, connectDB } from "@store/db";
 import { noContent } from "@store/shared";
 
 import { enforceChatPollRateLimit } from "@/lib/api/chatRateLimit";
@@ -35,7 +35,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
   await connectDB();
   const now = new Date();
-  await Inquiry.updateOne(
+  await InquiryModel.updateOne(
     { _id: inquiry._id },
     {
       $set: {

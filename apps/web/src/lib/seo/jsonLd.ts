@@ -8,7 +8,7 @@
  * hydration).
  */
 
-import type { Product, StorefrontVariant } from "@store/shared";
+import type { Product, Variant } from "@store/shared";
 
 import { productAbsoluteUrl } from "@/lib/catalog/productPaths";
 import { getDefaultVariant } from "@/lib/productSummary";
@@ -42,7 +42,7 @@ export function productJsonLd({
   settings,
 }: {
   product: Product;
-  variant: StorefrontVariant;
+  variant: Variant;
   brand: BrandRef | null;
   category: CategoryRef | null;
   settings: SeoSettings;

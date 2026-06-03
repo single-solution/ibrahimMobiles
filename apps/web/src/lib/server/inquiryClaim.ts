@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-import { Inquiry } from "@store/db";
+import { Inquiry as InquiryModel } from "@store/db";
 
 export async function claimInquiriesForCustomer(args: {
   customerId: Types.ObjectId;
@@ -11,7 +11,7 @@ export async function claimInquiriesForCustomer(args: {
     return;
   }
 
-  await Inquiry.updateMany(
+  await InquiryModel.updateMany(
     {
       phoneNumber,
       $or: [{ customerId: { $exists: false } }, { customerId: null }],

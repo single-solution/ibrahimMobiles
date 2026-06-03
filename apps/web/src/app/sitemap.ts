@@ -22,12 +22,12 @@ import type { MetadataRoute } from "next";
 
 import { logger } from "@store/shared";
 
-import { getStorefrontBaseUrl } from "@/lib/storefront/baseUrl";
+import { getBaseUrl } from "@/lib/core/baseUrl";
 import {
-  getStorefrontCategoriesCached,
-  getStorefrontSitemapBrandsCached,
-  getStorefrontSitemapProductsCached,
-} from "@/lib/storefront/cached";
+  getCategoriesCached,
+  getSitemapBrandsCached,
+  getSitemapProductsCached,
+} from "@/lib/core/cached";
 
 export const revalidate = 3600;
 
@@ -42,7 +42,7 @@ const STATIC_PATHS: ReadonlyArray<{
 ];
 
 interface DynamicSitemapData {
-  categories: Awaited<ReturnType<typeof getStorefrontCategoriesCached>>;
+  categories: Awaited<ReturnType<typeof getCategoriesCached>>;
   brands: Array<{ slug: string }>;
   products: Array<{ slug: string; categorySlug: string; updatedAt?: Date }>;
 }
@@ -50,9 +50,9 @@ interface DynamicSitemapData {
 async function loadDynamicData(): Promise<DynamicSitemapData | null> {
   try {
     const [categories, brands, products] = await Promise.all([
-      getStorefrontCategoriesCached(),
-      getStorefrontSitemapBrandsCached(),
-      getStorefrontSitemapProductsCached(),
+      getCategoriesCached(),
+      getSitemapBrandsCached(),
+      getSitemapProductsCached(),
     ]);
     return { categories, brands, products };
   } catch (error) {
@@ -65,7 +65,7 @@ async function loadDynamicData(): Promise<DynamicSitemapData | null> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = getStorefrontBaseUrl();
+  const base = getBaseUrl();
   const now = new Date();
 
   const entries: MetadataRoute.Sitemap = STATIC_PATHS.map((staticPath) => ({

@@ -1,7 +1,7 @@
 /**
  * Public storefront search.
  *
- * GET /api/storefront/search?query=&limit=
+ * GET /api/search?query=&limit=
  *
  * Returns up to `limit` (default 10) products that match `query` across
  * model name and highlights. Used by the header `SearchOverlay` for
@@ -26,7 +26,7 @@ import {
 } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
-import { getStorefrontProductsPage } from "@/lib/storefront";
+import { getProductsPage } from "@/lib/core";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const page = await getStorefrontProductsPage({
+    const page = await getProductsPage({
       search: query,
       limit,
       sort: "newest",

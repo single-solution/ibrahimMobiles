@@ -2,8 +2,8 @@
 
 import type { Product } from "@store/shared";
 
-import { hasActiveListingFilters } from "@/lib/storefront/filterParams";
-import { useFilterParams } from "@/lib/storefront/useFilterParams";
+import { hasActiveListingFilters } from "@/lib/core/filterParams";
+import { useFilterParams } from "@/lib/core/useFilterParams";
 
 import { ProductCard } from "./ProductCard";
 import { useSwapAnimation } from "@/components/shared/motion/useSwapAnimation";

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CustomerProfile } from "@/app/account/_components/CustomerProfile";
 import { auth } from "@/lib/auth";
-import { getAccountCustomer } from "@/lib/storefront/account";
+import { getAccountCustomer } from "@/lib/core/account";
 
 export const metadata: Metadata = {
   title: "Profile",

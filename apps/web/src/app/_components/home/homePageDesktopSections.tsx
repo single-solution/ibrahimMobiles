@@ -28,21 +28,21 @@ import { SectionAmbience } from "@/components/shared/motion/SectionAmbience";
 import { StoreMapEmbed } from "@/components/shared/StoreMapEmbed";
 import {
   getPaymentMethods,
-  type Product as StorefrontProductType,
+  type Product,
   type StoreSettings,
 } from "@store/shared";
 import {
-  getStorefrontCategoriesCached,
-  getStorefrontGradesCached,
-} from "@/lib/storefront/cached";
-import { buildGradeCategoryGroups } from "@/lib/storefront/gradeGroups";
+  getCategoriesCached,
+  getGradesCached,
+} from "@/lib/core/cached";
+import { buildGradeCategoryGroups } from "@/lib/core/gradeGroups";
 import {
   HOME_FEATURED_CATEGORY_COUNT,
   formatCategorySectionTitle,
   getHomeCategoryGridClass,
   shouldShowBrowseAllCategories,
-} from "@/lib/storefront/categoryDisplay";
-import type { HomePageCategory } from "@/lib/storefront/pageData";
+} from "@/lib/core/categoryDisplay";
+import type { HomePageCategory } from "@/lib/core/pageData";
 
 export const DESKTOP_CATEGORY_STAGGER_MS = 100;
 
@@ -51,7 +51,7 @@ export const DESKTOP_CATEGORY_STAGGER_MS = 100;
 export const MAP_EMBED_ZOOM = 17;
 
 export interface HeroProps {
-  heroProducts: StorefrontProductType[];
+  heroProducts: Product[];
   settings: StoreSettings;
   /** Active storefront category labels, shown in the hero scope pill. */
   categoryLabels: string[];
@@ -408,12 +408,12 @@ export function DesktopProcessSection({ flows }: ProcessSectionProps) {
 }
 
 export async function DesktopGrades() {
-  let gradeDescriptors: Awaited<ReturnType<typeof getStorefrontGradesCached>> = [];
-  let categories: Awaited<ReturnType<typeof getStorefrontCategoriesCached>> = [];
+  let gradeDescriptors: Awaited<ReturnType<typeof getGradesCached>> = [];
+  let categories: Awaited<ReturnType<typeof getCategoriesCached>> = [];
   try {
     [gradeDescriptors, categories] = await Promise.all([
-      getStorefrontGradesCached(),
-      getStorefrontCategoriesCached(),
+      getGradesCached(),
+      getCategoriesCached(),
     ]);
   } catch {
     gradeDescriptors = [];

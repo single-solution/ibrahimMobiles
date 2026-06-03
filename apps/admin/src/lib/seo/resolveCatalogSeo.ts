@@ -14,7 +14,7 @@ import {
   type SeoMeta,
   type SeoSettings,
   type StoredImage,
-  type StorefrontVariant,
+  type Variant,
 } from "@store/shared";
 
 export interface ProductSeoInput {
@@ -53,7 +53,7 @@ export type CatalogSeoInput =
   | { type: "offer"; entity: OfferSeoInput };
 
 function toPreviewProduct(input: ProductSeoInput): Product {
-  const variants: StorefrontVariant[] =
+  const variants: Variant[] =
     input.variants.length > 0
       ? input.variants.map((v) => ({
           id: v.id || "preview",

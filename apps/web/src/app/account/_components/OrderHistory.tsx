@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowUpRight, ChevronRight, Package } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 import { classNames, formatPrice, formatStorefrontDate } from "@store/shared";
-import type { StorefrontOrder } from "@/lib/storefront/orderSerializer";
+import type { Order } from "@/lib/core/orderSerializer";
 import type { OrderStatus } from "@store/db";
 
 type FilterId = "all" | "active" | "delivered" | "cancelled";
@@ -21,7 +21,7 @@ const TONE: Record<OrderStatus, { toneBg: string; toneFg: string; toneDot: strin
   refunded: { toneBg: "bg-[var(--color-danger-50)]", toneFg: "text-[var(--color-danger-800)]", toneDot: "bg-[var(--color-danger-500)]" },
 };
 
-const FILTERS: { id: FilterId; label: string; matches: (order: StorefrontOrder) => boolean }[] = [
+const FILTERS: { id: FilterId; label: string; matches: (order: Order) => boolean }[] = [
   { id: "all", label: "All", matches: () => true },
   { id: "active", label: "Active", matches: (order) => ACTIVE_STATUSES.includes(order.status) },
   { id: "delivered", label: "Delivered", matches: (order) => order.status === "delivered" },
@@ -29,7 +29,7 @@ const FILTERS: { id: FilterId; label: string; matches: (order: StorefrontOrder) 
 ];
 
 interface OrderHistoryProps {
-  orders: StorefrontOrder[];
+  orders: Order[];
 }
 
 export function OrderHistory({ orders }: OrderHistoryProps) {
@@ -126,7 +126,7 @@ export function OrderHistory({ orders }: OrderHistoryProps) {
 }
 
 interface OrderRowProps {
-  order: StorefrontOrder;
+  order: Order;
 }
 
 function OrderRow({ order }: OrderRowProps) {

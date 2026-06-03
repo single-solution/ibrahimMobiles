@@ -61,7 +61,7 @@ import {
   uploadChatAttachment,
 } from "@/lib/chat/transport";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 import {
   ChatShell,

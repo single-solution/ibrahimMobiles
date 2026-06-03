@@ -30,8 +30,8 @@ import {
   createWithUniqueOrderNumber,
   Customer,
   LoyaltyAccount,
-  Order,
-  Product,
+  Order as OrderModel,
+  Product as ProductModel,
   getStoreSettings,
   type CustomerAddressAttributes,
   type CustomerAttributes,
@@ -252,7 +252,7 @@ export async function POST(request: Request) {
       quantity: Math.floor(quantity),
     });
   }
-  const products = await Product.find({
+  const products = await ProductModel.find({
     _id: { $in: Array.from(productIds) },
     isActive: true,
     isArchived: { $ne: true },
@@ -362,7 +362,7 @@ export async function POST(request: Request) {
 
   try {
     const createdOrder = await createWithUniqueOrderNumber(async (orderNumber) => {
-      const doc = await Order.create({
+      const doc = await OrderModel.create({
         orderNumber,
         customerId: customerDoc._id,
         customerSnapshot: {

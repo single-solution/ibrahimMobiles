@@ -1,5 +1,5 @@
 /**
- * GET /api/storefront/chat/[id]
+ * GET /api/chat/[id]
  *
  * Fetch a chat thread by id. Caller must satisfy `resolveChatAccess` —
  * either a signed-in customer who owns the thread or a guest with the
@@ -11,7 +11,7 @@
  * counter on the admin side.
  */
 
-import { Inquiry, connectDB } from "@store/db";
+import { Inquiry as InquiryModel, connectDB } from "@store/db";
 import {
   isThreadUnchangedForPoll,
   notModified,
@@ -22,7 +22,7 @@ import {
 
 import { enforceChatPollRateLimit } from "@/lib/api/chatRateLimit";
 import { resolveChatAccess } from "@/lib/chat/access";
-import { toStorefrontThread } from "@/lib/chat/serializer";
+import { toThread } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
 
 interface RouteContext {
@@ -66,7 +66,7 @@ export async function GET(request: Request, { params }: RouteContext) {
   if (!isPoll && inquiry.unreadByCustomer > 0) {
     await connectDB();
     const now = new Date();
-    await Inquiry.updateOne(
+    await InquiryModel.updateOne(
       { _id: inquiry._id },
       {
         $set: {
@@ -80,11 +80,11 @@ export async function GET(request: Request, { params }: RouteContext) {
         ],
       },
     );
-    const refreshed = await Inquiry.findById(inquiry._id).lean<InquiryLean>();
+    const refreshed = await InquiryModel.findById(inquiry._id).lean<InquiryLean>();
     if (refreshed) toReturn = refreshed;
   }
 
-  const response = ok(toStorefrontThread(toReturn));
+  const response = ok(toThread(toReturn));
   response.headers.set("ETag", etag);
   return response;
 }

@@ -18,33 +18,33 @@
  *
  * Schema awareness (Phase 1, PLAN.md §10):
  *   - Categories are admin-authored and identified by `slug`. The legacy
- *     "path segment" lookup is replaced by `getStorefrontCategoryBySlug`.
+ *     "path segment" lookup is replaced by `getCategoryMetaBySlug`.
  *   - Hero products surface the most recently updated in-stock items
  *     across all categories — no admin filter on top.
  */
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
-import { Brand, connectDB, getStoreSettings as getStoreSettingsRaw, Product } from "@store/db";
-import type { Product as StorefrontProduct } from "@store/shared";
+import { Brand as BrandModel, connectDB, getStoreSettings as getStoreSettingsRaw, Product as ProductModel } from "@store/db";
+import type { Product } from "@store/shared";
 
 import {
   PUBLIC_PRODUCT_FILTER,
-  getStorefrontBrandBySlug as getStorefrontBrandBySlugRaw,
-  getStorefrontBrands as getStorefrontBrandsRaw,
-  getStorefrontGradeCounts as getStorefrontGradeCountsRaw,
-  getStorefrontAttributes as getStorefrontAttributesRaw,
-  getStorefrontCategories as getStorefrontCategoriesRaw,
-  getStorefrontCategoryBySlug as getStorefrontCategoryBySlugRaw,
-  getStorefrontGrades as getStorefrontGradesRaw,
-  getStorefrontOffers as getStorefrontOffersRaw,
-  getStorefrontProductBySlug as getStorefrontProductBySlugRaw,
-  getStorefrontProducts as getStorefrontProductsRaw,
-  getStorefrontProductsPage as getStorefrontProductsPageRaw,
+  getBrandBySlug as getBrandBySlugRaw,
+  getBrands as getBrandsRaw,
+  getGradeCounts as getGradeCountsRaw,
+  getAttributes as getAttributesRaw,
+  getCategories as getCategoriesRaw,
+  getCategoryMetaBySlug as getCategoryMetaBySlugRaw,
+  getGrades as getGradesRaw,
+  getOffers as getOffersRaw,
+  getProductBySlug as getProductBySlugRaw,
+  getProducts as getProductsRaw,
+  getProductsPage as getProductsPageRaw,
   hasAnyProducts as hasAnyProductsRaw,
-  type StorefrontProductFilters,
-  type StorefrontProductPage,
-} from "@/lib/storefront/queries";
+  type ProductFilters,
+  type ProductPage,
+} from "@/lib/core/queries";
 
 /** Tag for filter-independent storefront reads. Admin mutations that should
  *  surface immediately (product save, brand toggle, category reorder) can
@@ -65,20 +65,20 @@ const loadStoreSettings = unstable_cache(
 /** Cross-request (30s) + per-render dedupe — settings power the root layout. */
 export const getStoreSettingsCached = cache(loadStoreSettings);
 
-const loadStorefrontCategoryBySlug = unstable_cache(
-  (slug: string) => getStorefrontCategoryBySlugRaw(slug),
+const loadCategoryMetaBySlug = unstable_cache(
+  (slug: string) => getCategoryMetaBySlugRaw(slug),
   ["storefront-category-by-slug"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
 /** Cross-request (30s, tag-busted on admin edit) + per-render dedupe.
  *  Powers the category meta on `/shop/[category]` and the PDP shell. */
-export const getStorefrontCategoryBySlugCached = cache(
-  loadStorefrontCategoryBySlug,
+export const getCategoryBySlugCached = cache(
+  loadCategoryMetaBySlug,
 );
 
-const loadStorefrontProductBySlug = unstable_cache(
-  (slug: string) => getStorefrontProductBySlugRaw(slug),
+const loadProductBySlug = unstable_cache(
+  (slug: string) => getProductBySlugRaw(slug),
   ["storefront-product-by-slug"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
@@ -86,26 +86,26 @@ const loadStorefrontProductBySlug = unstable_cache(
 /**
  * Cross-request cached product shell. Pricing/stock on `variants[]` here
  * may be up to `STOREFRONT_CACHE_TTL_SECONDS` stale — the PDP overlays
- * fresh per-variant commerce from `getStorefrontProductLiveCommerce`
+ * fresh per-variant commerce from `getProductLiveCommerce`
  * inside a Suspense boundary, so the shell is fine to cache.
  *
  * Admin product/variant mutations call `bustAdminCaches()`, which flushes
  * the `storefront` tag so the next render fetches a fresh shell.
  */
-export const getStorefrontProductBySlugCached = cache(
-  loadStorefrontProductBySlug,
+export const getProductBySlugCached = cache(
+  loadProductBySlug,
 );
 
-const loadStorefrontBrandBySlug = unstable_cache(
+const loadBrandBySlug = unstable_cache(
   (slug: string, categorySlug: string) =>
-    getStorefrontBrandBySlugRaw(slug, categorySlug),
+    getBrandBySlugRaw(slug, categorySlug),
   ["storefront-brand-by-slug"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
 /** Cross-request (30s, tag-busted on admin edit) + per-render dedupe. */
-export const getStorefrontBrandBySlugCached = cache(
-  loadStorefrontBrandBySlug,
+export const getBrandBySlugCached = cache(
+  loadBrandBySlug,
 );
 
 /* ─────────── cross-request dedupe (Next.js unstable_cache) ─────────── */
@@ -116,8 +116,8 @@ export const hasAnyProductsCached = unstable_cache(
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
-export const getStorefrontCategoriesCached = unstable_cache(
-  () => getStorefrontCategoriesRaw(),
+export const getCategoriesCached = unstable_cache(
+  () => getCategoriesRaw(),
   ["storefront-categories"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
@@ -128,32 +128,32 @@ export const getStorefrontCategoriesCached = unstable_cache(
  * `STOREFRONT_CACHE_TAG` so admin edits via `PUT /api/grades/:id` (which
  * calls `bustAdminCaches()` → `revalidateTag`) surface immediately.
  */
-export const getStorefrontGradesCached = unstable_cache(
-  () => getStorefrontGradesRaw(),
+export const getGradesCached = unstable_cache(
+  () => getGradesRaw(),
   ["storefront-grades"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
-export const getStorefrontAttributesCached = unstable_cache(
-  () => getStorefrontAttributesRaw(),
+export const getAttributesCached = unstable_cache(
+  () => getAttributesRaw(),
   ["storefront-attributes"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
-export const getStorefrontBrandsCached = unstable_cache(
-  (categorySlug?: string) => getStorefrontBrandsRaw(categorySlug),
+export const getBrandsCached = unstable_cache(
+  (categorySlug?: string) => getBrandsRaw(categorySlug),
   ["storefront-brands"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
-export const getStorefrontGradeCountsCached = unstable_cache(
-  (categorySlug: string) => getStorefrontGradeCountsRaw(categorySlug),
+export const getGradeCountsCached = unstable_cache(
+  (categorySlug: string) => getGradeCountsRaw(categorySlug),
   ["storefront-grade-counts"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
-export const getStorefrontOffersCached = unstable_cache(
-  () => getStorefrontOffersRaw(),
+export const getOffersCached = unstable_cache(
+  () => getOffersRaw(),
   ["storefront-offers"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
@@ -165,8 +165,8 @@ export const getStorefrontOffersCached = unstable_cache(
  * any curated flag.
  */
 const getHomeHeroProductsInner = unstable_cache(
-  async (limit: number): Promise<StorefrontProduct[]> => {
-    return getStorefrontProductsRaw({
+  async (limit: number): Promise<Product[]> => {
+    return getProductsRaw({
       sort: "recently-updated",
       inStockOnly: true,
       limit,
@@ -178,12 +178,12 @@ const getHomeHeroProductsInner = unstable_cache(
 
 export function getHomeHeroProductsCached(
   limit: number,
-): Promise<StorefrontProduct[]> {
+): Promise<Product[]> {
   return getHomeHeroProductsInner(limit);
 }
 
 /**
- * Cached `getStorefrontProductsPage` — the heavy aggregation that powers
+ * Cached `getProductsPage` — the heavy aggregation that powers
  * `/shop/[category]`. We key by a canonical serialization of the filter
  * object so two identical requests (same category + same query string)
  * share a single Mongo round-trip within the 30s window.
@@ -191,10 +191,10 @@ export function getHomeHeroProductsCached(
  * Note: the underlying aggregation is the same whether or not we wrap it
  * — the win is in **dropping the call entirely** for cached hits.
  */
-const getStorefrontProductsPageInner = unstable_cache(
-  async (cacheKey: string): Promise<StorefrontProductPage> => {
-    const filters = JSON.parse(cacheKey) as StorefrontProductFilters;
-    return getStorefrontProductsPageRaw(filters);
+const getProductsPageInner = unstable_cache(
+  async (cacheKey: string): Promise<ProductPage> => {
+    const filters = JSON.parse(cacheKey) as ProductFilters;
+    return getProductsPageRaw(filters);
   },
   ["storefront-products-page-v2"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
@@ -205,7 +205,7 @@ const SITEMAP_PRODUCT_LIMIT = 5_000;
 const loadSitemapProductsInner = unstable_cache(
   async () => {
     await connectDB();
-    return Product.find(PUBLIC_PRODUCT_FILTER)
+    return ProductModel.find(PUBLIC_PRODUCT_FILTER)
       .select({ slug: 1, categorySlug: 1, updatedAt: 1 })
       .sort({ updatedAt: -1 })
       .limit(SITEMAP_PRODUCT_LIMIT)
@@ -215,14 +215,14 @@ const loadSitemapProductsInner = unstable_cache(
   { revalidate: 3600, tags: [STOREFRONT_CACHE_TAG] },
 );
 
-export function getStorefrontSitemapProductsCached() {
+export function getSitemapProductsCached() {
   return loadSitemapProductsInner();
 }
 
 const loadSitemapBrandsInner = unstable_cache(
   async () => {
     await connectDB();
-    return Brand.find({ isActive: true })
+    return BrandModel.find({ isActive: true })
       .select({ slug: 1 })
       .lean<Array<{ slug: string }>>();
   },
@@ -230,13 +230,13 @@ const loadSitemapBrandsInner = unstable_cache(
   { revalidate: 3600, tags: [STOREFRONT_CACHE_TAG] },
 );
 
-export function getStorefrontSitemapBrandsCached() {
+export function getSitemapBrandsCached() {
   return loadSitemapBrandsInner();
 }
 
-export function getStorefrontProductsPageCached(
-  filters: StorefrontProductFilters,
-): Promise<StorefrontProductPage> {
+export function getProductsPageCached(
+  filters: ProductFilters,
+): Promise<ProductPage> {
   // Sort keys for a stable cache identity regardless of insertion order.
   const stable = Object.keys(filters)
     .sort()
@@ -247,5 +247,5 @@ export function getStorefrontProductsPageCached(
       }
       return acc;
     }, {});
-  return getStorefrontProductsPageInner(JSON.stringify(stable));
+  return getProductsPageInner(JSON.stringify(stable));
 }

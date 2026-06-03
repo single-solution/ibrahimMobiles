@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { OrderDetail } from "@/app/account/_components/OrderDetail";
 import { auth } from "@/lib/auth";
-import { getAccountOrder } from "@/lib/storefront/account";
+import { getAccountOrder } from "@/lib/core/account";
 
 interface OrderDetailPageProps {
   params: Promise<{ id: string }>;

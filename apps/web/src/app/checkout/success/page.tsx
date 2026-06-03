@@ -5,7 +5,7 @@ import { orderPaymentToCheckoutId } from "@store/shared";
 
 import { CheckoutSuccess } from "@/app/checkout/_components/CheckoutSuccess";
 import { auth } from "@/lib/auth";
-import { getAccountOrder } from "@/lib/storefront/account";
+import { getAccountOrder } from "@/lib/core/account";
 
 export const metadata: Metadata = {
   title: "Order placed",

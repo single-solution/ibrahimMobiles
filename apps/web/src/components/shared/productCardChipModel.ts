@@ -6,7 +6,7 @@ import {
 } from "@store/shared";
 
 import { toAttributeLabelSource } from "@/lib/catalog/attributeLabels";
-import { useAttributesForCategory } from "@/lib/storefront/storefrontReferenceContext";
+import { useAttributesForCategory } from "@/lib/core/storefrontReferenceContext";
 
 export interface AttributeChipModel {
   key: string;

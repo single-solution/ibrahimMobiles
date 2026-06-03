@@ -30,9 +30,9 @@ import {
   getHomeHeroData,
   loadHomeCategoryTiles,
   type HomePageCategory,
-} from "@/lib/storefront/pageData";
+} from "@/lib/core/pageData";
 import { shopHrefFromCategories } from "@/lib/catalog/productPaths";
-import { getStoreSettingsCached } from "@/lib/storefront/cached";
+import { getStoreSettingsCached } from "@/lib/core/cached";
 
 // ISR interval is set on `app/page.tsx` (Next.js requires segment config there).
 

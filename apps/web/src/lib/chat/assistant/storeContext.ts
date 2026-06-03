@@ -2,12 +2,12 @@ import { formatPrice, type AssistantStoreContext, type Product } from "@store/sh
 
 import { productHref } from "@/lib/catalog/productPaths";
 import { getProductPriceRange, isProductInStock } from "@/lib/productSummary";
-import { getStorefrontProductById } from "@/lib/storefront/queries";
+import { getProductById } from "@/lib/core/queries";
 import {
-  getStorefrontCategoriesCached,
-  getStorefrontProductsPageCached,
+  getCategoriesCached,
+  getProductsPageCached,
   getStoreSettingsCached,
-} from "@/lib/storefront/cached";
+} from "@/lib/core/cached";
 
 function formatCatalogLine(product: Product): string {
   const inStock = isProductInStock(product);
@@ -33,7 +33,7 @@ async function loadSubjectProduct(
   if (!subjectProductId) {
     return null;
   }
-  return getStorefrontProductById(subjectProductId);
+  return getProductById(subjectProductId);
 }
 
 export async function buildAssistantStoreContext(input: {
@@ -45,8 +45,8 @@ export async function buildAssistantStoreContext(input: {
   const catalogLimit = input.catalogLimit ?? 8;
   const [settings, categories, searchPage, subjectProduct] = await Promise.all([
     getStoreSettingsCached(),
-    getStorefrontCategoriesCached(),
-    getStorefrontProductsPageCached({
+    getCategoriesCached(),
+    getProductsPageCached({
       search: input.customerMessage.trim().slice(0, 80),
       limit: catalogLimit,
       sort: "newest",

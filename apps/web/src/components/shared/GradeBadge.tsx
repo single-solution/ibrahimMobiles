@@ -1,6 +1,6 @@
 "use client";
 
-import { useGrade } from "@/lib/storefront/storefrontReferenceContext";
+import { useGrade } from "@/lib/core/storefrontReferenceContext";
 import { ColoredPill, type ColoredPillTone } from "@/components/shared/ColoredPill";
 
 interface GradeBadgeProps {

@@ -1,7 +1,7 @@
 /**
  * Public loyalty-balance check by phone number.
  *
- * POST /api/storefront/loyalty-balance  { phoneNumber }
+ * POST /api/loyalty-balance  { phoneNumber }
  *
  * Customers paste their number on the storefront to see how many points they
  * have. We never reveal whether a number is registered (timing-safe response)

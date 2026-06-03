@@ -3,7 +3,7 @@
  * Shared by storefront render and admin SERP preview.
  */
 
-import type { Brand, Offer, Product, StorefrontVariant } from "../types";
+import type { Brand, Offer, Product, Variant } from "../types";
 import { buildRobotsDirective, type SeoMeta } from "./seoMeta";
 import { applyTitleTemplate } from "./titleTemplate";
 
@@ -113,7 +113,7 @@ export function composeProductSeo({
   seo,
 }: {
   product: Product;
-  variant: StorefrontVariant;
+  variant: Variant;
   brand: BrandSeoRef | null;
   category: CategorySeoRef | null;
   settings: SeoSettings;

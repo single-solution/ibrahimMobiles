@@ -6,7 +6,7 @@ import { Home, ShoppingBag, ShoppingCart, Tag, User } from "lucide-react";
 import { classNames } from "@store/shared";
 import { useCart } from "@/lib/cart/useCart";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
-import { useShopHref } from "@/lib/storefront/storefrontReferenceContext";
+import { useShopHref } from "@/lib/core/storefrontReferenceContext";
 
 interface Tab {
   // `matchBase` drives active highlighting (e.g. every `/shop/*` route lights

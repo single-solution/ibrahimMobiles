@@ -105,8 +105,8 @@ export function isNavItemVisible(
 
 export function Sidebar({ isCollapsed }: SidebarProps) {
   const pathname = usePathname() ?? "";
-  const { storefrontUrl: configuredStorefrontUrl } = useStoreSettings();
-  const storefrontUrl = getPublicSiteUrl(configuredStorefrontUrl);
+  const { publicSiteUrl: configuredStorefrontUrl } = useStoreSettings();
+  const publicSiteUrl = getPublicSiteUrl(configuredStorefrontUrl);
   const { can, isLoading } = useAdminPermissions();
 
   return (
@@ -147,7 +147,7 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
 
       <footer className="shrink-0 border-t border-[var(--color-ink-100)] p-1.5">
         <Link
-          href={storefrontUrl}
+          href={publicSiteUrl}
           target="_blank"
           rel="noopener noreferrer"
           title="View storefront"

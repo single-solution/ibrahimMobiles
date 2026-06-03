@@ -1,5 +1,5 @@
 /**
- * POST /api/storefront/chat/anonymous-threads
+ * POST /api/chat/anonymous-threads
  *
  * Opens a guest preview thread — no name, phone, or first message required.
  * The browser gets an anonymous id cookie; up to CHAT_GUEST_MESSAGE_LIMIT
@@ -9,7 +9,7 @@
 
 import { cookies } from "next/headers";
 
-import { Inquiry, connectDB } from "@store/db";
+import { Inquiry as InquiryModel, connectDB } from "@store/db";
 import { badRequest, created, logger, serverError } from "@store/shared";
 import { appendInquiryToGuestToken } from "@store/shared";
 
@@ -20,7 +20,7 @@ import {
   anonymousChatPhone,
   getOrCreateAnonymousChatId,
 } from "@/lib/chat/anonymousSession";
-import { toStorefrontThread } from "@/lib/chat/serializer";
+import { toThread } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
 
 const COOKIE_NAME = "inquiry_thread_token";
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     const phoneNumber = anonymousChatPhone(anonId);
     const now = new Date();
 
-    const doc = await Inquiry.create({
+    const doc = await InquiryModel.create({
       customerName: "Guest",
       phoneNumber,
       status: "open",
@@ -82,12 +82,12 @@ export async function POST(request: Request) {
       messages: [],
     });
 
-    const lean = await Inquiry.findById(doc._id).lean<InquiryLean>();
+    const lean = await InquiryModel.findById(doc._id).lean<InquiryLean>();
     if (!lean) {
       return serverError("Thread vanished after creation.");
     }
 
-    const thread = toStorefrontThread(lean);
+    const thread = toThread(lean);
     const cookieJar = await cookies();
     const existing = cookieJar.get(COOKIE_NAME)?.value;
     const reissued = await appendInquiryToGuestToken(

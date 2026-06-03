@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-import { getStoreSettings, Inquiry, connectDB } from "@store/db";
+import { getStoreSettings, Inquiry as InquiryModel, connectDB } from "@store/db";
 import {
   assistantReplyLooksUnsafe,
   customerChatSupportLabel,
@@ -95,7 +95,7 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean): Promise<voi
   const now = new Date();
   const status = inquiry.status as InquiryThreadStatus;
 
-  await Inquiry.updateOne(
+  await InquiryModel.updateOne(
     { _id: inquiry._id },
     {
       $push: {
@@ -130,5 +130,5 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean): Promise<voi
 
 export async function reloadInquiry(inquiryId: Types.ObjectId): Promise<InquiryLean | null> {
   await connectDB();
-  return Inquiry.findById(inquiryId).lean<InquiryLean>();
+  return InquiryModel.findById(inquiryId).lean<InquiryLean>();
 }

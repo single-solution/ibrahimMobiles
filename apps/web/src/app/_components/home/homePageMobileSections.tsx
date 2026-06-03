@@ -22,16 +22,16 @@ import { KineticHeading } from "@/components/shared/motion/KineticHeading";
 import { MagneticHover } from "@/components/shared/motion/MagneticHover";
 import { getPaymentMethods } from "@store/shared";
 import {
-  getStorefrontCategoriesCached,
-  getStorefrontGradesCached,
-} from "@/lib/storefront/cached";
-import { buildGradeCategoryGroups } from "@/lib/storefront/gradeGroups";
+  getCategoriesCached,
+  getGradesCached,
+} from "@/lib/core/cached";
+import { buildGradeCategoryGroups } from "@/lib/core/gradeGroups";
 import {
   HOME_FEATURED_CATEGORY_COUNT,
   getHomeCategoryGridClass,
   shouldShowBrowseAllCategories,
-} from "@/lib/storefront/categoryDisplay";
-import type { HomePageCategory } from "@/lib/storefront/pageData";
+} from "@/lib/core/categoryDisplay";
+import type { HomePageCategory } from "@/lib/core/pageData";
 
 export const MOBILE_CATEGORY_STAGGER_MS = 80;
 
@@ -228,12 +228,12 @@ export async function MobileGradesSection() {
   // Hard-failing the homepage if the Grade collection is unreachable would
   // be a terrible UX — render an empty grid (the surrounding section copy
   // is still useful) instead of throwing.
-  let gradeDescriptors: Awaited<ReturnType<typeof getStorefrontGradesCached>> = [];
-  let categories: Awaited<ReturnType<typeof getStorefrontCategoriesCached>> = [];
+  let gradeDescriptors: Awaited<ReturnType<typeof getGradesCached>> = [];
+  let categories: Awaited<ReturnType<typeof getCategoriesCached>> = [];
   try {
     [gradeDescriptors, categories] = await Promise.all([
-      getStorefrontGradesCached(),
-      getStorefrontCategoriesCached(),
+      getGradesCached(),
+      getCategoriesCached(),
     ]);
   } catch {
     gradeDescriptors = [];

@@ -8,11 +8,11 @@ import {
   type AttributeDescriptor,
   type GradeDescriptor,
   type Product,
-  type StorefrontVariant,
+  type Variant,
 } from "@store/shared";
 
 import { productHref, shopHrefFromCategories } from "@/lib/catalog/productPaths";
-import type { StorefrontCategory } from "@/lib/storefront";
+import type { CategoryMeta } from "@/lib/core";
 
 /**
  * Storefront reference data — the *taxonomy* the catalog is described by.
@@ -24,7 +24,7 @@ import type { StorefrontCategory } from "@/lib/storefront";
  *   - **Categories**: slug → admin-editable label, description, icon.
  *
  * Both are resolved server-side once in the root layout from MongoDB (via
- * `getStorefrontGradesCached` / `getStorefrontCategoriesCached`) and
+ * `getGradesCached` / `getCategoriesCached`) and
  * passed down via this provider. Client components consume them through
  * the hooks below — never by re-importing legacy hardcoded tables.
  *
@@ -33,10 +33,10 @@ import type { StorefrontCategory } from "@/lib/storefront";
  * (a Storybook story without this provider, say) degrades gracefully
  * instead of crashing.
  */
-export interface StorefrontReferenceData {
+export interface ReferenceData {
   grades: GradeDescriptor[];
   attributes: AttributeDescriptor[];
-  categories: StorefrontCategoryReference[];
+  categories: CategoryReference[];
 }
 
 /**
@@ -44,42 +44,42 @@ export interface StorefrontReferenceData {
  * storefront UI actually needs. Kept narrow so additions to the Mongoose
  * schema don't accidentally leak through the SSR boundary.
  */
-export interface StorefrontCategoryReference {
+export interface CategoryReference {
   slug: string;
   label: string;
   description: string;
-  icon: StorefrontCategory["icon"];
-  iconNode: StorefrontCategory["iconNode"];
+  icon: CategoryMeta["icon"];
+  iconNode: CategoryMeta["iconNode"];
   isActive: boolean;
   sortOrder: number;
 }
 
-const EMPTY_REFERENCE: StorefrontReferenceData = {
+const EMPTY_REFERENCE: ReferenceData = {
   grades: [],
   attributes: [],
   categories: [],
 };
 
-const StorefrontReferenceContext =
-  createContext<StorefrontReferenceData>(EMPTY_REFERENCE);
+const ReferenceContext =
+  createContext<ReferenceData>(EMPTY_REFERENCE);
 
 interface ProviderProps {
-  value: StorefrontReferenceData;
+  value: ReferenceData;
   children: ReactNode;
 }
 
-export function StorefrontReferenceProvider({ value, children }: ProviderProps) {
+export function ReferenceProvider({ value, children }: ProviderProps) {
   return (
-    <StorefrontReferenceContext.Provider value={value}>
+    <ReferenceContext.Provider value={value}>
       {children}
-    </StorefrontReferenceContext.Provider>
+    </ReferenceContext.Provider>
   );
 }
 
 /* ─────────── grades ─────────── */
 
 export function useGrades(): GradeDescriptor[] {
-  return useContext(StorefrontReferenceContext).grades;
+  return useContext(ReferenceContext).grades;
 }
 
 /**
@@ -120,7 +120,7 @@ export function useGradesForCategory(
 }
 
 export function useAttributes(): AttributeDescriptor[] {
-  return useContext(StorefrontReferenceContext).attributes;
+  return useContext(ReferenceContext).attributes;
 }
 
 export function useAttributesForCategory(
@@ -142,13 +142,13 @@ export function useAttributesForCategory(
 
 /* ─────────── categories ─────────── */
 
-export function useCategories(): StorefrontCategoryReference[] {
-  return useContext(StorefrontReferenceContext).categories;
+export function useCategories(): CategoryReference[] {
+  return useContext(ReferenceContext).categories;
 }
 
 export function useCategory(
   slug: string,
-): StorefrontCategoryReference | undefined {
+): CategoryReference | undefined {
   const categories = useCategories();
   return useMemo(
     () => categories.find((category) => category.slug === slug),
@@ -178,7 +178,7 @@ export function useCategorySegment(categorySlug: string): string {
 /** Build a `/shop/<category>/<slug>` link for a product, from context. */
 export function useProductHref(
   product: Pick<Product, "categorySlug" | "slug">,
-  variant?: StorefrontVariant,
+  variant?: Variant,
 ): string {
   if (!product.categorySlug || !product.slug) {
     return "/shop";

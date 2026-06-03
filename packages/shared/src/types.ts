@@ -79,7 +79,7 @@ export interface AttributeDescriptor {
 // Variants & products
 // ============================================================================
 
-export interface StorefrontVariant {
+export interface Variant {
   id: string;
   /** Matches a `Grade.slug` scoped by the product's `categorySlug`. */
   gradeSlug: string;
@@ -111,7 +111,7 @@ export interface Product {
   /** Ordered product gallery — index `0` is the hero, shown everywhere
    *  (PDP, cards, search, OG, JSON-LD). Always populated by the serializer. */
   images: StoredImage[];
-  variants: StorefrontVariant[];
+  variants: Variant[];
   /** Optional admin SEO overrides (auto-filled when absent). */
   seo?: SeoMeta;
 }

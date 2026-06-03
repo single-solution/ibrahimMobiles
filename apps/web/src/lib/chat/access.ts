@@ -19,7 +19,7 @@
 import { cookies } from "next/headers";
 import type { Types } from "mongoose";
 
-import { Inquiry, connectDB } from "@store/db";
+import { Inquiry as InquiryModel, connectDB } from "@store/db";
 import { badRequest, forbidden, isAnonymousChatPhone, isValidId, notFound, verifyGuestToken } from "@store/shared";
 
 import { auth } from "@/lib/auth";
@@ -42,7 +42,7 @@ export async function resolveChatAccess(
     return badRequest("Invalid thread id.");
   }
   await connectDB();
-  const doc = await Inquiry.findById(inquiryId).lean<InquiryLean>();
+  const doc = await InquiryModel.findById(inquiryId).lean<InquiryLean>();
   if (!doc) return notFound("Thread not found.");
 
   // Signed-in customer path.

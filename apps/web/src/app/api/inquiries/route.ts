@@ -1,3 +1,3 @@
 export const dynamic = "force-dynamic";
 
-export { GET } from "@/app/api/storefront/chat/route";
+export { GET } from "@/app/api/chat/route";

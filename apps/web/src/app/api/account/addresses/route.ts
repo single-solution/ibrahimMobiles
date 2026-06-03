@@ -1,7 +1,7 @@
 /**
  * Customer addresses (full replacement).
  *
- * PUT /api/storefront/account/addresses { addresses: AddressInput[] }
+ * PUT /api/account/addresses { addresses: AddressInput[] }
  *
  * Replaces the customer's `addresses` array atomically. Exactly one entry
  * is allowed to be `isDefault: true`; if none is marked, the first becomes

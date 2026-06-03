@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Offer, connectDB } from "@store/db";
+import { Offer as OfferModel, connectDB } from "@store/db";
 import { isOfferActiveSchedule } from "@store/shared";
 
 export async function GET() {
@@ -7,7 +7,7 @@ export async function GET() {
   
   // We fetch all active offers from the database.
   // The actual evaluation against cart items will happen client-side using OfferEvaluator.
-  const docs = await Offer.find({ isActive: true }).lean();
+  const docs = await OfferModel.find({ isActive: true }).lean();
   
   const offers = docs.map((doc) => ({
     id: doc._id.toString(),

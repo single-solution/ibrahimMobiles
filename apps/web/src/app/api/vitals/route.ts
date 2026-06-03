@@ -1,5 +1,5 @@
 /**
- * POST /api/storefront/vitals
+ * POST /api/vitals
  *
  * Lightweight RUM sink for Core Web Vitals when GA4 is not configured
  * (or as a server-side audit trail). The client reporter prefers `gtag`

@@ -1,1 +1,1 @@
-export { POST } from "@/app/api/storefront/chat/threads/route";
+export { POST } from "@/app/api/chat/threads/route";

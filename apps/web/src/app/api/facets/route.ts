@@ -1,5 +1,5 @@
 /**
- * GET /api/storefront/facets?category=<slug>&brand=...&grade=...&attr.<slug>=...
+ * GET /api/facets?category=<slug>&brand=...&grade=...&attr.<slug>=...
  *
  * Returns attribute filter groups whose option values are derived from the
  * current product listing (hybrid facets), respecting visibility gates.
@@ -8,8 +8,8 @@
 import { logger, ok, serverError } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
-import { parseFiltersFromSearchParams } from "@/lib/storefront/filterParams";
-import { getStorefrontFacets } from "@/lib/storefront/facets";
+import { parseFiltersFromSearchParams } from "@/lib/core/filterParams";
+import { getFacets } from "@/lib/core/facets";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
   });
 
   try {
-    const facets = await getStorefrontFacets(filters);
+    const facets = await getFacets(filters);
     return ok({ facets });
   } catch (error) {
     logger.error({ error, categorySlug }, "storefront facets failed");

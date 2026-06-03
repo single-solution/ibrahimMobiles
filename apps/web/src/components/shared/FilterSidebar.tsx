@@ -10,15 +10,15 @@ import {
   compareAlphabetically,
   type Brand,
 } from "@store/shared";
-import type { StorefrontAttributeFacet } from "@/lib/storefront/facets";
+import type { AttributeFacet } from "@/lib/core/facets";
 
 import { Button } from "@/components/ui/Button";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Input } from "@/components/ui/Input";
-import { FILTER_PARAM_KEYS } from "@/lib/storefront/filterParams";
-import { useFilterParams } from "@/lib/storefront/useFilterParams";
+import { FILTER_PARAM_KEYS } from "@/lib/core/filterParams";
+import { useFilterParams } from "@/lib/core/useFilterParams";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
-import { useAttributesForCategory, useGrades } from "@/lib/storefront/storefrontReferenceContext";
+import { useAttributesForCategory, useGrades } from "@/lib/core/storefrontReferenceContext";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
 function sameStringSet(left: readonly string[], right: readonly string[]): boolean {
@@ -48,7 +48,7 @@ interface FilterSidebarProps {
   /** Product counts per grade slug for the active category. */
   gradeCounts?: Record<string, number>;
   /** Server-rendered facets for the current URL (avoids empty first paint). */
-  initialFacets?: StorefrontAttributeFacet[];
+  initialFacets?: AttributeFacet[];
 }
 
 export function FilterSidebar({
@@ -139,7 +139,7 @@ interface FilterPanelProps {
   categorySlug?: string;
   brands: Brand[];
   gradeCounts: Record<string, number>;
-  initialFacets: StorefrontAttributeFacet[];
+  initialFacets: AttributeFacet[];
 }
 
 function FilterPanel({
@@ -499,7 +499,7 @@ function FilterPanel({
 
 interface AttributeFacetGroupsProps {
   categorySlug: string;
-  initialFacets: StorefrontAttributeFacet[];
+  initialFacets: AttributeFacet[];
   filterParams: URLSearchParams;
   getMulti: (key: string) => string[];
   onToggleAttribute: (attributeSlug: string, value: string) => void;
@@ -513,20 +513,20 @@ function AttributeFacetGroups({
   getMulti,
   onToggleAttribute,
 }: AttributeFacetGroupsProps) {
-  const [facets, setFacets] = useState<StorefrontAttributeFacet[]>(initialFacets);
+  const [facets, setFacets] = useState<AttributeFacet[]>(initialFacets);
   const [facetsLoading, setFacetsLoading] = useState(true);
 
   useEffect(() => {
     const controller = new AbortController();
     const query = new URLSearchParams(filterParams.toString());
     query.set("category", categorySlug);
-    fetch(`/api/storefront/facets?${query.toString()}`, { signal: controller.signal })
+    fetch(`/api/facets?${query.toString()}`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) {
           throw new Error("Facets request failed");
         }
         const payload = (await response.json()) as {
-          facets?: StorefrontAttributeFacet[];
+          facets?: AttributeFacet[];
         };
         setFacets(payload.facets ?? []);
       })

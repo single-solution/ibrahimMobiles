@@ -1,5 +1,5 @@
 /**
- * POST /api/storefront/chat/threads
+ * POST /api/chat/threads
  *
  * Opens a new chat thread (resource creation against the thread
  * collection). Replaces the previous `/chat/start` verb URL.
@@ -22,7 +22,7 @@
 import { cookies } from "next/headers";
 import { Types } from "mongoose";
 
-import { Customer, Inquiry, connectDB, getStoreSettings } from "@store/db";
+import { Customer, Inquiry as InquiryModel, connectDB, getStoreSettings } from "@store/db";
 import {
   appendInquiryToGuestToken,
   badRequest,
@@ -44,7 +44,7 @@ import { auth } from "@/lib/auth";
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 import { getChatSettings } from "@/lib/chat/chatSettings";
 import { maybeReplyWithAssistant, reloadInquiry } from "@/lib/chat/assistant/maybeReply";
-import { toStorefrontThread } from "@/lib/chat/serializer";
+import { toThread } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
 
 const MAX_PER_WINDOW = 5;
@@ -133,7 +133,7 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
-    const doc = await Inquiry.create({
+    const doc = await InquiryModel.create({
       customerName: nameResult,
       phoneNumber: phoneResult,
       customerId,
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
       ],
     });
 
-    const lean = await Inquiry.findById(doc._id).lean<InquiryLean>();
+    const lean = await InquiryModel.findById(doc._id).lean<InquiryLean>();
     if (!lean) {
       return serverError("Thread vanished after creation.");
     }
@@ -167,7 +167,7 @@ export async function POST(request: Request) {
     }
 
     const refreshed = (await reloadInquiry(doc._id)) ?? lean;
-    const thread = toStorefrontThread(refreshed);
+    const thread = toThread(refreshed);
 
     // Re-issue guest cookie when there's no session — appends the new
     // inquiry id so the visitor's browser holds the running set of

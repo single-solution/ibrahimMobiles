@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { PhoneOtpForm } from "@/app/account/_components/PhoneOtpForm";
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 
 export function SignIn() {

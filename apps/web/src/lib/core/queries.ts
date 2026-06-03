@@ -22,12 +22,12 @@
 import { type PipelineStage } from "mongoose";
 
 import {
-  Brand,
-  Category,
-  Attribute,
-  Grade,
-  Offer,
-  Product,
+  Brand as BrandModel,
+  Category as CategoryModel,
+  Attribute as AttributeModel,
+  Grade as GradeModel,
+  Offer as OfferModel,
+  Product as ProductModel,
   connectDB,
 } from "@store/db";
 import {
@@ -36,28 +36,28 @@ import {
   normalizeIconName,
   normalizeStructuredContent,
   slugify,
-  type Brand as StorefrontBrand,
+  type Brand,
   type AttributeDescriptor,
   type IconName,
   type GradeDescriptor,
-  type Offer as StorefrontOffer,
-  type Product as StorefrontProduct,
+  type Offer,
+  type Product,
   type StructuredContent,
 } from "@store/shared";
 
 import {
   attachBulletIconNodes,
-  toStorefrontBrand,
-  toStorefrontAttribute,
-  toStorefrontGrade,
-  toStorefrontOffer,
-  toStorefrontProduct,
+  toBrand,
+  toAttribute,
+  toGrade,
+  toOffer,
+  toProduct,
   type BrandLean,
   type AttributeLean,
   type GradeLean,
   type OfferLean,
   type ProductLean,
-} from "@/lib/storefront/serializers";
+} from "@/lib/core/serializers";
 import { resolveIconNode } from "@/lib/icons/iconNode";
 import type { IconNode } from "@/lib/icons/types";
 
@@ -87,17 +87,17 @@ const DEFAULT_OFFER_LIMIT = 12;
 
 /**
  * Public sort modes. Includes "price-asc" / "price-desc" which require an
- * aggregation pipeline (see `getStorefrontProductsPage`) because variant
+ * aggregation pipeline (see `getProductsPage`) because variant
  * prices live inside an array.
  */
-export type StorefrontSort =
+export type SortOption =
   | "newest"
   | "recently-updated"
   | "price-asc"
   | "price-desc"
   | "name-asc";
 
-export interface StorefrontProductFilters {
+export interface ProductFilters {
   /** Single category slug — drives URL routing. Use `categorySlugs` for multi. */
   categorySlug?: string;
   /** Multi-category — used by global search. */
@@ -126,12 +126,12 @@ export interface StorefrontProductFilters {
   /** 1-based page number; default 1. */
   page?: number;
   /** Sort mode. */
-  sort?: StorefrontSort;
+  sort?: SortOption;
 }
 
 /** Result type for paginated product lists. */
-export interface StorefrontProductPage {
-  products: StorefrontProduct[];
+export interface ProductPage {
+  products: Product[];
   total: number;
   page: number;
   pageSize: number;
@@ -145,7 +145,7 @@ export interface StorefrontProductPage {
 async function buildBrandLookup(): Promise<
   Map<string, { slug: string; name: string }>
 > {
-  const brands = await Brand.find()
+  const brands = await BrandModel.find()
     .select("slug name categorySlugs")
     .lean<BrandLean[]>();
   return new Map(
@@ -162,9 +162,9 @@ async function buildBrandLookup(): Promise<
  * All active brands with the live product count for each. Used by the
  * homepage brand strip and the brand select on shop pages.
  */
-export async function getStorefrontBrands(
+export async function getBrands(
   categorySlug?: string,
-): Promise<StorefrontBrand[]> {
+): Promise<Brand[]> {
   await connectDB();
 
   const brandFilter: Record<string, unknown> = { isActive: true };
@@ -175,10 +175,10 @@ export async function getStorefrontBrands(
   }
 
   const [brands, counts] = await Promise.all([
-    Brand.find(brandFilter)
+    BrandModel.find(brandFilter)
       .sort({ name: 1 })
       .lean<BrandLean[]>(),
-    Product.aggregate<{ _id: string; count: number }>([
+    ProductModel.aggregate<{ _id: string; count: number }>([
       { $match: productFilter },
       { $group: { _id: "$brandSlug", count: { $sum: 1 } } },
     ]),
@@ -186,7 +186,7 @@ export async function getStorefrontBrands(
   const countByBrandSlug = new Map(counts.map((row) => [row._id, row.count]));
 
   return brands.map((brand) =>
-    toStorefrontBrand(brand, countByBrandSlug.get(brand.slug) ?? 0),
+    toBrand(brand, countByBrandSlug.get(brand.slug) ?? 0),
   );
 }
 
@@ -194,11 +194,11 @@ export async function getStorefrontBrands(
  * Product counts per grade slug within a category (one count per product
  * that has at least one variant in that grade).
  */
-export async function getStorefrontGradeCounts(
+export async function getGradeCounts(
   categorySlug: string,
 ): Promise<Record<string, number>> {
   await connectDB();
-  const rows = await Product.aggregate<{ _id: string; count: number }>([
+  const rows = await ProductModel.aggregate<{ _id: string; count: number }>([
     {
       $match: {
         ...PUBLIC_PRODUCT_FILTER,
@@ -224,29 +224,29 @@ export async function getStorefrontGradeCounts(
 /**
  * One brand, by slug. Returns null if it doesn't exist or has been deactivated.
  */
-export async function getStorefrontBrandBySlug(
+export async function getBrandBySlug(
   slug: string,
   categorySlug?: string,
-): Promise<StorefrontBrand | null> {
+): Promise<Brand | null> {
   await connectDB();
   const filter: Record<string, unknown> = { slug, isActive: true };
   if (categorySlug) {
     filter.categorySlugs = categorySlug;
   }
-  const brand = await Brand.findOne(filter).lean<BrandLean>();
+  const brand = await BrandModel.findOne(filter).lean<BrandLean>();
   if (!brand) {
     return null;
   }
-  const count = await Product.countDocuments({
+  const count = await ProductModel.countDocuments({
     ...PUBLIC_PRODUCT_FILTER,
     brandSlug: brand.slug,
   });
-  return toStorefrontBrand(brand, count);
+  return toBrand(brand, count);
 }
 
 type SortSpec = Record<string, 1 | -1>;
 
-function buildSort(sort: StorefrontSort | undefined): SortSpec {
+function buildSort(sort: SortOption | undefined): SortSpec {
   switch (sort) {
     case "price-asc":
       return { _minPrice: 1, createdAt: -1 };
@@ -262,7 +262,7 @@ function buildSort(sort: StorefrontSort | undefined): SortSpec {
   }
 }
 
-function sortNeedsMinPrice(sort: StorefrontSort | undefined): boolean {
+function sortNeedsMinPrice(sort: SortOption | undefined): boolean {
   return sort === "price-asc" || sort === "price-desc";
 }
 
@@ -279,7 +279,7 @@ function sortNeedsMinPrice(sort: StorefrontSort | undefined): boolean {
  * what the customer expects.
  */
 export function buildVariantElemMatch(
-  filters: StorefrontProductFilters,
+  filters: ProductFilters,
 ): Record<string, unknown> | null {
   const clause: Record<string, unknown> = {};
 
@@ -321,7 +321,7 @@ export function buildVariantElemMatch(
 
 /** Top-level `$match`. Variants are handled separately via `$elemMatch`. */
 export function buildTopLevelMatch(
-  filters: StorefrontProductFilters,
+  filters: ProductFilters,
 ): Record<string, unknown> {
   const match: Record<string, unknown> = { ...PUBLIC_PRODUCT_FILTER };
 
@@ -349,16 +349,16 @@ export function buildTopLevelMatch(
   return match;
 }
 
-export async function getStorefrontProducts(
-  options: StorefrontProductFilters = {},
-): Promise<StorefrontProduct[]> {
-  const page = await getStorefrontProductsPage(options);
+export async function getProducts(
+  options: ProductFilters = {},
+): Promise<Product[]> {
+  const page = await getProductsPage(options);
   return page.products;
 }
 
-export async function getStorefrontProductsPage(
-  options: StorefrontProductFilters = {},
-): Promise<StorefrontProductPage> {
+export async function getProductsPage(
+  options: ProductFilters = {},
+): Promise<ProductPage> {
   await connectDB();
   const pageSize = clampInt(
     options.limit,
@@ -408,7 +408,7 @@ export async function getStorefrontProductsPage(
   ];
 
   const [aggregateResult, brandLookup] = await Promise.all([
-    Product.aggregate<{ items: Row[]; meta: { total: number }[] }>(pipeline),
+    ProductModel.aggregate<{ items: Row[]; meta: { total: number }[] }>(pipeline),
     buildBrandLookup(),
   ]);
 
@@ -426,9 +426,9 @@ export async function getStorefrontProductsPage(
     };
   }
 
-  const products: StorefrontProduct[] = [];
+  const products: Product[] = [];
   for (const product of items) {
-    const converted = toStorefrontProduct(product, brandLookup);
+    const converted = toProduct(product, brandLookup);
     if (converted) {
       products.push(converted);
     }
@@ -463,11 +463,11 @@ function clampInt(
 }
 
 /** One product by Mongo id. */
-export async function getStorefrontProductById(
+export async function getProductById(
   id: string,
-): Promise<StorefrontProduct | null> {
+): Promise<Product | null> {
   await connectDB();
-  const product = await Product.findOne({
+  const product = await ProductModel.findOne({
     _id: id,
     ...PUBLIC_PRODUCT_FILTER,
   }).lean<ProductLean>();
@@ -475,15 +475,15 @@ export async function getStorefrontProductById(
     return null;
   }
   const brandLookup = await buildBrandLookup();
-  return toStorefrontProduct(product, brandLookup);
+  return toProduct(product, brandLookup);
 }
 
 /** One product by URL slug. */
-export async function getStorefrontProductBySlug(
+export async function getProductBySlug(
   slug: string,
-): Promise<StorefrontProduct | null> {
+): Promise<Product | null> {
   await connectDB();
-  const product = await Product.findOne({
+  const product = await ProductModel.findOne({
     slug: slug.toLowerCase(),
     ...PUBLIC_PRODUCT_FILTER,
   }).lean<ProductLean>();
@@ -491,24 +491,24 @@ export async function getStorefrontProductBySlug(
     return null;
   }
   const brandLookup = await buildBrandLookup();
-  return toStorefrontProduct(product, brandLookup);
+  return toProduct(product, brandLookup);
 }
 
 /**
  * Active offers in display order. Filters out offers whose `expiresAt`
  * is in the past so stale promos don't keep rendering on the home page.
  */
-export async function getStorefrontOffers(): Promise<StorefrontOffer[]> {
+export async function getOffers(): Promise<Offer[]> {
   await connectDB();
   const now = new Date();
-  const offers = await Offer.find({
+  const offers = await OfferModel.find({
     isActive: true,
     $or: [{ expiresAt: { $exists: false } }, { expiresAt: { $gt: now } }],
   })
     .sort({ sortOrder: 1, createdAt: -1 })
     .limit(DEFAULT_OFFER_LIMIT)
     .lean<OfferLean[]>();
-  return offers.map(toStorefrontOffer);
+  return offers.map(toOffer);
 }
 
 /**
@@ -516,7 +516,7 @@ export async function getStorefrontOffers(): Promise<StorefrontOffer[]> {
  * homepage category tiles, the top nav, and the `/shop/[category]`
  * landing pages.
  */
-export interface StorefrontCategory {
+export interface CategoryMeta {
   slug: string;
   label: string;
   description: string;
@@ -538,14 +538,14 @@ function resolveCategorySlug(category: { slug?: string; label?: string }): strin
   return fallback || null;
 }
 
-export async function getStorefrontCategories(): Promise<StorefrontCategory[]> {
+export async function getCategories(): Promise<CategoryMeta[]> {
   await connectDB();
-  const categories = await Category.find()
+  const categories = await CategoryModel.find()
     .sort({ sortOrder: 1, label: 1 })
     .lean();
   if (categories.length === 0) {
     logger.warn(
-      "getStorefrontCategories: no categories in DB; storefront may render empty",
+      "getCategories: no categories in DB; storefront may render empty",
     );
   }
   return categories.flatMap((category) => {
@@ -575,33 +575,33 @@ export async function getStorefrontCategories(): Promise<StorefrontCategory[]> {
  * grades.ts` so editing a grade's copy in admin (`PUT /api/grades/:id`)
  * is reflected on the storefront within the cache TTL.
  */
-export async function getStorefrontGrades(): Promise<GradeDescriptor[]> {
+export async function getGrades(): Promise<GradeDescriptor[]> {
   await connectDB();
-  const grades = await Grade.find()
+  const grades = await GradeModel.find()
     .sort({ categorySlug: 1, label: 1 })
     .lean<GradeLean[]>();
   if (grades.length === 0) {
     logger.warn(
-      "getStorefrontGrades: no grades in DB; storefront grade UI will render empty",
+      "getGrades: no grades in DB; storefront grade UI will render empty",
     );
   }
-  return grades.map(toStorefrontGrade);
+  return grades.map(toGrade);
 }
 
-export async function getStorefrontAttributes(): Promise<AttributeDescriptor[]> {
+export async function getAttributes(): Promise<AttributeDescriptor[]> {
   await connectDB();
-  const attributes = await Attribute.find()
+  const attributes = await AttributeModel.find()
     .sort({ categorySlug: 1, label: 1 })
     .lean<AttributeLean[]>();
-  return attributes.map(toStorefrontAttribute);
+  return attributes.map(toAttribute);
 }
 
 /** Resolve a URL category segment (the category `slug`) to a category. */
-export async function getStorefrontCategoryBySlug(
+export async function getCategoryMetaBySlug(
   slug: string,
-): Promise<StorefrontCategory | null> {
+): Promise<CategoryMeta | null> {
   await connectDB();
-  const category = await Category.findOne({ slug, isActive: true }).lean();
+  const category = await CategoryModel.findOne({ slug, isActive: true }).lean();
   if (!category) {
     return null;
   }
@@ -626,7 +626,7 @@ export async function getStorefrontCategoryBySlug(
 /** Internal sanity check the homepage uses to know when DB is empty. */
 export async function hasAnyProducts(): Promise<boolean> {
   await connectDB();
-  const exists = await Product.exists(PUBLIC_PRODUCT_FILTER);
+  const exists = await ProductModel.exists(PUBLIC_PRODUCT_FILTER);
   return Boolean(exists);
 }
 
@@ -635,14 +635,14 @@ export async function hasAnyProducts(): Promise<boolean> {
  * `originalPriceRupees` field is gone, so "on offer" is reduced to "any
  * featured product" until the Phase 7 `Offer.appliesTo` linking lands.
  */
-export async function getStorefrontProductsOnOffer(
+export async function getProductsOnOffer(
   limit: number = DEFAULT_PRODUCT_PAGE_SIZE,
-): Promise<StorefrontProduct[]> {
+): Promise<Product[]> {
   const capped = Math.max(
     MIN_PAGE_NUMBER,
     Math.min(MAX_PRODUCT_PAGE_SIZE, limit),
   );
-  const page = await getStorefrontProductsPage({
+  const page = await getProductsPage({
     isFeatured: true,
     limit: capped,
   });

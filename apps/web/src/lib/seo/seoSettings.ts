@@ -21,8 +21,8 @@ import { cache } from "react";
 import { connectDB, getStoreSettings, Setting } from "@store/db";
 import type { StoredImage } from "@store/shared";
 
-import { getStorefrontBaseUrl } from "@/lib/storefront/baseUrl";
-import { STOREFRONT_CACHE_TAG } from "@/lib/storefront/cached";
+import { getBaseUrl } from "@/lib/core/baseUrl";
+import { STOREFRONT_CACHE_TAG } from "@/lib/core/cached";
 import type { SeoSettings } from "./composeSeoMeta";
 
 const SEO_KEY_PREFIXES = ["seo.", "store.logo", "store.favicon"] as const;
@@ -82,7 +82,7 @@ const loadSeoSettings = unstable_cache(
     return {
       siteName: store.siteName,
       siteTagline: store.siteTagline,
-      siteUrl: getStorefrontBaseUrl(),
+      siteUrl: getBaseUrl(),
       seoStoreName: asString(map.get("seo.storeName"), ""),
       titleTemplate: asString(
         map.get("seo.titleTemplate"),

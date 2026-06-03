@@ -52,7 +52,7 @@ const SearchOverlay = deferredNamedIsland(
   "SearchOverlay",
 );
 
-interface StorefrontChromeProps {
+interface AppShellProps {
   children: React.ReactNode;
   /** Server-rendered footer element, injected as a slot so it stays out of
    *  the client bundle. */
@@ -69,7 +69,7 @@ const DEFERRED_MOUNT_TIMEOUT_MS = 1500;
  *  doesn't see them ahead of time. */
 const IDLE_PREFETCH_ROUTES = ["/shop", "/cart"];
 
-export function StorefrontChrome({ children, footer }: StorefrontChromeProps) {
+export function AppShell({ children, footer }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isAdminRoute = pathname?.startsWith("/admin") ?? false;
@@ -166,11 +166,9 @@ export function StorefrontChrome({ children, footer }: StorefrontChromeProps) {
         <main
           id="main-content"
           tabIndex={-1}
-          className="storefront-main flex flex-1 flex-col outline-none"
+          className="app-main flex flex-1 flex-col outline-none"
         >
-          <Suspense fallback={children}>
-            <RouteTransition>{children}</RouteTransition>
-          </Suspense>
+          <RouteTransition>{children}</RouteTransition>
         </main>
         {footer}
         {areDeferredMounted ? <ChatFabShell /> : null}

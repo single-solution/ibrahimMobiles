@@ -13,7 +13,7 @@ import { unstable_cache } from "next/cache";
 
 import { connectDB, Setting } from "@store/db";
 
-import { STOREFRONT_CACHE_TAG } from "@/lib/storefront/cached";
+import { STOREFRONT_CACHE_TAG } from "@/lib/core/cached";
 
 interface RawSettingDoc {
   key: string;

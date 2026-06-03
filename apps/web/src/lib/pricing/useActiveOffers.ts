@@ -10,7 +10,7 @@ export function useActiveOffers() {
   useEffect(() => {
     async function fetchOffers() {
       try {
-        const res = await fetch("/api/storefront/offers");
+        const res = await fetch("/api/offers");
         if (res.ok) {
           const data = await res.json();
           setOffers(data);

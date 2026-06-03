@@ -763,7 +763,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       hideOnMobile: true,
       width: "6.5rem",
       cell: (product) => (
-        <ProductStorefrontToggle
+        <ProductVisibilityToggle
           productId={product.id}
           productName={product.name}
           isActive={product.isActive}
@@ -1117,7 +1117,7 @@ function CategorySidebar({
   );
 }
 
-function ProductStorefrontToggle({
+function ProductVisibilityToggle({
   productId,
   productName,
   isActive: initialActive,

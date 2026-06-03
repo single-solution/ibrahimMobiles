@@ -9,8 +9,8 @@ import { BrandLockup } from "@/components/layout/BrandLockup";
 import { CartDropdown } from "@/app/cart/_components/CartDropdown";
 import { useCart } from "@/lib/cart/useCart";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
-import { useShopHref } from "@/lib/storefront/storefrontReferenceContext";
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useShopHref } from "@/lib/core/storefrontReferenceContext";
+import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 // `matchBase` is the path used to highlight the active nav link; `href` (when
 // set) is the destination the link actually points to. Shop resolves its href

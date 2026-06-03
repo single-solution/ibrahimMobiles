@@ -1,7 +1,7 @@
 /**
  * Issue (create) an OTP for customer sign-in.
  *
- * POST /api/storefront/auth/otp  { phoneNumber }
+ * POST /api/auth/otp  { phoneNumber }
  *
  * - IP rate-limited to prevent SMS bombing.
  * - Phone-scoped resend throttling lives inside `issueCode`.

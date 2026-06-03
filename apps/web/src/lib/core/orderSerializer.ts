@@ -14,7 +14,7 @@ import type {
 } from "@store/db";
 import { asArray, asNumber, asString, objectIdString, toIsoDate, toMillis } from "@store/shared";
 
-interface StorefrontOrderItem {
+interface OrderItem {
   id: string;
   productName: string;
   variantSummary: string;
@@ -22,7 +22,7 @@ interface StorefrontOrderItem {
   quantity: number;
 }
 
-interface StorefrontOrderTotals {
+interface OrderTotals {
   subtotalRupees: number;
   shippingRupees: number;
   discountRupees: number;
@@ -30,21 +30,21 @@ interface StorefrontOrderTotals {
   itemCount: number;
 }
 
-export interface StorefrontOrderTimelineEntry {
+export interface OrderTimelineEntry {
   status: OrderStatus;
   label: string;
   description: string;
   occurredAt: string;
 }
 
-export interface StorefrontOrder {
+export interface Order {
   id: string;
   orderNumber: string;
   placedAt: string;
   status: OrderStatus;
   /** Customer-facing label — "On the way", "Awaiting payment", etc. */
   statusLabel: string;
-  items: StorefrontOrderItem[];
+  items: OrderItem[];
   delivery: OrderAttributes["delivery"];
   payment: OrderAttributes["payment"];
   customerName: string;
@@ -58,8 +58,8 @@ export interface StorefrontOrder {
     street?: string;
     postalCode?: string;
   };
-  totals: StorefrontOrderTotals;
-  timeline: StorefrontOrderTimelineEntry[];
+  totals: OrderTotals;
+  timeline: OrderTimelineEntry[];
   trackingNote?: string;
   estimatedDeliveryAt?: string;
   pointsEarned: number;
@@ -89,7 +89,7 @@ const TIMELINE_DESCRIPTION: Record<OrderStatus, string> = {
 /**
  * Convert a Mongoose lean Order to the public storefront shape.
  */
-export function toStorefrontOrder(order: OrderAttributes & { _id: { toString(): string } }): StorefrontOrder {
+export function toOrder(order: OrderAttributes & { _id: { toString(): string } }): Order {
   const items = asArray<OrderAttributes["items"][number]>(order.items);
   const totals = order.totals ?? {
     subtotalRupees: 0,
@@ -107,7 +107,7 @@ export function toStorefrontOrder(order: OrderAttributes & { _id: { toString(): 
     0,
   );
 
-  const timeline: StorefrontOrderTimelineEntry[] = asArray<OrderTimelineEntryAttributes>(order.timeline)
+  const timeline: OrderTimelineEntry[] = asArray<OrderTimelineEntryAttributes>(order.timeline)
     .slice()
     .sort(
       (left: OrderTimelineEntryAttributes, right: OrderTimelineEntryAttributes) =>

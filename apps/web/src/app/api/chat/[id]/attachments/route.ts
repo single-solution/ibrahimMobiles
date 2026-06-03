@@ -1,5 +1,5 @@
 /**
- * POST /api/storefront/chat/[id]/attachments
+ * POST /api/chat/[id]/attachments
  *
  * Customer uploads an image or file as a chat message attachment.
  * Gated by `chat.attachmentsEnabled` AND `resolveChatAccess`. Same
@@ -15,7 +15,7 @@
  * bytes before trust (`security.md` § File Upload).
  */
 
-import { Inquiry, connectDB } from "@store/db";
+import { Inquiry as InquiryModel, connectDB } from "@store/db";
 import {
   assertContentTypeMatches,
   badRequest,
@@ -38,7 +38,7 @@ import { auth } from "@/lib/auth";
 import { resolveChatAccess } from "@/lib/chat/access";
 import { claimAnonymousThreadIfNeeded } from "@/lib/chat/claimAnonymousThread";
 import { getChatSettings } from "@/lib/chat/chatSettings";
-import { toStorefrontThread, type InquiryLean } from "@/lib/chat/serializer";
+import { toThread, type InquiryLean } from "@/lib/chat/serializer";
 import {
   ALLOWED_FILE_MIME,
   ALLOWED_IMAGE_MIME,
@@ -197,7 +197,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     }
 
     await connectDB();
-    await Inquiry.updateOne(
+    await InquiryModel.updateOne(
       { _id: inquiry._id },
       {
         $push: {
@@ -220,11 +220,11 @@ export async function POST(request: Request, { params }: RouteContext) {
       },
     );
 
-    const refreshed = await Inquiry.findById(inquiry._id).lean<InquiryLean>();
+    const refreshed = await InquiryModel.findById(inquiry._id).lean<InquiryLean>();
     if (!refreshed) {
       return serverError("Thread vanished after upload.");
     }
-    return created(toStorefrontThread(refreshed));
+    return created(toThread(refreshed));
   } catch (error) {
     if (error instanceof UploadValidationError) {
       if (error.status === 413) return payloadTooLarge(error.message);

@@ -6,7 +6,7 @@ import { buildWhatsAppLink, formatPrice } from "@store/shared";
 
 import { Button } from "@/components/ui/Button";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 import { formatMissingPrompt } from "./variantSelectorDimensions";
 

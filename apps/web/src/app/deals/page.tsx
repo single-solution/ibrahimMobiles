@@ -6,8 +6,8 @@ import { OfferCard } from "@/components/shared/OfferCard";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getStorefrontOffersCached } from "@/lib/storefront/cached";
-import { getStorefrontProductsOnOffer } from "@/lib/storefront";
+import { getOffersCached } from "@/lib/core/cached";
+import { getProductsOnOffer } from "@/lib/core";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
 import { formatRelativeDate, logger, type Offer, type Product } from "@store/shared";
 
@@ -22,7 +22,7 @@ import { formatRelativeDate, logger, type Offer, type Product } from "@store/sha
  */
 async function loadOffers(): Promise<Offer[]> {
   try {
-    return await getStorefrontOffersCached();
+    return await getOffersCached();
   } catch (error) {
     logger.error(
       { error },
@@ -34,7 +34,7 @@ async function loadOffers(): Promise<Offer[]> {
 
 async function loadProductsOnSale(limit: number): Promise<Product[]> {
   try {
-    return await getStorefrontProductsOnOffer(limit);
+    return await getProductsOnOffer(limit);
   } catch (error) {
     logger.error(
       { error },

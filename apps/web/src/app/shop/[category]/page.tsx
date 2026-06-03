@@ -21,17 +21,17 @@ import { NavigationPendingFallback } from "@/components/shared/NavigationPending
 import { StructuredContentFull } from "@/components/shared/StructuredContent";
 import {
   parseFiltersFromSearchParams,
-  type StorefrontCategory,
-  type StorefrontProductFilters,
-} from "@/lib/storefront";
-import { getStorefrontFacets } from "@/lib/storefront/facets";
+  type CategoryMeta,
+  type ProductFilters,
+} from "@/lib/core";
+import { getFacets } from "@/lib/core/facets";
 import {
-  getStorefrontBrandsCached,
-  getStorefrontGradeCountsCached,
-  getStorefrontCategoriesCached,
-  getStorefrontCategoryBySlugCached,
-  getStorefrontProductsPageCached,
-} from "@/lib/storefront/cached";
+  getBrandsCached,
+  getGradeCountsCached,
+  getCategoriesCached,
+  getCategoryBySlugCached,
+  getProductsPageCached,
+} from "@/lib/core/cached";
 import { composeCategorySeo } from "@/lib/seo/composeSeoMeta";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
 import {
@@ -66,7 +66,7 @@ interface CategoryPageProps {
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const { category } = await params;
-  const meta = await getStorefrontCategoryBySlugCached(category);
+  const meta = await getCategoryBySlugCached(category);
   if (!meta) {
     return { title: "Shop" };
   }
@@ -102,7 +102,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const [{ category }, rawSearchParams] = await Promise.all([params, searchParams]);
-  const meta = await getStorefrontCategoryBySlugCached(category);
+  const meta = await getCategoryBySlugCached(category);
 
   if (!meta) {
     notFound();
@@ -182,13 +182,13 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 /* ──────────────────────────── JSON-LD slot ──────────────────────────── */
 
 interface CategoryJsonLdProps {
-  meta: StorefrontCategory;
-  filters: StorefrontProductFilters;
+  meta: CategoryMeta;
+  filters: ProductFilters;
 }
 
 async function CategoryJsonLd({ meta, filters }: CategoryJsonLdProps) {
   const [page, seoSettings] = await Promise.all([
-    getStorefrontProductsPageCached(filters),
+    getProductsPageCached(filters),
     getSeoSettings(),
   ]);
   const collectionLd = collectionPageJsonLd({
@@ -222,18 +222,18 @@ interface CategorySelectorDataProps {
 }
 
 async function CategorySelectorData({ activeSlug }: CategorySelectorDataProps) {
-  const categories = await getStorefrontCategoriesCached();
+  const categories = await getCategoriesCached();
   return <ShopCategoryRail activeSlug={activeSlug} categories={categories} />;
 }
 
 async function MobileCategoryPickerData({ activeSlug }: CategorySelectorDataProps) {
-  const categories = await getStorefrontCategoriesCached();
+  const categories = await getCategoriesCached();
   return <MobileCategoryPicker activeSlug={activeSlug} categories={categories} />;
 }
 
 interface FilterSidebarDataProps {
   categorySlug: string;
-  filters: StorefrontProductFilters;
+  filters: ProductFilters;
 }
 
 async function FilterSidebarData({
@@ -241,9 +241,9 @@ async function FilterSidebarData({
   filters,
 }: FilterSidebarDataProps) {
   const [brands, facets, gradeCounts] = await Promise.all([
-    getStorefrontBrandsCached(categorySlug),
-    getStorefrontFacets(filters),
-    getStorefrontGradeCountsCached(categorySlug),
+    getBrandsCached(categorySlug),
+    getFacets(filters),
+    getGradeCountsCached(categorySlug),
   ]);
   return (
     <FilterSidebar
@@ -256,12 +256,12 @@ async function FilterSidebarData({
 }
 
 interface ProductsAreaProps {
-  meta: StorefrontCategory;
-  filters: StorefrontProductFilters;
+  meta: CategoryMeta;
+  filters: ProductFilters;
 }
 
 async function MobileProductsArea({ meta, filters }: ProductsAreaProps) {
-  const page = await getStorefrontProductsPageCached(filters);
+  const page = await getProductsPageCached(filters);
   return (
     <>
       <div className="mt-4">
@@ -281,7 +281,7 @@ async function MobileProductsArea({ meta, filters }: ProductsAreaProps) {
 }
 
 async function DesktopProductsArea({ meta, filters }: ProductsAreaProps) {
-  const page = await getStorefrontProductsPageCached(filters);
+  const page = await getProductsPageCached(filters);
   return (
     <div className="space-y-6">
       <ShopProductGrid products={page.products} categoryLabel={meta.label} />
@@ -296,7 +296,7 @@ async function DesktopProductsArea({ meta, filters }: ProductsAreaProps) {
 
 /* ─────────────────────── Static, data-free pieces ─────────────────────── */
 
-function ComingSoon({ meta }: { meta: StorefrontCategory }) {
+function ComingSoon({ meta }: { meta: CategoryMeta }) {
   return (
     <div className="mx-auto max-w-2xl px-6 pb-24 pt-16 text-center md:pt-24">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-accent-700)]">

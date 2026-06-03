@@ -3,11 +3,11 @@ import Link from "next/link";
 import { classNames } from "@store/shared";
 
 import { Icon } from "@/components/shared/Icon";
-import type { StorefrontCategory } from "@/lib/storefront/queries";
+import type { CategoryMeta } from "@/lib/core/queries";
 
 interface ShopCategoryRailProps {
   activeSlug: string;
-  categories: StorefrontCategory[];
+  categories: CategoryMeta[];
 }
 
 /**
@@ -43,7 +43,7 @@ function CategoryRailPill({
   category,
   isActive,
 }: {
-  category: StorefrontCategory;
+  category: CategoryMeta;
   isActive: boolean;
 }) {
   const isAvailable = category.isActive;
@@ -95,7 +95,7 @@ function CategoryRailPill({
 }
 
 interface ShopCategoryHubGridProps {
-  categories: StorefrontCategory[];
+  categories: CategoryMeta[];
 }
 
 /** Full category chooser for `/shop` when multiple categories exist. */
@@ -111,7 +111,7 @@ export function ShopCategoryHubGrid({ categories }: ShopCategoryHubGridProps) {
   );
 }
 
-function CategoryHubCard({ category }: { category: StorefrontCategory }) {
+function CategoryHubCard({ category }: { category: CategoryMeta }) {
   const isAvailable = category.isActive;
   const inner = (
     <div

@@ -109,7 +109,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       return;
     }
     const controller = new AbortController();
-    fetch("/api/storefront/search/hints", { signal: controller.signal })
+    fetch("/api/search/hints", { signal: controller.signal })
       .then((response) => (response.ok ? response.json() : { hints: [] }))
       .then((data: { hints?: string[] }) => {
         setHints(Array.isArray(data.hints) ? data.hints : []);
@@ -122,7 +122,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     return () => controller.abort();
   }, [isOpen]);
 
-  // Debounced fetch against /api/storefront/search.
+  // Debounced fetch against /api/search.
   useEffect(() => {
     const trimmed = query.trim();
     if (trimmed.length < MIN_QUERY_LEN) {
@@ -138,7 +138,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       setIsLoading(true);
       try {
         const response = await fetch(
-          `/api/storefront/search?query=${encodeURIComponent(trimmed)}&limit=${SEARCH_RESULTS_LIMIT}`,
+          `/api/search?query=${encodeURIComponent(trimmed)}&limit=${SEARCH_RESULTS_LIMIT}`,
           { signal: controller.signal },
         );
         if (!response.ok) {

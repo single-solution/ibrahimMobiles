@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, Suspense, useCallback } from "react";
 
 interface RouteTransitionProps {
   children: ReactNode;
@@ -28,6 +28,17 @@ function supportsViewTransition(): boolean {
   );
 }
 
+function SearchParamsTracker({ onChange }: { onChange: (search: string) => void }) {
+  const searchParams = useSearchParams();
+  const searchString = searchParams?.toString() ?? "";
+  
+  useEffect(() => {
+    onChange(searchString);
+  }, [searchString, onChange]);
+  
+  return null;
+}
+
 /**
  * Route commit transition.
  *
@@ -40,7 +51,7 @@ function supportsViewTransition(): boolean {
  *     they were reloading.
  *
  *   • **Pathname change** (`/shop/a` → `/shop/b`, `/account` → `/cart`) —
- *     run a View Transition scoped to `<main>` (see `.storefront-main` in
+ *     run a View Transition scoped to `<main>` (see `.app-main` in
  *     globals.css) so the header, footer, and tab bar stay visually fixed.
  *
  * Fallback: CSS `.route-enter` keyframe on browsers without the API or when
@@ -50,9 +61,12 @@ function supportsViewTransition(): boolean {
  */
 export function RouteTransition({ children }: RouteTransitionProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const pathnameKey = pathname ?? "";
-  const contentKey = `${pathnameKey}?${searchParams?.toString() ?? ""}`;
+  
+  // Track search params indirectly to avoid suspending the entire page during SSR
+  const [searchParamsStr, setSearchParamsStr] = useState("");
+  
+  const contentKey = `${pathnameKey}?${searchParamsStr}`;
 
   const [snapshot, setSnapshot] = useState<RouteSnapshot>(() => ({
     contentKey,
@@ -63,6 +77,10 @@ export function RouteTransition({ children }: RouteTransitionProps) {
   const hasMounted = useRef(false);
   const enterTimeoutRef = useRef<number | undefined>(undefined);
 
+  const handleSearchChange = useCallback((newSearch: string) => {
+    setSearchParamsStr(newSearch);
+  }, []);
+
   useEffect(() => {
     if (!hasMounted.current) {
       hasMounted.current = true;
@@ -71,6 +89,9 @@ export function RouteTransition({ children }: RouteTransitionProps) {
     }
 
     if (contentKey === snapshot.contentKey) {
+      // If the URL hasn't changed, but children did (e.g. initial hydration or HMR),
+      // we need to update the node without a transition so React can hydrate properly.
+      setSnapshot((prev) => ({ ...prev, node: children }));
       return;
     }
 
@@ -127,6 +148,9 @@ export function RouteTransition({ children }: RouteTransitionProps) {
     <div
       className={`flex min-h-0 flex-1 flex-col${isEntering ? " route-enter" : ""}`}
     >
+      <Suspense fallback={null}>
+        <SearchParamsTracker onChange={handleSearchChange} />
+      </Suspense>
       {snapshot.node}
     </div>
   );

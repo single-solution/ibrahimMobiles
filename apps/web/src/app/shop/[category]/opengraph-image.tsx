@@ -9,9 +9,9 @@
 import { ImageResponse } from "next/og";
 
 import {
-  getStorefrontCategoryBySlug,
-  getStorefrontProducts,
-} from "@/lib/storefront/queries";
+  getCategoryMetaBySlug,
+  getProducts,
+} from "@/lib/core/queries";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
 
 export const runtime = "nodejs";
@@ -38,11 +38,11 @@ async function loadCategoryOgData(
 ): Promise<CategoryOgData | null> {
   try {
     const [meta, settings] = await Promise.all([
-      getStorefrontCategoryBySlug(category),
+      getCategoryMetaBySlug(category),
       getSeoSettings(),
     ]);
     if (!meta) return null;
-    const products = await getStorefrontProducts({
+    const products = await getProducts({
       categorySlug: meta.slug,
       limit: TILE_LIMIT,
     });

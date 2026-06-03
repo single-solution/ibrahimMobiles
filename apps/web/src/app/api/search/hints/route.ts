@@ -1,7 +1,7 @@
 /**
  * Public storefront search hints.
  *
- * GET /api/storefront/search/hints
+ * GET /api/search/hints
  *
  * Returns a small shuffled array of suggestion labels for the
  * `SearchOverlay` empty state — a mix of random categories, top-selling
@@ -20,7 +20,7 @@
 import { logger, ok, PER_MINUTE_WINDOW_MS, serverError } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
-import { getSearchHints } from "@/lib/storefront";
+import { getSearchHints } from "@/lib/core";
 
 export const dynamic = "force-dynamic";
 

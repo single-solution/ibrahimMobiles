@@ -1,5 +1,5 @@
 /**
- * GET /api/storefront/chat
+ * GET /api/chat
  *
  * Returns the chat threads visible to the current caller plus the
  * minimum settings the widget needs to operate. Two visibility modes:
@@ -15,13 +15,13 @@
 import { cookies } from "next/headers";
 import { Types } from "mongoose";
 
-import { Inquiry, connectDB } from "@store/db";
+import { Inquiry as InquiryModel, connectDB } from "@store/db";
 import { ok, verifyGuestToken } from "@store/shared";
 
 import { enforceChatPollRateLimit } from "@/lib/api/chatRateLimit";
 import { auth } from "@/lib/auth";
 import { getChatSettings } from "@/lib/chat/chatSettings";
-import { summariseStorefrontThread } from "@/lib/chat/serializer";
+import { summariseThread } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
 
 const COOKIE_NAME = "inquiry_thread_token";
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
     if (filters.length === 0) {
       return ok({ unreadByCustomer: 0 });
     }
-    const agg = await Inquiry.aggregate<{ total: number }>([
+    const agg = await InquiryModel.aggregate<{ total: number }>([
       { $match: filters.length === 1 ? filters[0] : { $or: filters } },
       { $group: { _id: null, total: { $sum: "$unreadByCustomer" } } },
     ]);
@@ -100,14 +100,14 @@ export async function GET(request: Request) {
     return ok({ enabled: true, threads: [], settings, isSignedInCustomer });
   }
 
-  const docs = await Inquiry.find(filters.length === 1 ? filters[0] : { $or: filters })
+  const docs = await InquiryModel.find(filters.length === 1 ? filters[0] : { $or: filters })
     .sort({ lastMessageAt: -1 })
     .limit(30)
     .lean<InquiryLean[]>();
 
   return ok({
     enabled: true,
-    threads: docs.map(summariseStorefrontThread),
+    threads: docs.map(summariseThread),
     settings,
     isSignedInCustomer,
   });

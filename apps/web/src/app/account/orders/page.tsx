@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getStoreSettings } from "@store/db";
 import { OrderHistory } from "@/app/account/_components/OrderHistory";
 import { auth } from "@/lib/auth";
-import { getAccountOrders } from "@/lib/storefront/account";
+import { getAccountOrders } from "@/lib/core/account";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { siteName } = await getStoreSettings();

@@ -15,9 +15,9 @@
  * via `/shop?q=<label>`.
  */
 
-import { Category, Order, Product, connectDB } from "@store/db";
+import { Category as CategoryModel, Order as OrderModel, Product as ProductModel, connectDB } from "@store/db";
 
-import { PUBLIC_PRODUCT_FILTER } from "@/lib/storefront/queries";
+import { PUBLIC_PRODUCT_FILTER } from "@/lib/core/queries";
 
 /** Default number of hint chips returned to the client. */
 const DEFAULT_HINT_COUNT = 4;
@@ -55,7 +55,7 @@ export async function getSearchHints(
 ): Promise<string[]> {
   await connectDB();
 
-  const topAgg = await Order.aggregate<OrderSalesAgg>([
+  const topAgg = await OrderModel.aggregate<OrderSalesAgg>([
     { $match: { status: { $in: SALES_ORDER_STATUSES } } },
     { $unwind: "$items" },
     { $group: { _id: "$items.productId", count: { $sum: 1 } } },
@@ -66,7 +66,7 @@ export async function getSearchHints(
 
   const [topProducts, bottomProducts, categories] = await Promise.all([
     topProductIds.length > 0
-      ? Product.find({
+      ? ProductModel.find({
           _id: { $in: topProductIds },
           ...PUBLIC_PRODUCT_FILTER,
         })
@@ -74,7 +74,7 @@ export async function getSearchHints(
           .limit(POOL_PER_KIND)
           .lean<NameLean[]>()
       : Promise.resolve([] as NameLean[]),
-    Product.aggregate<NameLean>([
+    ProductModel.aggregate<NameLean>([
       {
         $match: {
           ...PUBLIC_PRODUCT_FILTER,
@@ -86,7 +86,7 @@ export async function getSearchHints(
       { $sample: { size: POOL_PER_KIND } },
       { $project: { name: 1 } },
     ]),
-    Category.aggregate<NameLean>([
+    CategoryModel.aggregate<NameLean>([
       { $match: { isActive: true } },
       { $sample: { size: POOL_PER_KIND } },
       { $project: { name: 1 } },

@@ -51,7 +51,7 @@ function toMessage(message: InquiryMessageAttributes): ChatMessage {
   };
 }
 
-export function summariseStorefrontThread(
+export function summariseThread(
   inquiry: InquiryLean,
 ): ChatThreadSummary {
   return {
@@ -75,9 +75,9 @@ export function summariseStorefrontThread(
   };
 }
 
-export function toStorefrontThread(inquiry: InquiryLean): ChatThread {
+export function toThread(inquiry: InquiryLean): ChatThread {
   return {
-    ...summariseStorefrontThread(inquiry),
+    ...summariseThread(inquiry),
     messages: asArray<InquiryMessageAttributes>(inquiry.messages).map(toMessage),
   };
 }

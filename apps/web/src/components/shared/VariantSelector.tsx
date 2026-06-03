@@ -12,7 +12,7 @@ import {
   type AttributeDescriptor,
   type GradeDescriptor,
   type Product,
-  type StorefrontVariant,
+  type Variant,
 } from "@store/shared";
 
 import { toAttributeLabelSource } from "@/lib/catalog/attributeLabels";
@@ -38,12 +38,12 @@ import {
 import { CART_MAX_LINES } from "@/lib/cart/store";
 import { useCart } from "@/lib/cart/useCart";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
-import { usePdpUrlParams } from "@/lib/storefront/usePdpUrlParams";
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { usePdpUrlParams } from "@/lib/core/usePdpUrlParams";
+import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import {
   useAttributesForCategory,
   useGradesForCategory,
-} from "@/lib/storefront/storefrontReferenceContext";
+} from "@/lib/core/storefrontReferenceContext";
 
 import { Configurator, ClosestMatchNotice } from "./variantSelectorConfigurator";
 import {
@@ -60,7 +60,7 @@ import {
 
 const ADD_TO_CART_FLASH_MS = 1_500;
 
-const isVariantInStock = (variant: StorefrontVariant): boolean =>
+const isVariantInStock = (variant: Variant): boolean =>
   (variant.quantity ?? 0) > 0;
 
 interface VariantSelectorProps {

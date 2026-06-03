@@ -16,7 +16,7 @@
 
 import { ImageResponse } from "next/og";
 
-import { getStoreSettingsCached } from "@/lib/storefront/cached";
+import { getStoreSettingsCached } from "@/lib/core/cached";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
 
 export const runtime = "nodejs";

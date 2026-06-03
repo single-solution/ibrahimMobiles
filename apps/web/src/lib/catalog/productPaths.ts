@@ -1,4 +1,4 @@
-import type { Product, StorefrontVariant } from "@store/shared";
+import type { Product, Variant } from "@store/shared";
 
 import {
   GRADE_DIMENSION_KEY,
@@ -16,7 +16,7 @@ export function productHref(
   product: Pick<Product, "categorySlug" | "slug">,
   options?: {
     selection?: Record<string, string>;
-    variant?: StorefrontVariant;
+    variant?: Variant;
   },
 ): string {
   const base = `/shop/${product.categorySlug}/${product.slug}`;
@@ -63,7 +63,7 @@ export function resolveProductVariant(
   product: Product,
   search: { [key: string]: string | string[] | undefined },
   categoryAttributeSlugs: string[],
-): StorefrontVariant {
+): Variant {
   return resolveProductVariantFromSearch(product, search, categoryAttributeSlugs);
 }
 
@@ -73,7 +73,7 @@ export function productAbsoluteUrl(
   product: Pick<Product, "categorySlug" | "slug">,
   options?: {
     selection?: Record<string, string>;
-    variant?: StorefrontVariant;
+    variant?: Variant;
   },
 ): string {
   const path = productHref(product, options);
@@ -85,7 +85,7 @@ export function productAbsoluteUrl(
 export function productHrefForSelection(
   product: Product,
   selection: Record<string, string>,
-): { href: string; variant: StorefrontVariant } {
+): { href: string; variant: Variant } {
   const variant = resolveProductVariantFromSelection(product, selection);
   const normalized = selectionFromVariant(variant);
   return {

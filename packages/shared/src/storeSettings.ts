@@ -26,7 +26,7 @@ export interface StoreSettings {
    * Empty string falls back to the `*_SITE_URL` / `STOREFRONT_BASE_URL` env
    * vars so existing deploys keep working without an admin save.
    */
-  storefrontUrl: string;
+  publicSiteUrl: string;
 
   /**
    * Brand mark URLs used by the storefront chrome. Each pair has a light
@@ -137,7 +137,7 @@ export interface StoreSettings {
 export const STORE_SETTING_DEFAULTS: StoreSettings = {
   siteName: "Ibrahim Mobile Store",
   siteTagline: "",
-  storefrontUrl: "",
+  publicSiteUrl: "",
 
   brandLogoLight: "",
   brandLogoDark: "",
@@ -207,7 +207,7 @@ export const STORE_SETTING_GROUPS = {
   branding: [
     "siteName",
     "siteTagline",
-    "storefrontUrl",
+    "publicSiteUrl",
     "brandLogoLight",
     "brandLogoDark",
     "brandFaviconLight",

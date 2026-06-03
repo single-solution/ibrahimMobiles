@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { BrandLockup } from "@/components/layout/BrandLockup";
 import { classNames } from "@store/shared";
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 interface MobileHeaderProps {
   onOpenSearch: () => void;

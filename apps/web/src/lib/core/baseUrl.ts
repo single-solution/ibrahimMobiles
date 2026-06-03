@@ -15,7 +15,7 @@
  */
 const LOCAL_FALLBACK = "http://localhost:3000";
 
-export function getStorefrontBaseUrl(): string {
+export function getBaseUrl(): string {
   const candidates = [
     process.env.STOREFRONT_BASE_URL,
     process.env.NEXT_PUBLIC_SITE_URL,

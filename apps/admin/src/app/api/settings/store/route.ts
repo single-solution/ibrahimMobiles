@@ -67,7 +67,7 @@ export async function PUT(request: Request) {
       return badRequest(`"${field}" must be a ${expectedType}.`);
     }
     let value: StoreSettings[keyof StoreSettings] = coerced;
-    if (field === "storefrontUrl") {
+    if (field === "publicSiteUrl") {
       const trimmed = typeof coerced === "string" ? coerced.trim() : "";
       if (trimmed.length > 0) {
         try {

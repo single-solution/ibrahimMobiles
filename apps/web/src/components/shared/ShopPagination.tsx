@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { FILTER_PARAM_KEYS } from "@/lib/storefront/filterParams";
+import { FILTER_PARAM_KEYS } from "@/lib/core/filterParams";
 import { pingNavigationProgress } from "@/lib/navigation/navigationProgress";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 

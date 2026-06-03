@@ -8,11 +8,11 @@ import { classNames } from "@store/shared";
 
 import { Icon } from "@/components/shared/Icon";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import type { StorefrontCategory } from "@/lib/storefront/queries";
+import type { CategoryMeta } from "@/lib/core/queries";
 
 interface MobileCategoryPickerProps {
   activeSlug: string;
-  categories: StorefrontCategory[];
+  categories: CategoryMeta[];
 }
 
 /**

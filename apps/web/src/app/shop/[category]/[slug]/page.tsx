@@ -25,18 +25,18 @@ import {
   productHref,
   shopHrefFromCategories,
 } from "@/lib/catalog/productPaths";
-import { getStorefrontProducts } from "@/lib/storefront";
+import { getProducts } from "@/lib/core";
 import {
-  getStorefrontAttributesCached,
-  getStorefrontBrandBySlugCached,
-  getStorefrontCategoriesCached,
-  getStorefrontCategoryBySlugCached,
-  getStorefrontProductBySlugCached,
-} from "@/lib/storefront/cached";
+  getAttributesCached,
+  getBrandBySlugCached,
+  getCategoriesCached,
+  getCategoryBySlugCached,
+  getProductBySlugCached,
+} from "@/lib/core/cached";
 import {
-  getStorefrontProductLiveCommerce,
+  getProductLiveCommerce,
   mergeProductWithLiveCommerce,
-} from "@/lib/storefront/liveCommerce";
+} from "@/lib/core/liveCommerce";
 import { composeProductSeo } from "@/lib/seo/composeSeoMeta";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
 import {
@@ -64,7 +64,7 @@ import {
  * Partial dynamism: the static shell (gallery, breadcrumbs, name,
  * description, grade copy, related rail) is ISR-cached with admin-tag
  * busting; live per-variant pricing + stock streams in through a
- * `<Suspense>` boundary via `getStorefrontProductLiveCommerce`, so the
+ * `<Suspense>` boundary via `getProductLiveCommerce`, so the
  * shell never blocks on the freshness-critical commerce query.
  *
  * Result: `<Link>` prefetch can warm the page chrome, the click renders
@@ -86,7 +86,7 @@ const RELATED_PRODUCTS_DISPLAY_COUNT = 4;
 
 function attributeSlugsForProduct(
   product: Product,
-  allAttributes: Awaited<ReturnType<typeof getStorefrontAttributesCached>>,
+  allAttributes: Awaited<ReturnType<typeof getAttributesCached>>,
 ): string[] {
   const fromCatalog = allAttributes
     .filter((row) => row.categorySlug === product.categorySlug)
@@ -102,15 +102,15 @@ export async function generateMetadata({
   searchParams,
 }: ProductDetailPageProps): Promise<Metadata> {
   const [{ category, slug }, search] = await Promise.all([params, searchParams]);
-  const product = await getStorefrontProductBySlugCached(slug);
+  const product = await getProductBySlugCached(slug);
   if (!product) {
     return { title: "Not found" };
   }
   const [brand, categoryMeta, seoSettings, allAttributes] = await Promise.all([
-    getStorefrontBrandBySlugCached(product.brandSlug, product.categorySlug),
-    getStorefrontCategoryBySlugCached(category),
+    getBrandBySlugCached(product.brandSlug, product.categorySlug),
+    getCategoryBySlugCached(category),
     getSeoSettings(),
-    getStorefrontAttributesCached(),
+    getAttributesCached(),
   ]);
   const attributeSlugs = attributeSlugsForProduct(product, allAttributes);
   const variant =
@@ -168,9 +168,9 @@ export default async function ProductDetailPage({
   const [{ category, slug }, search] = await Promise.all([params, searchParams]);
 
   const [categoryMeta, product, allAttributes] = await Promise.all([
-    getStorefrontCategoryBySlugCached(category),
-    getStorefrontProductBySlugCached(slug),
-    getStorefrontAttributesCached(),
+    getCategoryBySlugCached(category),
+    getProductBySlugCached(slug),
+    getAttributesCached(),
   ]);
 
   if (!categoryMeta) {
@@ -204,9 +204,9 @@ export default async function ProductDetailPage({
   // picks never refetch this RSC page.
 
   const [brand, seoSettings, categories] = await Promise.all([
-    getStorefrontBrandBySlugCached(product.brandSlug, product.categorySlug),
+    getBrandBySlugCached(product.brandSlug, product.categorySlug),
     getSeoSettings(),
-    getStorefrontCategoriesCached(),
+    getCategoriesCached(),
   ]);
   const brandName = brand?.name ?? product.brandSlug;
   const brandFilterHref = `/shop/${categoryMeta.slug}?brand=${product.brandSlug}`;
@@ -360,7 +360,7 @@ async function LiveVariantSelector({
   product: Product;
   brandName: string;
 }) {
-  const live = await getStorefrontProductLiveCommerce(product.slug);
+  const live = await getProductLiveCommerce(product.slug);
   const merged = mergeProductWithLiveCommerce(product, live);
   return <VariantSelector product={merged} brandName={brandName} />;
 }
@@ -432,7 +432,7 @@ function VariantSelectorSkeleton({
 /* ─────────────────────── Related-products slots ─────────────────────── */
 
 async function loadRelatedProducts(product: Product): Promise<Product[]> {
-  const relatedRaw = await getStorefrontProducts({
+  const relatedRaw = await getProducts({
     categorySlug: product.categorySlug,
     brandSlugs: [product.brandSlug],
     limit: RELATED_PRODUCTS_POOL,

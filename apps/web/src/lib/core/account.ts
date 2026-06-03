@@ -11,7 +11,7 @@ import { Types } from "mongoose";
 import {
   Customer,
   LoyaltyAccount,
-  Order,
+  Order as OrderModel,
   connectDB,
   type CustomerAttributes,
   type LoyaltyAccountAttributes,
@@ -25,7 +25,7 @@ import {
   toIsoDate,
 } from "@store/shared";
 
-import { toStorefrontOrder, type StorefrontOrder } from "@/lib/storefront/orderSerializer";
+import { toOrder, type Order } from "@/lib/core/orderSerializer";
 
 export interface AccountCustomer {
   id: string;
@@ -96,32 +96,32 @@ export async function getAccountCustomer(customerId: string): Promise<AccountCus
 }
 
 /** Customer's order history, newest first. */
-export async function getAccountOrders(customerId: string, limit = 50): Promise<StorefrontOrder[]> {
+export async function getAccountOrders(customerId: string, limit = 50): Promise<Order[]> {
   if (!Types.ObjectId.isValid(customerId)) {
     return [];
   }
   await connectDB();
-  const orders = await Order.find({ customerId: new Types.ObjectId(customerId) })
+  const orders = await OrderModel.find({ customerId: new Types.ObjectId(customerId) })
     .sort({ placedAt: -1 })
     .limit(limit)
     .lean<(OrderAttributes & { _id: Types.ObjectId })[]>();
-  return orders.map(toStorefrontOrder);
+  return orders.map(toOrder);
 }
 
 /** Single order — only returns it if it belongs to this customer. */
 export async function getAccountOrder(
   customerId: string,
   orderNumber: string,
-): Promise<StorefrontOrder | null> {
+): Promise<Order | null> {
   if (!Types.ObjectId.isValid(customerId)) {
     return null;
   }
   await connectDB();
-  const order = await Order.findOne({
+  const order = await OrderModel.findOne({
     customerId: new Types.ObjectId(customerId),
     orderNumber,
   }).lean<OrderAttributes & { _id: Types.ObjectId }>();
-  return order ? toStorefrontOrder(order) : null;
+  return order ? toOrder(order) : null;
 }
 
 /** Loyalty balance for a customer; returns null if they aren't a member. */
@@ -147,7 +147,7 @@ async function getAccountLoyalty(customerId: string): Promise<AccountLoyalty | n
 interface AccountOverview {
   customer: AccountCustomer;
   loyalty: AccountLoyalty | null;
-  recentOrders: StorefrontOrder[];
+  recentOrders: Order[];
   activeCount: number;
   totalCount: number;
   totalSpentRupees: number;
@@ -169,7 +169,7 @@ export async function getAccountOverview(customerId: string): Promise<AccountOve
 
   await connectDB();
   const [orders, loyalty] = await Promise.all([
-    Order.find({ customerId: new Types.ObjectId(customerId) })
+    OrderModel.find({ customerId: new Types.ObjectId(customerId) })
       .sort({ placedAt: -1 })
       .lean<(OrderAttributes & { _id: Types.ObjectId })[]>(),
     getAccountLoyalty(customerId),
@@ -177,7 +177,7 @@ export async function getAccountOverview(customerId: string): Promise<AccountOve
 
   const recent = asArray<OrderAttributes & { _id: Types.ObjectId }>(orders)
     .slice(0, RECENT_ORDERS_DISPLAY_COUNT)
-    .map(toStorefrontOrder);
+    .map(toOrder);
   const activeCount = orders.filter((order) => ACTIVE_STATUSES.has(order.status)).length;
   const totalSpent = orders
     .filter((order) => order.status !== "cancelled" && order.status !== "refunded")

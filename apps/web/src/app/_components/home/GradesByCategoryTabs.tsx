@@ -6,7 +6,7 @@ import { GradeBadge } from "@/components/shared/GradeBadge";
 import {
   StructuredContentFull,
 } from "@/components/shared/StructuredContent";
-import type { GradeCategoryGroup } from "@/lib/storefront/gradeGroups";
+import type { GradeCategoryGroup } from "@/lib/core/gradeGroups";
 
 interface GradesByCategoryTabsProps {
   groups: GradeCategoryGroup[];

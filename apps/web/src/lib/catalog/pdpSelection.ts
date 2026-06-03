@@ -1,4 +1,4 @@
-import type { Product, StorefrontVariant } from "@store/shared";
+import type { Product, Variant } from "@store/shared";
 
 import { getDefaultVariant } from "@/lib/productSummary";
 
@@ -11,7 +11,7 @@ export const LEGACY_VARIANT_PARAM = "variant";
 const RESERVED_PDP_PARAMS = new Set([PDP_GRADE_PARAM, LEGACY_VARIANT_PARAM, "compare"]);
 
 export function attributeValuesOnVariant(
-  variant: StorefrontVariant,
+  variant: Variant,
   slug: string,
 ): string[] {
   const raw = variant.attributes?.[slug];
@@ -25,7 +25,7 @@ export function attributeValuesOnVariant(
 }
 
 function variantHasAttributeValue(
-  variant: StorefrontVariant,
+  variant: Variant,
   slug: string,
   value: string,
 ): boolean {
@@ -33,7 +33,7 @@ function variantHasAttributeValue(
 }
 
 export function variantMatchesSelection(
-  variant: StorefrontVariant,
+  variant: Variant,
   selection: Record<string, string>,
 ): boolean {
   for (const [key, want] of Object.entries(selection)) {
@@ -54,7 +54,7 @@ export function variantMatchesSelection(
 }
 
 function countMatchingDimensions(
-  variant: StorefrontVariant,
+  variant: Variant,
   selection: Record<string, string>,
 ): number {
   let matchCount = 0;
@@ -76,7 +76,7 @@ function countMatchingDimensions(
 }
 
 export function selectionFromVariant(
-  variant: StorefrontVariant,
+  variant: Variant,
 ): Record<string, string> {
   const result: Record<string, string> = {
     [GRADE_DIMENSION_KEY]: variant.gradeSlug,
@@ -99,7 +99,7 @@ export function selectionFromVariant(
  * back to Black just because Black is the first value on the variant.
  */
 export function selectionFromVariantPreservingPicks(
-  variant: StorefrontVariant,
+  variant: Variant,
   picks: Record<string, string>,
 ): Record<string, string> {
   const result: Record<string, string> = {
@@ -117,19 +117,19 @@ export function selectionFromVariantPreservingPicks(
 }
 
 export function findVariantBySelection(
-  variants: StorefrontVariant[],
+  variants: Variant[],
   selection: Record<string, string>,
-): StorefrontVariant | undefined {
+): Variant | undefined {
   return variants.find((variant) => variantMatchesSelection(variant, selection));
 }
 
 export function findClosestVariant(
-  variants: StorefrontVariant[],
+  variants: Variant[],
   selection: Record<string, string>,
   priorityKey: string,
-): StorefrontVariant | undefined {
+): Variant | undefined {
   const pinnedValue = selection[priorityKey];
-  let bestVariant: StorefrontVariant | undefined;
+  let bestVariant: Variant | undefined;
   let bestScore = -1;
   for (const variant of variants) {
     if (pinnedValue) {
@@ -174,12 +174,12 @@ function activeSelectionKeys(selection: Record<string, string>): string[] {
  *   to the existing best-match scoring across all picked dimensions.
  */
 export function resolvePickerSelection(
-  variants: StorefrontVariant[],
+  variants: Variant[],
   selection: Record<string, string>,
   priorityKey?: string,
-): { variant: StorefrontVariant; selection: Record<string, string> } {
+): { variant: Variant; selection: Record<string, string> } {
   if (variants.length === 0) {
-    const empty: StorefrontVariant = {
+    const empty: Variant = {
       id: "",
       gradeSlug: "",
       priceRupees: 0,
@@ -214,7 +214,7 @@ export function resolvePickerSelection(
     ? [priorityKey, ...keys.filter((key) => key !== priorityKey)]
     : [...keys.filter((key) => key !== GRADE_DIMENSION_KEY), GRADE_DIMENSION_KEY];
 
-  let best: StorefrontVariant | undefined;
+  let best: Variant | undefined;
   let bestMatchCount = -1;
 
   for (const key of tryOrder) {
@@ -353,7 +353,7 @@ export function currentPdpSelectionSignature(
 export function resolveProductVariantFromSelection(
   product: Product,
   selection: Record<string, string>,
-): StorefrontVariant {
+): Variant {
   return resolvePickerSelection(product.variants, selection).variant;
 }
 
@@ -361,7 +361,7 @@ export function resolveProductVariantFromSearch(
   product: Product,
   search: { [key: string]: string | string[] | undefined },
   categoryAttributeSlugs: string[],
-): StorefrontVariant {
+): Variant {
   const legacyId = readLegacyVariantId(search);
   if (legacyId) {
     const legacy = product.variants.find((row) => row.id === legacyId);
@@ -388,7 +388,7 @@ export function resolveExactVariantFromSearch(
   product: Product,
   search: { [key: string]: string | string[] | undefined },
   categoryAttributeSlugs: string[],
-): StorefrontVariant | null {
+): Variant | null {
   const legacyId = readLegacyVariantId(search);
   if (legacyId) {
     return product.variants.find((row) => row.id === legacyId) ?? null;

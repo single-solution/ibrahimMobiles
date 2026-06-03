@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-import { Customer, Inquiry, connectDB } from "@store/db";
+import { Customer, Inquiry as InquiryModel, connectDB } from "@store/db";
 import { isAnonymousChatPhone } from "@store/shared";
 
 import type { InquiryLean } from "@/lib/chat/serializer";
@@ -24,7 +24,7 @@ export async function claimAnonymousThreadIfNeeded(
     return inquiry;
   }
 
-  const updated = await Inquiry.findByIdAndUpdate(
+  const updated = await InquiryModel.findByIdAndUpdate(
     inquiry._id,
     {
       $set: {

@@ -57,7 +57,7 @@ export function PhoneOtpForm({
     setIsSendingCode(true);
     setError(null);
     try {
-      const response = await fetch("/api/storefront/auth/otp", {
+      const response = await fetch("/api/auth/otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: currentPhone }),

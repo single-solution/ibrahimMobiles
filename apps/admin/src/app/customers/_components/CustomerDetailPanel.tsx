@@ -589,7 +589,7 @@ function OverviewTab({
             </Button>
           </li>
           <li>
-            <span className="text-[var(--color-ink-500)]">Storefront login</span>
+            <span className="text-[var(--color-ink-500)]">Customer login</span>
             <span className="ml-2">OTP via {customer.phoneNumber}</span>
           </li>
           <li>

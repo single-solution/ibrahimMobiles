@@ -1,5 +1,5 @@
 /**
- * URL search-param ↔ `StorefrontProductFilters` adapter.
+ * URL search-param ↔ `ProductFilters` adapter.
  *
  * Lives in its own module so the shop list page (server) and the filter
  * sidebar (client) both read/write the exact same param keys without one
@@ -18,9 +18,9 @@
  */
 
 import type {
-  StorefrontProductFilters,
-  StorefrontSort,
-} from "@/lib/storefront/queries";
+  ProductFilters,
+  SortOption,
+} from "@/lib/core/queries";
 import { DECIMAL_RADIX } from "@store/shared";
 
 const SEARCH_QUERY_MAX_CHARS = 100;
@@ -39,14 +39,14 @@ export const FILTER_PARAM_KEYS = {
   search: "q",
 } as const;
 
-const VALID_SORTS: readonly StorefrontSort[] = [
+const VALID_SORTS: readonly SortOption[] = [
   "newest",
   "price-asc",
   "price-desc",
   "name-asc",
 ];
 
-const isStorefrontSort = (value: string): value is StorefrontSort =>
+const isSortOption = (value: string): value is SortOption =>
   (VALID_SORTS as readonly string[]).includes(value);
 
 /**
@@ -119,7 +119,7 @@ function entries(
 }
 
 /**
- * Parse search params into a `StorefrontProductFilters`. Bad/unknown
+ * Parse search params into a `ProductFilters`. Bad/unknown
  * values are dropped silently — the rule is "best effort, never 500".
  *
  * `categorySlug` is *not* read from query — it comes from the URL path
@@ -128,8 +128,8 @@ function entries(
 export function parseFiltersFromSearchParams(
   source: URLSearchParams | Record<string, string | string[] | undefined>,
   defaults: { categorySlug?: string } = {},
-): StorefrontProductFilters {
-  const filters: StorefrontProductFilters = {};
+): ProductFilters {
+  const filters: ProductFilters = {};
   if (defaults.categorySlug) {
     filters.categorySlug = defaults.categorySlug;
   }
@@ -176,7 +176,7 @@ export function parseFiltersFromSearchParams(
   }
 
   const sort = readSingle(source, FILTER_PARAM_KEYS.sort);
-  if (sort && isStorefrontSort(sort)) {
+  if (sort && isSortOption(sort)) {
     filters.sort = sort;
   }
 
@@ -198,7 +198,7 @@ export function parseFiltersFromSearchParams(
  * values are omitted so the URL stays minimal.
  */
 export function buildSearchParamsFromFilters(
-  filters: Omit<StorefrontProductFilters, "categorySlug" | "categorySlugs">,
+  filters: Omit<ProductFilters, "categorySlug" | "categorySlugs">,
 ): URLSearchParams {
   const params = new URLSearchParams();
   const setMulti = (key: string, values?: readonly string[]) => {

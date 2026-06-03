@@ -12,7 +12,7 @@ import {
   LOYALTY_PROGRAM_NAME,
   orderPaymentToCheckoutId,
 } from "@store/shared";
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { PaymentInstructionsCard } from "@/app/checkout/_components/PaymentInstructionsCard";
 import {
   ArrowLeft,
@@ -31,9 +31,9 @@ import {
 import { Card } from "@/components/ui/Card";
 
 import type {
-  StorefrontOrder,
-  StorefrontOrderTimelineEntry,
-} from "@/lib/storefront/orderSerializer";
+  Order,
+  OrderTimelineEntry,
+} from "@/lib/core/orderSerializer";
 import type { OrderStatus } from "@store/db";
 
 const TONE: Record<
@@ -76,7 +76,7 @@ const TONE: Record<
 };
 
 interface OrderDetailProps {
-  order: StorefrontOrder;
+  order: Order;
 }
 
 export function OrderDetail({ order }: OrderDetailProps) {
@@ -169,7 +169,7 @@ export function OrderDetail({ order }: OrderDetailProps) {
   );
 }
 
-function StatusTimelinePanel({ order }: { order: StorefrontOrder }) {
+function StatusTimelinePanel({ order }: { order: Order }) {
   return (
     <Card className="overflow-hidden">
       <p className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-4 py-3 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)] md:px-5">
@@ -202,7 +202,7 @@ function TimelineRow({
   isLast,
   isCurrent,
 }: {
-  entry: StorefrontOrderTimelineEntry;
+  entry: OrderTimelineEntry;
   isLast: boolean;
   isCurrent: boolean;
 }) {
@@ -240,7 +240,7 @@ function TimelineRow({
   );
 }
 
-function ItemsCard({ order }: { order: StorefrontOrder }) {
+function ItemsCard({ order }: { order: Order }) {
   return (
     <Card className="overflow-hidden">
       <p className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-4 py-3 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)] md:px-5">
@@ -312,7 +312,7 @@ function SupportCard({ orderNumber }: { orderNumber: string }) {
   );
 }
 
-function SummaryCard({ order, paymentLabel }: { order: StorefrontOrder; paymentLabel?: string }) {
+function SummaryCard({ order, paymentLabel }: { order: Order; paymentLabel?: string }) {
   return (
     <Card className="overflow-hidden">
       <p className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-4 py-3 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)] md:px-5">
@@ -380,7 +380,7 @@ function Row({
 function AddressCard({
   address,
 }: {
-  address: NonNullable<StorefrontOrder["address"]>;
+  address: NonNullable<Order["address"]>;
 }) {
   return (
     <Card className="p-4 md:p-5">

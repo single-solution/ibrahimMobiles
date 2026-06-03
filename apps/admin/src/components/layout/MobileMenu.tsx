@@ -23,11 +23,11 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const pathname = usePathname() ?? "";
   const router = useRouter();
   const { data: session } = useSession();
-  const { siteName, storefrontUrl: configuredStorefrontUrl } = useStoreSettings();
+  const { siteName, publicSiteUrl: configuredStorefrontUrl } = useStoreSettings();
   const { can, isLoading } = useAdminPermissions();
   const user = session?.user;
   const brandShort = siteName.split(" ")[0];
-  const storefrontUrl = getPublicSiteUrl(configuredStorefrontUrl);
+  const publicSiteUrl = getPublicSiteUrl(configuredStorefrontUrl);
 
   async function handleLogout() {
     onClose();
@@ -106,7 +106,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 
       <div className="mt-3 border-t border-[var(--color-ink-100)] pt-3">
         <Link
-          href={storefrontUrl}
+          href={publicSiteUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex h-10 items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-[13px] font-medium text-[var(--color-ink-700)] active:bg-[var(--color-canvas-deep)]"

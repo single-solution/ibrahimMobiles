@@ -1,5 +1,5 @@
 /**
- * POST /api/storefront/chat/[id]/messages
+ * POST /api/chat/[id]/messages
  *
  * Customer sends a new message into an existing thread. Access is
  * gated by `resolveChatAccess` — only the signed-in owner or the
@@ -15,7 +15,7 @@
  *     sees it back in the active queue.
  */
 
-import { Inquiry, connectDB } from "@store/db";
+import { Inquiry as InquiryModel, connectDB } from "@store/db";
 import {
   badRequest,
   CHAT_MESSAGE_BODY_MAX,
@@ -36,7 +36,7 @@ import { inquiryStatusPatchAfterMessage } from "@store/shared";
 import { resolveChatAccess } from "@/lib/chat/access";
 import { claimAnonymousThreadIfNeeded } from "@/lib/chat/claimAnonymousThread";
 import { maybeReplyWithAssistant, reloadInquiry } from "@/lib/chat/assistant/maybeReply";
-import { toStorefrontThread } from "@/lib/chat/serializer";
+import { toThread } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
 
 interface RouteContext {
@@ -104,7 +104,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   try {
     const now = new Date();
     const inquiryId = access.inquiry._id;
-    await Inquiry.updateOne(
+    await InquiryModel.updateOne(
       { _id: inquiryId },
       {
         $push: {
@@ -129,7 +129,7 @@ export async function POST(request: Request, { params }: RouteContext) {
       },
     );
 
-    const refreshed = await Inquiry.findById(inquiryId).lean<InquiryLean>();
+    const refreshed = await InquiryModel.findById(inquiryId).lean<InquiryLean>();
     if (!refreshed) {
       return serverError("Thread vanished while posting your message.");
     }
@@ -141,7 +141,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     }
 
     const withAssistant = (await reloadInquiry(inquiryId)) ?? refreshed;
-    return created(toStorefrontThread(withAssistant));
+    return created(toThread(withAssistant));
   } catch (error) {
     logger.error({ error, inquiryId: id }, "Failed to post chat message");
     return serverError("Could not send your message. Please try again.");

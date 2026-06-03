@@ -2,41 +2,41 @@
  * Public storefront data layer.
  *
  * Pages and route handlers consume everything they need from this barrel
- * rather than reaching into `@/lib/storefront/queries` (or any model file)
+ * rather than reaching into `@/lib/core/queries` (or any model file)
  * directly — that keeps the public surface explicit and the implementation
  * details swappable.
  */
 
 export {
-  getStorefrontBrands,
-  getStorefrontBrandBySlug,
-  getStorefrontProducts,
-  getStorefrontProductsPage,
-  getStorefrontProductBySlug,
-  getStorefrontProductsOnOffer,
-  getStorefrontOffers,
-  getStorefrontCategories,
-  getStorefrontCategoryBySlug,
-  getStorefrontGrades,
+  getBrands,
+  getBrandBySlug,
+  getProducts,
+  getProductsPage,
+  getProductBySlug,
+  getProductsOnOffer,
+  getOffers,
+  getCategories,
+  getCategoryMetaBySlug,
+  getGrades,
   hasAnyProducts,
-} from "@/lib/storefront/queries";
+} from "@/lib/core/queries";
 
-export { getStorefrontFacets } from "@/lib/storefront/facets";
-export { getSearchHints } from "@/lib/storefront/hints";
+export { getFacets } from "@/lib/core/facets";
+export { getSearchHints } from "@/lib/core/hints";
 export type {
-  StorefrontAttributeFacet,
-  StorefrontFacetOption,
-} from "@/lib/storefront/facets";
+  AttributeFacet,
+  FacetOption,
+} from "@/lib/core/facets";
 
 export type {
-  StorefrontCategory,
-  StorefrontProductFilters,
-  StorefrontProductPage,
-  StorefrontSort,
-} from "@/lib/storefront/queries";
+  CategoryMeta,
+  ProductFilters,
+  ProductPage,
+  SortOption,
+} from "@/lib/core/queries";
 
 export {
   FILTER_PARAM_KEYS,
   parseFiltersFromSearchParams,
   buildSearchParamsFromFilters,
-} from "@/lib/storefront/filterParams";
+} from "@/lib/core/filterParams";

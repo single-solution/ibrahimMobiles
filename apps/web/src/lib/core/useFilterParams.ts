@@ -9,7 +9,7 @@
 
 import { useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { FILTER_PARAM_KEYS } from "@/lib/storefront/filterParams";
+import { FILTER_PARAM_KEYS } from "@/lib/core/filterParams";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 
 export function useFilterParams() {

@@ -1202,18 +1202,18 @@ html {
    pathname changes (`RouteTransition`). Query-only filter/sort updates
    skip this entirely. Root is frozen so header/footer/tab bar do not
    flash or slide with every URL tweak. */
-.storefront-main {
-  view-transition-name: storefront-main;
+.app-main {
+  view-transition-name: app-main;
 }
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none;
   }
-  ::view-transition-old(storefront-main) {
+  ::view-transition-old(app-main) {
     animation: route-vt-out var(--motion-route) var(--ease-out-quart) both;
   }
-  ::view-transition-new(storefront-main) {
+  ::view-transition-new(app-main) {
     animation: route-vt-in var(--motion-route) var(--ease-out-quart) both;
   }
 }

@@ -30,11 +30,11 @@ import { Card } from "@/components/ui/Card";
 import { ButtonLink } from "@/components/ui/Button";
 
 import { auth } from "@/lib/auth";
-import { getAccountOverview } from "@/lib/storefront/account";
+import { getAccountOverview } from "@/lib/core/account";
 
 import type {
-  StorefrontOrder,
-} from "@/lib/storefront/orderSerializer";
+  Order,
+} from "@/lib/core/orderSerializer";
 import type { OrderStatus } from "@store/db";
 import { SignOutButton } from "@/app/account/_components/SignOutButton";
 
@@ -369,7 +369,7 @@ function StatCard({ icon, label, value, href, accent }: StatCardProps) {
 }
 
 interface RecentOrderRowProps {
-  order: StorefrontOrder;
+  order: Order;
 }
 
 function RecentOrderRow({ order }: RecentOrderRowProps) {

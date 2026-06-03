@@ -11,34 +11,34 @@ import {
   type VisibilityContext,
 } from "@store/shared";
 import { toAttributeLabelSource } from "@/lib/catalog/attributeLabels";
-import { Attribute, connectDB, Product } from "@store/db";
+import { Attribute as AttributeModel, connectDB, Product as ProductModel } from "@store/db";
 
 import {
   buildTopLevelMatch,
   buildVariantElemMatch,
-  type StorefrontProductFilters,
-} from "@/lib/storefront/queries";
+  type ProductFilters,
+} from "@/lib/core/queries";
 import {
-  toStorefrontAttribute,
+  toAttribute,
   type AttributeLean,
-} from "@/lib/storefront/serializers";
+} from "@/lib/core/serializers";
 
-export interface StorefrontFacetOption {
+export interface FacetOption {
   value: string;
   label: string;
   count: number;
   backgroundColor?: string;
 }
 
-export interface StorefrontAttributeFacet {
+export interface AttributeFacet {
   slug: string;
   label: string;
   unit?: string;
-  options: StorefrontFacetOption[];
+  options: FacetOption[];
 }
 
 function filtersToVisibilityContext(
-  filters: StorefrontProductFilters,
+  filters: ProductFilters,
 ): VisibilityContext {
   const attributes: Record<string, string> = {};
   if (filters.attributes) {
@@ -56,7 +56,7 @@ function filtersToVisibilityContext(
   };
 }
 
-type AttributeDescriptor = ReturnType<typeof toStorefrontAttribute>;
+type AttributeDescriptor = ReturnType<typeof toAttribute>;
 
 function resolveFacetLabel(
   attribute: AttributeDescriptor,
@@ -78,22 +78,22 @@ function resolveFacetLabel(
  * current listing (same match as the product grid), not the full admin
  * template list.
  */
-export async function getStorefrontFacets(
-  filters: StorefrontProductFilters,
-): Promise<StorefrontAttributeFacet[]> {
+export async function getFacets(
+  filters: ProductFilters,
+): Promise<AttributeFacet[]> {
   if (!filters.categorySlug) {
     return [];
   }
 
   await connectDB();
 
-  const attributeDocs = await Attribute.find({
+  const attributeDocs = await AttributeModel.find({
     categorySlug: filters.categorySlug,
     isActive: true,
   })
     .lean<AttributeLean[]>();
 
-  const descriptors = attributeDocs.map(toStorefrontAttribute);
+  const descriptors = attributeDocs.map(toAttribute);
   const visibilityContext = filtersToVisibilityContext(filters);
   const visibleNodes = sortAttributesByVisibility(
     descriptors
@@ -125,7 +125,7 @@ export async function getStorefrontFacets(
     matchStage.variants = { $elemMatch: variantMatch };
   }
 
-  const variantRows = await Product.aggregate<{
+  const variantRows = await ProductModel.aggregate<{
     attributes: Record<string, string>;
     attributeDisplay?: Record<string, string>;
   }>([
@@ -179,7 +179,7 @@ export async function getStorefrontFacets(
   }
 
   return visible.map((attribute) => {
-    const options: StorefrontFacetOption[] = [];
+    const options: FacetOption[] = [];
     for (const [compound, count] of counts) {
       const [slug, value] = compound.split("\0");
       if (slug !== attribute.slug) {

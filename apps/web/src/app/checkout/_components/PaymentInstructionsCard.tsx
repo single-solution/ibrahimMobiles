@@ -11,7 +11,7 @@ import {
   type PaymentMethodId,
 } from "@store/shared";
 import { Card } from "@/components/ui/Card";
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 interface PaymentInstructionsCardProps {
   payment: OrderPaymentMethod | PaymentMethodId;

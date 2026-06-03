@@ -5,7 +5,7 @@ import {
   type AttributeDescriptor,
   type GradeDescriptor,
   type Product,
-  type StorefrontVariant,
+  type Variant,
 } from "@store/shared";
 
 import { toAttributeLabelSource } from "@/lib/catalog/attributeLabels";
@@ -15,7 +15,7 @@ import {
   GRADE_DIMENSION_KEY,
 } from "@/lib/catalog/pdpSelection";
 
-export const EMPTY_VARIANT: StorefrontVariant = {
+export const EMPTY_VARIANT: Variant = {
   id: "",
   gradeSlug: "",
   priceRupees: 0,
@@ -94,7 +94,7 @@ export function buildDimensions(
 }
 
 function collectGradeOptions(
-  variants: StorefrontVariant[],
+  variants: Variant[],
   grades: GradeDescriptor[],
 ): DimensionOption[] {
   const usedSlugs = new Set<string>();
@@ -124,7 +124,7 @@ function collectGradeOptions(
 }
 
 function collectAttributeOptions(
-  variants: StorefrontVariant[],
+  variants: Variant[],
   attribute: AttributeDescriptor,
 ): DimensionOption[] {
   const seen = new Map<string, DimensionOption>();
@@ -155,7 +155,7 @@ type OptionStateValue = "selected" | "available" | "unavailable";
 export function computeOptionState(
   dimensionKey: string,
   optionKey: string,
-  variants: StorefrontVariant[],
+  variants: Variant[],
   currentSelection: Record<string, string>,
 ): OptionStateValue {
   if (currentSelection[dimensionKey] === optionKey) {
@@ -170,7 +170,7 @@ export function computeOptionState(
 }
 
 export function describeSelection(
-  variant: StorefrontVariant,
+  variant: Variant,
   attributes: AttributeDescriptor[],
 ): string {
   const parts: string[] = [];

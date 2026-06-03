@@ -1,28 +1,28 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Oswald } from "next/font/google";
 import { Footer } from "@/components/layout/Footer";
-import { StorefrontChrome } from "@/components/layout/StorefrontChrome";
+import { AppShell } from "@/components/layout/AppShell";
 import {
   MarketingPixels,
   MarketingPixelsNoScript,
 } from "@/app/_components/marketing/MarketingPixels";
-import { getStorefrontBaseUrl } from "@/lib/storefront/baseUrl";
+import { getBaseUrl } from "@/lib/core/baseUrl";
 import {
-  getStorefrontAttributesCached,
-  getStorefrontCategoriesCached,
-  getStorefrontGradesCached,
+  getAttributesCached,
+  getCategoriesCached,
+  getGradesCached,
   getStoreSettingsCached,
-} from "@/lib/storefront/cached";
+} from "@/lib/core/cached";
 import { getChatSettings } from "@/lib/chat/chatSettings";
 import { ChatSettingsProvider } from "@/lib/chat/chatSettingsContext";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
 import { getGoogleSiteVerification } from "@/lib/seo/googleVerification";
-import { StoreSettingsProvider } from "@/lib/storefront/storeSettingsContext";
+import { StoreSettingsProvider } from "@/lib/core/storeSettingsContext";
 import {
-  StorefrontReferenceProvider,
-  type StorefrontCategoryReference,
-  type StorefrontReferenceData,
-} from "@/lib/storefront/storefrontReferenceContext";
+  ReferenceProvider,
+  type CategoryReference,
+  type ReferenceData,
+} from "@/lib/core/storefrontReferenceContext";
 import "./globals.css";
 
 const bricolageGrotesque = Bricolage_Grotesque({
@@ -38,7 +38,7 @@ const oswald = Oswald({
   display: "swap",
 });
 
-const STOREFRONT_BASE_URL = getStorefrontBaseUrl();
+const STOREFRONT_BASE_URL = getBaseUrl();
 
 export async function generateMetadata(): Promise<Metadata> {
   const [
@@ -124,16 +124,16 @@ interface RootLayoutProps {
   children: React.ReactNode;
 }
 
-async function loadStorefrontReference(): Promise<StorefrontReferenceData> {
+async function loadStorefrontReference(): Promise<ReferenceData> {
   // Both reads are short, fully cached, and tag-revalidated by admin
   // mutations. Fetch in parallel — they're independent.
   try {
     const [grades, attributes, rawCategories] = await Promise.all([
-      getStorefrontGradesCached(),
-      getStorefrontAttributesCached(),
-      getStorefrontCategoriesCached(),
+      getGradesCached(),
+      getAttributesCached(),
+      getCategoriesCached(),
     ]);
-    const categories: StorefrontCategoryReference[] = rawCategories.map(
+    const categories: CategoryReference[] = rawCategories.map(
       (category) => ({
         slug: category.slug,
         label: category.label,
@@ -246,11 +246,11 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <MarketingPixelsNoScript googleTagManagerId={settings.googleTagManagerId} />
         <StoreSettingsProvider value={settings}>
           <ChatSettingsProvider value={chatSettings}>
-            <StorefrontReferenceProvider value={reference}>
-              <StorefrontChrome footer={<Footer settings={settings} />}>
+            <ReferenceProvider value={reference}>
+              <AppShell footer={<Footer settings={settings} />}>
                 {children}
-              </StorefrontChrome>
-            </StorefrontReferenceProvider>
+              </AppShell>
+            </ReferenceProvider>
           </ChatSettingsProvider>
         </StoreSettingsProvider>
       </body>

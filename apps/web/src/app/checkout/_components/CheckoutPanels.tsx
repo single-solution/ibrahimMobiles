@@ -31,7 +31,7 @@ import { PhoneOtpForm } from "@/app/account/_components/PhoneOtpForm";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 export type DeliveryMethod = "pickup" | "delivery";
 export type PaymentMethodId = "bank" | "easypaisa" | "jazzcash" | "cod";

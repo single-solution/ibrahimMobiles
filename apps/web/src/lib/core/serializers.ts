@@ -2,7 +2,7 @@
  * DB → public storefront shape converters.
  *
  * Every component in the web app imports the public catalog types
- * (`Brand`, `Product`, `StorefrontVariant`, `Offer`, `GradeDescriptor`)
+ * (`Brand`, `Product`, `Variant`, `Offer`, `GradeDescriptor`)
  * from `@store/shared`. This file is the bridge — query helpers in this
  * folder return those shapes and only those shapes.
  *
@@ -26,11 +26,11 @@ import type {
 } from "@store/db";
 import type {
   AttributeDescriptor,
-  Brand as StorefrontBrand,
+  Brand,
   GradeDescriptor,
-  Offer as StorefrontOffer,
-  Product as StorefrontProduct,
-  StorefrontVariant,
+  Offer,
+  Product,
+  Variant,
   StoredImage,
 } from "@store/shared";
 import type { StructuredContent } from "@store/shared";
@@ -74,10 +74,10 @@ export type AttributeLean = WithTimestamps<AttributeAttributes> & {
  * Brand → public Brand. `productCount` is supplied by the caller (we
  * compute it via a single aggregation per page render, not per-brand).
  */
-export function toStorefrontBrand(
+export function toBrand(
   brand: BrandLean,
   productCount: number,
-): StorefrontBrand {
+): Brand {
   return {
     slug: asString(brand.slug),
     name: asString(brand.name),
@@ -86,7 +86,7 @@ export function toStorefrontBrand(
   };
 }
 
-export function toStorefrontAttribute(
+export function toAttribute(
   attribute: AttributeLean,
 ): AttributeDescriptor {
   return {
@@ -153,7 +153,7 @@ function asStoredImageArray(raw: unknown): StoredImage[] {
     .filter((image): image is StoredImage => image !== null);
 }
 
-function toStorefrontVariant(variant: VariantAttributes): StorefrontVariant {
+function toVariant(variant: VariantAttributes): Variant {
   return {
     id: objectIdString(variant._id),
     gradeSlug: asString(variant.gradeSlug),
@@ -173,10 +173,10 @@ function toStorefrontVariant(variant: VariantAttributes): StorefrontVariant {
  * silently drops such rows rather than ship a card with an empty brand
  * line. Admin tooling surfaces these dangling rows separately.
  */
-export function toStorefrontProduct(
+export function toProduct(
   product: ProductLean,
   brandsByCategoryAndSlug: Map<string, { slug: string; name: string }>,
-): StorefrontProduct | null {
+): Product | null {
   const categorySlug = asString(product.categorySlug);
   const brand = brandsByCategoryAndSlug.get(
     `${categorySlug}:${asString(product.brandSlug)}`,
@@ -196,12 +196,12 @@ export function toStorefrontProduct(
     categorySlug,
     isFeatured: product.isFeatured ?? false,
     images,
-    variants: asArray<VariantAttributes>(product.variants).map(toStorefrontVariant),
+    variants: asArray<VariantAttributes>(product.variants).map(toVariant),
     seo: product.seo,
   };
 }
 
-export function toStorefrontOffer(offer: OfferLean): StorefrontOffer {
+export function toOffer(offer: OfferLean): Offer {
   const description = asString(offer.description);
   const content = normalizeStructuredContent(offer.content, description);
   return {
@@ -223,7 +223,7 @@ export function toStorefrontOffer(offer: OfferLean): StorefrontOffer {
   };
 }
 
-export function toStorefrontGrade(grade: GradeLean): GradeDescriptor {
+export function toGrade(grade: GradeLean): GradeDescriptor {
   const notes = asString(grade.notes);
   const content = normalizeStructuredContent(grade.content, notes);
   return {

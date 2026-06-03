@@ -19,13 +19,13 @@
 
 import { logger } from "@store/shared";
 
-import type { StorefrontCategory } from "@/lib/storefront";
+import type { CategoryMeta } from "@/lib/core";
 import {
   getHomeHeroProductsCached,
-  getStorefrontCategoriesCached,
-} from "@/lib/storefront/cached";
+  getCategoriesCached,
+} from "@/lib/core/cached";
 import type {
-  Product as StorefrontProduct,
+  Product,
   StructuredContent,
 } from "@store/shared";
 
@@ -38,7 +38,7 @@ const HERO_PRODUCTS_LIMIT = 12;
 
 export interface HomeHeroData {
   /** Latest in-stock products feeding the hero name band. */
-  heroProducts: StorefrontProduct[];
+  heroProducts: Product[];
 }
 
 export interface HomePageCategory {
@@ -46,8 +46,8 @@ export interface HomePageCategory {
   slug: string;
   label: string;
   description: string;
-  icon: StorefrontCategory["icon"];
-  iconNode: StorefrontCategory["iconNode"];
+  icon: CategoryMeta["icon"];
+  iconNode: CategoryMeta["iconNode"];
   isActive: boolean;
   sortOrder: number;
   /** Optional admin-authored structured copy (summary + bullet rows). */
@@ -86,7 +86,7 @@ export async function getHomeHeroData(): Promise<HomeHeroData> {
  */
 export async function loadHomeCategoryTiles(): Promise<HomePageCategory[]> {
   try {
-    const liveCategories = await getStorefrontCategoriesCached();
+    const liveCategories = await getCategoriesCached();
     return liveCategories
       .filter((category) => category.isActive)
       .map((category) => ({

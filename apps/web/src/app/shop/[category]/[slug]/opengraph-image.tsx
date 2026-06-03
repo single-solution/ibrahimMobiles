@@ -15,10 +15,10 @@
 
 import { ImageResponse } from "next/og";
 
-import { connectDB, Brand, Category, Grade } from "@store/db";
+import { connectDB, Brand as BrandModel, Category as CategoryModel, Grade as GradeModel } from "@store/db";
 import { getDefaultVariant } from "@/lib/productSummary";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
-import { getStorefrontProductBySlug } from "@/lib/storefront/queries";
+import { getProductBySlug } from "@/lib/core/queries";
 
 export const runtime = "nodejs";
 export const contentType = "image/png";
@@ -44,16 +44,16 @@ interface PdpOgData {
 async function loadPdpOgData(slug: string): Promise<PdpOgData | null> {
   try {
     await connectDB();
-    const product = await getStorefrontProductBySlug(slug);
+    const product = await getProductBySlug(slug);
     if (!product) return null;
     const variant = getDefaultVariant(product);
     const [brand, category, grade, settings] = await Promise.all([
-      Brand.findOne({
+      BrandModel.findOne({
         slug: product.brandSlug,
         categorySlugs: product.categorySlug,
       }).lean<{ name?: string } | null>(),
-      Category.findOne({ slug: product.categorySlug }).lean<{ label?: string } | null>(),
-      Grade.findOne({
+      CategoryModel.findOne({ slug: product.categorySlug }).lean<{ label?: string } | null>(),
+      GradeModel.findOne({
         categorySlug: product.categorySlug,
         slug: variant.gradeSlug,
       }).lean<{ label?: string; color?: string } | null>(),

@@ -11,9 +11,9 @@ import {
 import { useCart } from "@/lib/cart/useCart";
 import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
 import { evaluateOffers } from "@store/shared";
-import { useStoreSettings } from "@/lib/storefront/storeSettingsContext";
+import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
-import type { AccountAddress, AccountCustomer } from "@/lib/storefront/account";
+import type { AccountAddress, AccountCustomer } from "@/lib/core/account";
 import {
   CheckoutHeader,
   CheckoutSignInPanel,
@@ -163,7 +163,7 @@ export function Checkout({ customer }: CheckoutProps) {
       return;
     }
     try {
-      const response = await fetch("/api/storefront/loyalty-balance", {
+      const response = await fetch("/api/loyalty-balance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phoneNumber: lookupPhone }),
@@ -196,7 +196,7 @@ export function Checkout({ customer }: CheckoutProps) {
     setErrorMessage(null);
     setIsPlacing(true);
     try {
-      const response = await fetch("/api/storefront/orders", {
+      const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
