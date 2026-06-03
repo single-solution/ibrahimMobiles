@@ -11,12 +11,13 @@ import {
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Boxes, EyeOff, MoreHorizontal, Pencil, Star, Trash2 } from "lucide-react";
+import { Boxes, Check, Copy, ExternalLink, EyeOff, MoreHorizontal, Pencil, Star, Trash2 } from "lucide-react";
 import {
   classNames,
   compareAlphabetically,
   emptyStructuredContent,
   formatPrice,
+  seoScoreTone,
 } from "@store/shared";
 
 import { CatalogSearchField } from "@/components/shared/catalogWorkspaceUi";
@@ -28,6 +29,7 @@ import {
 } from "@/components/shared/workspaceUi";
 import { useAdminPermissions } from "@/lib/permissionsContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Toggle } from "@/components/ui/Toggle";
 import { FilterDropdown, type FilterOption } from "@/components/ui/FilterDropdown";
 import { LucideIconRenderer } from "@/components/icons/LucideIconRenderer";
 import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
@@ -45,6 +47,9 @@ import {
   useUrlParams,
 } from "@/lib/url/useUrlParams";
 import type { AdminCategory, AdminProductSummary } from "@/types/models";
+
+import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
+import { useStoreSettings } from "@/lib/storeSettingsContext";
 
 import { ProductCreateWizard } from "./ProductCreateWizard";
 
@@ -252,6 +257,8 @@ export function ProductsCatalog(props: ProductsCatalogProps) {
 }
 
 function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
+  const store = useStoreSettings();
+  const publicUrl = getPublicSiteUrl(store.publicSiteUrl);
   const router = useRouter();
   const { searchParams, replace } = useUrlParams();
   const toast = useToast();
@@ -660,41 +667,71 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       sortable: true,
       sortAccessor: (product) => product.name,
       cell: (product) => (
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-3">
           <ProductThumb product={product} />
-          <span
-            className="min-w-0 flex-1 truncate text-xs font-semibold text-[var(--color-ink-900)]"
-            title={product.name || "Untitled product"}
-          >
-            {product.name || "Untitled product"}
-          </span>
-          {product.isFeatured ? (
-            <ProductFlagBadge label="Featured" tone="dark">
-              <Star size={10} strokeWidth={2.4} />
-            </ProductFlagBadge>
-          ) : null}
-          {!product.isActive ? (
-            <ProductFlagBadge label="Disabled on storefront" tone="warn">
-              <EyeOff size={10} strokeWidth={2.4} />
-            </ProductFlagBadge>
-          ) : null}
+          <div className="flex min-w-0 flex-col py-1">
+            <div className="flex items-center gap-2">
+              <span
+                className="truncate text-xs font-semibold text-[var(--color-ink-900)]"
+                title={product.name || "Untitled product"}
+              >
+                {product.name || "Untitled product"}
+              </span>
+              {product.isFeatured ? (
+                <ProductFlagBadge label="Featured" tone="dark">
+                  <Star size={10} strokeWidth={2.4} />
+                </ProductFlagBadge>
+              ) : null}
+              {!product.isActive ? (
+                <ProductFlagBadge label="Disabled on storefront" tone="warn">
+                  <EyeOff size={10} strokeWidth={2.4} />
+                </ProductFlagBadge>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="truncate text-[11px] text-[var(--color-ink-500)]">
+                {product.brand.name || product.brand.slug || "No Brand"} • {product.categorySlug}
+              </span>
+              {product.seoScore !== undefined && (
+                <span
+                  className={classNames(
+                    "rounded-full px-1.5 py-0.5 text-[9px] font-bold tabular-nums whitespace-nowrap shrink-0",
+                    seoScoreTone(product.seoScore) === "success"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : seoScoreTone(product.seoScore) === "warn"
+                        ? "bg-amber-100 text-amber-800"
+                        : "bg-rose-100 text-rose-800",
+                  )}
+                  title="SEO Score"
+                >
+                  SEO: {product.seoScore}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       ),
     },
     {
-      id: "brand",
-      header: "Brand",
+      id: "grades",
+      header: "Grades",
       hideOnMobile: true,
-      width: "11rem",
-      sortable: true,
-      sortAccessor: (product) => product.brand.name ?? product.brand.slug ?? "",
+      width: "12rem",
       cell: (product) => (
-        <span
-          className="block truncate text-xs text-[var(--color-ink-700)]"
-          title={product.brand.name || product.brand.slug || ""}
-        >
-          {product.brand.name || product.brand.slug || "—"}
-        </span>
+        <div className="flex flex-wrap gap-1">
+          {product.gradeSlugs.length === 0 ? (
+            <span className="text-[11px] text-[var(--color-ink-400)]">—</span>
+          ) : (
+            product.gradeSlugs.map((grade) => (
+              <span
+                key={grade}
+                className="inline-flex items-center rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-600)] shadow-sm"
+              >
+                {grade}
+              </span>
+            ))
+          )}
+        </div>
       ),
     },
     {
@@ -714,63 +751,105 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     },
     {
       id: "price",
-      header: "From",
+      header: "Price",
       align: "right",
-      width: "7rem",
+      width: "9rem",
       sortable: true,
       sortAccessor: (product) => product.minPriceRupees ?? 0,
-      cell: (product) => (
-        <span className="whitespace-nowrap text-xs font-semibold tabular-nums text-[var(--color-ink-900)]">
-          {product.minPriceRupees !== undefined
-            ? formatPrice(product.minPriceRupees)
-            : "—"}
-        </span>
-      ),
+      cell: (product) => {
+        if (product.minPriceRupees === undefined) {
+          return <span className="whitespace-nowrap text-xs font-semibold text-[var(--color-ink-900)]">—</span>;
+        }
+        
+        const hasRange = product.maxPriceRupees !== undefined && product.maxPriceRupees > product.minPriceRupees;
+        
+        return (
+          <div className="flex flex-col items-end">
+            <span className="whitespace-nowrap text-xs font-semibold tabular-nums text-[var(--color-ink-900)]">
+              {formatPrice(product.minPriceRupees)}
+            </span>
+            {hasRange && (
+              <span className="whitespace-nowrap text-[10px] tabular-nums text-[var(--color-ink-500)]">
+                – {formatPrice(product.maxPriceRupees!)}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       id: "storefront",
       header: "Storefront",
       hideOnMobile: true,
-      width: "6.5rem",
+      align: "center",
+      width: "5.5rem",
       cell: (product) => (
-        <ProductVisibilityToggle
-          productId={product.id}
-          productName={product.name}
-          isActive={product.isActive}
-          onUpdated={() => router.refresh()}
-        />
+        <div className="flex justify-center">
+          <ProductVisibilityToggle
+            productId={product.id}
+            productName={product.name}
+            isActive={product.isActive}
+            onUpdated={() => router.refresh()}
+          />
+        </div>
       ),
     },
     {
       id: "actions",
-      header: "",
+      header: "Actions",
       align: "right",
-      cell: (product) => (
-        <div className="flex flex-nowrap whitespace-nowrap justify-end gap-1.5">
-          {canUpdate && (
+      cell: (product) => {
+        const productUrl = `${publicUrl}/shop/p/${product.slug}`;
+        
+        return (
+          <div className="flex flex-nowrap whitespace-nowrap justify-end gap-1.5">
             <button
               type="button"
-              onClick={() => openEdit(product.id)}
-              title="Edit details"
+              onClick={() => {
+                void navigator.clipboard.writeText(productUrl);
+                toast.success("Link copied to clipboard");
+              }}
+              title="Copy storefront link"
               className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]"
             >
-              <Pencil size={13} aria-hidden />
-              <span className="hidden xl:inline">Edit</span>
+              <Copy size={13} aria-hidden />
+              <span className="hidden min-[1200px]:inline">Copy</span>
             </button>
-          )}
-          {canDelete && (
-            <button
-              type="button"
-              onClick={() => openDeleteConfirm(product)}
-              title="Delete product"
-              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-rose-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-rose-700)] transition-colors hover:bg-[var(--color-rose-50)]"
+            <a
+              href={productUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open in storefront"
+              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]"
             >
-              <Trash2 size={13} aria-hidden />
-              <span className="hidden xl:inline">Delete</span>
-            </button>
-          )}
-        </div>
-      ),
+              <ExternalLink size={13} aria-hidden />
+              <span className="hidden min-[1200px]:inline">View</span>
+            </a>
+            {canUpdate && (
+              <button
+                type="button"
+                onClick={() => openEdit(product.id)}
+                title="Edit details"
+                className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]"
+              >
+                <Pencil size={13} aria-hidden />
+                <span className="hidden min-[1200px]:inline">Edit</span>
+              </button>
+            )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => openDeleteConfirm(product)}
+                title="Delete product"
+                className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-rose-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-rose-700)] transition-colors hover:bg-[var(--color-rose-50)]"
+              >
+                <Trash2 size={13} aria-hidden />
+                <span className="hidden min-[1200px]:inline">Delete</span>
+              </button>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
@@ -1139,30 +1218,16 @@ function ProductVisibilityToggle({
   }
 
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={isActive}
+    <Toggle
+      checked={isActive}
+      onCheckedChange={() => void handleToggle()}
+      isLoading={saving}
       aria-label={
         isActive
           ? `Disable ${productName} on storefront`
           : `Enable ${productName} on storefront`
       }
-      disabled={saving}
-      onClick={() => void handleToggle()}
-      className={classNames(
-        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
-        saving ? "cursor-wait opacity-60" : "cursor-pointer",
-        isActive ? "bg-[var(--color-ink-900)]" : "bg-[var(--color-ink-200)]",
-      )}
-    >
-      <span
-        className={classNames(
-          "absolute size-4 rounded-full bg-white shadow-[var(--shadow-sm)] transition-transform",
-          isActive ? "translate-x-[18px]" : "translate-x-0.5",
-        )}
-      />
-    </button>
+    />
   );
 }
 
@@ -1217,13 +1282,6 @@ function ProductFlagBadge({
   );
 }
 
-const STOCK_DOT_TONE: Record<VariantStockRollup, string> = {
-  no_variants: "bg-[var(--color-ink-300)]",
-  all_out_of_stock: "bg-rose-500",
-  partial_stock: "bg-amber-500",
-  fully_stocked: "bg-emerald-500",
-};
-
 function ProductStockCell({ product }: { product: AdminProductSummary }) {
   if (product.variantCount === 0) {
     return (
@@ -1232,16 +1290,14 @@ function ProductStockCell({ product }: { product: AdminProductSummary }) {
       </span>
     );
   }
-  const rollup = variantStockRollup(product);
   return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold tabular-nums text-[var(--color-ink-900)]">
-      <span
-        aria-hidden
-        className={classNames("size-1.5 shrink-0 rounded-full", STOCK_DOT_TONE[rollup])}
-      />
-      {product.inStockCount}
-      <span className="font-normal text-[var(--color-ink-400)]">/</span>
-      {product.variantCount}
-    </span>
+    <div className="flex flex-col">
+      <span className="whitespace-nowrap text-xs font-semibold tabular-nums text-[var(--color-ink-900)]">
+        {product.totalStockQuantity} items
+      </span>
+      <span className="whitespace-nowrap text-[10px] text-[var(--color-ink-500)]">
+        in {product.inStockCount} of {product.variantCount} variants
+      </span>
+    </div>
   );
 }

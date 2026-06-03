@@ -19,6 +19,8 @@ export interface SeoMeta {
   ogImageUrl?: string;
   /** SEO checklist + Rank Math-style hint computations. */
   focusKeyword?: string;
+  /** Cached SEO score out of 100 to avoid expensive runtime calculations on list views. */
+  score?: number;
   /** Adds `noindex` to the robots meta. */
   noindex?: boolean;
   /** Adds `nofollow` to the robots meta. */

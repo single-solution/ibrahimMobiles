@@ -8,6 +8,8 @@ import type { UserRole } from "@store/db";
 
 import { formatRole, getInitials } from "@/lib/initials";
 
+import { Popover } from "@/components/ui/Popover";
+
 const ROLE_LABEL: Record<UserRole, string> = {
   owner: "Owner",
   business_manager: "Business manager",
@@ -97,60 +99,57 @@ export function UserMenu({
         />
       </button>
 
-      {open ? (
-        <div
-          role="menu"
-          /* Concentric: inner full-pill menu rows live behind p-1 gutter
-             — pill geometry makes the formula a soft target; --radius-xl
-             keeps the popover visually proportional to its dense rows. */
-          className="animate-popover-in absolute right-0 top-[calc(100%+6px)] z-50 w-56 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1.5 shadow-[var(--shadow-lg)]"
-        >
-          <div className="border-b border-[var(--color-ink-100)] px-3 py-2">
-            <p className="truncate text-[11px] font-semibold text-[var(--color-ink-900)]">
-              {displayName}
-            </p>
-            <p className="truncate text-[10px] text-[var(--color-ink-500)]">
-              {email || "No email"}
-            </p>
-          </div>
-
-          <div className="p-1">
-            <Link
-              href="/account"
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className="flex h-9 items-center gap-2 rounded-[var(--radius-full)] px-2.5 text-[11px] font-medium text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
-            >
-              <User size={14} className="shrink-0" aria-hidden />
-              Profile
-            </Link>
-            <Link
-              href="/account#password"
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className="flex h-9 items-center gap-2 rounded-[var(--radius-full)] px-2.5 text-[11px] font-medium text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
-            >
-              <KeyRound size={14} className="shrink-0" aria-hidden />
-              Password
-            </Link>
-          </div>
-
-          <div className="border-t border-[var(--color-ink-100)] p-1">
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                onLogout();
-              }}
-              className="flex h-9 w-full items-center gap-2 rounded-[var(--radius-full)] px-2.5 text-[11px] font-semibold text-[var(--color-danger-700)] transition-colors hover:bg-[var(--color-danger-50)]"
-            >
-              <LogOut size={14} className="shrink-0" aria-hidden />
-              Log out
-            </button>
-          </div>
+      <Popover
+        isOpen={open}
+        anchorRef={rootRef}
+        role="menu"
+        className="animate-popover-in w-56 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1.5 shadow-[var(--shadow-lg)]"
+      >
+        <div className="border-b border-[var(--color-ink-100)] px-3 py-2">
+          <p className="truncate text-[11px] font-semibold text-[var(--color-ink-900)]">
+            {displayName}
+          </p>
+          <p className="truncate text-[10px] text-[var(--color-ink-500)]">
+            {email || "No email"}
+          </p>
         </div>
-      ) : null}
+
+        <div className="p-1">
+          <Link
+            href="/account"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex h-9 items-center gap-2 rounded-[var(--radius-full)] px-2.5 text-[11px] font-medium text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
+          >
+            <User size={14} className="shrink-0" aria-hidden />
+            Profile
+          </Link>
+          <Link
+            href="/account#password"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex h-9 items-center gap-2 rounded-[var(--radius-full)] px-2.5 text-[11px] font-medium text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]"
+          >
+            <KeyRound size={14} className="shrink-0" aria-hidden />
+            Password
+          </Link>
+        </div>
+
+        <div className="border-t border-[var(--color-ink-100)] p-1">
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onLogout();
+            }}
+            className="flex h-9 w-full items-center gap-2 rounded-[var(--radius-full)] px-2.5 text-[11px] font-semibold text-[var(--color-danger-700)] transition-colors hover:bg-[var(--color-danger-50)]"
+          >
+            <LogOut size={14} className="shrink-0" aria-hidden />
+            Log out
+          </button>
+        </div>
+      </Popover>
     </div>
   );
 }

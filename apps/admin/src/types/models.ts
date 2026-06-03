@@ -123,7 +123,9 @@ export interface AdminProductSummary {
   isArchived: boolean;
   variantCount: number;
   inStockCount: number;
+  totalStockQuantity: number;
   minPriceRupees?: number;
+  maxPriceRupees?: number;
   /** First product image, or `null` when the gallery is empty. */
   heroImage: StoredImage | null;
   /** Distinct grade slugs across the product's variants. Powers the admin
@@ -131,6 +133,8 @@ export interface AdminProductSummary {
   gradeSlugs: string[];
   /** True when the product gallery has at least one image. */
   hasImages: boolean;
+  seo?: SeoMeta;
+  seoScore?: number;
   createdAt: string;
   updatedAt: string;
 }

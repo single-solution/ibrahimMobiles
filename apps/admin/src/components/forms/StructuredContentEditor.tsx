@@ -245,6 +245,7 @@ function InlineIconPicker({
   const [query, setQuery] = useState("");
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsHydrated(true);
   }, []);
 

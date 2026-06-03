@@ -20,7 +20,8 @@ import type { AdminProduct } from "@/types/models";
 
 import { collectProductImageErrors } from "./productFormState";
 import { Stepper } from "@/components/ui/Stepper";
-import { WizardFieldError, WizardSection } from "./productWizardUi";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { CategoryOptionButton, WizardFieldError, WizardSection } from "./productWizardUi";
 import { ProductWizardStep2 } from "./ProductWizardStep2";
 
 interface ProductEditDrawerProps {
@@ -43,7 +44,10 @@ export function ProductEditDrawer({
   const [product, setProduct] = useState<AdminProduct | null>(null);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
+  const [categorySlug, setCategorySlug] = useState("");
+  const [pendingCategorySlug, setPendingCategorySlug] = useState<string | null>(null);
   const [brandSlug, setBrandSlug] = useState("");
+  const [pendingBrandSlug, setPendingBrandSlug] = useState<string | null>(null);
   const [seo, setSeo] = useState<SeoMeta>({});
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [imagesError, setImagesError] = useState<string | null>(null);
@@ -53,14 +57,14 @@ export function ProductEditDrawer({
 
   const category = useMemo(
     () =>
-      product
-        ? catalog.categories.find((row) => row.slug === product.categorySlug) ?? null
+      categorySlug
+        ? catalog.categories.find((row) => row.slug === categorySlug) ?? null
         : null,
-    [catalog.categories, product],
+    [catalog.categories, categorySlug],
   );
 
-  const brands = product
-    ? (catalog.brandsByCategory[product.categorySlug] ?? [])
+  const brands = categorySlug
+    ? (catalog.brandsByCategory[categorySlug] ?? [])
     : [];
 
   useEffect(() => {
@@ -76,6 +80,7 @@ export function ProductEditDrawer({
         if (cancelled) return;
         setProduct(loaded);
         setName(loaded.name);
+        setCategorySlug(loaded.categorySlug);
         setBrandSlug(loaded.brand.slug);
         setSeo(loaded.seo ?? {});
         setImages((loaded.images ?? []) as GalleryImage[]);
@@ -127,7 +132,7 @@ export function ProductEditDrawer({
       // mismatched state.
       await apiFetch<AdminProduct>(`/api/products/${product.id}`, {
         method: "PUT",
-        json: { name: trimmed, brandSlug, seo },
+        json: { name: trimmed, categorySlug, brandSlug, seo },
       });
       await apiFetch<AdminProduct>(`/api/products/${product.id}/images`, {
         method: "PUT",
@@ -255,6 +260,30 @@ export function ProductEditDrawer({
                 <div className="flex flex-col gap-5">
                   {step === 1 && (
                     <>
+                      <WizardSection title="Category">
+                        <div className="flex flex-wrap gap-1.5">
+                          {catalog.categories.map((c) => (
+                            <CategoryOptionButton
+                              key={c.id}
+                              category={c}
+                              isSelected={categorySlug === c.slug}
+                              onSelect={() => {
+                                if (categorySlug !== c.slug) {
+                                  if (categorySlug && product.categorySlug === categorySlug) {
+                                    setPendingCategorySlug(c.slug);
+                                  } else {
+                                    setCategorySlug(c.slug);
+                                    if (!catalog.brandsByCategory[c.slug]?.some(b => b.slug === brandSlug)) {
+                                      setBrandSlug("");
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </WizardSection>
+
                       <WizardSection title="Details">
                 <label className="flex flex-col gap-1">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
@@ -271,12 +300,6 @@ export function ProductEditDrawer({
                     className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[15px] placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:outline-none"
                   />
                 </label>
-                <p className="mt-2 text-[11.5px] text-[var(--color-ink-500)]">
-                  Category:{" "}
-                  <span className="font-semibold text-[var(--color-ink-800)]">
-                    {category?.label ?? product.categorySlug}
-                  </span>
-                </p>
               </WizardSection>
 
               <WizardSection title="Brand">
@@ -285,7 +308,15 @@ export function ProductEditDrawer({
                     <button
                       key={brand.id}
                       type="button"
-                      onClick={() => setBrandSlug(brand.slug)}
+                      onClick={() => {
+                        if (brandSlug !== brand.slug) {
+                          if (brandSlug && product.brand.slug === brandSlug) {
+                            setPendingBrandSlug(brand.slug);
+                          } else {
+                            setBrandSlug(brand.slug);
+                          }
+                        }
+                      }}
                       className={
                         "rounded-full border px-2.5 py-1 text-[13px] font-semibold transition " +
                         (brandSlug === brand.slug
@@ -378,6 +409,39 @@ export function ProductEditDrawer({
           )}
         </>
       ) : null}
+
+      <ConfirmDialog
+        isOpen={pendingCategorySlug !== null}
+        title="Change Category"
+        message="Changing the category will reset the product's variants and might unselect the brand if it does not belong to the new category. Are you sure you want to proceed?"
+        confirmLabel="Change category"
+        tone="danger"
+        onConfirm={() => {
+          if (pendingCategorySlug) {
+            setCategorySlug(pendingCategorySlug);
+            if (!catalog.brandsByCategory[pendingCategorySlug]?.some(b => b.slug === brandSlug)) {
+              setBrandSlug("");
+            }
+          }
+          setPendingCategorySlug(null);
+        }}
+        onCancel={() => setPendingCategorySlug(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={pendingBrandSlug !== null}
+        title="Change Brand"
+        message="Are you sure you want to change the brand of this product?"
+        confirmLabel="Change brand"
+        tone="danger"
+        onConfirm={() => {
+          if (pendingBrandSlug) {
+            setBrandSlug(pendingBrandSlug);
+          }
+          setPendingBrandSlug(null);
+        }}
+        onCancel={() => setPendingBrandSlug(null)}
+      />
     </Drawer>
   );
 }

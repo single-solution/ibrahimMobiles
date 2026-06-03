@@ -91,6 +91,7 @@ export function RouteTransition({ children }: RouteTransitionProps) {
     if (contentKey === snapshot.contentKey) {
       // If the URL hasn't changed, but children did (e.g. initial hydration or HMR),
       // we need to update the node without a transition so React can hydrate properly.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSnapshot((prev) => ({ ...prev, node: children }));
       return;
     }

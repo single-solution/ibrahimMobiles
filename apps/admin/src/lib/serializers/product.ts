@@ -1,5 +1,5 @@
 import type { Types } from "mongoose";
-import type { StoredImage } from "@store/shared";
+import type { StoredImage, SeoMeta } from "@store/shared";
 import type {
   ProductAttributes,
   VariantAttributes,
@@ -15,6 +15,7 @@ import {
   asArray,
   asNumber,
   asString,
+  calculateProductSeoScore,
   coerceStoredImage,
   objectIdString,
   resolveWarrantyDays,
@@ -72,8 +73,10 @@ function computeVariantRollup(product: ProductLean, images: StoredImage[]) {
     .map((variant) => asNumber(variant?.priceRupees))
     .filter((price) => price > 0);
   const minPriceRupees = prices.length > 0 ? Math.min(...prices) : undefined;
+  const maxPriceRupees = prices.length > 0 ? Math.max(...prices) : undefined;
+  const totalStockQuantity = variants.reduce((acc, variant) => acc + (variant?.quantity ?? 0), 0);
   const heroImage = images[0] ?? null;
-  return { variantCount, inStockCount, minPriceRupees, heroImage };
+  return { variantCount, inStockCount, minPriceRupees, maxPriceRupees, totalStockQuantity, heroImage };
 }
 
 /**
@@ -94,6 +97,7 @@ function computeVariantGradeSlugs(product: ProductLean): string[] {
 export function summariseProduct(
   product: ProductLean,
   brandsByCategoryAndSlug: Map<string, BrandLean>,
+  storeName: string
 ): AdminProductSummary {
   const categorySlug = asString(product.categorySlug);
   const brand = brandsByCategoryAndSlug.get(
@@ -102,6 +106,14 @@ export function summariseProduct(
   const images = asStoredImageArray(product.images);
   const rollup = computeVariantRollup(product, images);
   const gradeSlugs = computeVariantGradeSlugs(product);
+
+  const seoScore = product.seo?.score ?? calculateProductSeoScore(
+    asString(product.name),
+    brand?.name || "",
+    product.seo,
+    rollup.heroImage !== null,
+    storeName
+  );
 
   return {
     id: objectIdString(product._id),
@@ -115,6 +127,8 @@ export function summariseProduct(
     ...rollup,
     gradeSlugs,
     hasImages: images.length > 0,
+    seo: product.seo,
+    seoScore,
     createdAt: toIsoDate(product.createdAt),
     updatedAt: toIsoDate(product.updatedAt),
   };

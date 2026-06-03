@@ -3,6 +3,7 @@ import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { PRODUCT_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import {
   badRequest,
+  calculateProductSeoScore,
   created,
   isValidationError,
   ok,
@@ -16,6 +17,7 @@ import {
   Brand,
   Category,
   connectDB,
+  getStoreSettings,
   handleMongoError,
   Product,
 } from "@store/db";
@@ -61,7 +63,7 @@ export async function GET(request: Request) {
     filter.isArchived = { $ne: true };
   }
 
-  const [docs, total, brandDocs] = await Promise.all([
+  const [docs, total, brandDocs, storeSettings] = await Promise.all([
     Product.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -69,6 +71,7 @@ export async function GET(request: Request) {
       .lean<ProductLean[]>(),
     Product.countDocuments(filter),
     Brand.find().lean<BrandLean[]>(),
+    getStoreSettings(),
   ]);
 
   const brandsByCategoryAndSlug = new Map(
@@ -79,7 +82,9 @@ export async function GET(request: Request) {
       ] as const),
     ),
   );
-  const items = docs.map((doc) => summariseProduct(doc, brandsByCategoryAndSlug));
+  
+  const storeName = storeSettings.siteName?.trim() || "Ibrahim Mobiles";
+  const items = docs.map((doc) => summariseProduct(doc, brandsByCategoryAndSlug, storeName));
 
   const payload: ListResponse<AdminProductSummary> = { items, total, page, limit };
   return ok(payload);
@@ -181,6 +186,24 @@ export async function POST(request: Request) {
       }
     }
 
+    const storeSettings = await getStoreSettings();
+    const storeName = storeSettings.siteName?.trim() || "Ibrahim Mobiles";
+    const brand = await Brand.findOne({
+      slug: brandSlug,
+      categorySlugs: categorySlug,
+    }).lean<BrandLean>();
+
+    const score = calculateProductSeoScore(
+      nameResult,
+      brand?.name || "",
+      seo as any,
+      images.length > 0,
+      storeName
+    );
+
+    if (!seo) seo = {};
+    seo.score = score;
+
     const doc = await Product.create({
       slug,
       name: nameResult,
@@ -206,10 +229,6 @@ export async function POST(request: Request) {
     // storefront cache (so listings reflect the new SKU immediately).
     bustAdminCaches();
 
-    const brand = await Brand.findOne({
-      slug: brandSlug,
-      categorySlugs: categorySlug,
-    }).lean<BrandLean>();
     return created(
       toProductResponse(doc.toObject() as unknown as ProductLean, brand ?? undefined),
     );

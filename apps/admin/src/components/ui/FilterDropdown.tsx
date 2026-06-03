@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
 import { classNames } from "@store/shared";
+import { Popover } from "@/components/ui/Popover";
 
 export interface FilterOption {
 	value: string;
@@ -22,7 +23,16 @@ interface FilterDropdownProps {
 }
 
 /**
- * Compact admin list-filter dropdown.
+ * Universal Filter Dropdown Component (Standard)
+ *
+ * Compact admin list-filter dropdown used in list views and tables.
+ * This is the standard component to use whenever you need to filter a table
+ * or list.
+ * 
+ * Powered by `<Popover>`: Uses a React portal to render the dropdown menu at
+ * the document root. This ensures that the filter menu will NEVER be trapped
+ * behind animated table rows, `overflow: hidden` containers, or z-index 
+ * stacking contexts.
  *
  * Single-select mode: closes on pick, replaces the chip label with
  * "Label: Value" so the active selection is visible without opening.
@@ -143,11 +153,13 @@ export function FilterDropdown({
 					/>
 				)}
 			</button>
-			{isOpen ? (
-				<div
-					role="listbox"
-					className="absolute left-0 top-full z-20 mt-1 min-w-[12rem] max-w-[18rem] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1 shadow-[var(--shadow-md)]"
-				>
+			<Popover
+				isOpen={isOpen}
+				anchorRef={containerRef}
+				align="left"
+				role="listbox"
+				className="animate-popover-in min-w-[12rem] max-w-[18rem] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1 shadow-[var(--shadow-md)]"
+			>
 					<div className="max-h-64 overflow-y-auto">
 						{options.length === 0 ? (
 							<p className="px-3 py-2 text-[11px] text-[var(--color-ink-400)]">
@@ -212,8 +224,7 @@ export function FilterDropdown({
 							</button>
 						</div>
 					) : null}
-				</div>
-			) : null}
+			</Popover>
 		</div>
 	);
 }

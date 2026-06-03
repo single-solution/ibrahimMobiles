@@ -34,6 +34,7 @@ export const seoSchema = new Schema<SeoMeta>(
       trim: true,
       maxlength: SEO_META_FIELD_LIMITS.focusKeyword,
     },
+    score: { type: Number },
     noindex: { type: Boolean },
     nofollow: { type: Boolean },
   },

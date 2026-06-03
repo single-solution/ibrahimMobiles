@@ -119,7 +119,7 @@ export function OfferRulesEditor({
         {conditions.length === 0 ? (
           <div className="rounded-[var(--radius-md)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas)] p-6 text-center">
             <p className="text-[12px] font-medium text-[var(--color-ink-600)]">No conditions applied.</p>
-            <p className="mt-1 text-[11px] text-[var(--color-ink-500)]">This offer will apply to everything in the cart if target is set to "Entire Cart Total".</p>
+            <p className="mt-1 text-[11px] text-[var(--color-ink-500)]">This offer will apply to everything in the cart if target is set to &quot;Entire Cart Total&quot;.</p>
           </div>
         ) : (
           <div className="space-y-3">

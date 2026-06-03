@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { classNames } from "@store/shared";
+import { Toggle } from "@/components/ui/Toggle";
 
 interface SwitchProps {
   label: string;
@@ -48,28 +49,21 @@ export function Switch({
           <p className="mt-0.5 text-xs text-[var(--color-ink-500)]">{description}</p>
         )}
       </div>
-      <input
-        type="checkbox"
-        name={name}
+      <Toggle
         checked={isChecked}
+        onCheckedChange={handleChange}
         disabled={disabled}
-        onChange={(event) => handleChange(event.target.checked)}
-        className="sr-only"
+        aria-label={label}
       />
-      <span
-        aria-hidden
-        className={classNames(
-          "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
-          isChecked ? "bg-[var(--color-ink-900)]" : "bg-[var(--color-ink-200)]",
-        )}
-      >
-        <span
-          className={classNames(
-            "absolute size-4 rounded-full bg-white shadow-[var(--shadow-sm)] transition-transform",
-            isChecked ? "translate-x-[18px]" : "translate-x-0.5",
-          )}
+      {name && (
+        <input
+          type="checkbox"
+          name={name}
+          checked={isChecked}
+          readOnly
+          className="sr-only"
         />
-      </span>
+      )}
     </label>
   );
 }

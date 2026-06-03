@@ -20,6 +20,7 @@ import { TextField } from "@/components/forms/TextField";
 import { ColorChips } from "@/components/forms/ColorChips";
 import { StructuredContentEditor } from "@/components/forms/StructuredContentEditor";
 import { Switch } from "@/components/forms/Switch";
+import { Toggle } from "@/components/ui/Toggle";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, ApiError } from "@/lib/api";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
@@ -563,29 +564,15 @@ function OfferVisibilityToggle({
   }
 
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={isActive}
+    <Toggle
+      checked={isActive}
+      onCheckedChange={() => void handleToggle()}
+      isLoading={saving}
       aria-label={
         isActive
           ? `Disable ${offerTitle} on storefront`
           : `Enable ${offerTitle} on storefront`
       }
-      disabled={saving}
-      onClick={() => void handleToggle()}
-      className={classNames(
-        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
-        saving ? "cursor-wait opacity-60" : "cursor-pointer",
-        isActive ? "bg-[var(--color-ink-900)]" : "bg-[var(--color-ink-200)]",
-      )}
-    >
-      <span
-        className={classNames(
-          "absolute size-4 rounded-full bg-white shadow-[var(--shadow-sm)] transition-transform",
-          isActive ? "translate-x-[18px]" : "translate-x-0.5",
-        )}
-      />
-    </button>
+    />
   );
 }

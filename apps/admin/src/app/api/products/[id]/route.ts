@@ -2,12 +2,14 @@ import {
   Brand,
   Category,
   connectDB,
+  getStoreSettings,
   handleMongoError,
   Order,
   Product,
 } from "@store/db";
 import {
   badRequest,
+  calculateProductSeoScore,
   conflict,
   isValidId,
   isValidationError,
@@ -169,6 +171,22 @@ export async function PUT(request: Request, { params }: RouteContext) {
       slug: doc.brandSlug,
       categorySlugs: doc.categorySlug,
     }).lean<BrandLean>();
+
+    const storeSettings = await getStoreSettings();
+    const storeName = storeSettings.siteName?.trim() || "Ibrahim Mobiles";
+    const score = calculateProductSeoScore(
+      doc.name,
+      brand?.name || "",
+      doc.seo,
+      doc.images && doc.images.length > 0,
+      storeName
+    );
+
+    if (doc.seo?.score !== score) {
+      await Product.updateOne({ _id: doc._id }, { $set: { "seo.score": score } });
+      if (doc.seo) doc.seo.score = score;
+      else doc.seo = { score };
+    }
 
     await recordActivity({
       actor,

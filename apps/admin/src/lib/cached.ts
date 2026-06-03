@@ -27,6 +27,7 @@ import {
   Brand,
   Customer,
   connectDB,
+  getStoreSettings,
   Inquiry,
   LoyaltyAccount,
   Offer,
@@ -212,10 +213,11 @@ export const loadAdminProductsCached = unstable_cache(
     if (ADMIN_PRODUCTS_LIST_LIMIT_DEFAULT > 0) {
       productsQuery.limit(ADMIN_PRODUCTS_LIST_LIMIT_DEFAULT);
     }
-    const [productDocs, brandDocs, catalog] = await Promise.all([
+    const [productDocs, brandDocs, catalog, storeSettings] = await Promise.all([
       productsQuery.lean<ProductLean[]>(),
       Brand.find().lean<BrandLean[]>(),
       loadProductWizardCatalogRaw(),
+      getStoreSettings(),
     ]);
     const brandsByCategoryAndSlug = new Map(
       brandDocs.flatMap((brand) =>
@@ -225,8 +227,9 @@ export const loadAdminProductsCached = unstable_cache(
         ),
       ),
     );
+    const storeName = storeSettings.siteName?.trim() || "Ibrahim Mobiles";
     const products = productDocs.map((doc) =>
-      summariseProduct(doc, brandsByCategoryAndSlug),
+      summariseProduct(doc, brandsByCategoryAndSlug, storeName),
     );
     return { products, catalog };
   },

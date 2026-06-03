@@ -19,6 +19,7 @@ import {
   useAdminAlerts,
 } from "@/app/_components/dashboard/alertsUi";
 import { useAdminPermissions } from "@/lib/permissionsContext";
+import { Popover } from "@/components/ui/Popover";
 
 interface MenuRowDescriptor {
   /**
@@ -176,64 +177,60 @@ export function NotificationsMenu() {
         />
       </button>
 
-      {open ? (
-        <div
-          role="menu"
-          aria-label="Notifications"
-          /* Concentric: inner row icon well --radius-md (8) sits at the
-             popover's px-2 gutter (~8px from corner) → outer 16 ≈
-             --radius-lg (14, within 2px) — kept as-is. Bumped to xl
-             because dense rows still benefit visually. */
-          className="animate-popover-in absolute right-0 top-[calc(100%+6px)] z-50 w-72 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]"
-        >
-          <header className="flex items-center justify-between gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-              Notifications
-            </p>
-            {total > 0 ? (
-              <span className="rounded-full bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[9.5px] font-bold leading-none text-[var(--color-accent-800)]">
-                {total}
-              </span>
+      <Popover
+        isOpen={open}
+        anchorRef={rootRef}
+        role="menu"
+        aria-label="Notifications"
+        className="animate-popover-in w-72 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]"
+      >
+        <header className="flex items-center justify-between gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+            Notifications
+          </p>
+          {total > 0 ? (
+            <span className="rounded-full bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[9.5px] font-bold leading-none text-[var(--color-accent-800)]">
+              {total}
+            </span>
+          ) : null}
+        </header>
+
+        {visibleRows.length === 0 && !showOpenInquiriesRow ? (
+          <EmptyState />
+        ) : (
+          <ul className="p-1">
+            {visibleRows.map((row) => (
+              <NotificationRow key={row.key} row={row} />
+            ))}
+            {showOpenInquiriesRow ? (
+              <NotificationRow
+                row={{
+                  key: "openInquiries",
+                  label:
+                    alerts.openInquiries === 1
+                      ? "1 open inquiry"
+                      : `${alerts.openInquiries} open inquiries`,
+                  count: alerts.openInquiries,
+                  permission: "inquiry_view",
+                  href: "/inquiries",
+                  tone: "neutral",
+                  icon: Inbox,
+                  description: "All replied — keeping an eye on the thread.",
+                }}
+              />
             ) : null}
-          </header>
+          </ul>
+        )}
 
-          {visibleRows.length === 0 && !showOpenInquiriesRow ? (
-            <EmptyState />
-          ) : (
-            <ul className="p-1">
-              {visibleRows.map((row) => (
-                <NotificationRow key={row.key} row={row} />
-              ))}
-              {showOpenInquiriesRow ? (
-                <NotificationRow
-                  row={{
-                    key: "openInquiries",
-                    label:
-                      alerts.openInquiries === 1
-                        ? "1 open inquiry"
-                        : `${alerts.openInquiries} open inquiries`,
-                    count: alerts.openInquiries,
-                    permission: "inquiry_view",
-                    href: "/inquiries",
-                    tone: "neutral",
-                    icon: Inbox,
-                    description: "All replied — keeping an eye on the thread.",
-                  }}
-                />
-              ) : null}
-            </ul>
-          )}
-
-          <footer className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-1.5 text-right">
-            <Link
-              href="/inquiries"
-              className="text-[10.5px] font-semibold text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
-            >
-              Open inquiries inbox →
-            </Link>
-          </footer>
-        </div>
-      ) : null}
+        <footer className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-1.5 text-right">
+          <Link
+            href="/inquiries"
+            className="text-[10.5px] font-semibold text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
+          >
+            Open inquiries inbox →
+          </Link>
+        </footer>
+      </Popover>
     </div>
   );
 }

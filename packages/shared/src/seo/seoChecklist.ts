@@ -130,3 +130,51 @@ export function seoScoreTone(score: number): "success" | "warn" | "danger" {
   if (score >= 50) return "warn";
   return "danger";
 }
+
+export function calculateProductSeoScore(
+  productName: string,
+  brandName: string,
+  seo: { title?: string; description?: string; canonicalUrl?: string; focusKeyword?: string } | undefined,
+  hasHeroImage: boolean,
+  storeName: string
+): number {
+  const keyword = seo?.focusKeyword?.trim().toLowerCase() || "";
+  const baseTitle = `${brandName} ${productName}`.trim();
+  const title = seo?.title || `${baseTitle} | ${storeName}`;
+  const description = seo?.description || `${baseTitle} from ${storeName}.`;
+  const slug = seo?.canonicalUrl || productName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+  const titleLen = title.length;
+  const descLen = description.length;
+
+  let passCount = 0;
+  let warnCount = 0;
+  let totalScored = 3; // title-length, description-length, json-ld
+
+  // 1. Title Length
+  if (titleLen >= 30 && titleLen <= 60) passCount++;
+  else if (titleLen >= 20 && titleLen <= 79) warnCount++;
+
+  // 2. Description Length
+  if (descLen >= 120 && descLen <= 160) passCount++;
+  else if (descLen >= 80 && descLen <= 200) warnCount++;
+
+  // 3. Hero Image
+  totalScored++;
+  if (hasHeroImage) passCount++;
+
+  // 4. JSON-LD (always pass)
+  passCount++;
+
+  // Keywords
+  if (keyword) {
+    totalScored += 3; // title, desc, slug
+    if (title.toLowerCase().includes(keyword)) passCount++;
+    if (description.toLowerCase().includes(keyword)) passCount++;
+    if (slug.toLowerCase().includes(keyword)) passCount++;
+  }
+
+  return totalScored === 0
+    ? 0
+    : Math.round(((passCount + warnCount * 0.5) / totalScored) * 100);
+}

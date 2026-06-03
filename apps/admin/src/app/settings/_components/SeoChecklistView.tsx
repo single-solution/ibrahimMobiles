@@ -14,7 +14,7 @@ interface SeoChecklistViewProps {
   result: SeoChecklistResult;
 }
 
-function StatusIcon({ status }: { status: SeoChecklistStatus }) {
+export function StatusIcon({ status }: { status: SeoChecklistStatus }) {
   if (status === "pass") {
     return <Check size={14} className="text-emerald-600" />;
   }
@@ -27,7 +27,7 @@ function StatusIcon({ status }: { status: SeoChecklistStatus }) {
   return <Circle size={14} className="text-[var(--color-ink-300)]" />;
 }
 
-function rowTone(status: SeoChecklistStatus): string {
+export function rowTone(status: SeoChecklistStatus): string {
   switch (status) {
     case "pass":
       return "text-[var(--color-ink-800)]";
@@ -40,7 +40,7 @@ function rowTone(status: SeoChecklistStatus): string {
   }
 }
 
-function ChecklistRow({ item }: { item: SeoChecklistItem }) {
+export function ChecklistRow({ item }: { item: SeoChecklistItem }) {
   return (
     <li className="flex items-start gap-2 text-xs">
       <span className="mt-0.5 shrink-0">
@@ -60,11 +60,18 @@ export function SeoChecklistView({ result }: SeoChecklistViewProps) {
         ? "bg-amber-100 text-amber-800"
         : "bg-rose-100 text-rose-800";
 
+  const genericItems = result.items.filter(
+    (item) =>
+      !item.id.startsWith("keyword-") &&
+      item.id !== "title-length" &&
+      item.id !== "description-length"
+  );
+
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/50 p-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className={classNames("flex items-center justify-between gap-2", genericItems.length > 0 ? "mb-2" : "")}>
         <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-ink-500)]">
-          SEO checklist
+          Overall SEO Score
         </p>
         <span
           className={classNames(
@@ -72,14 +79,16 @@ export function SeoChecklistView({ result }: SeoChecklistViewProps) {
             scoreClass,
           )}
         >
-          {result.score}
+          Score: {result.score}/100
         </span>
       </div>
-      <ul className="space-y-1.5">
-        {result.items.map((item) => (
-          <ChecklistRow key={item.id} item={item} />
-        ))}
-      </ul>
+      {genericItems.length > 0 && (
+        <ul className="space-y-1.5">
+          {genericItems.map((item) => (
+            <ChecklistRow key={item.id} item={item} />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

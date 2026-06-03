@@ -8,7 +8,8 @@
  */
 
 import { useId, useRef, useState } from "react";
-import { ImagePlus } from "lucide-react";
+import Image from "next/image";
+import { ImagePlus, ZoomIn } from "lucide-react";
 
 import { ImageGalleryThumb } from "./ImageGalleryThumb";
 import { Lightbox } from "./Lightbox";
@@ -16,6 +17,7 @@ import {
   createPendingGalleryImage,
   getGalleryImageKey,
   getGalleryImageUrl,
+  isPendingGalleryImage,
   type GalleryImage,
 } from "./imageStaging";
 
@@ -36,6 +38,8 @@ interface ImageGalleryProps {
   compact?: boolean;
   /** Extra-small tiles for tight drawers (use with `compact`). */
   dense?: boolean;
+  /** Layout with a large hero preview on the left and gallery on the right. */
+  heroPreview?: boolean;
 }
 
 const DEFAULT_MAX = 8;

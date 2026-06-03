@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
                 Forgot password?
               </h1>
               <p className="mx-auto mt-2 max-w-prose text-center text-[13px] text-[var(--color-ink-500)]">
-                Enter your email and we'll send you instructions to reset your password.
+                Enter your email and we&apos;ll send you instructions to reset your password.
               </p>
 
               <form onSubmit={handleSubmit} className="mt-8 space-y-6">
