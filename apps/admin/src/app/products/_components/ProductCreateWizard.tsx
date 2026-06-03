@@ -62,8 +62,9 @@ export function ProductCreateWizard({
       setProduct(created);
       setPhase("step2");
       replace({ wizard: "2", newProduct: created.id, create: null });
+      router.refresh();
     },
-    [replace],
+    [replace, router],
   );
 
   useEffect(() => {

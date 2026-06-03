@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState, type FormEvent } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Tag, Trash2, Plus, Pencil, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -21,9 +21,11 @@ import { ColorChips } from "@/components/forms/ColorChips";
 import { StructuredContentEditor } from "@/components/forms/StructuredContentEditor";
 import { Switch } from "@/components/forms/Switch";
 import { useToast } from "@/components/ui/Toast";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { OFFER_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import {
+  classNames,
   emptyStructuredContent,
   formatRelativeDate,
   ISO_DATE_LENGTH,
@@ -137,7 +139,14 @@ export function Offers({ offers }: OffersProps) {
       header: "",
       align: "right",
       cell: (offer) => (
-        <div className="flex flex-nowrap whitespace-nowrap justify-end gap-1">
+        <div className="flex flex-nowrap whitespace-nowrap items-center justify-end gap-2">
+          <OfferVisibilityToggle
+            offerId={offer.id}
+            offerTitle={offer.title}
+            isActive={offer.isActive}
+            onUpdated={refresh}
+          />
+          <div className="h-4 w-px bg-[var(--color-ink-200)]" />
           <WorkspaceRowIconButton
             label="Edit offer"
             iconElement={<Pencil size={13} />}
@@ -220,6 +229,7 @@ interface OfferDrawerProps {
 }
 
 function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
+  const router = useRouter();
   const toast = useToast();
   const isEdit = state.mode === "edit";
   const initial = isEdit ? state.offer : null;
@@ -296,7 +306,7 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
         color,
         bannerImage: storedBannerImage ?? null,
         expiresAt: expiresAt || null,
-        isActive: (!offerId && !isFinalStep) ? false : isActive,
+        isActive: initial ? initial.isActive : (isFinalStep ? true : false),
         seo,
         conditions,
         action,
@@ -318,6 +328,7 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
       }
       
       if (isNext) {
+        router.refresh();
         setStep((s) => Math.min(totalSteps, s + 1));
       } else {
         onSaved();
@@ -399,14 +410,6 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
               maxLength={OFFER_FIELD_LIMITS.title}
               placeholder="Eid Bundle"
             />
-            <TextField
-              label="Slug"
-              value={slug}
-              onChange={(event) => setSlug(event.target.value)}
-              placeholder="eid-bundle"
-              hint="Used in /deals#{slug}. Auto-generated from title if blank."
-              maxLength={OFFER_SLUG_MAX_CHARS}
-            />
             <div className="grid gap-3 sm:grid-cols-2">
               <TextField
                 label="Discount label"
@@ -475,12 +478,6 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
 
         {step === 3 && (
           <div className="space-y-4">
-            <Switch
-              label="Visible on storefront"
-              description="Toggle off to hide this offer from /deals and the homepage. The offer only becomes live when this is toggled on."
-              checked={isActive}
-              onCheckedChange={setIsActive}
-            />
             <CatalogSeoPanel
               value={seo}
               onChange={setSeo}
@@ -515,5 +512,80 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
       )}
       </div>
     </Drawer>
+  );
+}
+
+function OfferVisibilityToggle({
+  offerId,
+  offerTitle,
+  isActive: initialActive,
+  onUpdated,
+}: {
+  offerId: string;
+  offerTitle: string;
+  isActive: boolean;
+  onUpdated: () => void;
+}) {
+  const toast = useToast();
+  const [isActive, setIsActive] = useState(initialActive);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    scheduleStateUpdate(() => {
+      setIsActive(initialActive);
+    });
+  }, [initialActive, offerId]);
+
+  async function handleToggle() {
+    const next = !isActive;
+    setSaving(true);
+    try {
+      await apiFetch(`/api/offers/${offerId}`, {
+        method: "PUT",
+        json: { isActive: next },
+      });
+      setIsActive(next);
+      toast.success(
+        next
+          ? `"${offerTitle}" is visible on the storefront`
+          : `"${offerTitle}" is hidden from the storefront`,
+      );
+      onUpdated();
+    } catch (error) {
+      toast.danger(
+        error instanceof ApiError
+          ? error.message
+          : "Failed to update offer visibility.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isActive}
+      aria-label={
+        isActive
+          ? `Disable ${offerTitle} on storefront`
+          : `Enable ${offerTitle} on storefront`
+      }
+      disabled={saving}
+      onClick={() => void handleToggle()}
+      className={classNames(
+        "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors",
+        saving ? "cursor-wait opacity-60" : "cursor-pointer",
+        isActive ? "bg-[var(--color-ink-900)]" : "bg-[var(--color-ink-200)]",
+      )}
+    >
+      <span
+        className={classNames(
+          "absolute size-4 rounded-full bg-white shadow-[var(--shadow-sm)] transition-transform",
+          isActive ? "translate-x-[18px]" : "translate-x-0.5",
+        )}
+      />
+    </button>
   );
 }

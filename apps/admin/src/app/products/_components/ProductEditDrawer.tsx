@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
@@ -36,6 +37,7 @@ export function ProductEditDrawer({
   onClose,
   onSaved,
 }: ProductEditDrawerProps) {
+  const router = useRouter();
   const toast = useToast();
   const [product, setProduct] = useState<AdminProduct | null>(null);
   const [loading, setLoading] = useState(false);
@@ -135,6 +137,7 @@ export function ProductEditDrawer({
         onSaved();
         onClose();
       } else {
+        router.refresh();
         setStep((s) => Math.min(totalSteps, s + 1));
       }
     } catch (error) {
