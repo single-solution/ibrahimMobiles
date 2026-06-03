@@ -126,7 +126,7 @@ export function Table<TRow>({
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
       {(searchAccessor || toolbar) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-3 py-3 sm:px-5 sm:py-3.5">
+        <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-3 py-3 sm:px-5 sm:py-3.5">
           {searchAccessor ? (
             <WorkspaceSearchField
               value={query}
@@ -146,7 +146,7 @@ export function Table<TRow>({
       )}
 
       {filterBar && (
-        <div className="border-b border-[var(--color-ink-100)] px-3 py-2.5 sm:px-5 sm:py-3">
+        <div className="relative z-10 border-b border-[var(--color-ink-100)] px-3 py-2.5 sm:px-5 sm:py-3">
           {filterBar}
         </div>
       )}

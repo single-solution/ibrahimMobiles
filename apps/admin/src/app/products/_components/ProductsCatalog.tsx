@@ -775,16 +775,41 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       id: "actions",
       header: "",
       align: "right",
-      width: "3rem",
       cell: (product) => (
-        <div className="flex justify-end">
-          <RowActionMenu
-            canUpdate={canUpdate}
-            canDelete={canDelete}
-            onEdit={() => openEdit(product.id)}
-            onVariants={() => openVariants(product.id)}
-            onDelete={() => openDeleteConfirm(product)}
-          />
+        <div className="flex flex-wrap justify-end gap-1.5">
+          {canUpdate && (
+            <>
+              <button
+                type="button"
+                onClick={() => openEdit(product.id)}
+                title="Edit details"
+                className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]"
+              >
+                <Pencil size={13} aria-hidden />
+                <span className="hidden xl:inline">Edit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openVariants(product.id)}
+                title="Manage variants"
+                className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]"
+              >
+                <Boxes size={13} aria-hidden />
+                <span className="hidden xl:inline">Variants</span>
+              </button>
+            </>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              onClick={() => openDeleteConfirm(product)}
+              title="Delete product"
+              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-rose-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-rose-700)] transition-colors hover:bg-[var(--color-rose-50)]"
+            >
+              <Trash2 size={13} aria-hidden />
+              <span className="hidden xl:inline">Delete</span>
+            </button>
+          )}
         </div>
       ),
     },
@@ -1192,136 +1217,6 @@ function ProductVisibilityToggle({
   );
 }
 
-interface RowActionMenuProps {
-  canUpdate: boolean;
-  canDelete: boolean;
-  onEdit: () => void;
-  onVariants: () => void;
-  onDelete: () => void;
-}
-
-/**
- * Per-row kebab menu. Collapses Edit / Manage variants / Delete into a
- * single 28px trigger so the products table stays one line per product.
- * Closes on outside click, Escape, or after the user picks an action.
- */
-function RowActionMenu({
-  canUpdate,
-  canDelete,
-  onEdit,
-  onVariants,
-  onDelete,
-}: RowActionMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    function handlePointerDown(event: MouseEvent) {
-      if (!containerRef.current?.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    function handleKey(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [isOpen]);
-
-  if (!canUpdate && !canDelete) {
-    return null;
-  }
-
-  function handleSelect(action: () => void) {
-    setIsOpen(false);
-    action();
-  }
-
-  return (
-    <div className="relative" ref={containerRef}>
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        aria-label="Product actions"
-        onClick={() => setIsOpen((prev) => !prev)}
-        className={classNames(
-          "inline-grid size-7 place-items-center rounded-[var(--radius-md)] border transition-colors",
-          isOpen
-            ? "border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] text-[var(--color-ink-900)]"
-            : "border-transparent text-[var(--color-ink-600)] hover:border-[var(--color-ink-200)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
-        )}
-      >
-        <MoreHorizontal size={15} />
-      </button>
-      {isOpen ? (
-        <div
-          role="menu"
-          className="absolute right-0 top-full z-20 mt-1 min-w-[10rem] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1 text-left shadow-[var(--shadow-md)]"
-        >
-          {canUpdate ? (
-            <>
-              <RowActionMenuItem
-                icon={<Pencil size={13} />}
-                label="Edit details"
-                onSelect={() => handleSelect(onEdit)}
-              />
-              <RowActionMenuItem
-                icon={<Boxes size={13} />}
-                label="Manage variants"
-                onSelect={() => handleSelect(onVariants)}
-              />
-            </>
-          ) : null}
-          {canDelete ? (
-            <RowActionMenuItem
-              icon={<Trash2 size={13} />}
-              label="Delete"
-              tone="danger"
-              onSelect={() => handleSelect(onDelete)}
-            />
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function RowActionMenuItem({
-  icon,
-  label,
-  tone = "default",
-  onSelect,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  tone?: "default" | "danger";
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      onClick={onSelect}
-      className={classNames(
-        "flex w-full items-center gap-2 px-3 py-1.5 text-[11px] font-semibold transition-colors",
-        tone === "danger"
-          ? "text-[var(--color-rose-700)] hover:bg-[var(--color-rose-50)]"
-          : "text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
-      )}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
 
 function ProductThumb({ product }: { product: AdminProductSummary }) {
   if (product.heroImage) {
