@@ -14,6 +14,7 @@ import {
 } from "@/components/shared/adminWorkspaceUi";
 import { Drawer } from "@/components/ui/Drawer";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Stepper } from "@/components/ui/Stepper";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { TextField } from "@/components/forms/TextField";
 import { ColorChips } from "@/components/forms/ColorChips";
@@ -248,6 +249,13 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
   const [constraints, setConstraints] = useState<OfferConstraints>(initial?.constraints ?? { allowLoyaltyPoints: false, isStackable: false, usageCount: 0 });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [step, setStep] = useState(1);
+  const totalSteps = 3;
+  const steps = [
+    { id: 1, label: "Basics" },
+    { id: 2, label: "Rules" },
+    { id: 3, label: "SEO & Publish" },
+  ];
 
   const deferredContent = useDeferredValue(content);
   const previewOffer = useMemo(
@@ -310,135 +318,188 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
       onClose={onClose}
       title={isEdit ? "Edit offer" : "Create offer"}
       width="xl"
+      topBar={
+        <div className="flex justify-center py-2">
+          <Stepper steps={steps} currentStep={step} className="max-w-md" />
+        </div>
+      }
       footer={
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" size="md" type="button" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            size="md"
-            type="submit"
-            form="offer-form"
-            isLoading={isSaving}
-          >
-            {isEdit ? "Save changes" : "Publish offer"}
-          </Button>
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-sm font-medium text-[var(--color-ink-500)]">
+            Step {step} of {totalSteps}
+          </div>
+          <div className="flex items-center gap-2">
+            {step === 1 ? (
+              <Button variant="ghost" size="md" type="button" onClick={onClose}>
+                Cancel
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="md"
+                type="button"
+                onClick={() => setStep((s) => Math.max(1, s - 1))}
+              >
+                Back
+              </Button>
+            )}
+            {step < totalSteps ? (
+              <Button
+                variant="primary"
+                size="md"
+                type="button"
+                onClick={() => setStep((s) => Math.min(totalSteps, s + 1))}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="md"
+                type="submit"
+                form="offer-form"
+                isLoading={isSaving}
+              >
+                {isEdit ? "Save changes" : "Publish offer"}
+              </Button>
+            )}
+          </div>
         </div>
       }
     >
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <form id="offer-form" onSubmit={handleSubmit} className="space-y-4">
-        <TextField
-          label="Title"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          required
-          maxLength={OFFER_FIELD_LIMITS.title}
-          placeholder="Eid Bundle"
-        />
-        <TextField
-          label="Slug"
-          value={slug}
-          onChange={(event) => setSlug(event.target.value)}
-          placeholder="eid-bundle"
-          hint="Used in /deals#{slug}. Auto-generated from title if blank."
-          maxLength={OFFER_SLUG_MAX_CHARS}
-        />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField
-            label="Discount label"
-            value={discountLabel}
-            onChange={(event) => setDiscountLabel(event.target.value)}
-            required
-            maxLength={OFFER_FIELD_LIMITS.discountLabel}
-            placeholder="Up to 22% off"
-          />
-          <TextField
-            label="Badge label"
-            value={badgeLabel}
-            onChange={(event) => setBadgeLabel(event.target.value)}
-            required
-            maxLength={OFFER_FIELD_LIMITS.badgeLabel}
-            placeholder="Limited"
-          />
-        </div>
-        <StructuredContentEditor
-          value={content}
-          onChange={setContent}
-          summaryLabel="Description"
-          summaryPlaceholder="Buy any item from this category and get…"
-          summaryRows={4}
-          maxSummaryLength={OFFER_FIELD_LIMITS.description}
-          bulletsHint="Optional bullets surfaced on the deals page below the offer headline."
-        />
-        <TextField
-          label="Expires"
-          type="date"
-          value={expiresAt}
-          onChange={(event) => setExpiresAt(event.target.value)}
-          hint="Leave blank for an open-ended offer."
-        />
-        <ImageUpload
-          label="Offer banner"
-          value={bannerImage}
-          onChange={setBannerImage}
-          aspect="wide"
-          hint="Used on the deals page and homepage feature cards when present."
-        />
-        <ColorChips
-          label="Accent color"
-          value={color}
-          onChange={(value) => setColor(value)}
-          options={ACCENT_OPTIONS}
-        />
-        <Switch
-          label="Visible on storefront"
-          description="Toggle off to hide this offer from /deals and the homepage."
-          checked={isActive}
-          onCheckedChange={setIsActive}
-        />
-        <CatalogSeoPanel
-          value={seo}
-          onChange={setSeo}
-          contextLabel={title ? `Offer · ${title}` : "Offer"}
-          entity={{
-            type: "offer",
-            entity: {
-              slug,
-              title,
-              description,
-            },
-          }}
-        />
+      <div className={step === 3 ? "grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]" : ""}>
+      <form id="offer-form" onSubmit={(e) => {
+        if (step < totalSteps) {
+          e.preventDefault();
+          setStep((s) => Math.min(totalSteps, s + 1));
+        } else {
+          handleSubmit(e);
+        }
+      }} className="space-y-4">
+        {step === 1 && (
+          <div className="space-y-4">
+            <TextField
+              label="Title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              required
+              maxLength={OFFER_FIELD_LIMITS.title}
+              placeholder="Eid Bundle"
+            />
+            <TextField
+              label="Slug"
+              value={slug}
+              onChange={(event) => setSlug(event.target.value)}
+              placeholder="eid-bundle"
+              hint="Used in /deals#{slug}. Auto-generated from title if blank."
+              maxLength={OFFER_SLUG_MAX_CHARS}
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <TextField
+                label="Discount label"
+                value={discountLabel}
+                onChange={(event) => setDiscountLabel(event.target.value)}
+                required
+                maxLength={OFFER_FIELD_LIMITS.discountLabel}
+                placeholder="Up to 22% off"
+              />
+              <TextField
+                label="Badge label"
+                value={badgeLabel}
+                onChange={(event) => setBadgeLabel(event.target.value)}
+                required
+                maxLength={OFFER_FIELD_LIMITS.badgeLabel}
+                placeholder="Limited"
+              />
+            </div>
+            <StructuredContentEditor
+              value={content}
+              onChange={setContent}
+              summaryLabel="Description"
+              summaryPlaceholder="Buy any item from this category and get…"
+              summaryRows={4}
+              maxSummaryLength={OFFER_FIELD_LIMITS.description}
+              bulletsHint="Optional bullets surfaced on the deals page below the offer headline."
+            />
+            <TextField
+              label="Expires"
+              type="date"
+              value={expiresAt}
+              onChange={(event) => setExpiresAt(event.target.value)}
+              hint="Leave blank for an open-ended offer."
+            />
+            <ImageUpload
+              label="Offer banner"
+              value={bannerImage}
+              onChange={setBannerImage}
+              aspect="wide"
+              hint="Used on the deals page and homepage feature cards when present."
+            />
+            <ColorChips
+              label="Accent color"
+              value={color}
+              onChange={(value) => setColor(value)}
+              options={ACCENT_OPTIONS}
+            />
+            <Switch
+              label="Visible on storefront"
+              description="Toggle off to hide this offer from /deals and the homepage."
+              checked={isActive}
+              onCheckedChange={setIsActive}
+            />
+          </div>
+        )}
 
-        <div className="mt-8 border-t border-[var(--color-ink-100)] pt-8">
-          <h2 className="mb-4 text-lg font-bold text-[var(--color-ink-900)]">Offer Rules Engine</h2>
-          <OfferRulesEditor
-            conditions={conditions}
-            onChangeConditions={setConditions}
-            action={action}
-            onChangeAction={setAction}
-            schedule={schedule}
-            onChangeSchedule={setSchedule}
-            constraints={constraints}
-            onChangeConstraints={setConstraints}
-          />
-        </div>
+        {step === 2 && (
+          <div className="space-y-4">
+            <h2 className="mb-4 text-lg font-bold text-[var(--color-ink-900)]">Offer Rules Engine</h2>
+            <OfferRulesEditor
+              conditions={conditions}
+              onChangeConditions={setConditions}
+              action={action}
+              onChangeAction={setAction}
+              schedule={schedule}
+              onChangeSchedule={setSchedule}
+              constraints={constraints}
+              onChangeConstraints={setConstraints}
+            />
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-4">
+            <CatalogSeoPanel
+              value={seo}
+              onChange={setSeo}
+              contextLabel={title ? `Offer · ${title}` : "Offer"}
+              entity={{
+                type: "offer",
+                entity: {
+                  slug,
+                  title,
+                  description,
+                },
+              }}
+            />
+          </div>
+        )}
       </form>
-      <PreviewPanel
-        hint="Updates as you type. Mirrors offer cards on the deals page."
-        tiles={[
-          {
-            surfaceLabel: "Appears on: Offer card (compact)",
-            body: <OfferCardCompactPreview offer={previewOffer} />,
-          },
-          {
-            surfaceLabel: "Appears on: Deals page (large card)",
-            body: <OfferCardFullPreview offer={previewOffer} />,
-          },
-        ]}
-      />
+
+      {step === 3 && (
+        <PreviewPanel
+          hint="Updates as you type. Mirrors offer cards on the deals page."
+          tiles={[
+            {
+              surfaceLabel: "Appears on: Offer card (compact)",
+              body: <OfferCardCompactPreview offer={previewOffer} />,
+            },
+            {
+              surfaceLabel: "Appears on: Deals page (large card)",
+              body: <OfferCardFullPreview offer={previewOffer} />,
+            },
+          ]}
+        />
+      )}
       </div>
     </Drawer>
   );

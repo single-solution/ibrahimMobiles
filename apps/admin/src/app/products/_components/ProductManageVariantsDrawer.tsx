@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { Drawer } from "@/components/ui/Drawer";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useToast } from "@/components/ui/Toast";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
@@ -63,14 +64,24 @@ export function ProductManageVariantsDrawer({
   }
 
   return (
-    <ProductWizardStep2
+    <Drawer
       isOpen={isOpen && product !== null}
-      product={product}
-      catalog={catalog}
-      purpose="manage"
       onClose={onClose}
-      onSkip={onClose}
-      onSaved={handleSaved}
-    />
+      title="Manage variants"
+      description={product?.name}
+      width="2xl"
+      bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden !p-0"
+    >
+      {product && (
+        <ProductWizardStep2
+          product={product}
+          catalog={catalog}
+          purpose="manage"
+          onClose={onClose}
+          onSkip={onClose}
+          onSaved={handleSaved}
+        />
+      )}
+    </Drawer>
   );
 }

@@ -37,7 +37,6 @@ interface GradeSectionState {
 }
 
 interface ProductWizardStep2Props {
-  isOpen: boolean;
   product: AdminProduct | null;
   catalog: ProductWizardCatalog;
   onClose: () => void;
@@ -87,7 +86,6 @@ function combinationSignature(variant: VariantDraft): string {
 }
 
 export function ProductWizardStep2({
-  isOpen,
   product,
   catalog,
   onClose,
@@ -188,8 +186,8 @@ export function ProductWizardStep2({
   );
 
   useEffect(() => {
-    if (!isOpen || !product) {
-      if (!isOpen) workspaceInitProductIdRef.current = null;
+    if (!product) {
+      workspaceInitProductIdRef.current = null;
       return;
     }
     if (workspaceInitProductIdRef.current === product.id) return;
@@ -202,7 +200,7 @@ export function ProductWizardStep2({
     // Local selection is source of truth after init. `historyOnly` URL updates do
     // not refresh `useSearchParams`, so never mirror selection from stale params.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, product?.id, catalog, resetWorkspace, isManage]);
+  }, [product?.id, catalog, resetWorkspace, isManage]);
 
   const flatCombinations = useMemo(() => {
     const rows: { gradeSlug: string; comboIndex: number; variant: VariantDraft }[] =
@@ -430,44 +428,7 @@ export function ProductWizardStep2({
   }
 
   return (
-    <Drawer
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={isManage ? "Manage variants" : "Add variations"}
-      description={
-        isManage ? product.name : `Step 2 of 2 — ${product.name}`
-      }
-      width="2xl"
-      bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden !p-0"
-      footer={
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {!isManage && (
-            <Button
-              variant="ghost"
-              size="sm"
-              type="button"
-              onClick={handleSkip}
-              disabled={submitting}
-              className="mr-auto"
-            >
-              Skip for now
-            </Button>
-          )}
-          <Button variant="ghost" size="sm" type="button" onClick={handleClose} disabled={submitting}>
-            {isManage ? "Close" : "Cancel"}
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            type="submit"
-            form="product-wizard-step2"
-            isLoading={submitting}
-          >
-            {isManage ? "Save changes" : "Save variations"}
-          </Button>
-        </div>
-      }
-    >
+    <>
       <form
         id="product-wizard-step2"
         onSubmit={handleSubmit}
@@ -638,6 +599,39 @@ export function ProductWizardStep2({
           </>
         )}
       </form>
-    </Drawer>
+      <div className="safe-bottom shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-3 md:px-5 md:py-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-sm font-medium text-[var(--color-ink-500)]">
+            Step 2 of 2
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {!isManage && (
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={handleSkip}
+                disabled={submitting}
+                className="mr-auto"
+              >
+                Skip for now
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" type="button" onClick={handleClose} disabled={submitting}>
+              {isManage ? "Close" : "Cancel"}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              type="submit"
+              form="product-wizard-step2"
+              isLoading={submitting}
+            >
+              {isManage ? "Save changes" : "Save variations"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

@@ -18,6 +18,7 @@ import type { SeoMeta } from "@store/shared";
 import type { AdminProduct } from "@/types/admin";
 
 import { collectProductImageErrors } from "./productFormState";
+import { Stepper } from "@/components/ui/Stepper";
 import { WizardFieldError, WizardSection } from "./productWizardUi";
 
 interface ProductEditDrawerProps {
@@ -44,6 +45,8 @@ export function ProductEditDrawer({
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [imagesError, setImagesError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [step, setStep] = useState(1);
+  const totalSteps = 2;
 
   const category = useMemo(
     () =>
@@ -139,6 +142,11 @@ export function ProductEditDrawer({
     }
   }
 
+  const steps = [
+    { id: 1, label: "Details & Photos" },
+    { id: 2, label: "SEO & Entity" },
+  ];
+
   return (
     <Drawer
       isOpen={isOpen}
@@ -146,21 +154,53 @@ export function ProductEditDrawer({
       title="Edit product"
       description={product?.name ?? (loading ? "Loading…" : undefined)}
       width="lg"
+      topBar={
+        <div className="flex justify-center py-2">
+          <Stepper steps={steps} currentStep={step} className="max-w-md" />
+        </div>
+      }
       footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" type="button" onClick={onClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            type="submit"
-            form="product-edit-drawer"
-            isLoading={saving}
-            disabled={loading || !product}
-          >
-            Save
-          </Button>
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-sm font-medium text-[var(--color-ink-500)]">
+            Step {step} of {totalSteps}
+          </div>
+          <div className="flex items-center gap-2">
+            {step === 1 ? (
+              <Button variant="ghost" size="sm" type="button" onClick={onClose} disabled={saving}>
+                Cancel
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                onClick={() => setStep((s) => Math.max(1, s - 1))}
+              >
+                Back
+              </Button>
+            )}
+            {step < totalSteps ? (
+              <Button
+                variant="primary"
+                size="sm"
+                type="button"
+                onClick={() => setStep((s) => Math.min(totalSteps, s + 1))}
+              >
+                Next
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                size="sm"
+                type="submit"
+                form="product-edit-drawer"
+                isLoading={saving}
+                disabled={loading || !product}
+              >
+                Save
+              </Button>
+            )}
+          </div>
         </div>
       }
     >
@@ -168,100 +208,113 @@ export function ProductEditDrawer({
         <p className="text-sm text-[var(--color-ink-500)]">Loading product…</p>
       )}
       {product && !loading && (
-        <form id="product-edit-drawer" onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <WizardSection title="Details">
-            <label className="flex flex-col gap-1">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-                Name
-              </span>
-              <input
-                type="text"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                maxLength={120}
-                placeholder="e.g. Product name"
-                autoComplete="off"
-                className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[15px] placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:outline-none"
-              />
-            </label>
-            <p className="mt-2 text-[11.5px] text-[var(--color-ink-500)]">
-              Category:{" "}
-              <span className="font-semibold text-[var(--color-ink-800)]">
-                {category?.label ?? product.categorySlug}
-              </span>
-            </p>
-          </WizardSection>
+        <form id="product-edit-drawer" onSubmit={(e) => {
+          if (step < totalSteps) {
+            e.preventDefault();
+            setStep((s) => Math.min(totalSteps, s + 1));
+          } else {
+            handleSubmit(e);
+          }
+        }} className="flex flex-col gap-5">
+          {step === 1 && (
+            <>
+              <WizardSection title="Details">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+                    Name
+                  </span>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    maxLength={120}
+                    placeholder="e.g. Product name"
+                    autoComplete="off"
+                    className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[15px] placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:outline-none"
+                  />
+                </label>
+                <p className="mt-2 text-[11.5px] text-[var(--color-ink-500)]">
+                  Category:{" "}
+                  <span className="font-semibold text-[var(--color-ink-800)]">
+                    {category?.label ?? product.categorySlug}
+                  </span>
+                </p>
+              </WizardSection>
 
-          <WizardSection title="Brand">
-            <div className="flex flex-wrap gap-1.5">
-              {brands.map((brand) => (
-                <button
-                  key={brand.id}
-                  type="button"
-                  onClick={() => setBrandSlug(brand.slug)}
-                  className={
-                    "rounded-full border px-2.5 py-1 text-[13px] font-semibold transition " +
-                    (brandSlug === brand.slug
-                      ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
-                      : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)]")
-                  }
-                >
-                  {brand.name}
-                </button>
-              ))}
-            </div>
-            {!brandSlug && (
-              <WizardFieldError message="Pick a brand." />
-            )}
-          </WizardSection>
+              <WizardSection title="Brand">
+                <div className="flex flex-wrap gap-1.5">
+                  {brands.map((brand) => (
+                    <button
+                      key={brand.id}
+                      type="button"
+                      onClick={() => setBrandSlug(brand.slug)}
+                      className={
+                        "rounded-full border px-2.5 py-1 text-[13px] font-semibold transition " +
+                        (brandSlug === brand.slug
+                          ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
+                          : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)]")
+                      }
+                    >
+                      {brand.name}
+                    </button>
+                  ))}
+                </div>
+                {!brandSlug && (
+                  <WizardFieldError message="Pick a brand." />
+                )}
+              </WizardSection>
 
-          <WizardSection title="Photos">
-            <p className="mb-2 text-[11.5px] text-[var(--color-ink-500)]">
-              One gallery for the whole product — shared by every variant.
-            </p>
-            <ImageGallery
-              value={images}
-              onChange={(next) => {
-                setImages(next);
-                setImagesError(null);
+              <WizardSection title="Photos">
+                <p className="mb-2 text-[11.5px] text-[var(--color-ink-500)]">
+                  One gallery for the whole product — shared by every variant.
+                </p>
+                <ImageGallery
+                  value={images}
+                  onChange={(next) => {
+                    setImages(next);
+                    setImagesError(null);
+                  }}
+                  altTextBase={name || product.name}
+                  subjectKind="products"
+                  subjectId={product.id}
+                  maxImages={8}
+                  compact
+                  dense
+                />
+                <WizardFieldError message={imagesError ?? undefined} />
+              </WizardSection>
+            </>
+          )}
+
+          {step === 2 && (
+            <CatalogSeoPanel
+              value={seo}
+              onChange={setSeo}
+              contextLabel={`Product · ${product.brand.name} ${name}`}
+              entity={{
+                type: "product",
+                entity: {
+                  slug: product.slug,
+                  name,
+                  brandName: product.brand.name,
+                  categorySlug: product.categorySlug,
+                  brand: { slug: product.brand.slug, name: product.brand.name },
+                  category: category
+                    ? {
+                        slug: category.slug,
+                        label: category.label,
+                        description: category.description,
+                      }
+                    : undefined,
+                  images: product.images,
+                  variants: product.variants.map((v) => ({
+                    id: v.id,
+                    gradeSlug: v.gradeSlug,
+                  })),
+                },
               }}
-              altTextBase={name || product.name}
-              subjectKind="products"
-              subjectId={product.id}
-              maxImages={8}
-              compact
-              dense
             />
-            <WizardFieldError message={imagesError ?? undefined} />
-          </WizardSection>
-
-          <CatalogSeoPanel
-            value={seo}
-            onChange={setSeo}
-            contextLabel={`Product · ${product.brand.name} ${name}`}
-            entity={{
-              type: "product",
-              entity: {
-                slug: product.slug,
-                name,
-                brandName: product.brand.name,
-                categorySlug: product.categorySlug,
-                brand: { slug: product.brand.slug, name: product.brand.name },
-                category: category
-                  ? {
-                      slug: category.slug,
-                      label: category.label,
-                      description: category.description,
-                    }
-                  : undefined,
-                images: product.images,
-                variants: product.variants.map((v) => ({
-                  id: v.id,
-                  gradeSlug: v.gradeSlug,
-                })),
-              },
-            }}
-          />
+          )}
         </form>
       )}
     </Drawer>

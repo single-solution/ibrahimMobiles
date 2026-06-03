@@ -8,12 +8,14 @@ import { classNames } from "@store/shared";
 interface DrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
-  description?: string;
+  title: ReactNode;
+  description?: ReactNode;
   children: ReactNode;
   footer?: ReactNode;
+  topBar?: ReactNode;
   width?: "sm" | "md" | "lg" | "xl" | "2xl";
   bodyClassName?: string;
+  ariaLabel?: string;
 }
 
 const WIDTH_CLASSES: Record<NonNullable<DrawerProps["width"]>, string> = {
@@ -31,8 +33,10 @@ export function Drawer({
   description,
   children,
   footer,
+  topBar,
   width = "md",
   bodyClassName,
+  ariaLabel,
 }: DrawerProps) {
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -66,7 +70,7 @@ export function Drawer({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={title}
+      aria-label={ariaLabel ?? (typeof title === "string" ? title : undefined)}
       className="fixed inset-0 z-modal flex items-stretch justify-center sm:items-center sm:justify-center sm:p-6"
     >
       <button
@@ -104,14 +108,9 @@ export function Drawer({
               {title}
             </h2>
             {description && (
-              /* Cap line length at ~65ch (`max-w-prose`) so the helper
-                 paragraph stays in the comfortable 60–70 character
-                 reading range — long descriptions in wide drawers
-                 otherwise stretch to 100+ chars and become harder to
-                 scan. */
-              <p className="mt-0.5 max-w-prose text-[10.5px] leading-snug text-[var(--color-ink-500)] md:text-[11px]">
+              <div className="mt-0.5 max-w-prose text-[10.5px] leading-snug text-[var(--color-ink-500)] md:text-[11px]">
                 {description}
-              </p>
+              </div>
             )}
           </div>
           {!footer && (
@@ -125,6 +124,12 @@ export function Drawer({
             </button>
           )}
         </header>
+
+        {topBar && (
+          <div className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-4 py-3 md:px-5">
+            {topBar}
+          </div>
+        )}
 
         <div
           className={classNames(
