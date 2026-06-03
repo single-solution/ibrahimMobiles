@@ -233,7 +233,7 @@ export function Table<TRow>({
 
           {/* Desktop table — at md+ we keep the original sortable table layout. */}
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full table-fixed text-sm">
+            <table className="w-full text-sm">
             <thead className="sticky top-0 z-10 bg-[var(--color-canvas-deep)] shadow-[inset_0_-1px_0_var(--color-ink-100)]">
               <tr className="text-[var(--color-ink-500)]">
                 {columns.map((column) => {

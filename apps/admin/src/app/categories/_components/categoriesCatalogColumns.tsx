@@ -52,7 +52,6 @@ export function buildBrandColumns({
       id: "actions",
       header: "",
       align: "right",
-      width: "10rem",
       cell: (row) =>
         selectedCategory ? (
           <RowActions
@@ -112,7 +111,6 @@ export function buildGradeColumns({
       id: "actions",
       header: "",
       align: "right",
-      width: "10rem",
       cell: (row) =>
         selectedCategory ? (
           <RowActions
@@ -195,7 +193,6 @@ export function buildAttributeColumns({
       id: "actions",
       header: "",
       align: "right",
-      width: "10rem",
       cell: (row) =>
         selectedCategory ? (
           <RowActions

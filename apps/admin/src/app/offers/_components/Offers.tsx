@@ -136,7 +136,6 @@ export function Offers({ offers }: OffersProps) {
       id: "actions",
       header: "",
       align: "right",
-      width: "10rem",
       cell: (offer) => (
         <div className="flex flex-nowrap whitespace-nowrap justify-end gap-1">
           <WorkspaceRowIconButton
