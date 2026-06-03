@@ -84,14 +84,14 @@ export function Drawer({
           "relative flex w-full flex-col overflow-hidden border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]",
           // Phones: edge-to-edge full-screen sheet (no rounded corners, no
           // outer margin). Tablets+: centered modal with rounded corners.
-          "h-[100dvh] max-h-[100dvh] sm:h-auto sm:rounded-[var(--radius-xl)] sm:border",
+          "h-[100dvh] max-h-[100dvh] sm:rounded-[var(--radius-xl)] sm:border",
           // Mobile gets the bottom-sheet slide-up; tablets+ get the
           // centered dialog scale-in. Both CSS-only — admin avoids any
           // JS animation library so the panel stays light and fast.
           "animate-sheet-up sm:animate-dialog-in",
           width === "2xl"
             ? "sm:h-[min(92vh,52rem)] sm:max-h-[calc(100dvh-2rem)]"
-            : "sm:max-h-[calc(100dvh-3rem)]",
+            : "sm:h-[min(90vh,45rem)] sm:max-h-[calc(100dvh-3rem)]",
           WIDTH_CLASSES[width],
         )}
       >

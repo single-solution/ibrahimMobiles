@@ -152,45 +152,49 @@ export function ProductWizardStep1({
             <WizardFieldError message={errorMap.get("categorySlug")} />
           </WizardSection>
 
-          {surface && (
-            <>
-              <WizardSection title="Brand">
-                {surface.brands.length === 0 ? (
-                  <WizardEmptyHint>
-                    This category has no brands yet. Add one from{" "}
-                    <Link
-                      href="/categories"
-                      className="font-semibold text-[var(--color-accent-700)] underline"
-                    >
-                      Categories
-                    </Link>
-                    .
-                  </WizardEmptyHint>
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {surface.brands.map((brand) => (
-                      <button
-                        key={brand.id}
-                        type="button"
-                        onClick={() =>
-                          setDraft((prev) => ({ ...prev, brandSlug: brand.slug }))
-                        }
-                        className={
-                          "rounded-full border px-2.5 py-1 text-[13px] font-semibold transition " +
-                          (draft.brandSlug === brand.slug
-                            ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
-                            : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)]")
-                        }
-                      >
-                        {brand.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <WizardFieldError message={errorMap.get("brandSlug")} />
-              </WizardSection>
+          <WizardSection title="Brand">
+            {!surface ? (
+              <WizardEmptyHint>Select a category first to see available brands.</WizardEmptyHint>
+            ) : surface.brands.length === 0 ? (
+              <WizardEmptyHint>
+                This category has no brands yet. Add one from{" "}
+                <Link
+                  href="/categories"
+                  className="font-semibold text-[var(--color-accent-700)] underline"
+                >
+                  Categories
+                </Link>
+                .
+              </WizardEmptyHint>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {surface.brands.map((brand) => (
+                  <button
+                    key={brand.id}
+                    type="button"
+                    onClick={() =>
+                      setDraft((prev) => ({ ...prev, brandSlug: brand.slug }))
+                    }
+                    className={
+                      "rounded-full border px-2.5 py-1 text-[13px] font-semibold transition " +
+                      (draft.brandSlug === brand.slug
+                        ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
+                        : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)]")
+                    }
+                  >
+                    {brand.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            <WizardFieldError message={errorMap.get("brandSlug")} />
+          </WizardSection>
 
-              <WizardSection title="Name">
+          <WizardSection title="Name">
+            {!surface ? (
+              <WizardEmptyHint>Select a category first.</WizardEmptyHint>
+            ) : (
+              <>
                 <input
                   type="text"
                   value={draft.name}
@@ -209,10 +213,16 @@ export function ProductWizardStep1({
                     </code>
                   </p>
                 )}
-                <WizardFieldError message={errorMap.get("name")} />
-              </WizardSection>
+              </>
+            )}
+            <WizardFieldError message={errorMap.get("name")} />
+          </WizardSection>
 
-              <WizardSection title="Photos">
+          <WizardSection title="Photos">
+            {!surface ? (
+              <WizardEmptyHint>Select a category first.</WizardEmptyHint>
+            ) : (
+              <>
                 <p className="mb-2 text-[11.5px] text-[var(--color-ink-500)]">
                   One gallery for the whole product — shared by every variant.
                 </p>
@@ -226,10 +236,10 @@ export function ProductWizardStep1({
                   compact
                   dense
                 />
-                <WizardFieldError message={errorMap.get("images")} />
-              </WizardSection>
-            </>
-          )}
+              </>
+            )}
+            <WizardFieldError message={errorMap.get("images")} />
+          </WizardSection>
         </form>
       </div>
 

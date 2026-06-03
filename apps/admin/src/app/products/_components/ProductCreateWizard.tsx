@@ -178,7 +178,7 @@ export function ProductCreateWizard({
             ? "Step 1 of 2 — category, brand, name, and photos. Variations come next."
             : `Step 2 of 2 — ${product?.name}`
         }
-        width={phase === "step2" ? "2xl" : "lg"}
+        width="2xl"
         bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden !p-0"
         topBar={
           <div className="flex justify-center py-2">
@@ -193,15 +193,23 @@ export function ProductCreateWizard({
             onCreated={handleCreated}
           />
         )}
-        {phase === "step2" && product && (
-          <ProductWizardStep2
-            product={product}
-            catalog={catalog}
-            onClose={finish}
-            onSkip={finish}
-            onSaved={finish}
-            purpose="wizard"
-          />
+        {phase === "step2" && (
+          product ? (
+            <ProductWizardStep2
+              product={product}
+              catalog={catalog}
+              onClose={finish}
+              onSkip={finish}
+              onSaved={finish}
+              purpose="wizard"
+            />
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center p-6 text-center animate-pulse">
+              <p className="text-sm font-semibold text-[var(--color-ink-800)]">
+                Preparing variant editor...
+              </p>
+            </div>
+          )
         )}
       </Drawer>
     </>

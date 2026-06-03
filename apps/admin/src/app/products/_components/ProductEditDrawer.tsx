@@ -204,10 +204,31 @@ export function ProductEditDrawer({
         </div>
       }
     >
-      {loading && (
-        <p className="text-sm text-[var(--color-ink-500)]">Loading product…</p>
-      )}
-      {product && !loading && (
+      {loading ? (
+        <div className="flex flex-col gap-5 animate-pulse">
+          <WizardSection title="Details">
+            <div className="flex flex-col gap-1">
+              <div className="h-3 w-12 bg-[var(--color-ink-200)] rounded" />
+              <div className="h-10 w-full bg-[var(--color-ink-100)] rounded-md" />
+            </div>
+            <div className="mt-2 h-3 w-32 bg-[var(--color-ink-200)] rounded" />
+          </WizardSection>
+          <WizardSection title="Brand">
+            <div className="flex flex-wrap gap-1.5">
+              <div className="h-7 w-16 bg-[var(--color-ink-100)] rounded-full" />
+              <div className="h-7 w-20 bg-[var(--color-ink-100)] rounded-full" />
+              <div className="h-7 w-14 bg-[var(--color-ink-100)] rounded-full" />
+            </div>
+          </WizardSection>
+          <WizardSection title="Photos">
+            <div className="mb-2 h-3 w-64 bg-[var(--color-ink-200)] rounded" />
+            <div className="flex gap-2">
+              <div className="size-20 bg-[var(--color-ink-100)] rounded-md" />
+              <div className="size-20 bg-[var(--color-ink-100)] rounded-md border border-dashed" />
+            </div>
+          </WizardSection>
+        </div>
+      ) : product ? (
         <form id="product-edit-drawer" onSubmit={(e) => {
           if (step < totalSteps) {
             e.preventDefault();
@@ -316,7 +337,7 @@ export function ProductEditDrawer({
             />
           )}
         </form>
-      )}
+      ) : null}
     </Drawer>
   );
 }
