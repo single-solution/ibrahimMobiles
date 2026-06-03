@@ -239,7 +239,7 @@ export function RowActions({
   onDelete: () => void;
 }) {
   return (
-    <div className="flex flex-wrap justify-end gap-1.5">
+    <div className="flex flex-nowrap whitespace-nowrap justify-end gap-1.5">
       <button
         type="button"
         onClick={onEdit}

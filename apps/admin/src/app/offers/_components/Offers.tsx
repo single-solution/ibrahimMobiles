@@ -136,9 +136,9 @@ export function Offers({ offers }: OffersProps) {
       id: "actions",
       header: "",
       align: "right",
-      width: "100px",
+      width: "1%",
       cell: (offer) => (
-        <div className="inline-flex items-center gap-1">
+        <div className="flex flex-nowrap whitespace-nowrap items-center justify-end gap-1">
           <WorkspaceRowIconButton
             label="Edit offer"
             iconElement={<Pencil size={13} />}

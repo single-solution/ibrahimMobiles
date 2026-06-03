@@ -775,8 +775,9 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       id: "actions",
       header: "",
       align: "right",
+      width: "1%",
       cell: (product) => (
-        <div className="flex flex-wrap justify-end gap-1.5">
+        <div className="flex flex-nowrap whitespace-nowrap justify-end gap-1.5">
           {canUpdate && (
             <>
               <button
