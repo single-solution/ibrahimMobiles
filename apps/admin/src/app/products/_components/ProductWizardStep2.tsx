@@ -318,8 +318,10 @@ export function ProductWizardStep2({
     onClose();
   }
 
-  async function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
     if (submitting || !product || !surface) return;
 
     if (flatCombinations.length === 0) {
@@ -391,6 +393,13 @@ export function ProductWizardStep2({
               { method: "POST", json: payload },
             ));
       }
+      
+      // Make product active since wizard is complete
+      await apiFetch(`/api/products/${product.id}`, {
+        method: "PUT",
+        json: { isActive: true },
+      });
+      
       const reloadedProduct = await apiFetch<AdminProduct>(
         `/api/products/${product.id}`,
       );

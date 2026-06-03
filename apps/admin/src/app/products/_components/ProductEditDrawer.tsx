@@ -95,8 +95,10 @@ export function ProductEditDrawer({
     };
   }, [isOpen, productId, onClose, toast]);
 
-  async function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>, isNext = false) {
     event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
     if (!product || saving) return;
     const trimmed = name.trim();
     if (trimmed.length < 2) {
@@ -128,9 +130,13 @@ export function ProductEditDrawer({
         method: "PUT",
         json: { images: uploaded },
       });
-      toast.success("Product updated.");
-      onSaved();
-      onClose();
+      if (!isNext) {
+        toast.success("Product updated.");
+        onSaved();
+        onClose();
+      } else {
+        setStep((s) => Math.min(totalSteps, s + 1));
+      }
     } catch (error) {
       toast.danger(
         error instanceof ApiError
@@ -183,8 +189,10 @@ export function ProductEditDrawer({
               <Button
                 variant="primary"
                 size="sm"
-                type="button"
-                onClick={() => setStep((s) => Math.min(totalSteps, s + 1))}
+                type="submit"
+                form="product-edit-drawer"
+                isLoading={saving}
+                disabled={loading || !product}
               >
                 Next
               </Button>
@@ -230,12 +238,7 @@ export function ProductEditDrawer({
         </div>
       ) : product ? (
         <form id="product-edit-drawer" onSubmit={(e) => {
-          if (step < totalSteps) {
-            e.preventDefault();
-            setStep((s) => Math.min(totalSteps, s + 1));
-          } else {
-            handleSubmit(e);
-          }
+          handleSubmit(e, step < totalSteps);
         }} className="flex flex-col gap-5">
           {step === 1 && (
             <>
@@ -246,6 +249,7 @@ export function ProductEditDrawer({
                   </span>
                   <input
                     type="text"
+                    required
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     maxLength={120}

@@ -239,8 +239,9 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
     initial?.bannerImage ?? null,
   );
   const [expiresAt, setExpiresAt] = useState(initial?.expiresAt?.slice(0, ISO_DATE_LENGTH) ?? "");
-  const [isActive, setIsActive] = useState(initial?.isActive ?? true);
+  const [isActive, setIsActive] = useState(initial?.isActive ?? false);
   const [seo, setSeo] = useState<SeoMeta>(initial?.seo ?? {});
+  const [offerId, setOfferId] = useState<string | null>(initial?.id ?? null);
   
   const [conditions, setConditions] = useState<OfferCondition[]>(initial?.conditions ?? []);
   const [action, setAction] = useState<OfferAction>(initial?.action ?? { type: "percentage_discount", value: 10, target: "matched_items" });
@@ -269,8 +270,11 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
     [title, discountLabel, badgeLabel, color, expiresAt, deferredContent],
   );
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>, isNext = false) {
     event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
+
     setIsSaving(true);
     try {
       const [storedBannerImage] = bannerImage
@@ -279,6 +283,9 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
             subjectId: slug || title || initial?.id,
           })
         : [];
+      
+      const isFinalStep = !isNext;
+      
       const payload = {
         title,
         slug: slug || undefined,
@@ -289,21 +296,32 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
         color,
         bannerImage: storedBannerImage ?? null,
         expiresAt: expiresAt || null,
-        isActive,
+        isActive: (!offerId && !isFinalStep) ? false : isActive,
         seo,
         conditions,
         action,
         schedule,
         constraints,
       };
-      if (isEdit && initial) {
-        await apiFetch(`/api/offers/${initial.id}`, { method: "PUT", json: payload });
-        toast.success("Offer updated");
+      const targetId = offerId;
+      if (targetId) {
+        await apiFetch(`/api/offers/${targetId}`, { method: "PUT", json: payload });
+        if (isFinalStep) {
+          toast.success("Offer updated");
+        }
       } else {
-        await apiFetch(`/api/offers`, { method: "POST", json: payload });
-        toast.success("Offer published");
+        const created = await apiFetch<AdminOffer>(`/api/offers`, { method: "POST", json: payload });
+        setOfferId(created.id);
+        if (isFinalStep) {
+          toast.success("Offer published");
+        }
       }
-      onSaved();
+      
+      if (isNext) {
+        setStep((s) => Math.min(totalSteps, s + 1));
+      } else {
+        onSaved();
+      }
     } catch (error) {
       toast.danger(error instanceof Error ? error.message : "Failed to save offer");
     } finally {
@@ -346,8 +364,9 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
               <Button
                 variant="primary"
                 size="md"
-                type="button"
-                onClick={() => setStep((s) => Math.min(totalSteps, s + 1))}
+                type="submit"
+                form="offer-form"
+                isLoading={isSaving}
               >
                 Next
               </Button>
@@ -368,12 +387,7 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
     >
       <div className={step === 3 ? "grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]" : ""}>
       <form id="offer-form" onSubmit={(e) => {
-        if (step < totalSteps) {
-          e.preventDefault();
-          setStep((s) => Math.min(totalSteps, s + 1));
-        } else {
-          handleSubmit(e);
-        }
+        handleSubmit(e, step < totalSteps);
       }} className="space-y-4">
         {step === 1 && (
           <div className="space-y-4">
@@ -440,12 +454,6 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
               onChange={(value) => setColor(value)}
               options={ACCENT_OPTIONS}
             />
-            <Switch
-              label="Visible on storefront"
-              description="Toggle off to hide this offer from /deals and the homepage."
-              checked={isActive}
-              onCheckedChange={setIsActive}
-            />
           </div>
         )}
 
@@ -467,6 +475,12 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
 
         {step === 3 && (
           <div className="space-y-4">
+            <Switch
+              label="Visible on storefront"
+              description="Toggle off to hide this offer from /deals and the homepage. The offer only becomes live when this is toggled on."
+              checked={isActive}
+              onCheckedChange={setIsActive}
+            />
             <CatalogSeoPanel
               value={seo}
               onChange={setSeo}

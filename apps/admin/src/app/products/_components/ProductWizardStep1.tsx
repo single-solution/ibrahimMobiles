@@ -83,8 +83,10 @@ export function ProductWizardStep1({
     setErrors((prev) => prev.filter((row) => row.path !== "images"));
   }
 
-  async function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
     if (submitting) return;
     const shell = validateShellDraft(draft);
     const imageErrors = collectProductImageErrors(draft.images);
@@ -111,7 +113,7 @@ export function ProductWizardStep1({
       });
       const product = await apiFetch<AdminProduct>("/api/products", {
         method: "POST",
-        json: { ...shell.payload, images: uploadedImages, variants: [] },
+        json: { ...shell.payload, images: uploadedImages, variants: [], isActive: false },
       });
       toast.success("Product saved. Add variations next, or skip for now.");
       setDraft(emptyDraft());
@@ -197,6 +199,7 @@ export function ProductWizardStep1({
               <>
                 <input
                   type="text"
+                  required
                   value={draft.name}
                   onChange={(e) =>
                     setDraft((prev) => ({ ...prev, name: e.target.value }))
