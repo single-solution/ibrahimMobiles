@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { logger } from "@store/shared";
+
 import { ShopProductGrid } from "@/components/shared/ShopProductGrid";
 import { FilterSidebar } from "@/components/shared/FilterSidebar";
 import { ShopCategoryRail } from "@/app/shop/_components/ShopCategoryRail";
@@ -23,6 +25,7 @@ import {
   parseFiltersFromSearchParams,
   type CategoryMeta,
   type ProductFilters,
+  type ProductPage,
 } from "@/lib/core";
 import { getFacets } from "@/lib/core/facets";
 import {
@@ -179,6 +182,25 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   );
 }
 
+/* ─────────────────────────── Resilient reads ─────────────────────────── */
+
+/**
+ * Mirrors the `/deals` resilience pattern: a failed listing read degrades to
+ * an empty page (and logs the real cause server-side) rather than 500-ing the
+ * whole category route. ISR (`revalidate: 60`) retries on the next request.
+ */
+async function loadCategoryProducts(filters: ProductFilters): Promise<ProductPage> {
+  try {
+    return await getProductsPageCached(filters);
+  } catch (error) {
+    logger.error(
+      { error },
+      "shop: category products load failed, serving empty page this render",
+    );
+    return { products: [], total: 0, page: 1, pageSize: 0, pageCount: 1 };
+  }
+}
+
 /* ──────────────────────────── JSON-LD slot ──────────────────────────── */
 
 interface CategoryJsonLdProps {
@@ -188,7 +210,7 @@ interface CategoryJsonLdProps {
 
 async function CategoryJsonLd({ meta, filters }: CategoryJsonLdProps) {
   const [page, seoSettings] = await Promise.all([
-    getProductsPageCached(filters),
+    loadCategoryProducts(filters),
     getSeoSettings(),
   ]);
   const collectionLd = collectionPageJsonLd({
@@ -261,7 +283,7 @@ interface ProductsAreaProps {
 }
 
 async function MobileProductsArea({ meta, filters }: ProductsAreaProps) {
-  const page = await getProductsPageCached(filters);
+  const page = await loadCategoryProducts(filters);
   return (
     <>
       <div className="mt-4">
@@ -281,7 +303,7 @@ async function MobileProductsArea({ meta, filters }: ProductsAreaProps) {
 }
 
 async function DesktopProductsArea({ meta, filters }: ProductsAreaProps) {
-  const page = await getProductsPageCached(filters);
+  const page = await loadCategoryProducts(filters);
   return (
     <div className="space-y-6">
       <ShopProductGrid products={page.products} categoryLabel={meta.label} />

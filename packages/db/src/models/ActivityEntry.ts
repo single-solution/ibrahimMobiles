@@ -10,6 +10,7 @@ export const ACTIVITY_ACTIONS = [
   "login",
   "logout",
   "invited",
+  "signin_code_issued",
 ] as const;
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
 

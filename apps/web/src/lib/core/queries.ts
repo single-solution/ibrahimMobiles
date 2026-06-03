@@ -85,28 +85,39 @@ export const PUBLIC_PRODUCT_FILTER = {
  * the field — a missing flag is treated as live.
  */
 interface CatalogVisibility {
-  activeCategorySlugs: string[];
+  // `null` means the cascade lookup failed this render — callers then skip
+  // the extra constraints and fall back to the base public filter rather
+  // than 500-ing the whole storefront route over a transient read error.
+  activeCategorySlugs: string[] | null;
   hiddenBrandPairs: Array<{ categorySlug: string; brandSlug: string }>;
 }
 
 export async function resolveCatalogVisibility(): Promise<CatalogVisibility> {
-  const [categories, hiddenBrands] = await Promise.all([
-    CategoryModel.find({ isActive: { $ne: false } })
-      .select("slug")
-      .lean<Array<{ slug: string }>>(),
-    BrandModel.find({ isActive: false })
-      .select("slug categorySlugs")
-      .lean<Array<{ slug: string; categorySlugs: string[] }>>(),
-  ]);
-  return {
-    activeCategorySlugs: categories.map((category) => category.slug),
-    hiddenBrandPairs: hiddenBrands.flatMap((brand) =>
-      (brand.categorySlugs ?? []).map((categorySlug) => ({
-        categorySlug,
-        brandSlug: brand.slug,
-      })),
-    ),
-  };
+  try {
+    const [categories, hiddenBrands] = await Promise.all([
+      CategoryModel.find({ isActive: { $ne: false } })
+        .select("slug")
+        .lean<Array<{ slug: string }>>(),
+      BrandModel.find({ isActive: false })
+        .select("slug categorySlugs")
+        .lean<Array<{ slug: string; categorySlugs: string[] }>>(),
+    ]);
+    return {
+      activeCategorySlugs: categories.map((category) => category.slug),
+      hiddenBrandPairs: hiddenBrands.flatMap((brand) =>
+        (brand.categorySlugs ?? []).map((categorySlug) => ({
+          categorySlug,
+          brandSlug: brand.slug,
+        })),
+      ),
+    };
+  } catch (error) {
+    logger.error(
+      { error },
+      "resolveCatalogVisibility failed; serving catalog without the visibility cascade this render",
+    );
+    return { activeCategorySlugs: null, hiddenBrandPairs: [] };
+  }
 }
 
 /**
@@ -118,6 +129,9 @@ export function applyCatalogVisibility(
   filter: Record<string, unknown>,
   visibility: CatalogVisibility,
 ): void {
+  if (visibility.activeCategorySlugs === null) {
+    return;
+  }
   const andClauses: Record<string, unknown>[] = [
     { categorySlug: { $in: visibility.activeCategorySlugs } },
   ];

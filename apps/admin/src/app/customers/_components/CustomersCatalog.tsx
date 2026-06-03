@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { UserCircle } from "lucide-react";
+import { Plus, UserCircle } from "lucide-react";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { StatusPill } from "@/components/shared/StatusPill";
@@ -11,11 +11,13 @@ import {
   WorkspaceEmptyPane,
   WorkspaceFilterChip,
   WorkspaceFrame,
-  WorkspaceReadOnlyBanner,
   WorkspacePaneHeader,
+  WorkspacePrimaryAction,
+  WorkspaceReadOnlyBanner,
   WorkspaceSearchField,
   WorkspaceSidebarNavItem,
 } from "@/components/shared/workspaceUi";
+import { CustomerCreateDrawer } from "./CustomerCreateDrawer";
 import { CustomerDetailPanel } from "./CustomerDetailPanel";
 import { apiFetch } from "@/lib/api";
 import { useAdminPermissions } from "@/lib/permissionsContext";
@@ -53,8 +55,10 @@ function CustomersCatalogInner({
   const [searchQuery, setSearchQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<AdminCustomerSummary | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const canManage = can("customer_manage");
+  const canCreate = can("customer_update");
   const canAdjustLoyalty = can("loyalty_manage") || can("customer_manage");
 
   const stats = useMemo(() => {
@@ -208,6 +212,15 @@ function CustomersCatalogInner({
               iconElement={<UserCircle size={15} />}
               title="Customers"
               subtitle={`${filteredCustomers.length} shown (recent 500) · website sign-up · ${formatPrice(stats.totalBalance * programmeRupeesPerPoint)} loyalty`}
+              action={
+                canCreate ? (
+                  <WorkspacePrimaryAction
+                    label="New customer"
+                    iconElement={<Plus size={14} />}
+                    onClick={() => setIsCreateOpen(true)}
+                  />
+                ) : undefined
+              }
               search={
                 <>
                   <WorkspaceSearchField
@@ -274,6 +287,7 @@ function CustomersCatalogInner({
                 customerId={activeId}
                 programmeRupeesPerPoint={programmeRupeesPerPoint}
                 canManage={canManage}
+                canIssueCode={canCreate}
                 canAdjustLoyalty={canAdjustLoyalty}
                 canViewInquiries={can("inquiry_view")}
                 canViewActivity={can("activity_view")}
@@ -291,6 +305,18 @@ function CustomersCatalogInner({
           </section>
         </div>
       </WorkspaceFrame>
+
+      {canCreate ? (
+        <CustomerCreateDrawer
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          onCreated={(created) => {
+            setIsCreateOpen(false);
+            setActiveCustomerUrl(created.id);
+            refresh();
+          }}
+        />
+      ) : null}
 
       <ConfirmDialog
         isOpen={toDelete !== null}

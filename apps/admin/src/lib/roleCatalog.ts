@@ -38,8 +38,8 @@ export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
     "Customer-facing read access plus the ability to reply to chats. Cannot edit orders, products, or settings.",
 };
 
-export const ROLE_TONE: Record<UserRole, "dark" | "accent" | "info" | "neutral"> = {
-  owner: "dark",
+export const ROLE_TONE: Record<UserRole, "success" | "accent" | "info" | "neutral"> = {
+  owner: "success",
   business_manager: "accent",
   product_manager: "info",
   marketing_manager: "accent",

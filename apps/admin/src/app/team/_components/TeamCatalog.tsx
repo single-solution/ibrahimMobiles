@@ -56,7 +56,7 @@ const TeamRolesModal = dynamic(
   { ssr: false },
 );
 
-type SegmentFilter = "all" | UserRole | "suspended" | "super";
+type SegmentFilter = "all" | UserRole;
 
 interface TeamCatalogProps {
   members: AdminUser[];
@@ -106,8 +106,6 @@ function TeamCatalogInner({
   const segmentCounts = useMemo(() => {
     const base: Record<SegmentFilter, number> = {
       all: members.length,
-      suspended: 0,
-      super: 0,
       owner: 0,
       business_manager: 0,
       product_manager: 0,
@@ -116,8 +114,6 @@ function TeamCatalogInner({
     };
     for (const member of members) {
       base[member.role] += 1;
-      if (!member.isActive) base.suspended += 1;
-      if (member.isSuperAdmin) base.super += 1;
     }
     return base;
   }, [members]);
@@ -132,11 +128,7 @@ function TeamCatalogInner({
 
   const filteredMembers = useMemo(() => {
     let rows = members;
-    if (segment === "suspended") {
-      rows = rows.filter((row) => !row.isActive);
-    } else if (segment === "super") {
-      rows = rows.filter((row) => row.isSuperAdmin);
-    } else if (segment !== "all") {
+    if (segment !== "all") {
       rows = rows.filter((row) => row.role === segment);
     }
     const query = searchQuery.trim().toLowerCase();
@@ -228,9 +220,9 @@ function TeamCatalogInner({
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
           <aside className="hidden shrink-0 flex-col border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-2.5 lg:flex lg:w-44 lg:border-b-0 lg:border-r xl:w-48">
             <p className="pb-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-              Segments
+              Roles
             </p>
-            <nav aria-label="Team segments" className="-mx-1 flex-1 overflow-y-auto">
+            <nav aria-label="Team roles" className="-mx-1 flex-1 overflow-y-auto">
               <ul className="flex flex-col gap-0.5">
                 <WorkspaceSidebarNavItem
                   label="All members"
@@ -247,18 +239,6 @@ function TeamCatalogInner({
                     onClick={() => setSegment(role)}
                   />
                 ))}
-                <WorkspaceSidebarNavItem
-                  label="Super admins"
-                  count={segmentCounts.super}
-                  isActive={segment === "super"}
-                  onClick={() => setSegment("super")}
-                />
-                <WorkspaceSidebarNavItem
-                  label="Suspended"
-                  count={segmentCounts.suspended}
-                  isActive={segment === "suspended"}
-                  onClick={() => setSegment("suspended")}
-                />
               </ul>
             </nav>
             <div className="mt-3 space-y-2 border-t border-[var(--color-ink-100)] pt-3">
@@ -322,15 +302,6 @@ function TeamCatalogInner({
                         />
                       ) : null,
                     )}
-                    {segmentCounts.suspended > 0 ? (
-                      <WorkspaceFilterChip
-                        compact
-                        label="Suspended"
-                        count={segmentCounts.suspended}
-                        isActive={segment === "suspended"}
-                        onClick={() => setSegment("suspended")}
-                      />
-                    ) : null}
                     <button
                       type="button"
                       onClick={() => openRoles("owner")}
@@ -351,13 +322,9 @@ function TeamCatalogInner({
                     description={
                       searchQuery.trim()
                         ? "Try adjusting your search query."
-                        : segment === "suspended"
-                          ? "No suspended members."
-                          : segment === "super"
-                            ? "No super admins."
-                            : segment === "all"
-                              ? "No members added yet."
-                              : `No ${ROLE_LABEL[segment as UserRole].toLowerCase()}s yet.`
+                        : segment === "all"
+                          ? "No members added yet."
+                          : `No ${ROLE_LABEL[segment].toLowerCase()}s yet.`
                     }
                   />
                 </li>
@@ -486,7 +453,7 @@ function TeamListItem({
         className="tap flex w-full gap-3 px-3 pt-3 pb-1.5 text-left"
         aria-label={`Open ${member.name}'s profile`}
       >
-        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-ink-900)] text-[11px] font-semibold text-white">
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
           {getInitials(member.name)}
         </span>
         <span className="min-w-0 flex-1">
@@ -523,7 +490,7 @@ function TeamListItem({
         >
           <StatusPill tone={ROLE_TONE[member.role]}>{ROLE_LABEL[member.role]}</StatusPill>
         </button>
-        {member.isSuperAdmin ? <StatusPill tone="dark">Super</StatusPill> : null}
+        {member.isSuperAdmin ? <StatusPill tone="info">Super</StatusPill> : null}
         {!member.isActive ? <StatusPill tone="warn">Suspended</StatusPill> : null}
       </div>
     </div>

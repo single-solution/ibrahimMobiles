@@ -9,6 +9,7 @@ export const ACTIVITY_ACTION_LABEL: Record<string, string> = {
   login: "Signed in",
   logout: "Signed out",
   invited: "Invited",
+  signin_code_issued: "Sign-in code issued",
 };
 
 export function formatActivityAction(action: string): string {

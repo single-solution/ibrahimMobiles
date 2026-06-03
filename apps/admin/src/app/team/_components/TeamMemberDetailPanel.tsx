@@ -334,7 +334,7 @@ export function TeamMemberDetailPanel({
         backLabel="Back to team"
         title={
           <span className="flex min-w-0 items-center gap-2">
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-ink-900)] text-[11px] font-semibold text-white">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
               {getInitials(member.name)}
             </span>
             <span className="min-w-0 flex-1 truncate">{member.name}</span>
@@ -344,7 +344,7 @@ export function TeamMemberDetailPanel({
           <span className="flex flex-wrap items-center gap-1.5">
             <StatusPill tone={ROLE_TONE[member.role]}>{ROLE_LABEL[member.role]}</StatusPill>
             {member.isSuperAdmin ? (
-              <StatusPill tone="dark" leadingIcon={<ShieldCheck size={10} />}>
+              <StatusPill tone="info" leadingIcon={<ShieldCheck size={10} />}>
                 Super
               </StatusPill>
             ) : null}

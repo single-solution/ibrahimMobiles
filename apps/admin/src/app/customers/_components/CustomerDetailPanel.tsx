@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import Link from "next/link";
 import {
   Copy,
+  KeyRound,
   Mail,
   MessageSquare,
   Phone,
@@ -37,6 +38,7 @@ import type {
   AdminOrderSummary,
 } from "@/types/models";
 import { WorkspaceDetailHeader } from "@/components/shared/workspaceUi";
+import { CustomerAccessCodeDialog } from "./CustomerAccessCodeDialog";
 import { CustomerAddressesSection } from "./CustomerAddressesSection";
 import {
   CustomerErrorBanner,
@@ -95,10 +97,16 @@ interface ActivityListResponse {
   total: number;
 }
 
+interface IssuedAccessCode {
+  code: string;
+  expiresInMinutes: number;
+}
+
 export interface CustomerDetailPanelProps {
   customerId: string;
   programmeRupeesPerPoint: number;
   canManage: boolean;
+  canIssueCode: boolean;
   canAdjustLoyalty: boolean;
   canViewInquiries: boolean;
   canViewActivity: boolean;
@@ -111,6 +119,7 @@ export function CustomerDetailPanel({
   customerId,
   programmeRupeesPerPoint,
   canManage,
+  canIssueCode,
   canAdjustLoyalty,
   canViewInquiries,
   canViewActivity,
@@ -136,6 +145,8 @@ export function CustomerDetailPanel({
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isIssuingCode, setIsIssuingCode] = useState(false);
+  const [issuedCode, setIssuedCode] = useState<IssuedAccessCode | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -223,6 +234,28 @@ export function CustomerDetailPanel({
       setSaveError(message);
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleIssueCode() {
+    if (!canIssueCode || !customer || isIssuingCode) return;
+    setIsIssuingCode(true);
+    try {
+      const result = await apiFetch<{ code: string; expiresInMinutes: number }>(
+        `/api/customers/${customer.id}/access-code`,
+        { method: "POST" },
+      );
+      setIssuedCode({ code: result.code, expiresInMinutes: result.expiresInMinutes });
+    } catch (error) {
+      toast.danger(
+        error instanceof ApiError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Failed to issue a sign-in code",
+      );
+    } finally {
+      setIsIssuingCode(false);
     }
   }
 
@@ -358,6 +391,18 @@ export function CustomerDetailPanel({
                 }}
               >
                 Email
+              </Button>
+            ) : null}
+            {canIssueCode ? (
+              <Button
+                variant="outline"
+                size="sm"
+                leadingIcon={<KeyRound size={12} />}
+                onClick={() => void handleIssueCode()}
+                isLoading={isIssuingCode}
+                title="Generate a one-time code the customer can use to sign in"
+              >
+                Sign-in code
               </Button>
             ) : null}
             {canManage ? (
@@ -530,6 +575,17 @@ export function CustomerDetailPanel({
           <ActivityTab entries={activity} />
         ) : null}
       </div>
+
+      {issuedCode ? (
+        <CustomerAccessCodeDialog
+          isOpen
+          customerName={customer.name}
+          phoneNumber={customer.phoneNumber}
+          code={issuedCode.code}
+          expiresInMinutes={issuedCode.expiresInMinutes}
+          onClose={() => setIssuedCode(null)}
+        />
+      ) : null}
     </div>
   );
 }

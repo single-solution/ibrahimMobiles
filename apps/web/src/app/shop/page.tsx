@@ -81,12 +81,21 @@ async function ShopSearchResults({
   query: string;
   requestedPage: number;
 }) {
-  const page = await getProductsPageCached({
-    search: query,
-    limit: SEARCH_PAGE_SIZE,
-    page: requestedPage,
-    sort: "newest",
-  });
+  let page: Awaited<ReturnType<typeof getProductsPageCached>>;
+  try {
+    page = await getProductsPageCached({
+      search: query,
+      limit: SEARCH_PAGE_SIZE,
+      page: requestedPage,
+      sort: "newest",
+    });
+  } catch (error) {
+    logger.error(
+      { error, query },
+      "shop: search results load failed, rendering empty state this render",
+    );
+    page = { products: [], total: 0, page: 1, pageSize: SEARCH_PAGE_SIZE, pageCount: 1 };
+  }
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-6 md:px-6 md:pb-16 md:pt-10 lg:px-8">
