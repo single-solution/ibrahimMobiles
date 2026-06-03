@@ -9,7 +9,7 @@
  * Pure controlled component. Parent owns the `SeoMeta` slice of state.
  */
 
-import { useId, useState } from "react";
+import { useId } from "react";
 
 import { SEO_META_FIELD_LIMITS, type SeoMeta } from "@store/shared";
 
@@ -46,7 +46,6 @@ export function SeoPanel({
   headerExtra,
   previewSlot,
 }: SeoPanelProps) {
-  const [open, setOpen] = useState(true);
   const id = useId();
 
   const set = <K extends keyof SeoMeta>(key: K, next: SeoMeta[K]) => {
@@ -54,45 +53,14 @@ export function SeoPanel({
   };
 
   return (
-    <section
-      className="rounded-[var(--radius-lg)] border border-[color:var(--color-ink-100)] bg-[color:var(--color-surface)]"
-      aria-labelledby={`${id}-heading`}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-        aria-expanded={open}
-        aria-controls={`${id}-body`}
-      >
-        <div className="flex flex-col gap-1">
-          <h3
-            id={`${id}-heading`}
-            className="text-sm font-semibold text-[color:var(--color-ink-900)]"
-          >
-            SEO
-          </h3>
-          {contextLabel ? (
-            <p className="text-xs text-[color:var(--color-ink-500)]">
-              {contextLabel}
-            </p>
-          ) : null}
+    <div className="space-y-4">
+      {previewSlot && (
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1">{previewSlot}</div>
+          {headerExtra && <div className="shrink-0">{headerExtra}</div>}
         </div>
-        <div className="flex items-center gap-2">
-          {headerExtra}
-          <span className="text-xs text-[color:var(--color-ink-500)]">
-            {open ? "Hide" : "Configure"}
-          </span>
-        </div>
-      </button>
-
-      {open ? (
-        <div
-          id={`${id}-body`}
-          className="space-y-4 border-t border-[color:var(--color-ink-100)] px-4 py-4"
-        >
-          {previewSlot}
-          <FieldRow label="Focus keyword" htmlFor={`${id}-focus`}>
+      )}
+      <FieldRow label="Focus keyword" htmlFor={`${id}-focus`}>
             <input
               id={`${id}-focus`}
               type="text"
@@ -228,9 +196,7 @@ export function SeoPanel({
               <span>nofollow</span>
             </label>
           </div>
-        </div>
-      ) : null}
-    </section>
+    </div>
   );
 }
 
