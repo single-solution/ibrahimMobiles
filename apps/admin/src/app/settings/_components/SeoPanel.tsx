@@ -46,7 +46,7 @@ export function SeoPanel({
   headerExtra,
   previewSlot,
 }: SeoPanelProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const id = useId();
 
   const set = <K extends keyof SeoMeta>(key: K, next: SeoMeta[K]) => {
