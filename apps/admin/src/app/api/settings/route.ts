@@ -15,7 +15,7 @@ import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { recordActivity } from "@/lib/services/activityLog";
 
 import { toSettingResponse, type SettingLean } from "@/lib/serializers/setting";
-import type { AdminSetting } from "@/types/admin";
+import type { AdminSetting } from "@/types/models";
 
 export async function GET(request: Request) {
   const { response } = await requireSession("settings_view");

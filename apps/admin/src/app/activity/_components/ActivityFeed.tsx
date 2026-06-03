@@ -20,10 +20,10 @@ import {
   WorkspaceFilterChip,
   WorkspaceFrame,
   WorkspaceListHeader,
-} from "@/components/shared/adminWorkspaceUi";
+} from "@/components/shared/workspaceUi";
 import { formatActivityAction } from "@/lib/activityLabels";
 import { getInitials } from "@/lib/initials";
-import type { AdminActivityEntry } from "@/types/admin";
+import type { AdminActivityEntry } from "@/types/models";
 
 type Action = AdminActivityEntry["action"];
 

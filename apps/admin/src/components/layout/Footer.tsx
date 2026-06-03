@@ -2,9 +2,9 @@
 
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 
-import { AdminAlertsRow, useAdminAlerts } from "@/app/_components/dashboard/adminAlertsUi";
+import { AdminAlertsRow, useAdminAlerts } from "@/app/_components/dashboard/alertsUi";
 
-export function AdminFooter() {
+export function Footer() {
   const { siteName } = useStoreSettings();
   const year = new Date().getFullYear();
   const alerts = useAdminAlerts();

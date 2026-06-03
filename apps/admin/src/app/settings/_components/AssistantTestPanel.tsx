@@ -8,7 +8,7 @@ import {
   type ChatSettingsValues,
 } from "@store/shared";
 
-import { adminFetch } from "@/lib/adminApi";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { SelectField } from "@/components/forms/SelectField";
 import { useToast } from "@/components/ui/Toast";
@@ -43,7 +43,7 @@ export function AssistantTestPanel({
   const [results, setResults] = useState<AssistantTestResult[]>([]);
 
   async function runTest(provider: ChatAssistantProvider) {
-    const response = await adminFetch<{
+    const response = await apiFetch<{
       reply: string;
       provider: ChatAssistantProvider;
       model: string;

@@ -1,11 +1,11 @@
 import { UserCircle } from "lucide-react";
 
-import { AdminListPageShell } from "@/components/shared/AdminListPageShell";
+import { ListPageShell } from "@/components/shared/ListPageShell";
 import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 import {
   WorkspaceFrame,
   WorkspaceListHeader,
-} from "@/components/shared/adminWorkspaceUi";
+} from "@/components/shared/workspaceUi";
 
 /**
  * Route-segment fallback for `/account`.
@@ -21,7 +21,7 @@ import {
 export default function AdminAccountLoading() {
   return (
     <SkeletonScreen label="Loading account">
-      <AdminListPageShell>
+      <ListPageShell>
         <WorkspaceFrame minHeight={false}>
             <WorkspaceListHeader
               iconElement={<UserCircle size={15} />}
@@ -50,7 +50,7 @@ export default function AdminAccountLoading() {
               </div>
             </div>
           </WorkspaceFrame>
-      </AdminListPageShell>
+      </ListPageShell>
     </SkeletonScreen>
   );
 }

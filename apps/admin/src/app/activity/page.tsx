@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import { AdminListPageShell } from "@/components/shared/AdminListPageShell";
+import { ListPageShell } from "@/components/shared/ListPageShell";
 import { ActivityFeed } from "@/app/activity/_components/ActivityFeed";
 import { ListWorkspaceSkeleton } from "@/components/loading/ListWorkspaceSkeleton";
 
@@ -13,11 +13,11 @@ export default async function AdminActivityPage() {
   await requirePagePermission("activity_view", "/activity");
 
   return (
-    <AdminListPageShell>
+    <ListPageShell>
       <Suspense fallback={<ListWorkspaceSkeleton />}>
         <ActivityData />
       </Suspense>
-    </AdminListPageShell>
+    </ListPageShell>
   );
 }
 

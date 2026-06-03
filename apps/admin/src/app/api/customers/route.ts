@@ -5,7 +5,7 @@ import { ok } from "@store/shared";
 import { connectDB, Customer, Order } from "@store/db";
 
 import { toCustomerResponse, type CustomerLean } from "@/lib/serializers/customer";
-import type { AdminCustomerSummary } from "@/types/admin";
+import type { AdminCustomerSummary } from "@/types/models";
 
 export async function GET(request: Request) {
   const { response } = await requireSession("customer_view");

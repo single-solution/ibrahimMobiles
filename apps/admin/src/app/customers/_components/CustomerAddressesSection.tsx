@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { TextField } from "@/components/forms/TextField";
 import { useToast } from "@/components/ui/Toast";
-import { AdminApiError, adminFetch } from "@/lib/adminApi";
+import { ApiError, apiFetch } from "@/lib/api";
 import { FIELD_LIMITS, MAX_CUSTOMER_ADDRESSES } from "@store/shared";
-import type { AdminCustomer, AdminCustomerAddress } from "@/types/admin";
+import type { AdminCustomer, AdminCustomerAddress } from "@/types/models";
 import { CustomerErrorBanner } from "./customerDetailUi";
 
 export interface AddressDraft {
@@ -63,7 +63,7 @@ export function CustomerAddressesSection({
     setIsSaving(true);
     setError(null);
     try {
-      const updated = await adminFetch<AdminCustomer>(
+      const updated = await apiFetch<AdminCustomer>(
         `/api/customers/${customer.id}/addresses`,
         {
           method: "PUT",
@@ -76,7 +76,7 @@ export function CustomerAddressesSection({
       return true;
     } catch (err) {
       const message =
-        err instanceof AdminApiError
+        err instanceof ApiError
           ? err.message
           : err instanceof Error
             ? err.message

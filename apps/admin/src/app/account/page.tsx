@@ -1,4 +1,4 @@
-import { AdminListPageShell } from "@/components/shared/AdminListPageShell";
+import { ListPageShell } from "@/components/shared/ListPageShell";
 import { AccountSettings } from "@/app/account/_components/AccountSettings";
 
 import { requirePageSession } from "@/lib/server/requirePageSession";
@@ -9,8 +9,8 @@ export default async function AdminAccountPage() {
   await requirePageSession("/account");
 
   return (
-    <AdminListPageShell>
+    <ListPageShell>
       <AccountSettings />
-    </AdminListPageShell>
+    </ListPageShell>
   );
 }

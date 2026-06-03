@@ -1,16 +1,16 @@
-import { AdminShell } from "@/components/layout/AdminShell";
+import { Shell } from "@/components/layout/Shell";
 import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
-import { adminCatalogPageClass } from "@/components/shared/adminWorkspaceUi";
+import { adminCatalogPageClass } from "@/components/shared/workspaceUi";
 import { SkeletonScreen } from "@/components/ui/Skeleton";
 
 export default function ProductsLoading() {
   return (
     <SkeletonScreen label="Loading products">
-      <AdminShell contentClassName={adminCatalogPageClass}>
+      <Shell contentClassName={adminCatalogPageClass}>
         <section className="flex min-h-0 flex-1 flex-col">
           <CatalogWorkspaceSkeleton />
         </section>
-      </AdminShell>
+      </Shell>
     </SkeletonScreen>
   );
 }

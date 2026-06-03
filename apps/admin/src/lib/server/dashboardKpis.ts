@@ -1,7 +1,7 @@
 import { ISO_DATE_LENGTH } from "@store/shared";
 
 import { toInquiryResponse, type InquiryLean } from "@/lib/serializers/inquiry";
-import type { AdminInquiry } from "@/types/admin";
+import type { AdminInquiry } from "@/types/models";
 import {
   connectDB,
   Customer,

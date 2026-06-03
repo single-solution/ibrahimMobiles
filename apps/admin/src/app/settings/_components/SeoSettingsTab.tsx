@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { applyTitleTemplate } from "@store/shared";
 
-import { adminFetch } from "@/lib/adminApi";
+import { apiFetch } from "@/lib/api";
 import { storedImageFromSetting } from "@/lib/seo/useSeoSettings";
 import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";
@@ -118,8 +118,8 @@ export function SeoSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
     async function load() {
       try {
         const [seoRes, brandingRes] = await Promise.all([
-          adminFetch<SettingsListResponse>("/api/settings?group=seo"),
-          adminFetch<SettingsListResponse>("/api/settings?group=branding"),
+          apiFetch<SettingsListResponse>("/api/settings?group=seo"),
+          apiFetch<SettingsListResponse>("/api/settings?group=branding"),
         ]);
         if (cancelled) return;
         const map = new Map([
@@ -186,7 +186,7 @@ export function SeoSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
   }
 
   async function persist(key: string, value: unknown, group: string) {
-    await adminFetch("/api/settings", {
+    await apiFetch("/api/settings", {
       method: "PUT",
       json: { key, value, group },
     });

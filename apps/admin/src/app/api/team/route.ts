@@ -25,7 +25,7 @@ import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { recordActivity } from "@/lib/services/activityLog";
 
 import { toUserResponse, type UserLean } from "@/lib/serializers/user";
-import type { AdminUser } from "@/types/admin";
+import type { AdminUser } from "@/types/models";
 
 export async function GET(request: Request) {
   const { response } = await requireSession("team_view");

@@ -32,7 +32,7 @@ import {
 import { connectDB, Setting } from "@store/db";
 
 import { requireSession } from "@/lib/api/requireSession";
-import { buildAdminAssistantTestContext } from "@/lib/chat/buildAdminAssistantTestContext";
+import { buildAssistantTestContext } from "@/lib/chat/buildAssistantTestContext";
 
 interface TestBody {
   message?: unknown;
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
 
   const started = Date.now();
   try {
-    const context = await buildAdminAssistantTestContext({
+    const context = await buildAssistantTestContext({
       customerMessage: messageResult,
       catalogLimit: runtime.assistantCatalogLimit,
     });

@@ -1,4 +1,4 @@
-import { WorkspaceFrame } from "@/components/shared/adminWorkspaceUi";
+import { WorkspaceFrame } from "@/components/shared/workspaceUi";
 
 export function ListWorkspaceSkeleton() {
   return (

@@ -6,7 +6,7 @@ import {
   objectIdString,
   toIsoDate,
 } from "@store/shared";
-import type { AdminGrade } from "@/types/admin";
+import type { AdminGrade } from "@/types/models";
 
 export type GradeLean = WithTimestamps<GradeAttributes> & {
   _id: Types.ObjectId;

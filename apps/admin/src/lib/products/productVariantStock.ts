@@ -1,4 +1,4 @@
-import type { AdminProductSummary } from "@/types/admin";
+import type { AdminProductSummary } from "@/types/models";
 
 /** How variant quantities roll up for a product shell. */
 export type VariantStockRollup =

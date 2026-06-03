@@ -8,13 +8,13 @@ import { compareAlphabetically, isValidId } from "@store/shared";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { TabList } from "@/components/ui/Tabs";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import {
-  useAdminUrlParams,
-} from "@/lib/url/useAdminUrlParams";
+  useUrlParams,
+} from "@/lib/url/useUrlParams";
 import { useToast } from "@/components/ui/Toast";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
-import type { AdminAttribute, AdminGrade, AdminProduct } from "@/types/admin";
+import type { AdminAttribute, AdminGrade, AdminProduct } from "@/types/models";
 
 import { VariantCard, VariantDetailFooter } from "./VariantCard";
 import { VariantSidebarTile } from "./VariantSidebarTile";
@@ -94,7 +94,7 @@ export function ProductWizardStep2({
   purpose = "wizard",
 }: ProductWizardStep2Props) {
   const isManage = purpose === "manage";
-  const { searchParams, replace } = useAdminUrlParams();
+  const { searchParams, replace } = useUrlParams();
   const workspaceInitProductIdRef = useRef<string | null>(null);
   const toast = useToast();
   const [sections, setSections] = useState<GradeSectionState[]>([]);
@@ -371,7 +371,7 @@ export function ProductWizardStep2({
       );
       for (const existing of product.variants) {
         if (keepVariantIds.has(existing.id)) continue;
-        await adminFetch<AdminProduct>(
+        await apiFetch<AdminProduct>(
           `/api/products/${product.id}/variants/${existing.id}`,
           { method: "DELETE" },
         );
@@ -382,16 +382,16 @@ export function ProductWizardStep2({
         const draftRow = variants[index];
         const payload = { ...variant };
         await (isValidId(draftRow.uid)
-          ? adminFetch<AdminProduct>(
+          ? apiFetch<AdminProduct>(
               `/api/products/${product.id}/variants/${draftRow.uid}`,
               { method: "PUT", json: payload },
             )
-          : adminFetch<AdminProduct>(
+          : apiFetch<AdminProduct>(
               `/api/products/${product.id}/variants`,
               { method: "POST", json: payload },
             ));
       }
-      const reloadedProduct = await adminFetch<AdminProduct>(
+      const reloadedProduct = await apiFetch<AdminProduct>(
         `/api/products/${product.id}`,
       );
       const latest = reloadedProduct;
@@ -412,7 +412,7 @@ export function ProductWizardStep2({
       onSaved(latest);
     } catch (error) {
       const message =
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : error instanceof Error
             ? error.message

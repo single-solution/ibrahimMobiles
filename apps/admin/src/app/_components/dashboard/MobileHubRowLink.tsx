@@ -8,7 +8,7 @@ import { InquiriesUnreadBadge } from "@/app/inquiries/_components/InquiriesUnrea
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 import { classNames } from "@store/shared";
 
-interface AdminMobileHubRowLinkProps {
+interface MobileHubRowLinkProps {
 	href: string;
 	label: string;
 	/**
@@ -24,18 +24,18 @@ interface AdminMobileHubRowLinkProps {
 
 /**
  * Client wrapper for one row in the mobile admin hub. Lives in its own
- * file (rather than inline in `AdminMobileHubSections`) so the parent
+ * file (rather than inline in `MobileHubSections`) so the parent
  * stays an async server component — only the navigation primitive needs
  * to be on the client to get intent prefetch.
  */
-export function AdminMobileHubRowLink({
+export function MobileHubRowLink({
 	href,
 	label,
 	iconElement,
 	trailing,
 	showInquiriesBadge,
 	isLast,
-}: AdminMobileHubRowLinkProps): ReactNode {
+}: MobileHubRowLinkProps): ReactNode {
 	const prefetchHandlers = usePrefetchOnIntent(href);
 	return (
 		<Link

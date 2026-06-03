@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 
-import { AdminShell } from "@/components/layout/AdminShell";
+import { Shell } from "@/components/layout/Shell";
 import { CategoriesCatalog } from "@/app/categories/_components/CategoriesCatalog";
 import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
-import { adminCatalogPageClass } from "@/components/shared/adminWorkspaceUi";
+import { adminCatalogPageClass } from "@/components/shared/workspaceUi";
 import {
   Attribute,
   Brand,
@@ -29,13 +29,13 @@ export default async function AdminCategoriesPage() {
   await requirePagePermission("category_manage", "/categories");
 
   return (
-    <AdminShell contentClassName={adminCatalogPageClass}>
+    <Shell contentClassName={adminCatalogPageClass}>
       <section className="flex min-h-0 flex-1 flex-col">
         <Suspense fallback={<CatalogWorkspaceSkeleton />}>
           <CategoriesData />
         </Suspense>
       </section>
-    </AdminShell>
+    </Shell>
   );
 }
 

@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { AdminMobileHubRowLink } from "@/app/_components/dashboard/AdminMobileHubRowLink";
+import { MobileHubRowLink } from "@/app/_components/dashboard/MobileHubRowLink";
 import { getVerifiedSession, hasPermission } from "@/lib/permissions";
 import { loadDashboardKpisCached } from "@/lib/cached";
 import { NAV_ITEM_PERMISSIONS } from "@/components/layout/Sidebar";
@@ -36,7 +36,7 @@ interface HubRow {
  *  Uses the same KPI cache as the rest of the dashboard — no extra DB hit.
  *  Skips groups where the operator has no visible items (permission gating
  *  mirrors `Sidebar.NAV_ITEM_PERMISSIONS`). */
-export async function AdminMobileHubSections() {
+export async function MobileHubSections() {
   const [actor, kpis] = await Promise.all([
     getVerifiedSession(),
     loadDashboardKpisCached(),
@@ -135,7 +135,7 @@ function HubGroupCard({ group }: { group: HubGroup }) {
           const Icon = row.icon;
           return (
             <li key={row.href}>
-              <AdminMobileHubRowLink
+              <MobileHubRowLink
                 href={row.href}
                 label={row.label}
                 iconElement={<Icon size={16} strokeWidth={2} />}

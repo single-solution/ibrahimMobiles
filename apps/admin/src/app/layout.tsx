@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { getStoreSettings } from "@store/db";
 
 import { ToastProvider } from "@/components/ui/Toast";
-import { AdminSessionProvider } from "@/components/layout/AdminSessionProvider";
+import { SessionProvider } from "@/components/layout/SessionProvider";
 import { StoreSettingsProvider } from "@/lib/storeSettingsContext";
 import "./globals.css";
 
@@ -37,11 +37,11 @@ export default async function AdminRootLayout({ children }: AdminRootLayoutProps
   return (
     <html lang="en">
       <body>
-        <AdminSessionProvider>
+        <SessionProvider>
           <StoreSettingsProvider value={settings}>
             <ToastProvider>{children}</ToastProvider>
           </StoreSettingsProvider>
-        </AdminSessionProvider>
+        </SessionProvider>
       </body>
     </html>
   );

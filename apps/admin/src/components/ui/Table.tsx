@@ -3,12 +3,12 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
 import { classNames } from "@store/shared";
-import { WorkspaceSearchField } from "@/components/shared/adminWorkspaceUi";
+import { WorkspaceSearchField } from "@/components/shared/workspaceUi";
 
 type SortDirection = "asc" | "desc";
 type SortableValue = string | number;
 
-export interface AdminTableColumn<TRow> {
+export interface TableColumn<TRow> {
   id: string;
   header: ReactNode;
   cell: (row: TRow) => ReactNode;
@@ -23,9 +23,9 @@ export interface AdminTableColumn<TRow> {
   sortAccessor?: (row: TRow) => SortableValue;
 }
 
-interface AdminTableProps<TRow> {
+interface TableProps<TRow> {
   rows: TRow[];
-  columns: AdminTableColumn<TRow>[];
+  columns: TableColumn<TRow>[];
   rowKey: (row: TRow) => string;
   searchPlaceholder?: string;
   searchAccessor?: (row: TRow) => string;
@@ -40,7 +40,7 @@ interface AdminTableProps<TRow> {
 
 function deriveSortableValue<TRow>(
   row: TRow,
-  column: AdminTableColumn<TRow>,
+  column: TableColumn<TRow>,
 ): SortableValue {
   if (column.sortAccessor) {
     return column.sortAccessor(row);
@@ -52,7 +52,7 @@ function deriveSortableValue<TRow>(
   return "";
 }
 
-export function AdminTable<TRow>({
+export function Table<TRow>({
   rows,
   columns,
   rowKey,
@@ -63,7 +63,7 @@ export function AdminTable<TRow>({
   pageSize = 50,
   toolbar,
   filterBar,
-}: AdminTableProps<TRow>) {
+}: TableProps<TRow>) {
   const [query, setQuery] = useState("");
   const [pageIndex, setPageIndex] = useState(0);
   const [sort, setSort] = useState<{ columnId: string; direction: SortDirection } | null>(null);
@@ -165,7 +165,7 @@ export function AdminTable<TRow>({
           <ul className="reveal-stagger divide-y divide-[var(--color-ink-100)] md:hidden">
             {visibleRows.map((row) => {
               const mobileColumns = columns.filter((column) => !column.hideOnMobile);
-              const hasLabel = (column: AdminTableColumn<TRow>) =>
+              const hasLabel = (column: TableColumn<TRow>) =>
                 column.header !== "" && column.header != null;
               const labelled = mobileColumns.filter(hasLabel);
               const unlabelled = mobileColumns.filter((column) => !hasLabel(column));

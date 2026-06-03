@@ -4,7 +4,7 @@ import type {
   CustomerAddressAttributes,
 } from "@store/db";
 import { asArray, asNumber, asString, objectIdString, toIsoDate } from "@store/shared";
-import type { AdminCustomer, AdminCustomerAddress } from "@/types/admin";
+import type { AdminCustomer, AdminCustomerAddress } from "@/types/models";
 
 export type CustomerLean = CustomerAttributes & { _id: Types.ObjectId };
 

@@ -18,7 +18,7 @@ import { recordActivity } from "@/lib/services/activityLog";
 import { slugify } from "@store/shared";
 
 import { toBrandResponse, type BrandLean } from "@/lib/serializers/brand";
-import type { AdminBrand } from "@/types/admin";
+import type { AdminBrand } from "@/types/models";
 import { parseSeoPayload } from "@/lib/api/seoPayload";
 
 export async function GET(request: Request) {

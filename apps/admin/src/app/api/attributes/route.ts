@@ -27,7 +27,7 @@ import {
   parseAttributeUnit,
   parseAttributeVisibilityInput,
 } from "@/lib/api/attributesPayload";
-import type { AdminAttribute } from "@/types/admin";
+import type { AdminAttribute } from "@/types/models";
 
 async function hasAttributeCategoryConflict(
   categorySlug: string,

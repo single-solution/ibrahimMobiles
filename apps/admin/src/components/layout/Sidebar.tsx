@@ -21,7 +21,7 @@ import { InquiriesUnreadBadge } from "@/app/inquiries/_components/InquiriesUnrea
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
-import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { useAdminPermissions } from "@/lib/permissionsContext";
 
 import type { PermissionKey } from "@/lib/permissionsCatalog";
 

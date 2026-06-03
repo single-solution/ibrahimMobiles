@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { Drawer } from "@/components/ui/Drawer";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useToast } from "@/components/ui/Toast";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
-import type { AdminProduct } from "@/types/admin";
+import type { AdminProduct } from "@/types/models";
 
 import { ProductWizardStep2 } from "./ProductWizardStep2";
 
@@ -37,14 +37,14 @@ export function ProductManageVariantsDrawer({
       return;
     }
     let cancelled = false;
-    adminFetch<AdminProduct>(`/api/products/${productId}`)
+    apiFetch<AdminProduct>(`/api/products/${productId}`)
       .then((loaded) => {
         if (!cancelled) setProduct(loaded);
       })
       .catch((error) => {
         if (cancelled) return;
         toast.danger(
-          error instanceof AdminApiError
+          error instanceof ApiError
             ? error.message
             : "Failed to load product.",
         );

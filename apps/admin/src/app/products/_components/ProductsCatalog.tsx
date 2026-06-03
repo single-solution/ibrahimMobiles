@@ -20,19 +20,19 @@ import {
 } from "@store/shared";
 
 import { CatalogSearchField } from "@/components/shared/catalogWorkspaceUi";
-import { AdminTable, type AdminTableColumn } from "@/components/ui/AdminTable";
+import { Table, type TableColumn } from "@/components/ui/Table";
 import {
   WorkspaceCatalogPaneHeader,
   WorkspaceFrame,
   WorkspaceReadOnlyBanner,
-} from "@/components/shared/adminWorkspaceUi";
-import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+} from "@/components/shared/workspaceUi";
+import { useAdminPermissions } from "@/lib/permissionsContext";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FilterDropdown, type FilterOption } from "@/components/ui/FilterDropdown";
 import { LucideIconRenderer } from "@/components/icons/LucideIconRenderer";
 import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
 import { useToast } from "@/components/ui/Toast";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { getInitials } from "@/lib/initials";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
@@ -42,9 +42,9 @@ import {
 } from "@/lib/products/productVariantStock";
 import {
   syncAfterPendingUrl,
-  useAdminUrlParams,
-} from "@/lib/url/useAdminUrlParams";
-import type { AdminCategory, AdminProductSummary } from "@/types/admin";
+  useUrlParams,
+} from "@/lib/url/useUrlParams";
+import type { AdminCategory, AdminProductSummary } from "@/types/models";
 
 import { ProductCreateWizard } from "./ProductCreateWizard";
 
@@ -261,7 +261,7 @@ export function ProductsCatalog(props: ProductsCatalogProps) {
 
 function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
   const router = useRouter();
-  const { searchParams, replace } = useAdminUrlParams();
+  const { searchParams, replace } = useUrlParams();
   const toast = useToast();
   const { can } = useAdminPermissions();
   const canCreate = can("product_create");
@@ -647,7 +647,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     if (!deleteTarget) return;
     const deletedName = deleteTarget.name;
     try {
-      await adminFetch(`/api/products/${deleteTarget.id}`, {
+      await apiFetch(`/api/products/${deleteTarget.id}`, {
         method: "DELETE",
       });
       toast.success(`Deleted "${deletedName}"`);
@@ -671,7 +671,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       router.refresh();
     } catch (error) {
       toast.danger(
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : "Failed to delete product.",
       );
@@ -683,7 +683,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
   // can never wrap. Status pills + the brand·slug subtitle that used to
   // sit under the product name are gone — flags now render as tiny
   // icon-only badges next to the name, and stock is one compact cell.
-  const tableColumns: AdminTableColumn<AdminProductSummary>[] = [
+  const tableColumns: TableColumn<AdminProductSummary>[] = [
     {
       id: "product",
       header: "Product",
@@ -925,7 +925,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
             />
 
             <div className="min-h-0 flex-1 overflow-y-auto p-2 [&>div]:rounded-none [&>div]:border-0 [&>div]:shadow-none [&_table]:table-fixed [&_table]:text-xs [&_td]:px-3 [&_td]:py-2 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-[10px]">
-              <AdminTable
+              <Table
                 rows={tableRows}
                 columns={tableColumns}
                 rowKey={(product) => product.id}
@@ -1142,7 +1142,7 @@ function ProductStorefrontToggle({
     const next = !isActive;
     setSaving(true);
     try {
-      await adminFetch(`/api/products/${productId}`, {
+      await apiFetch(`/api/products/${productId}`, {
         method: "PUT",
         json: { isActive: next },
       });
@@ -1155,7 +1155,7 @@ function ProductStorefrontToggle({
       onUpdated();
     } catch (error) {
       toast.danger(
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : "Failed to update product visibility.",
       );

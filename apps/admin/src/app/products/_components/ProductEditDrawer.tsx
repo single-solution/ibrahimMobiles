@@ -11,11 +11,11 @@ import {
   type GalleryImage,
 } from "@/components/shared/uploads/imageStaging";
 import { useToast } from "@/components/ui/Toast";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 import type { SeoMeta } from "@store/shared";
-import type { AdminProduct } from "@/types/admin";
+import type { AdminProduct } from "@/types/models";
 
 import { collectProductImageErrors } from "./productFormState";
 import { Stepper } from "@/components/ui/Stepper";
@@ -68,7 +68,7 @@ export function ProductEditDrawer({
     scheduleStateUpdate(() => {
       setLoading(true);
     });
-    adminFetch<AdminProduct>(`/api/products/${productId}`)
+    apiFetch<AdminProduct>(`/api/products/${productId}`)
       .then((loaded) => {
         if (cancelled) return;
         setProduct(loaded);
@@ -81,7 +81,7 @@ export function ProductEditDrawer({
       .catch((error) => {
         if (cancelled) return;
         toast.danger(
-          error instanceof AdminApiError
+          error instanceof ApiError
             ? error.message
             : "Failed to load product.",
         );
@@ -120,11 +120,11 @@ export function ProductEditDrawer({
       // Shell + photos live behind two endpoints; save them in sequence so a
       // shell failure (e.g. duplicate name) doesn't leave the gallery in a
       // mismatched state.
-      await adminFetch<AdminProduct>(`/api/products/${product.id}`, {
+      await apiFetch<AdminProduct>(`/api/products/${product.id}`, {
         method: "PUT",
         json: { name: trimmed, brandSlug, seo },
       });
-      await adminFetch<AdminProduct>(`/api/products/${product.id}/images`, {
+      await apiFetch<AdminProduct>(`/api/products/${product.id}/images`, {
         method: "PUT",
         json: { images: uploaded },
       });
@@ -133,7 +133,7 @@ export function ProductEditDrawer({
       onClose();
     } catch (error) {
       toast.danger(
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : "Failed to save product.",
       );

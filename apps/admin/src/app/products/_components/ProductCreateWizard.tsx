@@ -7,12 +7,12 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { MobileFab } from "@/components/ui/MobileFab";
-import { WorkspacePrimaryAction } from "@/components/shared/adminWorkspaceUi";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { WorkspacePrimaryAction } from "@/components/shared/workspaceUi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
-import { useAdminUrlParams } from "@/lib/url/useAdminUrlParams";
-import type { AdminProduct } from "@/types/admin";
+import { useUrlParams } from "@/lib/url/useUrlParams";
+import type { AdminProduct } from "@/types/models";
 
 import { ProductWizardStep1 } from "./ProductWizardStep1";
 import { ProductWizardStep2 } from "./ProductWizardStep2";
@@ -32,7 +32,7 @@ export function ProductCreateWizard({
   variant = "header",
 }: ProductCreateWizardProps) {
   const router = useRouter();
-  const { searchParams, replace } = useAdminUrlParams();
+  const { searchParams, replace } = useUrlParams();
   const [phase, setPhase] = useState<WizardPhase>("closed");
   const [product, setProduct] = useState<AdminProduct | null>(null);
   const pendingWizardRef = useRef<string | null>(null);
@@ -95,7 +95,7 @@ export function ProductCreateWizard({
         return;
       }
       let cancelled = false;
-      adminFetch<AdminProduct>(`/api/products/${productId}`)
+      apiFetch<AdminProduct>(`/api/products/${productId}`)
         .then((loaded) => {
           if (!cancelled) {
             setProduct(loaded);

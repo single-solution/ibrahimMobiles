@@ -20,7 +20,7 @@ import { TextArea } from "@/components/forms/TextArea";
 import { SelectField } from "@/components/forms/SelectField";
 import { Switch } from "@/components/forms/Switch";
 import { useToast } from "@/components/ui/Toast";
-import { AdminApiError, adminFetch } from "@/lib/adminApi";
+import { ApiError, apiFetch } from "@/lib/api";
 import { getInitials } from "@/lib/initials";
 import { formatActivityAction } from "@/lib/activityLabels";
 import {
@@ -35,8 +35,8 @@ import type {
   AdminInquirySummary,
   AdminLoyaltyAccount,
   AdminOrderSummary,
-} from "@/types/admin";
-import { WorkspaceDetailHeader } from "@/components/shared/adminWorkspaceUi";
+} from "@/types/models";
+import { WorkspaceDetailHeader } from "@/components/shared/workspaceUi";
 import { CustomerAddressesSection } from "./CustomerAddressesSection";
 import {
   CustomerErrorBanner,
@@ -148,18 +148,18 @@ export function CustomerDetailPanel({
         Promise<InquiryListResponse | null>,
         Promise<ActivityListResponse | null>,
       ] = [
-        adminFetch<AdminCustomer>(`/api/customers/${customerId}`),
-        adminFetch<{ account: AdminLoyaltyAccount | null }>(
+        apiFetch<AdminCustomer>(`/api/customers/${customerId}`),
+        apiFetch<{ account: AdminLoyaltyAccount | null }>(
           `/api/customers/${customerId}/loyalty`,
         ),
-        adminFetch<OrderListResponse>(`/api/orders?customerId=${customerId}&limit=50`),
+        apiFetch<OrderListResponse>(`/api/orders?customerId=${customerId}&limit=50`),
         canViewInquiries
-          ? adminFetch<InquiryListResponse>(
+          ? apiFetch<InquiryListResponse>(
               `/api/inquiries?customerId=${customerId}&limit=30`,
             )
           : Promise.resolve(null),
         canViewActivity
-          ? adminFetch<ActivityListResponse>(
+          ? apiFetch<ActivityListResponse>(
               `/api/activity?resourceType=customer&resourceId=${customerId}&limit=20`,
             )
           : Promise.resolve(null),
@@ -200,7 +200,7 @@ export function CustomerDetailPanel({
     setIsSaving(true);
     setSaveError(null);
     try {
-      const updated = await adminFetch<AdminCustomer>(`/api/customers/${customer.id}`, {
+      const updated = await apiFetch<AdminCustomer>(`/api/customers/${customer.id}`, {
         method: "PUT",
         json: {
           name,
@@ -215,7 +215,7 @@ export function CustomerDetailPanel({
       onSaved();
     } catch (error) {
       const message =
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : error instanceof Error
             ? error.message
@@ -811,7 +811,7 @@ function LoyaltyTab({
     setIsSaving(true);
     setError(null);
     try {
-      const updated = await adminFetch<AdminLoyaltyAccount>(
+      const updated = await apiFetch<AdminLoyaltyAccount>(
         `/api/loyalty/${customerId}/transactions`,
         {
           method: "POST",
@@ -824,7 +824,7 @@ function LoyaltyTab({
       toast.success("Loyalty balance updated");
     } catch (err) {
       setError(
-        err instanceof AdminApiError
+        err instanceof ApiError
           ? err.message
           : err instanceof Error
             ? err.message

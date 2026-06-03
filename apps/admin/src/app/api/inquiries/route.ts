@@ -14,7 +14,7 @@ import {
   summariseInquiry,
   type InquiryLean,
 } from "@/lib/serializers/inquiry";
-import type { AdminInquirySummary } from "@/types/admin";
+import type { AdminInquirySummary } from "@/types/models";
 
 const ALLOWED_STATUSES = new Set<string>(INQUIRY_STATUSES);
 

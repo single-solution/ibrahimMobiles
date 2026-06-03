@@ -19,11 +19,11 @@ import {
   WorkspaceFrame,
   WorkspacePaneHeader,
   WorkspaceSearchField,
-} from "@/components/shared/adminWorkspaceUi";
-import { adminFetch } from "@/lib/adminApi";
+} from "@/components/shared/workspaceUi";
+import { apiFetch } from "@/lib/api";
 import { getInitials } from "@/lib/initials";
 import { classNames, createChatTransport, formatTimeAgo } from "@store/shared";
-import type { AdminInquirySummary, AdminUser } from "@/types/admin";
+import type { AdminInquirySummary, AdminUser } from "@/types/models";
 import type { InquiriesPageAccess } from "@/app/inquiries/page";
 import type { PermissionKey } from "@/lib/permissionsCatalog";
 
@@ -116,7 +116,7 @@ function InquiriesInner({ inquiries, access }: InquiriesProps) {
     let cancelled = false;
     async function loadTeam() {
       try {
-        const data = await adminFetch<TeamListResponse>("/api/team?limit=200");
+        const data = await apiFetch<TeamListResponse>("/api/team?limit=200");
         if (cancelled) return;
         setTeamById(new Map(data.items.map((member) => [member.id, member.name])));
       } catch {

@@ -8,7 +8,7 @@ import type {
   AdminInquiry,
   AdminInquiryMessage,
   AdminInquirySummary,
-} from "@/types/admin";
+} from "@/types/models";
 import {
   asArray,
   asString,

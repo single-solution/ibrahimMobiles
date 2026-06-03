@@ -12,10 +12,10 @@ import { compareAlphabetically } from "@store/shared";
 
 import {
   WorkspaceFrame,
-} from "@/components/shared/adminWorkspaceUi";
+} from "@/components/shared/workspaceUi";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import {
   drawerItemFromState,
@@ -26,14 +26,14 @@ import {
 } from "@/lib/url/catalogDrawerUrl";
 import {
   syncAfterPendingUrl,
-  useAdminUrlParams,
-} from "@/lib/url/useAdminUrlParams";
+  useUrlParams,
+} from "@/lib/url/useUrlParams";
 import type {
   AdminAttribute,
   AdminBrand,
   AdminCategory,
   AdminGrade,
-} from "@/types/admin";
+} from "@/types/models";
 
 import { Categories } from "./Categories";
 
@@ -86,7 +86,7 @@ export function CategoriesCatalogInner({
   initialGrades,
   initialAttributes,
 }: CategoriesCatalogInnerProps) {
-  const { searchParams, replace } = useAdminUrlParams();
+  const { searchParams, replace } = useUrlParams();
   const toast = useToast();
 
   const [categories, setCategories] = useState(initialCategories);
@@ -118,10 +118,10 @@ export function CategoriesCatalogInner({
   const refreshAll = useCallback(async () => {
     try {
       const [cats, brs, grds, attrs] = await Promise.all([
-        adminFetch<{ items: AdminCategory[] }>("/api/categories?limit=100"),
-        adminFetch<{ items: AdminBrand[] }>("/api/brands?limit=200"),
-        adminFetch<{ items: AdminGrade[] }>("/api/grades?limit=100"),
-        adminFetch<{ items: AdminAttribute[] }>("/api/attributes?limit=100"),
+        apiFetch<{ items: AdminCategory[] }>("/api/categories?limit=100"),
+        apiFetch<{ items: AdminBrand[] }>("/api/brands?limit=200"),
+        apiFetch<{ items: AdminGrade[] }>("/api/grades?limit=100"),
+        apiFetch<{ items: AdminAttribute[] }>("/api/attributes?limit=100"),
       ]);
       setCategories(cats.items);
       setBrands(brs.items);
@@ -129,7 +129,7 @@ export function CategoriesCatalogInner({
       setAttributes(attrs.items);
     } catch (error) {
       toast.danger(
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : "Failed to refresh catalog.",
       );
@@ -513,9 +513,9 @@ export function CategoriesCatalogInner({
           (slug) => slug !== unlinkFromCategorySlug,
         );
         if (nextSlugs.length === 0) {
-          await adminFetch(`/api/brands/${id}`, { method: "DELETE" });
+          await apiFetch(`/api/brands/${id}`, { method: "DELETE" });
         } else {
-          await adminFetch<AdminBrand>(`/api/brands/${id}`, {
+          await apiFetch<AdminBrand>(`/api/brands/${id}`, {
             method: "PUT",
             json: { categorySlugs: nextSlugs },
           });
@@ -530,13 +530,13 @@ export function CategoriesCatalogInner({
               : kind === "grade"
                 ? `/api/grades/${id}`
                 : `/api/attributes/${id}`;
-        await adminFetch(path, { method: "DELETE" });
+        await apiFetch(path, { method: "DELETE" });
         toast.success(`Deleted ${kind} "${label}".`);
       }
       await refreshAll();
     } catch (error) {
       toast.danger(
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : `Failed to delete ${deleteIntent.kind}.`,
       );
@@ -555,7 +555,7 @@ export function CategoriesCatalogInner({
     try {
       await Promise.all(
         reordered.map((row, index) =>
-          adminFetch<AdminCategory>(`/api/categories/${row.id}`, {
+          apiFetch<AdminCategory>(`/api/categories/${row.id}`, {
             method: "PUT",
             json: { sortOrder: index },
           }),
@@ -564,7 +564,7 @@ export function CategoriesCatalogInner({
       await refreshAll();
     } catch (error) {
       toast.danger(
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : "Failed to reorder category.",
       );

@@ -41,7 +41,7 @@ function formatProductLine(product: ProductLean, brandName: string): string {
     .join(" | ");
 }
 
-export async function buildAdminAssistantTestContext(input: {
+export async function buildAssistantTestContext(input: {
   customerMessage: string;
   subjectProductId?: string;
   catalogLimit?: number;

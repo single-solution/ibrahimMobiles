@@ -2,13 +2,13 @@
 
 import { Suspense } from "react";
 
-import { AdminTableSkeleton } from "@/components/loading/AdminTableSkeleton";
+import { TableSkeleton } from "@/components/loading/TableSkeleton";
 import type {
   AdminAttribute,
   AdminBrand,
   AdminCategory,
   AdminGrade,
-} from "@/types/admin";
+} from "@/types/models";
 
 import { CategoriesCatalogInner } from "./CategoriesCatalogInner";
 
@@ -21,7 +21,7 @@ export interface CategoriesCatalogProps {
 
 export function CategoriesCatalog(props: CategoriesCatalogProps) {
   return (
-    <Suspense fallback={<AdminTableSkeleton columnCount={4} rowCount={8} />}>
+    <Suspense fallback={<TableSkeleton columnCount={4} rowCount={8} />}>
       <CategoriesCatalogInner {...props} />
     </Suspense>
   );

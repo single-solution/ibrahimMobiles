@@ -4,20 +4,20 @@ import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { AdminTopHeader } from "@/components/layout/AdminTopHeader";
-import { AdminFooter } from "@/components/layout/AdminFooter";
-import { AdminMobileTopBar } from "@/components/layout/AdminMobileTopBar";
-import { AdminMobileMenu } from "@/components/layout/AdminMobileMenu";
+import { TopHeader } from "@/components/layout/TopHeader";
+import { Footer } from "@/components/layout/Footer";
+import { MobileTopBar } from "@/components/layout/MobileTopBar";
+import { MobileMenu } from "@/components/layout/MobileMenu";
 import { NavigationProgress } from "@/components/layout/NavigationProgress";
-import { AdminPermissionsProvider } from "@/lib/adminPermissionsContext";
+import { AdminPermissionsProvider } from "@/lib/permissionsContext";
 
-interface AdminShellProps {
+interface ShellProps {
   children: ReactNode;
   /** Replaces default `px-3 py-2 md:px-4 md:py-3` on the main scroll area when set. */
   contentClassName?: string;
 }
 
-export function AdminShell({ children, contentClassName }: AdminShellProps) {
+export function Shell({ children, contentClassName }: ShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { status } = useSession();
@@ -52,10 +52,10 @@ export function AdminShell({ children, contentClassName }: AdminShellProps) {
       <NavigationProgress />
       <div className="flex min-h-screen flex-col bg-[var(--color-canvas-deep)] md:h-screen md:gap-2 md:overflow-hidden md:p-2">
         <div className="md:hidden">
-          <AdminMobileTopBar onOpenMenu={() => setIsMobileMenuOpen(true)} />
+          <MobileTopBar onOpenMenu={() => setIsMobileMenuOpen(true)} />
         </div>
 
-        <AdminTopHeader
+        <TopHeader
           isCollapsed={isCollapsed}
           onToggleCollapsed={() => setIsCollapsed((current) => !current)}
         />
@@ -77,11 +77,11 @@ export function AdminShell({ children, contentClassName }: AdminShellProps) {
               </div>
             </main>
 
-            <AdminFooter />
+            <Footer />
           </div>
         </div>
 
-        <AdminMobileMenu
+        <MobileMenu
           isOpen={isMobileMenuOpen}
           onClose={() => setIsMobileMenuOpen(false)}
         />

@@ -17,9 +17,9 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { AdminShell } from "@/components/layout/AdminShell";
+import { Shell } from "@/components/layout/Shell";
 import { DashboardAccessBanner } from "@/app/_components/dashboard/DashboardAccessBanner";
-import { AdminMobileHubSections } from "@/app/_components/dashboard/AdminMobileHubSections";
+import { MobileHubSections } from "@/app/_components/dashboard/MobileHubSections";
 import {
   DashboardMobileEyebrowActions,
   DashboardSectionActionLink,
@@ -133,7 +133,7 @@ export default async function AdminOverviewPage({
     : "previous";
 
   return (
-    <AdminShell>
+    <Shell>
       <Suspense fallback={null}>
         <DashboardAccessBanner />
       </Suspense>
@@ -149,7 +149,7 @@ export default async function AdminOverviewPage({
         </div>
 
         <Suspense fallback={<MobileHubFallback />}>
-          <AdminMobileHubSections />
+          <MobileHubSections />
         </Suspense>
 
         <div className="app-section">
@@ -276,7 +276,7 @@ export default async function AdminOverviewPage({
           </div>
         </div>
       </div>
-    </AdminShell>
+    </Shell>
   );
 }
 

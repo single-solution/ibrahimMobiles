@@ -8,7 +8,7 @@ import {
   sortAttributeOptions,
   toIsoDate,
 } from "@store/shared";
-import type { AdminAttribute } from "@/types/admin";
+import type { AdminAttribute } from "@/types/models";
 
 export type AttributeLean = WithTimestamps<AttributeAttributes> & {
   _id: Types.ObjectId;

@@ -1,5 +1,5 @@
 import type { Types } from "mongoose";
-import type { AdminSetting } from "@/types/admin";
+import type { AdminSetting } from "@/types/models";
 import { asString, objectIdString, toIsoDate } from "@store/shared";
 
 export interface SettingLean {

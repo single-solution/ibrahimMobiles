@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { LucideIconRenderer } from "@/components/icons/LucideIconRenderer";
-import type { AdminCategory } from "@/types/admin";
+import type { AdminCategory } from "@/types/models";
 
 export function WizardSection({
   title,

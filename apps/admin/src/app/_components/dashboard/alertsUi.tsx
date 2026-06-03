@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { classNames } from "@store/shared";
 
-import { adminFetch } from "@/lib/adminApi";
-import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { apiFetch } from "@/lib/api";
+import { useAdminPermissions } from "@/lib/permissionsContext";
 import type { AlertSummary } from "@/lib/server/alertSummary";
 
 /** Empty placeholder so the UI never flashes "undefined" while the first
@@ -30,7 +30,7 @@ export function useAdminAlerts(): AlertSummary {
 
     async function load() {
       try {
-        const data = await adminFetch<AlertSummary>("/api/alerts/summary");
+        const data = await apiFetch<AlertSummary>("/api/alerts/summary");
         if (!cancelled) setAlerts(data);
       } catch {
         // Best-effort badge — keep the last good value on error.
@@ -96,7 +96,7 @@ interface AdminAlertsRowProps {
   className?: string;
 }
 
-/** Shared alert pill row used by AdminFooter (desktop) and AdminMobileMenu
+/** Shared alert pill row used by Footer (desktop) and MobileMenu
  *  (phones). Hides pills the current user has no permission to follow. */
 export function AdminAlertsRow({
   alerts,

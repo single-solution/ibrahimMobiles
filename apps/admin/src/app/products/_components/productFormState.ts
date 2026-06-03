@@ -19,7 +19,7 @@ import type {
   AdminGrade,
   AdminProduct,
   AdminVariant,
-} from "@/types/admin";
+} from "@/types/models";
 
 /** Persisted attribute map: one value or several (e.g. three colors on one variant). */
 export type VariantAttributeValue = string | string[];

@@ -16,7 +16,7 @@ import {
   Users,
 } from "lucide-react";
 
-import { adminFetch } from "@/lib/adminApi";
+import { apiFetch } from "@/lib/api";
 import { FormSection } from "@/components/forms/FormSection";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextField } from "@/components/forms/TextField";
@@ -66,7 +66,7 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
     let cancelled = false;
     async function load() {
       try {
-        const data = await adminFetch<ChatSettingsResponse>("/api/settings/chat");
+        const data = await apiFetch<ChatSettingsResponse>("/api/settings/chat");
         if (cancelled) return;
         setDraft(data.settings);
         setSaved(data.settings);
@@ -135,7 +135,7 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
     if (isSaving || !isDirty) return;
     setIsSaving(true);
     try {
-      const data = await adminFetch<ChatSettingsResponse>("/api/settings/chat", {
+      const data = await apiFetch<ChatSettingsResponse>("/api/settings/chat", {
         method: "PUT",
         json: draft,
       });

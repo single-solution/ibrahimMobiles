@@ -7,12 +7,12 @@
  * Routes that 401 redirect to the login page so a stale session can be
  * refreshed without manual intervention.
  */
-export class AdminApiError extends Error {
+export class ApiError extends Error {
   status: number;
 
   constructor(message: string, status: number) {
     super(message);
-    this.name = "AdminApiError";
+    this.name = "ApiError";
     this.status = status;
   }
 }
@@ -22,7 +22,7 @@ interface AdminFetchOptions extends RequestInit {
   json?: unknown;
 }
 
-export async function adminFetch<TResponse>(
+export async function apiFetch<TResponse>(
   url: string,
   options: AdminFetchOptions = {},
 ): Promise<TResponse> {
@@ -41,7 +41,7 @@ export async function adminFetch<TResponse>(
   if (response.status === 401 && typeof window !== "undefined") {
     const callbackUrl = encodeURIComponent(window.location.pathname);
     window.location.href = `/login?callbackUrl=${callbackUrl}`;
-    throw new AdminApiError("Session expired. Redirecting…", 401);
+    throw new ApiError("Session expired. Redirecting…", 401);
   }
 
   if (response.status === 204 || response.status === 304) {
@@ -56,7 +56,7 @@ export async function adminFetch<TResponse>(
       (payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string"
         ? payload.error
         : null) ?? `Request failed (${response.status})`;
-    throw new AdminApiError(message, response.status);
+    throw new ApiError(message, response.status);
   }
 
   // The server's response shape is opaque to this fetch wrapper; trust the

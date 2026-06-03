@@ -71,7 +71,7 @@ import type {
   AdminOrderSummary,
   AdminProductSummary,
   AdminUser,
-} from "@/types/admin";
+} from "@/types/models";
 
 /** Tag for admin reads. Any admin mutation that should reflect
  *  immediately should call `revalidateTag(ADMIN_CACHE_TAG)`. */
@@ -140,7 +140,7 @@ export const loadShopHealthCached = unstable_cache(
 import { revalidateTag } from "next/cache";
 
 /** Tag for filter-independent storefront reads — duplicated from
- *  `apps/web/src/lib/storefront/cached.ts` so we can flush it from an
+ *  `apps/web/src/lib/core/cached.ts` so we can flush it from an
  *  admin mutation without cross-app importing. */
 const STOREFRONT_CACHE_TAG = "storefront";
 

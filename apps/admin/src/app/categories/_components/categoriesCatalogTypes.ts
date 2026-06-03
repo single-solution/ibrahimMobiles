@@ -1,4 +1,4 @@
-import type { AdminCategory } from "@/types/admin";
+import type { AdminCategory } from "@/types/models";
 import type { CatalogDrawerState } from "@/lib/url/catalogDrawerUrl";
 
 export type CatalogTab = "brands" | "grades" | "attributes";

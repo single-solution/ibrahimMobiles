@@ -6,12 +6,12 @@ import { slugify } from "@store/shared";
 
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { ImageGallery } from "@/components/shared/uploads";
 import { uploadGalleryImages } from "@/components/shared/uploads/imageStaging";
 import type { GalleryImage } from "@/components/shared/uploads/imageStaging";
-import type { AdminProduct } from "@/types/admin";
+import type { AdminProduct } from "@/types/models";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 
 import {
@@ -109,7 +109,7 @@ export function ProductWizardStep1({
           ? `${shell.payload.categorySlug}-${shell.payload.brandSlug}-${slugHint || "draft"}`
           : "draft",
       });
-      const product = await adminFetch<AdminProduct>("/api/products", {
+      const product = await apiFetch<AdminProduct>("/api/products", {
         method: "POST",
         json: { ...shell.payload, images: uploadedImages, variants: [] },
       });
@@ -119,7 +119,7 @@ export function ProductWizardStep1({
       onCreated(product);
     } catch (error) {
       const message =
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : error instanceof Error
             ? error.message

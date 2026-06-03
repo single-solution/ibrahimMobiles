@@ -1,5 +1,5 @@
 import type { Types } from "mongoose";
-import type { AdminUser } from "@/types/admin";
+import type { AdminUser } from "@/types/models";
 import type { UserRole } from "@store/db";
 import { asString, objectIdString, toIsoDate } from "@store/shared";
 

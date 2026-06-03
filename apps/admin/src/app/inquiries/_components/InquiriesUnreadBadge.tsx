@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { adminFetch } from "@/lib/adminApi";
+import { apiFetch } from "@/lib/api";
 
 export function InquiriesUnreadBadge() {
   const [count, setCount] = useState(0);
@@ -11,7 +11,7 @@ export function InquiriesUnreadBadge() {
 
     async function load() {
       try {
-        const data = await adminFetch<{ unreadByTeam: number }>(
+        const data = await apiFetch<{ unreadByTeam: number }>(
           "/api/inquiries?summary=1",
         );
         if (!cancelled) setCount(data.unreadByTeam);

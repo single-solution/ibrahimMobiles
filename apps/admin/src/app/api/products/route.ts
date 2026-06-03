@@ -30,7 +30,7 @@ import {
   type ProductLean,
 } from "@/lib/serializers/product";
 import { type BrandLean } from "@/lib/serializers/brand";
-import type { AdminProductSummary } from "@/types/admin";
+import type { AdminProductSummary } from "@/types/models";
 import { validateVariantsBatch, type VariantInput } from "@/lib/api/variantValidation";
 import { validateProductImages } from "@/lib/api/productImagesValidation";
 import { parseSeoPayload } from "@/lib/api/seoPayload";

@@ -2,7 +2,7 @@ import { requireSession } from "@/lib/api/requireSession";
 import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { ok, isValidId } from "@store/shared";
 import { summariseOrder, type OrderLean } from "@/lib/serializers/order";
-import type { AdminOrderSummary } from "@/types/admin";
+import type { AdminOrderSummary } from "@/types/models";
 import {
   connectDB,
   Order,

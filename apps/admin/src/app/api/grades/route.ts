@@ -17,7 +17,7 @@ import { GRADE_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import { bustAdminCaches } from "@/lib/cached";
 import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { recordActivity } from "@/lib/services/activityLog";
-import type { AdminGrade } from "@/types/admin";
+import type { AdminGrade } from "@/types/models";
 
 const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/i;
 

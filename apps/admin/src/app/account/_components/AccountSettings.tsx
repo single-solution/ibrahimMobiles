@@ -13,11 +13,11 @@ import { useToast } from "@/components/ui/Toast";
 import {
   WorkspaceFrame,
   WorkspaceListHeader,
-} from "@/components/shared/adminWorkspaceUi";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+} from "@/components/shared/workspaceUi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { formatRole } from "@/lib/initials";
 import { FIELD_LIMITS } from "@store/shared";
-import type { AdminUser } from "@/types/admin";
+import type { AdminUser } from "@/types/models";
 
 const EMAIL_MAX_CHARS = 320;
 const PASSWORD_MAX_CHARS = 128;
@@ -50,7 +50,7 @@ export function AccountSettings() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch<AdminUser>("/api/account")
+    apiFetch<AdminUser>("/api/account")
       .then((account) => {
         if (cancelled) return;
         setName(account.name);
@@ -65,7 +65,7 @@ export function AccountSettings() {
       .catch((error) => {
         if (cancelled) return;
         toast.danger(
-          error instanceof AdminApiError
+          error instanceof ApiError
             ? error.message
             : "Failed to load your account.",
         );
@@ -83,7 +83,7 @@ export function AccountSettings() {
     if (profileSaving) return;
     setProfileSaving(true);
     try {
-      const updated = await adminFetch<AdminUser>("/api/account", {
+      const updated = await apiFetch<AdminUser>("/api/account", {
         method: "PUT",
         json: {
           name: name.trim(),
@@ -99,7 +99,7 @@ export function AccountSettings() {
       router.refresh();
     } catch (error) {
       toast.danger(
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : "Failed to update profile.",
       );
@@ -117,7 +117,7 @@ export function AccountSettings() {
     }
     setPasswordSaving(true);
     try {
-      await adminFetch("/api/account", {
+      await apiFetch("/api/account", {
         method: "PUT",
         json: { password },
       });
@@ -126,7 +126,7 @@ export function AccountSettings() {
       toast.success("Password updated.");
     } catch (error) {
       toast.danger(
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : "Failed to update password.",
       );

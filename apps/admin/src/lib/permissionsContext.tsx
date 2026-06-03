@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
-import { adminFetch } from "@/lib/adminApi";
+import { apiFetch } from "@/lib/api";
 import type { PermissionKey } from "@/lib/permissionsCatalog";
 
 interface SessionPayload {
@@ -42,7 +42,7 @@ export function AdminPermissionsProvider({ children }: { children: ReactNode }) 
     let cancelled = false;
     async function load() {
       try {
-        const data = await adminFetch<SessionPayload>("/api/session");
+        const data = await apiFetch<SessionPayload>("/api/session");
         if (!cancelled) {
           setSession(data);
         }

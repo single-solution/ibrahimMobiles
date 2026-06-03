@@ -20,17 +20,17 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { WorkspacePrimaryAction } from "@/components/shared/adminWorkspaceUi";
+import { WorkspacePrimaryAction } from "@/components/shared/workspaceUi";
 import type {
   AdminAttribute,
   AdminBrand,
   AdminCategory,
   AdminGrade,
-} from "@/types/admin";
+} from "@/types/models";
 
 import { AttributeEditor } from "./AttributeEditor";
 import { BrandEditor } from "./BrandEditor";
@@ -128,10 +128,10 @@ export function Categories({
     setRefreshing(true);
     try {
       const [cats, brs, grds, attrs] = await Promise.all([
-        adminFetch<{ items: AdminCategory[] }>("/api/categories?limit=100"),
-        adminFetch<{ items: AdminBrand[] }>("/api/brands?limit=200"),
-        adminFetch<{ items: AdminGrade[] }>("/api/grades?limit=100"),
-        adminFetch<{ items: AdminAttribute[] }>("/api/attributes?limit=100"),
+        apiFetch<{ items: AdminCategory[] }>("/api/categories?limit=100"),
+        apiFetch<{ items: AdminBrand[] }>("/api/brands?limit=200"),
+        apiFetch<{ items: AdminGrade[] }>("/api/grades?limit=100"),
+        apiFetch<{ items: AdminAttribute[] }>("/api/attributes?limit=100"),
       ]);
       setCategories(cats.items);
       setBrands(brs.items);
@@ -139,7 +139,7 @@ export function Categories({
       setAttributes(attrs.items);
     } catch (error) {
       const message =
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : "Failed to refresh categories.";
       toast.danger(message);
@@ -200,9 +200,9 @@ export function Categories({
           (slug) => slug !== unlinkFromCategorySlug,
         );
         if (nextSlugs.length === 0) {
-          await adminFetch(`/api/brands/${id}`, { method: "DELETE" });
+          await apiFetch(`/api/brands/${id}`, { method: "DELETE" });
         } else {
-          await adminFetch<AdminBrand>(`/api/brands/${id}`, {
+          await apiFetch<AdminBrand>(`/api/brands/${id}`, {
             method: "PUT",
             json: { categorySlugs: nextSlugs },
           });
@@ -217,13 +217,13 @@ export function Categories({
               : kind === "grade"
                 ? `/api/grades/${id}`
                 : `/api/attributes/${id}`;
-        await adminFetch(path, { method: "DELETE" });
+        await apiFetch(path, { method: "DELETE" });
         toast.success(`Deleted ${kind} "${label}".`);
       }
       await refreshAll();
     } catch (error) {
       const message =
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : `Failed to delete ${kind}.`;
       toast.danger(message);
@@ -248,7 +248,7 @@ export function Categories({
     try {
       await Promise.all(
         reorderedCategories.map((item, index) =>
-          adminFetch<AdminCategory>(`/api/categories/${item.id}`, {
+          apiFetch<AdminCategory>(`/api/categories/${item.id}`, {
             method: "PUT",
             json: { sortOrder: index },
           }),
@@ -257,7 +257,7 @@ export function Categories({
       await refreshAll();
     } catch (error) {
       const message =
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : "Failed to reorder category.";
       toast.danger(message);

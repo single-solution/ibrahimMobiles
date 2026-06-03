@@ -9,12 +9,12 @@ import { NotificationsMenu } from "@/components/layout/NotificationsMenu";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 
-interface AdminTopHeaderProps {
+interface TopHeaderProps {
   isCollapsed: boolean;
   onToggleCollapsed: () => void;
 }
 
-export function AdminTopHeader({ isCollapsed, onToggleCollapsed }: AdminTopHeaderProps) {
+export function TopHeader({ isCollapsed, onToggleCollapsed }: TopHeaderProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const { siteName } = useStoreSettings();

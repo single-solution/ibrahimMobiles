@@ -20,7 +20,7 @@ import type {
   AdminBrand,
   AdminCategory,
   AdminGrade,
-} from "@/types/admin";
+} from "@/types/models";
 
 export interface ProductWizardCatalog {
   categories: AdminCategory[];

@@ -8,7 +8,7 @@ import {
   objectIdString,
   toIsoDate,
 } from "@store/shared";
-import type { AdminCategory } from "@/types/admin";
+import type { AdminCategory } from "@/types/models";
 
 export type CategoryLean = WithTimestamps<CategoryAttributes> & {
   _id: Types.ObjectId;

@@ -17,9 +17,9 @@ import { TabList } from "@/components/ui/Tabs";
 import { TextField } from "@/components/forms/TextField";
 import { SelectField } from "@/components/forms/SelectField";
 import { Switch } from "@/components/forms/Switch";
-import { WorkspaceDetailHeader } from "@/components/shared/adminWorkspaceUi";
+import { WorkspaceDetailHeader } from "@/components/shared/workspaceUi";
 import { useToast } from "@/components/ui/Toast";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { getInitials } from "@/lib/initials";
 import { formatActivityAction } from "@/lib/activityLabels";
@@ -35,7 +35,7 @@ import { FIELD_LIMITS, classNames, formatTimeAgo } from "@store/shared";
 import type {
   AdminActivityEntry,
   AdminUser,
-} from "@/types/admin";
+} from "@/types/models";
 import type { UserRole } from "@store/db";
 
 import { TeamErrorBanner, TeamStatCard, type TeamMemberTab } from "./teamDetailUi";
@@ -116,9 +116,9 @@ export function TeamMemberDetailPanel({
         Promise<AdminUser>,
         Promise<ActivityListResponse | null>,
       ] = [
-        adminFetch<AdminUser>(`/api/team/${memberId}`),
+        apiFetch<AdminUser>(`/api/team/${memberId}`),
         canViewActivity
-          ? adminFetch<ActivityListResponse>(
+          ? apiFetch<ActivityListResponse>(
               `/api/activity?actorId=${memberId}&limit=${RECENT_ACTIVITY_LIMIT}`,
             )
           : Promise.resolve(null),
@@ -162,7 +162,7 @@ export function TeamMemberDetailPanel({
     setIsProfileSaving(true);
     setProfileError(null);
     try {
-      const updated = await adminFetch<AdminUser>(`/api/team/${member.id}`, {
+      const updated = await apiFetch<AdminUser>(`/api/team/${member.id}`, {
         method: "PUT",
         json: {
           name,
@@ -175,7 +175,7 @@ export function TeamMemberDetailPanel({
       onSaved(updated);
     } catch (error) {
       setProfileError(
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : error instanceof Error
             ? error.message
@@ -210,7 +210,7 @@ export function TeamMemberDetailPanel({
         toast.warn("No access changes to save");
         return;
       }
-      const updated = await adminFetch<AdminUser>(`/api/team/${member.id}`, {
+      const updated = await apiFetch<AdminUser>(`/api/team/${member.id}`, {
         method: "PUT",
         json: payload,
       });
@@ -219,7 +219,7 @@ export function TeamMemberDetailPanel({
       onSaved(updated);
     } catch (error) {
       setAccessError(
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : error instanceof Error
             ? error.message
@@ -240,7 +240,7 @@ export function TeamMemberDetailPanel({
     setIsPasswordSaving(true);
     setPasswordError(null);
     try {
-      await adminFetch(`/api/team/${member.id}`, {
+      await apiFetch(`/api/team/${member.id}`, {
         method: "PUT",
         json: { password },
       });
@@ -248,7 +248,7 @@ export function TeamMemberDetailPanel({
       toast.success("Password reset");
     } catch (error) {
       setPasswordError(
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : error instanceof Error
             ? error.message

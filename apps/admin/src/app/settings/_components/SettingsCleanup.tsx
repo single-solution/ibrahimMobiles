@@ -4,13 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Trash2 } from "lucide-react";
 
-import { adminFetch } from "@/lib/adminApi";
+import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";
 import { SettingsFormPanel } from "@/app/settings/_components/settingsWorkspaceUi";
 import { useToast } from "@/components/ui/Toast";
-import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { useAdminPermissions } from "@/lib/permissionsContext";
 
 /**
  * "Data cleanup" tab inside admin Settings.
@@ -136,7 +136,7 @@ function CleanupCard({ target }: CleanupCardProps) {
     }
     setIsDeleting(true);
     try {
-      const result = await adminFetch<CleanupResponse>("/api/cleanup", {
+      const result = await apiFetch<CleanupResponse>("/api/cleanup", {
         method: "POST",
         json: {
           target: target.id,

@@ -13,7 +13,7 @@ import {
   rolePermissionCount,
 } from "@/lib/roleCatalog";
 import { classNames, formatTimeAgo } from "@store/shared";
-import type { AdminActivityEntry, AdminUser } from "@/types/admin";
+import type { AdminActivityEntry, AdminUser } from "@/types/models";
 import type { UserRole } from "@store/db";
 
 import { TeamStatCard, type TeamMemberTab } from "./teamDetailUi";

@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { useToast } from "@/components/ui/Toast";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { ATTRIBUTE_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import type {
   AdminAttribute,
@@ -23,7 +23,7 @@ import type {
   AdminBrand,
   AdminCategory,
   AdminGrade,
-} from "@/types/admin";
+} from "@/types/models";
 
 import { PreviewPanel } from "./previewPanel";
 import {
@@ -271,13 +271,13 @@ export function AttributeEditor({
         visibility: buildVisibilityPayload(form),
       };
       if (attribute) {
-        await adminFetch<AdminAttribute>(`/api/attributes/${attribute.id}`, {
+        await apiFetch<AdminAttribute>(`/api/attributes/${attribute.id}`, {
           method: "PUT",
           json: payload,
         });
         toast.success("Attribute updated.");
       } else {
-        await adminFetch<AdminAttribute>("/api/attributes", {
+        await apiFetch<AdminAttribute>("/api/attributes", {
           method: "POST",
           json: {
             categorySlug: category.slug,
@@ -290,7 +290,7 @@ export function AttributeEditor({
       onClose();
     } catch (error) {
       const message =
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : error instanceof Error
             ? error.message

@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { CatalogSeoPanel } from "@/app/settings/_components/CatalogSeoPanel";
 import { useToast } from "@/components/ui/Toast";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { BRAND_FIELD_LIMITS } from "@/lib/api/fieldLimits";
-import type { AdminBrand, AdminCategory } from "@/types/admin";
+import type { AdminBrand, AdminCategory } from "@/types/models";
 
 import { PreviewPanel } from "./previewPanel";
 import {
@@ -96,7 +96,7 @@ export function BrandEditor({
         const categorySlugs = brand.categorySlugs.includes(category.slug)
           ? brand.categorySlugs
           : [...brand.categorySlugs, category.slug];
-        await adminFetch<AdminBrand>(`/api/brands/${brand.id}`, {
+        await apiFetch<AdminBrand>(`/api/brands/${brand.id}`, {
           method: "PUT",
           json: {
             name: form.name.trim(),
@@ -107,7 +107,7 @@ export function BrandEditor({
         });
         toast.success("Brand updated.");
       } else {
-        await adminFetch<AdminBrand>("/api/brands", {
+        await apiFetch<AdminBrand>("/api/brands", {
           method: "POST",
           json: {
             name: form.name.trim(),
@@ -122,7 +122,7 @@ export function BrandEditor({
       onClose();
     } catch (error) {
       const message =
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : error instanceof Error
             ? error.message

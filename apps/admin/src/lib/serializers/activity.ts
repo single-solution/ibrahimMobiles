@@ -1,5 +1,5 @@
 import type { Types } from "mongoose";
-import type { AdminActivityEntry } from "@/types/admin";
+import type { AdminActivityEntry } from "@/types/models";
 import type { ActivityAction, ActivityResourceType } from "@store/db";
 import { asString, objectIdString, toIsoDate } from "@store/shared";
 

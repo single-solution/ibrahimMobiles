@@ -7,7 +7,7 @@ import {
   objectIdString,
   toIsoDate,
 } from "@store/shared";
-import type { AdminOffer } from "@/types/admin";
+import type { AdminOffer } from "@/types/models";
 
 export type OfferLean = WithTimestamps<OfferAttributes> & {
   _id: Types.ObjectId;

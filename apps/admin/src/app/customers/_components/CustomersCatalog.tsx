@@ -15,14 +15,14 @@ import {
   WorkspacePaneHeader,
   WorkspaceSearchField,
   WorkspaceSidebarNavItem,
-} from "@/components/shared/adminWorkspaceUi";
+} from "@/components/shared/workspaceUi";
 import { CustomerDetailPanel } from "./CustomerDetailPanel";
-import { adminFetch } from "@/lib/adminApi";
-import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { apiFetch } from "@/lib/api";
+import { useAdminPermissions } from "@/lib/permissionsContext";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import { getInitials } from "@/lib/initials";
 import { classNames, formatPrice, formatTimeAgo } from "@store/shared";
-import type { AdminCustomerSummary } from "@/types/admin";
+import type { AdminCustomerSummary } from "@/types/models";
 
 type SegmentFilter = "all" | "loyalty" | "active";
 
@@ -139,7 +139,7 @@ function CustomersCatalogInner({
   async function handleDelete() {
     if (!toDelete) return;
     try {
-      await adminFetch(`/api/customers/${toDelete.id}`, { method: "DELETE" });
+      await apiFetch(`/api/customers/${toDelete.id}`, { method: "DELETE" });
       toast.warn(`"${toDelete.name}" deleted`);
       setToDelete(null);
       setActiveCustomerUrl(null);

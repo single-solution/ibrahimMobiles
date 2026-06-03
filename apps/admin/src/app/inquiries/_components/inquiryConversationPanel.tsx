@@ -9,8 +9,8 @@ import { StatusPill } from "@/components/shared/StatusPill";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextArea } from "@/components/forms/TextArea";
 import { useToast } from "@/components/ui/Toast";
-import { WorkspaceDetailHeader } from "@/components/shared/adminWorkspaceUi";
-import { adminFetch } from "@/lib/adminApi";
+import { WorkspaceDetailHeader } from "@/components/shared/workspaceUi";
+import { apiFetch } from "@/lib/api";
 import { getInitials } from "@/lib/initials";
 import { classNames, createChatTransport } from "@store/shared";
 import type {
@@ -19,7 +19,7 @@ import type {
   AdminInquiryMessage,
   AdminInquiryStatus,
   AdminInquirySummary,
-} from "@/types/admin";
+} from "@/types/models";
 
 import { STATUS_LABELS, STATUS_OPTIONS, STATUS_TONE } from "./inquiriesStatus";
 
@@ -97,7 +97,7 @@ export function InquiryConversationPanel({
     async function loadInquiry(initial: boolean) {
       try {
         const since = pollCursorRef.current;
-        const detail = await adminFetch<AdminInquiry | undefined>(
+        const detail = await apiFetch<AdminInquiry | undefined>(
           since
             ? `/api/inquiries/${inquiryId}?since=${encodeURIComponent(since)}`
             : `/api/inquiries/${inquiryId}`,
@@ -107,7 +107,7 @@ export function InquiryConversationPanel({
         pollCursorRef.current = detail.lastMessageAt;
         setInquiry(detail);
         if (detail.unreadByTeam > 0) {
-          void adminFetch(`/api/inquiries/${inquiryId}/read`, { method: "POST" })
+          void apiFetch(`/api/inquiries/${inquiryId}/read`, { method: "POST" })
             .then(() => {
               if (!cancelled) {
                 onRead(inquiryId);
@@ -160,7 +160,7 @@ export function InquiryConversationPanel({
     if (!canManage || !inquiry) return;
     setIsSaving(true);
     try {
-      const updated = await adminFetch<AdminInquiry>(`/api/inquiries/${inquiryId}`, {
+      const updated = await apiFetch<AdminInquiry>(`/api/inquiries/${inquiryId}`, {
         method: "PUT",
         json: {
           status,
@@ -186,7 +186,7 @@ export function InquiryConversationPanel({
     if (body.length === 0 || isSending) return;
     setIsSending(true);
     try {
-      const updated = await adminFetch<AdminInquiry>(
+      const updated = await apiFetch<AdminInquiry>(
         `/api/inquiries/${inquiryId}/messages`,
         { method: "POST", json: { body } },
       );
@@ -212,7 +212,7 @@ export function InquiryConversationPanel({
       const formData = new FormData();
       formData.append("file", file);
       if (reply.trim()) formData.append("body", reply.trim());
-      const updated = await adminFetch<AdminInquiry>(
+      const updated = await apiFetch<AdminInquiry>(
         `/api/inquiries/${inquiryId}/attachments`,
         { method: "POST", body: formData },
       );
@@ -233,7 +233,7 @@ export function InquiryConversationPanel({
     if (!inquiry) return;
     setIsDeleting(true);
     try {
-      await adminFetch(`/api/inquiries/${inquiryId}`, { method: "DELETE" });
+      await apiFetch(`/api/inquiries/${inquiryId}`, { method: "DELETE" });
       toast.success("Inquiry deleted");
       onDeleted();
     } catch (error) {

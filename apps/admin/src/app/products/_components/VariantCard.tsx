@@ -14,7 +14,7 @@ import {
 } from "@store/shared";
 import { ColoredPill } from "@/components/shared/ColoredPill";
 
-import type { AdminAttribute, AdminGrade } from "@/types/admin";
+import type { AdminAttribute, AdminGrade } from "@/types/models";
 
 import {
   AttributeOptionTabRow,

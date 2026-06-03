@@ -4,14 +4,14 @@ import { useDeferredValue, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Tag, Trash2, Plus, Pencil, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { AdminTable, type AdminTableColumn } from "@/components/ui/AdminTable";
+import { Table, type TableColumn } from "@/components/ui/Table";
 import {
   WorkspaceEmptyPane,
   WorkspaceFrame,
   WorkspaceListHeader,
   WorkspacePrimaryAction,
   WorkspaceRowIconButton,
-} from "@/components/shared/adminWorkspaceUi";
+} from "@/components/shared/workspaceUi";
 import { Drawer } from "@/components/ui/Drawer";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Stepper } from "@/components/ui/Stepper";
@@ -21,7 +21,7 @@ import { ColorChips } from "@/components/forms/ColorChips";
 import { StructuredContentEditor } from "@/components/forms/StructuredContentEditor";
 import { Switch } from "@/components/forms/Switch";
 import { useToast } from "@/components/ui/Toast";
-import { adminFetch } from "@/lib/adminApi";
+import { apiFetch } from "@/lib/api";
 import { OFFER_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import {
   emptyStructuredContent,
@@ -36,7 +36,7 @@ import {
   type GalleryImage,
   uploadGalleryImages,
 } from "@/components/shared/uploads/imageStaging";
-import type { AdminOffer } from "@/types/admin";
+import type { AdminOffer } from "@/types/models";
 import { PreviewPanel } from "@/app/categories/_components/previewPanel";
 import {
   OfferCardCompactPreview,
@@ -77,7 +77,7 @@ export function Offers({ offers }: OffersProps) {
       return;
     }
     try {
-      await adminFetch(`/api/offers/${toDelete.id}`, { method: "DELETE" });
+      await apiFetch(`/api/offers/${toDelete.id}`, { method: "DELETE" });
       toast.warn(`"${toDelete.title}" deleted`);
       setToDelete(null);
       refresh();
@@ -86,7 +86,7 @@ export function Offers({ offers }: OffersProps) {
     }
   }
 
-  const columns: AdminTableColumn<AdminOffer>[] = [
+  const columns: TableColumn<AdminOffer>[] = [
     {
       id: "title",
       header: "Offer",
@@ -170,7 +170,7 @@ export function Offers({ offers }: OffersProps) {
         }
       />
       <div className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
-        <AdminTable
+        <Table
           rows={offers}
           columns={columns}
           rowKey={(offer) => offer.id}
@@ -298,10 +298,10 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
         constraints,
       };
       if (isEdit && initial) {
-        await adminFetch(`/api/offers/${initial.id}`, { method: "PUT", json: payload });
+        await apiFetch(`/api/offers/${initial.id}`, { method: "PUT", json: payload });
         toast.success("Offer updated");
       } else {
-        await adminFetch(`/api/offers`, { method: "POST", json: payload });
+        await apiFetch(`/api/offers`, { method: "POST", json: payload });
         toast.success("Offer published");
       }
       onSaved();

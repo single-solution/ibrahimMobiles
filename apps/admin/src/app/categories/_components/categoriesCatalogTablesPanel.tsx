@@ -1,18 +1,18 @@
 import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from "lucide-react";
 
-import { AdminTable } from "@/components/ui/AdminTable";
+import { Table } from "@/components/ui/Table";
 import {
   CatalogSearchField,
   CatalogTabChip,
 } from "@/components/shared/catalogWorkspaceUi";
-import { WorkspacePrimaryAction } from "@/components/shared/adminWorkspaceUi";
+import { WorkspacePrimaryAction } from "@/components/shared/workspaceUi";
 import { LucideIconRenderer } from "@/components/icons/LucideIconRenderer";
 import type {
   AdminAttribute,
   AdminBrand,
   AdminCategory,
   AdminGrade,
-} from "@/types/admin";
+} from "@/types/models";
 import type { CatalogDrawerState } from "@/lib/url/catalogDrawerUrl";
 
 import {
@@ -212,7 +212,7 @@ export function CategoriesCatalogTablesPanel({
         ) : (
           <>
             {activeTab === "brands" ? (
-              <AdminTable
+              <Table
                 rows={filteredBrands}
                 columns={brandColumns}
                 rowKey={(row) => row.id}
@@ -226,7 +226,7 @@ export function CategoriesCatalogTablesPanel({
               />
             ) : null}
             {activeTab === "grades" ? (
-              <AdminTable
+              <Table
                 rows={filteredGrades}
                 columns={gradeColumns}
                 rowKey={(row) => row.id}
@@ -240,7 +240,7 @@ export function CategoriesCatalogTablesPanel({
               />
             ) : null}
             {activeTab === "attributes" ? (
-              <AdminTable
+              <Table
                 rows={filteredAttributes}
                 columns={attributeColumns}
                 rowKey={(row) => row.id}

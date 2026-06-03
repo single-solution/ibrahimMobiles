@@ -24,7 +24,7 @@ export interface AdminUrlReplaceOptions {
  * toggles felt frozen until the new payload committed. `historyOnly`
  * updates bypass the transition because nothing is fetched.
  */
-export function useAdminUrlParams() {
+export function useUrlParams() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

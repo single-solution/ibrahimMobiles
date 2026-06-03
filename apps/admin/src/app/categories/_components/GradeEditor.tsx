@@ -9,9 +9,9 @@ import { Drawer } from "@/components/ui/Drawer";
 import { StructuredContentEditor } from "@/components/forms/StructuredContentEditor";
 import { VideoUpload } from "@/components/shared/uploads";
 import { useToast } from "@/components/ui/Toast";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { GRADE_FIELD_LIMITS } from "@/lib/api/fieldLimits";
-import type { AdminCategory, AdminGrade } from "@/types/admin";
+import type { AdminCategory, AdminGrade } from "@/types/models";
 
 import { PreviewPanel } from "./previewPanel";
 import {
@@ -107,7 +107,7 @@ export function GradeEditor({
     setSubmitting(true);
     try {
       if (grade) {
-        await adminFetch<AdminGrade>(`/api/grades/${grade.id}`, {
+        await apiFetch<AdminGrade>(`/api/grades/${grade.id}`, {
           method: "PUT",
           json: {
             label: form.label.trim(),
@@ -119,7 +119,7 @@ export function GradeEditor({
         });
         toast.success("Grade updated.");
       } else {
-        await adminFetch<AdminGrade>("/api/grades", {
+        await apiFetch<AdminGrade>("/api/grades", {
           method: "POST",
           json: {
             categorySlug: category.slug,
@@ -136,7 +136,7 @@ export function GradeEditor({
       onClose();
     } catch (error) {
       const message =
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : error instanceof Error
             ? error.message

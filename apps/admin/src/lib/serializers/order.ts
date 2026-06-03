@@ -1,7 +1,7 @@
 import type { Types } from "mongoose";
 import type { OrderAttributes } from "@store/db";
 import { asArray, asNumber, asString, objectIdString, toIsoDate } from "@store/shared";
-import type { AdminOrder, AdminOrderSummary } from "@/types/admin";
+import type { AdminOrder, AdminOrderSummary } from "@/types/models";
 
 export type OrderLean = OrderAttributes & { _id: Types.ObjectId };
 

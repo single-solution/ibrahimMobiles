@@ -27,13 +27,13 @@ import {
   SettingsPanelHeader,
   type SettingsTabId,
 } from "@/app/settings/_components/settingsWorkspaceUi";
-import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { useAdminPermissions } from "@/lib/permissionsContext";
 import { classNames } from "@store/shared";
 import {
   WorkspaceFrame,
   WorkspaceListHeader,
   WorkspaceReadOnlyBanner,
-} from "@/components/shared/adminWorkspaceUi";
+} from "@/components/shared/workspaceUi";
 
 interface SettingsProps {
   initialSettings: StoreSettings;

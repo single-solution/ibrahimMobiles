@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import type { SeoSettings, StoredImage } from "@store/shared";
 import { isStoredImage } from "@store/shared";
 
-import { adminFetch } from "@/lib/adminApi";
+import { apiFetch } from "@/lib/api";
 import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 
@@ -46,7 +46,7 @@ export function useSeoSettings(): {
     let cancelled = false;
     void (async () => {
       try {
-        const response = await adminFetch<SettingsListResponse>(
+        const response = await apiFetch<SettingsListResponse>(
           "/api/settings?group=seo",
         );
         if (cancelled) return;

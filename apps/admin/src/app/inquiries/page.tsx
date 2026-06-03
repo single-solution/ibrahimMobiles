@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 
-import { AdminShell } from "@/components/layout/AdminShell";
+import { Shell } from "@/components/layout/Shell";
 import { Inquiries } from "@/app/inquiries/_components/Inquiries";
 import { InquiriesInboxSkeleton } from "@/components/loading/InquiriesInboxSkeleton";
-import { adminWorkspacePageClass } from "@/components/shared/adminWorkspaceUi";
+import { adminWorkspacePageClass } from "@/components/shared/workspaceUi";
 
 import { loadAdminInquiriesCached } from "@/lib/cached";
 import { requirePagePermission } from "@/lib/server/requirePageSession";
@@ -30,13 +30,13 @@ export default async function AdminInquiriesPage() {
   };
 
   return (
-    <AdminShell contentClassName={adminWorkspacePageClass}>
+    <Shell contentClassName={adminWorkspacePageClass}>
       <section className="flex min-h-0 flex-1 flex-col">
         <Suspense fallback={<InquiriesInboxSkeleton />}>
           <InquiriesData access={access} />
         </Suspense>
       </section>
-    </AdminShell>
+    </Shell>
   );
 }
 

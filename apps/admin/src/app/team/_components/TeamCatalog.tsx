@@ -27,15 +27,15 @@ import {
   WorkspaceReadOnlyBanner,
   WorkspaceSearchField,
   WorkspaceSidebarNavItem,
-} from "@/components/shared/adminWorkspaceUi";
-import { adminFetch } from "@/lib/adminApi";
-import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+} from "@/components/shared/workspaceUi";
+import { apiFetch } from "@/lib/api";
+import { useAdminPermissions } from "@/lib/permissionsContext";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { getInitials } from "@/lib/initials";
 import { ROLE_LABEL, ROLE_ORDER, ROLE_TONE } from "@/lib/roleCatalog";
 import { classNames, formatTimeAgo } from "@store/shared";
-import type { AdminUser } from "@/types/admin";
+import type { AdminUser } from "@/types/models";
 import type { UserRole } from "@store/db";
 
 import { TeamMemberDetailPanel } from "./TeamMemberDetailPanel";
@@ -198,7 +198,7 @@ function TeamCatalogInner({
   async function handleRemove() {
     if (!toRemove) return;
     try {
-      await adminFetch(`/api/team/${toRemove.id}`, { method: "DELETE" });
+      await apiFetch(`/api/team/${toRemove.id}`, { method: "DELETE" });
       toast.warn(`${toRemove.name} removed`);
       const wasActive = activeId === toRemove.id;
       setToRemove(null);

@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
  * on the same `rounded-[var(--radius-lg)] border + bg-[surface]` card,
  * a tabular header row, and rows separated by a 1px divider.
  */
-interface AdminTableSkeletonProps {
+interface TableSkeletonProps {
   /** Number of column-header chips to draw. Match the real table. */
   columnCount?: number;
   /** Number of data rows to skeleton. Defaults to 10 — fills the visible
@@ -23,11 +23,11 @@ interface AdminTableSkeletonProps {
 const DEFAULT_COLUMN_COUNT = 5;
 const DEFAULT_ROW_COUNT = 10;
 
-export function AdminTableSkeleton({
+export function TableSkeleton({
   columnCount = DEFAULT_COLUMN_COUNT,
   rowCount = DEFAULT_ROW_COUNT,
   hasFilterBar = true,
-}: AdminTableSkeletonProps) {
+}: TableSkeletonProps) {
   return (
     <div className="space-y-4">
       {hasFilterBar && <FilterBarSkeleton />}

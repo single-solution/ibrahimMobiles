@@ -5,15 +5,15 @@ import { ArrowLeft, Search } from "lucide-react";
 import { classNames } from "@store/shared";
 import { Button } from "@/components/ui/Button";
 
-/** AdminShell contentClassName for split-pane workspaces (orders, customers, inquiries). */
+/** Shell contentClassName for split-pane workspaces (orders, customers, inquiries). */
 export const adminWorkspacePageClass =
   "admin-mobile-pad flex min-h-0 flex-1 flex-col overflow-hidden p-1.5 md:p-2";
 
-/** AdminShell contentClassName for scrollable catalog workspaces (products, categories). */
+/** Shell contentClassName for scrollable catalog workspaces (products, categories). */
 export const adminCatalogPageClass =
   "admin-mobile-pad flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5 md:p-2";
 
-/** AdminShell contentClassName for single-pane list workspaces (team, offers, activity). */
+/** Shell contentClassName for single-pane list workspaces (team, offers, activity). */
 export const adminListPageClass = adminCatalogPageClass;
 
 export function WorkspaceFrame({

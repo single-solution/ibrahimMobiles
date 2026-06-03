@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
-import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { useAdminPermissions } from "@/lib/permissionsContext";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import { StatusPill, type StatusTone } from "@/components/shared/StatusPill";
 import { SelectField } from "@/components/forms/SelectField";
@@ -28,8 +28,8 @@ import {
   WorkspacePaneHeader,
   WorkspaceSearchField,
   WorkspaceSidebarNavItem,
-} from "@/components/shared/adminWorkspaceUi";
-import { adminFetch } from "@/lib/adminApi";
+} from "@/components/shared/workspaceUi";
+import { apiFetch } from "@/lib/api";
 import {
   classNames,
   FIELD_LIMITS,
@@ -37,7 +37,7 @@ import {
   formatTimeAgo,
   ISO_DATE_LENGTH,
 } from "@store/shared";
-import type { AdminOrder, AdminOrderSummary } from "@/types/admin";
+import type { AdminOrder, AdminOrderSummary } from "@/types/models";
 
 const STATUS_TONE: Record<string, StatusTone> = {
   "pending-payment": "warn",
@@ -373,7 +373,7 @@ function OrderDetailPanel({
     let cancelled = false;
     void (async () => {
       try {
-        const fetched = await adminFetch<AdminOrder>(`/api/orders/${orderId}`);
+        const fetched = await apiFetch<AdminOrder>(`/api/orders/${orderId}`);
         if (cancelled) return;
         setOrder(fetched);
         setStatus(fetched.status);
@@ -399,7 +399,7 @@ function OrderDetailPanel({
     if (!order) return;
     setIsSaving(true);
     try {
-      const updated = await adminFetch<AdminOrder>(`/api/orders/${order.id}`, {
+      const updated = await apiFetch<AdminOrder>(`/api/orders/${order.id}`, {
         method: "PUT",
         json: {
           status,
@@ -424,7 +424,7 @@ function OrderDetailPanel({
     if (!order) return;
     setIsDeleting(true);
     try {
-      await adminFetch(`/api/orders/${order.id}`, { method: "DELETE" });
+      await apiFetch(`/api/orders/${order.id}`, { method: "DELETE" });
       toast.success(`Order ${order.orderNumber} deleted`);
       router.refresh();
       onBack();

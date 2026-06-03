@@ -1,16 +1,16 @@
-import { AdminShell } from "@/components/layout/AdminShell";
+import { Shell } from "@/components/layout/Shell";
 import { SalesWorkspaceSkeleton } from "@/components/loading/SalesWorkspaceSkeleton";
-import { adminWorkspacePageClass } from "@/components/shared/adminWorkspaceUi";
+import { adminWorkspacePageClass } from "@/components/shared/workspaceUi";
 import { SkeletonScreen } from "@/components/ui/Skeleton";
 
 export default function OrdersLoading() {
   return (
     <SkeletonScreen label="Loading orders">
-      <AdminShell contentClassName={adminWorkspacePageClass}>
+      <Shell contentClassName={adminWorkspacePageClass}>
         <section className="flex min-h-0 flex-1 flex-col">
           <SalesWorkspaceSkeleton />
         </section>
-      </AdminShell>
+      </Shell>
     </SkeletonScreen>
   );
 }

@@ -18,7 +18,7 @@ import { recordActivity } from "@/lib/services/activityLog";
 import { slugify } from "@store/shared";
 
 import { toOfferResponse, type OfferLean } from "@/lib/serializers/offer";
-import type { AdminOffer } from "@/types/admin";
+import type { AdminOffer } from "@/types/models";
 import { parseSeoPayload } from "@/lib/api/seoPayload";
 
 export async function GET(request: Request) {

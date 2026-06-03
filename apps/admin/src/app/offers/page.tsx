@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import { AdminListPageShell } from "@/components/shared/AdminListPageShell";
+import { ListPageShell } from "@/components/shared/ListPageShell";
 import { Offers } from "@/app/offers/_components/Offers";
 import { ListWorkspaceSkeleton } from "@/components/loading/ListWorkspaceSkeleton";
 
@@ -13,11 +13,11 @@ export default async function AdminOffersPage() {
   await requirePagePermission("offer_manage", "/offers");
 
   return (
-    <AdminListPageShell>
+    <ListPageShell>
       <Suspense fallback={<ListWorkspaceSkeleton />}>
         <OffersData />
       </Suspense>
-    </AdminListPageShell>
+    </ListPageShell>
   );
 }
 

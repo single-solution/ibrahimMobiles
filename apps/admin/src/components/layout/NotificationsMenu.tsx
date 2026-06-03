@@ -17,8 +17,8 @@ import { classNames } from "@store/shared";
 import {
   totalAdminAlertCount,
   useAdminAlerts,
-} from "@/app/_components/dashboard/adminAlertsUi";
-import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+} from "@/app/_components/dashboard/alertsUi";
+import { useAdminPermissions } from "@/lib/permissionsContext";
 
 interface MenuRowDescriptor {
   /**

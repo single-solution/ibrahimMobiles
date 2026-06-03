@@ -2,7 +2,7 @@
 
 import { classNames, formatPrice } from "@store/shared";
 
-import type { AdminAttribute } from "@/types/admin";
+import type { AdminAttribute } from "@/types/models";
 
 import {
   describeVariantDraftLabel,

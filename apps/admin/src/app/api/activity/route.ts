@@ -2,7 +2,7 @@ import { requireSession } from "@/lib/api/requireSession";
 import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { ok, isValidId } from "@store/shared";
 import { toActivityResponse, type ActivityEntryLean } from "@/lib/serializers/activity";
-import type { AdminActivityEntry } from "@/types/admin";
+import type { AdminActivityEntry } from "@/types/models";
 import {
   ACTIVITY_ACTIONS,
   ACTIVITY_RESOURCE_TYPES,

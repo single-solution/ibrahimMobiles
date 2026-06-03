@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import type { PermissionKey } from "@/lib/permissionsCatalog";
-import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { useAdminPermissions } from "@/lib/permissionsContext";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 
 function EyebrowLink({

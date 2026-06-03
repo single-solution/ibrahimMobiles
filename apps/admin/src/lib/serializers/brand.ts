@@ -1,7 +1,7 @@
 import type { Types } from "mongoose";
 import type { BrandAttributes, WithTimestamps } from "@store/db";
 import { asArray, asString, objectIdString, toIsoDate } from "@store/shared";
-import type { AdminBrand } from "@/types/admin";
+import type { AdminBrand } from "@/types/models";
 
 export type BrandLean = WithTimestamps<BrandAttributes> & {
   _id: Types.ObjectId;

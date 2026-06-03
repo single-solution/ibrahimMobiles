@@ -7,10 +7,10 @@ import { TextField } from "@/components/forms/TextField";
 import { SelectField } from "@/components/forms/SelectField";
 import { Switch } from "@/components/forms/Switch";
 import { useToast } from "@/components/ui/Toast";
-import { adminFetch } from "@/lib/adminApi";
+import { apiFetch } from "@/lib/api";
 import { FIELD_LIMITS } from "@store/shared";
 import { ROLE_OPTIONS, ROLE_TAGLINE, ROLE_LABEL } from "@/lib/roleCatalog";
-import type { AdminUser } from "@/types/admin";
+import type { AdminUser } from "@/types/models";
 import type { UserRole } from "@store/db";
 
 const EMAIL_MAX_CHARS = 320;
@@ -75,7 +75,7 @@ export function TeamInviteDrawer({
       if (isCurrentUserSuperAdmin && role === "owner") {
         payload.isSuperAdmin = isSuperAdmin;
       }
-      const created = await adminFetch<AdminUser>(`/api/team`, {
+      const created = await apiFetch<AdminUser>(`/api/team`, {
         method: "POST",
         json: payload,
       });

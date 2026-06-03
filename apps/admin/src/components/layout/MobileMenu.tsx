@@ -6,20 +6,20 @@ import { signOut, useSession } from "next-auth/react";
 import { ChevronRight, ExternalLink, LogOut, ShoppingBag } from "lucide-react";
 import { Flyout } from "@/components/ui/Flyout";
 import { SIDEBAR_SECTIONS, isNavItemVisible } from "@/components/layout/Sidebar";
-import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { useAdminPermissions } from "@/lib/permissionsContext";
 import { classNames } from "@store/shared";
 
 import { formatRole, getInitials } from "@/lib/initials";
 import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
-import { AdminAlertsRow, useAdminAlerts } from "@/app/_components/dashboard/adminAlertsUi";
+import { AdminAlertsRow, useAdminAlerts } from "@/app/_components/dashboard/alertsUi";
 
-interface AdminMobileMenuProps {
+interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function AdminMobileMenu({ isOpen, onClose }: AdminMobileMenuProps) {
+export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const pathname = usePathname() ?? "";
   const router = useRouter();
   const { data: session } = useSession();

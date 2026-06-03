@@ -5,7 +5,7 @@ import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { ok } from "@store/shared";
 import { toLoyaltyAccountResponse, type LoyaltyAccountLean } from "@/lib/serializers/loyalty";
 import { type CustomerLean } from "@/lib/serializers/customer";
-import type { AdminLoyaltyAccount } from "@/types/admin";
+import type { AdminLoyaltyAccount } from "@/types/models";
 import { connectDB, Customer, LoyaltyAccount } from "@store/db";
 
 interface SearchedCustomer {

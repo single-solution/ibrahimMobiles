@@ -14,14 +14,14 @@ import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { PreviewPanel } from "@/app/categories/_components/previewPanel";
 import { useToast } from "@/components/ui/Toast";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import type {
   AdminAttribute,
   AdminCategory,
   AdminGrade,
   AdminProduct,
   AdminVariant,
-} from "@/types/admin";
+} from "@/types/models";
 
 import { VariantCard } from "./VariantCard";
 import {
@@ -123,11 +123,11 @@ export function VariantEditor({
       }
       const updated =
         mode === "edit" && variant
-          ? await adminFetch<AdminProduct>(
+          ? await apiFetch<AdminProduct>(
               `/api/products/${product.id}/variants/${variant.id}`,
               { method: "PUT", json: payload },
             )
-          : await adminFetch<AdminProduct>(
+          : await apiFetch<AdminProduct>(
               `/api/products/${product.id}/variants`,
               { method: "POST", json: payload },
             );
@@ -135,7 +135,7 @@ export function VariantEditor({
       onSaved(updated);
     } catch (error) {
       const message =
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : error instanceof Error
             ? error.message

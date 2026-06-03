@@ -1,12 +1,12 @@
 import { ColoredPill } from "@/components/shared/ColoredPill";
 import { StatusPill } from "@/components/shared/StatusPill";
-import type { AdminTableColumn } from "@/components/ui/AdminTable";
+import type { TableColumn } from "@/components/ui/Table";
 import type {
   AdminAttribute,
   AdminBrand,
   AdminCategory,
   AdminGrade,
-} from "@/types/admin";
+} from "@/types/models";
 import type { CatalogDrawerState } from "@/lib/url/catalogDrawerUrl";
 
 import type { DeleteIntent } from "./categoriesCatalogTypes";
@@ -22,7 +22,7 @@ export function buildBrandColumns({
   selectedCategory,
   openDrawerUrl,
   openDeleteUrl,
-}: CatalogColumnHandlers): AdminTableColumn<AdminBrand>[] {
+}: CatalogColumnHandlers): TableColumn<AdminBrand>[] {
   return [
     {
       id: "name",
@@ -76,7 +76,7 @@ export function buildGradeColumns({
   selectedCategory,
   openDrawerUrl,
   openDeleteUrl,
-}: CatalogColumnHandlers): AdminTableColumn<AdminGrade>[] {
+}: CatalogColumnHandlers): TableColumn<AdminGrade>[] {
   return [
     {
       id: "grade",
@@ -134,7 +134,7 @@ export function buildAttributeColumns({
   selectedCategory,
   openDrawerUrl,
   openDeleteUrl,
-}: CatalogColumnHandlers): AdminTableColumn<AdminAttribute>[] {
+}: CatalogColumnHandlers): TableColumn<AdminAttribute>[] {
   return [
     {
       id: "attribute",

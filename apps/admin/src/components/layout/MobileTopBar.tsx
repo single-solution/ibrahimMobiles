@@ -6,13 +6,13 @@ import { Bell, Menu, ShoppingBag } from "lucide-react";
 
 import { getInitials } from "@/lib/initials";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
-import { useAdminPermissions } from "@/lib/adminPermissionsContext";
+import { useAdminPermissions } from "@/lib/permissionsContext";
 import {
   totalAdminAlertCount,
   useAdminAlerts,
-} from "@/app/_components/dashboard/adminAlertsUi";
+} from "@/app/_components/dashboard/alertsUi";
 
-interface AdminMobileTopBarProps {
+interface MobileTopBarProps {
   onOpenMenu: () => void;
 }
 
@@ -30,7 +30,7 @@ function bellHref(alertCount: {
   return "/inquiries";
 }
 
-export function AdminMobileTopBar({ onOpenMenu }: AdminMobileTopBarProps) {
+export function MobileTopBar({ onOpenMenu }: MobileTopBarProps) {
   const { data: session } = useSession();
   const { siteName } = useStoreSettings();
   const { can } = useAdminPermissions();

@@ -22,9 +22,9 @@ import { StructuredContentEditor } from "@/components/forms/StructuredContentEdi
 import { LucideIconPicker } from "@/components/icons/LucideIconPicker";
 import { CatalogSeoPanel } from "@/app/settings/_components/CatalogSeoPanel";
 import { useToast } from "@/components/ui/Toast";
-import { adminFetch, AdminApiError } from "@/lib/adminApi";
+import { apiFetch, ApiError } from "@/lib/api";
 import { CATEGORY_FIELD_LIMITS } from "@/lib/api/fieldLimits";
-import type { AdminCategory } from "@/types/admin";
+import type { AdminCategory } from "@/types/models";
 
 import { PreviewPanel } from "./previewPanel";
 import {
@@ -122,13 +122,13 @@ export function CategoryEditor({
         seo: form.seo,
       };
       if (category) {
-        await adminFetch<AdminCategory>(`/api/categories/${category.id}`, {
+        await apiFetch<AdminCategory>(`/api/categories/${category.id}`, {
           method: "PUT",
           json: body,
         });
         toast.success("Category updated.");
       } else {
-        await adminFetch<AdminCategory>("/api/categories", {
+        await apiFetch<AdminCategory>("/api/categories", {
           method: "POST",
           json: body,
         });
@@ -138,7 +138,7 @@ export function CategoryEditor({
       onClose();
     } catch (error) {
       const message =
-        error instanceof AdminApiError
+        error instanceof ApiError
           ? error.message
           : error instanceof Error
             ? error.message

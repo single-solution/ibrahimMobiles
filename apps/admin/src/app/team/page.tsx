@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import { AdminListPageShell } from "@/components/shared/AdminListPageShell";
+import { ListPageShell } from "@/components/shared/ListPageShell";
 import { TeamCatalog } from "@/app/team/_components/TeamCatalog";
 import { ListWorkspaceSkeleton } from "@/components/loading/ListWorkspaceSkeleton";
 
@@ -13,14 +13,14 @@ export default async function AdminTeamPage() {
   const { actor } = await requirePagePermission("team_view", "/team");
 
   return (
-    <AdminListPageShell>
+    <ListPageShell>
       <Suspense fallback={<ListWorkspaceSkeleton />}>
         <TeamData
           currentUserId={actor.id}
           isCurrentUserSuperAdmin={actor.isSuperAdmin}
         />
       </Suspense>
-    </AdminListPageShell>
+    </ListPageShell>
   );
 }
 

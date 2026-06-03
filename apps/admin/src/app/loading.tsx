@@ -1,11 +1,11 @@
-import { AdminShell } from "@/components/layout/AdminShell";
+import { Shell } from "@/components/layout/Shell";
 import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 
 /**
  * Dashboard-shaped fallback for the admin overview route segment.
  *
  * Exact-matches `app/page.tsx` (the dashboard) — mobile native layout
- * AND desktop layout — both wrapped in `AdminShell` so the chrome
+ * AND desktop layout — both wrapped in `Shell` so the chrome
  * (sidebar / top bar / footer) is in place from the first paint and
  * the real dashboard slots into the same DOM cells when it lands.
  *
@@ -25,7 +25,7 @@ const RECENT_INQUIRY_ROWS = 5;
 export default function AdminDashboardLoading() {
   return (
     <SkeletonScreen label="Loading admin dashboard">
-      <AdminShell>
+      <Shell>
         {/* Mobile */}
         <div className="md:hidden">
           <div className="space-y-1.5">
@@ -76,7 +76,7 @@ export default function AdminDashboardLoading() {
           <DesktopSectionHeaderSkeleton />
           <ShopHealthSkeleton />
         </div>
-      </AdminShell>
+      </Shell>
     </SkeletonScreen>
   );
 }

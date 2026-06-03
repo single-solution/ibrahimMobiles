@@ -10,7 +10,7 @@ import type {
   AdminProduct,
   AdminProductSummary,
   AdminVariant,
-} from "@/types/admin";
+} from "@/types/models";
 import {
   asArray,
   asNumber,

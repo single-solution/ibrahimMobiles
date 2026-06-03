@@ -3,7 +3,7 @@ import type {
   AdminBrand,
   AdminCategory,
   AdminGrade,
-} from "@/types/admin";
+} from "@/types/models";
 
 export type CatalogDrawerKind = "category" | "brand" | "grade" | "attribute";
 

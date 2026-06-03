@@ -1,5 +1,5 @@
 import type { StatusTone } from "@/components/shared/StatusPill";
-import type { AdminInquiryStatus } from "@/types/admin";
+import type { AdminInquiryStatus } from "@/types/models";
 
 export const STATUS_TONE: Record<AdminInquiryStatus, StatusTone> = {
   open: "info",

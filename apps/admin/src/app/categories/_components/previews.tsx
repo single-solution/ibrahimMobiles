@@ -26,7 +26,7 @@ import type {
   AdminBrand,
   AdminCategory,
   AdminGrade,
-} from "@/types/admin";
+} from "@/types/models";
 import { LucideIconRenderer } from "@/components/icons/LucideIconRenderer";
 import {
   StructuredContentCompactPreview,

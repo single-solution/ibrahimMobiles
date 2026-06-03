@@ -5,7 +5,7 @@ import { classNames, formatAttributeOptionLabel } from "@store/shared";
 import { CatalogSearchField } from "@/components/shared/catalogWorkspaceUi";
 import { ColoredPill } from "@/components/shared/ColoredPill";
 import { LucideIconRenderer } from "@/components/icons/LucideIconRenderer";
-import type { AdminAttribute } from "@/types/admin";
+import type { AdminAttribute } from "@/types/models";
 
 import type { CategoryNavItem, WorkspaceView } from "./categoriesCatalogTypes";
 

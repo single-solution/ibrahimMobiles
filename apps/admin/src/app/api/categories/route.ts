@@ -21,7 +21,7 @@ import {
   type CategoryLean,
 } from "@/lib/serializers/category";
 import { parseSeoPayload } from "@/lib/api/seoPayload";
-import type { AdminCategory } from "@/types/admin";
+import type { AdminCategory } from "@/types/models";
 
 export async function GET(request: Request) {
   const { response } = await requireSession("product_view");

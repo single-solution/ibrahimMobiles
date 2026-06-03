@@ -1,7 +1,7 @@
 import type { Types } from "mongoose";
 import type { LoyaltyAccountAttributes } from "@store/db";
 import { asArray, asNumber, asString, objectIdString, toIsoDate } from "@store/shared";
-import type { AdminLoyaltyAccount } from "@/types/admin";
+import type { AdminLoyaltyAccount } from "@/types/models";
 
 export type LoyaltyAccountLean = LoyaltyAccountAttributes & { _id: Types.ObjectId };
 
