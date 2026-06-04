@@ -6,7 +6,7 @@ import { FormSection } from "@/components/forms/FormSection";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
-import { Toggle } from "@/components/ui/Toggle";
+import { Switch } from "@/components/forms/Switch";
 import {
   SettingsFormPanel,
   SettingsLoadingPanel,
@@ -112,19 +112,19 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
       <div className="space-y-8 py-4">
         {/* STOREFRONT WIDGET */}
         <FormSection title="Storefront Widget" description="Control chat visibility, welcome messages, and guest limits.">
-          <div className="rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-5">
+          <div className="space-y-6 max-w-5xl">
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <ToggleRow
+              <Switch
                 label="Enable Widget"
                 description="Show floating chat button."
                 checked={draft.enabled}
-                onChange={(value) => setField("enabled", value)}
+                onCheckedChange={(value) => setField("enabled", value)}
               />
-              <ToggleRow
+              <Switch
                 label="Attachments"
                 description="Allow image/file uploads."
                 checked={draft.attachmentsEnabled}
-                onChange={(value) => setField("attachmentsEnabled", value)}
+                onCheckedChange={(value) => setField("attachmentsEnabled", value)}
                 disabled={!draft.enabled}
               />
               <NumberField
@@ -148,7 +148,7 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
               />
             </div>
 
-            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            <div className="grid gap-6 lg:grid-cols-2">
               <TextArea
                 label="Guest Welcome Message"
                 rows={3}
@@ -172,13 +172,13 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 
         {/* AI ASSISTANT */}
         <FormSection title="AI Assistant" description="Configure automated replies and connect your preferred LLM provider.">
-          <div className="rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-5">
+          <div className="space-y-6 max-w-5xl">
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <ToggleRow
+              <Switch
                 label="Enable AI Replies"
                 description="Instantly respond to messages."
                 checked={draft.assistantEnabled}
-                onChange={(value) => setField("assistantEnabled", value)}
+                onCheckedChange={(value) => setField("assistantEnabled", value)}
                 disabled={!draft.enabled}
               />
               <SelectField
@@ -213,7 +213,7 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
             </div>
 
             {draft.assistantEnabled && draft.enabled && (
-              <div className="mt-6 border-t border-[var(--color-ink-200)] pt-6">
+              <div className="border-t border-[var(--color-ink-200)] pt-6">
                 <h4 className="mb-4 text-sm font-semibold text-[var(--color-ink-900)]">
                   {draft.assistantProvider === "openai"
                     ? "OpenAI Settings"
@@ -283,7 +283,7 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
               </div>
             )}
 
-            <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               <NumberField
                 label="Temperature"
                 value={draft.assistantTemperature}
@@ -323,10 +323,10 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
               />
             </div>
 
-            <div className="mt-6">
+            <div>
               <TextArea
                 label="Custom Training Notes & Knowledge"
-                rows={4}
+                rows={8}
                 value={draft.assistantTrainingNotes}
                 onChange={(event) => setField("assistantTrainingNotes", event.target.value)}
                 disabled={!draft.enabled || !draft.assistantEnabled}
@@ -341,34 +341,6 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
   );
 }
 
-interface ToggleRowProps {
-  label: string;
-  description: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  disabled?: boolean;
-}
-
-function ToggleRow({ label, description, checked, onChange, disabled = false }: ToggleRowProps) {
-  return (
-    <div
-      className={classNames(
-        "flex flex-col gap-1.5",
-        disabled && "opacity-60"
-      )}
-    >
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-sm font-semibold text-[var(--color-ink-900)]">{label}</p>
-        <Toggle
-          checked={checked}
-          onCheckedChange={onChange}
-          disabled={disabled}
-        />
-      </div>
-      <p className="text-[11px] leading-relaxed text-[var(--color-ink-500)]">{description}</p>
-    </div>
-  );
-}
 
 interface NumberFieldProps {
   label: string;
