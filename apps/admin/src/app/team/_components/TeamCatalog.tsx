@@ -30,7 +30,10 @@ import {
 } from "@/components/shared/workspaceUi";
 import { apiFetch } from "@/lib/api";
 import { useAdminPermissions } from "@/lib/permissionsContext";
-import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
+import {
+  pingNavigationProgress,
+  useNavigationTransition,
+} from "@/lib/navigation/navigationProgress";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { getInitials } from "@/lib/initials";
 import { ROLE_LABEL, ROLE_ORDER, ROLE_TONE } from "@/lib/roleCatalog";
@@ -184,6 +187,7 @@ function TeamCatalogInner({
   }, [activeId, filteredMembers, members, searchParams, setActiveMemberUrl]);
 
   function refresh() {
+    pingNavigationProgress();
     router.refresh();
   }
 

@@ -20,7 +20,10 @@ import { CustomerCreateDrawer } from "./CustomerCreateDrawer";
 import { CustomerDetailPanel } from "./CustomerDetailPanel";
 import { apiFetch } from "@/lib/api";
 import { useAdminPermissions } from "@/lib/permissionsContext";
-import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
+import {
+  pingNavigationProgress,
+  useNavigationTransition,
+} from "@/lib/navigation/navigationProgress";
 import { getInitials } from "@/lib/initials";
 import { classNames, formatPrice, formatTimeAgo } from "@store/shared";
 import type { AdminCustomerSummary } from "@/types/models";
@@ -134,6 +137,7 @@ function CustomersCatalogInner({
   }, [activeId, filteredCustomers, customers, searchParams, setActiveCustomerUrl]);
 
   function refresh() {
+    pingNavigationProgress();
     router.refresh();
   }
 

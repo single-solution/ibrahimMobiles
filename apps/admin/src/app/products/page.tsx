@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 
-import { Shell } from "@/components/layout/Shell";
 import { ProductsCatalog } from "@/app/products/_components/ProductsCatalog";
 import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
 import { adminCatalogPageClass } from "@/components/shared/workspaceUi";
@@ -20,13 +19,13 @@ export const dynamic = "force-dynamic";
 export default async function AdminProductsPage() {
   await requirePagePermission("product_view", "/products");
   return (
-    <Shell contentClassName={adminCatalogPageClass}>
+    <div className={adminCatalogPageClass}>
       <section className="flex min-h-0 flex-1 flex-col">
         <Suspense fallback={<CatalogWorkspaceSkeleton />}>
           <ProductsCatalogData />
         </Suspense>
       </section>
-    </Shell>
+    </div>
   );
 }
 

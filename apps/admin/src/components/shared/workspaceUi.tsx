@@ -5,16 +5,19 @@ import { ArrowLeft, Search } from "lucide-react";
 import { classNames } from "@store/shared";
 import { Button } from "@/components/ui/Button";
 
-/** Shell contentClassName for split-pane workspaces (orders, customers, inquiries). */
+/** Content wrapper for split-pane workspaces (orders, customers, inquiries). */
 export const adminWorkspacePageClass =
   "admin-mobile-pad flex min-h-0 flex-1 flex-col overflow-hidden p-1.5 md:p-2";
 
-/** Shell contentClassName for scrollable catalog workspaces (products, categories). */
+/** Content wrapper for scrollable catalog workspaces (products, categories). */
 export const adminCatalogPageClass =
   "admin-mobile-pad flex min-h-0 flex-1 flex-col overflow-y-auto p-1.5 md:p-2";
 
-/** Shell contentClassName for single-pane list workspaces (team, offers, activity). */
+/** Content wrapper for single-pane list workspaces (team, offers, activity). */
 export const adminListPageClass = adminCatalogPageClass;
+
+/** Default content wrapper for free-form scrollable pages (dashboard). */
+export const adminDefaultPageClass = "flex-1 overflow-y-auto px-3 py-2 md:px-4 md:py-3";
 
 export function WorkspaceFrame({
   children,

@@ -3,7 +3,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
+import { classNames } from "@store/shared";
 import { Button } from "@/components/ui/Button";
+import { useOverlayPresence } from "@/components/ui/useOverlayPresence";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -27,6 +29,7 @@ export function ConfirmDialog({
   onCancel,
 }: ConfirmDialogProps) {
   const [isHydrated, setIsHydrated] = useState(false);
+  const { isMounted, isClosing } = useOverlayPresence(isOpen);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -46,7 +49,7 @@ export function ConfirmDialog({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onCancel]);
 
-  if (!isOpen || !isHydrated) {
+  if (!isMounted || !isHydrated) {
     return null;
   }
 
@@ -61,11 +64,19 @@ export function ConfirmDialog({
         type="button"
         aria-label="Close"
         onClick={onCancel}
-        className="animate-sheet-fade absolute inset-0 bg-[var(--color-ink-900)]/40"
+        className={classNames(
+          "absolute inset-0 bg-[var(--color-ink-900)]/40",
+          isClosing ? "animate-sheet-fade-out" : "animate-sheet-fade",
+        )}
       />
       {/* Concentric: inner buttons --radius-md (8) + p-4/p-5 (16/20)
           → outer 24/28 ≈ --radius-2xl (24). */}
-      <div className="animate-dialog-in relative w-full max-w-md rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)] md:p-5">
+      <div
+        className={classNames(
+          "relative w-full max-w-md rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-lg)] md:p-5",
+          isClosing ? "animate-dialog-out" : "animate-dialog-in",
+        )}
+      >
         <div className="flex items-start gap-2.5 md:gap-3">
           {tone === "danger" && (
             <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--color-danger-50)] text-[var(--color-danger-700)] md:size-9">

@@ -15,29 +15,40 @@ import { RouteTransition } from "@/components/shared/motion/RouteTransition";
 
 interface ShellProps {
   children: ReactNode;
-  /** Replaces default `px-3 py-2 md:px-4 md:py-3` on the main scroll area when set. */
-  contentClassName?: string;
 }
 
-export function Shell({ children, contentClassName }: ShellProps) {
+/** Routes that render bare (no chrome, no session gate) inside the shell. */
+function isPublicRoute(pathname: string): boolean {
+  return pathname === "/login" || pathname.startsWith("/login/");
+}
+
+export function Shell({ children }: ShellProps) {
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const { status } = useSession();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const isPublic = isPublicRoute(pathname);
+
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (!isPublic && status === "unauthenticated") {
       const callbackUrl = pathname ? `?callbackUrl=${encodeURIComponent(pathname)}` : "";
       router.replace(`/login${callbackUrl}`);
     }
-  }, [status, pathname, router]);
+  }, [isPublic, status, pathname, router]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- navigation-driven UI reset
     setIsMobileMenuOpen(false);
   }, [pathname]);
+
+  // Login / public routes render their own full-screen UI without the admin
+  // chrome or the session gate (the shell still persists across navigations).
+  if (isPublic) {
+    return <>{children}</>;
+  }
 
   if (status !== "authenticated") {
     return (
@@ -71,17 +82,8 @@ export function Shell({ children, contentClassName }: ShellProps) {
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col md:gap-2">
-            <main className="flex flex-1 flex-col overflow-hidden md:rounded-[var(--radius-lg)] md:border md:border-[var(--color-ink-100)] md:bg-[var(--color-surface)] md:shadow-[var(--shadow-sm)]">
-              <RouteTransition>
-                <div
-                  className={
-                    contentClassName ??
-                    "flex-1 overflow-y-auto px-3 py-2 md:px-4 md:py-3"
-                  }
-                >
-                  {children}
-                </div>
-              </RouteTransition>
+            <main className="app-main flex flex-1 flex-col overflow-hidden md:rounded-[var(--radius-lg)] md:border md:border-[var(--color-ink-100)] md:bg-[var(--color-surface)] md:shadow-[var(--shadow-sm)]">
+              <RouteTransition>{children}</RouteTransition>
             </main>
 
             <Footer />

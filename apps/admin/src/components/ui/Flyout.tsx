@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { classNames } from "@store/shared";
+import { useOverlayPresence } from "@/components/ui/useOverlayPresence";
 
 interface FlyoutProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export function Flyout({
   contentClassName,
 }: FlyoutProps) {
   const [isHydrated, setIsHydrated] = useState(false);
+  const { isMounted, isClosing } = useOverlayPresence(isOpen);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -65,7 +67,7 @@ export function Flyout({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen || !isHydrated) {
+  if (!isMounted || !isHydrated) {
     return null;
   }
 
@@ -77,7 +79,10 @@ export function Flyout({
         type="button"
         aria-label="Close"
         onClick={onClose}
-        className="absolute inset-0 animate-sheet-fade bg-[var(--color-ink-900)]/40"
+        className={classNames(
+          "absolute inset-0 bg-[var(--color-ink-900)]/40",
+          isClosing ? "animate-sheet-fade-out" : "animate-sheet-fade",
+        )}
       />
 
       {!isRight && (
@@ -86,7 +91,8 @@ export function Flyout({
           aria-modal="true"
           aria-label={title}
           className={classNames(
-            "relative flex h-[100dvh] flex-col overflow-hidden bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] safe-top animate-flyout-left",
+            "relative flex h-[100dvh] flex-col overflow-hidden bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] safe-top",
+            isClosing ? "animate-flyout-out-left" : "animate-flyout-left",
             WIDTH_CLASSES[width],
           )}
         >
@@ -111,7 +117,8 @@ export function Flyout({
             aria-modal="true"
             aria-label={title}
             className={classNames(
-              "relative flex h-[100dvh] flex-col overflow-hidden bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] safe-top animate-flyout-right",
+              "relative flex h-[100dvh] flex-col overflow-hidden bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] safe-top",
+              isClosing ? "animate-flyout-out-right" : "animate-flyout-right",
               WIDTH_CLASSES[width],
             )}
           >

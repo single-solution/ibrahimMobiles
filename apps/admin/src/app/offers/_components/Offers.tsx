@@ -23,6 +23,7 @@ import { StructuredContentEditor } from "@/components/forms/StructuredContentEdi
 import { Toggle } from "@/components/ui/Toggle";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, ApiError } from "@/lib/api";
+import { pingNavigationProgress } from "@/lib/navigation/navigationProgress";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { OFFER_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import {
@@ -153,6 +154,7 @@ export function Offers({ offers }: OffersProps) {
   const [toDelete, setToDelete] = useState<AdminOffer | null>(null);
 
   function refresh() {
+    pingNavigationProgress();
     router.refresh();
   }
 

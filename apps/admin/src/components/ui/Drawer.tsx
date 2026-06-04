@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { classNames } from "@store/shared";
+import { useOverlayPresence } from "@/components/ui/useOverlayPresence";
 
 interface DrawerProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export function Drawer({
   ariaLabel,
 }: DrawerProps) {
   const [isHydrated, setIsHydrated] = useState(false);
+  const { isMounted, isClosing } = useOverlayPresence(isOpen);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -63,7 +65,7 @@ export function Drawer({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen || !isHydrated) {
+  if (!isMounted || !isHydrated) {
     return null;
   }
 
@@ -78,7 +80,10 @@ export function Drawer({
         type="button"
         aria-label="Close dialog"
         onClick={onClose}
-        className="animate-sheet-fade absolute inset-0 bg-[var(--color-ink-900)]/40"
+        className={classNames(
+          "absolute inset-0 bg-[var(--color-ink-900)]/40",
+          isClosing ? "animate-sheet-fade-out" : "animate-sheet-fade",
+        )}
       />
       <div
         className={classNames(
@@ -86,10 +91,12 @@ export function Drawer({
           // Phones: edge-to-edge full-screen sheet (no rounded corners, no
           // outer margin). Tablets+: centered modal with rounded corners.
           "h-[100dvh] max-h-[100dvh] sm:rounded-[var(--radius-xl)] sm:border",
-          // Mobile gets the bottom-sheet slide-up; tablets+ get the
-          // centered dialog scale-in. Both CSS-only — admin avoids any
-          // JS animation library so the panel stays light and fast.
-          "animate-sheet-up sm:animate-dialog-in",
+          // Mobile gets the bottom-sheet slide; tablets+ get the centered
+          // dialog scale. Both CSS-only — admin avoids any JS animation
+          // library so the panel stays light and fast.
+          isClosing
+            ? "animate-sheet-down sm:animate-dialog-out"
+            : "animate-sheet-up sm:animate-dialog-in",
           width === "2xl"
             ? "sm:h-[min(92vh,52rem)] sm:max-h-[calc(100dvh-2rem)]"
             : "sm:h-[min(90vh,45rem)] sm:max-h-[calc(100dvh-3rem)]",

@@ -1,4 +1,4 @@
-import { Shell } from "@/components/layout/Shell";
+import { adminDefaultPageClass } from "@/components/shared/workspaceUi";
 import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
 
 /**
@@ -25,7 +25,7 @@ const RECENT_INQUIRY_ROWS = 5;
 export default function AdminDashboardLoading() {
   return (
     <SkeletonScreen label="Loading admin dashboard">
-      <Shell>
+      <div className={adminDefaultPageClass}>
         {/* Mobile */}
         <div className="md:hidden">
           <div className="space-y-1.5">
@@ -76,7 +76,7 @@ export default function AdminDashboardLoading() {
           <DesktopSectionHeaderSkeleton />
           <ShopHealthSkeleton />
         </div>
-      </Shell>
+      </div>
     </SkeletonScreen>
   );
 }

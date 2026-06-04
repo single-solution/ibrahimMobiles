@@ -328,6 +328,69 @@ html {
   transform-origin: center;
 }
 
+/* Overlay exit — mirror each enter keyframe so Drawer / Flyout /
+   ConfirmDialog close with motion instead of vanishing. Driven by the
+   `isClosing` flag from `useOverlayPresence`; `forwards` holds the end
+   state for the unmount frame. */
+@keyframes sheet-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.animate-sheet-fade-out {
+  animation: sheet-fade-out 180ms ease-in forwards;
+}
+@keyframes sheet-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+.animate-sheet-down {
+  animation: sheet-down 200ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+@keyframes dialog-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+.animate-dialog-out {
+  animation: dialog-out 180ms var(--ease-out-quart) forwards;
+  transform-origin: center;
+}
+@keyframes flyout-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes flyout-out-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+.animate-flyout-out-right {
+  animation: flyout-out-right 220ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+.animate-flyout-out-left {
+  animation: flyout-out-left 220ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
 /* Lightbox image enter — slightly stronger zoom for fullscreen media. */
 @keyframes lightbox-in {
   from {
@@ -440,6 +503,63 @@ html {
 }
 [data-disclosure-state="open"] {
   animation: disclosure-in 200ms var(--ease-out-quart);
+}
+
+/* View Transitions API — cross-fade ONLY the main content column on
+   pathname changes (driven by `RouteTransition`). Query-only filter/sort
+   updates skip this entirely. The document root is frozen so the sidebar,
+   header, and footer never flash or slide on navigation — without this the
+   persistent shell would cross-fade as one whole-page snapshot. */
+.app-main {
+  view-transition-name: app-main;
+}
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+  ::view-transition-old(app-main) {
+    animation: route-vt-out var(--motion-slow) var(--ease-out-quart) both;
+  }
+  ::view-transition-new(app-main) {
+    animation: route-vt-in var(--motion-slow) var(--ease-out-quart) both;
+  }
+}
+@keyframes route-vt-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.99);
+  }
+}
+@keyframes route-vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Fallback for browsers without the View Transitions API: `RouteTransition`
+   toggles `.route-enter` on the content wrapper for one keyframe cycle. */
+@keyframes route-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.route-enter {
+  animation: route-content-in var(--motion-slow) var(--ease-out-quart);
 }
 
 /* Skeleton shimmer — hardware-accelerated for performance. */

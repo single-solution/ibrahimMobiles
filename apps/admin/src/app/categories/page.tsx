@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 
-import { Shell } from "@/components/layout/Shell";
 import { CategoriesCatalog } from "@/app/categories/_components/CategoriesCatalog";
 import { CatalogWorkspaceSkeleton } from "@/components/loading/CatalogWorkspaceSkeleton";
 import { adminCatalogPageClass } from "@/components/shared/workspaceUi";
@@ -29,13 +28,13 @@ export default async function AdminCategoriesPage() {
   await requirePagePermission("category_manage", "/categories");
 
   return (
-    <Shell contentClassName={adminCatalogPageClass}>
+    <div className={adminCatalogPageClass}>
       <section className="flex min-h-0 flex-1 flex-col">
         <Suspense fallback={<CatalogWorkspaceSkeleton />}>
           <CategoriesData />
         </Suspense>
       </section>
-    </Shell>
+    </div>
   );
 }
 

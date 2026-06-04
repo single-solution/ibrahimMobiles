@@ -17,7 +17,6 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { Shell } from "@/components/layout/Shell";
 import { DashboardAccessBanner } from "@/app/_components/dashboard/DashboardAccessBanner";
 import { MobileHubSections } from "@/app/_components/dashboard/MobileHubSections";
 import {
@@ -29,6 +28,7 @@ import { ShopHealthCard } from "@/app/_components/dashboard/ShopHealthCard";
 import { KpiCard } from "@/app/_components/dashboard/KpiCard";
 import { Sparkline } from "@/app/_components/dashboard/Sparkline";
 import { StatusPill, type StatusTone } from "@/components/shared/StatusPill";
+import { adminDefaultPageClass } from "@/components/shared/workspaceUi";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { requirePageSession } from "@/lib/server/requirePageSession";
 import {
@@ -133,7 +133,7 @@ export default async function AdminOverviewPage({
     : "previous";
 
   return (
-    <Shell>
+    <div className={adminDefaultPageClass}>
       <Suspense fallback={null}>
         <DashboardAccessBanner />
       </Suspense>
@@ -276,7 +276,7 @@ export default async function AdminOverviewPage({
           </div>
         </div>
       </div>
-    </Shell>
+    </div>
   );
 }
 

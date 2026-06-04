@@ -3,6 +3,7 @@ import { getStoreSettings } from "@store/db";
 
 import { ToastProvider } from "@/components/ui/Toast";
 import { SessionProvider } from "@/components/layout/SessionProvider";
+import { Shell } from "@/components/layout/Shell";
 import { StoreSettingsProvider } from "@/lib/storeSettingsContext";
 import "./globals.css";
 
@@ -39,7 +40,9 @@ export default async function AdminRootLayout({ children }: AdminRootLayoutProps
       <body>
         <SessionProvider>
           <StoreSettingsProvider value={settings}>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              <Shell>{children}</Shell>
+            </ToastProvider>
           </StoreSettingsProvider>
         </SessionProvider>
       </body>

@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 
-import { Shell } from "@/components/layout/Shell";
 import { CustomersCatalog } from "@/app/customers/_components/CustomersCatalog";
 import { SalesWorkspaceSkeleton } from "@/components/loading/SalesWorkspaceSkeleton";
 import { adminWorkspacePageClass } from "@/components/shared/workspaceUi";
@@ -17,13 +16,13 @@ export default async function AdminCustomersPage() {
   await requirePagePermission("customer_view", "/customers");
 
   return (
-    <Shell contentClassName={adminWorkspacePageClass}>
+    <div className={adminWorkspacePageClass}>
       <section className="flex min-h-0 flex-1 flex-col">
         <Suspense fallback={<SalesWorkspaceSkeleton />}>
           <CustomersData />
         </Suspense>
       </section>
-    </Shell>
+    </div>
   );
 }
 

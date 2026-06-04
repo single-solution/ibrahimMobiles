@@ -1,6 +1,5 @@
 import { Suspense } from "react";
 
-import { Shell } from "@/components/layout/Shell";
 import { Inquiries } from "@/app/inquiries/_components/Inquiries";
 import { InquiriesInboxSkeleton } from "@/components/loading/InquiriesInboxSkeleton";
 import { adminWorkspacePageClass } from "@/components/shared/workspaceUi";
@@ -30,13 +29,13 @@ export default async function AdminInquiriesPage() {
   };
 
   return (
-    <Shell contentClassName={adminWorkspacePageClass}>
+    <div className={adminWorkspacePageClass}>
       <section className="flex min-h-0 flex-1 flex-col">
         <Suspense fallback={<InquiriesInboxSkeleton />}>
           <InquiriesData access={access} />
         </Suspense>
       </section>
-    </Shell>
+    </div>
   );
 }
 
