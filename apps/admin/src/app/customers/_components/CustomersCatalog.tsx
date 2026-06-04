@@ -15,7 +15,6 @@ import {
   WorkspacePrimaryAction,
   WorkspaceReadOnlyBanner,
   WorkspaceSearchField,
-  WorkspaceSidebarNavItem,
 } from "@/components/shared/workspaceUi";
 import { CustomerCreateDrawer } from "./CustomerCreateDrawer";
 import { CustomerDetailPanel } from "./CustomerDetailPanel";
@@ -61,12 +60,10 @@ function CustomersCatalogInner({
   const canCreate = can("customer_update");
   const canAdjustLoyalty = can("loyalty_manage") || can("customer_manage");
 
-  const stats = useMemo(() => {
-    const totalBalance = customers.reduce((sum, row) => sum + row.loyaltyBalance, 0);
-    const members = customers.filter((row) => row.isLoyaltyMember).length;
-    const withOrders = customers.filter((row) => row.orderCount > 0).length;
-    return { totalBalance, members, withOrders };
-  }, [customers]);
+  const totalLoyaltyBalance = useMemo(
+    () => customers.reduce((sum, row) => sum + row.loyaltyBalance, 0),
+    [customers],
+  );
 
   const segmentCounts = useMemo(
     () => ({
@@ -160,58 +157,16 @@ function CustomersCatalogInner({
           <WorkspaceReadOnlyBanner message="Read-only — you can view customers but not edit profiles, addresses, or loyalty." />
         ) : null}
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-          <aside className="hidden shrink-0 flex-col border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-2.5 lg:flex lg:w-44 lg:border-b-0 lg:border-r xl:w-48">
-            <p className="pb-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-              Segments
-            </p>
-            <nav aria-label="Customer segments" className="-mx-1 flex-1 overflow-y-auto">
-              <ul className="flex flex-col gap-0.5">
-                <WorkspaceSidebarNavItem
-                  label="All customers"
-                  count={segmentCounts.all}
-                  isActive={segment === "all"}
-                  onClick={() => setSegment("all")}
-                />
-                <WorkspaceSidebarNavItem
-                  label="Loyalty members"
-                  count={segmentCounts.loyalty}
-                  isActive={segment === "loyalty"}
-                  onClick={() => setSegment("loyalty")}
-                />
-                <WorkspaceSidebarNavItem
-                  label="With orders"
-                  count={segmentCounts.active}
-                  isActive={segment === "active"}
-                  onClick={() => setSegment("active")}
-                />
-              </ul>
-            </nav>
-            <div className="mt-3 space-y-2 border-t border-[var(--color-ink-100)] pt-3 text-[10px] text-[var(--color-ink-500)]">
-              <p>
-                <span className="font-semibold text-[var(--color-ink-800)]">
-                  {stats.members}
-                </span>{" "}
-                enrolled
-              </p>
-              <p>
-                <span className="font-semibold text-[var(--color-ink-800)]">
-                  {stats.totalBalance.toLocaleString()}
-                </span>{" "}
-                pts outstanding
-              </p>
-            </div>
-          </aside>
-
           <section
             className={classNames(
-              "flex w-full shrink-0 flex-col border-b border-[var(--color-ink-100)] lg:w-[min(340px,38%)] lg:max-w-sm lg:border-b-0 lg:border-r",
+              "flex w-full shrink-0 flex-col border-b border-[var(--color-ink-100)] lg:w-[min(360px,40%)] lg:max-w-sm lg:border-b-0 lg:border-r",
               activeId && "hidden lg:flex",
             )}
           >
             <WorkspacePaneHeader
               iconElement={<UserCircle size={15} />}
               title="Customers"
-              subtitle={`${filteredCustomers.length} shown (recent 500) · website sign-up · ${formatPrice(stats.totalBalance * programmeRupeesPerPoint)} loyalty`}
+              subtitle={`${filteredCustomers.length} shown (recent 500) · website sign-up · ${formatPrice(totalLoyaltyBalance * programmeRupeesPerPoint)} loyalty`}
               action={
                 canCreate ? (
                   <WorkspacePrimaryAction
@@ -230,22 +185,25 @@ function CustomersCatalogInner({
                     aria-label="Search customers"
                     className="w-full"
                   />
-                  <div className="flex flex-wrap gap-1 lg:hidden">
+                  <div className="flex flex-wrap gap-1">
                     <WorkspaceFilterChip
                       compact
                       label="All"
+                      count={segmentCounts.all}
                       isActive={segment === "all"}
                       onClick={() => setSegment("all")}
                     />
                     <WorkspaceFilterChip
                       compact
                       label="Loyalty"
+                      count={segmentCounts.loyalty}
                       isActive={segment === "loyalty"}
                       onClick={() => setSegment("loyalty")}
                     />
                     <WorkspaceFilterChip
                       compact
-                      label="Orders"
+                      label="With orders"
+                      count={segmentCounts.active}
                       isActive={segment === "active"}
                       onClick={() => setSegment("active")}
                     />
