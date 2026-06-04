@@ -166,6 +166,7 @@ interface ThreadConversationProps {
   loginRequired: boolean;
   signInHref: string;
   previewMessagesLeft: number | null;
+  guestMessageLimit: number;
   welcomeMessageGuest?: string;
   welcomeMessageCustomer?: string;
 }
@@ -180,6 +181,7 @@ export function ThreadConversation({
   loginRequired,
   signInHref,
   previewMessagesLeft,
+  guestMessageLimit,
   welcomeMessageGuest,
   welcomeMessageCustomer,
 }: ThreadConversationProps) {
@@ -270,7 +272,7 @@ export function ThreadConversation({
           <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3.5 text-xs leading-relaxed text-[var(--color-ink-600)] shadow-[var(--shadow-sm)]">
             {chatWelcomeMessage({
               audience: thread.customerId ? "customer" : "guest",
-              guestMessageLimit: CHAT_GUEST_MESSAGE_LIMIT,
+              guestMessageLimit,
               welcomeMessageGuest,
               welcomeMessageCustomer,
             })}
@@ -355,6 +357,7 @@ interface ComposeConversationProps {
   subjectProductName?: string;
   signInHref: string;
   isSignedInCustomer: boolean;
+  guestMessageLimit: number;
 }
 
 export function ComposeConversation({
@@ -365,6 +368,7 @@ export function ComposeConversation({
   subjectProductName,
   signInHref,
   isSignedInCustomer,
+  guestMessageLimit,
 }: ComposeConversationProps) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -393,7 +397,7 @@ export function ComposeConversation({
           {welcomeMessage ??
             chatWelcomeMessage({
               audience: isSignedInCustomer ? "customer" : "guest",
-              guestMessageLimit: CHAT_GUEST_MESSAGE_LIMIT,
+              guestMessageLimit,
             })}
           {subjectProductName ? (
             <p className="mt-2 font-semibold text-[var(--color-ink-800)]">

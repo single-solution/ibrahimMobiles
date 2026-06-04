@@ -46,13 +46,13 @@ export async function GET() {
     settings,
     providers: {
       openai: {
-        configured: isAssistantProviderConfigured("openai"),
+        configured: isAssistantProviderConfigured("openai", settings.providerApiKeyOpenai),
         model: resolveAssistantModelFromSettings("openai", settings),
         defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.openai,
         dbModel: settings.assistantModelOpenai,
       },
       google: {
-        configured: isAssistantProviderConfigured("google"),
+        configured: isAssistantProviderConfigured("google", settings.providerApiKeyGoogle),
         model: resolveAssistantModelFromSettings("google", settings),
         defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.google,
         dbModel: settings.assistantModelGoogle,

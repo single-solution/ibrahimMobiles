@@ -20,6 +20,8 @@ export interface ChatSettingsValues {
   assistantProvider: ChatAssistantProvider;
   assistantModelOpenai: string;
   assistantModelGoogle: string;
+  providerApiKeyOpenai: string;
+  providerApiKeyGoogle: string;
   assistantTrainingNotes: string;
   assistantTemperature: number;
   assistantMaxTokens: number;
@@ -32,6 +34,7 @@ export interface ChatSettingsValues {
   pollIntervalMsFocused: number;
   pollIntervalMsBlurred: number;
   guestThreadTokenDays: number;
+  guestMessageLimit: number;
   attachmentsEnabled: boolean;
 }
 
@@ -42,6 +45,8 @@ export const CHAT_SETTING_DEFAULTS: ChatSettingsValues = {
   assistantProvider: "openai",
   assistantModelOpenai: "",
   assistantModelGoogle: "",
+  providerApiKeyOpenai: "",
+  providerApiKeyGoogle: "",
   assistantTrainingNotes: "",
   assistantTemperature: 0.38,
   assistantMaxTokens: 500,
@@ -54,6 +59,7 @@ export const CHAT_SETTING_DEFAULTS: ChatSettingsValues = {
   pollIntervalMsFocused: 5_000,
   pollIntervalMsBlurred: 30_000,
   guestThreadTokenDays: 90,
+  guestMessageLimit: CHAT_GUEST_MESSAGE_LIMIT,
   attachmentsEnabled: false,
 };
 
@@ -63,6 +69,8 @@ export type ChatAssistantRuntimeSettings = Pick<
   | "assistantProvider"
   | "assistantModelOpenai"
   | "assistantModelGoogle"
+  | "providerApiKeyOpenai"
+  | "providerApiKeyGoogle"
   | "assistantTrainingNotes"
   | "assistantTemperature"
   | "assistantMaxTokens"
@@ -95,6 +103,8 @@ const CHAT_SETTING_DB_KEYS: Record<keyof ChatSettingsValues, string> = {
   assistantProvider: "chat.assistantProvider",
   assistantModelOpenai: "chat.assistantModelOpenai",
   assistantModelGoogle: "chat.assistantModelGoogle",
+  providerApiKeyOpenai: "chat.providerApiKeyOpenai",
+  providerApiKeyGoogle: "chat.providerApiKeyGoogle",
   assistantTrainingNotes: "chat.assistantTrainingNotes",
   assistantTemperature: "chat.assistantTemperature",
   assistantMaxTokens: "chat.assistantMaxTokens",
@@ -107,6 +117,7 @@ const CHAT_SETTING_DB_KEYS: Record<keyof ChatSettingsValues, string> = {
   pollIntervalMsFocused: "chat.pollIntervalMsFocused",
   pollIntervalMsBlurred: "chat.pollIntervalMsBlurred",
   guestThreadTokenDays: "chat.guestThreadTokenDays",
+  guestMessageLimit: "chat.guestMessageLimit",
   attachmentsEnabled: "chat.attachmentsEnabled",
 };
 
@@ -151,6 +162,11 @@ export function coerceChatSettingValue<K extends keyof ChatSettingsValues>(
     case "assistantModelGoogle":
       return (
         typeof value === "string" ? value.trim().slice(0, 80) : null
+      ) as ChatSettingsValues[K] | null;
+    case "providerApiKeyOpenai":
+    case "providerApiKeyGoogle":
+      return (
+        typeof value === "string" ? value.trim() : null
       ) as ChatSettingsValues[K] | null;
     case "assistantTrainingNotes":
       return (
@@ -209,6 +225,12 @@ export function coerceChatSettingValue<K extends keyof ChatSettingsValues>(
           ? clampNumber(Math.round(value), 1, 365)
           : null
       ) as ChatSettingsValues[K] | null;
+    case "guestMessageLimit":
+      return (
+        typeof value === "number" && Number.isFinite(value)
+          ? clampNumber(Math.round(value), 1, 100)
+          : null
+      ) as ChatSettingsValues[K] | null;
     default:
       return null;
   }
@@ -233,6 +255,8 @@ export function mergeChatSettingsFromDb(
     assistantProvider: readChatSetting(map, "assistantProvider"),
     assistantModelOpenai: readChatSetting(map, "assistantModelOpenai"),
     assistantModelGoogle: readChatSetting(map, "assistantModelGoogle"),
+    providerApiKeyOpenai: readChatSetting(map, "providerApiKeyOpenai"),
+    providerApiKeyGoogle: readChatSetting(map, "providerApiKeyGoogle"),
     assistantTrainingNotes: readChatSetting(map, "assistantTrainingNotes"),
     assistantTemperature: readChatSetting(map, "assistantTemperature"),
     assistantMaxTokens: readChatSetting(map, "assistantMaxTokens"),
@@ -245,6 +269,7 @@ export function mergeChatSettingsFromDb(
     pollIntervalMsFocused: readChatSetting(map, "pollIntervalMsFocused"),
     pollIntervalMsBlurred: readChatSetting(map, "pollIntervalMsBlurred"),
     guestThreadTokenDays: readChatSetting(map, "guestThreadTokenDays"),
+    guestMessageLimit: readChatSetting(map, "guestMessageLimit"),
     attachmentsEnabled: readChatSetting(map, "attachmentsEnabled"),
   };
 }

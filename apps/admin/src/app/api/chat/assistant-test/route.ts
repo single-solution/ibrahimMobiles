@@ -53,6 +53,8 @@ function mergeRuntimeSettings(
     assistantProvider: merged.assistantProvider,
     assistantModelOpenai: merged.assistantModelOpenai,
     assistantModelGoogle: merged.assistantModelGoogle,
+    providerApiKeyOpenai: merged.providerApiKeyOpenai,
+    providerApiKeyGoogle: merged.providerApiKeyGoogle,
     assistantTrainingNotes: merged.assistantTrainingNotes,
     assistantTemperature: merged.assistantTemperature,
     assistantMaxTokens: merged.assistantMaxTokens,
@@ -163,6 +165,7 @@ export async function POST(request: Request) {
     const result = await callAssistantCompletion({
       provider: providerOverride,
       model,
+      apiKey: providerOverride === "google" ? runtime.providerApiKeyGoogle : runtime.providerApiKeyOpenai,
       messages: [
         { role: "system", content: system },
         { role: "user", content: messageResult },

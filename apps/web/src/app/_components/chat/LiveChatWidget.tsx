@@ -322,19 +322,20 @@ export function LiveChatWidget({
     }
   }
 
-  const loginRequired = activeThread
+  const loginRequired = activeThread && settings
     ? guestChatLoginRequired({
         customerId: activeThread.customerId,
         phoneNumber: activeThread.phoneNumber,
+        guestMessageLimit: settings.guestMessageLimit,
         messages: activeThread.messages,
       })
     : false;
 
   const previewMessagesLeft =
-    activeThread && isAnonymousChatPhone(activeThread.phoneNumber)
+    activeThread && isAnonymousChatPhone(activeThread.phoneNumber) && settings
       ? Math.max(
           0,
-          CHAT_GUEST_MESSAGE_LIMIT -
+          settings.guestMessageLimit -
             countCustomerChatMessages(activeThread.messages),
         )
       : null;
@@ -422,6 +423,7 @@ export function LiveChatWidget({
           subjectProductName={composeSubjectName}
           signInHref={signInHref}
           isSignedInCustomer={isSignedInCustomer}
+          guestMessageLimit={settings?.guestMessageLimit ?? 5}
         />
       )}
       {view === "thread" && activeThread && (
@@ -435,6 +437,7 @@ export function LiveChatWidget({
           loginRequired={loginRequired}
           signInHref={signInHref}
           previewMessagesLeft={previewMessagesLeft}
+          guestMessageLimit={settings?.guestMessageLimit ?? 5}
           welcomeMessageGuest={settings?.welcomeMessageGuest}
           welcomeMessageCustomer={settings?.welcomeMessageCustomer}
         />

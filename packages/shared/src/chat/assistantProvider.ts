@@ -38,7 +38,9 @@ export function resolveAssistantModel(
 
 export function isAssistantProviderConfigured(
   provider: ChatAssistantProvider,
+  apiKeyOverride?: string,
 ): boolean {
+  if (apiKeyOverride?.trim()) return true;
   if (provider === "google") {
     return Boolean(process.env.GOOGLE_AI_API_KEY?.trim());
   }
@@ -53,6 +55,7 @@ export interface AssistantChatMessage {
 export interface AssistantCompletionInput {
   provider: ChatAssistantProvider;
   model: string;
+  apiKey?: string;
   messages: AssistantChatMessage[];
   temperature?: number;
   maxTokens?: number;
@@ -71,11 +74,12 @@ const REQUEST_TIMEOUT_MS = 12_000;
 
 async function callOpenAi(
   model: string,
+  apiKeyOverride: string | undefined,
   messages: AssistantChatMessage[],
   options: { temperature: number; maxTokens: number },
   signal?: AbortSignal,
 ): Promise<string | null> {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  const apiKey = apiKeyOverride?.trim() || process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
     return null;
   }
@@ -107,11 +111,12 @@ async function callOpenAi(
 
 async function callGemini(
   model: string,
+  apiKeyOverride: string | undefined,
   messages: AssistantChatMessage[],
   options: { temperature: number; maxTokens: number },
   signal?: AbortSignal,
 ): Promise<string | null> {
-  const apiKey = process.env.GOOGLE_AI_API_KEY?.trim();
+  const apiKey = apiKeyOverride?.trim() || process.env.GOOGLE_AI_API_KEY?.trim();
   if (!apiKey) {
     return null;
   }
@@ -170,8 +175,8 @@ export async function callAssistantCompletion(
 
     const raw =
       input.provider === "google"
-        ? await callGemini(input.model, input.messages, generation, signal)
-        : await callOpenAi(input.model, input.messages, generation, signal);
+        ? await callGemini(input.model, input.apiKey, input.messages, generation, signal)
+        : await callOpenAi(input.model, input.apiKey, input.messages, generation, signal);
 
     if (!raw) {
       return null;

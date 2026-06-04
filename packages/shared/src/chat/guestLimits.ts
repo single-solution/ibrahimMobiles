@@ -16,6 +16,7 @@ export function countCustomerChatMessages(
 export function guestChatLoginRequired(input: {
   customerId?: string;
   phoneNumber: string;
+  guestMessageLimit: number;
   messages: Pick<ChatMessage, "author">[];
 }): boolean {
   if (input.customerId) {
@@ -24,5 +25,5 @@ export function guestChatLoginRequired(input: {
   if (!isAnonymousChatPhone(input.phoneNumber)) {
     return false;
   }
-  return countCustomerChatMessages(input.messages) >= CHAT_GUEST_MESSAGE_LIMIT;
+  return countCustomerChatMessages(input.messages) >= input.guestMessageLimit;
 }

@@ -91,6 +91,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     guestChatLoginRequired({
       customerId: inquiry.customerId?.toString(),
       phoneNumber: inquiry.phoneNumber,
+      guestMessageLimit: settings.guestMessageLimit,
       messages: inquiry.messages,
     })
   ) {

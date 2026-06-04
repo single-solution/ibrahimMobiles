@@ -73,6 +73,7 @@ export async function generateAssistantReply(
   const result = await callAssistantCompletion({
     provider,
     model,
+    apiKey: provider === "google" ? input.settings.providerApiKeyGoogle : input.settings.providerApiKeyOpenai,
     messages,
     temperature: input.settings.assistantTemperature,
     maxTokens: input.settings.assistantMaxTokens,

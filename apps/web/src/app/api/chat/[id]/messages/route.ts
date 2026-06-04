@@ -32,6 +32,7 @@ import {
 import { auth } from "@/lib/auth";
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 import { inquiryStatusPatchAfterMessage } from "@store/shared";
+import { getChatSettings } from "@/lib/chat/chatSettings";
 
 import { resolveChatAccess } from "@/lib/chat/access";
 import { claimAnonymousThreadIfNeeded } from "@/lib/chat/claimAnonymousThread";
@@ -76,6 +77,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   }
 
   const session = await auth();
+  const settings = await getChatSettings();
   let inquiry = access.inquiry;
   if (
     session?.user?.role === "customer" &&
@@ -88,6 +90,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     guestChatLoginRequired({
       customerId: inquiry.customerId?.toString(),
       phoneNumber: inquiry.phoneNumber,
+      guestMessageLimit: settings.guestMessageLimit,
       messages: inquiry.messages,
     })
   ) {
