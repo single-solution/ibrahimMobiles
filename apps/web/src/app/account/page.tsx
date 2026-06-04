@@ -5,11 +5,9 @@ import { getStoreSettings } from "@store/db";
 import {
   classNames,
   formatPrice,
-  formatStorefrontDate,
   LOYALTY_PROGRAM_NAME,
 } from "@store/shared";
 import {
-  ArrowUpRight,
   ChevronRight,
   Headset,
   LayoutDashboard,
@@ -22,16 +20,12 @@ import {
   User,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { ButtonLink } from "@/components/ui/Button";
 
 import { auth } from "@/lib/auth";
 import { getAccountOverview } from "@/lib/core/account";
 
-import type {
-  Order,
-} from "@/lib/core/orderSerializer";
-import type { OrderStatus } from "@store/db";
 import { SignOutButton } from "@/app/account/_components/SignOutButton";
+import { OrderHistory } from "@/app/account/_components/OrderHistory";
 
 export const metadata: Metadata = {
   title: "Your account",
@@ -39,46 +33,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-const STATUS_TONE: Record<
-  OrderStatus,
-  { toneBg: string; toneFg: string; toneDot: string; nextLabel?: string }
-> = {
-  "pending-payment": {
-    toneBg: "bg-[var(--color-warn-50)]",
-    toneFg: "text-[var(--color-warn-800)]",
-    toneDot: "bg-[var(--color-warn-500)]",
-    nextLabel: "Awaiting payment",
-  },
-  confirmed: {
-    toneBg: "bg-[var(--color-info-50)]",
-    toneFg: "text-[var(--color-info-800)]",
-    toneDot: "bg-[var(--color-info-500)]",
-    nextLabel: "Packing your order",
-  },
-  dispatched: {
-    toneBg: "bg-[var(--color-accent-100)]",
-    toneFg: "text-[var(--color-accent-800)]",
-    toneDot: "bg-[var(--color-accent-600)]",
-    nextLabel: "Out for delivery",
-  },
-  delivered: {
-    toneBg: "bg-[var(--color-success-50)]",
-    toneFg: "text-[var(--color-success-800)]",
-    toneDot: "bg-[var(--color-success-500)]",
-  },
-  cancelled: {
-    toneBg: "bg-[var(--color-danger-50)]",
-    toneFg: "text-[var(--color-danger-800)]",
-    toneDot: "bg-[var(--color-danger-500)]",
-  },
-  refunded: {
-    toneBg: "bg-[var(--color-danger-50)]",
-    toneFg: "text-[var(--color-danger-800)]",
-    toneDot: "bg-[var(--color-danger-500)]",
-  },
-};
-
 
 export default async function AccountPage() {
   const session = await auth();
@@ -105,7 +59,7 @@ export default async function AccountPage() {
             icon={<Truck size={16} />}
             label="Active orders"
             value={String(overview.activeCount)}
-            href="/account/orders"
+            href="#orders"
             accent="amber"
           />
         </div>
@@ -114,7 +68,7 @@ export default async function AccountPage() {
             icon={<Package size={16} />}
             label="All-time orders"
             value={String(overview.totalCount)}
-            href="/account/orders"
+            href="#orders"
             accent="ink"
           />
         </div>
@@ -129,26 +83,8 @@ export default async function AccountPage() {
       </div>
 
       <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-[1fr_360px] md:gap-6 lg:gap-8 lg:grid-cols-[1fr_400px]">
-        <div className="cv-auto space-y-4">
-          <div className="reveal">
-            <SectionHeader
-              eyebrow="Recent orders"
-              title="What you&rsquo;ve been buying"
-              ctaHref="/account/orders"
-              ctaLabel="See all orders"
-            />
-          </div>
-          {overview.recentOrders.length === 0 ? (
-            <EmptyOrders />
-          ) : (
-            <ul className="reveal-stagger space-y-3">
-              {overview.recentOrders.map((order) => (
-                <li key={order.id} className="reveal">
-                  <RecentOrderRow order={order} />
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="cv-auto">
+          <OrderHistory orders={overview.allOrders} />
         </div>
 
         <aside className="reveal-stagger space-y-4 md:sticky md:top-[calc(var(--desktop-header-h)+24px)] md:self-start">
@@ -306,96 +242,6 @@ function StatCard({ icon, label, value, href, accent }: StatCardProps) {
   );
 }
 
-interface RecentOrderRowProps {
-  order: Order;
-}
-
-function RecentOrderRow({ order }: RecentOrderRowProps) {
-  const tone = STATUS_TONE[order.status];
-  const firstItem = order.items[0];
-  const extraCount = Math.max(0, order.items.length - 1);
-  return (
-    <Link
-      href={`/account/orders/${order.orderNumber}`}
-      className="tap lift group block overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"
-    >
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/60 px-4 py-2.5 md:px-5">
-        <div className="flex items-center gap-2 text-[12px]">
-          <span className="font-mono font-semibold text-[var(--color-ink-900)]">
-            {order.orderNumber}
-          </span>
-          <span className="text-[var(--color-ink-400)]">·</span>
-          <span className="text-[var(--color-ink-500)]">{formatStorefrontDate(order.placedAt)}</span>
-        </div>
-        <span
-          className={classNames(
-            "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-            tone.toneBg,
-            tone.toneFg,
-          )}
-        >
-          <span className={classNames("size-1.5 rounded-full", tone.toneDot)} />
-          {order.statusLabel}
-        </span>
-      </div>
-      <div className="flex items-center gap-3 p-3 md:p-4">
-        <div className="min-w-0 flex-1">
-          {firstItem && (
-            <p className="line-clamp-1 text-[14px] font-semibold text-[var(--color-ink-900)]">
-              {firstItem.productName}
-              {extraCount > 0 && (
-                <span className="ml-2 inline-flex items-center rounded-full bg-[var(--color-ink-100)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-ink-700)]">
-                  +{extraCount} more
-                </span>
-              )}
-            </p>
-          )}
-          <p className="mt-0.5 text-[12px] text-[var(--color-ink-500)]">
-            {tone.nextLabel ?? "View order details"}
-          </p>
-        </div>
-        <div className="text-right">
-          <p className="text-[14px] font-semibold tracking-tight text-[var(--color-ink-900)]">
-            {formatPrice(order.totals.totalRupees)}
-          </p>
-          <p className="mt-0.5 text-[10.5px] uppercase tracking-[0.14em] text-[var(--color-ink-400)]">
-            {order.totals.itemCount} item{order.totals.itemCount === 1 ? "" : "s"}
-          </p>
-        </div>
-        <ArrowUpRight
-          size={15}
-          className="hidden text-[var(--color-ink-400)] transition-colors group-hover:text-[var(--color-accent-700)] md:block"
-        />
-      </div>
-    </Link>
-  );
-}
-
-function EmptyOrders() {
-  return (
-    <Card className="reveal flex flex-col items-center gap-4 p-8 text-center">
-      <span className="grid size-12 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[var(--color-ink-500)]">
-        <Package size={20} />
-      </span>
-      <div>
-        <p className="text-[15px] font-semibold text-[var(--color-ink-900)]">No orders yet</p>
-        <p className="mx-auto mt-1 max-w-prose text-[13px] text-[var(--color-ink-500)]">
-          Browse the shop and your first order will land here.
-        </p>
-      </div>
-      <ButtonLink
-        href="/shop"
-        variant="primary"
-        size="sm"
-        className="cta-arrow"
-        trailingIcon={<ArrowUpRight size={14} strokeWidth={2.4} />}
-      >
-        Browse products
-      </ButtonLink>
-    </Card>
-  );
-}
-
 interface ProfileCardProps {
   customer: {
     name: string;
@@ -459,7 +305,7 @@ function ProfileCard({ customer }: ProfileCardProps) {
 const QUICK_ACTIONS = [
   { href: "/account/messages", icon: Headset, label: "Messages", subtitle: "Chat with our team" },
   { href: "/checkout", icon: ShoppingCart, label: "Continue checkout", subtitle: "Pick up where you left off" },
-  { href: "/account/orders", icon: Package, label: "Your orders", subtitle: "Status and order history" },
+  { href: "#orders", icon: Package, label: "Your orders", subtitle: "Status and order history" },
 ];
 
 function QuickActions() {
@@ -496,33 +342,3 @@ function QuickActions() {
   );
 }
 
-interface SectionHeaderProps {
-  eyebrow: string;
-  title: string;
-  ctaHref?: string;
-  ctaLabel?: string;
-}
-
-function SectionHeader({ eyebrow, title, ctaHref, ctaLabel }: SectionHeaderProps) {
-  return (
-    <div className="flex items-end justify-between gap-3">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
-          {eyebrow}
-        </p>
-        <h2 className="mt-1 text-[18px] font-semibold text-[var(--color-ink-900)] md:text-[22px]">
-          {title}
-        </h2>
-      </div>
-      {ctaHref && ctaLabel && (
-        <Link
-          href={ctaHref}
-          className="cta-arrow tap inline-flex shrink-0 items-center gap-1 text-[12.5px] font-medium text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
-        >
-          {ctaLabel}
-          <ArrowUpRight size={13} />
-        </Link>
-      )}
-    </div>
-  );
-}

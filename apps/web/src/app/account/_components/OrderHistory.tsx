@@ -54,29 +54,22 @@ export function OrderHistory({ orders }: OrderHistoryProps) {
   }, [orders]);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">
-      <Link
-        href="/account"
-        className="cta-arrow tap inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-ink-500)] hover:text-[var(--color-ink-800)]"
-      >
-        <ArrowLeft size={13} />
-        Back to account
-      </Link>
-      <div className="reveal mt-2 flex items-end justify-between gap-3">
+    <div id="orders" className="flex flex-col">
+      <div className="reveal flex items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
             History
           </p>
-          <h1 className="mt-1 font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
+          <h2 className="mt-1 text-[18px] font-semibold text-[var(--color-ink-900)] md:text-[22px]">
             Your orders
-          </h1>
+          </h2>
         </div>
-        <p className="hidden text-[12px] text-[var(--color-ink-500)] md:block">
+        <p className="hidden text-[12px] font-medium text-[var(--color-ink-500)] md:block">
           {orders.length} total
         </p>
       </div>
 
-      <div className="mt-5 flex items-center gap-2 overflow-x-auto pb-1 md:mt-6 [&::-webkit-scrollbar]:hidden">
+      <div className="mt-4 flex items-center gap-2 overflow-x-auto pb-1 md:mt-5 [&::-webkit-scrollbar]:hidden">
         {FILTERS.map((definition) => {
           const isActive = definition.id === filter;
           const count = counts[definition.id];

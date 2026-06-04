@@ -147,13 +147,11 @@ async function getAccountLoyalty(customerId: string): Promise<AccountLoyalty | n
 interface AccountOverview {
   customer: AccountCustomer;
   loyalty: AccountLoyalty | null;
-  recentOrders: Order[];
+  allOrders: Order[];
   activeCount: number;
   totalCount: number;
   totalSpentRupees: number;
 }
-
-const RECENT_ORDERS_DISPLAY_COUNT = 3;
 
 const ACTIVE_STATUSES = new Set<OrderAttributes["status"]>([
   "pending-payment",
@@ -175,9 +173,7 @@ export async function getAccountOverview(customerId: string): Promise<AccountOve
     getAccountLoyalty(customerId),
   ]);
 
-  const recent = asArray<OrderAttributes & { _id: Types.ObjectId }>(orders)
-    .slice(0, RECENT_ORDERS_DISPLAY_COUNT)
-    .map(toOrder);
+  const allOrders = asArray<OrderAttributes & { _id: Types.ObjectId }>(orders).map(toOrder);
   const activeCount = orders.filter((order) => ACTIVE_STATUSES.has(order.status)).length;
   const totalSpent = orders
     .filter((order) => order.status !== "cancelled" && order.status !== "refunded")
@@ -186,7 +182,7 @@ export async function getAccountOverview(customerId: string): Promise<AccountOve
   return {
     customer,
     loyalty,
-    recentOrders: recent,
+    allOrders,
     activeCount,
     totalCount: orders.length,
     totalSpentRupees: totalSpent,

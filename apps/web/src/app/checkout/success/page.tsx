@@ -34,12 +34,12 @@ export default async function CheckoutSuccessPage({ searchParams }: CheckoutSucc
   const params = await searchParams;
   const orderNumber = typeof params.order === "string" ? params.order.trim() : "";
   if (!orderNumber) {
-    redirect("/account/orders");
+    redirect("/account#orders");
   }
 
   const order = await getAccountOrder(session.user.customerId, orderNumber);
   if (!order) {
-    redirect("/account/orders");
+    redirect("/account#orders");
   }
 
   return (

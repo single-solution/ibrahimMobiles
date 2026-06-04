@@ -89,7 +89,7 @@ export function OrderDetail({ order }: OrderDetailProps) {
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">
       <Link
-        href="/account/orders"
+        href="/account#orders"
         className="cta-arrow tap inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-ink-500)] hover:text-[var(--color-ink-800)]"
       >
         <ArrowLeft size={13} />
