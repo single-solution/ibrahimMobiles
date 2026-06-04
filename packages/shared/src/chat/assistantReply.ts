@@ -40,31 +40,37 @@ const INTERNAL_PATH_PATTERN = /^\/(?:shop|deals|search|checkout|account)(?:\/[\w
 export function sanitizeAssistantReply(raw: string): string {
   let text = raw.trim();
 
+  // Keep internal links as markdown so the UI renders a tappable, labelled
+  // link; drop the URL from external links, keeping only their label text.
   text = text.replace(MARKDOWN_LINK_PATTERN, (_match, label: string, url: string) => {
     const trimmed = url.trim();
-    if (INTERNAL_PATH_PATTERN.test(trimmed)) {
-      return `${label} (${trimmed})`;
-    }
-    return label;
+    return INTERNAL_PATH_PATTERN.test(trimmed) ? `[${label}](${trimmed})` : label;
   });
 
+  // Strip any remaining bare external URLs (internal markdown links are safe).
   text = text.replace(EXTERNAL_URL_REPLACE, "");
 
-  text = text.replace(/\s{2,}/g, " ").trim();
+  // Tidy horizontal whitespace and runaway blank lines, but PRESERVE single
+  // newlines so lists and short line breaks render instead of collapsing.
+  text = text
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 
   return text.slice(0, 3_500);
 }
 
 /**
  * Split a raw model reply into separate chat bubbles so the bot can text like a
- * human (a quick "checking…", then the answer, then a follow-up). The model
- * marks breaks with a line of `---`; blank lines are honoured as a fallback.
- * Each bubble is sanitised independently. Returns [] when nothing usable.
+ * human (a quick "checking…", then the answer). Splits ONLY on an explicit line
+ * of `---` the model writes — blank lines stay inside one bubble so a single
+ * answer with a short list doesn't fragment into many bubbles. Each bubble is
+ * sanitised independently. Returns [] when nothing usable.
  */
 export function splitAssistantReply(raw: string, maxBubbles = 4): string[] {
   return raw
     .split(/(?:^|\n)[ \t]*---[ \t]*(?=\n|$)/)
-    .flatMap((segment) => segment.split(/\n{2,}/))
     .map((segment) => sanitizeAssistantReply(segment))
     .filter((segment) => segment.length > 0)
     .slice(0, maxBubbles);

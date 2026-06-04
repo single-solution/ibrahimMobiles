@@ -24,13 +24,16 @@ import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
  * length plus jitter so the rhythm feels human (sometimes quick, sometimes a
  * beat longer) while staying snappy — never a long, awkward wait.
  */
-const STAGGER_MIN_MS = 320;
-const STAGGER_MAX_MS = 1100;
+const STAGGER_MIN_MS = 350;
+const STAGGER_MAX_MS = 2200;
 /** Brief settle between a revealed bubble and the next typing pause. */
 const STAGGER_GAP_MS = 130;
 
 function staggerDelay(text: string): number {
-  const sized = 300 + Math.min(text.length, 60) * 12 + Math.random() * 220;
+  // Longer bubbles "type" longer (up to a cap) so a paragraph feels composed,
+  // while quick one-liners stay snappy. Jitter keeps the rhythm human.
+  const chars = Math.min(text.length, 220);
+  const sized = 300 + chars * 9 + Math.random() * 260;
   return Math.max(STAGGER_MIN_MS, Math.min(STAGGER_MAX_MS, sized));
 }
 

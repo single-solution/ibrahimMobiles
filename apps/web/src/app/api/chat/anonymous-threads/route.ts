@@ -10,8 +10,14 @@
 import { cookies } from "next/headers";
 
 import { Inquiry as InquiryModel, connectDB } from "@store/db";
-import { badRequest, created, logger, serverError } from "@store/shared";
-import { appendInquiryToGuestToken } from "@store/shared";
+import {
+  appendInquiryToGuestToken,
+  badRequest,
+  created,
+  logger,
+  resolveChatWelcomeMessage,
+  serverError,
+} from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 import { auth } from "@/lib/auth";
@@ -68,14 +74,19 @@ export async function POST(request: Request) {
     const anonId = await getOrCreateAnonymousChatId();
     const phoneNumber = anonymousChatPhone(anonId);
     const now = new Date();
+    const welcome = resolveChatWelcomeMessage({
+      audience: "guest",
+      settings,
+      guestMessageLimit: settings.guestMessageLimit,
+    });
 
     const doc = await InquiryModel.create({
       customerName: "Guest",
       phoneNumber,
       status: "open",
       lastMessageAt: now,
-      lastMessagePreview: "",
-      lastMessageAuthor: "customer",
+      lastMessagePreview: welcome.slice(0, 280),
+      lastMessageAuthor: "assistant",
       unreadByCustomer: 0,
       unreadByTeam: 0,
       subjectProductName,

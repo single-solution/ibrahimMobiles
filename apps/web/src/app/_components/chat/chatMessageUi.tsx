@@ -35,32 +35,59 @@ export function chatWelcomeMessage(input: {
 
 /* Internal storefront paths the assistant may share. Only these are turned
    into clickable links — external URLs are stripped upstream, never linkified. */
-const INTERNAL_PATH_PATTERN =
-  /\/(?:shop|deals|account|cart|checkout|search)(?:\/[^\s)]*)?/g;
+const INTERNAL_PATH_SOURCE = "/(?:shop|deals|account|cart|checkout|search)(?:/[^\\s)]*)?";
 
-/** Splits a message body into text + clickable internal links. */
+/**
+ * Inline tokens we render in assistant copy: markdown links to internal paths,
+ * `**bold**`, and bare internal paths. External links are stripped upstream, so
+ * any link reaching here is safe to make clickable.
+ */
+const INLINE_TOKEN_PATTERN = new RegExp(
+  `\\[([^\\]]+)\\]\\((${INTERNAL_PATH_SOURCE})\\)|\\*\\*([^*\\n]+)\\*\\*|(${INTERNAL_PATH_SOURCE})`,
+  "g",
+);
+
+const CHAT_LINK_CLASS =
+  "font-medium text-[var(--color-accent-700)] underline underline-offset-2 hover:text-[var(--color-accent-800)]";
+
+/** Splits a message body into text, bold spans, and clickable internal links. */
 function renderMessageBody(body: string): ReactNode {
-  const pattern = new RegExp(INTERNAL_PATH_PATTERN);
+  const pattern = new RegExp(INLINE_TOKEN_PATTERN);
   const segments: ReactNode[] = [];
   let lastIndex = 0;
-  let linkKey = 0;
+  let tokenKey = 0;
   let match: RegExpExecArray | null;
 
   while ((match = pattern.exec(body)) !== null) {
-    const path = match[0].replace(/[.,;:)]+$/, "");
+    const [full, linkLabel, linkPath, boldText, barePath] = match;
     if (match.index > lastIndex) {
       segments.push(body.slice(lastIndex, match.index));
     }
-    segments.push(
-      <Link
-        key={`chat-link-${linkKey++}`}
-        href={path}
-        className="font-medium text-[var(--color-accent-700)] underline underline-offset-2 hover:text-[var(--color-accent-800)]"
-      >
-        {path}
-      </Link>,
-    );
-    lastIndex = match.index + path.length;
+
+    if (linkPath) {
+      segments.push(
+        <Link key={`chat-link-${tokenKey++}`} href={linkPath} className={CHAT_LINK_CLASS}>
+          {linkLabel}
+        </Link>,
+      );
+      lastIndex = match.index + full.length;
+    } else if (boldText) {
+      segments.push(
+        <strong key={`chat-bold-${tokenKey++}`} className="font-semibold text-[var(--color-ink-900)]">
+          {boldText}
+        </strong>,
+      );
+      lastIndex = match.index + full.length;
+    } else {
+      const clean = (barePath ?? "").replace(/[.,;:)]+$/, "");
+      segments.push(
+        <Link key={`chat-link-${tokenKey++}`} href={clean} className={CHAT_LINK_CLASS}>
+          {clean}
+        </Link>,
+      );
+      // Re-emit any trailing punctuation we trimmed off the path.
+      lastIndex = match.index + clean.length;
+    }
   }
 
   if (lastIndex < body.length) {

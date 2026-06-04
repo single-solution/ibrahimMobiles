@@ -177,7 +177,8 @@ const inquirySchema = new Schema<InquiryAttributes>(
       type: String,
       required: true,
       trim: true,
-      maxlength: 32,
+      // Holds either a real phone number or a guest anchor `anon:<uuid>` (41 chars).
+      maxlength: 64,
       index: true,
     },
     customerId: { type: Schema.Types.ObjectId, ref: "Customer" },

@@ -1,11 +1,13 @@
 "use client";
 
-import { forwardRef, useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { signIn } from "next-auth/react";
-import { ArrowRight, Phone as PhoneIcon } from "lucide-react";
+import { ArrowRight, KeyRound, MessageCircle, Phone as PhoneIcon } from "lucide-react";
 import { Button } from "@store/ui";
 import { Input } from "@/components/ui/Input";
-import { classNames, OTP_CODE_LENGTH } from "@store/shared";
+import { buildWhatsAppLink, classNames, OTP_CODE_LENGTH } from "@store/shared";
+
+import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 const RESEND_AFTER_SECONDS = 30;
 const COUNTDOWN_TICK_MS = 1_000;
@@ -33,6 +35,7 @@ export function PhoneOtpForm({
   phonePlaceholder = "+92 300 1234567",
   autoFocusPhone = false,
 }: PhoneOtpFormProps) {
+  const { whatsappNumber, supportPhone } = useStoreSettings();
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -41,6 +44,10 @@ export function PhoneOtpForm({
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [resendIn, setResendIn] = useState(0);
+  // True once a send attempt fails — unlocks the "code from our team" fallback.
+  const [deliveryFailed, setDeliveryFailed] = useState(false);
+  // True when verifying a code the team issued out-of-band (no "sent to" wording).
+  const [adminCodeMode, setAdminCodeMode] = useState(false);
   const codeInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -65,6 +72,7 @@ export function PhoneOtpForm({
       const data = (await response.json()) as IssueOtpResponse;
       if (!response.ok) {
         setError(data.error ?? "Couldn't send code. Please try again.");
+        setDeliveryFailed(true);
         const retryAfterSeconds = Number(response.headers.get("Retry-After"));
         if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
           setResendIn(retryAfterSeconds);
@@ -72,15 +80,30 @@ export function PhoneOtpForm({
         return false;
       }
       setPhoneTail(data.phoneTail ?? null);
+      setDeliveryFailed(false);
+      setAdminCodeMode(false);
       setStep("code");
       setResendIn(RESEND_AFTER_SECONDS);
       return true;
     } catch {
       setError("Network error. Please try again.");
+      setDeliveryFailed(true);
       return false;
     } finally {
       setIsSendingCode(false);
     }
+  }
+
+  function enterAdminCode() {
+    if (!phone.trim()) {
+      setError("Enter your phone number first, then tap this again.");
+      return;
+    }
+    setAdminCodeMode(true);
+    setPhoneTail(null);
+    setError(null);
+    setStep("code");
+    window.setTimeout(() => codeInputRef.current?.focus(), CODE_AUTOFOCUS_DELAY_MS);
   }
 
   async function handlePhoneSubmit(event: FormEvent<HTMLFormElement>) {
@@ -121,48 +144,98 @@ export function PhoneOtpForm({
     }
   }
 
+  const contactHref = whatsappNumber
+    ? buildWhatsAppLink(
+        "Salam! I can't receive my sign-in code — can you help me sign in?",
+        whatsappNumber,
+      )
+    : supportPhone
+      ? `tel:${supportPhone.replace(/\s+/g, "")}`
+      : null;
+
   if (step === "phone") {
     return (
-      <form onSubmit={handlePhoneSubmit} className="reveal-stagger space-y-4">
-        <div className="reveal">
-          <Input
-            label="WhatsApp number"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder={phonePlaceholder}
-            icon={<PhoneIcon size={14} />}
-            inputMode="tel"
-            autoComplete="tel"
-            autoFocus={autoFocusPhone}
-            error={error}
-            isLoading={isSendingCode}
-          />
-        </div>
-        <div className="reveal">
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            className="w-full"
-            isLoading={isSendingCode}
-            trailingIcon={<ArrowRight size={14} />}
-            disabled={!phone.trim() || isSendingCode}
-          >
-            {phoneSubmitLabel}
-          </Button>
-        </div>
-      </form>
+      <div className="space-y-4">
+        <form onSubmit={handlePhoneSubmit} className="reveal-stagger space-y-4">
+          <div className="reveal">
+            <Input
+              label="WhatsApp number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder={phonePlaceholder}
+              icon={<PhoneIcon size={14} />}
+              inputMode="tel"
+              autoComplete="tel"
+              autoFocus={autoFocusPhone}
+              error={error}
+              isLoading={isSendingCode}
+            />
+          </div>
+          <div className="reveal">
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              className="w-full"
+              isLoading={isSendingCode}
+              trailingIcon={<ArrowRight size={14} />}
+              disabled={!phone.trim() || isSendingCode}
+            >
+              {phoneSubmitLabel}
+            </Button>
+          </div>
+        </form>
+
+        {deliveryFailed ? (
+          <div className="space-y-2.5 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3.5 py-3 text-[12px] leading-relaxed text-[var(--color-ink-600)]">
+            <p>
+              Not receiving the code? Ask our team for a sign-in code, then enter it here.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                leadingIcon={<KeyRound size={13} />}
+                onClick={enterAdminCode}
+              >
+                I have a code from our team
+              </Button>
+              {contactHref ? (
+                <a
+                  href={contactHref}
+                  target={whatsappNumber ? "_blank" : undefined}
+                  rel={whatsappNumber ? "noopener noreferrer" : undefined}
+                  className="tap inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
+                >
+                  <MessageCircle size={13} />
+                  {whatsappNumber ? "Contact us on WhatsApp" : "Call us"}
+                </a>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
     );
   }
 
   return (
     <form onSubmit={handleCodeSubmit} className="reveal-stagger space-y-4">
       <p className="reveal max-w-prose text-[12.5px] text-[var(--color-ink-600)]">
-        Enter the {OTP_CODE_LENGTH}-digit code sent to{" "}
-        <span className="font-semibold text-[var(--color-ink-900)]">
-          {phoneTail ? `••• ${phoneTail}` : phone}
-        </span>
-        .
+        {adminCodeMode ? (
+          <>
+            Enter the {OTP_CODE_LENGTH}-digit code our team gave you for{" "}
+            <span className="font-semibold text-[var(--color-ink-900)]">{phone}</span>.
+          </>
+        ) : (
+          <>
+            Enter the {OTP_CODE_LENGTH}-digit code sent to{" "}
+            <span className="font-semibold text-[var(--color-ink-900)]">
+              {phoneTail ? `••• ${phoneTail}` : phone}
+            </span>
+            .
+          </>
+        )}
       </p>
       <div className="reveal">
         <Input
@@ -197,10 +270,12 @@ export function PhoneOtpForm({
         <ResendControls
           resendIn={resendIn}
           isSendingCode={isSendingCode}
+          allowResend={!adminCodeMode}
           onUseDifferentPhone={() => {
             setStep("phone");
             setCode("");
             setError(null);
+            setAdminCodeMode(false);
           }}
           onResend={() => void requestCode(phone.trim())}
         />
@@ -212,11 +287,13 @@ export function PhoneOtpForm({
 function ResendControls({
   resendIn,
   isSendingCode,
+  allowResend,
   onUseDifferentPhone,
   onResend,
 }: {
   resendIn: number;
   isSendingCode: boolean;
+  allowResend: boolean;
   onUseDifferentPhone: () => void;
   onResend: () => void;
 }) {
@@ -229,24 +306,26 @@ function ResendControls({
       >
         Use a different phone
       </button>
-      <button
-        type="button"
-        onClick={() => {
-          if (resendIn > 0) {
-            return;
-          }
-          onResend();
-        }}
-        disabled={resendIn > 0 || isSendingCode}
-        className={classNames(
-          "tap font-semibold",
-          resendIn > 0 || isSendingCode
-            ? "cursor-not-allowed text-[var(--color-ink-400)]"
-            : "text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]",
-        )}
-      >
-        {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
-      </button>
+      {allowResend ? (
+        <button
+          type="button"
+          onClick={() => {
+            if (resendIn > 0) {
+              return;
+            }
+            onResend();
+          }}
+          disabled={resendIn > 0 || isSendingCode}
+          className={classNames(
+            "tap font-semibold",
+            resendIn > 0 || isSendingCode
+              ? "cursor-not-allowed text-[var(--color-ink-400)]"
+              : "text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]",
+          )}
+        >
+          {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+        </button>
+      ) : null}
     </div>
   );
 }
