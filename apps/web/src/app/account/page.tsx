@@ -6,8 +6,6 @@ import {
   classNames,
   formatPrice,
   formatStorefrontDate,
-  getLoyaltyEarnRules,
-  LOYALTY_MAX_REDEEM_PERCENT,
   LOYALTY_PROGRAM_NAME,
 } from "@store/shared";
 import {
@@ -20,7 +18,6 @@ import {
   ShieldCheck,
   ShoppingCart,
   Sparkles,
-  Star,
   Truck,
   User,
 } from "lucide-react";
@@ -89,29 +86,21 @@ export default async function AccountPage() {
     redirect("/account/sign-in?next=/account");
   }
 
-  const [overview, settings] = await Promise.all([
+  const [overview] = await Promise.all([
     getAccountOverview(session.user.customerId),
-    getStoreSettings(),
+    getStoreSettings(), // Prefetch to warm cache
   ]);
   if (!overview) {
     // Customer record was deleted under a still-valid session — sign them out.
     redirect("/account/sign-in?next=/account");
   }
 
-  const earnRules = getLoyaltyEarnRules(settings);
-
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-6 md:px-6 md:pb-16 md:pt-10 lg:px-8">
       <AccountHeader name={overview.customer.name} joinedAt={overview.customer.joinedAt} />
 
-      {overview.loyalty ? (
-        <LoyaltyCard loyalty={overview.loyalty} earnRules={earnRules} />
-      ) : (
-        <NotALoyaltyMember />
-      )}
-
-      <div className="reveal-stagger mt-4 grid gap-4 md:mt-6 md:grid-cols-3 md:gap-4">
-        <div className="reveal">
+      <div className="reveal-stagger mt-5 grid gap-4 md:mt-8 md:grid-cols-3 md:gap-5">
+        <div className="reveal h-full">
           <StatCard
             icon={<Truck size={16} />}
             label="Active orders"
@@ -120,7 +109,7 @@ export default async function AccountPage() {
             accent="amber"
           />
         </div>
-        <div className="reveal">
+        <div className="reveal h-full">
           <StatCard
             icon={<Package size={16} />}
             label="All-time orders"
@@ -129,7 +118,7 @@ export default async function AccountPage() {
             accent="ink"
           />
         </div>
-        <div className="reveal">
+        <div className="reveal h-full">
           <StatCard
             icon={<ShieldCheck size={16} />}
             label="Total spent"
@@ -139,7 +128,7 @@ export default async function AccountPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-[1fr_320px] md:gap-6 lg:gap-8">
+      <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-[1fr_360px] md:gap-6 lg:gap-8 lg:grid-cols-[1fr_400px]">
         <div className="cv-auto space-y-4">
           <div className="reveal">
             <SectionHeader
@@ -163,6 +152,13 @@ export default async function AccountPage() {
         </div>
 
         <aside className="reveal-stagger space-y-4 md:sticky md:top-[calc(var(--desktop-header-h)+24px)] md:self-start">
+          <div className="reveal">
+            {overview.loyalty ? (
+              <LoyaltyCard loyalty={overview.loyalty} />
+            ) : (
+              <NotALoyaltyMember />
+            )}
+          </div>
           <div className="reveal">
             <ProfileCard customer={overview.customer} />
           </div>
@@ -202,101 +198,48 @@ function AccountHeader({ name, joinedAt }: { name: string; joinedAt: string }) {
 
 function LoyaltyCard({
   loyalty,
-  earnRules,
 }: {
   loyalty: { balance: number; lifetimeEarned: number; pendingFromShipping: number };
-  earnRules: ReturnType<typeof getLoyaltyEarnRules>;
 }) {
   const { balance, lifetimeEarned, pendingFromShipping } = loyalty;
   return (
-    <div className="reveal-rise mt-5 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-200)] bg-gradient-to-br from-[var(--color-accent-100)] via-[var(--color-accent-50)] to-[var(--color-canvas)] shadow-[var(--shadow-sm)] md:mt-8">
-      <div className="grid gap-5 p-5 md:grid-cols-[1fr_1px_1.1fr] md:gap-7 md:p-6">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="grid size-8 place-items-center rounded-full bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
-              <Sparkles size={15} strokeWidth={2.4} />
-            </span>
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-800)]">
-              {LOYALTY_PROGRAM_NAME}
-            </p>
-          </div>
-          <div>
-            <p className="font-headline text-[44px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[60px]">
-              {balance.toLocaleString("en-PK")}
-            </p>
-            <p className="mt-1 text-[12px] font-medium text-[var(--color-accent-800)]">
-              {LOYALTY_PROGRAM_NAME.toLowerCase()} available · worth{" "}
-              <span className="font-semibold text-[var(--color-ink-900)]">
-                {formatPrice(balance)}
-              </span>{" "}
-              off
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-[var(--color-ink-700)]">
+    <div className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-200)] bg-gradient-to-br from-[var(--color-accent-100)] via-[var(--color-accent-50)] to-[var(--color-canvas)] shadow-[var(--shadow-sm)]">
+      <div className="space-y-4 p-5 md:p-6">
+        <div className="flex items-center gap-2">
+          <span className="grid size-8 place-items-center rounded-full bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">
+            <Sparkles size={15} strokeWidth={2.4} />
+          </span>
+          <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-800)]">
+            {LOYALTY_PROGRAM_NAME}
+          </p>
+        </div>
+        <div>
+          <p className="font-headline text-[36px] font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)] md:text-[44px]">
+            {balance.toLocaleString("en-PK")}
+          </p>
+          <p className="mt-1 text-[12px] font-medium text-[var(--color-accent-800)]">
+            {LOYALTY_PROGRAM_NAME.toLowerCase()} available · worth{" "}
+            <span className="font-semibold text-[var(--color-ink-900)]">
+              {formatPrice(balance)}
+            </span>{" "}
+            off
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px] text-[var(--color-ink-700)]">
+          <span>
+            <span className="font-semibold text-[var(--color-ink-900)]">
+              {lifetimeEarned.toLocaleString("en-PK")}
+            </span>{" "}
+            lifetime
+          </span>
+          {pendingFromShipping > 0 && (
             <span>
               <span className="font-semibold text-[var(--color-ink-900)]">
-                {lifetimeEarned.toLocaleString("en-PK")}
+                {pendingFromShipping.toLocaleString("en-PK")}
               </span>{" "}
-              lifetime earned
+              pending
             </span>
-            {pendingFromShipping > 0 && (
-              <span>
-                <span className="font-semibold text-[var(--color-ink-900)]">
-                  {pendingFromShipping.toLocaleString("en-PK")}
-                </span>{" "}
-                pending until delivery
-              </span>
-            )}
-          </div>
-          <ButtonLink
-            href="/checkout"
-            variant="primary"
-            size="sm"
-            className="cta-arrow w-fit"
-            trailingIcon={<ArrowUpRight size={13} strokeWidth={2.4} />}
-          >
-            Use at checkout
-          </ButtonLink>
-        </div>
-
-        <div className="hidden bg-[var(--color-accent-200)]/60 md:block" aria-hidden />
-
-        <div>
-          <p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--color-ink-600)]">
-            Ways to earn more
-          </p>
-          <ul className="mt-3 space-y-2">
-            {earnRules.map((rule) => (
-              <li
-                key={rule.id}
-                /* Concentric: inner icon well --radius-md (8) + p-3 (12)
-                   → outer 20 = --radius-xl. */
-                className="flex items-center gap-3 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]/85 p-3"
-              >
-                <span className="grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-100)] text-[var(--color-accent-700)]">
-                  <Star size={13} strokeWidth={2.4} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[12.5px] font-semibold text-[var(--color-ink-900)]">
-                    {rule.label}
-                  </p>
-                  <p className="max-w-prose text-[11px] leading-snug text-[var(--color-ink-500)]">
-                    {rule.description}
-                  </p>
-                </div>
-                <span className="rounded-full bg-[var(--color-accent-50)] px-2 py-0.5 text-[10.5px] font-semibold text-[var(--color-accent-800)]">
-                  {rule.reward}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 max-w-prose text-[11px] text-[var(--color-ink-500)]">
-            Pay up to{" "}
-            <span className="font-semibold text-[var(--color-ink-900)]">
-              {LOYALTY_MAX_REDEEM_PERCENT}%
-            </span>{" "}
-            of any order with points. 1 point = Rs 1 off.
-          </p>
+          )}
         </div>
       </div>
     </div>
@@ -305,7 +248,7 @@ function LoyaltyCard({
 
 function NotALoyaltyMember() {
   return (
-    <Card className="reveal mt-5 flex items-center gap-3 p-4 md:mt-8 md:p-5">
+    <Card className="flex items-center gap-3 p-4 md:p-5">
       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--color-accent-100)] text-[var(--color-accent-700)]">
         <Sparkles size={16} />
       </span>
@@ -313,7 +256,7 @@ function NotALoyaltyMember() {
         <p className="text-[13.5px] font-semibold text-[var(--color-ink-900)]">
           Join {LOYALTY_PROGRAM_NAME}
         </p>
-        <p className="max-w-prose text-[12px] text-[var(--color-ink-500)]">
+        <p className="mt-0.5 max-w-prose text-[12px] text-[var(--color-ink-500)]">
           Earn points on every order — ask us at checkout to enrol.
         </p>
       </div>
