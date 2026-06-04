@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 import { requireSession } from "@/lib/api/requireSession";
 import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import {
@@ -5,14 +7,19 @@ import {
   badRequest,
   conflict,
   isValidationError,
+  normalizePhoneNumber,
   ok,
   parseBody,
-  phoneFingerprint,
-  validateEmail,
   validateString,
 } from "@store/shared";
 
-import { connectDB, Customer, Order, handleMongoError } from "@store/db";
+import {
+  connectDB,
+  Customer,
+  handleMongoError,
+  LoyaltyAccount,
+  Order,
+} from "@store/db";
 
 import { recordActivity } from "@/lib/services/activityLog";
 import { toCustomerResponse, type CustomerLean } from "@/lib/serializers/customer";
@@ -21,6 +28,9 @@ import type { AdminCustomerSummary } from "@/types/models";
 /** Placeholder city for manually-created customers — mirrors the storefront
  *  OTP upsert, which seeds the same value until the customer fills it in. */
 const PLACEHOLDER_CITY = "—";
+
+/** Upper bound for a starter loyalty grant on a manually-created account. */
+const LOYALTY_POINTS_MAX = 1_000_000;
 
 export async function GET(request: Request) {
   const { response } = await requireSession("customer_view");
@@ -104,10 +114,8 @@ export async function GET(request: Request) {
 interface CustomerCreateInput {
   name?: unknown;
   phoneNumber?: unknown;
-  email?: unknown;
   city?: unknown;
-  isLoyaltyMember?: unknown;
-  notes?: unknown;
+  loyaltyPoints?: unknown;
 }
 
 /**
@@ -141,15 +149,34 @@ export async function POST(request: Request) {
   if (phoneRaw.length > FIELD_LIMITS.phoneNumber) {
     return badRequest("Phone number is too long.");
   }
-  if (!phoneFingerprint(phoneRaw)) {
+  // Persist the canonical +92… form so any input shape (0321…, +92 321…,
+  // 0321-4232028, etc.) resolves to the same sign-in identity.
+  const phoneNumber = normalizePhoneNumber(phoneRaw);
+  if (!phoneNumber) {
     return badRequest("Enter a valid phone number the customer will use to sign in.");
+  }
+
+  let loyaltyPoints = 0;
+  if (
+    body.loyaltyPoints !== undefined &&
+    body.loyaltyPoints !== null &&
+    body.loyaltyPoints !== ""
+  ) {
+    const parsed = Number(body.loyaltyPoints);
+    if (!Number.isInteger(parsed) || parsed < 0) {
+      return badRequest("Loyalty points must be a whole number of zero or more.");
+    }
+    if (parsed > LOYALTY_POINTS_MAX) {
+      return badRequest(`Loyalty points cannot exceed ${LOYALTY_POINTS_MAX.toLocaleString()}.`);
+    }
+    loyaltyPoints = parsed;
   }
 
   const create: Record<string, unknown> = {
     name: nameResult,
-    phoneNumber: phoneRaw,
+    phoneNumber,
     city: PLACEHOLDER_CITY,
-    isLoyaltyMember: Boolean(body.isLoyaltyMember),
+    isLoyaltyMember: loyaltyPoints > 0,
     addresses: [],
   };
 
@@ -160,20 +187,10 @@ export async function POST(request: Request) {
     }
     create.city = cityResult;
   }
-  if (typeof body.email === "string" && body.email.trim().length > 0) {
-    const emailResult = validateEmail(body.email);
-    if (isValidationError(emailResult)) {
-      return badRequest(emailResult.error);
-    }
-    create.email = emailResult;
-  }
-  if (typeof body.notes === "string" && body.notes.trim().length > 0) {
-    create.notes = body.notes.trim().slice(0, FIELD_LIMITS.crmNotes);
-  }
 
   await connectDB();
 
-  const existing = await Customer.findOne({ phoneNumber: phoneRaw }).lean<{ _id: unknown }>();
+  const existing = await Customer.findOne({ phoneNumber }).lean<{ _id: unknown }>();
   if (existing) {
     return conflict("A customer with this phone number already exists.");
   }
@@ -189,6 +206,40 @@ export async function POST(request: Request) {
       resourceLabel: doc.name,
       detail: "Created manually in admin",
     });
+
+    if (loyaltyPoints > 0) {
+      const account = await LoyaltyAccount.findOneAndUpdate(
+        { customerId: doc._id },
+        {
+          $setOnInsert: {
+            customerId: doc._id,
+            balance: 0,
+            lifetimeEarned: 0,
+            pendingFromShipping: 0,
+          },
+        },
+        { new: true, upsert: true },
+      );
+      account.balance += loyaltyPoints;
+      account.lifetimeEarned += loyaltyPoints;
+      account.transactions.push({
+        kind: "bonus",
+        amount: loyaltyPoints,
+        occurredAt: new Date(),
+        reason: "Starter points on manual account creation",
+        recordedByUserId: new mongoose.Types.ObjectId(actor.id),
+      });
+      await account.save();
+
+      await recordActivity({
+        actor,
+        action: "updated",
+        resourceType: "loyalty",
+        resourceId: account._id.toString(),
+        resourceLabel: doc.name,
+        detail: `bonus ${loyaltyPoints} pts: starter grant`,
+      });
+    }
 
     return ok(
       toCustomerResponse(doc.toObject() as CustomerLean, {

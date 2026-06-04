@@ -16,6 +16,7 @@ import {
   clearRateLimit,
   getClientIp,
   logger,
+  normalizePhoneNumber,
   PHONE_TAIL_LENGTH,
   phoneFingerprint,
   SHORT_BURST_WINDOW_MS,
@@ -84,11 +85,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         await connectDB();
+        // Key on the canonical +92… form so a customer always resolves to the
+        // same record regardless of how they typed their number this time, and
+        // so admin-created accounts (which store the same canonical form) link
+        // to their self-service sign-in.
+        const phoneNumber =
+          normalizePhoneNumber(result.phoneRaw) ?? `+92${result.phoneFingerprint}`;
         const customer = await Customer.findOneAndUpdate(
-          { phoneNumber: result.phoneRaw },
+          { phoneNumber },
           {
             $setOnInsert: {
-              phoneNumber: result.phoneRaw,
+              phoneNumber,
               name: `Customer ${result.phoneFingerprint.slice(-PHONE_TAIL_LENGTH)}`,
               city: "—",
               addresses: [],

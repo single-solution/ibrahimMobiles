@@ -37,10 +37,7 @@ export type DeliveryMethod = "pickup" | "delivery";
 export type PaymentMethodId = "bank" | "easypaisa" | "jazzcash" | "cod";
 
 export interface AddressFormState {
-  recipientName: string;
-  area: string;
   street: string;
-  postalCode: string;
 }
 
 export function EmptyCartState() {
@@ -308,55 +305,19 @@ export function DeliveryPanel({
       </div>
 
       {delivery === "delivery" && (
-        <div className="reveal-stagger mt-4 space-y-3">
-          <p className="reveal text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-            Delivery address
-          </p>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="reveal">
-              <Field
-                label="Recipient name"
-                value={address.recipientName}
-                onChange={(value) => onAddressChange({ ...address, recipientName: value })}
-                autoComplete="shipping name"
-                isRequired
-                minLength={2}
-                isLoading={isPlacing}
-                disabled={isPlacing}
-              />
-            </div>
-            <div className="reveal">
-              <Field
-                label="Area / locality"
-                value={address.area}
-                onChange={(value) => onAddressChange({ ...address, area: value })}
-                autoComplete="shipping address-level3"
-                isLoading={isPlacing}
-                disabled={isPlacing}
-              />
-            </div>
-            <div className="reveal">
-              <Field
-                label="Street address"
-                value={address.street}
-                onChange={(value) => onAddressChange({ ...address, street: value })}
-                autoComplete="shipping street-address"
-                isRequired
-                minLength={2}
-                isLoading={isPlacing}
-                disabled={isPlacing}
-              />
-            </div>
-            <div className="reveal">
-              <Field
-                label="Postal code"
-                value={address.postalCode}
-                onChange={(value) => onAddressChange({ ...address, postalCode: value })}
-                autoComplete="shipping postal-code"
-                isLoading={isPlacing}
-                disabled={isPlacing}
-              />
-            </div>
+        <div className="reveal-stagger mt-4">
+          <div className="reveal">
+            <Field
+              label="Delivery address"
+              value={address.street}
+              onChange={(value) => onAddressChange({ ...address, street: value })}
+              placeholder="House / flat, street, area, city"
+              autoComplete="shipping street-address"
+              isRequired
+              minLength={2}
+              isLoading={isPlacing}
+              disabled={isPlacing}
+            />
           </div>
         </div>
       )}
@@ -381,7 +342,7 @@ export function PaymentPanel({ payment, onChange, isPlacing }: PaymentPanelProps
         eyebrow="03 · Payment"
         title="How would you like to pay?"
       />
-      <div className="reveal-stagger mt-4 grid gap-2 md:grid-cols-2">
+      <div className="reveal-stagger mt-4 grid grid-cols-2 gap-2">
         {paymentMethods.map((method) => {
           const Icon =
             method.id === "cod"
@@ -414,6 +375,7 @@ export interface LoyaltyPanelProps {
   maxPointsForOrder: number;
   shouldRedeemLoyalty: boolean;
   onToggle: (next: boolean) => void;
+  isAllowedWithOffers?: boolean;
 }
 
 export function LoyaltyPanel({
@@ -421,6 +383,7 @@ export function LoyaltyPanel({
   maxPointsForOrder,
   shouldRedeemLoyalty,
   onToggle,
+  isAllowedWithOffers = true,
 }: LoyaltyPanelProps) {
   const cantRedeem = maxPointsForOrder < LOYALTY_MIN_REDEEM;
   const valueInRupees = pointsToRupees(maxPointsForOrder);
@@ -445,7 +408,12 @@ export function LoyaltyPanel({
       </div>
 
       <div className="p-4 md:p-5">
-        {cantRedeem ? (
+        {!isAllowedWithOffers ? (
+          <p className="text-[12.5px] text-[var(--color-ink-500)]">
+            An active offer is already applied to this order, so {LOYALTY_PROGRAM_NAME}{" "}
+            can&rsquo;t be redeemed on top. Your balance stays untouched for a future order.
+          </p>
+        ) : cantRedeem ? (
           <p className="text-[12.5px] text-[var(--color-ink-500)]">
             Need at least {LOYALTY_MIN_REDEEM} points to redeem on this order. Keep shopping
             and your points will pile up — capped at {LOYALTY_MAX_REDEEM_PERCENT}% of any
@@ -707,7 +675,7 @@ export function ChoiceTile({
       aria-pressed={isSelected}
       disabled={disabled}
       className={classNames(
-        "tap flex h-full items-start gap-3 rounded-[var(--radius-lg)] border p-3 text-left transition-colors",
+        "tap flex h-full w-full items-start gap-3 rounded-[var(--radius-lg)] border p-3 text-left transition-colors",
         disabled && "opacity-50 cursor-not-allowed",
         isSelected
           ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)]"

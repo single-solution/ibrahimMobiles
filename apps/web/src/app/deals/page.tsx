@@ -121,7 +121,7 @@ export default function DealsPage() {
       </div>
 
       {/* Desktop — single layout */}
-      <div className="mx-auto hidden max-w-[1440px] px-6 py-12 md:block">
+      <div className="mx-auto hidden w-full max-w-[1440px] px-4 pb-24 pt-6 md:block md:px-6 md:pb-16 md:pt-10 lg:px-8">
         <header className="reveal space-y-3">
           <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
             <Sparkles size={12} />
@@ -231,12 +231,12 @@ async function DesktopOffers() {
   return (
     <section
       className={classNames(
-        "reveal-stagger cv-auto mt-16 grid gap-4",
-        offers.length === 1 ? "grid-cols-1" : "grid-cols-2",
+        "reveal-stagger cv-auto mt-16",
+        offers.length === 1 ? "block" : "columns-2 gap-5",
       )}
     >
       {offers.map((offer) => (
-        <div key={offer.id} id={offer.slug} className="reveal">
+        <div key={offer.id} id={offer.slug} className="reveal mb-5 break-inside-avoid last:mb-0">
           <OfferCard offer={offer} size="lg" />
         </div>
       ))}
@@ -327,11 +327,11 @@ function MobileProductsFallback() {
 
 function DesktopOffersFallback() {
   return (
-    <section className="cv-auto mt-16 grid grid-cols-2 gap-4">
+    <section className="cv-auto mt-16 columns-2 gap-5">
       {Array.from({ length: OFFER_SKELETON_COUNT }).map((_, index) => (
         <div
           key={index}
-          className="flex flex-col gap-4 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-6"
+          className="mb-5 flex break-inside-avoid flex-col gap-4 rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-6 last:mb-0"
         >
           <Skeleton shape="pill" className="h-6 w-24" />
           <Skeleton shape="text" className="h-6 w-3/4" />

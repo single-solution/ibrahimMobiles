@@ -32,10 +32,7 @@ import {
 const DELIVERY_FEE_RUPEES = 1_500;
 
 const EMPTY_ADDRESS: AddressFormState = {
-  recipientName: "",
-  area: "",
   street: "",
-  postalCode: "",
 };
 
 interface CheckoutProps {
@@ -47,10 +44,7 @@ function addressToForm(address: AccountAddress | undefined): AddressFormState {
     return EMPTY_ADDRESS;
   }
   return {
-    recipientName: address.recipientName,
-    area: address.area ?? "",
     street: address.street ?? "",
-    postalCode: address.postalCode ?? "",
   };
 }
 
@@ -146,9 +140,7 @@ export function Checkout({ customer }: CheckoutProps) {
   );
 
   const isAddressValid =
-    delivery === "pickup" ||
-    (address.recipientName.trim().length >= 2 &&
-      address.street.trim().length >= 2);
+    delivery === "pickup" || address.street.trim().length >= 2;
 
   const isValid =
     !cart.isEmpty &&
@@ -206,10 +198,8 @@ export function Checkout({ customer }: CheckoutProps) {
           address:
             delivery === "delivery"
               ? {
-                  recipientName: address.recipientName || fullName,
-                  area: address.area || undefined,
+                  recipientName: fullName,
                   street: address.street || undefined,
-                  postalCode: address.postalCode || undefined,
                 }
               : undefined,
           items: cart.items.map((line) => ({
@@ -319,6 +309,7 @@ export function Checkout({ customer }: CheckoutProps) {
                 maxPointsForOrder={maxPointsForOrder}
                 shouldRedeemLoyalty={shouldRedeemLoyalty}
                 onToggle={setShouldRedeemLoyalty}
+                isAllowedWithOffers={pricing.isLoyaltyPointsAllowed}
               />
             </div>
           )}

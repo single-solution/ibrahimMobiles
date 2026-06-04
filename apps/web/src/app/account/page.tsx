@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStoreSettings } from "@store/db";
 import {
-  buildWhatsAppLink,
   classNames,
   formatPrice,
   formatStorefrontDate,
@@ -18,7 +17,6 @@ import {
   LayoutDashboard,
   MapPin,
   Package,
-  Phone,
   ShieldCheck,
   ShoppingCart,
   Sparkles,
@@ -103,7 +101,7 @@ export default async function AccountPage() {
   const earnRules = getLoyaltyEarnRules(settings);
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">
+    <div className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-6 md:px-6 md:pb-16 md:pt-10 lg:px-8">
       <AccountHeader name={overview.customer.name} joinedAt={overview.customer.joinedAt} />
 
       {overview.loyalty ? (
@@ -170,9 +168,6 @@ export default async function AccountPage() {
           </div>
           <div className="reveal">
             <QuickActions />
-          </div>
-          <div className="reveal">
-            <SupportCard />
           </div>
         </aside>
       </div>
@@ -554,40 +549,6 @@ function QuickActions() {
           );
         })}
       </ul>
-    </Card>
-  );
-}
-
-async function SupportCard() {
-  const { supportPhone, whatsappNumber } = await getStoreSettings();
-  return (
-    <Card className="p-4 md:p-5">
-      <div className="flex items-center gap-2">
-        <span className="grid size-8 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-100)] text-[var(--color-accent-700)]">
-          <Headset size={14} />
-        </span>
-        <p className="text-[13px] font-semibold text-[var(--color-ink-900)]">Need a hand?</p>
-      </div>
-      <p className="mt-2 max-w-prose text-[12.5px] text-[var(--color-ink-500)]">
-        We reply on WhatsApp within minutes — every working day until 9 PM.
-      </p>
-      <div className="mt-3 flex items-center gap-2">
-        <a
-          href={buildWhatsAppLink("Salam! I have a question about my account.", whatsappNumber)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="tap inline-flex flex-1 items-center justify-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-whatsapp)] py-2 text-[12.5px] font-semibold text-[var(--color-on-dark)] hover:bg-[var(--color-whatsapp-dark)]"
-        >
-          WhatsApp
-        </a>
-        <a
-          href={`tel:${supportPhone.replace(/\s+/g, "")}`}
-          aria-label="Call support"
-          className="tap inline-flex size-9 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:border-[var(--color-ink-300)]"
-        >
-          <Phone size={14} />
-        </a>
-      </div>
     </Card>
   );
 }

@@ -4,15 +4,15 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Drawer } from "@/components/ui/Drawer";
 import { TextField } from "@/components/forms/TextField";
-import { TextArea } from "@/components/forms/TextArea";
-import { Switch } from "@/components/forms/Switch";
 import { useToast } from "@/components/ui/Toast";
 import { ApiError, apiFetch } from "@/lib/api";
 import { FIELD_LIMITS } from "@store/shared";
 import type { AdminCustomer } from "@/types/models";
 import { CustomerErrorBanner } from "./customerDetailUi";
 
-const EMAIL_MAX_CHARS = 320;
+/** Upper bound for the starter loyalty grant on a manual account. Mirrors the
+ *  server cap so the field can't submit a value the API will reject. */
+const LOYALTY_POINTS_MAX = 1_000_000;
 
 interface CustomerCreateDrawerProps {
   isOpen: boolean;
@@ -28,20 +28,16 @@ export function CustomerCreateDrawer({
   const toast = useToast();
   const [name, setName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
-  const [isLoyaltyMember, setIsLoyaltyMember] = useState(false);
-  const [notes, setNotes] = useState("");
+  const [loyaltyPoints, setLoyaltyPoints] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function reset() {
     setName("");
     setPhoneNumber("");
-    setEmail("");
     setCity("");
-    setIsLoyaltyMember(false);
-    setNotes("");
+    setLoyaltyPoints("");
     setError(null);
   }
 
@@ -55,16 +51,17 @@ export function CustomerCreateDrawer({
     event.preventDefault();
     setIsSaving(true);
     setError(null);
+    const parsedPoints = Number.parseInt(loyaltyPoints, 10);
+    const loyaltyPointsValue =
+      Number.isFinite(parsedPoints) && parsedPoints > 0 ? parsedPoints : undefined;
     try {
       const created = await apiFetch<AdminCustomer>("/api/customers", {
         method: "POST",
         json: {
           name,
           phoneNumber,
-          email: email || undefined,
           city: city || undefined,
-          isLoyaltyMember,
-          notes: notes || undefined,
+          loyaltyPoints: loyaltyPointsValue,
         },
       });
       toast.success(`${created.name} added`);
@@ -141,29 +138,16 @@ export function CustomerCreateDrawer({
           hint="Optional — they can fill this in at checkout."
         />
         <TextField
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          maxLength={EMAIL_MAX_CHARS}
-          placeholder="optional@example.com"
-          inputMode="email"
-          autoComplete="email"
-          hint="Optional — used for order receipts when provided."
-        />
-        <Switch
-          label="Loyalty member"
-          description="Marks enrollment for programme rules; balance changes happen on the Loyalty tab."
-          checked={isLoyaltyMember}
-          onCheckedChange={setIsLoyaltyMember}
-        />
-        <TextArea
-          label="Internal notes"
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          rows={3}
-          maxLength={2_000}
-          placeholder="Why this account was created, context, etc."
+          label="Loyalty points"
+          type="number"
+          value={loyaltyPoints}
+          onChange={(event) => setLoyaltyPoints(event.target.value)}
+          min={0}
+          max={LOYALTY_POINTS_MAX}
+          step={1}
+          placeholder="0"
+          inputMode="numeric"
+          hint="Optional — credits a starter balance and enrolls them in loyalty. Leave at 0 for none."
         />
         <p className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-2 text-[11px] leading-relaxed text-[var(--color-ink-600)]">
           After creating, open the profile and use <strong>Sign-in code</strong> to hand the

@@ -110,8 +110,12 @@ export function RouteTransition({ children }: RouteTransitionProps) {
       supportsViewTransition() && !prefersReducedMotion();
 
     if (useViewTransition) {
-      document.startViewTransition(() => {
+      setIsEntering(true);
+      const transition = document.startViewTransition(() => {
         setSnapshot(nextSnapshot);
+      });
+      transition.finished.finally(() => {
+        setIsEntering(false);
       });
       return;
     }
@@ -146,7 +150,7 @@ export function RouteTransition({ children }: RouteTransitionProps) {
   // exactly the space between header and footer.
   return (
     <div
-      className={`flex min-h-0 flex-1 flex-col${isEntering ? " route-enter" : ""}`}
+      className={`flex min-h-0 flex-1 flex-col${isEntering ? " route-transitioning route-enter" : ""}`}
     >
       <Suspense fallback={null}>
         <SearchParamsTracker onChange={handleSearchChange} />

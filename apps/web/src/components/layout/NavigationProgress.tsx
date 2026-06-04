@@ -35,7 +35,7 @@ const TRICKLE_CEILING_PERCENT = 80;
 const TRICKLE_STEP_PERCENT = 8;
 const TRICKLE_INTERVAL_MS = 260;
 const COMPLETION_FADE_MS = 340;
-const SAME_ROUTE_AUTO_CANCEL_MS = 600;
+const SAME_ROUTE_AUTO_CANCEL_MS = 15000;
 
 export function NavigationProgress() {
   const pathname = usePathname();
@@ -194,15 +194,44 @@ export function NavigationProgress() {
   }, [pathname, searchParams, completeNavigation]);
 
   return (
-    <div
-      aria-hidden
-      data-visible={isVisible ? "true" : "false"}
-      className="nav-progress pointer-events-none fixed inset-x-0 top-0 z-[var(--z-max)] h-[2px]"
-    >
+    <>
       <div
-        className="nav-progress-bar h-full w-full bg-[var(--color-accent-500)]"
-        style={{ transform: `scaleX(${percent / 100})` }}
-      />
-    </div>
+        aria-hidden
+        data-visible={isVisible ? "true" : "false"}
+        className="nav-progress pointer-events-none fixed inset-x-0 top-0 z-[var(--z-max)] h-[2px]"
+      >
+        <div
+          className="nav-progress-bar h-full w-full bg-[var(--color-accent-500)]"
+          style={{ transform: `scaleX(${percent / 100})` }}
+        />
+      </div>
+
+      {isVisible && (
+        <div
+          aria-hidden
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--color-ink-900)]/15 backdrop-blur-[2px]"
+          style={{ animation: "nav-overlay-in 0.25s ease-out 0.25s both" }}
+        >
+          <div className="grid grid-cols-2 gap-[5px]">
+            <div
+              className="size-3.5 bg-[var(--color-accent-500)]"
+              style={{ animation: "cvs-shatter-tl 1.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite" }}
+            />
+            <div
+              className="size-3.5 bg-[var(--color-canvas)]"
+              style={{ animation: "cvs-shatter-tr 1.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite" }}
+            />
+            <div
+              className="size-3.5 bg-[var(--color-canvas)]"
+              style={{ animation: "cvs-shatter-bl 1.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite" }}
+            />
+            <div
+              className="size-3.5 bg-[var(--color-accent-500)]"
+              style={{ animation: "cvs-shatter-br 1.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite" }}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -962,7 +962,10 @@ html {
 }
 .reveal[data-reveal="visible"] {
   opacity: 1;
-  transform: translate3d(0, 0, 0);
+  /* Settle to `none` (not translate3d(0,0,0)) so a finished reveal stops being
+     a containing block — otherwise any `position: fixed` descendant (e.g. the
+     mobile PDP sticky CTA) anchors to this box instead of the viewport. */
+  transform: none;
   animation: none;
 }
 
@@ -1205,6 +1208,19 @@ html {
 .app-main {
   view-transition-name: app-main;
 }
+
+/* Disable nested reveals during a route transition so we
+   don't get double-motion (fading in while sliding up).
+   The .route-transitioning class is applied to the wrapper during both
+   View Transitions and fallback CSS transitions. */
+.route-transitioning .reveal,
+.route-transitioning .reveal-fade {
+  animation: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+  transition: none !important;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root),
   ::view-transition-new(root) {
@@ -1804,3 +1820,26 @@ html {
     transform: translate3d(0, 0, 0);
   }
 }
+
+/* Route preloader overlay & shatter animation */
+@keyframes nav-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cvs-shatter-tl { 
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); border-radius: 4px; } 
+  50% { transform: translate(-14px, -14px) rotate(-135deg) scale(0.5); border-radius: 50%; opacity: 0.7; } 
+}
+@keyframes cvs-shatter-tr { 
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); border-radius: 4px; } 
+  50% { transform: translate(14px, -14px) rotate(135deg) scale(0.5); border-radius: 50%; opacity: 0.7; } 
+}
+@keyframes cvs-shatter-bl { 
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); border-radius: 4px; } 
+  50% { transform: translate(-14px, 14px) rotate(-135deg) scale(0.5); border-radius: 50%; opacity: 0.7; } 
+}
+@keyframes cvs-shatter-br { 
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); border-radius: 4px; } 
+  50% { transform: translate(14px, 14px) rotate(135deg) scale(0.5); border-radius: 50%; opacity: 0.7; } 
+}
+

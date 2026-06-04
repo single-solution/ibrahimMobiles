@@ -19,6 +19,9 @@
  */
 const PK_MOBILE_DIGITS = 10;
 
+/** Pakistan country calling code in E.164 form. */
+const PK_COUNTRY_CODE = "+92";
+
 /** Strip every non-digit character from `input` and return the remainder. */
 function digitsOnly(input: string): string {
   return input.replace(/\D+/g, "");
@@ -37,6 +40,25 @@ export function phoneFingerprint(input: string | null | undefined): string | nul
     return null;
   }
   return digits.slice(-PK_MOBILE_DIGITS);
+}
+
+/**
+ * Normalise any accepted Pakistan phone format to canonical E.164 — `+92`
+ * followed by the 10-digit subscriber portion. Accepts every common shape the
+ * same number can be typed in: "+92 321 4232028", "0321-4232028",
+ * "0321 4232 028", "923214232028", "3214232028", etc. Returns `null` when
+ * fewer than 10 digits are present.
+ *
+ * This is the single canonical form persisted on every write path (admin
+ * customer create, storefront OTP upsert) so a customer resolves to the same
+ * record no matter how they type their number.
+ */
+export function normalizePhoneNumber(input: string | null | undefined): string | null {
+  const fingerprint = phoneFingerprint(input);
+  if (!fingerprint) {
+    return null;
+  }
+  return `${PK_COUNTRY_CODE}${fingerprint}`;
 }
 
 /**
