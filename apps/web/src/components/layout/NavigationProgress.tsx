@@ -212,22 +212,22 @@ export function NavigationProgress() {
           className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--color-ink-900)]/15 backdrop-blur-[2px]"
           style={{ animation: "nav-overlay-in 0.25s ease-out 0.25s both" }}
         >
-          <div className="grid grid-cols-2 gap-[5px]">
+          <div className="grid size-[34px] grid-cols-2 gap-[3px]">
             <div
-              className="size-3.5 bg-[var(--color-accent-500)]"
-              style={{ animation: "cvs-shatter-tl 1.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite" }}
+              className="origin-bottom-right rounded-[2px] bg-[var(--color-accent-500)]"
+              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0s" }}
             />
             <div
-              className="size-3.5 bg-[var(--color-canvas)]"
-              style={{ animation: "cvs-shatter-tr 1.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite" }}
+              className="origin-bottom-left rounded-[2px] bg-[var(--color-ink-900)]"
+              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.3s" }}
             />
             <div
-              className="size-3.5 bg-[var(--color-canvas)]"
-              style={{ animation: "cvs-shatter-bl 1.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite" }}
+              className="origin-top-right rounded-[2px] bg-[var(--color-ink-900)]"
+              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.9s" }}
             />
             <div
-              className="size-3.5 bg-[var(--color-accent-500)]"
-              style={{ animation: "cvs-shatter-br 1.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite" }}
+              className="origin-top-left rounded-[2px] bg-[var(--color-accent-500)]"
+              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.6s" }}
             />
           </div>
         </div>

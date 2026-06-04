@@ -1821,25 +1821,14 @@ html {
   }
 }
 
-/* Route preloader overlay & shatter animation */
+/* Route preloader overlay & origami animation */
 @keyframes nav-overlay-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes cvs-shatter-tl { 
-  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); border-radius: 4px; } 
-  50% { transform: translate(-14px, -14px) rotate(-135deg) scale(0.5); border-radius: 50%; opacity: 0.7; } 
-}
-@keyframes cvs-shatter-tr { 
-  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); border-radius: 4px; } 
-  50% { transform: translate(14px, -14px) rotate(135deg) scale(0.5); border-radius: 50%; opacity: 0.7; } 
-}
-@keyframes cvs-shatter-bl { 
-  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); border-radius: 4px; } 
-  50% { transform: translate(-14px, 14px) rotate(-135deg) scale(0.5); border-radius: 50%; opacity: 0.7; } 
-}
-@keyframes cvs-shatter-br { 
-  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); border-radius: 4px; } 
-  50% { transform: translate(14px, 14px) rotate(135deg) scale(0.5); border-radius: 50%; opacity: 0.7; } 
+@keyframes cvs-fold {
+  0% { transform: perspective(140px) rotateX(-180deg); opacity: 0; }
+  25%, 75% { transform: perspective(140px) rotateX(0deg); opacity: 1; }
+  100% { transform: perspective(140px) rotateY(180deg); opacity: 0; }
 }
 
