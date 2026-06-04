@@ -6,9 +6,9 @@ export const CHAT_ASSISTANT_PROVIDERS = ["openai", "google", "anthropic"] as con
 export type ChatAssistantProvider = (typeof CHAT_ASSISTANT_PROVIDERS)[number];
 
 export const CHAT_ASSISTANT_PROVIDER_LABELS: Record<ChatAssistantProvider, string> = {
-  openai: "OpenAI (GPT-4o mini)",
-  google: "Google (Gemini Flash-Lite)",
-  anthropic: "Anthropic (Claude 3.5 Sonnet)",
+  openai: "OpenAI",
+  google: "Google Gemini",
+  anthropic: "Anthropic Claude",
 };
 
 export const CHAT_ASSISTANT_DEFAULT_MODELS: Record<ChatAssistantProvider, string> = {
