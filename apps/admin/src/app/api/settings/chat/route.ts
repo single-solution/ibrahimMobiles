@@ -57,6 +57,12 @@ export async function GET() {
         defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.google,
         dbModel: settings.assistantModelGoogle,
       },
+      anthropic: {
+        configured: isAssistantProviderConfigured("anthropic", settings.providerApiKeyAnthropic),
+        model: resolveAssistantModelFromSettings("anthropic", settings),
+        defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.anthropic,
+        dbModel: settings.assistantModelAnthropic,
+      },
     },
   });
 }

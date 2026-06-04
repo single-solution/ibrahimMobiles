@@ -20,8 +20,10 @@ export interface ChatSettingsValues {
   assistantProvider: ChatAssistantProvider;
   assistantModelOpenai: string;
   assistantModelGoogle: string;
+  assistantModelAnthropic: string;
   providerApiKeyOpenai: string;
   providerApiKeyGoogle: string;
+  providerApiKeyAnthropic: string;
   assistantTrainingNotes: string;
   assistantTemperature: number;
   assistantMaxTokens: number;
@@ -45,8 +47,10 @@ export const CHAT_SETTING_DEFAULTS: ChatSettingsValues = {
   assistantProvider: "openai",
   assistantModelOpenai: "",
   assistantModelGoogle: "",
+  assistantModelAnthropic: "",
   providerApiKeyOpenai: "",
   providerApiKeyGoogle: "",
+  providerApiKeyAnthropic: "",
   assistantTrainingNotes: "",
   assistantTemperature: 0.38,
   assistantMaxTokens: 500,
@@ -69,8 +73,10 @@ export type ChatAssistantRuntimeSettings = Pick<
   | "assistantProvider"
   | "assistantModelOpenai"
   | "assistantModelGoogle"
+  | "assistantModelAnthropic"
   | "providerApiKeyOpenai"
   | "providerApiKeyGoogle"
+  | "providerApiKeyAnthropic"
   | "assistantTrainingNotes"
   | "assistantTemperature"
   | "assistantMaxTokens"
@@ -82,13 +88,15 @@ export function resolveAssistantModelFromSettings(
   provider: ChatAssistantProvider,
   settings: Pick<
     ChatSettingsValues,
-    "assistantModelOpenai" | "assistantModelGoogle"
+    "assistantModelOpenai" | "assistantModelGoogle" | "assistantModelAnthropic"
   >,
 ): string {
   const dbOverride =
     provider === "google"
       ? settings.assistantModelGoogle.trim()
-      : settings.assistantModelOpenai.trim();
+      : provider === "anthropic"
+        ? settings.assistantModelAnthropic.trim()
+        : settings.assistantModelOpenai.trim();
   return resolveAssistantModel(provider, dbOverride || undefined);
 }
 
@@ -103,8 +111,10 @@ const CHAT_SETTING_DB_KEYS: Record<keyof ChatSettingsValues, string> = {
   assistantProvider: "chat.assistantProvider",
   assistantModelOpenai: "chat.assistantModelOpenai",
   assistantModelGoogle: "chat.assistantModelGoogle",
+  assistantModelAnthropic: "chat.assistantModelAnthropic",
   providerApiKeyOpenai: "chat.providerApiKeyOpenai",
   providerApiKeyGoogle: "chat.providerApiKeyGoogle",
+  providerApiKeyAnthropic: "chat.providerApiKeyAnthropic",
   assistantTrainingNotes: "chat.assistantTrainingNotes",
   assistantTemperature: "chat.assistantTemperature",
   assistantMaxTokens: "chat.assistantMaxTokens",
@@ -160,11 +170,13 @@ export function coerceChatSettingValue<K extends keyof ChatSettingsValues>(
       return normalizeChatAssistantProvider(value) as ChatSettingsValues[K];
     case "assistantModelOpenai":
     case "assistantModelGoogle":
+    case "assistantModelAnthropic":
       return (
         typeof value === "string" ? value.trim().slice(0, 80) : null
       ) as ChatSettingsValues[K] | null;
     case "providerApiKeyOpenai":
     case "providerApiKeyGoogle":
+    case "providerApiKeyAnthropic":
       return (
         typeof value === "string" ? value.trim() : null
       ) as ChatSettingsValues[K] | null;
@@ -255,8 +267,10 @@ export function mergeChatSettingsFromDb(
     assistantProvider: readChatSetting(map, "assistantProvider"),
     assistantModelOpenai: readChatSetting(map, "assistantModelOpenai"),
     assistantModelGoogle: readChatSetting(map, "assistantModelGoogle"),
+    assistantModelAnthropic: readChatSetting(map, "assistantModelAnthropic"),
     providerApiKeyOpenai: readChatSetting(map, "providerApiKeyOpenai"),
     providerApiKeyGoogle: readChatSetting(map, "providerApiKeyGoogle"),
+    providerApiKeyAnthropic: readChatSetting(map, "providerApiKeyAnthropic"),
     assistantTrainingNotes: readChatSetting(map, "assistantTrainingNotes"),
     assistantTemperature: readChatSetting(map, "assistantTemperature"),
     assistantMaxTokens: readChatSetting(map, "assistantMaxTokens"),

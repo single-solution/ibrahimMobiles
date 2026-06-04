@@ -53,8 +53,10 @@ function mergeRuntimeSettings(
     assistantProvider: merged.assistantProvider,
     assistantModelOpenai: merged.assistantModelOpenai,
     assistantModelGoogle: merged.assistantModelGoogle,
+    assistantModelAnthropic: merged.assistantModelAnthropic,
     providerApiKeyOpenai: merged.providerApiKeyOpenai,
     providerApiKeyGoogle: merged.providerApiKeyGoogle,
+    providerApiKeyAnthropic: merged.providerApiKeyAnthropic,
     assistantTrainingNotes: merged.assistantTrainingNotes,
     assistantTemperature: merged.assistantTemperature,
     assistantMaxTokens: merged.assistantMaxTokens,
@@ -111,6 +113,7 @@ export async function POST(request: Request) {
     ...savedSettings,
     assistantModelOpenai: pickSetting("assistantModelOpenai"),
     assistantModelGoogle: pickSetting("assistantModelGoogle"),
+    assistantModelAnthropic: pickSetting("assistantModelAnthropic"),
     assistantTrainingNotes: pickSetting("assistantTrainingNotes"),
     assistantTemperature: pickSetting("assistantTemperature"),
     assistantMaxTokens: pickSetting("assistantMaxTokens"),
@@ -165,7 +168,12 @@ export async function POST(request: Request) {
     const result = await callAssistantCompletion({
       provider: providerOverride,
       model,
-      apiKey: providerOverride === "google" ? runtime.providerApiKeyGoogle : runtime.providerApiKeyOpenai,
+      apiKey:
+        providerOverride === "google"
+          ? runtime.providerApiKeyGoogle
+          : providerOverride === "anthropic"
+            ? runtime.providerApiKeyAnthropic
+            : runtime.providerApiKeyOpenai,
       messages: [
         { role: "system", content: system },
         { role: "user", content: messageResult },

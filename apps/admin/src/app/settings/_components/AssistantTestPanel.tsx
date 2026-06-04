@@ -36,7 +36,7 @@ export function AssistantTestPanel({
 }: AssistantTestPanelProps) {
   const toast = useToast();
   const [message, setMessage] = useState("What's in stock right now?");
-  const [testProvider, setTestProvider] = useState<ChatAssistantProvider | "both">(
+  const [testProvider, setTestProvider] = useState<ChatAssistantProvider | "all">(
     savedProvider,
   );
   const [isTesting, setIsTesting] = useState(false);
@@ -59,6 +59,10 @@ export function AssistantTestPanel({
           assistantProvider: draftSettings.assistantProvider,
           assistantModelOpenai: draftSettings.assistantModelOpenai,
           assistantModelGoogle: draftSettings.assistantModelGoogle,
+          assistantModelAnthropic: draftSettings.assistantModelAnthropic,
+          providerApiKeyOpenai: draftSettings.providerApiKeyOpenai,
+          providerApiKeyGoogle: draftSettings.providerApiKeyGoogle,
+          providerApiKeyAnthropic: draftSettings.providerApiKeyAnthropic,
           assistantTrainingNotes: draftSettings.assistantTrainingNotes,
           assistantTemperature: draftSettings.assistantTemperature,
           assistantMaxTokens: draftSettings.assistantMaxTokens,
@@ -85,7 +89,7 @@ export function AssistantTestPanel({
     setResults([]);
     try {
       const providers: ChatAssistantProvider[] =
-        testProvider === "both" ? ["openai", "google"] : [testProvider];
+        testProvider === "all" ? ["openai", "google", "anthropic"] : [testProvider as ChatAssistantProvider];
       const next = await Promise.all(providers.map((provider) => runTest(provider)));
       setResults(next);
     } catch (error) {
@@ -122,20 +126,13 @@ export function AssistantTestPanel({
       <SelectField
         label="Test with"
         value={testProvider}
-        onChange={(event) =>
-          setTestProvider(
-            event.target.value === "both"
-              ? "both"
-              : event.target.value === "google"
-                ? "google"
-                : "openai",
-          )
-        }
+        onChange={(event) => setTestProvider(event.target.value as any)}
         disabled={disabled || isTesting}
         options={[
           { value: "openai", label: CHAT_ASSISTANT_PROVIDER_LABELS.openai },
           { value: "google", label: CHAT_ASSISTANT_PROVIDER_LABELS.google },
-          { value: "both", label: "Compare both side-by-side" },
+          { value: "anthropic", label: CHAT_ASSISTANT_PROVIDER_LABELS.anthropic },
+          { value: "all", label: "Compare all side-by-side" },
         ]}
       />
       <Button

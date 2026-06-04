@@ -185,12 +185,20 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
                 label="Live Provider"
                 value={draft.assistantProvider}
                 onChange={(event) =>
-                  setField("assistantProvider", event.target.value === "google" ? "google" : "openai")
+                  setField(
+                    "assistantProvider",
+                    event.target.value === "google"
+                      ? "google"
+                      : event.target.value === "anthropic"
+                        ? "anthropic"
+                        : "openai"
+                  )
                 }
                 disabled={!draft.enabled || !draft.assistantEnabled}
                 options={[
                   { value: "openai", label: CHAT_ASSISTANT_PROVIDER_LABELS.openai },
                   { value: "google", label: CHAT_ASSISTANT_PROVIDER_LABELS.google },
+                  { value: "anthropic", label: CHAT_ASSISTANT_PROVIDER_LABELS.anthropic },
                 ]}
               />
               <div className="lg:col-span-2">
@@ -205,23 +213,44 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
             </div>
 
             {draft.assistantEnabled && draft.enabled && (
-              <div className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] p-4">
+              <div className="mt-6 border-t border-[var(--color-ink-200)] pt-6">
                 <h4 className="mb-4 text-sm font-semibold text-[var(--color-ink-900)]">
-                  {draft.assistantProvider === "openai" ? "OpenAI Settings" : "Google Gemini Settings"}
+                  {draft.assistantProvider === "openai"
+                    ? "OpenAI Settings"
+                    : draft.assistantProvider === "anthropic"
+                      ? "Anthropic Settings"
+                      : "Google Gemini Settings"}
                 </h4>
                 <div className="grid gap-6 lg:grid-cols-2">
                   <TextField
                     label="API Key"
                     type="password"
-                    value={draft.assistantProvider === "openai" ? draft.providerApiKeyOpenai : draft.providerApiKeyGoogle}
+                    value={
+                      draft.assistantProvider === "openai"
+                        ? draft.providerApiKeyOpenai
+                        : draft.assistantProvider === "anthropic"
+                          ? draft.providerApiKeyAnthropic
+                          : draft.providerApiKeyGoogle
+                    }
                     onChange={(event) =>
                       setField(
-                        draft.assistantProvider === "openai" ? "providerApiKeyOpenai" : "providerApiKeyGoogle",
+                        draft.assistantProvider === "openai"
+                          ? "providerApiKeyOpenai"
+                          : draft.assistantProvider === "anthropic"
+                            ? "providerApiKeyAnthropic"
+                            : "providerApiKeyGoogle",
                         event.target.value
                       )
                     }
                     placeholder={
-                      providers?.[draft.assistantProvider].configured && !(draft.assistantProvider === "openai" ? draft.providerApiKeyOpenai : draft.providerApiKeyGoogle)
+                      providers?.[draft.assistantProvider].configured &&
+                      !(
+                        draft.assistantProvider === "openai"
+                          ? draft.providerApiKeyOpenai
+                          : draft.assistantProvider === "anthropic"
+                            ? draft.providerApiKeyAnthropic
+                            : draft.providerApiKeyGoogle
+                      )
                         ? "•••••••••••• (Using .env fallback)"
                         : "Enter API Key"
                     }
@@ -229,10 +258,20 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
                   />
                   <TextField
                     label="Model ID"
-                    value={draft.assistantProvider === "openai" ? draft.assistantModelOpenai : draft.assistantModelGoogle}
+                    value={
+                      draft.assistantProvider === "openai"
+                        ? draft.assistantModelOpenai
+                        : draft.assistantProvider === "anthropic"
+                          ? draft.assistantModelAnthropic
+                          : draft.assistantModelGoogle
+                    }
                     onChange={(event) =>
                       setField(
-                        draft.assistantProvider === "openai" ? "assistantModelOpenai" : "assistantModelGoogle",
+                        draft.assistantProvider === "openai"
+                          ? "assistantModelOpenai"
+                          : draft.assistantProvider === "anthropic"
+                            ? "assistantModelAnthropic"
+                            : "assistantModelGoogle",
                         event.target.value
                       )
                     }

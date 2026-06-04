@@ -2,24 +2,26 @@
  * Store chat assistant LLM providers — selectable from admin settings.
  */
 
-export const CHAT_ASSISTANT_PROVIDERS = ["openai", "google"] as const;
+export const CHAT_ASSISTANT_PROVIDERS = ["openai", "google", "anthropic"] as const;
 export type ChatAssistantProvider = (typeof CHAT_ASSISTANT_PROVIDERS)[number];
 
 export const CHAT_ASSISTANT_PROVIDER_LABELS: Record<ChatAssistantProvider, string> = {
   openai: "OpenAI (GPT-4o mini)",
   google: "Google (Gemini Flash-Lite)",
+  anthropic: "Anthropic (Claude 3.5 Sonnet)",
 };
 
 export const CHAT_ASSISTANT_DEFAULT_MODELS: Record<ChatAssistantProvider, string> = {
   openai: "gpt-4o-mini",
   google: "gemini-2.5-flash-lite",
+  anthropic: "claude-3-5-sonnet-latest",
 };
 
 export function normalizeChatAssistantProvider(
   value: unknown,
   fallback: ChatAssistantProvider = "openai",
 ): ChatAssistantProvider {
-  return value === "google" || value === "openai" ? value : fallback;
+  return value === "google" || value === "openai" || value === "anthropic" ? value : fallback;
 }
 
 export function resolveAssistantModel(
@@ -33,6 +35,9 @@ export function resolveAssistantModel(
   if (provider === "google") {
     return process.env.GEMINI_CHAT_MODEL?.trim() || CHAT_ASSISTANT_DEFAULT_MODELS.google;
   }
+  if (provider === "anthropic") {
+    return process.env.ANTHROPIC_CHAT_MODEL?.trim() || CHAT_ASSISTANT_DEFAULT_MODELS.anthropic;
+  }
   return process.env.OPENAI_CHAT_MODEL?.trim() || CHAT_ASSISTANT_DEFAULT_MODELS.openai;
 }
 
@@ -43,6 +48,9 @@ export function isAssistantProviderConfigured(
   if (apiKeyOverride?.trim()) return true;
   if (provider === "google") {
     return Boolean(process.env.GOOGLE_AI_API_KEY?.trim());
+  }
+  if (provider === "anthropic") {
+    return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
   }
   return Boolean(process.env.OPENAI_API_KEY?.trim());
 }
@@ -70,6 +78,7 @@ export interface AssistantCompletionResult {
 
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+const ANTHROPIC_CHAT_URL = "https://api.anthropic.com/v1/messages";
 const REQUEST_TIMEOUT_MS = 12_000;
 
 async function callOpenAi(
@@ -161,6 +170,48 @@ async function callGemini(
   return payload.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? null;
 }
 
+async function callAnthropic(
+  model: string,
+  apiKeyOverride: string | undefined,
+  messages: AssistantChatMessage[],
+  options: { temperature: number; maxTokens: number },
+  signal?: AbortSignal,
+): Promise<string | null> {
+  const apiKey = apiKeyOverride?.trim() || process.env.ANTHROPIC_API_KEY?.trim();
+  if (!apiKey) {
+    return null;
+  }
+
+  const systemMessage = messages.find((message) => message.role === "system");
+  const conversation = messages.filter((message) => message.role !== "system");
+
+  const response = await fetch(ANTHROPIC_CHAT_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      messages: conversation,
+      ...(systemMessage ? { system: systemMessage.content } : {}),
+      temperature: options.temperature,
+      max_tokens: options.maxTokens,
+    }),
+    signal,
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = (await response.json()) as {
+    content?: Array<{ text?: string }>;
+  };
+  return payload.content?.[0]?.text?.trim() ?? null;
+}
+
 export async function callAssistantCompletion(
   input: AssistantCompletionInput,
 ): Promise<AssistantCompletionResult | null> {
@@ -176,7 +227,9 @@ export async function callAssistantCompletion(
     const raw =
       input.provider === "google"
         ? await callGemini(input.model, input.apiKey, input.messages, generation, signal)
-        : await callOpenAi(input.model, input.apiKey, input.messages, generation, signal);
+        : input.provider === "anthropic"
+          ? await callAnthropic(input.model, input.apiKey, input.messages, generation, signal)
+          : await callOpenAi(input.model, input.apiKey, input.messages, generation, signal);
 
     if (!raw) {
       return null;
