@@ -287,7 +287,7 @@ function evaluateSettings(settings: StoreSettings): ShopHealthCheck[] {
       title: "Meta Pixel ID format is invalid",
       description: "The pixel won't load on the storefront until it's a valid ID.",
       severity: "warn",
-      href: "/settings?tab=marketing",
+      href: "/settings?tab=integrations",
     });
   }
   if (isInvalidPixel(settings.googleAnalyticsId, GA4_PATTERN)) {
@@ -295,7 +295,7 @@ function evaluateSettings(settings: StoreSettings): ShopHealthCheck[] {
       id: "marketing-ga4-invalid",
       title: "Google Analytics ID format is invalid",
       severity: "warn",
-      href: "/settings?tab=marketing",
+      href: "/settings?tab=integrations",
     });
   }
   if (isInvalidPixel(settings.googleTagManagerId, GTM_PATTERN)) {
@@ -303,7 +303,7 @@ function evaluateSettings(settings: StoreSettings): ShopHealthCheck[] {
       id: "marketing-gtm-invalid",
       title: "Google Tag Manager ID format is invalid",
       severity: "warn",
-      href: "/settings?tab=marketing",
+      href: "/settings?tab=integrations",
     });
   }
   if (isInvalidPixel(settings.tiktokPixelId, TIKTOK_PATTERN)) {
@@ -311,7 +311,7 @@ function evaluateSettings(settings: StoreSettings): ShopHealthCheck[] {
       id: "marketing-tiktok-invalid",
       title: "TikTok Pixel ID format is invalid",
       severity: "warn",
-      href: "/settings?tab=marketing",
+      href: "/settings?tab=integrations",
     });
   }
 

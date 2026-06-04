@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@source "../../../packages/ui/src";
+@source "../../../../packages/ui/src";
 
 /* Admin design tokens — kept deliberately in lockstep with the storefront's
    `globals.css` (apps/web/src/app/globals.css) so a teammate switching
@@ -53,6 +53,17 @@
   --color-danger-500: #e11d48;
   --color-danger-700: #be123c;
   --color-danger-800: #9f1239;
+
+  /* Destructive-action red used by delete controls and inline errors.
+     Same palette as --color-danger-*; aliased so the two stay in lockstep. */
+  --color-rose-50: var(--color-danger-50);
+  --color-rose-100: var(--color-danger-100);
+  --color-rose-200: var(--color-danger-200);
+  --color-rose-300: #fda4af;
+  --color-rose-500: var(--color-danger-500);
+  --color-rose-600: var(--color-danger-500);
+  --color-rose-700: var(--color-danger-700);
+  --color-rose-800: var(--color-danger-800);
 
   --color-success-50: #ecfdf5;
   --color-success-100: #d1fae5;

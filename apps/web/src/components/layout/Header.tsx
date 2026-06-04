@@ -9,6 +9,7 @@ import { BrandLockup } from "@/components/layout/BrandLockup";
 import { CartDropdown } from "@/app/cart/_components/CartDropdown";
 import { useCart } from "@/lib/cart/useCart";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
+import { useIsSignedIn } from "@/lib/auth/useIsSignedIn";
 import { useShopHref } from "@/lib/core/storefrontReferenceContext";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
@@ -164,11 +165,18 @@ function HeaderNavLink({ href, label, isActive }: HeaderNavLinkProps) {
 }
 
 function HeaderAccountLink({ isActive }: { isActive: boolean }) {
-  const prefetchHandlers = usePrefetchOnIntent("/account");
+  const signedIn = useIsSignedIn();
+  // Until the check resolves (null), keep the neutral "Account" label that
+  // matches the server render — only show "Sign in" once we know there's no
+  // session, so there's no hydration mismatch.
+  const showSignIn = signedIn === false;
+  const href = showSignIn ? "/account/sign-in" : "/account";
+  const label = showSignIn ? "Sign in" : "Account";
+  const prefetchHandlers = usePrefetchOnIntent(href);
   return (
     <Link
-      href="/account"
-      aria-label="Account"
+      href={href}
+      aria-label={label}
       onPointerDown={prefetchHandlers.onPointerDown}
       onTouchStart={prefetchHandlers.onTouchStart}
       onFocus={prefetchHandlers.onFocus}
@@ -180,7 +188,7 @@ function HeaderAccountLink({ isActive }: { isActive: boolean }) {
       )}
     >
       <User size={15} />
-      <span>Account</span>
+      <span>{label}</span>
     </Link>
   );
 }

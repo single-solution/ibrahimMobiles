@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Paperclip, Phone, Send } from "lucide-react";
+import { AlertTriangle, Paperclip, Phone, Send } from "lucide-react";
 import { Button } from "@store/ui";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { StatusPill } from "@/components/shared/StatusPill";
@@ -86,6 +86,7 @@ export function InquiryConversationPanel({
       lastMessageAuthor: detail.lastMessageAuthor,
       unreadByCustomer: detail.unreadByCustomer,
       unreadByTeam: detail.unreadByTeam,
+      escalated: detail.escalated,
       createdAt: detail.createdAt,
       updatedAt: detail.updatedAt,
     });
@@ -288,9 +289,17 @@ export function InquiryConversationPanel({
           </>
         }
         badge={
-          <StatusPill tone={STATUS_TONE[inquiry.status]}>
-            {STATUS_LABELS[inquiry.status]}
-          </StatusPill>
+          <span className="flex items-center gap-1.5">
+            {inquiry.escalated ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-danger-600)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                <AlertTriangle size={11} />
+                Needs senior
+              </span>
+            ) : null}
+            <StatusPill tone={STATUS_TONE[inquiry.status]}>
+              {STATUS_LABELS[inquiry.status]}
+            </StatusPill>
+          </span>
         }
         actions={
           <>
@@ -336,6 +345,16 @@ export function InquiryConversationPanel({
         }}
         onCancel={() => setConfirmDelete(false)}
       />
+
+      {inquiry.escalated ? (
+        <div className="flex items-center gap-2 border-b border-[var(--color-danger-200)] bg-[var(--color-danger-50)] px-3 py-2 text-xs text-[var(--color-danger-700)] md:px-5">
+          <AlertTriangle size={14} className="shrink-0" />
+          <span>
+            <strong>Escalated to a senior.</strong> The assistant is paused — reply to take over
+            this chat.
+          </span>
+        </div>
+      ) : null}
 
       <div
         ref={messagesContainerRef}

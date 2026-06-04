@@ -130,7 +130,6 @@ export function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: 
             onChange={(event) => setField("paymentBankName", event.target.value)}
             placeholder="e.g. Meezan Bank"
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
           <TextField
             label="Account title"
@@ -138,7 +137,6 @@ export function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: 
             onChange={(event) => setField("paymentBankAccountTitle", event.target.value)}
             placeholder="As registered on the bank account"
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
           <TextField
             label="Account number"
@@ -147,7 +145,6 @@ export function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: 
             placeholder="e.g. 0123456789012"
             inputMode="numeric"
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
           <TextField
             label="IBAN"
@@ -156,7 +153,6 @@ export function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: 
             placeholder="e.g. PK24MEZN0001230012345678"
             hint="Leave blank if you don't have an IBAN — the row hides automatically."
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
         </FormGrid>
       </FormSection>
@@ -225,7 +221,6 @@ export function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: 
             placeholder="Local only · in-person verify"
             hint="Shown under the Cash on Delivery chip and on the order page."
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
           <NumberField
             label="Bank transfer discount %"
@@ -235,6 +230,7 @@ export function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: 
             placeholder="e.g. 2"
             hint="Auto-applied when the customer picks bank transfer at checkout."
             disabled={!canUpdate}
+            containerClassName="w-full"
           />
         </FormGrid>
       </FormSection>

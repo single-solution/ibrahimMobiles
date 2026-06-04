@@ -137,8 +137,15 @@ export async function POST(request: Request, { params }: RouteContext) {
       return serverError("Thread vanished while posting your message.");
     }
 
+    const verifiedCustomerId =
+      session?.user?.role === "customer" &&
+      session.user.customerId &&
+      refreshed.customerId?.toString() === session.user.customerId
+        ? session.user.customerId
+        : undefined;
+
     try {
-      await maybeReplyWithAssistant(refreshed);
+      await maybeReplyWithAssistant(refreshed, { verifiedCustomerId });
     } catch (assistantError) {
       logger.error({ assistantError, inquiryId: id }, "chat-assistant: auto-reply failed");
     }

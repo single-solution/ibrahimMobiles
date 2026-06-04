@@ -54,6 +54,7 @@ export function LoyaltySettings({ draft, saved, setField, onSaved, canUpdate }: 
             placeholder="e.g. 1"
             hint="Points earned per Rupee on a paid order."
             disabled={!canUpdate}
+            containerClassName="w-full"
           />
           <NumberField
             label="Review bonus (pts)"
@@ -62,6 +63,7 @@ export function LoyaltySettings({ draft, saved, setField, onSaved, canUpdate }: 
             placeholder="e.g. 50"
             hint="Awarded once when a customer submits a verified review."
             disabled={!canUpdate}
+            containerClassName="w-full"
           />
           <NumberField
             label="Referral bonus per side (pts)"
@@ -70,6 +72,7 @@ export function LoyaltySettings({ draft, saved, setField, onSaved, canUpdate }: 
             placeholder="e.g. 100"
             hint="Both the referrer and the new customer get this many points."
             disabled={!canUpdate}
+            containerClassName="w-full"
           />
         </FormGrid>
       </FormSection>

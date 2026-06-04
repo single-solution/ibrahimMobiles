@@ -45,6 +45,7 @@ export function PolicySettings({ draft, saved, setField, onSaved, canUpdate }: S
             placeholder="e.g. 7"
             hint="Number of days a customer can request a refund after delivery."
             disabled={!canUpdate}
+            containerClassName="w-full"
           />
           <NumberField
             label="Default warranty (months)"
@@ -53,6 +54,7 @@ export function PolicySettings({ draft, saved, setField, onSaved, canUpdate }: S
             placeholder="e.g. 12"
             hint="Used when a product doesn't override its warranty."
             disabled={!canUpdate}
+            containerClassName="w-full"
           />
         </FormGrid>
       </FormSection>

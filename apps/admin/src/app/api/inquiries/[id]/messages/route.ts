@@ -86,6 +86,8 @@ export async function POST(request: Request, { params }: RouteContext) {
         lastMessagePreview: bodyResult.slice(0, 280),
         lastMessageAuthor: "agent",
         unreadByTeam: 0,
+        // A human just replied — let the assistant resume on future messages.
+        assistantMuted: false,
         ...inquiryStatusPatchAfterMessage(inquiry.status, "team"),
         ...(inquiry.assignedToUserId ? {} : { assignedToUserId: actor.id }),
       },

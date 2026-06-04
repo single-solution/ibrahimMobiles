@@ -20,6 +20,7 @@
  */
 
 import { type PipelineStage } from "mongoose";
+import { unstable_cache } from "next/cache";
 
 import {
   Brand as BrandModel,
@@ -92,25 +93,42 @@ interface CatalogVisibility {
   hiddenBrandPairs: Array<{ categorySlug: string; brandSlug: string }>;
 }
 
+async function loadCatalogVisibility(): Promise<CatalogVisibility> {
+  const [categories, hiddenBrands] = await Promise.all([
+    CategoryModel.find({ isActive: { $ne: false } })
+      .select("slug")
+      .lean<Array<{ slug: string }>>(),
+    BrandModel.find({ isActive: false })
+      .select("slug categorySlugs")
+      .lean<Array<{ slug: string; categorySlugs: string[] }>>(),
+  ]);
+  return {
+    activeCategorySlugs: categories.map((category) => category.slug),
+    hiddenBrandPairs: hiddenBrands.flatMap((brand) =>
+      (brand.categorySlugs ?? []).map((categorySlug) => ({
+        categorySlug,
+        brandSlug: brand.slug,
+      })),
+    ),
+  };
+}
+
+// The cascade rarely changes (a category/brand toggle), yet it was being
+// recomputed — two finds — on EVERY product read, including the uncached PDP
+// live-commerce overlay. Cache it on the shared storefront tag/TTL so it costs
+// one round-trip per 30s window instead of per request. Tag: "storefront"
+// (mirrors STOREFRONT_CACHE_TAG in cached.ts; kept literal to avoid a cycle).
+const loadCatalogVisibilityCached = unstable_cache(
+  loadCatalogVisibility,
+  ["storefront-catalog-visibility"],
+  { revalidate: 30, tags: ["storefront"] },
+);
+
 export async function resolveCatalogVisibility(): Promise<CatalogVisibility> {
   try {
-    const [categories, hiddenBrands] = await Promise.all([
-      CategoryModel.find({ isActive: { $ne: false } })
-        .select("slug")
-        .lean<Array<{ slug: string }>>(),
-      BrandModel.find({ isActive: false })
-        .select("slug categorySlugs")
-        .lean<Array<{ slug: string; categorySlugs: string[] }>>(),
-    ]);
-    return {
-      activeCategorySlugs: categories.map((category) => category.slug),
-      hiddenBrandPairs: hiddenBrands.flatMap((brand) =>
-        (brand.categorySlugs ?? []).map((categorySlug) => ({
-          categorySlug,
-          brandSlug: brand.slug,
-        })),
-      ),
-    };
+    // Errors propagate out of the cached call (so a transient failure is never
+    // cached) and we fall back to the no-cascade behaviour for this render only.
+    return await loadCatalogVisibilityCached();
   } catch (error) {
     logger.error(
       { error },
@@ -158,6 +176,21 @@ const MIN_PAGE_NUMBER = 1;
 const MAX_PAGE_NUMBER = 10_000;
 /** Default "active offers" cap for the homepage offer strip. */
 const DEFAULT_OFFER_LIMIT = 12;
+
+/**
+ * Atlas Search config for the assistant's `searchCatalog`. The index is
+ * created out-of-band (see `scripts/createSearchIndex` / docs). When the
+ * deployment isn't on Atlas — or the index doesn't exist yet — the first
+ * `$search` call throws; we memo that and silently fall back to the regex
+ * path for the rest of the process, so local dev and self-hosted Mongo keep
+ * working with zero config.
+ */
+const ATLAS_SEARCH_INDEX = process.env.MONGODB_SEARCH_INDEX?.trim() || "products_search";
+const ATLAS_SEARCH_ENABLED = process.env.ATLAS_SEARCH_ENABLED !== "false";
+/** Over-fetch factor so the post-`$search` visibility `$match` still fills the page. */
+const SEARCH_CANDIDATE_MULTIPLIER = 4;
+/** Tri-state capability memo: null = untried, true = works, false = fall back. */
+let atlasSearchUsable: boolean | null = null;
 
 /**
  * Public sort modes. Includes "price-asc" / "price-desc" which require an
@@ -516,6 +549,124 @@ export async function getProductsPage(
     pageSize,
     pageCount: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+function buildAtlasSearchStage(query: string): PipelineStage {
+  // `compound.should` blends prefix (autocomplete) + full-token (text) matches
+  // with light fuzziness, so "iphon", "iphone 13", a brand ("samsung") or a
+  // category ("smartwatch") all rank sensibly. Public-visibility filtering is
+  // applied in the `$match` that follows, not here.
+  return {
+    $search: {
+      index: ATLAS_SEARCH_INDEX,
+      compound: {
+        should: [
+          {
+            autocomplete: {
+              query,
+              path: "name",
+              fuzzy: { maxEdits: 1 },
+              score: { boost: { value: 3 } },
+            },
+          },
+          {
+            text: {
+              query,
+              path: "name",
+              fuzzy: { maxEdits: 1 },
+              score: { boost: { value: 2 } },
+            },
+          },
+          { text: { query, path: ["brandSlug", "categorySlug"], fuzzy: { maxEdits: 1 } } },
+        ],
+        minimumShouldMatch: 1,
+      },
+    },
+  } as unknown as PipelineStage;
+}
+
+async function searchCatalogViaAtlas(
+  query: string,
+  filters: ProductFilters,
+  limit: number,
+): Promise<Product[]> {
+  // Free text is handled by `$search`; every other filter (brand, category,
+  // price, grade, stock) still flows through the shared match builders so
+  // tool search and `/shop` browsing stay behaviourally identical.
+  const { search: _text, ...structuredFilters } = filters;
+  const topMatch = buildTopLevelMatch(structuredFilters);
+  const variantMatch = buildVariantElemMatch(structuredFilters);
+  const matchStage: Record<string, unknown> = { ...topMatch };
+  if (variantMatch) {
+    matchStage.variants = { $elemMatch: variantMatch };
+  }
+  applyCatalogVisibility(matchStage, await resolveCatalogVisibility());
+
+  const pipeline: PipelineStage[] = [
+    buildAtlasSearchStage(query),
+    { $limit: limit * SEARCH_CANDIDATE_MULTIPLIER },
+    { $match: matchStage },
+    { $limit: limit },
+  ];
+
+  const [rows, brandLookup] = await Promise.all([
+    ProductModel.aggregate<ProductLean>(pipeline),
+    buildBrandLookup(),
+  ]);
+
+  const products: Product[] = [];
+  for (const row of rows) {
+    const converted = toProduct(row, brandLookup);
+    if (converted) {
+      products.push(converted);
+    }
+  }
+  return products;
+}
+
+/**
+ * Relevance-ranked catalog search for the chat assistant.
+ *
+ * Strategy: Atlas Search first (typo-tolerant, multi-field, indexed → scales
+ * to thousands of SKUs), with a transparent fall back to the existing regex
+ * `getProductsPage` path when Atlas isn't available. With no `search` term it
+ * is a plain filtered browse (cheapest first — suits "phones under 150k").
+ */
+export async function searchCatalog(
+  filters: ProductFilters,
+): Promise<Product[]> {
+  await connectDB();
+  const query = filters.search?.trim();
+  const limit = clampInt(
+    filters.limit,
+    MIN_PAGE_NUMBER,
+    MAX_PRODUCT_PAGE_SIZE,
+    DEFAULT_PRODUCT_PAGE_SIZE,
+  );
+
+  if (!query) {
+    const page = await getProductsPage({ sort: "price-asc", ...filters });
+    return page.products;
+  }
+
+  if (ATLAS_SEARCH_ENABLED && atlasSearchUsable !== false) {
+    try {
+      const results = await searchCatalogViaAtlas(query, filters, limit);
+      atlasSearchUsable = true;
+      return results;
+    } catch (error) {
+      if (atlasSearchUsable === null) {
+        logger.warn(
+          { error },
+          "Atlas Search unavailable for catalog search; falling back to regex match for this process",
+        );
+      }
+      atlasSearchUsable = false;
+    }
+  }
+
+  const page = await getProductsPage(filters);
+  return page.products;
 }
 
 function clampInt(

@@ -289,6 +289,8 @@ export interface AdminInquirySummary {
   lastMessageAuthor: AdminInquiryMessageAuthor;
   unreadByCustomer: number;
   unreadByTeam: number;
+  /** The assistant escalated this chat — a senior teammate needs to take over. */
+  escalated: boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -1,15 +1,22 @@
 /**
  * POST /api/chat/customer-threads
  *
- * Opens an empty thread for a signed-in customer — no form fields required.
- * The first message is sent via POST .../messages. Replaces the previous
- * `/chat/start-customer` verb URL.
+ * Returns the signed-in customer's single support conversation, creating it
+ * the first time. A customer only ever has ONE thread — repeat calls reuse
+ * the existing one so history stays in a single place. The first message is
+ * sent via POST .../messages.
  */
 
 import { Types } from "mongoose";
 
 import { Customer, Inquiry as InquiryModel, connectDB } from "@store/db";
-import { badRequest, created, logger, serverError } from "@store/shared";
+import {
+  badRequest,
+  created,
+  logger,
+  resolveChatWelcomeMessage,
+  serverError,
+} from "@store/shared";
 
 import { enforceSameOrigin } from "@/lib/api/sameOrigin";
 import { auth } from "@/lib/auth";
@@ -38,6 +45,16 @@ export async function POST(request: Request) {
   }
 
   await connectDB();
+  const customerId = new Types.ObjectId(session.user.customerId);
+
+  // One conversation per customer: reuse the existing thread if there is one.
+  const existing = await InquiryModel.findOne({ customerId })
+    .sort({ lastMessageAt: -1 })
+    .lean<InquiryLean>();
+  if (existing) {
+    return created(toThread(existing));
+  }
+
   const customer = await Customer.findById(session.user.customerId)
     .select({ name: 1, phoneNumber: 1 })
     .lean<{ name: string; phoneNumber: string }>();
@@ -47,14 +64,19 @@ export async function POST(request: Request) {
 
   try {
     const now = new Date();
+    const welcome = resolveChatWelcomeMessage({
+      audience: "customer",
+      settings,
+      guestMessageLimit: settings.guestMessageLimit,
+    });
     const doc = await InquiryModel.create({
       customerName: customer.name,
       phoneNumber: customer.phoneNumber,
-      customerId: new Types.ObjectId(session.user.customerId),
+      customerId,
       status: "open",
       lastMessageAt: now,
-      lastMessagePreview: "",
-      lastMessageAuthor: "customer",
+      lastMessagePreview: welcome.slice(0, 280),
+      lastMessageAuthor: "assistant",
       unreadByCustomer: 0,
       unreadByTeam: 0,
       messages: [],

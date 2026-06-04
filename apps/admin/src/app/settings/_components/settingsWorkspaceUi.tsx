@@ -12,11 +12,10 @@ export type SettingsTabId =
   | "payments"
   | "delivery"
   | "notices"
-  | "social"
   | "policies"
   | "loyalty"
   | "inventory"
-  | "marketing"
+  | "integrations"
   | "seo"
   | "chat"
   | "cleanup";
@@ -93,11 +92,6 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
     label: "Storefront",
     tabs: [
       {
-        id: "social",
-        label: "Social links",
-        description: "Footer and about-page profile URLs.",
-      },
-      {
         id: "seo",
         label: "SEO",
         description: "Global meta defaults, Open Graph image, and organization structured data.",
@@ -108,10 +102,10 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         description: "Floating support chat, welcome messages, and automated replies.",
       },
       {
-        id: "marketing",
-        label: "Marketing",
+        id: "integrations",
+        label: "Integrations",
         description:
-          "Tracking pixels — Meta, Google Analytics, Tag Manager, TikTok. IDs are injected into every storefront page automatically.",
+          "Social profile links shown across the storefront and tracking pixels (Meta, Google Analytics, Tag Manager, TikTok) injected into every page.",
       },
     ],
   },
@@ -317,7 +311,7 @@ export function FormGrid({
     <div
       className={classNames(
         "grid gap-3 md:gap-4",
-        cols === 3 ? "md:grid-cols-2 xl:grid-cols-3" : "md:grid-cols-2",
+        cols === 3 ? "sm:grid-cols-2 lg:grid-cols-3" : "sm:grid-cols-2",
       )}
     >
       {children}

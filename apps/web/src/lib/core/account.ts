@@ -141,6 +141,38 @@ async function getAccountLoyalty(customerId: string): Promise<AccountLoyalty | n
   };
 }
 
+export interface AccountChatProfile {
+  name: string;
+  city: string;
+  isLoyaltyMember: boolean;
+  loyaltyBalance: number | null;
+  addresses: AccountAddress[];
+}
+
+/**
+ * Compact, session-scoped profile the chat assistant may read for a verified
+ * customer: greeting name, loyalty balance, and saved delivery addresses.
+ * Never includes other customers' data — scoped entirely by `customerId`.
+ */
+export async function getAccountChatProfile(
+  customerId: string,
+): Promise<AccountChatProfile | null> {
+  const [customer, loyalty] = await Promise.all([
+    getAccountCustomer(customerId),
+    getAccountLoyalty(customerId),
+  ]);
+  if (!customer) {
+    return null;
+  }
+  return {
+    name: customer.name,
+    city: customer.city,
+    isLoyaltyMember: customer.isLoyaltyMember,
+    loyaltyBalance: loyalty?.balance ?? null,
+    addresses: customer.addresses,
+  };
+}
+
 /** High-level account summary used by the /account landing page. */
 interface AccountOverview {
   customer: AccountCustomer;

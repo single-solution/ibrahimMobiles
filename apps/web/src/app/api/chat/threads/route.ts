@@ -160,8 +160,17 @@ export async function POST(request: Request) {
       return serverError("Thread vanished after creation.");
     }
 
+    // Own-order/account answers need the session-verified id — only when the
+    // signed-in customer owns this freshly created thread.
+    const verifiedCustomerId =
+      session?.user?.role === "customer" &&
+      session.user.customerId &&
+      customerId?.toString() === session.user.customerId
+        ? session.user.customerId
+        : undefined;
+
     try {
-      await maybeReplyWithAssistant(lean);
+      await maybeReplyWithAssistant(lean, { verifiedCustomerId });
     } catch (assistantError) {
       logger.error({ assistantError }, "chat-assistant: welcome reply failed");
     }

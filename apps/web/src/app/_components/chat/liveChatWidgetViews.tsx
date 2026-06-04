@@ -1,31 +1,38 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  MessageSquare,
-  Paperclip,
-  Plus,
-  Send,
-  X,
-} from "lucide-react";
+import { ArrowLeft, MessageSquare, Paperclip, Send, X } from "lucide-react";
 
 import {
   CHAT_GUEST_MESSAGE_LIMIT,
   CHAT_MESSAGE_BODY_MAX,
-  formatTimeAgo,
   type ChatThread,
-  type ChatThreadSummary,
 } from "@store/shared";
 
 import {
   ChatMessageBubble,
   ChatMessageDayDivider,
+  ChatTypingIndicator,
   chatWelcomeMessage,
   groupChatMessagesByDay,
 } from "@/app/_components/chat/chatMessageUi";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
+
+/**
+ * Typing-pause bounds before each staggered bot bubble. Varies by bubble
+ * length plus jitter so the rhythm feels human (sometimes quick, sometimes a
+ * beat longer) while staying snappy — never a long, awkward wait.
+ */
+const STAGGER_MIN_MS = 320;
+const STAGGER_MAX_MS = 1100;
+/** Brief settle between a revealed bubble and the next typing pause. */
+const STAGGER_GAP_MS = 130;
+
+function staggerDelay(text: string): number {
+  const sized = 300 + Math.min(text.length, 60) * 12 + Math.random() * 220;
+  return Math.max(STAGGER_MIN_MS, Math.min(STAGGER_MAX_MS, sized));
+}
 
 export function statusLabel(status: ChatThread["status"]): string {
   switch (status) {
@@ -62,26 +69,26 @@ export function ChatShell({
          Sized to match the cart dropdown so chat and cart feel like
          siblings, with mobile shrinking only when the viewport can't fit
          the desktop dimensions. */
-      className="animate-popover-in flex h-[min(620px,calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h)-env(safe-area-inset-bottom,0px)-104px))] w-[min(400px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[400px]"
+      className="animate-popover-in flex h-[min(620px,calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h)-env(safe-area-inset-bottom,0px)-104px))] w-[min(440px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[440px]"
     >
-      <header className="flex items-center gap-3 border-b border-[var(--color-ink-100)] bg-[var(--color-ink-900)] px-3 py-3 text-[var(--color-on-dark)]">
+      <header className="flex items-center gap-3 border-b border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3 py-3 text-[var(--color-ink-900)]">
         {onBack ? (
           <button
             type="button"
             aria-label="Back to thread list"
             onClick={onBack}
-            className="tap grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--color-on-dark-soft)] hover:bg-[var(--color-on-dark-10)] hover:text-[var(--color-on-dark)]"
+            className="tap grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-700)] hover:bg-[var(--color-ink-900)]/10 hover:text-[var(--color-ink-900)]"
           >
             <ArrowLeft size={16} />
           </button>
         ) : (
-          <span className="grid size-10 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-300)] to-[var(--color-accent-500)] text-base font-semibold text-[var(--color-ink-900)]">
+          <span className="grid size-10 place-items-center rounded-full bg-[var(--color-ink-900)] text-base font-semibold text-[var(--color-accent-500)]">
             <MessageSquare size={16} />
           </span>
         )}
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold leading-tight">{title}</p>
-          <p className="truncate text-[11px] leading-tight text-[var(--color-ink-300)]">
+          <p className="truncate text-[11px] leading-tight text-[var(--color-ink-700)]">
             {subtitle}
           </p>
         </div>
@@ -90,7 +97,7 @@ export function ChatShell({
             type="button"
             aria-label="Close chat"
             onClick={onClose}
-            className="tap grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-on-dark-soft)] hover:bg-[var(--color-on-dark-10)] hover:text-[var(--color-on-dark)]"
+            className="tap grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-700)] hover:bg-[var(--color-ink-900)]/10 hover:text-[var(--color-ink-900)]"
           >
             <X size={16} />
           </button>
@@ -101,60 +108,6 @@ export function ChatShell({
   );
 }
 
-
-interface ThreadListProps {
-  threads: ChatThreadSummary[];
-  onOpen: (id: string) => void;
-  onNew: () => void;
-}
-
-export function ThreadList({ threads, onOpen, onNew }: ThreadListProps) {
-  return (
-    <div className="flex-1 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-          Your conversations
-        </p>
-        <button
-          type="button"
-          onClick={onNew}
-          className="tap inline-flex items-center gap-1 rounded-full bg-[var(--color-ink-900)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-on-dark)] hover:bg-[var(--color-ink-800)]"
-        >
-          <Plus size={12} aria-hidden />
-          New chat
-        </button>
-      </div>
-      <ul className="sheet-stagger flex flex-col gap-2">
-        {threads.map((thread) => (
-          <li key={thread.id}>
-            <button
-              type="button"
-              onClick={() => onOpen(thread.id)}
-              className="tap flex w-full flex-col gap-1 rounded-[var(--radius-md)] bg-[var(--color-surface)] px-3 py-2.5 text-left shadow-[var(--shadow-sm)] hover:bg-[var(--color-accent-50)]"
-            >
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="truncate text-sm font-semibold text-[var(--color-ink-900)]">
-                  {thread.subjectProductName ?? thread.customerName}
-                </span>
-                <span className="shrink-0 text-[10px] text-[var(--color-ink-500)]">
-                  {formatTimeAgo(thread.lastMessageAt)}
-                </span>
-              </div>
-              <p className="truncate text-xs text-[var(--color-ink-600)]">
-                {thread.lastMessagePreview || "No messages yet"}
-              </p>
-              {thread.unreadByCustomer > 0 && (
-                <span className="inline-flex w-fit items-center rounded-full bg-[var(--color-accent-500)] px-2 py-0.5 text-[10px] font-semibold text-[var(--color-ink-900)]">
-                  {thread.unreadByCustomer} new
-                </span>
-              )}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 interface ThreadConversationProps {
   thread: ChatThread;
@@ -201,25 +154,113 @@ export function ThreadConversation({
     }
   }, [initialDraft, onDraftConsumed]);
 
-  const messages = thread.messages;
-  const lastMessageId = messages[messages.length - 1]?.id;
+  // ── Staggered reveal ──────────────────────────────────────────────────────
+  // The bot can answer in several bubbles. To feel like real texting, reveal
+  // the first bubble immediately, then drip the rest one at a time with a
+  // typing pause between. Customer/agent messages always show instantly.
+  const messagesRef = useRef(thread.messages);
+  messagesRef.current = thread.messages;
+  const revealedIdsRef = useRef<Set<string>>(
+    new Set(thread.messages.map((message) => message.id)),
+  );
+  const queueRef = useRef<string[]>([]);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [, bumpReveal] = useReducer((count: number) => count + 1, 0);
+  const [botTyping, setBotTyping] = useState(false);
 
-  // Auto-scroll to the latest message whenever a new one lands. Only
-  // when the user is already near the bottom to avoid yanking the view
-  // away from someone reading older history.
+  const visibleMessages = thread.messages.filter((message) =>
+    revealedIdsRef.current.has(message.id),
+  );
+  const lastVisibleId = visibleMessages[visibleMessages.length - 1]?.id;
+
+  const pump = useCallback(() => {
+    const nextId = queueRef.current[0];
+    if (nextId === undefined) {
+      timerRef.current = null;
+      setBotTyping(false);
+      return;
+    }
+    const nextBody = messagesRef.current.find((message) => message.id === nextId)?.body ?? "";
+    setBotTyping(true);
+    timerRef.current = setTimeout(() => {
+      queueRef.current.shift();
+      revealedIdsRef.current.add(nextId);
+      bumpReveal();
+      setBotTyping(false);
+      timerRef.current = setTimeout(() => pump(), STAGGER_GAP_MS);
+    }, staggerDelay(nextBody));
+  }, []);
+
   useEffect(() => {
+    const newOnes = thread.messages.filter(
+      (message) =>
+        !revealedIdsRef.current.has(message.id) &&
+        !queueRef.current.includes(message.id),
+    );
+    if (newOnes.length === 0) return;
+
+    let assistantShown = queueRef.current.length > 0;
+    let revealedAny = false;
+    for (const message of newOnes) {
+      if (message.author === "assistant" && assistantShown) {
+        queueRef.current.push(message.id);
+      } else {
+        revealedIdsRef.current.add(message.id);
+        revealedAny = true;
+        if (message.author === "assistant") assistantShown = true;
+      }
+    }
+    if (revealedAny) bumpReveal();
+    if (queueRef.current.length > 0 && !timerRef.current) pump();
+  }, [thread.messages, pump]);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    [],
+  );
+
+  // Whether the reader was near the bottom *before* the latest message
+  // arrived. Measuring after render fails for tall replies (a long bot
+  // answer pushes the new distance past any threshold), so we record it
+  // from scroll events instead and default to pinned.
+  const stickToBottomRef = useRef(true);
+
+  function handleMessageListScroll() {
     const el = messageListRef.current;
     if (!el) return;
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    if (distanceFromBottom < 120) {
-      el.scrollTop = el.scrollHeight;
-    }
-  }, [lastMessageId]);
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+  }
 
-  const groupedMessages = useMemo(
-    () => groupChatMessagesByDay(messages),
-    [messages],
-  );
+  // New bubble (or typing dots) landed: snap to bottom if already pinned.
+  // rAF lets attachment/image reflow settle before we measure scrollHeight.
+  useEffect(() => {
+    const el = messageListRef.current;
+    if (!el || !stickToBottomRef.current) return;
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+  }, [lastVisibleId, sending, botTyping]);
+
+  // Opening a thread (or switching threads) reveals all history instantly and
+  // jumps to the newest message.
+  useEffect(() => {
+    revealedIdsRef.current = new Set(messagesRef.current.map((message) => message.id));
+    queueRef.current = [];
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setBotTyping(false);
+    bumpReveal();
+    const el = messageListRef.current;
+    if (!el) return;
+    stickToBottomRef.current = true;
+    el.scrollTop = el.scrollHeight;
+  }, [thread.id]);
+
+  const groupedMessages = groupChatMessagesByDay(visibleMessages);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -258,6 +299,7 @@ export function ThreadConversation({
     <>
       <div
         ref={messageListRef}
+        onScroll={handleMessageListScroll}
         className="flex-1 space-y-3 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-3"
       >
         {groupedMessages.map((group) => (
@@ -268,7 +310,8 @@ export function ThreadConversation({
             ))}
           </div>
         ))}
-        {messages.length === 0 && (
+        {(sending || botTyping) && <ChatTypingIndicator />}
+        {thread.messages.length === 0 && (
           <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3.5 text-xs leading-relaxed text-[var(--color-ink-600)] shadow-[var(--shadow-sm)]">
             {chatWelcomeMessage({
               audience: thread.customerId ? "customer" : "guest",
@@ -335,7 +378,7 @@ export function ThreadConversation({
           disabled={sending || uploading || draft.trim().length === 0}
           className="tap grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] disabled:opacity-40"
         >
-          {sending || uploading ? (
+          {uploading ? (
             <span className="block size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" />
           ) : (
             <Send size={14} />

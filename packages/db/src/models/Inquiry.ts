@@ -98,6 +98,12 @@ export interface InquiryAttributes {
   lastMessageAuthor: InquiryMessageAuthor;
   unreadByCustomer: number;
   unreadByTeam: number;
+  /**
+   * When true, the AI assistant stops auto-replying — set after it escalates
+   * to a human, cleared the moment a human agent replies. Keeps the bot from
+   * talking over the team once a person has taken the conversation.
+   */
+  assistantMuted?: boolean;
   internalNotes?: string;
   messages: InquiryMessageAttributes[];
 }
@@ -204,6 +210,7 @@ const inquirySchema = new Schema<InquiryAttributes>(
     },
     unreadByCustomer: { type: Number, required: true, default: 0, min: 0 },
     unreadByTeam: { type: Number, required: true, default: 1, min: 0 },
+    assistantMuted: { type: Boolean, default: false },
     internalNotes: { type: String, trim: true, maxlength: 4_000 },
     messages: { type: [inquiryMessageSchema], default: [] },
   },

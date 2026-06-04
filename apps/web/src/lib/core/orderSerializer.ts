@@ -61,6 +61,7 @@ export interface Order {
   totals: OrderTotals;
   timeline: OrderTimelineEntry[];
   trackingNote?: string;
+  dispatchVideoUrl?: string;
   estimatedDeliveryAt?: string;
   pointsEarned: number;
   pointsRedeemed: number;
@@ -161,6 +162,7 @@ export function toOrder(order: OrderAttributes & { _id: { toString(): string } }
     },
     timeline,
     trackingNote: order.trackingNote,
+    dispatchVideoUrl: order.dispatchVideoUrl,
     estimatedDeliveryAt: order.estimatedDeliveryAt
       ? toIsoDate(order.estimatedDeliveryAt)
       : undefined,

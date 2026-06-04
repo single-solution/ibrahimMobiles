@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Suspense } from "react";
+import { cache, Suspense } from "react";
 import { ChevronRight } from "lucide-react";
 
 import type { Product } from "@store/shared";
@@ -25,13 +25,13 @@ import {
   productHref,
   shopHrefFromCategories,
 } from "@/lib/catalog/productPaths";
-import { getProducts } from "@/lib/core";
 import {
   getAttributesCached,
   getBrandBySlugCached,
   getCategoriesCached,
   getCategoryBySlugCached,
   getProductBySlugCached,
+  getProductsPageCached,
 } from "@/lib/core/cached";
 import {
   getProductLiveCommerce,
@@ -431,8 +431,11 @@ function VariantSelectorSkeleton({
 
 /* ─────────────────────── Related-products slots ─────────────────────── */
 
-async function loadRelatedProducts(product: Product): Promise<Product[]> {
-  const relatedRaw = await getProducts({
+// `cache()` collapses the mobile + desktop rails (both SSR'd) into one call
+// per render; `getProductsPageCached` then shares it cross-request (30s) and
+// dedupes in-flight — previously this was an uncached query run twice per PDP.
+const loadRelatedProducts = cache(async (product: Product): Promise<Product[]> => {
+  const { products: relatedRaw } = await getProductsPageCached({
     categorySlug: product.categorySlug,
     brandSlugs: [product.brandSlug],
     limit: RELATED_PRODUCTS_POOL,
@@ -440,7 +443,7 @@ async function loadRelatedProducts(product: Product): Promise<Product[]> {
   return relatedRaw
     .filter((candidate) => candidate.id !== product.id)
     .slice(0, RELATED_PRODUCTS_DISPLAY_COUNT);
-}
+});
 
 async function MobileRelatedRail({
   product,

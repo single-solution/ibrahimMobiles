@@ -11,7 +11,8 @@
     "node": ">=22.0.0 <23.0.0"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "search-index": "node scripts/createSearchIndex.mjs"
   },
   "dependencies": {
     "@store/shared": "*",

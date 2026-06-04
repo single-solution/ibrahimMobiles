@@ -12,12 +12,11 @@ import { SeoSettingsTab } from "@/app/settings/_components/SeoSettingsTab";
 import { ContactSettings } from "@/app/settings/_components/settingsContactTab";
 import { DeliverySettings } from "@/app/settings/_components/settingsDeliveryTab";
 import { NoticesSettings } from "@/app/settings/_components/settingsNoticesTab";
+import { IntegrationsSettings } from "@/app/settings/_components/settingsIntegrationsTab";
 import { InventorySettings } from "@/app/settings/_components/settingsInventoryTab";
 import { LoyaltySettings } from "@/app/settings/_components/settingsLoyaltyTab";
-import { MarketingSettings } from "@/app/settings/_components/settingsMarketingTab";
 import { PaymentSettings } from "@/app/settings/_components/settingsPaymentsTab";
 import { PolicySettings } from "@/app/settings/_components/settingsPoliciesTab";
-import { SocialSettings } from "@/app/settings/_components/settingsSocialTab";
 import { StoreDetailsSettings } from "@/app/settings/_components/settingsStoreTab";
 import {
   getSettingsTabMeta,
@@ -162,17 +161,8 @@ function SettingsInner({ initialSettings }: SettingsProps) {
         canUpdate={canUpdate}
       />
     ),
-    marketing: (
-      <MarketingSettings
-        draft={draft}
-        saved={savedSettings}
-        setField={setField}
-        onSaved={setSavedSettings}
-        canUpdate={canUpdate}
-      />
-    ),
-    social: (
-      <SocialSettings
+    integrations: (
+      <IntegrationsSettings
         draft={draft}
         saved={savedSettings}
         setField={setField}

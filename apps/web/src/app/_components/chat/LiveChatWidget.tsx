@@ -3,12 +3,15 @@
 /**
  * Real-time chat widget for the storefront.
  *
+ * Each visitor (guest or signed-in) has exactly ONE persistent conversation,
+ * so there is no thread list — the widget opens straight into it.
+ *
  * Modes:
  *   - "loading"  — bootstrap fetch in flight.
  *   - "disabled" — admin toggled chat.enabled = false; render nothing.
- *   - "starting" — anonymous thread being created.
- *   - "list"     — multiple threads; show summary list with pick CTA.
- *   - "thread"   — focused conversation; messages + composer.
+ *   - "starting" — the conversation is being created.
+ *   - "compose"  — no conversation yet; first-message composer.
+ *   - "thread"   — the conversation; messages + composer.
  *
  * Polling strategy follows `ChatSettings`:
  *   - Tab focused → `pollIntervalMsFocused` (default 5s).
@@ -20,24 +23,16 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { ArrowLeft, MessageSquare, Paperclip, Plus, Send, X } from "lucide-react";
 
 import {
-  CHAT_GUEST_MESSAGE_LIMIT,
-  CHAT_MESSAGE_BODY_MAX,
   buildWhatsAppLink,
-  classNames,
   createChatTransport,
   customerChatSupportLabel,
-  formatTimeAgo,
   guestChatLoginRequired,
   isAnonymousChatPhone,
   countCustomerChatMessages,
-  type ChatMessage,
   type ChatThread,
-  type ChatThreadSummary,
 } from "@store/shared";
 
 import {
@@ -68,11 +63,10 @@ import {
   ComposeConversation,
   SupportHintFooter,
   ThreadConversation,
-  ThreadList,
   statusLabel,
 } from "./liveChatWidgetViews";
 
-type WidgetView = "list" | "thread" | "starting" | "compose";
+type WidgetView = "thread" | "starting" | "compose";
 
 interface LiveChatWidgetProps {
   onCollapse?: () => void;
@@ -88,10 +82,9 @@ export function LiveChatWidget({
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [settings, setSettings] = useState<ChatSettings | null>(null);
   const [enabled, setEnabled] = useState(true);
-  const [threads, setThreads] = useState<ChatThreadSummary[]>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [activeThread, setActiveThread] = useState<ChatThread | null>(null);
-  const [view, setView] = useState<WidgetView>("list");
+  const [view, setView] = useState<WidgetView>("compose");
   const pathname = usePathname() ?? "/";
   const searchParams = useSearchParams();
   const signInHref = useMemo(() => {
@@ -123,7 +116,6 @@ export function LiveChatWidget({
       const data = await fetchChatBootstrap();
       setEnabled(data.enabled);
       setSettings(data.settings);
-      setThreads(data.threads);
       setIsSignedInCustomer(data.isSignedInCustomer);
       return data;
     } catch (error) {
@@ -144,13 +136,12 @@ export function LiveChatWidget({
       }
       setComposeSubjectName(initialOpenDetail?.subjectProductName);
       composeProductIdRef.current = initialOpenDetail?.subjectProductId;
+      // One conversation per visitor: open it, or compose the first message.
       if (data.threads.length === 0) {
         setView("compose");
-      } else if (data.threads.length === 1) {
+      } else {
         setActiveThreadId(data.threads[0].id);
         setView("thread");
-      } else {
-        setView("list");
       }
     })();
   }, [refreshBootstrap, initialOpenDetail]);
@@ -193,7 +184,6 @@ export function LiveChatWidget({
       pollIntervalMsBlurred: settings.pollIntervalMsBlurred,
       onTick: async () => {
         const bootstrap = await fetchChatBootstrap();
-        setThreads(bootstrap.threads);
         const threadId = activeThreadIdRef.current;
         if (!threadId) return;
         const since =
@@ -231,21 +221,6 @@ export function LiveChatWidget({
       }
     };
   }, [settings, siteName]);
-
-  function handleOpenThread(id: string) {
-    setActiveThreadId(id);
-    setView("thread");
-  }
-
-  function handleBackToList() {
-    setActiveThreadId(null);
-    setActiveThread(null);
-    if (threads.length > 0) {
-      setView("list");
-      return;
-    }
-    setView("compose");
-  }
 
   async function handleComposeSend(body: string) {
     setBootstrapError(null);
@@ -385,7 +360,6 @@ export function LiveChatWidget({
             ? "Support chat · replies in seconds"
             : "We typically reply within an hour"
       }
-      onBack={view === "thread" && threads.length > 0 ? handleBackToList : undefined}
     >
       {bootstrapError && (
         <div className="border-b border-[var(--color-error-200)] bg-[var(--color-error-50)] px-4 py-2 text-xs text-[var(--color-error-700)]">
@@ -396,19 +370,6 @@ export function LiveChatWidget({
         <div className="flex flex-1 items-center justify-center bg-[var(--color-canvas-deep)] px-4 text-sm text-[var(--color-ink-500)]">
           Starting chat…
         </div>
-      )}
-      {view === "list" && (
-        <ThreadList
-          threads={threads}
-          onOpen={handleOpenThread}
-          onNew={() => {
-            setComposeSubjectName(undefined);
-            composeProductIdRef.current = undefined;
-            setComposerDraft("");
-            setBootstrapError(null);
-            setView("compose");
-          }}
-        />
       )}
       {view === "compose" && (
         <ComposeConversation

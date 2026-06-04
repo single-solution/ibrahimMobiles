@@ -1,5 +1,11 @@
 /**
  * Store chat assistant LLM providers — selectable from admin settings.
+ *
+ * Supports single-shot replies AND function/tool calling: the model may ask to
+ * run named tools (catalog search, the customer's own orders, escalation), the
+ * caller executes them, feeds the results back, and the model continues until
+ * it produces a plain-text reply. All three providers (OpenAI, Google Gemini,
+ * Anthropic) are normalised to the same `AssistantChatMessage` / tool shapes.
  */
 
 export const CHAT_ASSISTANT_PROVIDERS = ["openai", "google", "anthropic"] as const;
@@ -55,25 +61,51 @@ export function isAssistantProviderConfigured(
   return Boolean(process.env.OPENAI_API_KEY?.trim());
 }
 
-export interface AssistantChatMessage {
-  role: "system" | "user" | "assistant";
-  content: string;
+/** A function the model can ask to run. `parameters` is a JSON-Schema object. */
+export interface AssistantToolSchema {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
 }
+
+/** A single tool invocation requested by the model. */
+export interface AssistantToolCall {
+  /** Provider-supplied id (synthesised for Gemini, which omits one). */
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+export type AssistantChatMessage =
+  | { role: "system"; content: string }
+  | { role: "user"; content: string }
+  | { role: "assistant"; content: string; toolCalls?: AssistantToolCall[] }
+  | { role: "tool"; toolCallId: string; toolName: string; content: string };
 
 export interface AssistantCompletionInput {
   provider: ChatAssistantProvider;
   model: string;
   apiKey?: string;
   messages: AssistantChatMessage[];
+  /** When present, the model may request these tools instead of replying. */
+  tools?: AssistantToolSchema[];
   temperature?: number;
   maxTokens?: number;
   signal?: AbortSignal;
 }
 
 export interface AssistantCompletionResult {
+  /** Plain-text reply. Empty string when the model only asked for tools. */
   reply: string;
+  /** Tools the model wants executed before it can answer. */
+  toolCalls: AssistantToolCall[];
   model: string;
   provider: ChatAssistantProvider;
+}
+
+interface ProviderCall {
+  reply: string | null;
+  toolCalls: AssistantToolCall[];
 }
 
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
@@ -81,17 +113,52 @@ const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models
 const ANTHROPIC_CHAT_URL = "https://api.anthropic.com/v1/messages";
 const REQUEST_TIMEOUT_MS = 12_000;
 
+function safeParseArguments(raw: unknown): Record<string, unknown> {
+  if (raw && typeof raw === "object") {
+    return raw as Record<string, unknown>;
+  }
+  if (typeof raw !== "string" || !raw.trim()) {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
+// ─── OpenAI ─────────────────────────────────────────────────────────────────
+
 async function callOpenAi(
   model: string,
   apiKeyOverride: string | undefined,
   messages: AssistantChatMessage[],
-  options: { temperature: number; maxTokens: number },
+  options: { temperature: number; maxTokens: number; tools?: AssistantToolSchema[] },
   signal?: AbortSignal,
-): Promise<string | null> {
+): Promise<ProviderCall | null> {
   const apiKey = apiKeyOverride?.trim() || process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
     return null;
   }
+
+  const body = messages.map((message) => {
+    if (message.role === "tool") {
+      return { role: "tool", tool_call_id: message.toolCallId, content: message.content };
+    }
+    if (message.role === "assistant" && message.toolCalls?.length) {
+      return {
+        role: "assistant",
+        content: message.content || null,
+        tool_calls: message.toolCalls.map((call) => ({
+          id: call.id,
+          type: "function",
+          function: { name: call.name, arguments: JSON.stringify(call.arguments ?? {}) },
+        })),
+      };
+    }
+    return { role: message.role, content: message.content };
+  });
 
   const response = await fetch(OPENAI_CHAT_URL, {
     method: "POST",
@@ -101,9 +168,22 @@ async function callOpenAi(
     },
     body: JSON.stringify({
       model,
-      messages,
+      messages: body,
       temperature: options.temperature,
       max_tokens: options.maxTokens,
+      ...(options.tools?.length
+        ? {
+            tools: options.tools.map((tool) => ({
+              type: "function",
+              function: {
+                name: tool.name,
+                description: tool.description,
+                parameters: tool.parameters,
+              },
+            })),
+            tool_choice: "auto",
+          }
+        : {}),
     }),
     signal,
   });
@@ -113,44 +193,109 @@ async function callOpenAi(
   }
 
   const payload = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
+    choices?: Array<{
+      message?: {
+        content?: string;
+        tool_calls?: Array<{ id?: string; function?: { name?: string; arguments?: string } }>;
+      };
+    }>;
   };
-  return payload.choices?.[0]?.message?.content?.trim() ?? null;
+  const message = payload.choices?.[0]?.message;
+  const toolCalls = (message?.tool_calls ?? [])
+    .filter((call) => call.function?.name)
+    .map((call) => ({
+      id: call.id ?? call.function!.name!,
+      name: call.function!.name!,
+      arguments: safeParseArguments(call.function?.arguments),
+    }));
+  return { reply: message?.content?.trim() ?? null, toolCalls };
+}
+
+// ─── Google Gemini ──────────────────────────────────────────────────────────
+
+function toGeminiContents(messages: AssistantChatMessage[]) {
+  const contents: Array<{ role: "user" | "model"; parts: unknown[] }> = [];
+
+  for (const message of messages) {
+    if (message.role === "system") {
+      continue;
+    }
+    if (message.role === "tool") {
+      const part = {
+        functionResponse: {
+          name: message.toolName,
+          response: { result: message.content },
+        },
+      };
+      const last = contents[contents.length - 1];
+      // Gemini wants tool results grouped into one user turn.
+      if (last && last.role === "user" && last.parts.every((p) => "functionResponse" in (p as object))) {
+        last.parts.push(part);
+      } else {
+        contents.push({ role: "user", parts: [part] });
+      }
+      continue;
+    }
+    if (message.role === "assistant") {
+      const parts: unknown[] = [];
+      if (message.content) {
+        parts.push({ text: message.content });
+      }
+      for (const call of message.toolCalls ?? []) {
+        parts.push({ functionCall: { name: call.name, args: call.arguments ?? {} } });
+      }
+      contents.push({ role: "model", parts });
+      continue;
+    }
+    contents.push({ role: "user", parts: [{ text: message.content }] });
+  }
+
+  return contents;
 }
 
 async function callGemini(
   model: string,
   apiKeyOverride: string | undefined,
   messages: AssistantChatMessage[],
-  options: { temperature: number; maxTokens: number },
+  options: { temperature: number; maxTokens: number; tools?: AssistantToolSchema[] },
   signal?: AbortSignal,
-): Promise<string | null> {
+): Promise<ProviderCall | null> {
   const apiKey = apiKeyOverride?.trim() || process.env.GOOGLE_AI_API_KEY?.trim();
   if (!apiKey) {
     return null;
   }
 
   const systemMessage = messages.find((message) => message.role === "system");
-  const conversation = messages.filter((message) => message.role !== "system");
-
-  const contents = conversation.map((message) => ({
-    role: message.role === "assistant" ? "model" : "user",
-    parts: [{ text: message.content }],
-  }));
-
-  const url = `${GEMINI_BASE_URL}/${encodeURIComponent(model)}:generateContent?key=${apiKey}`;
+  // Key goes in a header, not the query string, so it can't leak via URL logging.
+  const url = `${GEMINI_BASE_URL}/${encodeURIComponent(model)}:generateContent`;
   const response = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
     body: JSON.stringify({
       ...(systemMessage
+        ? { systemInstruction: { parts: [{ text: systemMessage.content }] } }
+        : {}),
+      contents: toGeminiContents(messages),
+      ...(options.tools?.length
         ? {
-            systemInstruction: {
-              parts: [{ text: systemMessage.content }],
-            },
+            tools: [
+              {
+                functionDeclarations: options.tools.map((tool) => {
+                  const properties = (tool.parameters?.properties ?? {}) as Record<string, unknown>;
+                  // Gemini rejects declarations with an empty `properties` map —
+                  // omit `parameters` entirely for no-argument tools.
+                  return {
+                    name: tool.name,
+                    description: tool.description,
+                    ...(Object.keys(properties).length > 0
+                      ? { parameters: tool.parameters }
+                      : {}),
+                  };
+                }),
+              },
+            ],
           }
         : {}),
-      contents,
       generationConfig: {
         temperature: options.temperature,
         maxOutputTokens: options.maxTokens,
@@ -164,27 +309,87 @@ async function callGemini(
   }
 
   const payload = (await response.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    candidates?: Array<{
+      content?: {
+        parts?: Array<{
+          text?: string;
+          functionCall?: { name?: string; args?: Record<string, unknown> };
+        }>;
+      };
+    }>;
   };
+  const parts = payload.candidates?.[0]?.content?.parts ?? [];
+  const texts: string[] = [];
+  const toolCalls: AssistantToolCall[] = [];
+  parts.forEach((part, index) => {
+    if (part.text) {
+      texts.push(part.text);
+    }
+    if (part.functionCall?.name) {
+      toolCalls.push({
+        id: `${part.functionCall.name}-${index}`,
+        name: part.functionCall.name,
+        arguments: part.functionCall.args ?? {},
+      });
+    }
+  });
+  const reply = texts.join("").trim();
+  return { reply: reply || null, toolCalls };
+}
 
-  return payload.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? null;
+// ─── Anthropic ────────────────────────────────────────────────────────────────
+
+function toAnthropicMessages(messages: AssistantChatMessage[]) {
+  const result: Array<{ role: "user" | "assistant"; content: unknown[] }> = [];
+
+  for (const message of messages) {
+    if (message.role === "system") {
+      continue;
+    }
+    if (message.role === "tool") {
+      const block = {
+        type: "tool_result",
+        tool_use_id: message.toolCallId,
+        content: message.content,
+      };
+      const last = result[result.length - 1];
+      if (last && last.role === "user") {
+        last.content.push(block);
+      } else {
+        result.push({ role: "user", content: [block] });
+      }
+      continue;
+    }
+    if (message.role === "assistant") {
+      const blocks: unknown[] = [];
+      if (message.content) {
+        blocks.push({ type: "text", text: message.content });
+      }
+      for (const call of message.toolCalls ?? []) {
+        blocks.push({ type: "tool_use", id: call.id, name: call.name, input: call.arguments ?? {} });
+      }
+      result.push({ role: "assistant", content: blocks });
+      continue;
+    }
+    result.push({ role: "user", content: [{ type: "text", text: message.content }] });
+  }
+
+  return result;
 }
 
 async function callAnthropic(
   model: string,
   apiKeyOverride: string | undefined,
   messages: AssistantChatMessage[],
-  options: { temperature: number; maxTokens: number },
+  options: { temperature: number; maxTokens: number; tools?: AssistantToolSchema[] },
   signal?: AbortSignal,
-): Promise<string | null> {
+): Promise<ProviderCall | null> {
   const apiKey = apiKeyOverride?.trim() || process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
     return null;
   }
 
   const systemMessage = messages.find((message) => message.role === "system");
-  const conversation = messages.filter((message) => message.role !== "system");
-
   const response = await fetch(ANTHROPIC_CHAT_URL, {
     method: "POST",
     headers: {
@@ -194,10 +399,19 @@ async function callAnthropic(
     },
     body: JSON.stringify({
       model,
-      messages: conversation,
+      messages: toAnthropicMessages(messages),
       ...(systemMessage ? { system: systemMessage.content } : {}),
       temperature: options.temperature,
       max_tokens: options.maxTokens,
+      ...(options.tools?.length
+        ? {
+            tools: options.tools.map((tool) => ({
+              name: tool.name,
+              description: tool.description,
+              input_schema: tool.parameters,
+            })),
+          }
+        : {}),
     }),
     signal,
   });
@@ -207,9 +421,30 @@ async function callAnthropic(
   }
 
   const payload = (await response.json()) as {
-    content?: Array<{ text?: string }>;
+    content?: Array<{
+      type?: string;
+      text?: string;
+      id?: string;
+      name?: string;
+      input?: Record<string, unknown>;
+    }>;
   };
-  return payload.content?.[0]?.text?.trim() ?? null;
+  const texts: string[] = [];
+  const toolCalls: AssistantToolCall[] = [];
+  for (const block of payload.content ?? []) {
+    if (block.type === "text" && block.text) {
+      texts.push(block.text);
+    }
+    if (block.type === "tool_use" && block.name) {
+      toolCalls.push({
+        id: block.id ?? block.name,
+        name: block.name,
+        arguments: block.input ?? {},
+      });
+    }
+  }
+  const reply = texts.join("").trim();
+  return { reply: reply || null, toolCalls };
 }
 
 export async function callAssistantCompletion(
@@ -220,9 +455,11 @@ export async function callAssistantCompletion(
   const signal = input.signal ?? controller.signal;
 
   try {
-    const temperature = input.temperature ?? 0.38;
-    const maxTokens = input.maxTokens ?? 500;
-    const generation = { temperature, maxTokens };
+    const generation = {
+      temperature: input.temperature ?? 0.38,
+      maxTokens: input.maxTokens ?? 500,
+      tools: input.tools,
+    };
 
     const raw =
       input.provider === "google"
@@ -236,7 +473,8 @@ export async function callAssistantCompletion(
     }
 
     return {
-      reply: raw,
+      reply: raw.reply ?? "",
+      toolCalls: raw.toolCalls,
       model: input.model,
       provider: input.provider,
     };

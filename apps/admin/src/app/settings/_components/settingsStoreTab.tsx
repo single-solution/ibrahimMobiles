@@ -91,7 +91,6 @@ export function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdat
             placeholder="e.g. Ibrahim Mobiles"
             hint="Appears in the navbar, page titles, emails, and assistant greetings."
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
           <TextField
             label="Storefront URL"
@@ -103,7 +102,6 @@ export function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdat
             autoComplete="url"
             hint="Leave blank to fall back to the deploy environment URL."
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
         </FormGrid>
         <TextArea
@@ -113,7 +111,6 @@ export function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdat
           onChange={(event) => setField("siteTagline", event.target.value)}
           placeholder="Short one-liner that sits under the site name."
           disabled={!canUpdate}
-          containerClassName="max-w-2xl"
         />
       </FormSection>
 

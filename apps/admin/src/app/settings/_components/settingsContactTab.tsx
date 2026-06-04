@@ -92,7 +92,7 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
         title="Store contact"
         description="Used in the support strip, footer, automated inquiry replies, and order confirmation emails."
       >
-        <FormGrid>
+        <FormGrid cols={3}>
           <TextField
             label="Support phone"
             value={draft.supportPhone}
@@ -100,8 +100,8 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
             placeholder="+92 320 4862403"
             inputMode="tel"
             autoComplete="tel"
+            leadingIcon={<Phone size={14} />}
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
           <TextField
             label="Landline"
@@ -109,8 +109,8 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
             onChange={(event) => setField("supportLandline", event.target.value)}
             placeholder="042 35711234"
             inputMode="tel"
+            leadingIcon={<Phone size={14} />}
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
           <TextField
             label="Support email"
@@ -120,8 +120,8 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
             placeholder="support@yourstore.com"
             inputMode="email"
             autoComplete="email"
+            leadingIcon={<Mail size={14} />}
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
           <TextField
             label="WhatsApp number"
@@ -130,22 +130,22 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
             placeholder="923204862403"
             inputMode="tel"
             hint="Digits only — country code first, no plus or spaces."
+            leadingIcon={<MessageCircle size={14} />}
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
         </FormGrid>
       </FormSection>
 
       <FormSection title="Outlet address" description="Address shown on the about page and in the footer.">
-        <FormGrid>
+        <FormGrid cols={3}>
           <TextField
             label="Address line 1"
             value={draft.storeAddressLine1}
             onChange={(event) => setField("storeAddressLine1", event.target.value)}
             placeholder="Shop 12, Main Boulevard"
             autoComplete="address-line1"
+            leadingIcon={<MapPin size={14} />}
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
           <TextField
             label="Address line 2"
@@ -153,8 +153,8 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
             onChange={(event) => setField("storeAddressLine2", event.target.value)}
             placeholder="Area, City"
             autoComplete="address-line2"
+            leadingIcon={<MapPin size={14} />}
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
           <TextField
             label="Store hours"
@@ -163,7 +163,6 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
             placeholder="Mon–Sat · 11am – 10pm"
             hint="Shown in the footer and About page."
             disabled={!canUpdate}
-            containerClassName="max-w-md"
           />
         </FormGrid>
       </FormSection>

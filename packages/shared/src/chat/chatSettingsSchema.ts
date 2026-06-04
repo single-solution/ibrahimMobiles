@@ -24,7 +24,7 @@ export interface ChatSettingsValues {
   providerApiKeyOpenai: string;
   providerApiKeyGoogle: string;
   providerApiKeyAnthropic: string;
-  assistantTrainingNotes: string;
+  assistantInstructions: string;
   assistantTemperature: number;
   assistantMaxTokens: number;
   welcomeMessageGuest: string;
@@ -49,7 +49,7 @@ export const CHAT_SETTING_DEFAULTS: ChatSettingsValues = {
   providerApiKeyOpenai: "",
   providerApiKeyGoogle: "",
   providerApiKeyAnthropic: "",
-  assistantTrainingNotes: "",
+  assistantInstructions: "",
   assistantTemperature: 0.38,
   assistantMaxTokens: 500,
   welcomeMessageGuest: CHAT_WELCOME_GUEST_DEFAULT,
@@ -73,7 +73,7 @@ export type ChatAssistantRuntimeSettings = Pick<
   | "providerApiKeyOpenai"
   | "providerApiKeyGoogle"
   | "providerApiKeyAnthropic"
-  | "assistantTrainingNotes"
+  | "assistantInstructions"
   | "assistantTemperature"
   | "assistantMaxTokens"
 >;
@@ -109,7 +109,7 @@ const CHAT_SETTING_DB_KEYS: Record<keyof ChatSettingsValues, string> = {
   providerApiKeyOpenai: "chat.providerApiKeyOpenai",
   providerApiKeyGoogle: "chat.providerApiKeyGoogle",
   providerApiKeyAnthropic: "chat.providerApiKeyAnthropic",
-  assistantTrainingNotes: "chat.assistantTrainingNotes",
+  assistantInstructions: "chat.assistantInstructions",
   assistantTemperature: "chat.assistantTemperature",
   assistantMaxTokens: "chat.assistantMaxTokens",
   welcomeMessageGuest: "chat.welcomeMessageGuest",
@@ -172,9 +172,9 @@ export function coerceChatSettingValue<K extends keyof ChatSettingsValues>(
       return (
         typeof value === "string" ? value.trim() : null
       ) as ChatSettingsValues[K] | null;
-    case "assistantTrainingNotes":
+    case "assistantInstructions":
       return (
-        typeof value === "string" ? value.trim().slice(0, 4_000) : null
+        typeof value === "string" ? value.trim().slice(0, 12_000) : null
       ) as ChatSettingsValues[K] | null;
     case "assistantTemperature":
       return (
@@ -236,10 +236,17 @@ function readChatSetting<K extends keyof ChatSettingsValues>(
   return (coerced ?? CHAT_SETTING_DEFAULTS[field]) as ChatSettingsValues[K];
 }
 
+/** Legacy DB key for instructions, renamed from "training notes". */
+const LEGACY_INSTRUCTIONS_DB_KEY = "chat.assistantTrainingNotes";
+
 export function mergeChatSettingsFromDb(
   rows: ReadonlyArray<{ key: string; value: unknown }>,
 ): ChatSettingsValues {
   const map = new Map(rows.map((row) => [row.key, row.value]));
+  // Back-compat: surface a value saved under the old key if the new one is empty.
+  if (!map.has("chat.assistantInstructions") && map.has(LEGACY_INSTRUCTIONS_DB_KEY)) {
+    map.set("chat.assistantInstructions", map.get(LEGACY_INSTRUCTIONS_DB_KEY));
+  }
   return {
     enabled: readChatSetting(map, "enabled"),
     assistantEnabled: readChatSetting(map, "assistantEnabled"),
@@ -251,7 +258,7 @@ export function mergeChatSettingsFromDb(
     providerApiKeyOpenai: readChatSetting(map, "providerApiKeyOpenai"),
     providerApiKeyGoogle: readChatSetting(map, "providerApiKeyGoogle"),
     providerApiKeyAnthropic: readChatSetting(map, "providerApiKeyAnthropic"),
-    assistantTrainingNotes: readChatSetting(map, "assistantTrainingNotes"),
+    assistantInstructions: readChatSetting(map, "assistantInstructions"),
     assistantTemperature: readChatSetting(map, "assistantTemperature"),
     assistantMaxTokens: readChatSetting(map, "assistantMaxTokens"),
     welcomeMessageGuest: readChatSetting(map, "welcomeMessageGuest"),

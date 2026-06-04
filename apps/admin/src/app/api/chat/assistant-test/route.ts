@@ -12,6 +12,7 @@ import {
   callAssistantCompletion,
   CHAT_ASSISTANT_DEFAULT_MODELS,
   CHAT_ASSISTANT_DEFAULT_NAME,
+  CHAT_ASSISTANT_PROVIDER_LABELS,
   CHAT_ASSISTANT_PROVIDERS,
   CHAT_SETTING_DB_KEY_LIST,
   coerceChatSettingValue,
@@ -57,7 +58,7 @@ function mergeRuntimeSettings(
     providerApiKeyOpenai: merged.providerApiKeyOpenai,
     providerApiKeyGoogle: merged.providerApiKeyGoogle,
     providerApiKeyAnthropic: merged.providerApiKeyAnthropic,
-    assistantTrainingNotes: merged.assistantTrainingNotes,
+    assistantInstructions: merged.assistantInstructions,
     assistantTemperature: merged.assistantTemperature,
     assistantMaxTokens: merged.assistantMaxTokens,
   };
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
     assistantModelOpenai: pickSetting("assistantModelOpenai"),
     assistantModelGoogle: pickSetting("assistantModelGoogle"),
     assistantModelAnthropic: pickSetting("assistantModelAnthropic"),
-    assistantTrainingNotes: pickSetting("assistantTrainingNotes"),
+    assistantInstructions: pickSetting("assistantInstructions"),
     assistantTemperature: pickSetting("assistantTemperature"),
     assistantMaxTokens: pickSetting("assistantMaxTokens"),
     assistantProvider: pickSetting("assistantProvider"),
@@ -142,11 +143,16 @@ export async function POST(request: Request) {
   );
   runtime.assistantProvider = providerOverride;
 
-  if (!isAssistantProviderConfigured(providerOverride)) {
+  const apiKey =
+    providerOverride === "google"
+      ? runtime.providerApiKeyGoogle
+      : providerOverride === "anthropic"
+        ? runtime.providerApiKeyAnthropic
+        : runtime.providerApiKeyOpenai;
+
+  if (!isAssistantProviderConfigured(providerOverride, apiKey)) {
     return badRequest(
-      providerOverride === "google"
-        ? "GOOGLE_AI_API_KEY is not set on the server."
-        : "OPENAI_API_KEY is not set on the server.",
+      `No API key set for ${CHAT_ASSISTANT_PROVIDER_LABELS[providerOverride]}. Add it under Chat settings, or set the matching server environment variable.`,
     );
   }
 
@@ -156,19 +162,14 @@ export async function POST(request: Request) {
       customerMessage: messageResult,
     });
     const system = buildAssistantSystemPrompt(context, runtime.assistantName, {
-      trainingNotes: runtime.assistantTrainingNotes,
+      instructions: runtime.assistantInstructions,
     });
     const model = resolveAssistantModelFromSettings(providerOverride, runtime);
 
     const result = await callAssistantCompletion({
       provider: providerOverride,
       model,
-      apiKey:
-        providerOverride === "google"
-          ? runtime.providerApiKeyGoogle
-          : providerOverride === "anthropic"
-            ? runtime.providerApiKeyAnthropic
-            : runtime.providerApiKeyOpenai,
+      apiKey,
       messages: [
         { role: "system", content: system },
         { role: "user", content: messageResult },

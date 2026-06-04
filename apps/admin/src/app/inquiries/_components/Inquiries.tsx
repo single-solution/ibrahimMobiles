@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MessageSquare } from "lucide-react";
+import { AlertTriangle, MessageSquare } from "lucide-react";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
@@ -323,7 +323,8 @@ function ThreadListItem({
       type="button"
       onClick={onSelect}
       className={classNames(
-        "tap flex w-full gap-3 border-b border-[var(--color-ink-100)] px-3 py-3 text-left transition-colors",
+        "tap flex w-full gap-3 border-b border-l-2 border-[var(--color-ink-100)] px-3 py-3 text-left transition-colors",
+        inquiry.escalated ? "border-l-[var(--color-danger-600)]" : "border-l-transparent",
         isActive ? "bg-[var(--color-accent-50)]" : "hover:bg-[var(--color-canvas-deep)]",
       )}
     >
@@ -343,6 +344,12 @@ function ThreadListItem({
           {inquiry.lastMessagePreview || "No messages yet"}
         </span>
         <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          {inquiry.escalated ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-danger-600)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+              <AlertTriangle size={10} />
+              Needs senior
+            </span>
+          ) : null}
           <StatusPill tone={STATUS_TONE[inquiry.status]}>{STATUS_LABELS[inquiry.status]}</StatusPill>
           <span className="text-[10px] text-[var(--color-ink-500)]">
             {assigneeLabel(inquiry.assignedToUserId)}

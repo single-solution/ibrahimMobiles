@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { Paperclip } from "lucide-react";
 
 import {
@@ -29,6 +31,43 @@ export function chatWelcomeMessage(input: {
       welcomeMessageCustomer: input.welcomeMessageCustomer ?? "",
     },
   });
+}
+
+/* Internal storefront paths the assistant may share. Only these are turned
+   into clickable links — external URLs are stripped upstream, never linkified. */
+const INTERNAL_PATH_PATTERN =
+  /\/(?:shop|deals|account|cart|checkout|search)(?:\/[^\s)]*)?/g;
+
+/** Splits a message body into text + clickable internal links. */
+function renderMessageBody(body: string): ReactNode {
+  const pattern = new RegExp(INTERNAL_PATH_PATTERN);
+  const segments: ReactNode[] = [];
+  let lastIndex = 0;
+  let linkKey = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = pattern.exec(body)) !== null) {
+    const path = match[0].replace(/[.,;:)]+$/, "");
+    if (match.index > lastIndex) {
+      segments.push(body.slice(lastIndex, match.index));
+    }
+    segments.push(
+      <Link
+        key={`chat-link-${linkKey++}`}
+        href={path}
+        className="font-medium text-[var(--color-accent-700)] underline underline-offset-2 hover:text-[var(--color-accent-800)]"
+      >
+        {path}
+      </Link>,
+    );
+    lastIndex = match.index + path.length;
+  }
+
+  if (lastIndex < body.length) {
+    segments.push(body.slice(lastIndex));
+  }
+
+  return segments;
 }
 
 export interface ChatMessageDayGroup {
@@ -115,6 +154,23 @@ export function ChatMessageDayDivider({ label }: { label: string }) {
   );
 }
 
+/** Three-dot "support is typing" bubble shown while awaiting an assistant reply. */
+export function ChatTypingIndicator() {
+  return (
+    <div className="chat-msg-in flex justify-start gap-2.5">
+      <span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-300)] to-[var(--color-accent-500)] text-[11px] font-semibold text-[var(--color-ink-900)]">
+        {CHAT_SUPPORT_DISPLAY_NAME.charAt(0).toUpperCase()}
+      </span>
+      <div className="flex items-center gap-1 rounded-[var(--radius-lg)] rounded-tl-sm border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3.5 py-3 shadow-[var(--shadow-sm)]">
+        <span className="sr-only">{CHAT_SUPPORT_DISPLAY_NAME} is typing</span>
+        <span className="size-1.5 animate-bounce rounded-full bg-[var(--color-ink-400)] [animation-delay:-0.3s]" />
+        <span className="size-1.5 animate-bounce rounded-full bg-[var(--color-ink-400)] [animation-delay:-0.15s]" />
+        <span className="size-1.5 animate-bounce rounded-full bg-[var(--color-ink-400)]" />
+      </div>
+    </div>
+  );
+}
+
 interface ChatMessageBubbleProps {
   message: ChatMessage;
   /** Wider bubbles on full-page chat vs the floating widget. */
@@ -150,7 +206,7 @@ export function ChatMessageBubble({
           maxWidth,
           "whitespace-pre-line rounded-[var(--radius-lg)] px-3.5 py-2.5 text-sm leading-relaxed shadow-[var(--shadow-sm)]",
           isCustomer
-            ? "rounded-tr-sm bg-[var(--color-ink-900)] text-[var(--color-canvas)]"
+            ? "rounded-tr-sm border border-[var(--color-accent-300)] bg-[var(--color-accent-50)] text-[var(--color-ink-800)]"
             : "rounded-tl-sm border border-[var(--color-ink-100)] bg-[var(--color-surface)] text-[var(--color-ink-800)]",
         )}
       >
@@ -176,11 +232,11 @@ export function ChatMessageBubble({
             ))}
           </div>
         )}
-        {message.body.trim().length > 0 && <p>{message.body}</p>}
+        {message.body.trim().length > 0 && <p>{renderMessageBody(message.body)}</p>}
         <p
           className={classNames(
             "mt-1 text-[10px]",
-            isCustomer ? "text-[var(--color-on-dark-soft)]" : "text-[var(--color-ink-500)]",
+            isCustomer ? "text-[var(--color-ink-500)]" : "text-[var(--color-ink-500)]",
           )}
         >
           {new Date(message.createdAt).toLocaleTimeString(undefined, {

@@ -44,6 +44,7 @@ import {
   getProducts as getProductsRaw,
   getProductsPage as getProductsPageRaw,
   hasAnyProducts as hasAnyProductsRaw,
+  searchCatalog as searchCatalogRaw,
   type ProductFilters,
   type ProductPage,
 } from "@/lib/core/queries";
@@ -241,7 +242,11 @@ export function getSitemapBrandsCached() {
 export function getProductsPageCached(
   filters: ProductFilters,
 ): Promise<ProductPage> {
-  // Sort keys for a stable cache identity regardless of insertion order.
+  return getProductsPageInner(stableFilterKey(filters));
+}
+
+/** Sort keys for a stable cache identity regardless of insertion order. */
+function stableFilterKey(filters: ProductFilters): string {
   const stable = Object.keys(filters)
     .sort()
     .reduce<Record<string, unknown>>((acc, key) => {
@@ -251,5 +256,24 @@ export function getProductsPageCached(
       }
       return acc;
     }, {});
-  return getProductsPageInner(JSON.stringify(stable));
+  return JSON.stringify(stable);
+}
+
+/**
+ * Cross-request cached relevance search for the chat assistant. Same 30s
+ * window + tag invalidation as the rest of the storefront reads, so repeated
+ * "iphone 13" lookups in a busy chat hour share one Atlas round-trip.
+ */
+const searchAssistantCatalogInner = unstable_cache(
+  async (cacheKey: string): Promise<Product[]> => {
+    return searchCatalogRaw(JSON.parse(cacheKey) as ProductFilters);
+  },
+  ["assistant-catalog-search-v1"],
+  { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+export function searchAssistantCatalogCached(
+  filters: ProductFilters,
+): Promise<Product[]> {
+  return searchAssistantCatalogInner(stableFilterKey(filters));
 }

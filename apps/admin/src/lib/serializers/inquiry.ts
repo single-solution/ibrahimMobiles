@@ -70,6 +70,7 @@ export function summariseInquiry(inquiry: InquiryLean): AdminInquirySummary {
     lastMessageAuthor: normalizeChatMessageAuthor(inquiry.lastMessageAuthor),
     unreadByCustomer: inquiry.unreadByCustomer ?? 0,
     unreadByTeam: inquiry.unreadByTeam ?? 0,
+    escalated: inquiry.assistantMuted ?? false,
     createdAt: toIsoDate(inquiry.createdAt, fallbackTimestamp),
     updatedAt: toIsoDate(inquiry.updatedAt, fallbackTimestamp),
   };

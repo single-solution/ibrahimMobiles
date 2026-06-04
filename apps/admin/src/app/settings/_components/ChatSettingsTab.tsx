@@ -14,6 +14,7 @@ import {
 } from "@/app/settings/_components/settingsWorkspaceUi";
 import { useToast } from "@/components/ui/Toast";
 import {
+  ASSISTANT_CORE_RULES,
   CHAT_ASSISTANT_DEFAULT_MODELS,
   CHAT_ASSISTANT_DEFAULT_NAME,
   CHAT_ASSISTANT_PROVIDER_LABELS,
@@ -21,6 +22,7 @@ import {
   CHAT_WELCOME_CUSTOMER_DEFAULT,
   CHAT_WELCOME_GUEST_DEFAULT,
   classNames,
+  DEFAULT_ASSISTANT_INSTRUCTIONS,
   type ChatAssistantProvider,
   type ChatSettingsValues,
 } from "@store/shared";
@@ -296,15 +298,41 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
           </div>
 
           <div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+            <div className="mb-3 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas)] p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">
+                Always enforced (built-in — cannot be edited)
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {ASSISTANT_CORE_RULES.map((rule) => (
+                  <li
+                    key={rule}
+                    className="flex gap-2 text-[11.5px] leading-relaxed text-[var(--color-ink-600)]"
+                  >
+                    <span className="mt-1 size-1.5 shrink-0 rounded-full bg-[var(--color-accent-500)]" />
+                    <span>{rule}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
             <TextArea
-              label="Custom Training Notes & Knowledge"
-              rows={16}
-              value={draft.assistantTrainingNotes}
-              onChange={(event) => setField("assistantTrainingNotes", event.target.value)}
+              label="Assistant instructions"
+              rows={18}
+              value={draft.assistantInstructions || DEFAULT_ASSISTANT_INSTRUCTIONS}
+              onChange={(event) => setField("assistantInstructions", event.target.value)}
               disabled={!draft.enabled || !draft.assistantEnabled}
-              placeholder="E.g., We offer same-day delivery if ordered before 2 PM."
-              hint="Injected into every prompt. Max 4,000 characters."
+              hint="How the bot talks and sells. Edit freely or add store-specific notes (promos, which models to push). The built-in rules above always apply. Leave matching the default to keep the standard playbook."
             />
+            {!readOnly &&
+            draft.assistantInstructions.trim() &&
+            draft.assistantInstructions !== DEFAULT_ASSISTANT_INSTRUCTIONS ? (
+              <button
+                type="button"
+                onClick={() => setField("assistantInstructions", "")}
+                className="mt-1.5 text-[11px] font-semibold text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
+              >
+                Reset to default playbook
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

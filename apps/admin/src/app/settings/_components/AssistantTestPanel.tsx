@@ -63,7 +63,7 @@ export function AssistantTestPanel({
           providerApiKeyOpenai: draftSettings.providerApiKeyOpenai,
           providerApiKeyGoogle: draftSettings.providerApiKeyGoogle,
           providerApiKeyAnthropic: draftSettings.providerApiKeyAnthropic,
-          assistantTrainingNotes: draftSettings.assistantTrainingNotes,
+          assistantInstructions: draftSettings.assistantInstructions,
           assistantTemperature: draftSettings.assistantTemperature,
           assistantMaxTokens: draftSettings.assistantMaxTokens,
         },
