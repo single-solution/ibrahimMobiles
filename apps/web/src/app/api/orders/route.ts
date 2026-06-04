@@ -375,6 +375,7 @@ export async function POST(request: Request) {
     {
       name: nameResult,
       city: cityResult,
+      isLoyaltyMember: true,
       ...(addressInput && "value" in addressInput ? { addresses: nextAddresses } : {}),
     },
     { new: true, runValidators: true },
@@ -387,11 +388,9 @@ export async function POST(request: Request) {
 
   // Compute the points the customer *will* earn once the order ships. The
   // orderTransitions service only actually credits this on the `delivered`
-  // transition — so a non-member becoming a member later doesn't backfill.
+  // transition.
   // Using `subtotalRupees` so a payment discount doesn't shrink the reward.
-  const pointsEarned = customerDoc.isLoyaltyMember
-    ? pointsEarnedFor(subtotalRupees, settings.loyaltyEarnPercent)
-    : 0;
+  const pointsEarned = pointsEarnedFor(subtotalRupees, settings.loyaltyEarnPercent);
 
   try {
     const createdOrder = await createWithUniqueOrderNumber(async (orderNumber) => {
