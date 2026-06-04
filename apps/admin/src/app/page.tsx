@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import {
+  Activity,
   AlertTriangle,
   ArrowRight,
   Boxes,
@@ -12,6 +13,7 @@ import {
   Receipt,
   ShieldAlert,
   Smartphone,
+  Sparkles,
   TrendingUp,
   Truck,
   Users,
@@ -24,12 +26,15 @@ import {
   DashboardSectionActionLink,
 } from "@/app/_components/dashboard/DashboardQuickLinks";
 import { PerformancePeriodSelector } from "@/app/_components/dashboard/PerformancePeriodSelector";
+import { RevenueTrendCard } from "@/app/_components/dashboard/RevenueTrendCard";
 import { ShopHealthCard } from "@/app/_components/dashboard/ShopHealthCard";
 import { KpiCard } from "@/app/_components/dashboard/KpiCard";
 import { Sparkline } from "@/app/_components/dashboard/Sparkline";
 import { StatusPill, type StatusTone } from "@/components/shared/StatusPill";
 import { adminDefaultPageClass } from "@/components/shared/workspaceUi";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { formatActivityAction } from "@/lib/activityLabels";
+import { hasPermission } from "@/lib/permissions";
 import { requirePageSession } from "@/lib/server/requirePageSession";
 import {
   isPerformanceCompare,
@@ -39,6 +44,9 @@ import {
 } from "@/lib/dashboard/performancePeriod";
 import { LOW_STOCK_VARIANT_THRESHOLD } from "@/lib/server/dashboardStats";
 import {
+  loadAdminActivityCached,
+  loadAdminOrdersCached,
+  loadDashboardDailyRevenueCached,
   loadDashboardKpisCached,
   loadDashboardRecentInquiriesCached,
   loadPerformanceSummaryCached,
@@ -77,6 +85,24 @@ const INQUIRY_LABEL: Record<InquiryStatus, string> = {
   open: "Open",
   "awaiting-customer": "Awaiting customer",
   resolved: "Resolved",
+};
+
+const ORDER_STATUS_TONE: Record<string, StatusTone> = {
+  "pending-payment": "warn",
+  confirmed: "info",
+  dispatched: "accent",
+  delivered: "success",
+  cancelled: "danger",
+  refunded: "danger",
+};
+
+const ORDER_STATUS_LABEL: Record<string, string> = {
+  "pending-payment": "Pending",
+  confirmed: "Confirmed",
+  dispatched: "Dispatched",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+  refunded: "Refunded",
 };
 
 function compactRupees(rupees: number): string {
@@ -123,7 +149,9 @@ export default async function AdminOverviewPage({
   // regress on the streaming render.
   searchParams?: Promise<AdminOverviewSearchParams>;
 }) {
-  await requirePageSession("/");
+  const actor = await requirePageSession("/");
+  const canViewOrders = hasPermission(actor, "order_view");
+  const canViewActivity = hasPermission(actor, "activity_view");
   const resolved = (await searchParams) ?? {};
   const range: PerformanceRange = isPerformanceRange(resolved.range)
     ? resolved.range
@@ -196,6 +224,12 @@ export default async function AdminOverviewPage({
           Uses a 12-column grid on xl screens (8 for main metrics, 4 for insights). */}
       <div className="reveal-stagger hidden md:block">
         <div className="mx-auto max-w-[1600px]">
+          <section className="reveal mb-6">
+            <Suspense fallback={<DesktopHeroFallback />}>
+              <DesktopHero />
+            </Suspense>
+          </section>
+
           <div className="grid items-start gap-6 xl:grid-cols-12">
             
             {/* Main Metric Column */}
@@ -216,6 +250,11 @@ export default async function AdminOverviewPage({
                 >
                   <DesktopPerformancePanel range={range} compare={compare} />
                 </Suspense>
+                <div className="mt-4">
+                  <Suspense fallback={<RevenueTrendFallback />}>
+                    <DesktopRevenueTrend />
+                  </Suspense>
+                </div>
               </section>
 
               <section className="reveal">
@@ -271,6 +310,48 @@ export default async function AdminOverviewPage({
                   </div>
                 </div>
               </section>
+
+              {canViewOrders && (
+                <section className="reveal">
+                  <SectionHeader
+                    title="Latest orders"
+                    subtitle="The most recent orders placed across the store."
+                    action={
+                      <DashboardSectionActionLink
+                        href="/orders"
+                        label="All orders"
+                        permission="order_view"
+                      />
+                    }
+                  />
+                  <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+                    <Suspense fallback={<DesktopRecentRowsFallback rows={DESKTOP_RECENT_ORDERS_COUNT} />}>
+                      <DesktopRecentOrders />
+                    </Suspense>
+                  </div>
+                </section>
+              )}
+
+              {canViewActivity && (
+                <section className="reveal">
+                  <SectionHeader
+                    title="Latest activity"
+                    subtitle="Who changed what across the admin, most recent first."
+                    action={
+                      <DashboardSectionActionLink
+                        href="/activity"
+                        label="Activity log"
+                        permission="activity_view"
+                      />
+                    }
+                  />
+                  <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+                    <Suspense fallback={<DesktopRecentRowsFallback rows={DESKTOP_RECENT_ACTIVITY_COUNT} />}>
+                      <DesktopRecentActivity />
+                    </Suspense>
+                  </div>
+                </section>
+              )}
             </div>
 
           </div>
@@ -625,6 +706,172 @@ function DesktopRecentInquiriesFallback() {
   );
 }
 
+const DESKTOP_RECENT_ORDERS_COUNT = 5;
+const DESKTOP_RECENT_ACTIVITY_COUNT = 6;
+
+async function DesktopHero() {
+  const kpis = await loadDashboardKpisCached();
+  const today = new Date().toLocaleDateString("en-PK", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  return (
+    <div className="relative min-h-[7.5rem] overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-200)] bg-gradient-to-br from-[var(--color-accent-50)] via-[var(--color-surface)] to-[var(--color-canvas-deep)] px-6 py-5 shadow-[var(--shadow-sm)] md:px-8 md:py-6">
+      <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-[var(--color-accent-400)]/25 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 right-40 size-56 rounded-full bg-[var(--color-accent-300)]/20 blur-3xl" />
+      <div className="relative flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+        <div>
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
+            <Sparkles size={13} /> Overview
+          </p>
+          <h1 className="mt-1.5 text-[26px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)]">
+            Welcome back
+          </h1>
+          <p className="mt-1 text-[12.5px] text-[var(--color-ink-500)]">{today}</p>
+        </div>
+        <div className="flex flex-wrap items-stretch gap-2.5">
+          <HeroStat
+            icon={<TrendingUp size={15} />}
+            label="Sales today"
+            value={compactRupees(kpis.salesTodayRupees)}
+            changePercent={kpis.changePercents.salesToday}
+          />
+          <HeroStat
+            icon={<Receipt size={15} />}
+            label="Orders today"
+            value={String(kpis.ordersToday)}
+            changePercent={kpis.changePercents.ordersToday}
+          />
+          <HeroStat
+            icon={<Clock size={15} />}
+            label="Pending payments"
+            value={String(kpis.pendingPayments)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function DesktopRevenueTrend() {
+  const points = await loadDashboardDailyRevenueCached();
+  const total = points.reduce((sum, point) => sum + point.rupees, 0);
+  const peak = points.reduce(
+    (best, point) => (point.rupees > best.rupees ? point : best),
+    { date: "", rupees: 0 },
+  );
+  const activeDays = points.filter((point) => point.rupees > 0).length;
+  return (
+    <RevenueTrendCard
+      points={points}
+      totalLabel={compactRupees(total)}
+      peakLabel={peak.rupees > 0 ? compactRupees(peak.rupees) : "—"}
+      peakDateLabel={peak.date ? formatDayLabel(peak.date) : "—"}
+      activeDays={activeDays}
+    />
+  );
+}
+
+async function DesktopRecentOrders() {
+  const orders = (await loadAdminOrdersCached()).slice(0, DESKTOP_RECENT_ORDERS_COUNT);
+  const nowReferenceIso = new Date().toISOString();
+  if (orders.length === 0) {
+    return <DashboardEmptyRow text="No orders yet." />;
+  }
+  return (
+    <ul className="reveal-stagger divide-y divide-[var(--color-ink-100)]">
+      {orders.map((order) => {
+        const tone = ORDER_STATUS_TONE[order.status] ?? "neutral";
+        return (
+          <li key={order.id} className="reveal">
+            <Link
+              href={`/orders?order=${order.id}`}
+              title={`${order.orderNumber} · ${order.customer.name}`}
+              className="tap flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-canvas-deep)] md:px-5"
+            >
+              <span className="grid size-7 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] text-[var(--color-ink-500)]">
+                <Receipt size={13} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-[12.5px] font-semibold text-[var(--color-ink-900)]">
+                    {order.orderNumber}
+                  </p>
+                  <StatusPill tone={tone}>
+                    {ORDER_STATUS_LABEL[order.status] ?? order.status}
+                  </StatusPill>
+                </div>
+                <p className="mt-0.5 truncate text-[11px] text-[var(--color-ink-500)]">
+                  {order.customer.name} · {order.itemCount}{" "}
+                  {order.itemCount === 1 ? "item" : "items"}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-[12.5px] font-semibold tabular-nums text-[var(--color-ink-900)]">
+                  {compactRupees(order.totalRupees)}
+                </p>
+                <p className="text-[10.5px] text-[var(--color-ink-400)]">
+                  {formatTimeAgo(order.placedAt, nowReferenceIso)}
+                </p>
+              </div>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+async function DesktopRecentActivity() {
+  const entries = (await loadAdminActivityCached()).slice(0, DESKTOP_RECENT_ACTIVITY_COUNT);
+  const nowReferenceIso = new Date().toISOString();
+  if (entries.length === 0) {
+    return <DashboardEmptyRow text="No activity yet." />;
+  }
+  return (
+    <ul className="reveal-stagger divide-y divide-[var(--color-ink-100)]">
+      {entries.map((entry) => (
+        <li key={entry.id} className="reveal flex items-start gap-3 px-4 py-2.5 md:px-5">
+          <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[var(--color-ink-600)]">
+            <Activity size={12} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[12px] leading-snug text-[var(--color-ink-900)]">
+              <span className="font-semibold">{entry.actorName}</span>
+              <span className="text-[var(--color-ink-500)]">
+                {" "}
+                {formatActivityAction(entry.action).toLowerCase()}{" "}
+              </span>
+              <span className="font-medium">{entry.resourceLabel}</span>
+            </p>
+            <p className="text-[10.5px] text-[var(--color-ink-400)]">
+              {formatTimeAgo(entry.createdAt, nowReferenceIso)}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function DashboardEmptyRow({ text }: { text: string }) {
+  return (
+    <p className="px-4 py-5 text-center text-[12.5px] text-[var(--color-ink-500)] md:px-5">
+      {text}
+    </p>
+  );
+}
+
+/** "2026-06-12" → "12 Jun". Anchored at midday so the label can't slip a day
+ *  when the date-only string is parsed as UTC and then rendered in local time. */
+function formatDayLabel(isoDate: string): string {
+  return new Date(`${isoDate}T12:00:00`).toLocaleDateString("en-PK", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
 /* ─────────────────────────── Skeleton fallbacks ─────────────────────────── */
 
 const KPI_FALLBACK_COUNT = 4;
@@ -735,6 +982,50 @@ function DesktopPerformanceFallback() {
   return <DesktopKpiGridFallback />;
 }
 
+function DesktopHeroFallback() {
+  return (
+    <div className="min-h-[7.5rem] rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]" />
+  );
+}
+
+function RevenueTrendFallback() {
+  return (
+    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+      <div className="flex items-end justify-between gap-3 px-4 pt-4 md:px-5">
+        <div className="space-y-2">
+          <Skeleton shape="text" className="h-3 w-24" />
+          <Skeleton shape="text" className="h-6 w-28" />
+          <Skeleton shape="text" className="h-2.5 w-20" />
+        </div>
+        <div className="space-y-2 text-right">
+          <Skeleton shape="text" className="ml-auto h-2.5 w-14" />
+          <Skeleton shape="text" className="ml-auto h-3 w-16" />
+        </div>
+      </div>
+      <div className="mt-3 px-4 pb-4 md:px-5">
+        <Skeleton className="h-24 w-full rounded-[var(--radius-md)]" />
+      </div>
+    </div>
+  );
+}
+
+function DesktopRecentRowsFallback({ rows }: { rows: number }) {
+  return (
+    <ul className="divide-y divide-[var(--color-ink-100)]">
+      {Array.from({ length: rows }).map((_, index) => (
+        <li key={index} className="flex items-center gap-3 px-4 py-3 md:px-5">
+          <Skeleton className="size-7 shrink-0 rounded-[var(--radius-md)]" />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Skeleton shape="text" className="h-3 w-24" />
+            <Skeleton shape="text" className="h-2.5 w-32" />
+          </div>
+          <Skeleton shape="text" className="h-3 w-12" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function ShopHealthFallback() {
   return (
     <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
@@ -772,6 +1063,41 @@ function PeriodSelectorFallback() {
 }
 
 /* ─────────────────────────── Small shared pieces ─────────────────────────── */
+
+interface HeroStatProps {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  changePercent?: number;
+}
+
+function HeroStat({ icon, label, value, changePercent }: HeroStatProps) {
+  const isPositive = (changePercent ?? 0) >= 0;
+  return (
+    <div className="min-w-[8.5rem] rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]/75 px-3.5 py-2.5 backdrop-blur-sm">
+      <p className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--color-ink-500)]">
+        <span className="text-[var(--color-accent-700)]">{icon}</span>
+        {label}
+      </p>
+      <div className="mt-1.5 flex items-baseline gap-2">
+        <p className="text-[20px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
+          {value}
+        </p>
+        {typeof changePercent === "number" && (
+          <span
+            className={classNames(
+              "text-[11px] font-semibold",
+              isPositive ? "text-[var(--color-accent-700)]" : "text-rose-600",
+            )}
+          >
+            {isPositive ? "+" : ""}
+            {changePercent}%
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface MobileStatProps {
   label: string;
