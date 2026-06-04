@@ -53,37 +53,37 @@ export default async function AccountPage() {
     <div className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-6 md:px-6 md:pb-16 md:pt-10 lg:px-8">
       <AccountHeader name={overview.customer.name} joinedAt={overview.customer.joinedAt} />
 
-      <div className="reveal-stagger mt-5 grid gap-4 md:mt-8 md:grid-cols-3 md:gap-5">
-        <div className="reveal h-full">
-          <StatCard
-            icon={<Truck size={16} />}
-            label="Active orders"
-            value={String(overview.activeCount)}
-            href="#orders"
-            accent="amber"
-          />
-        </div>
-        <div className="reveal h-full">
-          <StatCard
-            icon={<Package size={16} />}
-            label="All-time orders"
-            value={String(overview.totalCount)}
-            href="#orders"
-            accent="ink"
-          />
-        </div>
-        <div className="reveal h-full">
-          <StatCard
-            icon={<ShieldCheck size={16} />}
-            label="Total spent"
-            value={formatPrice(overview.totalSpentRupees)}
-            accent="emerald"
-          />
-        </div>
-      </div>
-
       <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-[1fr_360px] md:gap-6 lg:gap-8 lg:grid-cols-[1fr_400px]">
-        <div className="cv-auto">
+        <div className="cv-auto space-y-6 md:space-y-8">
+          <div className="reveal-stagger grid gap-4 md:grid-cols-3 md:gap-5">
+            <div className="reveal h-full">
+              <StatCard
+                icon={<Truck size={16} />}
+                label="Active orders"
+                value={String(overview.activeCount)}
+                href="#orders"
+                accent="amber"
+              />
+            </div>
+            <div className="reveal h-full">
+              <StatCard
+                icon={<Package size={16} />}
+                label="All-time orders"
+                value={String(overview.totalCount)}
+                href="#orders"
+                accent="ink"
+              />
+            </div>
+            <div className="reveal h-full">
+              <StatCard
+                icon={<ShieldCheck size={16} />}
+                label="Total spent"
+                value={formatPrice(overview.totalSpentRupees)}
+                accent="emerald"
+              />
+            </div>
+          </div>
+
           <OrderHistory orders={overview.allOrders} />
         </div>
 

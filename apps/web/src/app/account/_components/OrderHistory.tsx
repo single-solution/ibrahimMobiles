@@ -157,15 +157,27 @@ function OrderRow({ order }: OrderRowProps) {
       <div className="flex items-center gap-3 p-3 md:p-4">
         <div className="min-w-0 flex-1">
           {firstItem && (
-            <p className="line-clamp-1 text-[14px] font-semibold text-[var(--color-ink-900)]">
-              {firstItem.productName}
-              {extraCount > 0 && (
-                <span className="ml-2 inline-flex items-center rounded-full bg-[var(--color-ink-100)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-ink-700)]">
-                  +{extraCount} more
-                </span>
+            <div className="mb-1">
+              <p className="line-clamp-1 text-[14px] font-semibold text-[var(--color-ink-900)]">
+                {firstItem.productName}
+                {extraCount > 0 && (
+                  <span className="ml-2 inline-flex items-center rounded-full bg-[var(--color-ink-100)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-ink-700)]">
+                    +{extraCount} more
+                  </span>
+                )}
+              </p>
+              {firstItem.variantSummary && (
+                <p className="mt-0.5 line-clamp-1 text-[12.5px] text-[var(--color-ink-600)]">
+                  {firstItem.variantSummary}
+                </p>
               )}
-            </p>
+            </div>
           )}
+          <p className="mt-1.5 line-clamp-1 text-[12px] font-medium text-[var(--color-ink-700)]">
+            {order.address?.street
+              ? `Delivery to ${order.address.street}`
+              : "Store Pickup"}
+          </p>
           <p className="mt-0.5 line-clamp-1 text-[12px] text-[var(--color-ink-500)]">
             {tone.nextLabel ??
               `${order.totals.itemCount} item${order.totals.itemCount === 1 ? "" : "s"}`}
