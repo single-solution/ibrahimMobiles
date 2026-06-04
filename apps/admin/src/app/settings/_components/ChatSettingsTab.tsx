@@ -6,6 +6,7 @@ import { FormSection } from "@/components/forms/FormSection";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
+import { Toggle } from "@/components/ui/Toggle";
 import {
   SettingsFormPanel,
   SettingsLoadingPanel,
@@ -111,185 +112,189 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
       <div className="space-y-8 py-4">
         {/* STOREFRONT WIDGET */}
         <FormSection title="Storefront Widget" description="Control chat visibility, welcome messages, and guest limits.">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <ToggleRow
-              label="Enable Widget"
-              description="Show floating chat button."
-              checked={draft.enabled}
-              onChange={(value) => setField("enabled", value)}
-            />
-            <ToggleRow
-              label="Attachments"
-              description="Allow image/file uploads."
-              checked={draft.attachmentsEnabled}
-              onChange={(value) => setField("attachmentsEnabled", value)}
-              disabled={!draft.enabled}
-            />
-            <NumberField
-              label="Free Msg Limit"
-              value={draft.guestMessageLimit}
-              onChange={(value) => setField("guestMessageLimit", value)}
-              min={1}
-              max={100}
-              disabled={!draft.enabled}
-              hint="Max messages before sign-in."
-            />
-            <NumberField
-              label="Cookie Lifetime"
-              value={draft.guestThreadTokenDays}
-              onChange={(value) => setField("guestThreadTokenDays", value)}
-              suffix="days"
-              min={1}
-              max={365}
-              disabled={!draft.enabled}
-              hint="Keep anonymous threads."
-            />
-          </div>
+          <div className="rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-5">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <ToggleRow
+                label="Enable Widget"
+                description="Show floating chat button."
+                checked={draft.enabled}
+                onChange={(value) => setField("enabled", value)}
+              />
+              <ToggleRow
+                label="Attachments"
+                description="Allow image/file uploads."
+                checked={draft.attachmentsEnabled}
+                onChange={(value) => setField("attachmentsEnabled", value)}
+                disabled={!draft.enabled}
+              />
+              <NumberField
+                label="Free Msg Limit"
+                value={draft.guestMessageLimit}
+                onChange={(value) => setField("guestMessageLimit", value)}
+                min={1}
+                max={100}
+                disabled={!draft.enabled}
+                hint="Max messages before sign-in."
+              />
+              <NumberField
+                label="Cookie Lifetime"
+                value={draft.guestThreadTokenDays}
+                onChange={(value) => setField("guestThreadTokenDays", value)}
+                suffix="days"
+                min={1}
+                max={365}
+                disabled={!draft.enabled}
+                hint="Keep anonymous threads."
+              />
+            </div>
 
-          <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            <TextArea
-              label="Guest Welcome Message"
-              rows={3}
-              value={draft.welcomeMessageGuest}
-              onChange={(event) => setField("welcomeMessageGuest", event.target.value)}
-              disabled={!draft.enabled}
-              placeholder={CHAT_WELCOME_GUEST_DEFAULT}
-              hint="Use {limit} to show message limit."
-            />
-            <TextArea
-              label="Customer Welcome Message"
-              rows={3}
-              value={draft.welcomeMessageCustomer}
-              onChange={(event) => setField("welcomeMessageCustomer", event.target.value)}
-              disabled={!draft.enabled}
-              placeholder={CHAT_WELCOME_CUSTOMER_DEFAULT}
-            />
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <TextArea
+                label="Guest Welcome Message"
+                rows={3}
+                value={draft.welcomeMessageGuest}
+                onChange={(event) => setField("welcomeMessageGuest", event.target.value)}
+                disabled={!draft.enabled}
+                placeholder={CHAT_WELCOME_GUEST_DEFAULT}
+                hint="Use {limit} to show message limit."
+              />
+              <TextArea
+                label="Customer Welcome Message"
+                rows={3}
+                value={draft.welcomeMessageCustomer}
+                onChange={(event) => setField("welcomeMessageCustomer", event.target.value)}
+                disabled={!draft.enabled}
+                placeholder={CHAT_WELCOME_CUSTOMER_DEFAULT}
+              />
+            </div>
           </div>
         </FormSection>
 
         {/* AI ASSISTANT */}
         <FormSection title="AI Assistant" description="Configure automated replies and connect your preferred LLM provider.">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <ToggleRow
-              label="Enable AI Replies"
-              description="Instantly respond to messages."
-              checked={draft.assistantEnabled}
-              onChange={(value) => setField("assistantEnabled", value)}
-              disabled={!draft.enabled}
-            />
-            <SelectField
-              label="Live Provider"
-              value={draft.assistantProvider}
-              onChange={(event) =>
-                setField("assistantProvider", event.target.value === "google" ? "google" : "openai")
-              }
-              disabled={!draft.enabled || !draft.assistantEnabled}
-              options={[
-                { value: "openai", label: CHAT_ASSISTANT_PROVIDER_LABELS.openai },
-                { value: "google", label: CHAT_ASSISTANT_PROVIDER_LABELS.google },
-              ]}
-            />
-            <div className="lg:col-span-2">
-              <TextField
-                label="Bot Display Name"
-                value={draft.assistantName}
-                onChange={(event) => setField("assistantName", event.target.value)}
-                placeholder={CHAT_ASSISTANT_DEFAULT_NAME}
-                disabled={!draft.enabled || !draft.assistantEnabled}
+          <div className="rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-5">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <ToggleRow
+                label="Enable AI Replies"
+                description="Instantly respond to messages."
+                checked={draft.assistantEnabled}
+                onChange={(value) => setField("assistantEnabled", value)}
+                disabled={!draft.enabled}
               />
-            </div>
-          </div>
-
-          {draft.assistantEnabled && draft.enabled && (
-            <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] p-4">
-              <h4 className="mb-3 text-sm font-semibold">
-                {draft.assistantProvider === "openai" ? "OpenAI Settings" : "Google Gemini Settings"}
-              </h4>
-              <div className="grid gap-4 lg:grid-cols-2">
+              <SelectField
+                label="Live Provider"
+                value={draft.assistantProvider}
+                onChange={(event) =>
+                  setField("assistantProvider", event.target.value === "google" ? "google" : "openai")
+                }
+                disabled={!draft.enabled || !draft.assistantEnabled}
+                options={[
+                  { value: "openai", label: CHAT_ASSISTANT_PROVIDER_LABELS.openai },
+                  { value: "google", label: CHAT_ASSISTANT_PROVIDER_LABELS.google },
+                ]}
+              />
+              <div className="lg:col-span-2">
                 <TextField
-                  label="API Key"
-                  type="password"
-                  value={draft.assistantProvider === "openai" ? draft.providerApiKeyOpenai : draft.providerApiKeyGoogle}
-                  onChange={(event) =>
-                    setField(
-                      draft.assistantProvider === "openai" ? "providerApiKeyOpenai" : "providerApiKeyGoogle",
-                      event.target.value
-                    )
-                  }
-                  placeholder={
-                    providers?.[draft.assistantProvider].configured && !(draft.assistantProvider === "openai" ? draft.providerApiKeyOpenai : draft.providerApiKeyGoogle)
-                      ? "•••••••••••• (Using .env fallback)"
-                      : "Enter API Key"
-                  }
-                  disabled={!draft.enabled || !draft.assistantEnabled}
-                />
-                <TextField
-                  label="Model ID"
-                  value={draft.assistantProvider === "openai" ? draft.assistantModelOpenai : draft.assistantModelGoogle}
-                  onChange={(event) =>
-                    setField(
-                      draft.assistantProvider === "openai" ? "assistantModelOpenai" : "assistantModelGoogle",
-                      event.target.value
-                    )
-                  }
-                  placeholder={CHAT_ASSISTANT_DEFAULT_MODELS[draft.assistantProvider]}
-                  hint={`Leave blank for default.`}
+                  label="Bot Display Name"
+                  value={draft.assistantName}
+                  onChange={(event) => setField("assistantName", event.target.value)}
+                  placeholder={CHAT_ASSISTANT_DEFAULT_NAME}
                   disabled={!draft.enabled || !draft.assistantEnabled}
                 />
               </div>
             </div>
-          )}
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <NumberField
-              label="Temperature"
-              value={draft.assistantTemperature}
-              onChange={(value) => setField("assistantTemperature", value)}
-              min={0}
-              max={1}
-              step={0.05}
-              disabled={!draft.enabled || !draft.assistantEnabled}
-              hint="0 to 1. Higher is more creative."
-            />
-            <NumberField
-              label="Max Tokens"
-              value={draft.assistantMaxTokens}
-              onChange={(value) => setField("assistantMaxTokens", value)}
-              min={100}
-              max={2000}
-              disabled={!draft.enabled || !draft.assistantEnabled}
-              hint="Max length of response."
-            />
-            <NumberField
-              label="History Turns"
-              value={draft.assistantHistoryTurns}
-              onChange={(value) => setField("assistantHistoryTurns", value)}
-              min={2}
-              max={24}
-              disabled={!draft.enabled || !draft.assistantEnabled}
-              hint="Past messages to remember."
-            />
-            <NumberField
-              label="Catalog Matches"
-              value={draft.assistantCatalogLimit}
-              onChange={(value) => setField("assistantCatalogLimit", value)}
-              min={1}
-              max={20}
-              disabled={!draft.enabled || !draft.assistantEnabled}
-              hint="Max products to search."
-            />
-          </div>
+            {draft.assistantEnabled && draft.enabled && (
+              <div className="mt-6 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] p-4">
+                <h4 className="mb-4 text-sm font-semibold text-[var(--color-ink-900)]">
+                  {draft.assistantProvider === "openai" ? "OpenAI Settings" : "Google Gemini Settings"}
+                </h4>
+                <div className="grid gap-6 lg:grid-cols-2">
+                  <TextField
+                    label="API Key"
+                    type="password"
+                    value={draft.assistantProvider === "openai" ? draft.providerApiKeyOpenai : draft.providerApiKeyGoogle}
+                    onChange={(event) =>
+                      setField(
+                        draft.assistantProvider === "openai" ? "providerApiKeyOpenai" : "providerApiKeyGoogle",
+                        event.target.value
+                      )
+                    }
+                    placeholder={
+                      providers?.[draft.assistantProvider].configured && !(draft.assistantProvider === "openai" ? draft.providerApiKeyOpenai : draft.providerApiKeyGoogle)
+                        ? "•••••••••••• (Using .env fallback)"
+                        : "Enter API Key"
+                    }
+                    disabled={!draft.enabled || !draft.assistantEnabled}
+                  />
+                  <TextField
+                    label="Model ID"
+                    value={draft.assistantProvider === "openai" ? draft.assistantModelOpenai : draft.assistantModelGoogle}
+                    onChange={(event) =>
+                      setField(
+                        draft.assistantProvider === "openai" ? "assistantModelOpenai" : "assistantModelGoogle",
+                        event.target.value
+                      )
+                    }
+                    placeholder={CHAT_ASSISTANT_DEFAULT_MODELS[draft.assistantProvider]}
+                    hint={`Leave blank for default.`}
+                    disabled={!draft.enabled || !draft.assistantEnabled}
+                  />
+                </div>
+              </div>
+            )}
 
-          <div className="mt-4">
-            <TextArea
-              label="Custom Training Notes & Knowledge"
-              rows={4}
-              value={draft.assistantTrainingNotes}
-              onChange={(event) => setField("assistantTrainingNotes", event.target.value)}
-              disabled={!draft.enabled || !draft.assistantEnabled}
-              placeholder="E.g., We offer same-day delivery if ordered before 2 PM."
-              hint="Injected into every prompt. Max 4,000 characters."
-            />
+            <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              <NumberField
+                label="Temperature"
+                value={draft.assistantTemperature}
+                onChange={(value) => setField("assistantTemperature", value)}
+                min={0}
+                max={1}
+                step={0.05}
+                disabled={!draft.enabled || !draft.assistantEnabled}
+                hint="0 to 1. Higher is more creative."
+              />
+              <NumberField
+                label="Max Tokens"
+                value={draft.assistantMaxTokens}
+                onChange={(value) => setField("assistantMaxTokens", value)}
+                min={100}
+                max={2000}
+                disabled={!draft.enabled || !draft.assistantEnabled}
+                hint="Max length of response."
+              />
+              <NumberField
+                label="History Turns"
+                value={draft.assistantHistoryTurns}
+                onChange={(value) => setField("assistantHistoryTurns", value)}
+                min={2}
+                max={24}
+                disabled={!draft.enabled || !draft.assistantEnabled}
+                hint="Past messages to remember."
+              />
+              <NumberField
+                label="Catalog Matches"
+                value={draft.assistantCatalogLimit}
+                onChange={(value) => setField("assistantCatalogLimit", value)}
+                min={1}
+                max={20}
+                disabled={!draft.enabled || !draft.assistantEnabled}
+                hint="Max products to search."
+              />
+            </div>
+
+            <div className="mt-6">
+              <TextArea
+                label="Custom Training Notes & Knowledge"
+                rows={4}
+                value={draft.assistantTrainingNotes}
+                onChange={(event) => setField("assistantTrainingNotes", event.target.value)}
+                disabled={!draft.enabled || !draft.assistantEnabled}
+                placeholder="E.g., We offer same-day delivery if ordered before 2 PM."
+                hint="Injected into every prompt. Max 4,000 characters."
+              />
+            </div>
           </div>
         </FormSection>
       </div>
@@ -307,24 +312,22 @@ interface ToggleRowProps {
 
 function ToggleRow({ label, description, checked, onChange, disabled = false }: ToggleRowProps) {
   return (
-    <label
+    <div
       className={classNames(
-        "flex flex-col gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-3 transition-colors hover:border-[var(--color-ink-300)]",
-        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+        "flex flex-col gap-1.5",
+        disabled && "opacity-60"
       )}
     >
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={checked}
-          disabled={disabled}
-          onChange={(event) => onChange(event.target.checked)}
-          className="size-4 rounded border-[var(--color-ink-300)] text-[var(--color-accent-600)] focus:ring-[var(--color-accent-500)]"
-        />
+      <div className="flex items-center justify-between gap-4">
         <p className="text-sm font-semibold text-[var(--color-ink-900)]">{label}</p>
+        <Toggle
+          checked={checked}
+          onCheckedChange={onChange}
+          disabled={disabled}
+        />
       </div>
       <p className="text-[11px] leading-relaxed text-[var(--color-ink-500)]">{description}</p>
-    </label>
+    </div>
   );
 }
 
@@ -342,8 +345,8 @@ interface NumberFieldProps {
 
 function NumberField({ label, value, onChange, suffix, min, max, step, hint, disabled = false }: NumberFieldProps) {
   return (
-    <label className={classNames("block rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-3", disabled && "opacity-60")}>
-      <span className="mb-1 block text-xs font-semibold text-[var(--color-ink-900)]">
+    <label className={classNames("flex flex-col gap-1.5", disabled && "opacity-60")}>
+      <span className="block text-sm font-semibold text-[var(--color-ink-900)]">
         {label}
       </span>
       <div className="flex items-center gap-2">
@@ -358,11 +361,11 @@ function NumberField({ label, value, onChange, suffix, min, max, step, hint, dis
             const next = Number(event.target.value);
             if (Number.isFinite(next)) onChange(next);
           }}
-          className="h-8 w-full rounded border border-[var(--color-ink-200)] px-2 text-sm text-[var(--color-ink-900)] focus:border-[var(--color-accent-500)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent-500)]"
+          className="h-8 flex-1 min-w-0 rounded border border-[var(--color-ink-200)] px-2 text-sm text-[var(--color-ink-900)] focus:border-[var(--color-accent-500)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent-500)]"
         />
         {suffix && <span className="text-xs text-[var(--color-ink-500)]">{suffix}</span>}
       </div>
-      {hint && <p className="mt-1.5 text-[10px] text-[var(--color-ink-500)]">{hint}</p>}
+      {hint && <p className="text-[11px] text-[var(--color-ink-500)]">{hint}</p>}
     </label>
   );
 }
