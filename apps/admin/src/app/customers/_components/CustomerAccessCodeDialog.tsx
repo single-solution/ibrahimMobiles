@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check, Copy, KeyRound } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Drawer } from "@/components/ui/Drawer";
 import { useToast } from "@/components/ui/Toast";
 

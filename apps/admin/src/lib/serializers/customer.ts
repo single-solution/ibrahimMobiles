@@ -36,8 +36,7 @@ export function toCustomerResponse(
 ): AdminCustomer {
   return {
     id: objectIdString(customer._id),
-    name: asString(customer.name, "Unknown customer"),
-    email: customer.email,
+    name: asString(customer.name, "Customer"),
     phoneNumber: asString(customer.phoneNumber),
     city: asString(customer.city),
     isLoyaltyMember: customer.isLoyaltyMember ?? false,

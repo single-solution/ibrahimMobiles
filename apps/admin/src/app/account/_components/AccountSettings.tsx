@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { UserCircle } from "lucide-react";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";

@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Building2,
   Check,
-  Mail,
   MapPin,
   Pencil,
   Phone,
@@ -16,7 +15,7 @@ import {
   User,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { classNames } from "@store/shared";
 import type { AccountAddress, AccountCustomer } from "@/lib/core/account";
 
@@ -53,7 +52,6 @@ function toDraft(address: AccountAddress): AddressDraft {
 export function CustomerProfile({ customer }: CustomerProfileProps) {
   const router = useRouter();
   const [fullName, setFullName] = useState(customer.name);
-  const [email, setEmail] = useState(customer.email);
   const [city, setCity] = useState(customer.city);
   const [phone] = useState(customer.phoneNumber);
 
@@ -75,7 +73,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
       const response = await fetch("/api/account/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: fullName.trim(), email: email.trim() || null, city: city.trim() }),
+        body: JSON.stringify({ name: fullName.trim(), city: city.trim() }),
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
@@ -199,17 +197,6 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
             autoComplete="tel"
             inputMode="tel"
             disabled
-          />
-          <Field
-            label="Email (optional)"
-            icon={<Mail size={14} />}
-            value={email}
-            onChange={setEmail}
-            autoComplete="email"
-            inputMode="email"
-            placeholder="you@example.com"
-            isLoading={isSavingProfile}
-            disabled={isSavingProfile}
           />
           <Field
             label="City"

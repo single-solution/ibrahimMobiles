@@ -3,7 +3,7 @@
 import { useDeferredValue, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Tag, Trash2, Plus, Pencil, CalendarClock, Layers, Percent, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import {
   WorkspaceCatalogPaneHeader,
   WorkspaceEmptyPane,

@@ -96,7 +96,7 @@ const MIN_NAME_CHARS = 2;
 /** Inclusive minimum length for a customer phone number — short enough to
  *  accept landline-style sequences while rejecting obvious typos. */
 const MIN_PHONE_CHARS = 7;
-const DEFAULT_CUSTOMER_CITY = "Unknown";
+const DEFAULT_CUSTOMER_CITY = "—";
 
 interface OrderItemBody {
   productId?: unknown;

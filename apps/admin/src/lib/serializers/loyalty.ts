@@ -12,7 +12,7 @@ export function toLoyaltyAccountResponse(
   return {
     id: objectIdString(account._id),
     customerId: objectIdString(account.customerId),
-    customerName: asString(customerName, "Unknown customer"),
+    customerName: asString(customerName, "Customer"),
     balance: asNumber(account.balance),
     lifetimeEarned: asNumber(account.lifetimeEarned),
     pendingFromShipping: asNumber(account.pendingFromShipping),

@@ -35,10 +35,12 @@ type StockAction = "reserve" | "release" | "noop";
 const STOCK_ACTION_BY_STATUS: Record<OrderStatus, StockAction> = {
   "pending-payment": "noop",
   confirmed: "reserve",
-  dispatched: "noop",
-  delivered: "noop",
-  cancelled: "release",
-  refunded: "release",
+    packed: "noop",
+    dispatched: "noop",
+    delivered: "noop",
+    cancelled: "release",
+    refunded: "release",
+    returned: "release",
 };
 
 const LOYALTY_CREDITED_STATUSES: OrderStatus[] = ["delivered"];

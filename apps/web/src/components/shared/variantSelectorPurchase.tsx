@@ -4,8 +4,8 @@ import { Check, MessageCircle, ShoppingBag } from "lucide-react";
 
 import { buildWhatsAppLink, formatPrice } from "@store/shared";
 
-import { Button } from "@/components/ui/Button";
-import { QuantityStepper } from "@/components/ui/QuantityStepper";
+import { Button } from "@store/ui";
+import { QuantityStepper } from "@store/ui";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 import { formatMissingPrompt } from "./variantSelectorDimensions";
@@ -39,6 +39,7 @@ export function PurchaseSummary({
   activeOffer,
   discountAmount,
 }: PurchaseSummaryProps) {
+  const { globalDeliveryNote } = useStoreSettings();
   const stockLabel = isInStock
     ? `${stockQuantity} in stock${
         remainingStock < stockQuantity
@@ -119,6 +120,11 @@ export function PurchaseSummary({
                   : "Add to cart"}
           </Button>
         </div>
+        {globalDeliveryNote && (
+          <p className="mt-2 text-center text-[11px] font-medium text-[var(--color-ink-500)]">
+            🚚 Delivery: {globalDeliveryNote}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -155,7 +161,7 @@ export function MobileStickyCta({
   activeOffer,
   discountAmount,
 }: MobileStickyCtaProps) {
-  const { whatsappNumber } = useStoreSettings();
+  const { whatsappNumber, globalDeliveryNote } = useStoreSettings();
   const showBuyAll = isInStock && maxQuantity > 1 && quantity < maxQuantity;
 
   return (
@@ -242,6 +248,11 @@ export function MobileStickyCta({
           </span>
         )}
       </div>
+      {globalDeliveryNote && (
+        <p className="mt-1 w-full text-center text-[9px] font-medium text-[var(--color-ink-500)]">
+          🚚 Delivery: {globalDeliveryNote}
+        </p>
+      )}
     </div>
   );
 }

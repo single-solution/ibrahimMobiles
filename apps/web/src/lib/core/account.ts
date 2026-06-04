@@ -30,7 +30,6 @@ import { toOrder, type Order } from "@/lib/core/orderSerializer";
 export interface AccountCustomer {
   id: string;
   name: string;
-  email: string;
   phoneNumber: string;
   city: string;
   isLoyaltyMember: boolean;
@@ -72,7 +71,6 @@ export async function getAccountCustomer(customerId: string): Promise<AccountCus
   return {
     id: objectIdString(customer._id),
     name: asString(customer.name, "Customer"),
-    email: customer.email ?? "",
     phoneNumber: asString(customer.phoneNumber),
     city: asString(customer.city),
     isLoyaltyMember: customer.isLoyaltyMember ?? false,

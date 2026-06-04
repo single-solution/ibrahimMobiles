@@ -106,7 +106,7 @@ const nextConfig: NextConfig = {
   },
   // Treat the workspace packages as part of the build so Next.js compiles
   // their TypeScript instead of expecting a published .js bundle.
-  transpilePackages: ["@store/db", "@store/shared"],
+  transpilePackages: ["@store/db", "@store/shared", "@store/ui"],
   // Keep server-only Node packages OUT of the Webpack bundle so they're
   // resolved at runtime from `node_modules`. Critical for `pino`/
   // `pino-pretty`/`thread-stream` whose internal `lib/worker.js` is spawned

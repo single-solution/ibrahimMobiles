@@ -5,7 +5,7 @@ import type { SeoMeta } from "@store/shared";
 
 import { slugify } from "@store/shared";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Drawer } from "@/components/ui/Drawer";
 import { CatalogSeoPanel } from "@/app/settings/_components/CatalogSeoPanel";
 import { useToast } from "@/components/ui/Toast";

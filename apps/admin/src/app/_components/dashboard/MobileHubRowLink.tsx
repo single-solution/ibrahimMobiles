@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { InquiriesUnreadBadge } from "@/app/inquiries/_components/InquiriesUnreadBadge";
+import { SidebarBadge } from "@/components/layout/SidebarBadge";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 import { classNames } from "@store/shared";
 
@@ -18,7 +18,7 @@ interface MobileHubRowLinkProps {
 	 */
 	iconElement: ReactNode;
 	trailing?: string | null;
-	showInquiriesBadge?: boolean;
+	badgeType?: "orders" | "customers" | "inquiries";
 	isLast: boolean;
 }
 
@@ -33,7 +33,7 @@ export function MobileHubRowLink({
 	label,
 	iconElement,
 	trailing,
-	showInquiriesBadge,
+	badgeType,
 	isLast,
 }: MobileHubRowLinkProps): ReactNode {
 	const prefetchHandlers = usePrefetchOnIntent(href);
@@ -50,7 +50,7 @@ export function MobileHubRowLink({
 		>
 			<span className="relative grid size-8 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] text-[var(--color-ink-700)]">
 				{iconElement}
-				{showInquiriesBadge ? <InquiriesUnreadBadge /> : null}
+				{badgeType ? <SidebarBadge type={badgeType} isCollapsed={true} /> : null}
 			</span>
 			<span className="flex-1 text-[0.875rem]">{label}</span>
 			{trailing ? (

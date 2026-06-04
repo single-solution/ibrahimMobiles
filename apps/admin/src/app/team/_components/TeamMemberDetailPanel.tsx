@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   Trash2,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { TabList } from "@/components/ui/Tabs";
 import { TextField } from "@/components/forms/TextField";

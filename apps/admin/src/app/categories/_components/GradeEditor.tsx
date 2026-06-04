@@ -2,9 +2,9 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { StructuredContent } from "@store/shared";
-import { emptyStructuredContent, normalizeStructuredContent } from "@store/shared";
+import { emptyStructuredContent, normalizeStructuredContent, coloredPillStyle } from "@store/shared";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Drawer } from "@/components/ui/Drawer";
 import { StructuredContentEditor } from "@/components/forms/StructuredContentEditor";
 import { VideoUpload } from "@/components/shared/uploads";
@@ -244,8 +244,8 @@ export function GradeEditor({
                 className="w-28 rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[13px] uppercase placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:outline-none"
               />
               <span
-                className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-white"
-                style={{ backgroundColor: form.color }}
+                className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]"
+                style={coloredPillStyle(form.color)}
               >
                 {form.label || "Grade"}
               </span>

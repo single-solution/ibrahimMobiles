@@ -70,20 +70,24 @@ export interface Order {
 const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   "pending-payment": "Awaiting payment",
   confirmed: "Confirmed",
+  packed: "Packed & Video Added",
   dispatched: "On the way",
   delivered: "Delivered",
   cancelled: "Cancelled",
   refunded: "Refunded",
+  returned: "Returned",
 };
 
 /** Short description shown next to a timeline entry. */
 const TIMELINE_DESCRIPTION: Record<OrderStatus, string> = {
   "pending-payment": "We received your order and are waiting for payment.",
   confirmed: "Payment confirmed — we're packing your order.",
+  packed: "Order is packed and dispatch video has been added.",
   dispatched: "Your package is with the courier.",
   delivered: "Your order arrived. Enjoy!",
   cancelled: "This order was cancelled.",
   refunded: "We refunded the order amount.",
+  returned: "Order was returned.",
 };
 
 /**
@@ -98,7 +102,7 @@ export function toOrder(order: OrderAttributes & { _id: { toString(): string } }
     totalRupees: 0,
   };
   const customer = order.customerSnapshot ?? {
-    name: "Unknown customer",
+    name: "Customer",
     phoneNumber: "",
     city: "",
   };
@@ -135,7 +139,7 @@ export function toOrder(order: OrderAttributes & { _id: { toString(): string } }
     })),
     delivery: order.delivery,
     payment: order.payment,
-    customerName: asString(customer.name, "Unknown customer"),
+    customerName: asString(customer.name, "Customer"),
     customerPhone: asString(customer.phoneNumber),
     city: asString(customer.city),
     address: order.address

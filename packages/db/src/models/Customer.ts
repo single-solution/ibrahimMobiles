@@ -15,12 +15,13 @@ export interface CustomerAddressAttributes {
 
 export interface CustomerAttributes {
   name: string;
-  email?: string;
   phoneNumber: string;
   city: string;
   isLoyaltyMember: boolean;
   notes?: string;
   addresses: CustomerAddressAttributes[];
+  /** Array of admin User IDs who have viewed this customer. */
+  seenByAdminIds: mongoose.Types.ObjectId[];
   /** Optional account hookup once we open public sign-up. */
   userId?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -44,12 +45,12 @@ const addressSchema = new Schema<CustomerAddressAttributes>(
 const customerSchema = new Schema<CustomerAttributes>(
   {
     name: { type: String, required: true, trim: true, maxlength: 160 },
-    email: { type: String, trim: true, lowercase: true, maxlength: 320, index: true, sparse: true },
     phoneNumber: { type: String, required: true, trim: true, maxlength: 32, index: true },
     city: { type: String, required: true, trim: true, maxlength: 80 },
     isLoyaltyMember: { type: Boolean, required: true, default: false },
     notes: { type: String, trim: true, maxlength: 2_000 },
     addresses: { type: [addressSchema], default: [] },
+    seenByAdminIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], default: [] },
     userId: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true },

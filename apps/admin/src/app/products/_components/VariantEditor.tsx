@@ -10,7 +10,7 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import { coloredPillStyle } from "@store/shared";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Drawer } from "@/components/ui/Drawer";
 import { PreviewPanel } from "@/app/categories/_components/previewPanel";
 import { useToast } from "@/components/ui/Toast";

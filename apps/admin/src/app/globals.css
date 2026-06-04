@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../../packages/ui/src";
 
 /* Admin design tokens — kept deliberately in lockstep with the storefront's
    `globals.css` (apps/web/src/app/globals.css) so a teammate switching
@@ -52,6 +53,13 @@
   --color-danger-500: #e11d48;
   --color-danger-700: #be123c;
   --color-danger-800: #9f1239;
+
+  --color-success-50: #ecfdf5;
+  --color-success-100: #d1fae5;
+  --color-success-200: #a7f3d0;
+  --color-success-500: #10b981;
+  --color-success-700: #047857;
+  --color-success-800: #065f46;
 
   --color-info-500: #0284c7;
 

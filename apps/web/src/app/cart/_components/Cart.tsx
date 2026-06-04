@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ShoppingBag, Trash2 } from "lucide-react";
-import { QuantityStepper } from "@/components/ui/QuantityStepper";
+import { QuantityStepper } from "@store/ui";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
 import { productHref } from "@/lib/catalog/productPaths";

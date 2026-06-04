@@ -16,7 +16,7 @@ export function summariseOrder(order: OrderLean): AdminOrderSummary {
   const items = asArray<OrderLean["items"][number]>(order.items);
   const totals = order.totals ?? EMPTY_TOTALS;
   const customer = order.customerSnapshot ?? {
-    name: "Unknown customer",
+    name: "Customer",
     phoneNumber: "",
     city: "",
   };
@@ -25,7 +25,7 @@ export function summariseOrder(order: OrderLean): AdminOrderSummary {
     orderNumber: asString(order.orderNumber),
     customer: {
       id: objectIdString(order.customerId),
-      name: asString(customer.name, "Unknown customer"),
+      name: asString(customer.name, "Customer"),
       phoneNumber: asString(customer.phoneNumber),
       city: asString(customer.city),
     },

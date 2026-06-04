@@ -58,7 +58,7 @@ export async function GET(request: Request) {
   const items: AdminLoyaltyAccount[] = accounts.map((account) =>
     toLoyaltyAccountResponse(
       account,
-      customerNameById.get(account.customerId.toString()) ?? "Unknown",
+      customerNameById.get(account.customerId.toString()) ?? "Customer",
     ),
   );
 

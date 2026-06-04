@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, Trash2 } from "lucide-react";
 
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";
 import { SettingsFormPanel } from "@/app/settings/_components/settingsWorkspaceUi";

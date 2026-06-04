@@ -58,6 +58,17 @@ const TONE: Record<
     toneDot: "bg-[var(--color-accent-600)]",
     nextLabel: "On the way",
   },
+  packed: {
+    toneBg: "bg-[var(--color-accent-100)]",
+    toneFg: "text-[var(--color-accent-800)]",
+    toneDot: "bg-[var(--color-accent-600)]",
+    nextLabel: "Dispatching soon",
+  },
+  returned: {
+    toneBg: "bg-[var(--color-warn-50)]",
+    toneFg: "text-[var(--color-warn-800)]",
+    toneDot: "bg-[var(--color-warn-500)]",
+  },
   delivered: {
     toneBg: "bg-[var(--color-success-50)]",
     toneFg: "text-[var(--color-success-800)]",

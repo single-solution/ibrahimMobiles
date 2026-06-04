@@ -50,8 +50,13 @@ export async function GET(_request: Request, { params }: RouteContext) {
 interface OrderUpdateInput {
   status?: unknown;
   trackingNote?: unknown;
+  dispatchVideoUrl?: unknown;
   estimatedDeliveryAt?: unknown;
   timelineNote?: unknown;
+  items?: { productId: string; variantId: string; productName: string; variantSummary: string; unitPriceRupees: number; quantity: number }[];
+  address?: { recipientName: string; phoneNumber: string; city: string; area?: string; street?: string; postalCode?: string };
+  payment?: unknown;
+  delivery?: unknown;
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -77,6 +82,14 @@ export async function PUT(request: Request, { params }: RouteContext) {
       return notFound("Order not found");
     }
 
+    const HAPPY_PATH = ["pending-payment", "confirmed", "packed", "dispatched", "delivered"];
+    const currentStatusIndex = HAPPY_PATH.indexOf(order.status);
+
+    const isAttemptingEdit = Boolean(body.items || body.address || body.payment || body.delivery);
+    if (isAttemptingEdit && order.status !== "pending-payment") {
+      return badRequest("Order details cannot be edited once confirmed.");
+    }
+
     const detailParts: string[] = [];
     const previousStatus = order.status;
     let nextStatus: OrderStatus | null = null;
@@ -86,6 +99,23 @@ export async function PUT(request: Request, { params }: RouteContext) {
         return badRequest(`Status must be one of: ${ORDER_STATUSES.join(", ")}`);
       }
       const candidate = body.status as OrderStatus;
+
+      const newStatusIndex = HAPPY_PATH.indexOf(candidate);
+      if (
+        currentStatusIndex >= 3 && // dispatched or delivered
+        newStatusIndex !== -1 && 
+        newStatusIndex < currentStatusIndex
+      ) {
+        return badRequest("Status cannot be moved backward once dispatched.");
+      }
+      
+      if (candidate === "packed") {
+        const video = typeof body.dispatchVideoUrl === "string" ? body.dispatchVideoUrl.trim() : order.dispatchVideoUrl;
+        if (!video) {
+          return badRequest("Dispatch video URL is required when order is packed.");
+        }
+      }
+
       if (order.status !== candidate) {
         order.status = candidate;
         nextStatus = candidate;
@@ -97,12 +127,16 @@ export async function PUT(request: Request, { params }: RouteContext) {
               ? body.timelineNote.slice(0, FIELD_LIMITS.operatorNote)
               : undefined,
         });
-        detailParts.push(`Status → ${candidate}`);
+        detailParts.push(`Status → ${previousStatus} to ${candidate}`);
       }
     }
     if (typeof body.trackingNote === "string") {
       order.trackingNote = body.trackingNote.trim().slice(0, FIELD_LIMITS.operatorNote);
       detailParts.push("Tracking note updated");
+    }
+    if (typeof body.dispatchVideoUrl === "string") {
+      order.dispatchVideoUrl = body.dispatchVideoUrl.trim().slice(0, 1000);
+      detailParts.push("Dispatch video updated");
     }
     if (body.estimatedDeliveryAt !== undefined) {
       const raw = body.estimatedDeliveryAt;
@@ -112,6 +146,59 @@ export async function PUT(request: Request, { params }: RouteContext) {
       }
       order.estimatedDeliveryAt = value;
       detailParts.push("ETA updated");
+    }
+
+    if (Array.isArray(body.items) && body.items.length > 0) {
+      const newItems = body.items.map((item) => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        productName: item.productName,
+        variantSummary: item.variantSummary,
+        unitPriceRupees: Number(item.unitPriceRupees),
+        quantity: Number(item.quantity),
+      }));
+      order.items = newItems as any;
+      const subtotal = newItems.reduce((acc, item) => acc + item.unitPriceRupees * item.quantity, 0);
+      order.totals.subtotalRupees = subtotal;
+      order.totals.totalRupees = Math.max(0, subtotal + order.totals.shippingRupees - order.totals.discountRupees);
+      
+      order.timeline.push({
+        status: order.status,
+        occurredAt: new Date(),
+        note: "Order updated: Items modified.",
+      });
+      detailParts.push("Items modified");
+    }
+
+    if (body.address && typeof body.address === "object") {
+      const addressInput = body.address as any;
+      if (addressInput.recipientName && addressInput.phoneNumber && addressInput.city) {
+        order.address = {
+          recipientName: String(addressInput.recipientName).slice(0, 120),
+          phoneNumber: String(addressInput.phoneNumber).slice(0, 32),
+          city: String(addressInput.city).slice(0, 80),
+          area: typeof addressInput.area === "string" && addressInput.area ? addressInput.area.slice(0, 120) : undefined,
+          street: typeof addressInput.street === "string" && addressInput.street ? addressInput.street.slice(0, 200) : undefined,
+          postalCode: typeof addressInput.postalCode === "string" && addressInput.postalCode ? addressInput.postalCode.slice(0, 16) : undefined,
+        };
+        detailParts.push("Address updated");
+      }
+    }
+
+    if (typeof body.payment === "string" && ["bank-transfer", "easypaisa", "jazzcash", "cod"].includes(body.payment)) {
+      if (order.payment !== body.payment) {
+        const previousPayment = order.payment;
+        order.payment = body.payment as any;
+        detailParts.push(`Payment → ${previousPayment} to ${body.payment}`);
+      }
+    }
+
+    if (typeof body.delivery === "string" && ["courier", "pickup"].includes(body.delivery)) {
+      if (order.delivery !== body.delivery) {
+        const previousDelivery = order.delivery;
+        order.delivery = body.delivery as any;
+        detailParts.push(`Delivery → ${previousDelivery} to ${body.delivery}`);
+      }
     }
 
     await order.save();
@@ -159,7 +246,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
  *
  * Gated by `order_delete` — only `owner` role today.
  */
-export async function DELETE(_request: Request, { params }: RouteContext) {
+export async function DELETE(request: Request, { params }: RouteContext) {
   const { actor, response } = await requireSession("order_delete");
   if (response) {
     return response;
@@ -207,3 +294,5 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     return handleMongoError(error);
   }
 }
+
+

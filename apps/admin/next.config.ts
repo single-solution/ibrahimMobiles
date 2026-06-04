@@ -72,7 +72,7 @@ const nextConfig: NextConfig = {
     // import sites don't ship the whole icon bundle in dev or per-chunk.
     optimizePackageImports: ["lucide-react"],
   },
-  transpilePackages: ["@store/db", "@store/shared"],
+  transpilePackages: ["@store/db", "@store/shared", "@store/ui"],
   // Keep server-only Node packages OUT of the Webpack bundle so they're
   // resolved at runtime from `node_modules`. Critical for `pino`/
   // `pino-pretty`/`thread-stream` whose internal `lib/worker.js` is spawned

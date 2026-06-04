@@ -27,8 +27,8 @@ interface HubRow {
   icon: LucideIcon;
   /** Optional trailing value (e.g. "3 pending"). Null falls back to a chevron only. */
   trailing?: string | null;
-  /** When true, render a small unread-dot badge fed by InquiriesUnreadBadge. */
-  showInquiriesBadge?: boolean;
+  /** When set, renders a small unread-dot badge fed by SidebarBadge. */
+  badgeType?: "orders" | "customers" | "inquiries";
 }
 
 /** Mobile-only iOS-Settings-style nav hub. Rendered on the admin home page
@@ -52,18 +52,20 @@ export async function MobileHubSections() {
           label: "Orders",
           icon: ShoppingCart,
           trailing: kpis.pendingPayments > 0 ? `${kpis.pendingPayments} pending` : null,
+          badgeType: "orders",
         },
         {
           href: "/inquiries",
           label: "Inquiries",
           icon: MessageSquare,
-          showInquiriesBadge: true,
+          badgeType: "inquiries",
         },
         {
           href: "/customers",
           label: "Customers",
           icon: UserCircle,
           trailing: kpis.totalCustomers > 0 ? formatCount(kpis.totalCustomers) : null,
+          badgeType: "customers",
         },
       ],
     },
@@ -140,7 +142,7 @@ function HubGroupCard({ group }: { group: HubGroup }) {
                 label={row.label}
                 iconElement={<Icon size={16} strokeWidth={2} />}
                 trailing={row.trailing}
-                showInquiriesBadge={row.showInquiriesBadge}
+                badgeType={row.badgeType}
                 isLast={index === group.rows.length - 1}
               />
             </li>

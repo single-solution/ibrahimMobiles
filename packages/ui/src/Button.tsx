@@ -30,7 +30,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   ghost:
     "bg-transparent text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-accent-800)] focus-visible:ring-[var(--color-ink-300)]",
   danger:
-    "bg-[var(--color-danger-500)] font-semibold text-[var(--color-on-dark)] hover:bg-[var(--color-danger-700)] focus-visible:ring-[var(--color-danger-500)]",
+    "bg-[var(--color-danger-500)] font-semibold text-white hover:bg-[var(--color-danger-700)] focus-visible:ring-[var(--color-danger-500)]",
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {

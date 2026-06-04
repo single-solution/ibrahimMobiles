@@ -3,14 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  ArrowLeft,
-  Package,
-  Phone,
-  ShoppingCart,
-  Trash2,
-} from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { ArrowLeft, Package, Phone, ShoppingCart, Trash2, Plus, Printer, MessageCircle } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useAdminPermissions } from "@/lib/permissionsContext";
@@ -19,6 +12,7 @@ import { StatusPill, type StatusTone } from "@/components/shared/StatusPill";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
+import { VideoUpload } from "@/components/shared/uploads/VideoUpload";
 import { useToast } from "@/components/ui/Toast";
 import {
   WorkspaceDetailHeader,
@@ -37,33 +31,43 @@ import {
   formatTimeAgo,
   ISO_DATE_LENGTH,
 } from "@store/shared";
-import type { AdminOrder, AdminOrderSummary } from "@/types/models";
+import { QuantityStepper, Button, ButtonLink } from "@store/ui";
+import type { AdminOrder, AdminOrderSummary, AdminActivityEntry } from "@/types/models";
+import { OrderEditModal } from "./OrderEditModal";
+import { ActivityDetailGrid } from "@/components/shared/ActivityDetailGrid";
+import { formatActivityAction } from "@/lib/activityLabels";
 
 const STATUS_TONE: Record<string, StatusTone> = {
   "pending-payment": "warn",
   confirmed: "info",
+  packed: "accent",
   dispatched: "accent",
   delivered: "success",
   cancelled: "danger",
   refunded: "danger",
+  returned: "warn",
 };
 
 const STATUS_LABELS: Record<string, string> = {
   "pending-payment": "Pending payment",
   confirmed: "Confirmed",
+  packed: "Order packed",
   dispatched: "Dispatched",
   delivered: "Delivered",
   cancelled: "Cancelled",
   refunded: "Refunded",
+  returned: "Returned",
 };
 
 const STATUS_OPTIONS = [
   "pending-payment",
   "confirmed",
+  "packed",
   "dispatched",
   "delivered",
   "cancelled",
   "refunded",
+  "returned",
 ] as const;
 
 type StatusFilter = "all" | (typeof STATUS_OPTIONS)[number];
@@ -86,7 +90,6 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
   const { startNavigation } = useNavigationTransition();
   const { can } = useAdminPermissions();
   const canUpdate = can("order_update");
-  const canDelete = can("order_delete");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
@@ -94,6 +97,9 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
   const setActiveOrderUrl = useCallback(
     (id: string | null) => {
       setActiveOrderId(id);
+      if (id) {
+        void apiFetch(`/api/orders/${id}/seen`, { method: "POST" }).catch(() => {});
+      }
       const params = new URLSearchParams(searchParams.toString());
       if (id) {
         params.set("order", id);
@@ -287,7 +293,6 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
               orderId={activeOrderId}
               onBack={clearActiveOrder}
               canUpdate={canUpdate}
-              canDelete={canDelete}
             />
           ) : (
             <WorkspaceEmptyPane
@@ -316,29 +321,26 @@ function OrderListItem({
       type="button"
       onClick={onSelect}
       className={classNames(
-        "tap flex w-full gap-3 border-b border-[var(--color-ink-100)] px-3 py-3 text-left transition-colors",
+        "tap flex w-full border-b border-[var(--color-ink-100)] px-3 py-2.5 text-left transition-colors",
         isActive ? "bg-[var(--color-accent-50)]" : "hover:bg-[var(--color-canvas-deep)]",
       )}
     >
-      <span className="grid size-10 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] text-[var(--color-accent-700)]">
-        <Package size={16} />
-      </span>
       <span className="min-w-0 flex-1">
-        <span className="flex items-start justify-between gap-2">
+        <span className="flex items-center justify-between gap-2">
           <span className="truncate text-sm font-semibold text-[var(--color-ink-900)]">
             {order.orderNumber}
           </span>
-          <span className="shrink-0 text-[10px] tabular-nums text-[var(--color-ink-400)]">
-            {formatTimeAgo(order.placedAt)}
-          </span>
+          <StatusPill tone={STATUS_TONE[order.status] ?? "neutral"} className="shrink-0">
+            {STATUS_LABELS[order.status] ?? order.status}
+          </StatusPill>
         </span>
         <span className="mt-0.5 block truncate text-xs text-[var(--color-ink-600)]">
           {order.customer.name} · {order.itemCount} item{order.itemCount === 1 ? "" : "s"}
         </span>
-        <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          <StatusPill tone={STATUS_TONE[order.status] ?? "neutral"}>
-            {STATUS_LABELS[order.status] ?? order.status}
-          </StatusPill>
+        <span className="mt-1 flex items-center justify-between gap-1.5">
+          <span className="text-[10px] tabular-nums text-[var(--color-ink-400)]">
+            {formatTimeAgo(order.placedAt)}
+          </span>
           <span className="text-xs font-semibold text-[var(--color-ink-900)]">
             {formatPrice(order.totalRupees)}
           </span>
@@ -352,36 +354,49 @@ function OrderDetailPanel({
   orderId,
   onBack,
   canUpdate,
-  canDelete,
 }: {
   orderId: string;
   onBack: () => void;
   canUpdate: boolean;
-  canDelete: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [order, setOrder] = useState<AdminOrder | null>(null);
+  const [activity, setActivity] = useState<AdminActivityEntry[]>([]);
   const [status, setStatus] = useState("");
-  const [estimatedDeliveryAt, setEstimatedDeliveryAt] = useState("");
-  const [timelineNote, setTimelineNote] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [dispatchVideoUrl, setDispatchVideoUrl] = useState("");
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSavingStatus, setIsSavingStatus] = useState(false);
+  
+  const [confirmCancel, setConfirmCancel] = useState(false);
+
+  const reloadActivity = useCallback(async (id: string) => {
+    try {
+      const res = await apiFetch<{ items: AdminActivityEntry[]; total: number }>(
+        `/api/activity?resourceType=order&resourceId=${id}&limit=50`
+      );
+      setActivity(res.items);
+    } catch {
+      // Ignore
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const fetched = await apiFetch<AdminOrder>(`/api/orders/${orderId}`);
+        const [fetchedOrder, fetchedActivity] = await Promise.all([
+          apiFetch<AdminOrder>(`/api/orders/${orderId}`),
+          apiFetch<{ items: AdminActivityEntry[]; total: number }>(
+            `/api/activity?resourceType=order&resourceId=${orderId}&limit=50`
+          ).catch(() => ({ items: [], total: 0 })),
+        ]);
         if (cancelled) return;
-        setOrder(fetched);
-        setStatus(fetched.status);
-        setEstimatedDeliveryAt(
-          fetched.estimatedDeliveryAt
-            ? fetched.estimatedDeliveryAt.slice(0, ISO_DATE_LENGTH)
-            : "",
-        );
+        setOrder(fetchedOrder);
+        setActivity(fetchedActivity.items);
+        setStatus(fetchedOrder.status);
+        setDispatchVideoUrl(fetchedOrder.dispatchVideoUrl || "");
       } catch (error) {
         if (!cancelled) {
           toast.danger(error instanceof Error ? error.message : "Failed to load order");
@@ -394,43 +409,75 @@ function OrderDetailPanel({
     };
   }, [orderId, onBack, toast]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleStatusChange(newStatus: string) {
     if (!order) return;
-    setIsSaving(true);
+    if (newStatus === "packed" && !dispatchVideoUrl.trim()) {
+      setStatus("packed");
+      toast.info("Please enter a dispatch video URL below to complete packing.");
+      return;
+    }
+    
+    setIsSavingStatus(true);
+    const prevStatus = status;
+    setStatus(newStatus);
+    
     try {
       const updated = await apiFetch<AdminOrder>(`/api/orders/${order.id}`, {
         method: "PUT",
-        json: {
-          status,
-          estimatedDeliveryAt: estimatedDeliveryAt
-            ? new Date(estimatedDeliveryAt).toISOString()
-            : null,
-          timelineNote: timelineNote || undefined,
-        },
+        json: { status: newStatus },
       });
       setOrder(updated);
-      setTimelineNote("");
-      toast.success("Order updated");
+      void reloadActivity(order.id);
+      toast.success("Order status updated");
       router.refresh();
     } catch (error) {
-      toast.danger(error instanceof Error ? error.message : "Failed to update order");
+      setStatus(prevStatus);
+      toast.danger(error instanceof Error ? error.message : "Failed to update status");
     } finally {
-      setIsSaving(false);
+      setIsSavingStatus(false);
     }
   }
 
-  async function handleDelete() {
-    if (!order) return;
-    setIsDeleting(true);
+  async function handleDispatchVideoSave(url: string) {
+    setDispatchVideoUrl(url);
+    if (!url.trim() || !order) return;
+
+    setIsSavingStatus(true);
     try {
-      await apiFetch(`/api/orders/${order.id}`, { method: "DELETE" });
-      toast.success(`Order ${order.orderNumber} deleted`);
+      const updated = await apiFetch<AdminOrder>(`/api/orders/${order.id}`, {
+        method: "PUT",
+        json: { 
+          status: "packed",
+          dispatchVideoUrl: url,
+        },
+      });
+      setOrder(updated);
+      setStatus("packed");
+      void reloadActivity(order.id);
+      toast.success("Dispatch video saved and order packed");
       router.refresh();
-      onBack();
     } catch (error) {
-      toast.danger(error instanceof Error ? error.message : "Failed to delete order");
-      setIsDeleting(false);
+      toast.danger(error instanceof Error ? error.message : "Failed to save video");
+    } finally {
+      setIsSavingStatus(false);
+    }
+  }
+
+  async function handleEditSave(payload: any) {
+    if (!order) return;
+    try {
+      const updated = await apiFetch<AdminOrder>(`/api/orders/${order.id}`, {
+        method: "PUT",
+        json: { ...payload, status },
+      });
+      setOrder(updated);
+      setIsEditing(false);
+      void reloadActivity(order.id);
+      toast.success("Order details updated");
+      router.refresh();
+    } catch (error) {
+      toast.danger(error instanceof Error ? error.message : "Failed to update order");
+      throw error;
     }
   }
 
@@ -443,7 +490,7 @@ function OrderDetailPanel({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col relative">
       {!canUpdate ? (
         <p className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-2 text-center text-[11px] text-[var(--color-ink-600)]">
           Read-only — you can view orders but not change status.
@@ -459,46 +506,37 @@ function OrderDetailPanel({
             {STATUS_LABELS[order.status] ?? order.status}
           </StatusPill>
         }
-        actions={
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              leadingIcon={<Phone size={12} />}
-              onClick={() => {
-                window.location.href = `tel:${order.customer.phoneNumber.replace(/\s+/g, "")}`;
-              }}
-            >
-              Call
-            </Button>
-            {order.customer.id ? (
-              <Link
-                href={`/customers?customer=${order.customer.id}`}
-                className="inline-flex h-8 items-center rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2.5 text-xs font-semibold text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)]"
-              >
-                Customer
-              </Link>
-            ) : null}
-            {canDelete ? (
-              <Button
-                variant="danger"
-                size="sm"
-                type="button"
-                onClick={() => setConfirmDelete(true)}
-                isLoading={isDeleting}
-                disabled={isSaving}
-                leadingIcon={<Trash2 size={12} />}
-              >
-                Delete
-              </Button>
-            ) : null}
-          </>
-        }
       />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 md:px-5">
-        <form id={`order-form-${order.id}`} onSubmit={handleSubmit} className="space-y-5">
-          <section className="grid gap-3 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 sm:grid-cols-2">
+        <div className="space-y-5">
+          <section className="grid gap-4 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4">
+            <OrderStatusStepper status={status} onChange={handleStatusChange} disabled={!canUpdate || isSavingStatus} />
+
+            {status === "packed" && (
+              <VideoUpload
+                value={dispatchVideoUrl}
+                onChange={handleDispatchVideoSave}
+                subjectKind="orders"
+                subjectId={`dispatch-${order.id}`}
+                label="Dispatch video"
+                hint="Upload or paste a YouTube URL of the order being packed. Saving updates the order."
+              />
+            )}
+          </section>
+
+          <section className="grid gap-3 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 sm:grid-cols-2 relative">
+            <div className="absolute top-4 right-4">
+               {canUpdate && order.status === "pending-payment" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                >
+                  Edit order
+                </Button>
+              ) : null}
+            </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
                 Customer
@@ -521,26 +559,51 @@ function OrderDetailPanel({
             </div>
           </section>
 
+          {order.address ? (
+            <section className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)] mb-3">
+                Delivery address
+              </p>
+              <p className="text-sm font-medium text-[var(--color-ink-900)]">
+                {order.address?.recipientName} · {order.address?.phoneNumber}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--color-ink-600)]">
+                {[order.address?.street, order.address?.area, order.address?.city, order.address?.postalCode]
+                  .filter(Boolean)
+                  .join(", ")}
+              </p>
+            </section>
+          ) : null}
+
           <section className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
               Line items
             </p>
-            <ul className="mt-2 space-y-2">
-              {order.items.map((line) => (
-                <li
-                  key={line.id}
-                  className="flex items-baseline justify-between gap-3 text-sm text-[var(--color-ink-800)]"
-                >
-                  <span className="min-w-0 truncate">
-                    {line.quantity}× {line.productName}
-                    <span className="text-[var(--color-ink-500)]"> · {line.variantSummary}</span>
-                  </span>
-                  <span className="shrink-0 font-semibold">
-                    {formatPrice(line.unitPriceRupees * line.quantity)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-2 overflow-x-auto">
+              <table className="w-full text-left text-sm text-[var(--color-ink-800)]">
+                <thead>
+                  <tr className="border-b border-[var(--color-ink-100)] text-[10px] uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+                    <th className="pb-2 font-semibold">Product</th>
+                    <th className="pb-2 text-right font-semibold">Qty</th>
+                    <th className="pb-2 text-right font-semibold">Unit Price</th>
+                    <th className="pb-2 text-right font-semibold">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--color-ink-100)]">
+                  {order.items.map((line) => (
+                    <tr key={line.id}>
+                      <td className="py-2 pr-2">
+                        <div className="font-semibold text-[var(--color-ink-900)]">{line.productName}</div>
+                        <div className="text-xs text-[var(--color-ink-500)]">{line.variantSummary}</div>
+                      </td>
+                      <td className="py-2 pl-2 text-right">{line.quantity}</td>
+                      <td className="py-2 pl-2 text-right">{formatPrice(line.unitPriceRupees)}</td>
+                      <td className="py-2 pl-2 text-right font-semibold">{formatPrice(line.unitPriceRupees * line.quantity)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <div className="mt-3 space-y-1 border-t border-[var(--color-ink-100)] pt-3 text-sm">
               <TotalRow label="Subtotal" value={formatPrice(order.totals.subtotalRupees)} />
               <TotalRow label="Shipping" value={formatPrice(order.totals.shippingRupees)} />
@@ -552,121 +615,211 @@ function OrderDetailPanel({
               ) : null}
               <TotalRow
                 label="Total"
-                value={formatPrice(order.totals.totalRupees)}
+                value={formatPrice(Math.max(0, order.totals.subtotalRupees + order.totals.shippingRupees - order.totals.discountRupees))}
                 strong
               />
             </div>
           </section>
 
-          {order.address ? (
+          {activity.length > 0 ? (
             <section className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-                Delivery address
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)] mb-3">
+                Timeline History
               </p>
-              <p className="mt-1 text-sm font-medium text-[var(--color-ink-900)]">
-                {order.address.recipientName} · {order.address.phoneNumber}
-              </p>
-              <p className="text-xs leading-relaxed text-[var(--color-ink-600)]">
-                {[order.address.street, order.address.area, order.address.city, order.address.postalCode]
-                  .filter(Boolean)
-                  .join(", ")}
-              </p>
-            </section>
-          ) : null}
-
-          <section className="grid gap-3 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 sm:grid-cols-2">
-            <SelectField
-              label="Status"
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-              disabled={!canUpdate}
-              options={STATUS_OPTIONS.map((option) => ({
-                value: option,
-                label: STATUS_LABELS[option] ?? option,
-              }))}
-            />
-            <TextField
-              label="Estimated delivery"
-              type="date"
-              value={estimatedDeliveryAt}
-              onChange={(event) => setEstimatedDeliveryAt(event.target.value)}
-              disabled={!canUpdate}
-            />
-            <div className="sm:col-span-2">
-              <TextArea
-                label="Timeline note (optional)"
-                value={timelineNote}
-                onChange={(event) => setTimelineNote(event.target.value)}
-                rows={2}
-                disabled={!canUpdate}
-                placeholder="Note attached to the next status change."
-                maxLength={FIELD_LIMITS.operatorNote}
-              />
-            </div>
-          </section>
-
-          {order.timeline.length > 0 ? (
-            <section>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-                Timeline
-              </p>
-              <ol className="mt-2 space-y-2">
-                {order.timeline.map((entry) => (
+              <ol className="space-y-3">
+                {activity.map((entry) => (
                   <li
                     key={entry.id}
-                    className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2 text-xs"
+                    className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2 text-sm"
                   >
-                    <p className="font-semibold text-[var(--color-ink-900)]">
-                      {STATUS_LABELS[entry.status] ?? entry.status}
-                    </p>
-                    <p className="text-[10px] text-[var(--color-ink-500)]">
-                      {new Date(entry.occurredAt).toLocaleString()}
-                    </p>
-                    {entry.note ? (
-                      <p className="mt-0.5 text-[var(--color-ink-700)]">{entry.note}</p>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="font-medium text-[var(--color-ink-900)]">
+                        {formatActivityAction(entry.action)}
+                      </span>
+                      <span className="text-xs text-[var(--color-ink-500)]">
+                        {new Date(entry.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    {entry.actorName ? (
+                      <p className="text-xs text-[var(--color-ink-600)] mb-1">
+                        By {entry.actorName} ({entry.actorRole})
+                      </p>
+                    ) : null}
+                    {entry.detail ? (
+                      <div className="mt-2 text-xs">
+                        <ActivityDetailGrid detail={entry.detail} />
+                      </div>
                     ) : null}
                   </li>
                 ))}
               </ol>
             </section>
           ) : null}
-        </form>
+        </div>
       </div>
 
-      {canUpdate ? (
-        <footer className="shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3">
-          <div className="flex justify-end">
+      <footer className="shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {canUpdate ? (
+              <Button
+                variant="outline"
+                size="sm"
+                leadingIcon={<Printer size={12} />}
+                onClick={() => window.open(`/orders/${order.id}/invoice`, '_blank')}
+                title="Print professional invoice"
+              >
+                Print invoice
+              </Button>
+            ) : null}
             <Button
-              variant="primary"
+              variant="outline"
               size="sm"
-              type="submit"
-              form={`order-form-${order.id}`}
-              isLoading={isSaving}
-              disabled={isDeleting}
+              leadingIcon={<MessageCircle size={12} />}
+              onClick={() => {
+                const num = order.customer.phoneNumber.replace(/\D/g, "");
+                const waNum = num.startsWith("0") ? "92" + num.slice(1) : num;
+                window.open(`https://wa.me/${waNum}`, '_blank');
+              }}
             >
-              Save changes
+              WhatsApp Customer
             </Button>
+            {order.customer.id ? (
+              <ButtonLink
+                variant="outline"
+                size="sm"
+                href={`/customers?customer=${order.customer.id}`}
+              >
+                View customer
+              </ButtonLink>
+            ) : null}
           </div>
-        </footer>
-      ) : null}
+          {canUpdate && !["cancelled", "refunded", "returned", "delivered"].includes(order.status) ? (
+            <Button
+              variant="danger"
+              size="sm"
+              type="button"
+              onClick={() => setConfirmCancel(true)}
+              isLoading={isSavingStatus}
+              leadingIcon={<Trash2 size={12} />}
+            >
+              Cancel order
+            </Button>
+          ) : null}
+        </div>
+      </footer>
+
+      {isEditing && (
+        <OrderEditModal 
+          isOpen={isEditing} 
+          onClose={() => setIsEditing(false)} 
+          order={order}
+          onSave={async (payload) => {
+            await handleEditSave(payload);
+          }}
+          isSaving={false}
+        />
+      )}
 
       <ConfirmDialog
-        isOpen={confirmDelete}
-        title="Delete order?"
+        isOpen={confirmCancel}
+        title="Cancel order?"
         message={
           <>
-            Delete <strong>{order.orderNumber}</strong>? Stock and loyalty adjustments will be
-            reversed when applicable.
+            Cancel <strong>{order.orderNumber}</strong>? Reserved stock will be released and loyalty points will be reversed.
           </>
         }
         tone="danger"
-        confirmLabel="Delete order"
+        confirmLabel="Cancel order"
         onConfirm={() => {
-          setConfirmDelete(false);
-          void handleDelete();
+          setConfirmCancel(false);
+          void handleStatusChange("cancelled");
         }}
-        onCancel={() => setConfirmDelete(false)}
+        onCancel={() => setConfirmCancel(false)}
       />
+    </div>
+  );
+}
+function OrderStatusStepper({
+  status,
+  onChange,
+  disabled,
+}: {
+  status: string;
+  onChange: (s: string) => void;
+  disabled: boolean;
+}) {
+  const HAPPY_PATH = ["pending-payment", "confirmed", "packed", "dispatched", "delivered"];
+  const TERMINAL_STATES = ["cancelled", "refunded", "returned"];
+  const currentIndex = HAPPY_PATH.indexOf(status);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex w-full items-center overflow-x-auto pb-2">
+        {HAPPY_PATH.map((step, index) => {
+          const isActive = status === step;
+          const isPast = currentIndex > index && !TERMINAL_STATES.includes(status);
+          const isClickable = !disabled && (
+            (index === currentIndex) ||
+            (index === currentIndex + 1) ||
+            (index === currentIndex - 1 && currentIndex < 3)
+          );
+
+          return (
+            <div key={step} className="flex flex-1 items-center last:flex-none">
+              <button
+                type="button"
+                disabled={!isClickable}
+                onClick={() => onChange(step)}
+                className={classNames(
+                  "relative z-10 flex h-7 items-center justify-center whitespace-nowrap rounded-full px-3 text-[11px] font-semibold transition-all",
+                  isActive
+                    ? "bg-[var(--color-accent-500)] text-[var(--color-ink-900)] shadow-sm ring-4 ring-[var(--color-surface)]"
+                    : isPast
+                      ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)] ring-4 ring-[var(--color-surface)]"
+                      : "bg-[var(--color-ink-100)] text-[var(--color-ink-500)] ring-4 ring-[var(--color-surface)]",
+                  isClickable && !isActive ? "hover:scale-105 cursor-pointer" : ""
+                )}
+              >
+                {index === currentIndex + 1 && !TERMINAL_STATES.includes(status) && (
+                  <span className="absolute -right-0.5 -top-0.5 flex size-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--color-accent-500)] opacity-75"></span>
+                    <span className="relative inline-flex size-2.5 rounded-full border border-white bg-[var(--color-accent-700)]"></span>
+                  </span>
+                )}
+                {STATUS_LABELS[step]}
+              </button>
+              {index < HAPPY_PATH.length - 1 && (
+                <div className={classNames(
+                  "h-0.5 flex-1 min-w-[20px] -mx-1",
+                  isPast ? "bg-[var(--color-accent-500)]" : "bg-[var(--color-ink-100)]"
+                )} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex flex-wrap items-center gap-2 border-t border-[var(--color-ink-100)] pt-3">
+        <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+          Other actions:
+        </span>
+        {TERMINAL_STATES.map((step) => (
+          <button
+            key={step}
+            type="button"
+            disabled={disabled}
+            onClick={() => onChange(step)}
+            className={classNames(
+              "rounded-[var(--radius-sm)] border px-2 py-1 text-[10px] font-semibold transition-colors",
+              status === step
+                ? "border-[var(--color-danger-500)] bg-[var(--color-danger-50)] text-[var(--color-danger-700)]"
+                : "border-[var(--color-ink-200)] bg-transparent text-[var(--color-ink-600)] hover:bg-[var(--color-ink-50)]"
+            )}
+          >
+            {STATUS_LABELS[step]}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

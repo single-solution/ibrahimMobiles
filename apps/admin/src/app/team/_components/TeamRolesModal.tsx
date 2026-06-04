@@ -5,7 +5,7 @@ import { Check, Minus, ShieldCheck, X as XIcon } from "lucide-react";
 import { Drawer } from "@/components/ui/Drawer";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { TabList } from "@/components/ui/Tabs";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { classNames } from "@store/shared";
 import { ROLE_PERMISSIONS, type PermissionKey } from "@/lib/permissionsCatalog";
 import {

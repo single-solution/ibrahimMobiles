@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { useToast } from "@/components/ui/Toast";

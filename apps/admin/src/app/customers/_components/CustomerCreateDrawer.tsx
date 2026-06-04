@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Drawer } from "@/components/ui/Drawer";
 import { TextField } from "@/components/forms/TextField";
 import { useToast } from "@/components/ui/Toast";

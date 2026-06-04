@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 import {
   Activity,
@@ -18,13 +19,15 @@ import {
 import { classNames } from "@store/shared";
 import { StatusPill, type StatusTone } from "@/components/shared/StatusPill";
 import {
-  WorkspaceCatalogPaneHeader,
   WorkspaceEmptyPane,
   WorkspaceFilterChip,
   WorkspaceFrame,
+  WorkspacePaneHeader,
   WorkspaceSearchField,
+  WorkspaceSidebarNavItem,
 } from "@/components/shared/workspaceUi";
-import { formatActivityAction } from "@/lib/activityLabels";
+import { formatActivityAction, resolveResourceUrl } from "@/lib/activityLabels";
+import { ActivityDetailGrid } from "@/components/shared/ActivityDetailGrid";
 import type { AdminActivityEntry, AdminActivityResourceType } from "@/types/models";
 
 type Action = AdminActivityEntry["action"];
@@ -152,13 +155,9 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
   if (entries.length === 0) {
     return (
       <WorkspaceFrame>
-        <WorkspaceCatalogPaneHeader
-          title={
-            <div className="flex min-w-0 items-center gap-1.5">
-              <Activity size={15} className="shrink-0 text-[var(--color-accent-700)]" />
-              <h2 className="text-sm font-semibold text-[var(--color-ink-900)]">Activity log</h2>
-            </div>
-          }
+        <WorkspacePaneHeader
+          iconElement={<Activity size={15} className="shrink-0 text-[var(--color-accent-700)]" />}
+          title="Activity log"
           subtitle="Every change made by admins, with timestamps and actors."
         />
         <WorkspaceEmptyPane
@@ -172,37 +171,21 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
 
   return (
     <WorkspaceFrame>
-      <WorkspaceCatalogPaneHeader
-        title={
-          <div className="flex min-w-0 items-center gap-1.5">
-            <Activity size={15} className="shrink-0 text-[var(--color-accent-700)]" />
-            <h2 className="text-sm font-semibold text-[var(--color-ink-900)]">Activity log</h2>
-          </div>
-        }
-        subtitle={`${filtered.length} shown · ${entries.length} total`}
-        search={
-          <WorkspaceSearchField
-            value={query}
-            onChange={setQuery}
-            placeholder="Search actor, item, detail…"
-            aria-label="Search activity"
-            className="min-w-0 flex-1 sm:max-w-[16rem] sm:flex-none"
-          />
-        }
-        filters={
-          <>
-            <div className="flex w-full flex-wrap items-center gap-1.5">
-              <span className="mr-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-400)]">
-                Type
-              </span>
-              <WorkspaceFilterChip
-                label="All"
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <aside className="hidden shrink-0 flex-col border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-2.5 lg:flex lg:w-44 lg:border-b-0 lg:border-r xl:w-52">
+          <p className="pb-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+            Resource Type
+          </p>
+          <nav aria-label="Resource type views" className="-mx-1 flex-1 overflow-y-auto mb-4 max-h-[50%]">
+            <ul className="flex flex-col gap-0.5">
+              <WorkspaceSidebarNavItem
+                label="All Types"
                 count={entries.length}
                 isActive={resourceFilter === "all"}
                 onClick={() => setResourceFilter("all")}
               />
               {resourceOptions.map((type) => (
-                <WorkspaceFilterChip
+                <WorkspaceSidebarNavItem
                   key={type}
                   label={resourceLabel(type)}
                   count={resourceCounts.get(type) ?? 0}
@@ -210,103 +193,173 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
                   onClick={() => setResourceFilter(type)}
                 />
               ))}
-            </div>
-            <div className="flex w-full flex-wrap items-center gap-1.5">
-              <span className="mr-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-400)]">
-                Action
-              </span>
-              <WorkspaceFilterChip
-                label="All"
-                isActive={actionFilter === "all"}
-                onClick={() => setActionFilter("all")}
-                compact
-              />
+            </ul>
+          </nav>
+
+          <p className="mt-3 border-t border-[var(--color-ink-100)] pt-3 pb-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
+            Action
+          </p>
+          <nav aria-label="Action views" className="-mx-1 flex-1 overflow-y-auto">
+            <ul className="flex flex-col gap-0.5">
+            <WorkspaceSidebarNavItem
+              label="All Actions"
+              count={entries.length}
+              isActive={actionFilter === "all"}
+              onClick={() => setActionFilter("all")}
+            />
               {actionOptions.map((action) => (
-                <WorkspaceFilterChip
+                <WorkspaceSidebarNavItem
                   key={action}
                   label={formatActivityAction(action)}
                   count={actionCounts.get(action) ?? 0}
                   isActive={actionFilter === action}
                   onClick={() => setActionFilter(action)}
-                  compact
                 />
               ))}
-            </div>
-          </>
-        }
-      />
+            </ul>
+          </nav>
+        </aside>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-2.5 md:p-3">
-        {filtered.length === 0 ? (
-          <WorkspaceEmptyPane
-            iconElement={<Activity size={22} />}
-            title="No matching activity"
-            description="Try another filter or clear the search."
-            action={
-              <button
-                type="button"
-                onClick={() => {
-                  setResourceFilter("all");
-                  setActionFilter("all");
-                  setQuery("");
-                }}
-                className="text-xs font-semibold text-[var(--color-accent-700)] hover:underline"
-              >
-                Clear filters
-              </button>
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--color-canvas)]">
+          <WorkspacePaneHeader
+            iconElement={<Activity size={15} className="shrink-0 text-[var(--color-accent-700)]" />}
+            title="Activity log"
+            subtitle={`${filtered.length} shown · ${entries.length} total`}
+            search={
+              <WorkspaceSearchField
+                value={query}
+                onChange={setQuery}
+                placeholder="Search actor, item, detail…"
+                aria-label="Search activity"
+                className="min-w-0 w-full lg:max-w-xs"
+              />
             }
           />
-        ) : (
-          <ul className="divide-y divide-[var(--color-ink-100)] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]">
-            {filtered.map((entry) => {
-              const Icon = ACTION_ICONS[entry.action] ?? Pencil;
-              const tone = ACTION_TONE[entry.action] ?? "neutral";
-              return (
-                <li
-                  key={entry.id}
-                  className="flex items-start gap-2.5 px-3 py-2 transition-colors hover:bg-[var(--color-canvas-deep)]/40"
-                >
-                  <span
-                    className={classNames(
-                      "mt-0.5 grid size-6 shrink-0 place-items-center rounded-full",
-                      TONE_CIRCLE[tone],
-                    )}
+
+          {/* Mobile filters fallback */}
+          <div className="flex flex-wrap gap-1 px-3 py-2 border-b border-[var(--color-ink-100)] lg:hidden">
+            <WorkspaceFilterChip
+              compact
+              label="All Types"
+              isActive={resourceFilter === "all"}
+              onClick={() => setResourceFilter("all")}
+            />
+            {resourceOptions.map((type) => (
+              <WorkspaceFilterChip
+                key={type}
+                compact
+                label={resourceLabel(type)}
+                isActive={resourceFilter === type}
+                onClick={() => setResourceFilter(type)}
+              />
+            ))}
+            <div className="w-px h-4 bg-[var(--color-ink-200)] mx-1" />
+            <WorkspaceFilterChip
+              compact
+              label="All Actions"
+              isActive={actionFilter === "all"}
+              onClick={() => setActionFilter("all")}
+            />
+            {actionOptions.map((action) => (
+              <WorkspaceFilterChip
+                key={action}
+                compact
+                label={formatActivityAction(action)}
+                isActive={actionFilter === action}
+                onClick={() => setActionFilter(action)}
+              />
+            ))}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-2.5 md:p-3">
+            {filtered.length === 0 ? (
+              <WorkspaceEmptyPane
+                iconElement={<Activity size={22} />}
+                title="No matching activity"
+                description="Try another filter or clear the search."
+                action={
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResourceFilter("all");
+                      setActionFilter("all");
+                      setQuery("");
+                    }}
+                    className="text-xs font-semibold text-[var(--color-accent-700)] hover:underline"
                   >
-                    <Icon size={11} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="min-w-0 truncate text-[12.5px] text-[var(--color-ink-900)]">
-                        <span className="font-semibold">{entry.actorName}</span>
-                        <span className="text-[var(--color-ink-400)]"> · {entry.actorRole}</span>
-                      </p>
-                      <time
-                        dateTime={entry.createdAt}
-                        className="shrink-0 whitespace-nowrap text-[10.5px] tabular-nums text-[var(--color-ink-400)]"
-                      >
-                        {formatTimestamp(entry.createdAt)}
-                      </time>
-                    </div>
-                    <p className="mt-0.5 line-clamp-1 text-[12px] leading-snug text-[var(--color-ink-700)]">
-                      <StatusPill tone={tone} className="mr-1.5 align-middle">
-                        {formatActivityAction(entry.action)}
-                      </StatusPill>
-                      <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-400)]">
-                        {resourceLabel(entry.resourceType)}
-                      </span>
-                      <span className="font-medium text-[var(--color-ink-900)]">
-                        {entry.resourceLabel}
-                      </span>
-                      {entry.detail ? (
-                        <span className="text-[var(--color-ink-500)]"> — {entry.detail}</span>
-                      ) : null}
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    Clear filters
+                  </button>
+                }
+              />
+            ) : (
+              <ul className="space-y-3">
+                {filtered.map((entry) => {
+                  const Icon = ACTION_ICONS[entry.action] ?? Pencil;
+                  const tone = ACTION_TONE[entry.action] ?? "neutral";
+                  return (
+                    <li
+                      key={entry.id}
+                      className="flex flex-col gap-2 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3 shadow-sm transition-colors hover:border-[var(--color-ink-200)]"
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <span
+                          className={classNames(
+                            "mt-0.5 grid size-6 shrink-0 place-items-center rounded-full",
+                            TONE_CIRCLE[tone],
+                          )}
+                        >
+                          <Icon size={11} />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <p className="min-w-0 truncate text-[12.5px] text-[var(--color-ink-900)]">
+                              <span className="font-semibold">{entry.actorName}</span>
+                              <span className="text-[var(--color-ink-400)]"> · {entry.actorRole}</span>
+                            </p>
+                            <time
+                              dateTime={entry.createdAt}
+                              className="shrink-0 whitespace-nowrap text-[10.5px] tabular-nums text-[var(--color-ink-400)]"
+                            >
+                              {formatTimestamp(entry.createdAt)}
+                            </time>
+                          </div>
+                          <p className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] leading-snug text-[var(--color-ink-700)]">
+                            <StatusPill tone={tone}>
+                              {formatActivityAction(entry.action)}
+                            </StatusPill>
+                            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-400)]">
+                              {resourceLabel(entry.resourceType)}
+                            </span>
+                            {(() => {
+                              const href = resolveResourceUrl(entry.resourceType, entry.resourceId);
+                              if (href) {
+                                return (
+                                  <Link
+                                    href={href}
+                                    className="font-medium text-[var(--color-ink-900)] hover:text-[var(--color-accent-700)] hover:underline"
+                                  >
+                                    {entry.resourceLabel}
+                                  </Link>
+                                );
+                              }
+                              return (
+                                <span className="font-medium text-[var(--color-ink-900)]">
+                                  {entry.resourceLabel}
+                                </span>
+                              );
+                            })()}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <ActivityDetailGrid detail={entry.detail || ""} />
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </section>
       </div>
     </WorkspaceFrame>
   );

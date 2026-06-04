@@ -50,7 +50,6 @@ export async function GET(_request: Request, { params }: RouteContext) {
 
 interface CustomerUpdateInput {
   name?: unknown;
-  email?: unknown;
   phoneNumber?: unknown;
   city?: unknown;
   isLoyaltyMember?: unknown;
@@ -93,17 +92,6 @@ export async function PUT(request: Request, { params }: RouteContext) {
       return badRequest(result.error);
     }
     update.city = result;
-  }
-  if (body.email !== undefined) {
-    if (typeof body.email === "string" && body.email.trim().length === 0) {
-      update.email = undefined;
-    } else {
-      const result = validateEmail(body.email);
-      if (isValidationError(result)) {
-        return badRequest(result.error);
-      }
-      update.email = result;
-    }
   }
   if (body.isLoyaltyMember !== undefined) {
     update.isLoyaltyMember = Boolean(body.isLoyaltyMember);

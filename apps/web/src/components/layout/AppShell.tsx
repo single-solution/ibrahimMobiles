@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { MobileHeader } from "@/components/layout/MobileHeader";
 import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
 import { WebVitalsReporter } from "@/components/layout/WebVitalsReporter";
+import { StoreNoticeBanner } from "@/components/layout/StoreNoticeBanner";
 import { RevealRoot } from "@/components/shared/motion/RevealRoot";
 import { RouteTransition } from "@/components/shared/motion/RouteTransition";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -161,6 +162,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             <NavigationProgress />
           </Suspense>
         ) : null}
+        <StoreNoticeBanner />
         <Header onOpenSearch={openSearch} />
         <MobileHeader onOpenSearch={openSearch} />
         <main

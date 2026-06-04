@@ -32,7 +32,6 @@ export const dynamic = "force-dynamic";
 
 interface UpdateProfileBody {
   name?: unknown;
-  email?: unknown;
   city?: unknown;
 }
 
@@ -69,20 +68,11 @@ export async function PUT(request: Request) {
     return badRequest(cityResult.error);
   }
 
-  let email: string | null = null;
-  if (parsed.email !== undefined && parsed.email !== "") {
-    const emailResult = validateEmail(parsed.email);
-    if (isValidationError(emailResult)) {
-      return badRequest(emailResult.error);
-    }
-    email = emailResult;
-  }
-
   try {
     await connectDB();
     const updated = await Customer.findByIdAndUpdate(
       actor.id,
-      { name: nameResult, email, city: cityResult },
+      { name: nameResult, city: cityResult },
       { new: true, runValidators: true },
     );
     if (!updated) {
@@ -92,7 +82,6 @@ export async function PUT(request: Request) {
     return ok({
       id: updated._id.toString(),
       name: updated.name,
-      email: updated.email ?? null,
       city: updated.city,
     });
   } catch (error) {

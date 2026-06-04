@@ -3,10 +3,12 @@ import mongoose, { Schema, type HydratedDocument, type Model } from "mongoose";
 export const ORDER_STATUSES = [
   "pending-payment",
   "confirmed",
+  "packed",
   "dispatched",
   "delivered",
   "cancelled",
   "refunded",
+  "returned",
 ] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
@@ -63,9 +65,12 @@ export interface OrderAttributes {
   totals: OrderTotalsAttributes;
   timeline: OrderTimelineEntryAttributes[];
   trackingNote?: string;
+  dispatchVideoUrl?: string;
   estimatedDeliveryAt?: Date;
   pointsEarned: number;
   pointsRedeemed: number;
+  /** Array of admin User IDs who have viewed this order. */
+  seenByAdminIds: mongoose.Types.ObjectId[];
   placedAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -140,9 +145,11 @@ const orderSchema = new Schema<OrderAttributes>(
     totals: { type: totalsSchema, required: true },
     timeline: { type: [timelineSchema], default: [] },
     trackingNote: { type: String, trim: true, maxlength: 500 },
+    dispatchVideoUrl: { type: String, trim: true, maxlength: 1000 },
     estimatedDeliveryAt: { type: Date },
     pointsEarned: { type: Number, required: true, min: 0, default: 0 },
     pointsRedeemed: { type: Number, required: true, min: 0, default: 0 },
+    seenByAdminIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], default: [] },
     placedAt: { type: Date, required: true, default: () => new Date() },
   },
   { timestamps: true },

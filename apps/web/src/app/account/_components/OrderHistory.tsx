@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, ChevronRight, Package } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { ButtonLink } from "@/components/ui/Button";
+import { ButtonLink } from "@store/ui";
 import { classNames, formatPrice, formatStorefrontDate } from "@store/shared";
 import type { Order } from "@/lib/core/orderSerializer";
 import type { OrderStatus } from "@store/db";
@@ -16,6 +16,8 @@ const TONE: Record<OrderStatus, { toneBg: string; toneFg: string; toneDot: strin
   "pending-payment": { toneBg: "bg-[var(--color-warn-50)]", toneFg: "text-[var(--color-warn-800)]", toneDot: "bg-[var(--color-warn-500)]", nextLabel: "Awaiting payment" },
   confirmed: { toneBg: "bg-[var(--color-info-50)]", toneFg: "text-[var(--color-info-800)]", toneDot: "bg-[var(--color-info-500)]", nextLabel: "Packing" },
   dispatched: { toneBg: "bg-[var(--color-accent-100)]", toneFg: "text-[var(--color-accent-800)]", toneDot: "bg-[var(--color-accent-600)]", nextLabel: "On the way" },
+  packed: { toneBg: "bg-[var(--color-accent-100)]", toneFg: "text-[var(--color-accent-800)]", toneDot: "bg-[var(--color-accent-600)]", nextLabel: "Dispatching soon" },
+  returned: { toneBg: "bg-[var(--color-warn-50)]", toneFg: "text-[var(--color-warn-800)]", toneDot: "bg-[var(--color-warn-500)]" },
   delivered: { toneBg: "bg-[var(--color-success-50)]", toneFg: "text-[var(--color-success-800)]", toneDot: "bg-[var(--color-success-500)]" },
   cancelled: { toneBg: "bg-[var(--color-danger-50)]", toneFg: "text-[var(--color-danger-800)]", toneDot: "bg-[var(--color-danger-500)]" },
   refunded: { toneBg: "bg-[var(--color-danger-50)]", toneFg: "text-[var(--color-danger-800)]", toneDot: "bg-[var(--color-danger-500)]" },

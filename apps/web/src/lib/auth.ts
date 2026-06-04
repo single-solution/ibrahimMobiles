@@ -113,7 +113,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         return {
           id: customer._id.toString(),
-          email: customer.email ?? "",
           name: customer.name,
           role: "customer",
           phoneNumber: customer.phoneNumber,
@@ -127,7 +126,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id as string;
-        token.email = (user.email as string | undefined) ?? "";
         token.name = (user.name as string | undefined) ?? "";
         token.role = "customer";
         token.phoneNumber = user.phoneNumber;
@@ -137,7 +135,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       session.user.id = token.id as string;
-      session.user.email = (token.email as string | undefined) ?? "";
       session.user.name = (token.name as string | undefined) ?? "";
       session.user.role = "customer";
       session.user.phoneNumber = token.phoneNumber as string | undefined;

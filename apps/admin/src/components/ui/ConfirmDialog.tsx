@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
 import { classNames } from "@store/shared";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { useOverlayPresence } from "@/components/ui/useOverlayPresence";
 
 interface ConfirmDialogProps {

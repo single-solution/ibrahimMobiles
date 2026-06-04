@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { ArrowRight, Lock, Mail, ShoppingBag } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { TextField } from "@/components/forms/TextField";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 

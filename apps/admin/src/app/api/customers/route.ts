@@ -45,7 +45,6 @@ export async function GET(request: Request) {
   if (search) {
     filter.$or = [
       { name: { $regex: searchPattern, $options: "i" } },
-      { email: { $regex: searchPattern, $options: "i" } },
       { phoneNumber: { $regex: searchPattern, $options: "i" } },
       { city: { $regex: searchPattern, $options: "i" } },
     ];
@@ -93,7 +92,6 @@ export async function GET(request: Request) {
     return {
       id: full.id,
       name: full.name,
-      email: full.email,
       phoneNumber: full.phoneNumber,
       city: full.city,
       isLoyaltyMember: full.isLoyaltyMember,

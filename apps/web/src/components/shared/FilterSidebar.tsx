@@ -12,7 +12,7 @@ import {
 } from "@store/shared";
 import type { AttributeFacet } from "@/lib/core/facets";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Input } from "@/components/ui/Input";
 import { FILTER_PARAM_KEYS } from "@/lib/core/filterParams";

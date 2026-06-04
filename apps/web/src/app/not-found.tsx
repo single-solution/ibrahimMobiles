@@ -1,4 +1,4 @@
-import { ButtonLink } from "@/components/ui/Button";
+import { ButtonLink } from "@store/ui";
 
 export default function NotFoundPage() {
   return (

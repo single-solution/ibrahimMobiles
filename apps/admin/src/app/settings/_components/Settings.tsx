@@ -11,6 +11,7 @@ import { ChatSettingsTab } from "@/app/settings/_components/ChatSettingsTab";
 import { SeoSettingsTab } from "@/app/settings/_components/SeoSettingsTab";
 import { ContactSettings } from "@/app/settings/_components/settingsContactTab";
 import { DeliverySettings } from "@/app/settings/_components/settingsDeliveryTab";
+import { NoticesSettings } from "@/app/settings/_components/settingsNoticesTab";
 import { InventorySettings } from "@/app/settings/_components/settingsInventoryTab";
 import { LoyaltySettings } from "@/app/settings/_components/settingsLoyaltyTab";
 import { MarketingSettings } from "@/app/settings/_components/settingsMarketingTab";
@@ -136,6 +137,15 @@ function SettingsInner({ initialSettings }: SettingsProps) {
     ),
     delivery: (
       <DeliverySettings
+        draft={draft}
+        saved={savedSettings}
+        setField={setField}
+        onSaved={setSavedSettings}
+        canUpdate={canUpdate}
+      />
+    ),
+    notices: (
+      <NoticesSettings
         draft={draft}
         saved={savedSettings}
         setField={setField}

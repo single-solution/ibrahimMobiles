@@ -3,7 +3,7 @@
 import { forwardRef, useEffect, useRef, useState, type FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { ArrowRight, Phone as PhoneIcon } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Input } from "@/components/ui/Input";
 import { classNames, OTP_CODE_LENGTH } from "@store/shared";
 
@@ -126,7 +126,7 @@ export function PhoneOtpForm({
       <form onSubmit={handlePhoneSubmit} className="reveal-stagger space-y-4">
         <div className="reveal">
           <Input
-            label="Phone number"
+            label="WhatsApp number"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder={phonePlaceholder}

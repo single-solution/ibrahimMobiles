@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { classNames } from "@store/shared";
 
-import { InquiriesUnreadBadge } from "@/app/inquiries/_components/InquiriesUnreadBadge";
+import { SidebarBadge } from "./SidebarBadge";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
@@ -129,13 +129,19 @@ export function Sidebar({ isCollapsed }: SidebarProps) {
                 const isActive = link.exact
                   ? pathname === link.href
                   : pathname === link.href || pathname.startsWith(`${link.href}/`);
+                
+                let badgeType: "orders" | "customers" | "inquiries" | undefined;
+                if (link.href === "/orders" && can("order_view")) badgeType = "orders";
+                if (link.href === "/customers" && can("customer_view")) badgeType = "customers";
+                if (link.href === "/inquiries" && can("inquiry_view")) badgeType = "inquiries";
+
                 return (
                   <li key={link.href}>
                     <SidebarNavLink
                       link={link}
                       isActive={isActive}
                       isCollapsed={isCollapsed}
-                      showInquiryBadge={link.href === "/inquiries" && can("inquiry_view")}
+                      badgeType={badgeType}
                     />
                   </li>
                 );
@@ -172,10 +178,10 @@ interface SidebarNavLinkProps {
   link: SidebarItem;
   isActive: boolean;
   isCollapsed: boolean;
-  showInquiryBadge: boolean;
+  badgeType?: "orders" | "customers" | "inquiries";
 }
 
-function SidebarNavLink({ link, isActive, isCollapsed, showInquiryBadge }: SidebarNavLinkProps) {
+function SidebarNavLink({ link, isActive, isCollapsed, badgeType }: SidebarNavLinkProps) {
   const Icon = link.icon;
   const prefetchHandlers = usePrefetchOnIntent(isActive ? null : link.href);
   return (
@@ -195,7 +201,7 @@ function SidebarNavLink({ link, isActive, isCollapsed, showInquiryBadge }: Sideb
     >
       <Icon size={16} strokeWidth={isActive ? 2.4 : 2} />
       {!isCollapsed && <span className="truncate">{link.label}</span>}
-      {showInquiryBadge ? <InquiriesUnreadBadge /> : null}
+      {badgeType ? <SidebarBadge type={badgeType} isCollapsed={isCollapsed} /> : null}
     </Link>
   );
 }

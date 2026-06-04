@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { compareAlphabetically, isValidId } from "@store/shared";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Drawer } from "@/components/ui/Drawer";
 import { TabList } from "@/components/ui/Tabs";
 import { apiFetch, ApiError } from "@/lib/api";

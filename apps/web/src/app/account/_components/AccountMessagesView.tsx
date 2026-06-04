@@ -32,7 +32,7 @@ import {
   chatWelcomeMessage,
   groupChatMessagesByDay,
 } from "@/app/_components/chat/chatMessageUi";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { useChatSettings } from "@/lib/chat/chatSettingsContext";
 import { openChatWidget } from "@/lib/chat/openChat";
 import {

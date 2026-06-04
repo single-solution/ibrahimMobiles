@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { ArrowLeft, Search } from "lucide-react";
 import { classNames } from "@store/shared";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 
 /** Content wrapper for split-pane workspaces (orders, customers, inquiries). */
 export const adminWorkspacePageClass =
@@ -265,20 +265,16 @@ export function WorkspaceRowIconButton({
   disabled?: boolean;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant={tone === "danger" ? "danger" : "ghost"}
+      size="sm"
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={classNames(
-        "tap grid size-8 place-items-center rounded-[var(--radius-md)] transition-colors disabled:opacity-40",
-        tone === "danger"
-          ? "text-rose-500 hover:bg-rose-50 hover:text-rose-600"
-          : "text-[var(--color-ink-500)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
-      )}
+      className="px-2!"
     >
       {iconElement}
-    </button>
+    </Button>
   );
 }
 
@@ -367,16 +363,18 @@ export function WorkspaceDetailHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="reveal animate-in flex shrink-0 flex-wrap items-start gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-surface)] px-2.5 py-2 md:gap-3 md:px-4 md:py-3">
+    <header className="reveal animate-in flex shrink-0 flex-wrap items-center gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-surface)] px-2.5 py-2 md:gap-3 md:px-4 md:py-3">
       {onBack ? (
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           type="button"
           aria-label={backLabel ?? "Back to list"}
           onClick={onBack}
-          className="grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-600)] hover:bg-[var(--color-canvas-deep)] lg:hidden"
+          className="lg:hidden px-2!"
         >
           <ArrowLeft size={16} />
-        </button>
+        </Button>
       ) : null}
       <div className="min-w-0 flex-1">
         <div className="text-[13px] font-semibold text-[var(--color-ink-900)] md:text-sm">

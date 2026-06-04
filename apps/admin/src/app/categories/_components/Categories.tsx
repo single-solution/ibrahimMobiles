@@ -22,7 +22,7 @@ import {
 
 import { apiFetch, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { WorkspacePrimaryAction } from "@/components/shared/workspaceUi";
 import type {

@@ -11,7 +11,7 @@ import {
   type AttributeVisibilityType,
 } from "@store/shared";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Drawer } from "@/components/ui/Drawer";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, ApiError } from "@/lib/api";

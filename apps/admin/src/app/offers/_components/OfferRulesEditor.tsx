@@ -5,7 +5,7 @@ import type { OfferCondition, OfferAction, OfferSchedule, OfferConstraints } fro
 import { TextField } from "@/components/forms/TextField";
 import { SelectField } from "@/components/forms/SelectField";
 import { Switch } from "@/components/forms/Switch";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 
 interface OfferRulesEditorProps {
   conditions: OfferCondition[];

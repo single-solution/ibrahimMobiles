@@ -12,7 +12,7 @@ import {
   ShoppingBag,
   Trash2,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { StatusPill, type StatusTone } from "@/components/shared/StatusPill";
 import { TabList } from "@/components/ui/Tabs";
@@ -23,7 +23,7 @@ import { Switch } from "@/components/forms/Switch";
 import { useToast } from "@/components/ui/Toast";
 import { ApiError, apiFetch } from "@/lib/api";
 import { getInitials } from "@/lib/initials";
-import { formatActivityAction } from "@/lib/activityLabels";
+import { formatActivityAction, resolveResourceUrl } from "@/lib/activityLabels";
 import {
   FIELD_LIMITS,
   formatPrice,
@@ -45,6 +45,7 @@ import {
   CustomerStatCard,
   type CustomerDetailTab,
 } from "./customerDetailUi";
+import { ActivityDetailGrid } from "@/components/shared/ActivityDetailGrid";
 
 const EMAIL_MAX_CHARS = 320;
 const RECENT_TRANSACTIONS_PREVIEW = 8;
@@ -138,7 +139,6 @@ export function CustomerDetailPanel({
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [city, setCity] = useState("");
   const [isLoyaltyMember, setIsLoyaltyMember] = useState(false);
@@ -185,7 +185,6 @@ export function CustomerDetailPanel({
       setInquiries(inquiriesRes?.items ?? []);
       setActivity(activityRes?.items ?? []);
       setName(detail.name);
-      setEmail(detail.email ?? "");
       setPhoneNumber(detail.phoneNumber);
       setCity(detail.city);
       setIsLoyaltyMember(detail.isLoyaltyMember);
@@ -215,7 +214,6 @@ export function CustomerDetailPanel({
         method: "PUT",
         json: {
           name,
-          email: email || undefined,
           city,
           isLoyaltyMember,
           notes: notes || undefined,
@@ -336,7 +334,6 @@ export function CustomerDetailPanel({
   const summary: AdminCustomerSummary = {
     id: customer.id,
     name: customer.name,
-    email: customer.email,
     phoneNumber: customer.phoneNumber,
     city: customer.city,
     isLoyaltyMember: customer.isLoyaltyMember,
@@ -381,18 +378,6 @@ export function CustomerDetailPanel({
             >
               Call
             </Button>
-            {customer.email ? (
-              <Button
-                variant="outline"
-                size="sm"
-                leadingIcon={<Mail size={12} />}
-                onClick={() => {
-                  window.location.href = `mailto:${customer.email}`;
-                }}
-              >
-                Email
-              </Button>
-            ) : null}
             {canIssueCode ? (
               <Button
                 variant="outline"
@@ -460,7 +445,7 @@ export function CustomerDetailPanel({
               </p>
               <p className="mb-3 text-xs text-[var(--color-ink-500)]">
                 Customers sign in on the website with their phone number. You can update name,
-                email, city, loyalty enrollment, and internal notes here — not the phone used for
+                city, loyalty enrollment, and internal notes here — not the phone used for
                 OTP.
               </p>
               <div className="mt-3 space-y-3">
@@ -495,18 +480,6 @@ export function CustomerDetailPanel({
                     autoComplete="address-level2"
                   />
                 </div>
-                <TextField
-                  label="Email"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  disabled={!canManage}
-                  maxLength={EMAIL_MAX_CHARS}
-                  placeholder="optional@example.com"
-                  inputMode="email"
-                  autoComplete="email"
-                  hint="Optional — used for order receipts when provided."
-                />
                 <Switch
                   label="Loyalty member"
                   description="Marks enrollment for programme rules; balance changes happen on the Loyalty tab."
@@ -821,14 +794,26 @@ function ActivityTab({ entries }: { entries: AdminActivityEntry[] }) {
           className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2 text-xs"
         >
           <p className="font-semibold text-[var(--color-ink-900)]">
-            {formatActivityAction(entry.action)} · {entry.resourceLabel}
+            {formatActivityAction(entry.action)} ·{" "}
+            {(() => {
+              const href = resolveResourceUrl(entry.resourceType, entry.resourceId);
+              if (href) {
+                return (
+                  <Link
+                    href={href}
+                    className="hover:text-[var(--color-accent-700)] hover:underline"
+                  >
+                    {entry.resourceLabel}
+                  </Link>
+                );
+              }
+              return entry.resourceLabel;
+            })()}
           </p>
           <p className="text-[10px] text-[var(--color-ink-500)]">
             {entry.actorName} · {formatTimeAgo(entry.createdAt)}
           </p>
-          {entry.detail ? (
-            <p className="mt-0.5 text-[var(--color-ink-700)]">{entry.detail}</p>
-          ) : null}
+          <ActivityDetailGrid detail={entry.detail || ""} />
         </li>
       ))}
     </ul>

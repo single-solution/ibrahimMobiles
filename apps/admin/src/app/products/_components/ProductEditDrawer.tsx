@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Drawer } from "@/components/ui/Drawer";
 import { CatalogSeoPanel } from "@/app/settings/_components/CatalogSeoPanel";
 import { ImageGallery } from "@/components/shared/uploads";

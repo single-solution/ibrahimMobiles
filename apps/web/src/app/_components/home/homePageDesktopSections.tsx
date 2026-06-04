@@ -11,7 +11,7 @@ import {
   Undo2,
   Video,
 } from "lucide-react";
-import { ButtonLink } from "@/components/ui/Button";
+import { ButtonLink } from "@store/ui";
 import { Pill } from "@/components/ui/Pill";
 import { Icon } from "@/components/shared/Icon";
 import {

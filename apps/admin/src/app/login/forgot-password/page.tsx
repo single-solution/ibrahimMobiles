@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Mail, ShieldAlert } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { TextField } from "@/components/forms/TextField";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 

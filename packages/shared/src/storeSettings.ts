@@ -115,6 +115,14 @@ export interface StoreSettings {
   /** Short note shown under the COD chip and on the order success page. */
   paymentCodNote: string;
 
+  // ── Global Notices ────────────────────────────────────────────────────────
+  /** Global delivery note shown on PDPs and checkout (e.g., "3 to 5 working days"). */
+  globalDeliveryNote: string;
+  /** Text for the global store notice banner. */
+  storeNoticeText: string;
+  /** Whether the global store notice banner is enabled. */
+  storeNoticeEnabled: boolean;
+
   // ── Inventory ───────────────────────────────────────────────────────────
   /**
    * Low-stock alert threshold — variant stock counts at or below this trigger
@@ -185,6 +193,10 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
 
   paymentCodNote: "",
 
+  globalDeliveryNote: "3 to 5 working days",
+  storeNoticeText: "",
+  storeNoticeEnabled: false,
+
   lowStockThreshold: 2,
 
   metaPixelId: "",
@@ -215,6 +227,7 @@ export const STORE_SETTING_GROUPS = {
   ] as const,
   contact: ["supportPhone", "supportLandline", "supportEmail", "whatsappNumber"] as const,
   address: ["storeAddressLine1", "storeAddressLine2", "storeHours"] as const,
+  notices: ["globalDeliveryNote", "storeNoticeText", "storeNoticeEnabled"] as const,
   social: [
     "socialFacebook",
     "socialInstagram",

@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { Copy, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
-import { formatActivityAction } from "@/lib/activityLabels";
+import { formatActivityAction, resolveResourceUrl } from "@/lib/activityLabels";
 import {
   ROLE_DESCRIPTIONS,
   ROLE_LABEL,
@@ -15,6 +16,7 @@ import {
 import { classNames, formatTimeAgo } from "@store/shared";
 import type { AdminActivityEntry, AdminUser } from "@/types/models";
 import type { UserRole } from "@store/db";
+import { ActivityDetailGrid } from "@/components/shared/ActivityDetailGrid";
 
 import { TeamStatCard, type TeamMemberTab } from "./teamDetailUi";
 
@@ -183,14 +185,27 @@ function ActivityList({
           )}
         >
           <p className="font-semibold text-[var(--color-ink-900)]">
-            {formatActivityAction(entry.action)} · {entry.resourceLabel || entry.resourceType}
+            {formatActivityAction(entry.action)} ·{" "}
+            {(() => {
+              const label = entry.resourceLabel || entry.resourceType;
+              const href = resolveResourceUrl(entry.resourceType, entry.resourceId);
+              if (href) {
+                return (
+                  <Link
+                    href={href}
+                    className="hover:text-[var(--color-accent-700)] hover:underline"
+                  >
+                    {label}
+                  </Link>
+                );
+              }
+              return label;
+            })()}
           </p>
           <p className="text-[10px] text-[var(--color-ink-500)]">
             {entry.resourceType} · {formatTimeAgo(entry.createdAt)}
           </p>
-          {entry.detail ? (
-            <p className="mt-0.5 text-[var(--color-ink-700)]">{entry.detail}</p>
-          ) : null}
+          <ActivityDetailGrid detail={entry.detail || ""} />
         </li>
       ))}
     </ul>

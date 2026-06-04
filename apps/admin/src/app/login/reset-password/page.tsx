@@ -4,7 +4,7 @@ import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Lock, KeyRound } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { TextField } from "@/components/forms/TextField";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 

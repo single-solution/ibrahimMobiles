@@ -28,7 +28,7 @@ import {
   pointsToRupees,
 } from "@store/shared";
 import { PhoneOtpForm } from "@/app/account/_components/PhoneOtpForm";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
@@ -97,10 +97,10 @@ export function CheckoutSignInPanel() {
       <PanelHeader
         icon={<ShieldCheck size={14} />}
         eyebrow="Sign in required"
-        title="Verify your phone to checkout"
+        title="Verify your WhatsApp to checkout"
       />
       <p className="mt-2 max-w-prose text-[13px] text-[var(--color-ink-500)]">
-        We use your phone number for order updates and to keep your order history in one account.
+        We use your WhatsApp number for order updates, dispatch videos, and to keep your order history in one account.
       </p>
       <div className="mt-5">
         <PhoneOtpForm
@@ -186,7 +186,7 @@ export function ContactPanel({
         </div>
         <div className="reveal">
           <Field
-            label="Phone"
+            label="WhatsApp number"
             value={phoneNumber}
             onChange={() => undefined}
             icon={<Phone size={14} />}
@@ -271,6 +271,7 @@ export function DeliveryPanel({
   isPlacing,
 }: DeliveryPanelProps) {
   const settings = useStoreSettings();
+  const { globalDeliveryNote } = settings;
   return (
     <Card className="p-4 md:p-5">
       <PanelHeader
@@ -295,7 +296,7 @@ export function DeliveryPanel({
           <ChoiceTile
             icon={<Truck size={15} />}
             title="Door delivery"
-            subtitle="Nationwide tracked courier · 2–4 working days"
+            subtitle={globalDeliveryNote ? `Nationwide tracked courier · ${globalDeliveryNote}` : "Nationwide tracked courier"}
             tag="Rs 1,500"
             isSelected={delivery === "delivery"}
             onSelect={() => onChange("delivery")}

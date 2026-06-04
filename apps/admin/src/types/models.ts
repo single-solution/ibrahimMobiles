@@ -166,7 +166,6 @@ export interface AdminCustomerAddress {
 export interface AdminCustomerSummary {
   id: string;
   name: string;
-  email?: string;
   phoneNumber: string;
   city: string;
   isLoyaltyMember: boolean;
@@ -235,6 +234,7 @@ export interface AdminOrder extends AdminOrderSummary {
   };
   timeline: AdminOrderTimelineEntry[];
   trackingNote?: string;
+  dispatchVideoUrl?: string;
   estimatedDeliveryAt?: string;
   pointsEarned: number;
   pointsRedeemed: number;

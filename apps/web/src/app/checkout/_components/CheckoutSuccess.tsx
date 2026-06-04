@@ -6,7 +6,7 @@ import {
   Package,
   Sparkles,
 } from "lucide-react";
-import { ButtonLink } from "@/components/ui/Button";
+import { ButtonLink } from "@store/ui";
 import { Card } from "@/components/ui/Card";
 import {
   CHECKOUT_TO_ORDER_PAYMENT,

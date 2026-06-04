@@ -16,6 +16,7 @@
   "dependencies": {
     "@store/db": "*",
     "@store/shared": "*",
+    "@store/ui": "*",
     "bcryptjs": "^3.0.3",
     "lucide-react": "^1.16.0",
     "mongoose": "^9.6.2",

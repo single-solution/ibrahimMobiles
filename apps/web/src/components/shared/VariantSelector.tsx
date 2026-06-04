@@ -17,8 +17,8 @@ import {
 
 import { toAttributeLabelSource } from "@/lib/catalog/attributeLabels";
 
-import { Button } from "@/components/ui/Button";
-import { QuantityStepper } from "@/components/ui/QuantityStepper";
+import { Button } from "@store/ui";
+import { QuantityStepper } from "@store/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useVariantSelection } from "@/components/shared/VariantContext";
 import { useActiveOffers } from "@/lib/pricing/useActiveOffers";

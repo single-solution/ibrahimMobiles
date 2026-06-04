@@ -21,7 +21,6 @@ import { auth } from "@/lib/auth";
 export interface VerifiedCustomer {
 	id: string;
 	name: string;
-	email: string | null;
 	phoneNumber: string;
 	city: string;
 	isLoyaltyMember: boolean;
@@ -65,7 +64,6 @@ export async function getVerifiedCustomer(): Promise<VerifiedCustomer | null> {
 	const verified: VerifiedCustomer = {
 		id: String(record._id),
 		name: record.name,
-		email: record.email ?? null,
 		phoneNumber: record.phoneNumber,
 		city: record.city,
 		isLoyaltyMember: record.isLoyaltyMember === true,

@@ -87,7 +87,7 @@ function CustomersCatalogInner({
     const query = searchQuery.trim().toLowerCase();
     if (!query) return rows;
     return rows.filter((row) =>
-      `${row.name} ${row.email ?? ""} ${row.phoneNumber} ${row.city}`
+      `${row.name} ${row.phoneNumber} ${row.city}`
         .toLowerCase()
         .includes(query),
     );
@@ -96,6 +96,9 @@ function CustomersCatalogInner({
   const setActiveCustomerUrl = useCallback(
     (id: string | null) => {
       setActiveId(id);
+      if (id) {
+        void apiFetch(`/api/customers/${id}/seen`, { method: "POST" }).catch(() => {});
+      }
       const params = new URLSearchParams(searchParams.toString());
       if (id) {
         params.set("customer", id);

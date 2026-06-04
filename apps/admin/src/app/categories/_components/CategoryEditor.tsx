@@ -16,7 +16,7 @@ import {
   slugify,
 } from "@store/shared";
 
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Drawer } from "@/components/ui/Drawer";
 import { StructuredContentEditor } from "@/components/forms/StructuredContentEditor";
 import { LucideIconPicker } from "@/components/icons/LucideIconPicker";

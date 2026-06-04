@@ -9,12 +9,10 @@ import {
 } from "@store/shared";
 import {
   ChevronRight,
-  Headset,
   LayoutDashboard,
   MapPin,
   Package,
   ShieldCheck,
-  ShoppingCart,
   Sparkles,
   Truck,
   User,
@@ -97,9 +95,6 @@ export default async function AccountPage() {
           </div>
           <div className="reveal">
             <ProfileCard customer={overview.customer} />
-          </div>
-          <div className="reveal">
-            <QuickActions />
           </div>
         </aside>
       </div>
@@ -245,7 +240,6 @@ function StatCard({ icon, label, value, href, accent }: StatCardProps) {
 interface ProfileCardProps {
   customer: {
     name: string;
-    email: string;
     phoneNumber: string;
     addresses: { recipientName: string; phoneNumber: string; city: string; area?: string; street?: string; isDefault: boolean }[];
   };
@@ -265,7 +259,7 @@ function ProfileCard({ customer }: ProfileCardProps) {
             {customer.name}
           </p>
           <p className="line-clamp-1 text-[12px] text-[var(--color-ink-500)]">
-            {customer.email || customer.phoneNumber}
+            {customer.phoneNumber}
           </p>
         </div>
       </div>
@@ -298,46 +292,6 @@ function ProfileCard({ customer }: ProfileCardProps) {
           <ChevronRight size={13} />
         </Link>
       </div>
-    </Card>
-  );
-}
-
-const QUICK_ACTIONS = [
-  { href: "/account/messages", icon: Headset, label: "Messages", subtitle: "Chat with our team" },
-  { href: "/checkout", icon: ShoppingCart, label: "Continue checkout", subtitle: "Pick up where you left off" },
-  { href: "#orders", icon: Package, label: "Your orders", subtitle: "Status and order history" },
-];
-
-function QuickActions() {
-  return (
-    <Card className="overflow-hidden">
-      <p className="border-b border-[var(--color-ink-100)] px-4 py-3 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)] md:px-5">
-        Quick actions
-      </p>
-      <ul className="divide-y divide-[var(--color-ink-100)]">
-        {QUICK_ACTIONS.map((action) => {
-          const Icon = action.icon;
-          return (
-            <li key={action.href}>
-              <Link
-                href={action.href}
-                className="tap flex items-center gap-3 px-4 py-3 hover:bg-[var(--color-canvas-deep)] md:px-5"
-              >
-                <span className="grid size-8 place-items-center rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] text-[var(--color-ink-700)]">
-                  <Icon size={14} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-semibold text-[var(--color-ink-900)]">
-                    {action.label}
-                  </p>
-                  <p className="text-[11.5px] text-[var(--color-ink-500)]">{action.subtitle}</p>
-                </div>
-                <ChevronRight size={14} className="text-[var(--color-ink-400)]" />
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
     </Card>
   );
 }

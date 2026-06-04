@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Paperclip, Phone, Send } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { SelectField } from "@/components/forms/SelectField";

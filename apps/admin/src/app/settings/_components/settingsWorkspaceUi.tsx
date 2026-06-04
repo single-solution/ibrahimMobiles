@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { classNames } from "@store/shared";
 import { CheckCircle2, Circle, type LucideIcon } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 export type SettingsTabId =
@@ -11,6 +11,7 @@ export type SettingsTabId =
   | "contact"
   | "payments"
   | "delivery"
+  | "notices"
   | "social"
   | "policies"
   | "loyalty"
@@ -63,6 +64,11 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: "delivery",
         label: "Delivery",
         description: "Free-delivery threshold applied at checkout.",
+      },
+      {
+        id: "notices",
+        label: "Notices",
+        description: "Global delivery notes and store-wide banner alerts.",
       },
       {
         id: "loyalty",

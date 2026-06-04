@@ -9,7 +9,7 @@ import {
 } from "@store/shared";
 
 import { apiFetch } from "@/lib/api";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@store/ui";
 import { SelectField } from "@/components/forms/SelectField";
 import { useToast } from "@/components/ui/Toast";
 

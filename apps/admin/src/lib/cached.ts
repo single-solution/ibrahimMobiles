@@ -304,7 +304,6 @@ export const loadAdminCustomersCached = unstable_cache(
       return {
         id: full.id,
         name: full.name,
-        email: full.email,
         phoneNumber: full.phoneNumber,
         city: full.city,
         isLoyaltyMember: full.isLoyaltyMember,
