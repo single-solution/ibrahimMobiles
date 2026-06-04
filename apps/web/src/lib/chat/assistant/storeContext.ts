@@ -40,15 +40,13 @@ export async function buildAssistantStoreContext(input: {
   customerMessage: string;
   subjectProductId?: string;
   subjectProductName?: string;
-  catalogLimit?: number;
 }): Promise<AssistantStoreContext> {
-  const catalogLimit = input.catalogLimit ?? 8;
   const [settings, categories, searchPage, subjectProduct] = await Promise.all([
     getStoreSettingsCached(),
     getCategoriesCached(),
     getProductsPageCached({
       search: input.customerMessage.trim().slice(0, 80),
-      limit: catalogLimit,
+      limit: 100,
       sort: "newest",
     }),
     loadSubjectProduct(input.subjectProductId),

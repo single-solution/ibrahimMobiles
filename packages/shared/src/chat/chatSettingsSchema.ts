@@ -27,8 +27,6 @@ export interface ChatSettingsValues {
   assistantTrainingNotes: string;
   assistantTemperature: number;
   assistantMaxTokens: number;
-  assistantHistoryTurns: number;
-  assistantCatalogLimit: number;
   welcomeMessageGuest: string;
   welcomeMessageCustomer: string;
   liveModeEnabled: boolean;
@@ -54,8 +52,6 @@ export const CHAT_SETTING_DEFAULTS: ChatSettingsValues = {
   assistantTrainingNotes: "",
   assistantTemperature: 0.38,
   assistantMaxTokens: 500,
-  assistantHistoryTurns: 10,
-  assistantCatalogLimit: 8,
   welcomeMessageGuest: CHAT_WELCOME_GUEST_DEFAULT,
   welcomeMessageCustomer: CHAT_WELCOME_CUSTOMER_DEFAULT,
   liveModeEnabled: false,
@@ -80,8 +76,6 @@ export type ChatAssistantRuntimeSettings = Pick<
   | "assistantTrainingNotes"
   | "assistantTemperature"
   | "assistantMaxTokens"
-  | "assistantHistoryTurns"
-  | "assistantCatalogLimit"
 >;
 
 export function resolveAssistantModelFromSettings(
@@ -118,8 +112,6 @@ const CHAT_SETTING_DB_KEYS: Record<keyof ChatSettingsValues, string> = {
   assistantTrainingNotes: "chat.assistantTrainingNotes",
   assistantTemperature: "chat.assistantTemperature",
   assistantMaxTokens: "chat.assistantMaxTokens",
-  assistantHistoryTurns: "chat.assistantHistoryTurns",
-  assistantCatalogLimit: "chat.assistantCatalogLimit",
   welcomeMessageGuest: "chat.welcomeMessageGuest",
   welcomeMessageCustomer: "chat.welcomeMessageCustomer",
   liveModeEnabled: "chat.liveModeEnabled",
@@ -196,18 +188,6 @@ export function coerceChatSettingValue<K extends keyof ChatSettingsValues>(
           ? clampNumber(Math.round(value), 100, 2_000)
           : null
       ) as ChatSettingsValues[K] | null;
-    case "assistantHistoryTurns":
-      return (
-        typeof value === "number" && Number.isFinite(value)
-          ? clampNumber(Math.round(value), 2, 24)
-          : null
-      ) as ChatSettingsValues[K] | null;
-    case "assistantCatalogLimit":
-      return (
-        typeof value === "number" && Number.isFinite(value)
-          ? clampNumber(Math.round(value), 1, 20)
-          : null
-      ) as ChatSettingsValues[K] | null;
     case "welcomeMessageGuest":
     case "welcomeMessageCustomer":
       return (
@@ -274,8 +254,6 @@ export function mergeChatSettingsFromDb(
     assistantTrainingNotes: readChatSetting(map, "assistantTrainingNotes"),
     assistantTemperature: readChatSetting(map, "assistantTemperature"),
     assistantMaxTokens: readChatSetting(map, "assistantMaxTokens"),
-    assistantHistoryTurns: readChatSetting(map, "assistantHistoryTurns"),
-    assistantCatalogLimit: readChatSetting(map, "assistantCatalogLimit"),
     welcomeMessageGuest: readChatSetting(map, "welcomeMessageGuest"),
     welcomeMessageCustomer: readChatSetting(map, "welcomeMessageCustomer"),
     liveModeEnabled: readChatSetting(map, "liveModeEnabled"),

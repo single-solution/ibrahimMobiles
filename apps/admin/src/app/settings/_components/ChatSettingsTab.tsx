@@ -303,24 +303,6 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
                 disabled={!draft.enabled || !draft.assistantEnabled}
                 hint="Max length of response."
               />
-              <NumberField
-                label="History Turns"
-                value={draft.assistantHistoryTurns}
-                onChange={(value) => setField("assistantHistoryTurns", value)}
-                min={2}
-                max={24}
-                disabled={!draft.enabled || !draft.assistantEnabled}
-                hint="Past messages to remember."
-              />
-              <NumberField
-                label="Catalog Matches"
-                value={draft.assistantCatalogLimit}
-                onChange={(value) => setField("assistantCatalogLimit", value)}
-                min={1}
-                max={20}
-                disabled={!draft.enabled || !draft.assistantEnabled}
-                hint="Max products to search."
-              />
             </div>
 
             <div>

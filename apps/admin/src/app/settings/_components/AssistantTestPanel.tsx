@@ -66,8 +66,6 @@ export function AssistantTestPanel({
           assistantTrainingNotes: draftSettings.assistantTrainingNotes,
           assistantTemperature: draftSettings.assistantTemperature,
           assistantMaxTokens: draftSettings.assistantMaxTokens,
-          assistantHistoryTurns: draftSettings.assistantHistoryTurns,
-          assistantCatalogLimit: draftSettings.assistantCatalogLimit,
         },
       },
     });

@@ -60,8 +60,6 @@ function mergeRuntimeSettings(
     assistantTrainingNotes: merged.assistantTrainingNotes,
     assistantTemperature: merged.assistantTemperature,
     assistantMaxTokens: merged.assistantMaxTokens,
-    assistantHistoryTurns: merged.assistantHistoryTurns,
-    assistantCatalogLimit: merged.assistantCatalogLimit,
   };
 }
 
@@ -117,8 +115,6 @@ export async function POST(request: Request) {
     assistantTrainingNotes: pickSetting("assistantTrainingNotes"),
     assistantTemperature: pickSetting("assistantTemperature"),
     assistantMaxTokens: pickSetting("assistantMaxTokens"),
-    assistantHistoryTurns: pickSetting("assistantHistoryTurns"),
-    assistantCatalogLimit: pickSetting("assistantCatalogLimit"),
     assistantProvider: pickSetting("assistantProvider"),
     assistantName: pickSetting("assistantName"),
   };
@@ -158,7 +154,6 @@ export async function POST(request: Request) {
   try {
     const context = await buildAssistantTestContext({
       customerMessage: messageResult,
-      catalogLimit: runtime.assistantCatalogLimit,
     });
     const system = buildAssistantSystemPrompt(context, runtime.assistantName, {
       trainingNotes: runtime.assistantTrainingNotes,

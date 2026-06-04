@@ -44,11 +44,9 @@ function formatProductLine(product: ProductLean, brandName: string): string {
 export async function buildAssistantTestContext(input: {
   customerMessage: string;
   subjectProductId?: string;
-  catalogLimit?: number;
 }): Promise<AssistantStoreContext> {
   await connectDB();
   const settings = await getStoreSettings();
-  const catalogLimit = input.catalogLimit ?? 8;
 
   const [categories, searchProducts, subjectProduct] = await Promise.all([
     Category.find({ isActive: true }).select("label").sort({ sortOrder: 1 }).lean<
@@ -60,7 +58,7 @@ export async function buildAssistantTestContext(input: {
       name: { $regex: input.customerMessage.trim().slice(0, 60), $options: "i" },
     })
       .select("name slug categorySlug brandSlug variants")
-      .limit(catalogLimit)
+      .limit(100)
       .lean<ProductLean[]>(),
     input.subjectProductId
       ? Product.findOne({

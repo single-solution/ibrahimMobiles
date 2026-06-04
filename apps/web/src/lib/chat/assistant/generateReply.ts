@@ -53,17 +53,15 @@ export async function generateAssistantReply(
     customerMessage: input.customerMessage,
     subjectProductId: input.subjectProductId,
     subjectProductName: input.subjectProductName,
-    catalogLimit: input.settings.assistantCatalogLimit,
   });
 
   const system = buildAssistantSystemPrompt(context, input.settings.assistantName, {
     trainingNotes: input.settings.assistantTrainingNotes,
   });
-  const recentHistory = input.history.slice(-input.settings.assistantHistoryTurns);
 
   const messages = [
     { role: "system" as const, content: system },
-    ...recentHistory.map((turn) => ({
+    ...input.history.map((turn) => ({
       role: turn.role,
       content: turn.content,
     })),
