@@ -74,9 +74,20 @@ export function Footer({ settings }: FooterProps) {
           </div>
         </div>
 
-        <div className="mt-7 flex flex-col gap-1.5 border-t border-[var(--color-ink-700)] pt-5 text-center text-xs text-[var(--color-ink-400)] sm:mt-8 sm:flex-row sm:items-center sm:justify-between sm:text-left">
+        <div className="mt-7 flex flex-col gap-3 border-t border-[var(--color-ink-700)] pt-5 text-center text-[11px] text-[var(--color-ink-400)] sm:mt-8 sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <span>
             © {new Date().getFullYear()} {settings.siteName}. All rights reserved.
+          </span>
+          <span className="flex items-center justify-center gap-1.5 sm:justify-end">
+            Developed by{" "}
+            <a
+              href="https://github.com/single-solution"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-[var(--color-ink-300)] transition-colors hover:text-[var(--color-accent-400)]"
+            >
+              Single-solution
+            </a>
           </span>
         </div>
       </div>
