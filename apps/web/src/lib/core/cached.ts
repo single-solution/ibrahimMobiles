@@ -307,11 +307,11 @@ export function searchAssistantCatalogCached(
  * product summaries only — used by the assistant's `get_top_products` tool.
  */
 const getPopularProductsInner = unstable_cache(
-  async (limit: number): Promise<Product[]> => getPopularProductsRaw(limit),
+  async (limit?: number): Promise<Product[]> => getPopularProductsRaw(limit),
   ["assistant-popular-products-v1"],
   { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
-export function getPopularProductsCached(limit: number): Promise<Product[]> {
+export function getPopularProductsCached(limit?: number): Promise<Product[]> {
   return getPopularProductsInner(limit);
 }
