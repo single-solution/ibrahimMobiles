@@ -24,6 +24,11 @@ import {
  * tool, so keeping this short cuts prompt tokens on every message AND on every
  * tool round (the system prompt is resent each round).
  */
+const CATALOG_CONTEXT_LIMIT = 10;
+
+/** How many of the customer's orders to load; full detail on the most recent few. */
+const ORDER_CONTEXT_LIMIT = 15;
+const ORDER_CONTEXT_DETAILED = 5;
 
 function formatOrderDate(iso?: string): string {
   if (!iso) {
@@ -32,30 +37,32 @@ function formatOrderDate(iso?: string): string {
   return iso.slice(0, 10);
 }
 
-function formatOrderLine(order: Order): string {
+function formatOrderLine(order: Order, detailed: boolean): string {
   const parts = [
     `#${order.orderNumber}`,
     formatOrderDate(order.placedAt),
     order.statusLabel,
     `total ${formatPrice(order.totals.totalRupees)}`,
   ];
-  const items = order.items
-    .map((item) => {
-      const variant = item.variantSummary ? ` (${item.variantSummary})` : "";
-      return `${item.quantity}× ${item.productName}${variant}`;
-    })
-    .join(", ");
-  if (items) {
-    parts.push(`items: ${items}`);
-  }
-  if (order.estimatedDeliveryAt) {
-    parts.push(`est. delivery ${formatOrderDate(order.estimatedDeliveryAt)}`);
-  }
-  if (order.trackingNote?.trim()) {
-    parts.push(`note: ${order.trackingNote.trim()}`);
-  }
-  if (order.dispatchVideoUrl?.trim()) {
-    parts.push("dispatch video ready (view on their order page in account)");
+  if (detailed) {
+    const items = order.items
+      .map((item) => {
+        const variant = item.variantSummary ? ` (${item.variantSummary})` : "";
+        return `${item.quantity}× ${item.productName}${variant}`;
+      })
+      .join(", ");
+    if (items) {
+      parts.push(`items: ${items}`);
+    }
+    if (order.estimatedDeliveryAt) {
+      parts.push(`est. delivery ${formatOrderDate(order.estimatedDeliveryAt)}`);
+    }
+    if (order.trackingNote?.trim()) {
+      parts.push(`note: ${order.trackingNote.trim()}`);
+    }
+    if (order.dispatchVideoUrl?.trim()) {
+      parts.push("dispatch video ready (view on their order page in account)");
+    }
   }
   return `- ${parts.filter(Boolean).join(" | ")}`;
 }
@@ -64,12 +71,12 @@ export async function buildOrderContext(verifiedCustomerId?: string): Promise<st
   if (!verifiedCustomerId) {
     return undefined;
   }
-  const orders = await getAccountOrders(verifiedCustomerId);
+  const orders = await getAccountOrders(verifiedCustomerId, ORDER_CONTEXT_LIMIT);
   if (orders.length === 0) {
     return "This customer is signed in but has no orders yet.";
   }
   return orders
-    .map((order) => formatOrderLine(order))
+    .map((order, index) => formatOrderLine(order, index < ORDER_CONTEXT_DETAILED))
     .join("\n");
 }
 
@@ -172,6 +179,7 @@ export async function buildAssistantStoreContext(input: {
       getStoreSettingsCached(),
       getCategoriesCached(),
       getProductsPageCached({
+        limit: CATALOG_CONTEXT_LIMIT,
         sort: "newest",
       }),
       getOffersCached(),

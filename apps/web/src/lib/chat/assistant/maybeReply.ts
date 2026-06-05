@@ -21,6 +21,9 @@ import {
 } from "@/lib/chat/assistant/generateReply";
 import { getChatSettings } from "@/lib/chat/chatSettings";
 
+/** Recent turns kept for context. Short on purpose to save tokens per call. */
+const HISTORY_TURN_LIMIT = 10;
+
 /**
  * Grace window after escalation during which the bot stays silent so the
  * senior teammate gets first crack at the conversation. If no agent has
@@ -33,6 +36,7 @@ const ESCALATION_GRACE_MS = 3 * 60_000;
 function historyFromInquiry(inquiry: InquiryLean): AssistantChatTurn[] {
   return inquiry.messages
     .filter((message) => message.author === "customer" || message.author === "assistant")
+    .slice(-HISTORY_TURN_LIMIT)
     .map((message) => ({
       role: message.author === "customer" ? ("user" as const) : ("assistant" as const),
       content: message.body,

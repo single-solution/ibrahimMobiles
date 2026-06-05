@@ -34,6 +34,8 @@ import {
 } from "@/lib/core/cached";
 import { isProductInStock } from "@/lib/productSummary";
 
+const SEARCH_RESULT_LIMIT = 12;
+
 export interface AssistantToolContext {
   /** Session-verified customer id — NEVER derived from model/user input. */
   verifiedCustomerId?: string;
@@ -225,6 +227,7 @@ export async function executeAssistantTool(
       minPriceRupees: minPrice,
       maxPriceRupees: maxPrice,
       inStockOnly: call.arguments.in_stock_only === true,
+      limit: SEARCH_RESULT_LIMIT,
     });
     if (products.length === 0) {
       return `Nothing in the catalog matched that. Do not invent any — offer to double-check with the team or suggest a related category.`;
@@ -260,8 +263,8 @@ export async function executeAssistantTool(
     const kind = stringArg(call.arguments, "kind").trim().toLowerCase();
     const products =
       kind === "new"
-        ? (await getProductsPageCached({ sort: "newest" })).products
-        : await getPopularProductsCached();
+        ? (await getProductsPageCached({ sort: "newest", limit: SEARCH_RESULT_LIMIT })).products
+        : await getPopularProductsCached(SEARCH_RESULT_LIMIT);
     if (products.length === 0) {
       return "Nothing to show there yet. Don't invent any — suggest browsing a category or checking with the team.";
     }
