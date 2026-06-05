@@ -33,6 +33,8 @@ export interface GenerateAssistantReplyInput {
   /** Session-verified customer id; enables own-order answers. Never from user input. */
   verifiedCustomerId?: string;
   history: AssistantChatTurn[];
+  /** Thread is escalated and still awaiting a human — reassure, don't re-open the issue. */
+  awaitingHuman?: boolean;
 }
 
 export interface GenerateAssistantReplyResult {
@@ -95,6 +97,7 @@ export async function generateAssistantReply(
 
   const system = buildAssistantSystemPrompt(context, input.settings.assistantName, {
     instructions: input.settings.assistantInstructions,
+    awaitingHuman: input.awaitingHuman,
   });
 
   const messages: AssistantChatMessage[] = [

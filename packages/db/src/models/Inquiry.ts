@@ -116,6 +116,12 @@ export interface InquiryAttributes {
    * talking over the team once a person has taken the conversation.
    */
   assistantMuted?: boolean;
+  /**
+   * When the bot escalated to a human. After a grace period with no agent
+   * reply, the bot resumes with reassurance-only help so the customer is not
+   * left hanging if the senior is slow. Cleared when an agent replies.
+   */
+  escalatedAt?: Date;
   internalNotes?: string;
   messages: InquiryMessageAttributes[];
 }
@@ -224,6 +230,7 @@ const inquirySchema = new Schema<InquiryAttributes>(
     unreadByCustomer: { type: Number, required: true, default: 0, min: 0 },
     unreadByTeam: { type: Number, required: true, default: 1, min: 0 },
     assistantMuted: { type: Boolean, default: false },
+    escalatedAt: { type: Date },
     internalNotes: { type: String, trim: true, maxlength: 4_000 },
     messages: { type: [inquiryMessageSchema], default: [] },
   },

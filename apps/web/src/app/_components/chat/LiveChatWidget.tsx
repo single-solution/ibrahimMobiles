@@ -32,6 +32,7 @@ import {
   guestChatLoginRequired,
   isAnonymousChatPhone,
   countCustomerChatMessages,
+  type ChatMessage,
   type ChatThread,
 } from "@store/shared";
 
@@ -60,6 +61,7 @@ import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import {
   ChatShell,
   ComposeConversation,
+  StartingConversation,
   SupportHintFooter,
   ThreadConversation,
   statusLabel,
@@ -84,6 +86,7 @@ export function LiveChatWidget({
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [activeThread, setActiveThread] = useState<ChatThread | null>(null);
   const [view, setView] = useState<WidgetView>("compose");
+  const [pendingFirstMessage, setPendingFirstMessage] = useState<ChatMessage | null>(null);
   const pathname = usePathname() ?? "/";
   const searchParams = useSearchParams();
   const signInHref = useMemo(() => {
@@ -223,6 +226,9 @@ export function LiveChatWidget({
 
   async function handleComposeSend(body: string) {
     setBootstrapError(null);
+    // Show the customer's message + typing indicator instantly so the first
+    // send never feels frozen behind a blank "Starting chat…" screen.
+    setPendingFirstMessage(makeOptimisticMessage({ body }));
     setView("starting");
     try {
       const thread = isSignedInCustomer
@@ -233,14 +239,23 @@ export function LiveChatWidget({
           });
       const fresh = await sendChatMessage(thread.id, body);
       lastActivityAtRef.current = Date.now();
-      setActiveThread(fresh);
       setActiveThreadId(fresh.id);
+      // Mount the thread with only the customer's message so the assistant
+      // bubbles land as "new" and get the human typing pace (next frame),
+      // instead of all appearing at once.
+      setActiveThread({
+        ...fresh,
+        messages: fresh.messages.filter((message) => message.author === "customer"),
+      });
       setView("thread");
+      setPendingFirstMessage(null);
+      requestAnimationFrame(() => setActiveThread(fresh));
       void refreshBootstrap();
     } catch (error) {
       const msg =
         error instanceof Error ? error.message : "Could not start chat.";
       setBootstrapError(msg);
+      setPendingFirstMessage(null);
       setView("compose");
       throw error;
     }
@@ -350,10 +365,8 @@ export function LiveChatWidget({
           {bootstrapError}
         </div>
       )}
-      {view === "starting" && (
-        <div className="flex flex-1 items-center justify-center bg-[var(--color-canvas-deep)] px-4 text-sm text-[var(--color-ink-500)]">
-          Starting chat…
-        </div>
+      {view === "starting" && pendingFirstMessage && (
+        <StartingConversation message={pendingFirstMessage} />
       )}
       {view === "compose" && (
         <ComposeConversation

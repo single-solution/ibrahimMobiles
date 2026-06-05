@@ -24,6 +24,15 @@ import { getChatSettings } from "@/lib/chat/chatSettings";
 /** Recent turns kept for context. Short on purpose to save tokens per call. */
 const HISTORY_TURN_LIMIT = 8;
 
+/**
+ * Grace window after escalation during which the bot stays silent so the
+ * senior teammate gets first crack at the conversation. If no agent has
+ * replied within this window (the thread is still muted) and the customer
+ * keeps messaging, the bot resumes with reassurance-only help so they are
+ * never left hanging.
+ */
+const ESCALATION_GRACE_MS = 3 * 60_000;
+
 function historyFromInquiry(inquiry: InquiryLean): AssistantChatTurn[] {
   return inquiry.messages
     .filter((message) => message.author === "customer" || message.author === "assistant")
@@ -56,10 +65,18 @@ export async function maybeReplyWithAssistant(
     return;
   }
 
-  // Escalated to a human: stay quiet until an agent replies (which clears the
-  // flag). The team owns the conversation now — the bot must not talk over it.
-  if (inquiry.assistantMuted) {
-    return;
+  // Escalated to a human: stay quiet during the grace window so the senior
+  // gets first crack. If still muted past the grace window (no agent reply
+  // yet) and the customer keeps messaging, the bot resumes with
+  // reassurance-only help so they are never left hanging.
+  const awaitingHuman = inquiry.assistantMuted === true;
+  if (awaitingHuman) {
+    const escalatedAt = inquiry.escalatedAt
+      ? new Date(inquiry.escalatedAt).getTime()
+      : 0;
+    if (!escalatedAt || Date.now() - escalatedAt < ESCALATION_GRACE_MS) {
+      return;
+    }
   }
 
   const lastMessage = inquiry.messages[inquiry.messages.length - 1];
@@ -82,6 +99,7 @@ export async function maybeReplyWithAssistant(
     subjectProductName: inquiry.subjectProductName,
     verifiedCustomerId: options?.verifiedCustomerId,
     history,
+    awaitingHuman,
   });
 
   // The bot may reply in several short bubbles (texting style). Each is
@@ -105,9 +123,12 @@ export async function maybeReplyWithAssistant(
   // signal is a softer net: notify the team but keep helping.
   const escalated = generated?.escalation?.requested ?? false;
 
+  // Skip the extra "notified our team" line while already escalated — the
+  // prompt already reassures the senior is looped in.
   if (
     wantsHuman &&
     !escalated &&
+    !awaitingHuman &&
     !bubbles.some((bubble) => bubble.toLowerCase().includes("team"))
   ) {
     bubbles.push("I've also notified our team to follow up with you personally.");
@@ -116,7 +137,20 @@ export async function maybeReplyWithAssistant(
   await connectDB();
   const now = new Date();
   const status = inquiry.status as InquiryThreadStatus;
-  const flagTeam = escalated || wantsHuman;
+  const flagTeam = escalated || wantsHuman || awaitingHuman;
+
+  // Escalation state: a fresh escalation mutes the bot and stamps the time;
+  // an awaiting-human reply keeps it muted (the senior still owns the issue);
+  // otherwise the normal status patch applies.
+  const escalationPatch: Record<string, unknown> = escalated
+    ? {
+        status: "open" as InquiryThreadStatus,
+        assistantMuted: true,
+        escalatedAt: inquiry.escalatedAt ?? now,
+      }
+    : awaitingHuman
+      ? { status: "open" as InquiryThreadStatus, assistantMuted: true }
+      : inquiryStatusPatchAfterMessage(status, "assistant");
 
   // Stagger createdAt by 1ms per bubble so ordering is deterministic.
   const messagesToPush = bubbles.map((body, index) => ({
@@ -137,9 +171,7 @@ export async function maybeReplyWithAssistant(
         lastMessagePreview: lastBubble.slice(0, 280),
         lastMessageAuthor: "assistant",
         unreadByCustomer: (inquiry.unreadByCustomer ?? 0) + bubbles.length,
-        ...(escalated
-          ? { status: "open" as InquiryThreadStatus, assistantMuted: true }
-          : inquiryStatusPatchAfterMessage(status, "assistant")),
+        ...escalationPatch,
       },
       ...(flagTeam ? { $inc: { unreadByTeam: 1 } } : {}),
     },

@@ -7,6 +7,7 @@ import { ArrowLeft, MessageSquare, Send, X } from "lucide-react";
 import {
   CHAT_GUEST_MESSAGE_LIMIT,
   CHAT_MESSAGE_BODY_MAX,
+  type ChatMessage,
   type ChatThread,
 } from "@store/shared";
 
@@ -20,21 +21,53 @@ import {
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
 /**
- * Typing-pause bounds before each staggered bot bubble. Varies by bubble
- * length plus jitter so the rhythm feels human (sometimes quick, sometimes a
- * beat longer) while staying snappy — never a long, awkward wait.
+ * Human pacing model for bot bubbles. A real support agent reads the incoming
+ * message, understands it, then types each reply bubble at a believable speed.
+ * We simulate both so the bot never dumps an instant wall of text.
+ *
+ * Typing: an average agent types ~200–260 characters per minute. We pick a
+ * fresh rate per bubble (jitter) and clamp the result so a one-liner still
+ * takes a beat and a long bubble never hangs the thread.
+ *
+ * Reading: skim-reading the customer's last message is faster (~1000 cpm)
+ * plus a small fixed "understand it" beat. Applied once, before the first
+ * bubble of a reply — subsequent bubbles only carry their own typing time.
  */
-const STAGGER_MIN_MS = 350;
-const STAGGER_MAX_MS = 2200;
+const TYPING_CHARS_PER_MIN_MIN = 200;
+const TYPING_CHARS_PER_MIN_MAX = 260;
+const TYPING_MIN_MS = 700;
+const TYPING_MAX_MS = 7000;
+const READING_CHARS_PER_MIN = 1000;
+const COMPREHENSION_BASE_MS = 500;
+const READING_MAX_MS = 4500;
 /** Brief settle between a revealed bubble and the next typing pause. */
-const STAGGER_GAP_MS = 130;
+const STAGGER_GAP_MS = 250;
 
-function staggerDelay(text: string): number {
-  // Longer bubbles "type" longer (up to a cap) so a paragraph feels composed,
-  // while quick one-liners stay snappy. Jitter keeps the rhythm human.
-  const chars = Math.min(text.length, 220);
-  const sized = 300 + chars * 9 + Math.random() * 260;
-  return Math.max(STAGGER_MIN_MS, Math.min(STAGGER_MAX_MS, sized));
+function typingDelay(text: string): number {
+  const charsPerMin =
+    TYPING_CHARS_PER_MIN_MIN +
+    Math.random() * (TYPING_CHARS_PER_MIN_MAX - TYPING_CHARS_PER_MIN_MIN);
+  const ms = (text.length / charsPerMin) * 60_000;
+  return Math.max(TYPING_MIN_MS, Math.min(TYPING_MAX_MS, ms));
+}
+
+function readingDelay(text: string): number {
+  const ms = COMPREHENSION_BASE_MS + (text.length / READING_CHARS_PER_MIN) * 60_000;
+  return Math.min(ms, READING_MAX_MS);
+}
+
+/**
+ * First-message bridge: shows the customer's just-sent bubble plus a typing
+ * indicator while the thread is created in the background, so sending the very
+ * first message never feels frozen behind a blank "Starting chat…" screen.
+ */
+export function StartingConversation({ message }: { message: ChatMessage }) {
+  return (
+    <div className="flex-1 space-y-3 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-3">
+      <ChatMessageBubble message={message} />
+      <ChatTypingIndicator />
+    </div>
+  );
 }
 
 export function statusLabel(status: ChatThread["status"]): string {
@@ -162,6 +195,8 @@ export function ThreadConversation({
   );
   const queueRef = useRef<string[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Reading/comprehension delay to prepend to the first bubble of a reply.
+  const readDelayRef = useRef(0);
   const [, bumpReveal] = useReducer((count: number) => count + 1, 0);
   const [botTyping, setBotTyping] = useState(false);
 
@@ -178,6 +213,10 @@ export function ThreadConversation({
       return;
     }
     const nextBody = messagesRef.current.find((message) => message.id === nextId)?.body ?? "";
+    // The first bubble carries the one-time read/understand beat; the rest
+    // only their own typing time.
+    const startGap = readDelayRef.current;
+    readDelayRef.current = 0;
     setBotTyping(true);
     timerRef.current = setTimeout(() => {
       queueRef.current.shift();
@@ -185,7 +224,7 @@ export function ThreadConversation({
       bumpReveal();
       setBotTyping(false);
       timerRef.current = setTimeout(() => pump(), STAGGER_GAP_MS);
-    }, staggerDelay(nextBody));
+    }, startGap + typingDelay(nextBody));
   }, []);
 
   useEffect(() => {
@@ -196,19 +235,25 @@ export function ThreadConversation({
     );
     if (newOnes.length === 0) return;
 
-    let assistantShown = queueRef.current.length > 0;
     let revealedAny = false;
     for (const message of newOnes) {
-      if (message.author === "assistant" && assistantShown) {
+      // Assistant bubbles are paced (read + type); customer/agent messages
+      // always show instantly.
+      if (message.author === "assistant") {
         queueRef.current.push(message.id);
       } else {
         revealedIdsRef.current.add(message.id);
         revealedAny = true;
-        if (message.author === "assistant") assistantShown = true;
       }
     }
     if (revealedAny) bumpReveal();
-    if (queueRef.current.length > 0 && !timerRef.current) pump();
+    if (queueRef.current.length > 0 && !timerRef.current) {
+      const lastCustomer = [...messagesRef.current]
+        .reverse()
+        .find((message) => message.author === "customer");
+      readDelayRef.current = readingDelay(lastCustomer?.body ?? "");
+      pump();
+    }
   }, [thread.messages, pump]);
 
   useEffect(
