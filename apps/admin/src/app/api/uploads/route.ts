@@ -54,13 +54,15 @@ function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+const MAX_SEGMENT_LENGTH = 64;
+
 function sanitizeSegment(value: string | null | undefined): string | null {
   if (!value) return null;
   const cleaned = value
     .toLowerCase()
     .replace(/[^a-z0-9-_]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 64);
+    .slice(0, MAX_SEGMENT_LENGTH);
   return cleaned.length > 0 ? cleaned : null;
 }
 
@@ -155,7 +157,8 @@ export async function POST(request: Request) {
     const storage = resolveStorageProvider();
     const keyPrefix = buildKeyPrefix(subjectKind, subjectId);
     const extension = fileType === "video/webm" ? "webm" : "mp4";
-    const key = `${keyPrefix}/video-${Date.now().toString(36)}.${extension}`;
+    const RADIX_BASE36 = 36;
+    const key = `${keyPrefix}/video-${Date.now().toString(RADIX_BASE36)}.${extension}`;
     const url = await storage.put(key, buffer, fileType);
     logger.info(
       { userId, subjectKind, subjectId, sizeBytes: buffer.length },

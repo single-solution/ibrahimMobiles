@@ -19,7 +19,7 @@ export function TopHeader({ isCollapsed, onToggleCollapsed }: TopHeaderProps) {
   const { data: session } = useSession();
   const { siteName } = useStoreSettings();
   const user = session?.user;
-  const brandShort = siteName.split(" ")[0];
+  const brandShort = siteName?.split(" ")[0] ?? "Store";
 
   async function handleLogout() {
     await signOut({ redirect: false });

@@ -39,6 +39,9 @@ interface UserAttributes {
   resetPasswordExpiresAt?: Date;
 }
 
+const USER_NAME_MAX_LENGTH = 200;
+const USER_PHONE_MAX_LENGTH = 32;
+
 const userSchema = new Schema<UserAttributes>(
   {
     email: {
@@ -58,12 +61,12 @@ const userSchema = new Schema<UserAttributes>(
       type: String,
       required: true,
       trim: true,
-      maxlength: 200,
+      maxlength: USER_NAME_MAX_LENGTH,
     },
     phoneNumber: {
       type: String,
       trim: true,
-      maxlength: 32,
+      maxlength: USER_PHONE_MAX_LENGTH,
     },
     role: {
       type: String,

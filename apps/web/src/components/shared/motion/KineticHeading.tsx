@@ -33,8 +33,6 @@ export interface KineticHeadingProps {
   stagger?: number;
   /** Delay before the timeline starts in seconds. */
   delay?: number;
-  /** Scroll-trigger start position (passed through to GSAP). */
-  start?: string;
   /** Skip the ScrollTrigger and fire immediately on mount. */
   immediate?: boolean;
   className?: string;

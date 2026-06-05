@@ -262,18 +262,18 @@ export function ProductEditDrawer({
                     <>
                       <WizardSection title="Category">
                         <div className="flex flex-wrap gap-1.5">
-                          {catalog.categories.map((c) => (
+                          {catalog.categories.map((cat) => (
                             <CategoryOptionButton
-                              key={c.id}
-                              category={c}
-                              isSelected={categorySlug === c.slug}
+                              key={cat.id}
+                              category={cat}
+                              isSelected={categorySlug === cat.slug}
                               onSelect={() => {
-                                if (categorySlug !== c.slug) {
+                                if (categorySlug !== cat.slug) {
                                   if (categorySlug && product.categorySlug === categorySlug) {
-                                    setPendingCategorySlug(c.slug);
+                                    setPendingCategorySlug(cat.slug);
                                   } else {
-                                    setCategorySlug(c.slug);
-                                    if (!catalog.brandsByCategory[c.slug]?.some(b => b.slug === brandSlug)) {
+                                    setCategorySlug(cat.slug);
+                                    if (!catalog.brandsByCategory[cat.slug]?.some(brandItem => brandItem.slug === brandSlug)) {
                                       setBrandSlug("");
                                     }
                                   }
@@ -344,8 +344,6 @@ export function ProductEditDrawer({
                     setImagesError(null);
                   }}
                   altTextBase={name || product.name}
-                  subjectKind="products"
-                  subjectId={product.id}
                   maxImages={8}
                   compact
                   dense
@@ -376,9 +374,9 @@ export function ProductEditDrawer({
                       }
                     : undefined,
                   images: product.images,
-                  variants: product.variants.map((v) => ({
-                    id: v.id,
-                    gradeSlug: v.gradeSlug,
+                  variants: product.variants.map((variantItem) => ({
+                    id: variantItem.id,
+                    gradeSlug: variantItem.gradeSlug,
                   })),
                 },
               }}

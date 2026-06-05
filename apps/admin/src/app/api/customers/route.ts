@@ -182,7 +182,7 @@ export async function POST(request: Request) {
 
     bustAdminCaches();
     return ok(
-      toCustomerResponse(doc.toObject() as CustomerLean, {
+      toCustomerResponse(doc.toObject() as unknown as CustomerLean, {
         orderCount: 0,
         lifetimeSpendRupees: 0,
         lastOrderAt: undefined,

@@ -412,28 +412,6 @@ export async function POST(request: Request) {
       ? mergeCheckoutAddress(existingCustomer.addresses ?? [], addressInput.value)
       : existingCustomer.addresses ?? [];
 
-  const customerDoc = await Customer.findByIdAndUpdate(
-    existingCustomer._id,
-    {
-      name: nameResult,
-      city: cityResult,
-      isLoyaltyMember: true,
-      ...(addressInput && "value" in addressInput ? { addresses: nextAddresses } : {}),
-    },
-    { new: true, runValidators: true },
-  ).lean<{ _id: Types.ObjectId; isLoyaltyMember: boolean }>();
-
-  if (!customerDoc) {
-    logger.error("Customer upsert returned null — cannot continue");
-    return badRequest("Could not place order.");
-  }
-
-  // Compute the points the customer *will* earn once the order ships. The
-  // orderTransitions service only actually credits this on the `delivered`
-  // transition.
-  // Using `subtotalRupees` so a payment discount doesn't shrink the reward.
-  const pointsEarned = pointsEarnedFor(subtotalRupees, settings.loyaltyEarnPercent);
-
   // Reserve stock up front — this is the oversell guard. `reserveStock` rolls
   // its own partial reservations back, so a failure leaves inventory untouched.
   const stockLines: StockLine[] = resolvedItems.map((line) => ({
@@ -441,17 +419,42 @@ export async function POST(request: Request) {
     variantId: line.variant._id,
     quantity: line.quantity,
   }));
-  const reservation = await reserveStock(stockLines);
-  if (!reservation.ok) {
-    return conflict("Some items just sold out. Please review your cart and try again.");
-  }
 
   let createdOrder: OrderDoc | null = null;
+  let reservation: { ok: boolean } | null = null;
+  let customerDoc: { _id: Types.ObjectId; isLoyaltyMember: boolean } | null = null;
   try {
+    customerDoc = await Customer.findByIdAndUpdate(
+      existingCustomer._id,
+      {
+        name: nameResult,
+        city: cityResult,
+        isLoyaltyMember: true,
+        ...(addressInput && "value" in addressInput ? { addresses: nextAddresses } : {}),
+      },
+      { new: true, runValidators: true },
+    ).lean<{ _id: Types.ObjectId; isLoyaltyMember: boolean }>();
+
+    if (!customerDoc) {
+      logger.error("Customer upsert returned null — cannot continue");
+      return badRequest("Could not place order.");
+    }
+
+    // Compute the points the customer *will* earn once the order ships. The
+    // orderTransitions service only actually credits this on the `delivered`
+    // transition.
+    // Using `subtotalRupees` so a payment discount doesn't shrink the reward.
+    const pointsEarned = pointsEarnedFor(subtotalRupees, settings.loyaltyEarnPercent);
+
+    reservation = await reserveStock(stockLines);
+    if (!reservation.ok) {
+      return conflict("Some items just sold out. Please review your cart and try again.");
+    }
+
     createdOrder = await createWithUniqueOrderNumber<OrderDoc>((orderNumber) =>
       OrderModel.create({
         orderNumber,
-        customerId: customerDoc._id,
+        customerId: customerDoc!._id,
         customerSnapshot: {
           name: nameResult,
           phoneNumber: phoneResult,
@@ -494,7 +497,7 @@ export async function POST(request: Request) {
     // prevents two concurrent checkouts from overspending the same balance.
     if (pointsRedeemed > 0) {
       const debited = await LoyaltyAccount.findOneAndUpdate(
-        { customerId: customerDoc._id, balance: { $gte: pointsRedeemed } },
+        { customerId: customerDoc!._id, balance: { $gte: pointsRedeemed } },
         {
           $inc: { balance: -pointsRedeemed },
           $push: {
@@ -540,14 +543,16 @@ export async function POST(request: Request) {
     if (createdOrder) {
       await createdOrder.deleteOne().catch(() => undefined);
     }
-    await releaseStock(stockLines);
+    if (reservation?.ok) {
+      await releaseStock(stockLines);
+    }
 
     // A duplicate idempotency key means a parallel submission won the race —
     // return that order instead of surfacing an error.
     if (isMongoDuplicateKeyError(error) && idempotencyKey) {
       const winner = await OrderModel.findOne({
         idempotencyKey,
-        customerId: customerDoc._id,
+        customerId: customerDoc?._id ?? existingCustomer._id,
       }).lean<{ _id: Types.ObjectId; orderNumber: string; totals: { totalRupees: number }; pointsEarned: number; pointsRedeemed: number }>();
       if (winner) {
         return created({

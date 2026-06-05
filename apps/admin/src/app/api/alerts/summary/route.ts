@@ -1,6 +1,7 @@
 import { ok } from "@store/shared";
 
 import { requireSession } from "@/lib/api/requireSession";
+import { handleMongoError } from "@store/db";
 import { loadAlertSummary } from "@/lib/server/alertSummary";
 
 /**
@@ -14,6 +15,10 @@ export async function GET() {
     return response;
   }
 
-  const summary = await loadAlertSummary();
-  return ok(summary);
+  try {
+    const summary = await loadAlertSummary();
+    return ok(summary);
+  } catch (error) {
+    return handleMongoError(error);
+  }
 }

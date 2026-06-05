@@ -4,7 +4,7 @@ export function ActivityDetailGrid({ detail }: { detail: string }) {
   if (!detail) return null;
 
   // Split detail by separator if present (usually " · ")
-  const parts = detail.split('·').map((s) => s.trim()).filter(Boolean);
+  const parts = detail.split('·').map((part) => part.trim()).filter(Boolean);
   
   const rows = parts.map((part) => {
     if (part.includes('→')) {

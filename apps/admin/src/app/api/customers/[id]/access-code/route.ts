@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 
 import { requireSession } from "@/lib/api/requireSession";
-import { connectDB, Customer, OtpCode } from "@store/db";
+import { connectDB, Customer, handleMongoError, OtpCode } from "@store/db";
 import {
   BCRYPT_ROUNDS,
   OTP_CODE_LENGTH,
@@ -57,58 +57,62 @@ export async function POST(_request: Request, { params }: RouteContext) {
     return badRequest("Invalid ID.");
   }
 
-  await connectDB();
-  const customer = await Customer.findById(id).lean<{
-    _id: unknown;
-    name: string;
-    phoneNumber: string;
-  }>();
-  if (!customer) {
-    return notFound("Customer not found");
-  }
+  try {
+    await connectDB();
+    const customer = await Customer.findById(id).lean<{
+      _id: unknown;
+      name: string;
+      phoneNumber: string;
+    }>();
+    if (!customer) {
+      return notFound("Customer not found");
+    }
 
-  const fingerprint = phoneFingerprint(customer.phoneNumber);
-  if (!fingerprint) {
-    return badRequest(
-      "This customer has no valid phone number, so a sign-in code can't be issued.",
+    const fingerprint = phoneFingerprint(customer.phoneNumber);
+    if (!fingerprint) {
+      return badRequest(
+        "This customer has no valid phone number, so a sign-in code can't be issued.",
+      );
+    }
+
+    const code = generateNumericCode();
+    const codeHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
+    const expiresAt = new Date(Date.now() + MANUAL_CODE_TTL_MINUTES * MS_PER_MINUTE);
+
+    // Retire any still-live codes for this phone so only the one we just read
+    // out to the customer can be used.
+    await OtpCode.updateMany(
+      {
+        phoneFingerprint: fingerprint,
+        purpose: "customer-signin",
+        consumedAt: { $exists: false },
+      },
+      { $set: { consumedAt: new Date() } },
     );
-  }
 
-  const code = generateNumericCode();
-  const codeHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
-  const expiresAt = new Date(Date.now() + MANUAL_CODE_TTL_MINUTES * MS_PER_MINUTE);
-
-  // Retire any still-live codes for this phone so only the one we just read
-  // out to the customer can be used.
-  await OtpCode.updateMany(
-    {
+    await OtpCode.create({
       phoneFingerprint: fingerprint,
+      phoneRaw: customer.phoneNumber.trim().slice(0, PHONE_RAW_MAX_CHARS),
+      codeHash,
       purpose: "customer-signin",
-      consumedAt: { $exists: false },
-    },
-    { $set: { consumedAt: new Date() } },
-  );
+      expiresAt,
+    });
 
-  await OtpCode.create({
-    phoneFingerprint: fingerprint,
-    phoneRaw: customer.phoneNumber.trim().slice(0, PHONE_RAW_MAX_CHARS),
-    codeHash,
-    purpose: "customer-signin",
-    expiresAt,
-  });
+    void recordActivity({
+      actor,
+      action: "signin_code_issued",
+      resourceType: "customer",
+      resourceId: id,
+      resourceLabel: customer.name,
+      detail: `Issued a manual sign-in code (valid ${MANUAL_CODE_TTL_MINUTES} minutes)`,
+    });
 
-  await recordActivity({
-    actor,
-    action: "signin_code_issued",
-    resourceType: "customer",
-    resourceId: id,
-    resourceLabel: customer.name,
-    detail: `Issued a manual sign-in code (valid ${MANUAL_CODE_TTL_MINUTES} minutes)`,
-  });
-
-  return ok({
-    code,
-    expiresAt: expiresAt.toISOString(),
-    expiresInMinutes: MANUAL_CODE_TTL_MINUTES,
-  });
+    return ok({
+      code,
+      expiresAt: expiresAt.toISOString(),
+      expiresInMinutes: MANUAL_CODE_TTL_MINUTES,
+    });
+  } catch (error) {
+    return handleMongoError(error);
+  }
 }

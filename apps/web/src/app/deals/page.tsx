@@ -166,7 +166,9 @@ async function MobileOffers() {
         <span>Active offers</span>
       </div>
       <ul className="reveal-stagger app-list">
-        {offers.map((offer) => (
+        {offers.map((offer) => {
+          const discountValue = offer.discountLabel.split(" ")[0];
+          return (
           <li key={offer.id} id={offer.slug} className="reveal">
             <Link href={`/deals#${offer.slug}`} className="tap app-list-row">
               <span
@@ -178,7 +180,7 @@ async function MobileOffers() {
                   color: `color-mix(in srgb, ${offer.color} 65%, var(--color-ink-900))`,
                 }}
               >
-                {offer.discountLabel.split(" ")[0]}
+                {discountValue}
               </span>
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-1 text-[13.5px] font-semibold leading-tight text-[var(--color-ink-900)]">
@@ -194,7 +196,8 @@ async function MobileOffers() {
               <ArrowRight size={13} className="shrink-0 text-[var(--color-ink-400)]" />
             </Link>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </section>
   );

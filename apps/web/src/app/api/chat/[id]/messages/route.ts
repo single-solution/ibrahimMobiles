@@ -67,6 +67,9 @@ export async function POST(request: Request, { params }: RouteContext) {
   });
   if (limited) return limited;
 
+  const session = await auth();
+  const settings = await getChatSettings();
+
   const parsed = await parseBody<PostBody>(request);
   if (parsed instanceof Response) return parsed;
 
@@ -87,8 +90,6 @@ export async function POST(request: Request, { params }: RouteContext) {
     subjectProductName = parsed.subjectProductName.trim().slice(0, 200);
   }
 
-  const session = await auth();
-  const settings = await getChatSettings();
   let inquiry = access.inquiry;
   if (
     session?.user?.role === "customer" &&

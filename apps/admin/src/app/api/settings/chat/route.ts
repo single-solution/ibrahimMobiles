@@ -35,36 +35,40 @@ export async function GET() {
     return response;
   }
 
-  await connectDB();
-  const docs = await Setting.find({ key: { $in: CHAT_SETTING_DB_KEY_LIST } })
-    .select({ key: 1, value: 1 })
-    .lean<SettingLean[]>();
+  try {
+    await connectDB();
+    const docs = await Setting.find({ key: { $in: CHAT_SETTING_DB_KEY_LIST } })
+      .select({ key: 1, value: 1 })
+      .lean<SettingLean[]>();
 
-  const settings = mergeChatSettingsFromDb(docs);
+    const settings = mergeChatSettingsFromDb(docs);
 
-  return ok({
-    settings,
-    providers: {
-      openai: {
-        configured: isAssistantProviderConfigured("openai", settings.providerApiKeyOpenai),
-        model: resolveAssistantModelFromSettings("openai", settings),
-        defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.openai,
-        dbModel: settings.assistantModelOpenai,
+    return ok({
+      settings,
+      providers: {
+        openai: {
+          configured: isAssistantProviderConfigured("openai", settings.providerApiKeyOpenai),
+          model: resolveAssistantModelFromSettings("openai", settings),
+          defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.openai,
+          dbModel: settings.assistantModelOpenai,
+        },
+        google: {
+          configured: isAssistantProviderConfigured("google", settings.providerApiKeyGoogle),
+          model: resolveAssistantModelFromSettings("google", settings),
+          defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.google,
+          dbModel: settings.assistantModelGoogle,
+        },
+        anthropic: {
+          configured: isAssistantProviderConfigured("anthropic", settings.providerApiKeyAnthropic),
+          model: resolveAssistantModelFromSettings("anthropic", settings),
+          defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.anthropic,
+          dbModel: settings.assistantModelAnthropic,
+        },
       },
-      google: {
-        configured: isAssistantProviderConfigured("google", settings.providerApiKeyGoogle),
-        model: resolveAssistantModelFromSettings("google", settings),
-        defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.google,
-        dbModel: settings.assistantModelGoogle,
-      },
-      anthropic: {
-        configured: isAssistantProviderConfigured("anthropic", settings.providerApiKeyAnthropic),
-        model: resolveAssistantModelFromSettings("anthropic", settings),
-        defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.anthropic,
-        dbModel: settings.assistantModelAnthropic,
-      },
-    },
-  });
+    });
+  } catch (error) {
+    return handleMongoError(error);
+  }
 }
 
 type PutBody = Partial<Record<keyof ChatSettingsValues, unknown>>;
@@ -122,7 +126,7 @@ export async function PUT(request: Request) {
     invalidateStoreSettingsCache();
     bustAdminCaches();
 
-    await recordActivity({
+    void recordActivity({
       actor,
       action: "updated",
       resourceType: "settings",

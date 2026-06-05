@@ -30,13 +30,19 @@ export type StockReservationResult =
   | { ok: true }
   | { ok: false; failedLine: StockLine };
 
+const EXPECTED_MODIFIED_COUNT = 1;
+const MIN_QUANTITY = 1;
+
 async function decrementVariant(line: StockLine): Promise<boolean> {
+  if (!line?.productId || !line?.variantId || (line?.quantity ?? 0) < MIN_QUANTITY) {
+    return false;
+  }
   const result = await Product.updateOne(
-    { _id: line.productId },
+    { _id: String(line.productId) },
     { $inc: { "variants.$[variant].quantity": -line.quantity } },
-    { arrayFilters: [{ "variant._id": line.variantId, "variant.quantity": { $gte: line.quantity } }] },
+    { arrayFilters: [{ "variant._id": String(line.variantId), "variant.quantity": { $gte: line.quantity } }] },
   );
-  return result.modifiedCount === 1;
+  return result.modifiedCount === EXPECTED_MODIFIED_COUNT;
 }
 
 /**
@@ -44,11 +50,15 @@ async function decrementVariant(line: StockLine): Promise<boolean> {
  * rolling back any lines already reserved) if a line lacks sufficient stock.
  */
 export async function reserveStock(lines: StockLine[]): Promise<StockReservationResult> {
+  if (!lines || !Array.isArray(lines)) {
+    return { ok: true };
+  }
   const applied: StockLine[] = [];
 
   for (const line of lines) {
-    if (line.quantity <= 0) {
-      continue;
+    if (!line?.productId || !line?.variantId || (line?.quantity ?? 0) < MIN_QUANTITY) {
+      await releaseStock(applied);
+      return { ok: false, failedLine: line };
     }
     // Serial on purpose: each decrement is conditional and we must know
     // exactly which lines succeeded so we can roll them back on failure.
@@ -69,16 +79,19 @@ export async function reserveStock(lines: StockLine[]): Promise<StockReservation
  * never released twice.
  */
 export async function releaseStock(lines: StockLine[]): Promise<void> {
+  if (!lines || !Array.isArray(lines)) {
+    return;
+  }
   await Promise.all(
     lines.map(async (line) => {
-      if (line.quantity <= 0) {
+      if (!line?.productId || !line?.variantId || (line?.quantity ?? 0) < MIN_QUANTITY) {
         return;
       }
       try {
         await Product.updateOne(
-          { _id: line.productId },
+          { _id: String(line.productId) },
           { $inc: { "variants.$[variant].quantity": line.quantity } },
-          { arrayFilters: [{ "variant._id": line.variantId }] },
+          { arrayFilters: [{ "variant._id": String(line.variantId) }] },
         );
       } catch (error) {
         logger.error(

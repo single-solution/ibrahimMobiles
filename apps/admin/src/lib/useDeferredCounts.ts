@@ -32,6 +32,7 @@ export function useDeferredCounts<TCounts>(
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate loading state start
     setIsLoading(true);
     void (async () => {
       try {

@@ -86,6 +86,8 @@ export async function PUT(request: Request, { params }: RouteContext) {
     }
 
     const HAPPY_PATH = ["pending-payment", "confirmed", "packed", "dispatched", "delivered"];
+    const DISPATCHED_INDEX = 3;
+
     const currentStatusIndex = HAPPY_PATH.indexOf(order.status);
 
     const isAttemptingEdit = Boolean(body.items || body.address || body.payment || body.delivery);
@@ -105,7 +107,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
       const newStatusIndex = HAPPY_PATH.indexOf(candidate);
       if (
-        currentStatusIndex >= 3 && // dispatched or delivered
+        currentStatusIndex >= DISPATCHED_INDEX &&
         newStatusIndex !== -1 && 
         newStatusIndex < currentStatusIndex
       ) {
@@ -137,8 +139,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
       order.trackingNote = body.trackingNote.trim().slice(0, FIELD_LIMITS.operatorNote);
       detailParts.push("Tracking note updated");
     }
+    const DISPATCH_VIDEO_URL_MAX = 1000;
     if (typeof body.dispatchVideoUrl === "string") {
-      order.dispatchVideoUrl = body.dispatchVideoUrl.trim().slice(0, 1000);
+      order.dispatchVideoUrl = body.dispatchVideoUrl.trim().slice(0, DISPATCH_VIDEO_URL_MAX);
       detailParts.push("Dispatch video updated");
     }
     if (body.estimatedDeliveryAt !== undefined) {
@@ -201,7 +204,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
       order.set("items", newItems);
       const subtotal = newItems.reduce((acc, item) => acc + item.unitPriceRupees * item.quantity, 0);
       order.totals.subtotalRupees = subtotal;
-      order.totals.totalRupees = Math.max(0, subtotal + order.totals.shippingRupees - order.totals.discountRupees);
+      order.totals.totalRupees = Math.max(0, subtotal + (order.totals?.shippingRupees ?? 0) - (order.totals?.discountRupees ?? 0));
 
       order.timeline.push({
         status: order.status,
@@ -213,7 +216,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
     if (body.address && typeof body.address === "object") {
       const addressInput = body.address as any;
-      if (addressInput.recipientName && addressInput.phoneNumber && addressInput.city) {
+      if (addressInput?.recipientName && addressInput?.phoneNumber && addressInput?.city) {
         order.address = {
           recipientName: String(addressInput.recipientName).slice(0, 120),
           phoneNumber: String(addressInput.phoneNumber).slice(0, 32),
@@ -269,7 +272,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
     // their action reflected on the very next page load.
     bustAdminCaches();
 
-    return ok(toOrderResponse(order.toObject() as OrderLean));
+    return ok(toOrderResponse(order.toObject() as unknown as OrderLean));
   } catch (error) {
     return handleMongoError(error);
   }

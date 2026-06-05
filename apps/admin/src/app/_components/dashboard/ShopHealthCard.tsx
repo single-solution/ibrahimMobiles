@@ -138,7 +138,7 @@ function ShopHealthRow({ check }: { check: ShopHealthCheck }) {
       title={check.description}
       className={classNames(
         "reveal flex items-center gap-3 px-4 py-3 md:px-5",
-        check.href && "transition-colors hover:bg-[var(--color-canvas-deep)]",
+        Boolean(check.href) && "transition-colors hover:bg-[var(--color-canvas-deep)]",
       )}
     >
       <span

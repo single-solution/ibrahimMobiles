@@ -28,16 +28,19 @@ interface StringOptions {
   max?: number;
 }
 
+const DEFAULT_REQUIRED_MIN = 1;
+const DEFAULT_OPTIONAL_MIN = 0;
+
 /**
  * Validate a string field. Returns the trimmed value, or an error message.
  */
 export function validateString(value: unknown, options: StringOptions): string | { error: string } {
-  const { label, required = true, min = required ? 1 : 0, max = MAX_INPUT_LENGTH } = options;
+  const { label, required = true, min = required ? DEFAULT_REQUIRED_MIN : DEFAULT_OPTIONAL_MIN, max = MAX_INPUT_LENGTH } = options;
 
+  if (!required && (value === undefined || value === null)) {
+    return "";
+  }
   if (typeof value !== "string") {
-    if (!required && (value === undefined || value === null)) {
-      return "";
-    }
     return { error: `${label} must be a string.` };
   }
 
@@ -93,6 +96,8 @@ export function validatePassword(value: unknown, label = "Password"): string | {
   return value;
 }
 
+const MIN_SAFE_INTEGER = 0;
+
 /**
  * Parse a positive integer query string parameter with a fallback.
  * Returns `fallback` for non-numeric, negative, or NaN values.
@@ -102,7 +107,7 @@ export function safeParseInt(input: string | null | undefined, fallback: number)
     return fallback;
   }
   const parsed = Number.parseInt(input, DECIMAL_RADIX);
-  if (Number.isNaN(parsed) || parsed < 0) {
+  if (Number.isNaN(parsed) || parsed < MIN_SAFE_INTEGER) {
     return fallback;
   }
   return parsed;

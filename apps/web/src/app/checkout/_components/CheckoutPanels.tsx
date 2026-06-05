@@ -27,7 +27,7 @@ import {
   getPaymentMethods,
   pointsToRupees,
 } from "@store/shared";
-import { PhoneOtpForm } from "@/app/account/_components/PhoneOtpForm";
+import { PhoneOtp } from "@/app/account/_components/PhoneOtp";
 import { Button } from "@store/ui";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -103,7 +103,7 @@ export function CheckoutSignInPanel() {
         We use your WhatsApp number for order updates, dispatch videos, and to keep your order history in one account.
       </p>
       <div className="mt-5">
-        <PhoneOtpForm
+        <PhoneOtp
           phoneSubmitLabel="Send OTP"
           codeSubmitLabel="Verify and continue"
           onVerified={() => router.refresh()}
@@ -524,13 +524,13 @@ export function OrderSummaryPanel({
 
       <div className="space-y-2.5 p-4 md:p-5">
         <SummaryRow label="Subtotal" value={formatPrice(totals.subtotalRupees)} />
-        {totals.offersDiscountRupees && totals.offersDiscountRupees > 0 ? (
+        {(totals.offersDiscountRupees ?? 0) > 0 && (
           <SummaryRow
             label="Offers discount"
-            value={`− ${formatPrice(totals.offersDiscountRupees)}`}
+            value={`− ${formatPrice(totals.offersDiscountRupees!)}`}
             tone="success"
           />
-        ) : null}
+        )}
         {totals.discountRupees > 0 && (
           <SummaryRow
             label="Bank transfer discount"

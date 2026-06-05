@@ -22,13 +22,17 @@ export async function GET() {
     return response;
   }
 
-  await connectDB();
-  const doc = await User.findById(actor.id).lean<UserLean>();
-  if (!doc) {
-    return badRequest("Account not found.");
-  }
+  try {
+    await connectDB();
+    const doc = await User.findById(actor.id).lean<UserLean>();
+    if (!doc) {
+      return badRequest("Account not found.");
+    }
 
-  return ok(toUserResponse(doc));
+    return ok(toUserResponse(doc));
+  } catch (error) {
+    return handleMongoError(error);
+  }
 }
 
 interface AccountUpdateInput {

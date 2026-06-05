@@ -51,6 +51,13 @@ export interface GradeAttributes {
   isActive: boolean;
 }
 
+const CATEGORY_SLUG_MAX_LENGTH = 64;
+const GRADE_SLUG_MAX_LENGTH = 64;
+const GRADE_LABEL_MAX_LENGTH = 80;
+const GRADE_NOTES_MAX_LENGTH = 1_200;
+const HEX_COLOR_LENGTH = 7;
+const VIDEO_URL_MAX_LENGTH = 600;
+
 const gradeSchema = new Schema<GradeAttributes>(
   {
     categorySlug: {
@@ -58,22 +65,22 @@ const gradeSchema = new Schema<GradeAttributes>(
       required: true,
       lowercase: true,
       trim: true,
-      maxlength: 64,
+      maxlength: CATEGORY_SLUG_MAX_LENGTH,
     },
     slug: {
       type: String,
       required: true,
       lowercase: true,
       trim: true,
-      maxlength: 64,
+      maxlength: GRADE_SLUG_MAX_LENGTH,
     },
-    label: { type: String, required: true, trim: true, maxlength: 80 },
-    notes: { type: String, required: true, trim: true, maxlength: 1_200 },
+    label: { type: String, required: true, trim: true, maxlength: GRADE_LABEL_MAX_LENGTH },
+    notes: { type: String, required: true, trim: true, maxlength: GRADE_NOTES_MAX_LENGTH },
     color: {
       type: String,
       required: true,
       trim: true,
-      maxlength: 7,
+      maxlength: HEX_COLOR_LENGTH,
       match: /^#[0-9a-f]{6}$/i,
       default: "#1f2937",
     },
@@ -81,7 +88,7 @@ const gradeSchema = new Schema<GradeAttributes>(
       type: String,
       required: false,
       trim: true,
-      maxlength: 600,
+      maxlength: VIDEO_URL_MAX_LENGTH,
       default: "",
     },
     content: { type: structuredContentSchema, required: false, default: undefined },
@@ -93,9 +100,13 @@ const gradeSchema = new Schema<GradeAttributes>(
 gradeSchema.pre<HydratedDocument<GradeAttributes>>(
   "validate",
   async function gradeSlugAutogen() {
-    if ((!this.slug || this.slug.length === 0) && this.label) {
-      this.slug = slugify(this.label, 64);
+    if (this?.slug && this.slug.length > 0) {
+      return;
     }
+    if (!this?.label) {
+      return;
+    }
+    this.slug = slugify(this.label, GRADE_SLUG_MAX_LENGTH);
   },
 );
 

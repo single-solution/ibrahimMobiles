@@ -843,16 +843,16 @@ export async function getCategories(): Promise<CategoryMeta[]> {
     if (!slug) {
       return [];
     }
-    const content = normalizeStructuredContent(category.content, category.description);
-    const icon = normalizeIconName(category.icon);
+    const content = normalizeStructuredContent(category?.content, category?.description);
+    const icon = normalizeIconName(category?.icon);
     return {
       slug,
-      label: category.label,
-      description: category.description,
+      label: category?.label ?? "",
+      description: category?.description ?? "",
       icon,
       iconNode: resolveIconNode(icon),
-      isActive: category.isActive,
-      sortOrder: category.sortOrder ?? 0,
+      isActive: category?.isActive ?? false,
+      sortOrder: category?.sortOrder ?? 0,
       content: attachBulletIconNodes(content),
     };
   });
@@ -899,16 +899,16 @@ export async function getCategoryMetaBySlug(
   if (!resolvedSlug) {
     return null;
   }
-  const content = normalizeStructuredContent(category.content, category.description);
-  const icon = normalizeIconName(category.icon);
+  const content = normalizeStructuredContent(category?.content, category?.description);
+  const icon = normalizeIconName(category?.icon);
   return {
     slug: resolvedSlug,
-    label: category.label,
-    description: category.description,
+    label: category?.label ?? "",
+    description: category?.description ?? "",
     icon,
     iconNode: resolveIconNode(icon),
-    isActive: category.isActive,
-    sortOrder: category.sortOrder ?? 0,
+    isActive: category?.isActive ?? false,
+    sortOrder: category?.sortOrder ?? 0,
     content: attachBulletIconNodes(content),
   };
 }

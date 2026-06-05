@@ -13,9 +13,9 @@ export interface StoreMapEmbedProps {
 }
 
 export function StoreMapEmbed({ className = "", settings }: StoreMapEmbedProps) {
+  const globalEager = useGlobalEagerLoad();
   const mapQuery = `${settings.storeAddressLine1}, ${settings.storeAddressLine2}`;
   const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=${MAP_EMBED_ZOOM}&output=embed`;
-  const globalEager = useGlobalEagerLoad();
   
   return (
     <div className={`relative w-full overflow-hidden bg-[var(--color-canvas-deep)] ${className}`}>

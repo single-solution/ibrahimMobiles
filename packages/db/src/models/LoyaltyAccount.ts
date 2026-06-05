@@ -3,6 +3,9 @@ import mongoose, { Schema, type Model } from "mongoose";
 export const LOYALTY_TRANSACTION_KINDS = ["earn", "redeem", "bonus", "expire", "adjust"] as const;
 export type LoyaltyTransactionKind = (typeof LOYALTY_TRANSACTION_KINDS)[number];
 
+const REASON_MAX_LENGTH = 200;
+const ORDER_REF_MAX_LENGTH = 32;
+
 interface LoyaltyTransactionAttributes {
   /** Mongoose-generated when pushing into a parent doc; always present after save. */
   _id?: mongoose.Types.ObjectId;
@@ -20,8 +23,6 @@ export interface LoyaltyAccountAttributes {
   lifetimeEarned: number;
   pendingFromShipping: number;
   transactions: LoyaltyTransactionAttributes[];
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 const transactionSchema = new Schema<LoyaltyTransactionAttributes>(
@@ -29,8 +30,8 @@ const transactionSchema = new Schema<LoyaltyTransactionAttributes>(
     kind: { type: String, enum: LOYALTY_TRANSACTION_KINDS, required: true },
     amount: { type: Number, required: true },
     occurredAt: { type: Date, required: true, default: () => new Date() },
-    reason: { type: String, required: true, trim: true, maxlength: 200 },
-    orderRef: { type: String, trim: true, maxlength: 32 },
+    reason: { type: String, required: true, trim: true, maxlength: REASON_MAX_LENGTH },
+    orderRef: { type: String, trim: true, maxlength: ORDER_REF_MAX_LENGTH },
     recordedByUserId: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { _id: true, timestamps: false },

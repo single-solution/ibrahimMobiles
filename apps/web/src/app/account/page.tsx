@@ -106,11 +106,13 @@ export default async function AccountPage() {
 }
 
 function AccountHeader({ name, joinedAt }: { name: string; joinedAt: string }) {
+  const firstName = name.split(" ")[0];
+  
   return (
     <div className="reveal flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
-          Salam, {name.split(" ")[0]}
+          Salam, {firstName}
         </p>
         <h1 className="mt-1 font-headline text-page-title font-semibold text-[var(--color-ink-900)]">
           Welcome back.

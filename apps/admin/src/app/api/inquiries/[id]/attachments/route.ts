@@ -144,6 +144,9 @@ export async function POST(request: Request, { params }: RouteContext) {
       return unsupportedMediaType(`File contents do not match declared type "${fileType}".`);
     }
     const storage = resolveStorageProvider();
+    const MAX_SAFE_FILENAME = 200;
+    const MAX_STORED_FILENAME = 240;
+    const MSG_PREVIEW_MAX_LENGTH = 280;
     const keyPrefix = `chat/${existing._id.toString()}/${todayIsoDate()}`;
 
     const previewBody = body || (isImage ? "(image)" : `(${file.name})`);
@@ -158,7 +161,7 @@ export async function POST(request: Request, { params }: RouteContext) {
       });
       attachment = { kind: "image" as const, image: stored };
     } else {
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 200);
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, MAX_SAFE_FILENAME);
       const key = `${keyPrefix}/file-${Date.now().toString(36)}-${safeName}`;
       const url = await storage.put(key, buffer, fileType);
       attachment = {
@@ -166,7 +169,7 @@ export async function POST(request: Request, { params }: RouteContext) {
         url,
         mime: fileType,
         sizeBytes: buffer.length,
-        filename: file.name.slice(0, 240),
+        filename: file.name.slice(0, MAX_STORED_FILENAME),
       };
     }
 
@@ -185,11 +188,11 @@ export async function POST(request: Request, { params }: RouteContext) {
         },
         $set: {
           lastMessageAt: now,
-          lastMessagePreview: previewBody.slice(0, 280),
+          lastMessagePreview: previewBody.slice(0, MSG_PREVIEW_MAX_LENGTH),
           lastMessageAuthor: "agent",
           unreadByTeam: 0,
-          ...inquiryStatusPatchAfterMessage(existing.status, "team"),
-          ...(existing.assignedToUserId ? {} : { assignedToUserId: actor.id }),
+          ...inquiryStatusPatchAfterMessage(existing?.status, "team"),
+          ...(existing?.assignedToUserId ? {} : { assignedToUserId: actor.id }),
         },
         $inc: { unreadByCustomer: 1 },
       },

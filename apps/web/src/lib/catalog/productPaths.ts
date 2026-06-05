@@ -3,10 +3,8 @@ import type { Product, Variant } from "@store/shared";
 import {
   GRADE_DIMENSION_KEY,
   resolveProductVariantFromSearch,
-  resolveProductVariantFromSelection,
   selectionFromVariant,
 } from "@/lib/catalog/pdpSelection";
-import { getDefaultVariant } from "@/lib/productSummary";
 
 /**
  * Build `/shop/<categorySlug>/<slug>` with human-readable configuration params
@@ -58,15 +56,6 @@ export function shopHrefFromCategories(
   return firstActive ? `/shop/${firstActive.slug}` : "/shop";
 }
 
-/** Resolve the active variant from URL search params (server or client). */
-export function resolveProductVariant(
-  product: Product,
-  search: { [key: string]: string | string[] | undefined },
-  categoryAttributeSlugs: string[],
-): Variant {
-  return resolveProductVariantFromSearch(product, search, categoryAttributeSlugs);
-}
-
 /** Absolute PDP URL for metadata, JSON-LD, and breadcrumbs. */
 export function productAbsoluteUrl(
   siteUrl: string,
@@ -79,17 +68,4 @@ export function productAbsoluteUrl(
   const path = productHref(product, options);
   const origin = siteUrl.replace(/\/$/, "");
   return `${origin}${path}`;
-}
-
-/** Build href + resolved variant from a partial or full configuration. */
-export function productHrefForSelection(
-  product: Product,
-  selection: Record<string, string>,
-): { href: string; variant: Variant } {
-  const variant = resolveProductVariantFromSelection(product, selection);
-  const normalized = selectionFromVariant(variant);
-  return {
-    href: productHref(product, { selection: normalized }),
-    variant,
-  };
 }

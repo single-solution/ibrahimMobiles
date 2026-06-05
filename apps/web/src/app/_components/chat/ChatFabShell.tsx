@@ -234,7 +234,7 @@ export function ChatFabShell() {
         />
       )}
 
-      {nudge && !isOpen && unread === 0 && (
+      {Boolean(nudge) && !isOpen && unread === 0 && (
         <div className="reveal-rise flex max-w-[260px] items-start gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-2.5 pl-3 pr-2 shadow-[var(--shadow-md)]">
           <button
             type="button"

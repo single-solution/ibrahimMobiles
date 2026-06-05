@@ -22,6 +22,9 @@ const VITALS_PER_MINUTE = 40;
 const ALLOWED_METRICS = new Set(["LCP", "INP", "CLS", "FCP", "TTFB"]);
 
 const MAX_VALUE = 120_000;
+const MAX_ID_LENGTH = 64;
+const MAX_RATING_LENGTH = 16;
+const MAX_NAV_TYPE_LENGTH = 32;
 
 interface VitalsBody {
   name?: string;
@@ -64,11 +67,11 @@ export async function POST(request: Request) {
     {
       metric: name,
       value,
-      id: typeof body.id === "string" ? body.id.slice(0, 64) : undefined,
-      rating: typeof body.rating === "string" ? body.rating.slice(0, 16) : undefined,
+      id: typeof body.id === "string" ? body.id.slice(0, MAX_ID_LENGTH) : undefined,
+      rating: typeof body.rating === "string" ? body.rating.slice(0, MAX_RATING_LENGTH) : undefined,
       navigationType:
         typeof body.navigationType === "string"
-          ? body.navigationType.slice(0, 32)
+          ? body.navigationType.slice(0, MAX_NAV_TYPE_LENGTH)
           : undefined,
     },
     "storefront: web vital",

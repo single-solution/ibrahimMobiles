@@ -312,7 +312,6 @@ export function SeoSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
           <ImageUpload
             value={draft.ogImageDefault}
             onChange={(image) => setField("ogImageDefault", image)}
-            subjectKind="seo"
             altTextBase="Site OG image"
           />
         </div>

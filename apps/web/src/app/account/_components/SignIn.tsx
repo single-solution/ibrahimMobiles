@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { PhoneOtpForm } from "@/app/account/_components/PhoneOtpForm";
+import { PhoneOtp } from "@/app/account/_components/PhoneOtp";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 
@@ -43,7 +43,7 @@ export function SignIn() {
         </div>
 
         <Card className="reveal mt-6 p-5 md:mt-8 md:p-6">
-          <PhoneOtpForm
+          <PhoneOtp
             phoneSubmitLabel="Send code"
             codeSubmitLabel="Verify and sign in"
             onVerified={handleVerified}

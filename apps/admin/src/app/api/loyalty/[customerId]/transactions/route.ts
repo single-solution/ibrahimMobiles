@@ -132,7 +132,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     });
 
     bustAdminCaches();
-    return created(toLoyaltyAccountResponse(account.toObject() as LoyaltyAccountLean, customer.name));
+    return created(toLoyaltyAccountResponse(account.toObject() as unknown as LoyaltyAccountLean, customer.name));
   } catch (error) {
     return handleMongoError(error);
   }

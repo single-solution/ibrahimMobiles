@@ -34,34 +34,38 @@ export async function GET(request: Request) {
     return response;
   }
 
-  await connectDB();
-  const { page, limit, skip, search, searchPattern } = readListOptions(request);
+  try {
+    await connectDB();
+    const { page, limit, skip, search, searchPattern } = readListOptions(request);
 
-  const filter: Record<string, unknown> = {};
-  if (search) {
-    filter.$or = [
-      { name: { $regex: searchPattern, $options: "i" } },
-      { email: { $regex: searchPattern, $options: "i" } },
-      { phoneNumber: { $regex: searchPattern, $options: "i" } },
-    ];
+    const filter: Record<string, unknown> = {};
+    if (search) {
+      filter.$or = [
+        { name: { $regex: searchPattern, $options: "i" } },
+        { email: { $regex: searchPattern, $options: "i" } },
+        { phoneNumber: { $regex: searchPattern, $options: "i" } },
+      ];
+    }
+
+    const [docs, total] = await Promise.all([
+      User.find(filter)
+        .sort({ name: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean<UserLean[]>(),
+      User.countDocuments(filter),
+    ]);
+
+    const payload: ListResponse<AdminUser> = {
+      items: docs.map(toUserResponse),
+      total,
+      page,
+      limit,
+    };
+    return ok(payload);
+  } catch (error) {
+    return handleMongoError(error);
   }
-
-  const [docs, total] = await Promise.all([
-    User.find(filter)
-      .sort({ name: 1 })
-      .skip(skip)
-      .limit(limit)
-      .lean<UserLean[]>(),
-    User.countDocuments(filter),
-  ]);
-
-  const payload: ListResponse<AdminUser> = {
-    items: docs.map(toUserResponse),
-    total,
-    page,
-    limit,
-  };
-  return ok(payload);
 }
 
 interface UserInput {
@@ -130,7 +134,7 @@ export async function POST(request: Request) {
       isActive: body.isActive !== false,
       isSuperAdmin,
     });
-    await recordActivity({
+    void recordActivity({
       actor,
       action: "invited",
       resourceType: "team",

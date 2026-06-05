@@ -10,7 +10,6 @@ import { GradesByCategoryTabs } from "@/app/_components/home/GradesByCategoryTab
 import { HeroMaskSweepHeadline } from "@/app/_components/home/HeroMaskSweepHeadline";
 import { HeroTrendingProductBand } from "@/app/_components/home/HeroTrendingProductBand";
 import {
-  HeroTrustHints,
   ShopTypeCard,
   type HeroProps,
   type ProcessSectionProps,

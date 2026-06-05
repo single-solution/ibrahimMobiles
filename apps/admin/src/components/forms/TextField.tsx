@@ -36,7 +36,7 @@ export function TextField({
           errorText && "border-rose-300 focus-within:border-rose-400 focus-within:ring-rose-100",
         )}
       >
-        {leadingIcon && (
+        {Boolean(leadingIcon) && (
           <span className="text-[var(--color-ink-400)]">{leadingIcon}</span>
         )}
         <input
@@ -47,11 +47,11 @@ export function TextField({
             className,
           )}
         />
-        {trailingAddon && (
+        {Boolean(trailingAddon) && (
           <span className="text-xs font-medium text-[var(--color-ink-500)]">{trailingAddon}</span>
         )}
       </div>
-      {(hint || errorText) && (
+      {Boolean(hint || errorText) && (
         <p
           className={classNames(
             "text-[10.5px] md:text-[11px]",

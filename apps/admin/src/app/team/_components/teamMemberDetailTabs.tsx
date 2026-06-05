@@ -160,6 +160,22 @@ export function ActivityTab({ entries }: { entries: AdminActivityEntry[] }) {
   return <ActivityList entries={entries} />;
 }
 
+function getResourceLink(entry: AdminActivityEntry) {
+  const label = entry.resourceLabel || entry.resourceType;
+  const href = resolveResourceUrl(entry.resourceType, entry.resourceId);
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="hover:text-[var(--color-accent-700)] hover:underline"
+      >
+        {label}
+      </Link>
+    );
+  }
+  return <span>{label}</span>;
+}
+
 function ActivityList({
   entries,
   compact,
@@ -186,21 +202,7 @@ function ActivityList({
         >
           <p className="font-semibold text-[var(--color-ink-900)]">
             {formatActivityAction(entry.action)} ·{" "}
-            {(() => {
-              const label = entry.resourceLabel || entry.resourceType;
-              const href = resolveResourceUrl(entry.resourceType, entry.resourceId);
-              if (href) {
-                return (
-                  <Link
-                    href={href}
-                    className="hover:text-[var(--color-accent-700)] hover:underline"
-                  >
-                    {label}
-                  </Link>
-                );
-              }
-              return label;
-            })()}
+            {getResourceLink(entry)}
           </p>
           <p className="text-[10px] text-[var(--color-ink-500)]">
             {entry.resourceType} · {formatTimeAgo(entry.createdAt)}

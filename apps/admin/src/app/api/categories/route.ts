@@ -29,30 +29,34 @@ export async function GET(request: Request) {
     return response;
   }
 
-  await connectDB();
-  const { page, limit, skip, search, searchPattern } = readListOptions(request);
-  const filter: Record<string, unknown> = {};
-  if (search) {
-    filter.$or = [
-      { label: { $regex: searchPattern, $options: "i" } },
-      { slug: { $regex: searchPattern, $options: "i" } },
-    ];
+  try {
+    await connectDB();
+    const { page, limit, skip, search, searchPattern } = readListOptions(request);
+    const filter: Record<string, unknown> = {};
+    if (search) {
+      filter.$or = [
+        { label: { $regex: searchPattern, $options: "i" } },
+        { slug: { $regex: searchPattern, $options: "i" } },
+      ];
+    }
+    const [docs, total] = await Promise.all([
+      Category.find(filter)
+        .sort({ sortOrder: 1, label: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean<CategoryLean[]>(),
+      Category.countDocuments(filter),
+    ]);
+    const payload: ListResponse<AdminCategory> = {
+      items: docs.map(toCategoryResponse),
+      total,
+      page,
+      limit,
+    };
+    return ok(payload);
+  } catch (error) {
+    return handleMongoError(error);
   }
-  const [docs, total] = await Promise.all([
-    Category.find(filter)
-      .sort({ sortOrder: 1, label: 1 })
-      .skip(skip)
-      .limit(limit)
-      .lean<CategoryLean[]>(),
-    Category.countDocuments(filter),
-  ]);
-  const payload: ListResponse<AdminCategory> = {
-    items: docs.map(toCategoryResponse),
-    total,
-    page,
-    limit,
-  };
-  return ok(payload);
 }
 
 interface CategoryCreateInput {
@@ -139,7 +143,7 @@ export async function POST(request: Request) {
     }
     const doc = await Category.create(payload);
 
-    await recordActivity({
+    void recordActivity({
       actor,
       action: "created",
       resourceType: "category",

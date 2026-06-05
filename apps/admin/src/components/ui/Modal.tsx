@@ -27,6 +27,7 @@ export function Modal({
   const { isMounted, isClosing } = useOverlayPresence(isOpen);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- required for safe hydration
     setIsHydrated(true);
   }, []);
 
@@ -96,7 +97,7 @@ export function Modal({
         <div className="flex-1 overflow-y-auto p-5">
           {children}
         </div>
-        {footer && (
+        {Boolean(footer) && (
           <div className="border-t border-[var(--color-ink-100)] px-5 py-4 shrink-0">
             {footer}
           </div>

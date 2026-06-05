@@ -122,7 +122,7 @@ function ResetPasswordForm() {
 
       if (!response.ok) {
         setStatus("error");
-        setMessage(data.error || "Failed to reset password.");
+        setMessage(data.error ?? "Failed to reset password.");
         return;
       }
 

@@ -67,18 +67,6 @@ export function useNavigationProgressCount(): number {
 }
 
 /**
- * Fire-and-forget pulse on the global progress bar. Use when you manage
- * your own `useTransition` (or otherwise have a non-hook nav site) and
- * just need the bar to flash.
- */
-export function pingNavigationProgress(
-  durationMs: number = NAV_PROGRESS_MIN_HOLD_MS,
-): void {
-  beginPing();
-  window.setTimeout(endPing, durationMs);
-}
-
-/**
  * Hook for programmatic URL updates. Calling `startNavigation(run)`:
  *
  *  1. Defers `run()` (which typically calls `router.replace`) to the next
@@ -98,11 +86,11 @@ export function useNavigationTransition(): {
   isPending: boolean;
   startNavigation: (run: () => void) => void;
 } {
-  const [isPending, startTransition] = useTransition();
   const rafRef = useRef<number | null>(null);
   const endTimeoutRef = useRef<number | null>(null);
   const isPingedRef = useRef(false);
   const minHoldUntilRef = useRef(0);
+  const [isPending, startTransition] = useTransition();
 
   // Mirror React's transition pending state into the global counter so the
   // progress bar and the products-area skeleton overlay light up. We also

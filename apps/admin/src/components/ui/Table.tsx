@@ -145,6 +145,14 @@ export function Table<TRow>({
     setPageIndex((current) => Math.min(totalPages - 1, current + 1));
   }
 
+  const interactive = Boolean(onRowClick);
+
+  const mobileColumns = useMemo(() => columns.filter((col) => !col.hideOnMobile), [columns]);
+  const labelled = useMemo(() => mobileColumns.filter((col) => col.header !== "" && col.header != null), [mobileColumns]);
+  const unlabelled = useMemo(() => mobileColumns.filter((col) => col.header === "" || col.header == null), [mobileColumns]);
+  const primaryColumn = labelled[0];
+  const detailColumns = labelled.slice(1);
+
   return (
     <div
       className={classNames(
@@ -152,7 +160,7 @@ export function Table<TRow>({
         fillHeight && "flex h-full flex-col overflow-hidden",
       )}
     >
-      {(searchAccessor || toolbar) && (
+      {Boolean(searchAccessor || toolbar) && (
           <div className="relative z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--color-ink-100)] px-3 py-3 sm:px-5 sm:py-3.5">
           {searchAccessor ? (
             <WorkspaceSearchField
@@ -168,11 +176,11 @@ export function Table<TRow>({
           ) : (
             <span />
           )}
-          {toolbar && <div className="flex items-center gap-2">{toolbar}</div>}
+          {Boolean(toolbar) && <div className="flex items-center gap-2">{toolbar}</div>}
         </div>
       )}
 
-      {filterBar && (
+      {Boolean(filterBar) && (
         <div className="relative z-20 shrink-0 border-b border-[var(--color-ink-100)] px-3 py-2.5 sm:px-5 sm:py-3">
           {filterBar}
         </div>
@@ -196,13 +204,6 @@ export function Table<TRow>({
             )}
           >
             {visibleRows.map((row) => {
-              const mobileColumns = columns.filter((column) => !column.hideOnMobile);
-              const hasLabel = (column: TableColumn<TRow>) =>
-                column.header !== "" && column.header != null;
-              const labelled = mobileColumns.filter(hasLabel);
-              const unlabelled = mobileColumns.filter((column) => !hasLabel(column));
-              const [primaryColumn, ...detailColumns] = labelled;
-              const interactive = Boolean(onRowClick);
               return (
                 <li key={rowKey(row)} className="reveal animate-in">
                   <div

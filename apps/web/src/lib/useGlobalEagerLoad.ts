@@ -41,6 +41,7 @@ export function useGlobalEagerLoad() {
 
   useEffect(() => {
     if (globalEagerLoad) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- required for safe hydration
       setEager(true);
       return;
     }

@@ -16,25 +16,36 @@ export interface ContrastTextOptions {
   threshold?: number;
 }
 
+const COLOR_CHANNEL_MAX = 255;
+const WCAG_LOW_LUMINANCE_THRESHOLD = 0.03928;
+const WCAG_LOW_LUMINANCE_DIVISOR = 12.92;
+const WCAG_HIGH_LUMINANCE_OFFSET = 0.055;
+const WCAG_HIGH_LUMINANCE_DIVISOR = 1.055;
+const WCAG_HIGH_LUMINANCE_POWER = 2.4;
+
 function channelToLinear(channel: number): number {
-  const normalized = channel / 255;
-  return normalized <= 0.03928
-    ? normalized / 12.92
-    : ((normalized + 0.055) / 1.055) ** 2.4;
+  const normalized = channel / COLOR_CHANNEL_MAX;
+  return normalized <= WCAG_LOW_LUMINANCE_THRESHOLD
+    ? normalized / WCAG_LOW_LUMINANCE_DIVISOR
+    : ((normalized + WCAG_HIGH_LUMINANCE_OFFSET) / WCAG_HIGH_LUMINANCE_DIVISOR) ** WCAG_HIGH_LUMINANCE_POWER;
 }
 
-function relativeLuminance(r: number, g: number, b: number): number {
+const LUMINANCE_WEIGHT_RED = 0.2126;
+const LUMINANCE_WEIGHT_GREEN = 0.7152;
+const LUMINANCE_WEIGHT_BLUE = 0.0722;
+
+function relativeLuminance(red: number, green: number, blue: number): number {
   return (
-    0.2126 * channelToLinear(r) +
-    0.7152 * channelToLinear(g) +
-    0.0722 * channelToLinear(b)
+    LUMINANCE_WEIGHT_RED * channelToLinear(red) +
+    LUMINANCE_WEIGHT_GREEN * channelToLinear(green) +
+    LUMINANCE_WEIGHT_BLUE * channelToLinear(blue)
   );
 }
 
 /**
  * Parses `#rgb` or `#rrggbb` (optional alpha ignored). Returns null if invalid.
  */
-export function parseHexColor(input: string): { r: number; g: number; b: number } | null {
+export function parseHexColor(input: string): { red: number; green: number; blue: number } | null {
   const trimmed = input.trim();
   const match = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(trimmed);
   if (!match) {
@@ -43,15 +54,15 @@ export function parseHexColor(input: string): { r: number; g: number; b: number 
   const hex = match[1];
   if (hex.length === 3) {
     return {
-      r: parseInt(hex[0] + hex[0], 16),
-      g: parseInt(hex[1] + hex[1], 16),
-      b: parseInt(hex[2] + hex[2], 16),
+      red: parseInt(hex[0] + hex[0], 16),
+      green: parseInt(hex[1] + hex[1], 16),
+      blue: parseInt(hex[2] + hex[2], 16),
     };
   }
   return {
-    r: parseInt(hex.slice(0, 2), 16),
-    g: parseInt(hex.slice(2, 4), 16),
-    b: parseInt(hex.slice(4, 6), 16),
+    red: parseInt(hex.slice(0, 2), 16),
+    green: parseInt(hex.slice(2, 4), 16),
+    blue: parseInt(hex.slice(4, 6), 16),
   };
 }
 
@@ -64,7 +75,7 @@ export function isDarkHexColor(
   if (!rgb) {
     return false;
   }
-  return relativeLuminance(rgb.r, rgb.g, rgb.b) < threshold;
+  return relativeLuminance(rgb.red, rgb.green, rgb.blue) < threshold;
 }
 
 /** Returns `#ffffff` or `#111827` (overridable) for readable pill labels. */

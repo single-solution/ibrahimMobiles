@@ -69,8 +69,6 @@ export interface AttributeAttributes {
   options: AttributeOption[];
   /** When this attribute appears in filters / variant UI (default: always). */
   visibility?: AttributeVisibility;
-  /** @deprecated Attribute-level tint removed; only option chips use backgroundColor. */
-  backgroundColor?: string;
   cardPosition: AttributeCardPosition;
   isActive: boolean;
 }
@@ -91,11 +89,18 @@ const attributeVisibilitySchema = new Schema<AttributeVisibility>(
   { _id: false },
 );
 
+const ATTRIBUTE_VALUE_MAX_LENGTH = 80;
+const ATTRIBUTE_LABEL_MAX_LENGTH = 80;
+const HEX_COLOR_LENGTH = 7;
+const CATEGORY_SLUG_MAX_LENGTH = 60;
+const ATTRIBUTE_SLUG_MAX_LENGTH = 60;
+const UNIT_MAX_LENGTH = 20;
+
 const attributeOptionSchema = new Schema<AttributeOption>(
   {
-    value: { type: String, required: true, trim: true, maxlength: 80 },
-    label: { type: String, required: true, trim: true, maxlength: 80 },
-    backgroundColor: { type: String, trim: true, maxlength: 7, match: HEX_COLOR_REGEX },
+    value: { type: String, required: true, trim: true, maxlength: ATTRIBUTE_VALUE_MAX_LENGTH },
+    label: { type: String, required: true, trim: true, maxlength: ATTRIBUTE_LABEL_MAX_LENGTH },
+    backgroundColor: { type: String, trim: true, maxlength: HEX_COLOR_LENGTH, match: HEX_COLOR_REGEX },
   },
   { _id: false },
 );
@@ -107,18 +112,17 @@ const attributeSchema = new Schema<AttributeAttributes>(
       required: true,
       lowercase: true,
       trim: true,
-      maxlength: 60,
+      maxlength: CATEGORY_SLUG_MAX_LENGTH,
     },
     slug: {
       type: String,
       required: true,
       lowercase: true,
       trim: true,
-      maxlength: 60,
+      maxlength: ATTRIBUTE_SLUG_MAX_LENGTH,
     },
-    label: { type: String, required: true, trim: true, maxlength: 80 },
-    unit: { type: String, trim: true, maxlength: 20 },
-    backgroundColor: { type: String, trim: true, maxlength: 7, match: HEX_COLOR_REGEX },
+    label: { type: String, required: true, trim: true, maxlength: ATTRIBUTE_LABEL_MAX_LENGTH },
+    unit: { type: String, trim: true, maxlength: UNIT_MAX_LENGTH },
     options: {
       type: [attributeOptionSchema],
       required: true,
@@ -146,9 +150,13 @@ const attributeSchema = new Schema<AttributeAttributes>(
 attributeSchema.pre<HydratedDocument<AttributeAttributes>>(
   "validate",
   async function attributeSlugAutogen() {
-    if ((!this.slug || this.slug.length === 0) && this.label) {
-      this.slug = slugify(this.label, 60);
+    if (this?.slug && this.slug.length > 0) {
+      return;
     }
+    if (!this?.label) {
+      return;
+    }
+    this.slug = slugify(this.label, ATTRIBUTE_SLUG_MAX_LENGTH);
   },
 );
 

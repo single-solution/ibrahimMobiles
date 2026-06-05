@@ -10,6 +10,8 @@ interface SidebarSummary {
   inquiriesUnread: number;
 }
 
+const POLL_INTERVAL_MS = 30_000;
+
 export function SidebarBadge({ 
   type,
   isCollapsed
@@ -36,7 +38,7 @@ export function SidebarBadge({
     }
 
     void load();
-    const timer = window.setInterval(() => void load(), 30_000);
+    const timer = window.setInterval(() => void load(), POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
       window.clearInterval(timer);

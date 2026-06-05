@@ -34,6 +34,13 @@ if (!global.mongooseCache?.conn) {
   mongoose.connection.on("error", (error) => logger.error({ error }, "MongoDB connection error"));
 }
 
+const IP_FAMILY_V4 = 4;
+const SERVER_SELECTION_TIMEOUT_MS = 15_000;
+const CONNECT_TIMEOUT_MS = 15_000;
+const MAX_POOL_SIZE = 10;
+const MIN_POOL_SIZE = 0;
+const MAX_IDLE_TIME_MS = 60_000;
+
 /**
  * Connect to MongoDB using a module-level singleton so that hot-module
  * reloads (Next.js dev server) and serverless cold starts share one connection
@@ -49,21 +56,21 @@ export async function connectDB() {
       bufferCommands: false,
       // Force IPv4. Node 18+ prefers IPv6 by default, which can cause intermittent
       // DNS resolution failures with MongoDB Atlas SRV records on Vercel.
-      family: 4,
+      family: IP_FAMILY_V4,
       // 15s ceiling on server selection + initial TCP — long enough to ride
       // out a slow Atlas region cold-start, short enough that a truly dead
       // cluster fails fast instead of hanging every Next.js request.
-      serverSelectionTimeoutMS: 15_000,
-      connectTimeoutMS: 15_000,
+      serverSelectionTimeoutMS: SERVER_SELECTION_TIMEOUT_MS,
+      connectTimeoutMS: CONNECT_TIMEOUT_MS,
       // Connection-pool sizing. In serverless environments (Vercel), each
       // concurrent request spins up its own lambda with its own connection pool.
       // High maxPoolSize and minPoolSize can quickly exhaust the Atlas connection
       // limit. We use a smaller max pool and no minimum pool to prevent leaks.
-      maxPoolSize: 10,
-      minPoolSize: 0,
+      maxPoolSize: MAX_POOL_SIZE,
+      minPoolSize: MIN_POOL_SIZE,
       // Idle sockets in the pool get torn down after 60s. Combined with
       // `minPoolSize`, the pool self-heals without leaking idle connections.
-      maxIdleTimeMS: 60_000,
+      maxIdleTimeMS: MAX_IDLE_TIME_MS,
       // Wire-level compression. zstd is the fastest and most compact of
       // the supported algorithms; the driver negotiates `snappy`/`zlib`
       // as fallbacks if the server doesn't support zstd. Cuts payload

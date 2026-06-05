@@ -189,7 +189,3 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
 export function rolePermissionCount(role: UserRole): number {
   return ROLE_PERMISSIONS[role].length;
 }
-
-export function roleHasPermission(role: UserRole, permission: PermissionKey): boolean {
-  return ROLE_PERMISSIONS[role].includes(permission);
-}

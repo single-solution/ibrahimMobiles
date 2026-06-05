@@ -52,6 +52,8 @@ interface MenuRowDescriptor {
  * lacks permission to see are hidden (so a support_staff user without
  * `order_view` won't be teased with "5 pending payments" they can't open).
  */
+const MAX_BADGE_COUNT = 9;
+
 export function NotificationsMenu() {
   const alerts = useAdminAlerts();
   const { can } = useAdminPermissions();
@@ -60,7 +62,7 @@ export function NotificationsMenu() {
   const pathname = usePathname();
 
   const total = totalAdminAlertCount(alerts);
-  const badgeLabel = total > 9 ? "9+" : String(total);
+  const badgeLabel = total > MAX_BADGE_COUNT ? "9+" : String(total);
 
   // Close on outside click + Escape, mirroring UserMenu's behaviour so the
   // top bar dropdowns feel consistent.

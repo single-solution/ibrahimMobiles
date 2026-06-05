@@ -37,12 +37,6 @@ import {
   type ChatThread,
 } from "@store/shared";
 
-import {
-  ChatMessageBubble,
-  ChatMessageDayDivider,
-  chatWelcomeMessage,
-  groupChatMessagesByDay,
-} from "@/app/_components/chat/chatMessageUi";
 import type { ChatSettings } from "@/lib/chat/chatSettings";
 import type { OpenChatDetail } from "@/lib/chat/openChat";
 import {
@@ -170,7 +164,10 @@ export function LiveChatWidget({
       if (data.threads.length === 0) {
         setView("compose");
       } else {
-        setActiveThreadId(data.threads[0].id);
+        const threadId = data.threads[0]?.id;
+        if (threadId) {
+          setActiveThreadId(threadId);
+        }
         setView("thread");
       }
     })();
@@ -301,35 +298,35 @@ export function LiveChatWidget({
               
               // Deduplicate optimistic messages if the real one arrived via polling
               const prevRealBodies = new Map<string, number>();
-              for (const m of prev.messages) {
-                if (m.author === "customer" && !m.id.startsWith("local-")) {
-                  const b = m.body.trim();
-                  prevRealBodies.set(b, (prevRealBodies.get(b) || 0) + 1);
+              for (const message of prev.messages) {
+                if (message.author === "customer" && !message.id.startsWith("local-")) {
+                  const bodyTrimmed = message.body.trim();
+                  prevRealBodies.set(bodyTrimmed, (prevRealBodies.get(bodyTrimmed) || 0) + 1);
                 }
               }
 
               const freshRealBodies = new Map<string, number>();
-              for (const m of fresh.messages) {
-                if (m.author === "customer") {
-                  const b = m.body.trim();
-                  freshRealBodies.set(b, (freshRealBodies.get(b) || 0) + 1);
+              for (const message of fresh.messages) {
+                if (message.author === "customer") {
+                  const bodyTrimmed = message.body.trim();
+                  freshRealBodies.set(bodyTrimmed, (freshRealBodies.get(bodyTrimmed) || 0) + 1);
                 }
               }
 
               const newlyArrivedCounts = new Map<string, number>();
-              for (const [b, freshCount] of freshRealBodies.entries()) {
-                const prevCount = prevRealBodies.get(b) || 0;
+              for (const [bodyText, freshCount] of freshRealBodies.entries()) {
+                const prevCount = prevRealBodies.get(bodyText) || 0;
                 if (freshCount > prevCount) {
-                  newlyArrivedCounts.set(b, freshCount - prevCount);
+                  newlyArrivedCounts.set(bodyText, freshCount - prevCount);
                 }
               }
 
-              const filteredPrevMessages = prev.messages.filter(m => {
-                if (m.id.startsWith("local-")) {
-                  const b = m.body.trim();
-                  const availableToDrop = newlyArrivedCounts.get(b) || 0;
+              const filteredPrevMessages = prev.messages.filter(message => {
+                if (message.id.startsWith("local-")) {
+                  const bodyTrimmed = message.body.trim();
+                  const availableToDrop = newlyArrivedCounts.get(bodyTrimmed) || 0;
                   if (availableToDrop > 0) {
-                    newlyArrivedCounts.set(b, availableToDrop - 1);
+                    newlyArrivedCounts.set(bodyTrimmed, availableToDrop - 1);
                     return false; // Drop this local message, it's covered by a new real one
                   }
                 }
@@ -439,7 +436,7 @@ export function LiveChatWidget({
       // older messages already loaded above stay in place.
       setActiveThread((prev) => {
         const base = prev ?? fresh;
-        const withoutResolvedOptimistic = base.messages.filter((m) => m.id !== optimistic.id);
+        const withoutResolvedOptimistic = base.messages.filter((msg) => msg.id !== optimistic.id);
         return {
           ...fresh,
           messages: mergeChatMessagesById(withoutResolvedOptimistic, fresh.messages),
@@ -452,7 +449,7 @@ export function LiveChatWidget({
         prev
           ? {
               ...prev,
-              messages: prev.messages.filter((m) => m.id !== optimistic.id),
+              messages: prev.messages.filter((msg) => msg.id !== optimistic.id),
             }
           : prev,
       );
@@ -468,7 +465,8 @@ export function LiveChatWidget({
     if (!thread?.hasMoreOlder || thread.messages.length === 0) {
       return;
     }
-    const oldestId = thread.messages[0].id;
+    const oldestId = thread.messages[0]?.id;
+    if (!oldestId) return;
     setIsLoadingOlder(true);
     try {
       const older = await fetchOlderChatMessages(thread.id, oldestId);
@@ -538,23 +536,22 @@ export function LiveChatWidget({
     );
   }
 
+  function getSubtitle() {
+    if (isReconnecting) return "Reconnecting…";
+    if (view === "thread" && activeThread) return statusLabel(activeThread.status);
+    if (settings?.assistantEnabled) return "Support chat · replies in seconds";
+    return "We typically reply within an hour";
+  }
+
   return (
     <ChatShell
       onClose={onCollapse}
       title={
         settings?.assistantEnabled ? supportLabel : siteName
       }
-      subtitle={
-        isReconnecting
-          ? "Reconnecting…"
-          : view === "thread" && activeThread
-            ? statusLabel(activeThread.status)
-            : settings?.assistantEnabled
-              ? "Support chat · replies in seconds"
-              : "We typically reply within an hour"
-      }
+      subtitle={getSubtitle()}
     >
-      {bootstrapError && (
+      {bootstrapError != null && (
         <div className="border-b border-[var(--color-error-200)] bg-[var(--color-error-50)] px-4 py-2 text-xs text-[var(--color-error-700)]">
           {bootstrapError}
         </div>

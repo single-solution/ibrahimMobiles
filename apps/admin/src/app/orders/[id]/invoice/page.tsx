@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { Order, connectDB } from "@store/db";
 import { formatPrice } from "@store/shared";
 import { requirePagePermission } from "@/lib/server/requirePageSession";
+import type { OrderLean } from "@/lib/serializers/order";
 import { AutoPrint } from "./_components/AutoPrint";
 
 export default async function InvoicePage(props: { params: Promise<{ id: string }> }) {
@@ -9,11 +10,14 @@ export default async function InvoicePage(props: { params: Promise<{ id: string 
   const params = await props.params;
 
   await connectDB();
-  const order = await Order.findById(params.id).lean();
+  const order = await Order.findById(params.id).lean<OrderLean>();
 
   if (!order) {
     return notFound();
   }
+
+  const paymentLabel = order.payment === "cod" ? "Cash on Delivery" : order.payment;
+  const deliveryLabel = order.delivery === "pickup" ? "Store Pickup" : "Courier";
 
   return (
     <div className="mx-auto max-w-3xl bg-white p-8 text-black print:p-0">
@@ -51,10 +55,10 @@ export default async function InvoicePage(props: { params: Promise<{ id: string 
             <span className="font-medium">Date:</span> {new Date(order.createdAt).toLocaleDateString()}
           </p>
           <p className="text-sm text-gray-700">
-            <span className="font-medium">Payment:</span> {order.payment === "cod" ? "Cash on Delivery" : order.payment}
+            <span className="font-medium">Payment:</span> {paymentLabel}
           </p>
           <p className="text-sm text-gray-700">
-            <span className="font-medium">Delivery:</span> {order.delivery === "pickup" ? "Store Pickup" : "Courier"}
+            <span className="font-medium">Delivery:</span> {deliveryLabel}
           </p>
         </div>
       </div>

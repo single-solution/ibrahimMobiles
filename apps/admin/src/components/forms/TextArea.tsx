@@ -34,7 +34,7 @@ export function TextArea({
           className,
         )}
       />
-      {hint && (
+      {Boolean(hint) && (
         <p className="text-[11px] text-[var(--color-ink-500)]">{hint}</p>
       )}
     </div>

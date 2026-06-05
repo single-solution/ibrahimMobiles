@@ -53,6 +53,13 @@ export interface OfferAttributes {
   constraints: OfferConstraints;
 }
 
+const OFFER_SLUG_MAX_LENGTH = 96;
+const OFFER_TITLE_MAX_LENGTH = 160;
+const OFFER_DESC_MAX_LENGTH = 400;
+const DISCOUNT_LABEL_MAX_LENGTH = 60;
+const BADGE_LABEL_MAX_LENGTH = 60;
+const HEX_COLOR_LENGTH = 7;
+
 const offerSchema = new Schema<OfferAttributes>(
   {
     slug: {
@@ -61,18 +68,18 @@ const offerSchema = new Schema<OfferAttributes>(
       unique: true,
       lowercase: true,
       trim: true,
-      maxlength: 96,
+      maxlength: OFFER_SLUG_MAX_LENGTH,
       index: true,
     },
-    title: { type: String, required: true, trim: true, maxlength: 160 },
-    description: { type: String, required: true, trim: true, maxlength: 400 },
-    discountLabel: { type: String, required: true, trim: true, maxlength: 60 },
-    badgeLabel: { type: String, required: true, trim: true, maxlength: 60 },
+    title: { type: String, required: true, trim: true, maxlength: OFFER_TITLE_MAX_LENGTH },
+    description: { type: String, required: true, trim: true, maxlength: OFFER_DESC_MAX_LENGTH },
+    discountLabel: { type: String, required: true, trim: true, maxlength: DISCOUNT_LABEL_MAX_LENGTH },
+    badgeLabel: { type: String, required: true, trim: true, maxlength: BADGE_LABEL_MAX_LENGTH },
     color: {
       type: String,
       required: true,
       trim: true,
-      maxlength: 7,
+      maxlength: HEX_COLOR_LENGTH,
       match: /^#[0-9a-f]{6}$/i,
       default: "#e1ff51",
     },
@@ -92,9 +99,13 @@ const offerSchema = new Schema<OfferAttributes>(
 offerSchema.pre<HydratedDocument<OfferAttributes>>(
   "validate",
   async function offerSlugAutogen() {
-    if ((!this.slug || this.slug.length === 0) && this.title) {
-      this.slug = slugify(this.title, 96);
+    if (this?.slug && this.slug.length > 0) {
+      return;
     }
+    if (!this?.title) {
+      return;
+    }
+    this.slug = slugify(this.title, OFFER_SLUG_MAX_LENGTH);
   },
 );
 

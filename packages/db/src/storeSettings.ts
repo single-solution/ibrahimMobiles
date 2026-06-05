@@ -53,14 +53,14 @@ async function loadFromDb(): Promise<StoreSettings> {
 
   const merged: StoreSettings = { ...STORE_SETTING_DEFAULTS };
   for (const doc of docs) {
-    const field = fromStoreSettingKey(doc.key);
+    const field = fromStoreSettingKey(doc?.key ?? "");
     if (!field) {
       continue;
     }
-    const coerced = coerceStoreSettingValue(field, doc.value);
+    const coerced = coerceStoreSettingValue(field, doc?.value);
     if (coerced === null) {
       logger.warn(
-        { key: doc.key, value: doc.value },
+        { key: doc?.key, value: doc?.value },
         "store-settings: dropping invalid value, falling back to default",
       );
       continue;

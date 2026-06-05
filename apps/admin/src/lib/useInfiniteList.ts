@@ -17,7 +17,7 @@
  */
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { apiFetch } from "@/lib/api";
 import type { ListResponse } from "@/lib/api/listOptions";
@@ -70,35 +70,40 @@ export function useInfiniteList<TItem extends { id: string }>({
   const limitRef = useRef(initial.limit);
   const initialRef = useRef(initial);
 
-  if (seedKey !== listKey) {
-    // Listing identity changed (filter/search) — reset to the fresh SSR seed.
-    setSeedKey(listKey);
-    setItems(initial.items);
-    setTotal(initial.total);
-    setPage(initial.page);
-    setIsLoadingMore(false);
-    setHasError(false);
-    seenIdsRef.current = new Set(initial.items.map((item) => item.id));
-    isLoadingRef.current = false;
-    limitRef.current = initial.limit;
-    initialRef.current = initial;
-  } else if (initialRef.current !== initial) {
-    // Same listing, fresh server data (router.refresh after a mutation). Adopt
-    // the new page as the head; keep already-loaded deeper pages as the tail.
-    initialRef.current = initial;
-    setItems((previous) => {
-      const headIds = new Set(initial.items.map((item) => item.id));
-      const tail = previous.filter((item) => !headIds.has(item.id));
-      const merged = [...initial.items, ...tail];
-      seenIdsRef.current = new Set(merged.map((item) => item.id));
-      return merged;
-    });
-    setTotal(initial.total);
-  }
+  useEffect(() => {
+    if (seedKey !== listKey) {
+      // Listing identity changed (filter/search) — reset to the fresh SSR seed.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentionally sync reset
+      setSeedKey(listKey);
+      setItems(initial.items);
+      setTotal(initial.total);
+      setPage(initial.page);
+      setIsLoadingMore(false);
+      setHasError(false);
+      seenIdsRef.current = new Set(initial.items.map((item) => item.id));
+      isLoadingRef.current = false;
+      limitRef.current = initial.limit;
+      initialRef.current = initial;
+    } else if (initialRef.current !== initial) {
+      // Same listing, fresh server data (router.refresh after a mutation). Adopt
+      // the new page as the head; keep already-loaded deeper pages as the tail.
+      initialRef.current = initial;
+      setItems((previous) => {
+        const headIds = new Set(initial.items.map((item) => item.id));
+        const tail = previous.filter((item) => !headIds.has(item.id));
+        const merged = [...initial.items, ...tail];
+        seenIdsRef.current = new Set(merged.map((item) => item.id));
+        return merged;
+      });
+      setTotal(initial.total);
+    }
+  }, [seedKey, listKey, initial]);
 
-  pageRef.current = page;
-  totalRef.current = total;
-  loadedRef.current = items.length;
+  useEffect(() => {
+    pageRef.current = page;
+    totalRef.current = total;
+    loadedRef.current = items.length;
+  }, [page, total, items.length]);
 
   const loadMore = useCallback(() => {
     if (isLoadingRef.current || loadedRef.current >= totalRef.current) {

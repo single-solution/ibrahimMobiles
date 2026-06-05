@@ -22,7 +22,7 @@ export function isMongoDuplicateKeyError(error: unknown): boolean {
   }
   // Mongoose surfaces the native driver `code` field on the Error subclass;
   // there is no public type for it, so we read it through a structural cast.
-  return (error as MongoErrorShape).code === MONGO_DUPLICATE_KEY;
+  return (error as MongoErrorShape)?.code === MONGO_DUPLICATE_KEY;
 }
 
 /**
@@ -35,16 +35,16 @@ export function handleMongoError(error: unknown): NextResponse {
     // there's no public type for them, so we read them through a cast.
     const mongoError = error as MongoErrorShape;
 
-    if (mongoError.code === MONGO_DUPLICATE_KEY) {
+    if (mongoError?.code === MONGO_DUPLICATE_KEY) {
       return conflict("A record with this value already exists.");
     }
 
-    if (mongoError.name === "ValidationError") {
+    if (mongoError?.name === "ValidationError") {
       logger.error({ error }, "Mongoose validation error");
       return badRequest("The submitted data failed validation. Please check all fields and try again.");
     }
 
-    if (mongoError.name === "CastError") {
+    if (mongoError?.name === "CastError") {
       return badRequest("Invalid ID format.");
     }
   }

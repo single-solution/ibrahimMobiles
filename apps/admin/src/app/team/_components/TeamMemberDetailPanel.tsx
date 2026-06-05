@@ -127,12 +127,12 @@ export function TeamMemberDetailPanel({
       setMember(detail);
       setActivity(activityRes?.items ?? []);
       setActivityTotal(activityRes?.total ?? 0);
-      setName(detail.name);
-      setEmail(detail.email);
-      setPhoneNumber(detail.phoneNumber ?? "");
-      setRole(detail.role);
-      setIsActive(detail.isActive);
-      setIsSuperAdmin(detail.isSuperAdmin);
+      setName(detail?.name ?? "");
+      setEmail(detail?.email ?? "");
+      setPhoneNumber(detail?.phoneNumber ?? "");
+      setRole(detail?.role ?? "support_staff");
+      setIsActive(detail?.isActive ?? false);
+      setIsSuperAdmin(detail?.isSuperAdmin ?? false);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Failed to load member");
     } finally {
@@ -145,6 +145,18 @@ export function TeamMemberDetailPanel({
       void load();
     });
   }, [load]);
+
+  const tabs = useMemo(() => {
+    if (!member) return [];
+    return [
+      { id: "overview" as const, label: "Overview" },
+      { id: "profile" as const, label: "Profile" },
+      { id: "access" as const, label: "Access" },
+      ...(canViewActivity
+        ? [{ id: "activity" as const, label: "Activity", count: activityTotal }]
+        : []),
+    ];
+  }, [activityTotal, canViewActivity, member]);
 
   async function copyMemberId() {
     if (!member) return;
@@ -259,18 +271,6 @@ export function TeamMemberDetailPanel({
     }
   }
 
-  const tabs = useMemo(() => {
-    if (!member) return [];
-    return [
-      { id: "overview" as const, label: "Overview" },
-      { id: "profile" as const, label: "Profile" },
-      { id: "access" as const, label: "Access" },
-      ...(canViewActivity
-        ? [{ id: "activity" as const, label: "Activity", count: activityTotal }]
-        : []),
-    ];
-  }, [activityTotal, canViewActivity, member]);
-
   if (isLoading && !member) {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
@@ -321,11 +321,17 @@ export function TeamMemberDetailPanel({
 
   const canRemoveThisMember =
     canRemove && !isSelf && !(member.isSuperAdmin && isCurrentUserSuperAdmin === false);
-  const cannotRemoveReason = isSelf
-    ? "You cannot remove your own account."
-    : member.isSuperAdmin
-      ? "Super admins must be demoted by another super admin before removal."
-      : undefined;
+  const cannotRemoveReason = (() => {
+    if (isSelf) return "You cannot remove your own account.";
+    if (member.isSuperAdmin) return "Super admins must be demoted by another super admin before removal.";
+    return undefined;
+  })();
+
+  const roleHint = (() => {
+    if (isSelf) return "You cannot change your own role.";
+    if (!isCurrentUserSuperAdmin) return "Only super admins can change roles.";
+    return ROLE_TAGLINE[role];
+  })();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -518,13 +524,7 @@ export function TeamMemberDetailPanel({
                     onChange={(event) => setRole(event.target.value as UserRole)}
                     options={ROLE_OPTIONS}
                     disabled={!canUpdate || !isCurrentUserSuperAdmin || isSelf}
-                    hint={
-                      isSelf
-                        ? "You cannot change your own role."
-                        : !isCurrentUserSuperAdmin
-                          ? "Only super admins can change roles."
-                          : ROLE_TAGLINE[role]
-                    }
+                    hint={roleHint}
                   />
                   <RoleSummaryCard role={role} onOpen={() => onOpenRoles(role)} />
                   <Switch

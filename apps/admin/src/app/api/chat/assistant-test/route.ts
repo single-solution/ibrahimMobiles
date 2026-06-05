@@ -42,6 +42,10 @@ interface TestBody {
   draft?: Partial<ChatSettingsValues>;
 }
 
+const MESSAGE_MIN_LENGTH = 2;
+const MESSAGE_MAX_LENGTH = 500;
+const ASSISTANT_NAME_MAX_LENGTH = 60;
+
 function mergeRuntimeSettings(
   saved: ChatSettingsValues,
   draft: Partial<ChatSettingsValues> | undefined,
@@ -50,7 +54,7 @@ function mergeRuntimeSettings(
   const merged = { ...saved, ...draft };
   return {
     assistantName:
-      assistantNameOverride?.trim().slice(0, 60) || merged.assistantName,
+      assistantNameOverride?.trim().slice(0, ASSISTANT_NAME_MAX_LENGTH) || merged.assistantName,
     assistantProvider: merged.assistantProvider,
     assistantModelOpenai: merged.assistantModelOpenai,
     assistantModelGoogle: merged.assistantModelGoogle,
@@ -77,8 +81,8 @@ export async function POST(request: Request) {
 
   const messageResult = validateString(parsed.message, {
     label: "Message",
-    min: 2,
-    max: 500,
+    min: MESSAGE_MIN_LENGTH,
+    max: MESSAGE_MAX_LENGTH,
   });
   if (typeof messageResult !== "string") {
     return badRequest(messageResult.error);
@@ -133,7 +137,7 @@ export async function POST(request: Request) {
 
   const testAssistantName =
     typeof parsed.assistantName === "string" && parsed.assistantName.trim()
-      ? parsed.assistantName.trim().slice(0, 60)
+      ? parsed.assistantName.trim().slice(0, ASSISTANT_NAME_MAX_LENGTH)
       : savedSettings.assistantName || CHAT_ASSISTANT_DEFAULT_NAME;
 
   const runtime = mergeRuntimeSettings(

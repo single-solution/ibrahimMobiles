@@ -23,6 +23,11 @@ export const CHAT_ASSISTANT_DEFAULT_MODELS: Record<ChatAssistantProvider, string
   anthropic: "claude-3-5-sonnet-latest",
 };
 
+const MAX_MODEL_OVERRIDE_LENGTH = 80;
+const DEFAULT_TEMPERATURE = 0.38;
+const DEFAULT_MAX_TOKENS = 500;
+const ANTHROPIC_API_VERSION = "2023-06-01";
+
 export function normalizeChatAssistantProvider(
   value: unknown,
   fallback: ChatAssistantProvider = "openai",
@@ -36,7 +41,7 @@ export function resolveAssistantModel(
 ): string {
   const trimmed = modelOverride?.trim();
   if (trimmed) {
-    return trimmed.slice(0, 80);
+    return trimmed.slice(0, MAX_MODEL_OVERRIDE_LENGTH);
   }
   if (provider === "google") {
     return process.env.GEMINI_CHAT_MODEL?.trim() || CHAT_ASSISTANT_DEFAULT_MODELS.google;
@@ -204,8 +209,8 @@ async function callOpenAi(
   const toolCalls = (message?.tool_calls ?? [])
     .filter((call) => call.function?.name)
     .map((call) => ({
-      id: call.id ?? call.function!.name!,
-      name: call.function!.name!,
+      id: call.id ?? call.function?.name ?? "unknown-tool",
+      name: call.function?.name ?? "unknown-tool",
       arguments: safeParseArguments(call.function?.arguments),
     }));
   return { reply: message?.content?.trim() ?? null, toolCalls };
@@ -229,7 +234,7 @@ function toGeminiContents(messages: AssistantChatMessage[]) {
       };
       const last = contents[contents.length - 1];
       // Gemini wants tool results grouped into one user turn.
-      if (last && last.role === "user" && last.parts.every((p) => "functionResponse" in (p as object))) {
+      if (last && last.role === "user" && last.parts.every((part) => "functionResponse" in (part as object))) {
         last.parts.push(part);
       } else {
         contents.push({ role: "user", parts: [part] });
@@ -394,7 +399,7 @@ async function callAnthropic(
     method: "POST",
     headers: {
       "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+      "anthropic-version": ANTHROPIC_API_VERSION,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -456,17 +461,19 @@ export async function callAssistantCompletion(
 
   try {
     const generation = {
-      temperature: input.temperature ?? 0.38,
-      maxTokens: input.maxTokens ?? 500,
+      temperature: input.temperature ?? DEFAULT_TEMPERATURE,
+      maxTokens: input.maxTokens ?? DEFAULT_MAX_TOKENS,
       tools: input.tools,
     };
 
-    const raw =
-      input.provider === "google"
-        ? await callGemini(input.model, input.apiKey, input.messages, generation, signal)
-        : input.provider === "anthropic"
-          ? await callAnthropic(input.model, input.apiKey, input.messages, generation, signal)
-          : await callOpenAi(input.model, input.apiKey, input.messages, generation, signal);
+    let raw: ProviderCall | null = null;
+    if (input.provider === "google") {
+      raw = await callGemini(input.model, input.apiKey, input.messages, generation, signal);
+    } else if (input.provider === "anthropic") {
+      raw = await callAnthropic(input.model, input.apiKey, input.messages, generation, signal);
+    } else {
+      raw = await callOpenAi(input.model, input.apiKey, input.messages, generation, signal);
+    }
 
     if (!raw) {
       return null;

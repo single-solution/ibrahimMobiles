@@ -48,7 +48,7 @@ export const DESKTOP_CATEGORY_STAGGER_MS = 100;
 
 /** Google Maps zoom level used in the embedded store-locator iframe — 17
  *  reads as "street level" without showing individual building outlines. */
-export const MAP_EMBED_ZOOM = 17;
+  const MAP_EMBED_ZOOM = 17;
 
 export interface HeroProps {
   heroProducts: Product[];
@@ -78,7 +78,7 @@ export interface VisitStoreSectionProps {
   settings: StoreSettings;
 }
 
-export function HeroTrustHints({
+function HeroTrustHints({
   settings,
   variant,
 }: {
@@ -501,7 +501,7 @@ export function DesktopVisitStore({ settings }: VisitStoreSectionProps) {
                   <p className="mt-0.5 text-xs text-[var(--color-ink-500)]">{settings.storeHours}</p>
                 </div>
                 <Link
-                  href={settings.socialGoogleMaps}
+                  href={settings?.socialGoogleMaps ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="cta-arrow tap inline-flex items-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-medium text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-accent-500)] hover:text-[var(--color-accent-700)]"
@@ -574,9 +574,9 @@ export function DesktopSectionHeader({ eyebrow, title, description, ctaHref, cta
           {description}
         </p>
       </div>
-      {ctaHref && ctaLabel && (
+      {Boolean(ctaHref) && Boolean(ctaLabel) && (
         <Link
-          href={ctaHref}
+          href={ctaHref!}
           className="cta-arrow tap inline-flex shrink-0 items-center gap-1 text-sm font-medium text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
         >
           {ctaLabel}

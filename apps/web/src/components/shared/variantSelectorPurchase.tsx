@@ -49,6 +49,13 @@ export function PurchaseSummary({
     : "Sold out";
   const showBuyAll = isInStock && maxQuantity > 1 && quantity < maxQuantity;
 
+  function getButtonLabel() {
+    if (!isInStock) return "Sold out";
+    if (maxQuantity <= 0) return "Max in cart";
+    if (hasJustBeenAdded) return "Added to cart";
+    return "Add to cart";
+  }
+
   return (
     <div className="hidden md:block">
       {/* Concentric: inner Button --radius-md (8) + p-2.5 (10) →
@@ -111,13 +118,7 @@ export function PurchaseSummary({
             disabled={!isInStock || maxQuantity <= 0}
             onClick={onAddToCart}
           >
-            {!isInStock
-              ? "Sold out"
-              : maxQuantity <= 0
-                ? "Max in cart"
-                : hasJustBeenAdded
-                  ? "Added to cart"
-                  : "Add to cart"}
+            {getButtonLabel()}
           </Button>
         </div>
         {globalDeliveryNote && (

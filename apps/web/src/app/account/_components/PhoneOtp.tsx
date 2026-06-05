@@ -21,7 +21,7 @@ interface IssueOtpResponse {
   error?: string;
 }
 
-export interface PhoneOtpFormProps {
+export interface PhoneOtpProps {
   phoneSubmitLabel: string;
   codeSubmitLabel: string;
   onVerified: () => void;
@@ -29,13 +29,13 @@ export interface PhoneOtpFormProps {
   autoFocusPhone?: boolean;
 }
 
-export function PhoneOtpForm({
+export function PhoneOtp({
   phoneSubmitLabel,
   codeSubmitLabel,
   onVerified,
   phonePlaceholder = "+92 300 1234567",
   autoFocusPhone = false,
-}: PhoneOtpFormProps) {
+}: PhoneOtpProps) {
   const { whatsappNumber, supportPhone } = useStoreSettings();
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");

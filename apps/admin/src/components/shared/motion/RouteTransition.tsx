@@ -3,6 +3,8 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode, Suspense, useCallback } from "react";
 
+const ENTER_TIMEOUT_MS = 480;
+
 interface RouteTransitionProps {
   children: ReactNode;
 }
@@ -130,7 +132,7 @@ export function RouteTransition({ children }: RouteTransitionProps) {
       enterTimeoutRef.current = window.setTimeout(() => {
         setIsEntering(false);
         enterTimeoutRef.current = undefined;
-      }, 480);
+      }, ENTER_TIMEOUT_MS);
     });
 
     return () => {

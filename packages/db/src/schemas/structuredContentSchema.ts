@@ -16,6 +16,8 @@ import {
  * don't need ObjectId churn and we serialize them as a plain array.
  */
 
+const ICON_MAX_LENGTH = 80;
+
 const structuredContentBulletSchema = new Schema<StructuredContentBullet>(
   {
     text: {
@@ -28,7 +30,7 @@ const structuredContentBulletSchema = new Schema<StructuredContentBullet>(
       type: String,
       required: true,
       trim: true,
-      maxlength: 80,
+      maxlength: ICON_MAX_LENGTH,
       default: DEFAULT_ICON,
     },
   },

@@ -67,7 +67,7 @@ export function VariantCard({
     return errorByPath.get(`${prefix}.attributes.${slug}`);
   }
 
-  const grade = grades.find((g) => g.slug === variant.gradeSlug);
+  const grade = grades.find((gradeItem) => gradeItem.slug === variant.gradeSlug);
 
   const visibleAttributes = useMemo(() => {
     const nodes = attributes.map((attribute) => ({
@@ -140,22 +140,22 @@ export function VariantCard({
             )}
             {[...grades]
               .sort((left, right) => compareAlphabetically(left.label, right.label))
-              .map((g) => {
-                const isSelected = variant.gradeSlug === g.slug;
+              .map((gradeItem) => {
+                const isSelected = variant.gradeSlug === gradeItem.slug;
                 return (
                   <button
-                    key={g.id}
+                    key={gradeItem.id}
                     type="button"
-                    onClick={() => onChange({ ...variant, gradeSlug: g.slug })}
+                    onClick={() => onChange({ ...variant, gradeSlug: gradeItem.slug })}
                     className={
                       "rounded-full border px-2.5 py-1 text-[12.5px] font-semibold transition " +
                       (isSelected
                         ? "border-transparent"
                         : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)]")
                     }
-                    style={isSelected ? coloredPillStyle(g.color) : undefined}
+                    style={isSelected ? coloredPillStyle(gradeItem.color) : undefined}
                   >
-                    {g.label}
+                    {gradeItem.label}
                   </button>
                 );
               })}

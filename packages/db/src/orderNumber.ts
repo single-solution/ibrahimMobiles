@@ -27,12 +27,19 @@ function buildOrderNumber(year: number, sequence: number): string {
   return `IM-${year}-${sequence.toString().padStart(SEQUENCE_PAD_WIDTH, "0")}`;
 }
 
+const MIN_VALID_YEAR = 2000;
+const MAX_VALID_YEAR = 2100;
+
 /**
  * Returns the next un-used order number for the current calendar year.
  * Caller is responsible for catching duplicate-key violations and retrying
  * with the helper above (see `createWithUniqueOrderNumber`).
  */
 export async function nextOrderNumberForYear(year = new Date().getFullYear()): Promise<string> {
+  if (!Number.isInteger(year) || year < MIN_VALID_YEAR || year > MAX_VALID_YEAR) {
+    throw new Error(`Invalid year for order number generation: ${String(year)}`);
+  }
+
   const prefix = `IM-${year}-`;
   const last = await Order.findOne({
     orderNumber: { $regex: `^${prefix}` },

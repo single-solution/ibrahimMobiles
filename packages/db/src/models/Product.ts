@@ -99,6 +99,8 @@ const variantSchema = new Schema<VariantAttributes>(
   { _id: true, timestamps: false },
 );
 
+const PRODUCT_SLUG_MAX_LENGTH = 96;
+
 const productSchema = new Schema<ProductAttributes>(
   {
     slug: {
@@ -107,7 +109,7 @@ const productSchema = new Schema<ProductAttributes>(
       unique: true,
       lowercase: true,
       trim: true,
-      maxlength: 96,
+      maxlength: PRODUCT_SLUG_MAX_LENGTH,
       index: true,
     },
     name: { type: String, required: true, trim: true, maxlength: 120 },
@@ -147,9 +149,13 @@ const productSchema = new Schema<ProductAttributes>(
 productSchema.pre<HydratedDocument<ProductAttributes>>(
   "validate",
   async function productSlugAutogen() {
-    if ((!this.slug || this.slug.length === 0) && this.name) {
-      this.slug = slugify(this.name, 96);
+    if (this?.slug && this.slug.length > 0) {
+      return;
     }
+    if (!this?.name) {
+      return;
+    }
+    this.slug = slugify(this.name, PRODUCT_SLUG_MAX_LENGTH);
   },
 );
 

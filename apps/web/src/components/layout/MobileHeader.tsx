@@ -10,9 +10,11 @@ interface MobileHeaderProps {
   onOpenSearch: () => void;
 }
 
+const SCROLL_THRESHOLD_PX = 4;
+
 export function MobileHeader({ onOpenSearch }: MobileHeaderProps) {
-  const [isScrolled, setIsScrolled] = useState(false);
   const { siteName, brandLogoLight, brandLogoDark } = useStoreSettings();
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Mirror the desktop header's frosted-on-scroll behaviour so the
   // mobile header dissolves into the hero gradient at the top of the
@@ -20,7 +22,7 @@ export function MobileHeader({ onOpenSearch }: MobileHeaderProps) {
   // listener so the scroll thread stays cheap.
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 4);
+      setIsScrolled(window.scrollY > SCROLL_THRESHOLD_PX);
     };
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });

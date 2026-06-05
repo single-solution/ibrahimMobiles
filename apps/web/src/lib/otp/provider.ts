@@ -94,11 +94,3 @@ export function getOtpProvider(): OtpProvider {
   cachedProvider = consoleProvider;
   return cachedProvider;
 }
-
-/**
- * Test seam — drop the cached provider so the next `getOtpProvider()` call
- * re-evaluates env vars. Production code never needs this.
- */
-export function _resetOtpProviderCache(): void {
-  cachedProvider = null;
-}

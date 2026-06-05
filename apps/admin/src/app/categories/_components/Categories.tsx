@@ -180,10 +180,10 @@ export function Categories({
       ),
       grades: grades
         .filter((grade) => grade.categorySlug === category.slug)
-        .sort((a, b) => a.label.localeCompare(b.label)),
+        .sort((left, right) => left.label.localeCompare(right.label)),
       attributes: attributes
         .filter((attr) => attr.categorySlug === category.slug)
-        .sort((a, b) => a.label.localeCompare(b.label)),
+        .sort((left, right) => left.label.localeCompare(right.label)),
     }));
   }, [categories, brands, grades, attributes]);
 

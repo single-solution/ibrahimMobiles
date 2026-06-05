@@ -41,12 +41,12 @@ export function getDefaultVariant(product: Product): Variant {
   }
   const inStock = variants.filter(isVariantInStock);
   const pool = inStock.length > 0 ? inStock : variants;
-  return [...pool].sort((a, b) => {
-    const priceDelta = a.priceRupees - b.priceRupees;
+  return [...pool].sort((left, right) => {
+    const priceDelta = left.priceRupees - right.priceRupees;
     if (priceDelta !== 0) {
       return priceDelta;
     }
-    return a.id.localeCompare(b.id);
+    return left.id.localeCompare(right.id);
   })[0];
 }
 

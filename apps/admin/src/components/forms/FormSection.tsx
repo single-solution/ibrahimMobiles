@@ -21,7 +21,7 @@ export function FormSection({ title, description, children }: FormSectionProps) 
         <h3 className="text-[13px] font-semibold tracking-tight text-[var(--color-ink-900)] md:text-sm">
           {title}
         </h3>
-        {description && (
+        {Boolean(description) && (
           <p className="mt-1 max-w-prose text-[11.5px] leading-relaxed text-[var(--color-ink-500)] md:mt-1.5 md:text-xs">
             {description}
           </p>

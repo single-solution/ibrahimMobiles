@@ -11,5 +11,4 @@ export {
   loadDashboardKpis,
   loadDashboardDailyRevenue,
   loadDashboardRecentInquiries,
-  loadDashboardData,
 } from "./dashboardKpis";

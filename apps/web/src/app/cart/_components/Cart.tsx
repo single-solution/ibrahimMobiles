@@ -156,13 +156,16 @@ function CartLine({ line, discounts = [] }: { line: CartItem; discounts?: Discou
     }
   }
   const lineProductHref =
-    line.categorySlug && line.productSlug
+    line?.categorySlug && line?.productSlug
       ? productHref(
           { categorySlug: line.categorySlug, slug: line.productSlug },
           { selection: cartSelection },
         )
       : "/shop";
   const attributeEntries = Object.entries(line.attributes ?? {});
+
+  const totalDiscountAmount = discounts.reduce((sum, discount) => sum + discount.discountAmount, 0);
+  const finalLineTotal = lineTotal - totalDiscountAmount;
 
   const handleRemove = () => {
     setIsRemoving(true);
@@ -233,13 +236,13 @@ function CartLine({ line, discounts = [] }: { line: CartItem; discounts?: Discou
               </p>
             )}
             <p className="text-[16px] font-semibold leading-none tracking-tight tabular-nums text-[var(--color-ink-900)]">
-              {formatPrice(lineTotal - discounts.reduce((sum, d) => sum + d.discountAmount, 0))}
+              {formatPrice(finalLineTotal)}
             </p>
             {discounts.length > 0 && (
               <div className="flex flex-col items-end mt-1">
-                {discounts.map(d => (
-                  <span key={d.offerId} className="inline-flex items-center rounded-sm bg-[var(--color-accent-100)] px-1 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--color-accent-800)]">
-                    {d.offerTitle}
+                {discounts.map(discount => (
+                  <span key={discount.offerId} className="inline-flex items-center rounded-sm bg-[var(--color-accent-100)] px-1 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--color-accent-800)]">
+                    {discount.offerTitle}
                   </span>
                 ))}
               </div>

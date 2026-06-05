@@ -101,6 +101,22 @@ interface ActivityFeedProps {
   entries: AdminActivityEntry[];
 }
 
+function getResourceLink(entry: AdminActivityEntry) {
+  const label = entry.resourceLabel || entry.resourceType;
+  const href = resolveResourceUrl(entry.resourceType, entry.resourceId);
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="hover:text-[var(--color-accent-700)] hover:underline"
+      >
+        {label}
+      </Link>
+    );
+  }
+  return <span>{label}</span>;
+}
+
 export function ActivityFeed({ entries }: ActivityFeedProps) {
   const [resourceFilter, setResourceFilter] = useState<"all" | AdminActivityResourceType>("all");
   const [actionFilter, setActionFilter] = useState<"all" | Action>("all");
@@ -330,24 +346,7 @@ export function ActivityFeed({ entries }: ActivityFeedProps) {
                             <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--color-ink-400)]">
                               {resourceLabel(entry.resourceType)}
                             </span>
-                            {(() => {
-                              const href = resolveResourceUrl(entry.resourceType, entry.resourceId);
-                              if (href) {
-                                return (
-                                  <Link
-                                    href={href}
-                                    className="font-medium text-[var(--color-ink-900)] hover:text-[var(--color-accent-700)] hover:underline"
-                                  >
-                                    {entry.resourceLabel}
-                                  </Link>
-                                );
-                              }
-                              return (
-                                <span className="font-medium text-[var(--color-ink-900)]">
-                                  {entry.resourceLabel}
-                                </span>
-                              );
-                            })()}
+                            {getResourceLink(entry)}
                           </p>
                         </div>
                       </div>

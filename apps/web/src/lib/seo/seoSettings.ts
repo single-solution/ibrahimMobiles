@@ -39,12 +39,12 @@ function asString(value: unknown, fallback = ""): string {
 
 function isStoredImage(value: unknown): value is StoredImage {
   if (!value || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
+  const imageValue = value as Record<string, unknown>;
   return (
-    typeof v.blurDataURL === "string" &&
-    typeof v.alt === "string" &&
-    !!v.variants &&
-    typeof (v.variants as Record<string, unknown>).detail === "string"
+    typeof imageValue.blurDataURL === "string" &&
+    typeof imageValue.alt === "string" &&
+    !!imageValue.variants &&
+    typeof (imageValue.variants as Record<string, unknown>).detail === "string"
   );
 }
 

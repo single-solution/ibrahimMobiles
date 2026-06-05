@@ -20,13 +20,17 @@ export async function GET(_request: Request, { params }: RouteContext) {
     return badRequest("Key is required.");
   }
 
-  await connectDB();
-  const doc = await Setting.findOne({ key }).lean<SettingLean>();
-  if (!doc) {
-    return notFound("Setting not found");
-  }
+  try {
+    await connectDB();
+    const doc = await Setting.findOne({ key }).lean<SettingLean>();
+    if (!doc) {
+      return notFound("Setting not found");
+    }
 
-  return ok(toSettingResponse(doc));
+    return ok(toSettingResponse(doc));
+  } catch (error) {
+    return handleMongoError(error);
+  }
 }
 
 export async function DELETE(_request: Request, { params }: RouteContext) {
@@ -47,7 +51,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       return notFound("Setting not found");
     }
 
-    await recordActivity({
+    void recordActivity({
       actor,
       action: "deleted",
       resourceType: "settings",

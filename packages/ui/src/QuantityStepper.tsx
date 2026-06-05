@@ -53,6 +53,26 @@ export function QuantityStepper({
 
   const isMd = size === "md";
 
+  const handleFocus = useCallback(() => {
+    setEditing(true);
+    setDraft(String(quantity));
+  }, [quantity]);
+
+  const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setDraft(event.target.value.replace(/\D/g, ""));
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    commitDraft();
+    setEditing(false);
+  }, [commitDraft]);
+
+  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.currentTarget.blur();
+    }
+  }, []);
+
   return (
     <div
       className={classNames(
@@ -80,22 +100,10 @@ export function QuantityStepper({
         pattern="[0-9]*"
         aria-label="Quantity"
         value={editing ? draft : String(quantity)}
-        onFocus={() => {
-          setEditing(true);
-          setDraft(String(quantity));
-        }}
-        onChange={(event) => {
-          setDraft(event.target.value.replace(/\D/g, ""));
-        }}
-        onBlur={() => {
-          commitDraft();
-          setEditing(false);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.currentTarget.blur();
-          }
-        }}
+        onFocus={handleFocus}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
         className={classNames(
           "h-full border-x border-[var(--color-ink-100)] bg-transparent text-center font-semibold tabular-nums text-[var(--color-ink-900)] outline-none focus:bg-[var(--color-canvas-deep)]",
           isMd

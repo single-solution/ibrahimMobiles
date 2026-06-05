@@ -62,6 +62,16 @@ export function buildProductCardVariantSlides(
   });
 }
 
+function getScreenReaderLabel(activeSlide: ProductCardMediaSlide | undefined): string | null {
+  if (!activeSlide) return null;
+  const labels = flattenChipGroups(activeSlide.titleChipGroups)
+    .map((chip) => chip.label)
+    .join(", ");
+  return activeSlide.gradeSlug
+    ? `${activeSlide.gradeSlug}: ${labels}`
+    : labels;
+}
+
 export function ProductCardMediaCycle({
   slides,
   activeIndex,
@@ -162,45 +172,9 @@ export function ProductCardMediaCycle({
       ) : null}
 
       <span className="sr-only" aria-live="polite">
-        {activeSlide
-          ? (() => {
-              const labels = flattenChipGroups(activeSlide.titleChipGroups)
-                .map((chip) => chip.label)
-                .join(", ");
-              return activeSlide.gradeSlug
-                ? `${activeSlide.gradeSlug}: ${labels}`
-                : labels;
-            })()
-          : null}
+        {getScreenReaderLabel(activeSlide)}
       </span>
     </>
-  );
-}
-
-export function ProductCardPriceCycle({
-  variants,
-  activeIndex,
-}: {
-  variants: Product["variants"];
-  activeIndex: number;
-}) {
-  // Stacked crossfade for the per-variant price so the line never blanks
-  // between values. Grid layout sizes the container to the widest price so
-  // the count chip on the right doesn't shift around as we cycle.
-  return (
-    <div className="card-fade-stack min-w-0 flex-1">
-      {variants.map((variant, index) => (
-        <p
-          key={variant.id}
-          className={`card-fade-stack__layer min-w-0 text-[14px] font-semibold leading-snug tracking-tight text-[var(--color-ink-900)] md:text-[16px] ${
-            index === activeIndex ? "card-fade-stack__layer--active" : ""
-          }`}
-          aria-hidden={index !== activeIndex}
-        >
-          {formatVariantListingPrice(variant) ?? "Unavailable"}
-        </p>
-      ))}
-    </div>
   );
 }
 
@@ -306,15 +280,4 @@ export function formatVariantListingPrice(
     return null;
   }
   return formatPrice(variant.priceRupees);
-}
-
-export function formatListingPrice(product: Product): string | null {
-  const range = getProductPriceRange(product);
-  if (!range) {
-    return null;
-  }
-  if (range.min === range.max) {
-    return formatPrice(range.min);
-  }
-  return `${formatPrice(range.min)} – ${formatPrice(range.max)}`;
 }

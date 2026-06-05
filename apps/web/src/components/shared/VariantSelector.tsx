@@ -1,30 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, MessageCircle, Settings2, ShoppingBag } from "lucide-react";
 
 import {
-  buildWhatsAppLink,
-  classNames,
   evaluateOffers,
   formatPrice,
-  resolveVariantAttributeLabel,
-  type AttributeDescriptor,
-  type GradeDescriptor,
   type Product,
   type Variant,
 } from "@store/shared";
 
-import { toAttributeLabelSource } from "@/lib/catalog/attributeLabels";
-
-import { Button } from "@store/ui";
-import { QuantityStepper } from "@store/ui";
 import { useToast } from "@/components/ui/Toast";
 import { useVariantSelection } from "@/components/shared/VariantContext";
 import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
 
 import {
-  attributeValuesOnVariant,
   findVariantBySelection,
   getRequiredAttributeSlugsForProduct,
   hasPdpConfigurationInSearch,
@@ -39,7 +28,6 @@ import { CART_MAX_LINES } from "@/lib/cart/store";
 import { useCart } from "@/lib/cart/useCart";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { usePdpUrlParams } from "@/lib/core/usePdpUrlParams";
-import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import {
   useAttributesForCategory,
   useGradesForCategory,
@@ -84,10 +72,23 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
   const { searchParams, replace } = usePdpUrlParams();
   const cart = useCart();
   const { toast } = useToast();
-  const [hasJustBeenAdded, setHasJustBeenAdded] = useState(false);
-  const [addQuantity, setAddQuantity] = useState(1);
   const categoryAttributes = useAttributesForCategory(product.categorySlug);
   const grades = useGradesForCategory(product.categorySlug);
+
+  const [hasJustBeenAdded, setHasJustBeenAdded] = useState(false);
+  const [addQuantity, setAddQuantity] = useState(1);
+
+  const selected =
+    product.variants.find((variant) => variant.id === selectedVariantId) ??
+    product.variants[0] ??
+    EMPTY_VARIANT;
+
+  /** Shopper’s chip picks — owned by us. Updated only by explicit code paths
+   *  (chip click, URL hydration) so multi-value picks survive. */
+  const [pickerSelection, setPickerSelection] = useState(() =>
+    selectionFromVariant(selected),
+  );
+
   const attributeSlugs = useMemo(
     () => categoryAttributes.map((row) => row.slug),
     [categoryAttributes],
@@ -120,17 +121,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
   const dimensions = useMemo(
     () => buildDimensions(product, categoryAttributes, grades),
     [product, categoryAttributes, grades],
-  );
-
-  const selected =
-    product.variants.find((variant) => variant.id === selectedVariantId) ??
-    product.variants[0] ??
-    EMPTY_VARIANT;
-
-  /** Shopper’s chip picks — owned by us. Updated only by explicit code paths
-   *  (chip click, URL hydration) so multi-value picks survive. */
-  const [pickerSelection, setPickerSelection] = useState(() =>
-    selectionFromVariant(selected),
   );
 
   useEffect(() => {

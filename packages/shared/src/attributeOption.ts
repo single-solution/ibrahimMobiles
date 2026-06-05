@@ -25,8 +25,8 @@ export function compactAttributeOptionValue(
 }
 
 /** Case-insensitive alphabetical compare with numeric-aware ordering. */
-export function compareAlphabetically(a: string, b: string): number {
-  return a.localeCompare(b, undefined, { sensitivity: "base", numeric: true });
+export function compareAlphabetically(left: string, right: string): number {
+  return left.localeCompare(right, undefined, { sensitivity: "base", numeric: true });
 }
 
 /** Customer-facing label, e.g. "256" + "gb" → "256 gb". */
@@ -69,7 +69,7 @@ export function resolveVariantAttributeLabel(
   value: string,
   attributeDisplay?: Record<string, string>,
 ): string {
-  const global = attribute.options.find((option) => option.value === value);
+  const global = attribute?.options?.find((option) => option.value === value);
   if (global) {
     return formatAttributeOptionLabel(global.label, attribute.unit);
   }
@@ -88,7 +88,7 @@ export function formatVariantAttributeSummary(
 ): string {
   const parts: string[] = [];
   for (const definition of definitions) {
-    const raw = attributes[definition.slug];
+    const raw = attributes?.[definition.slug];
     if (!raw) {
       continue;
     }

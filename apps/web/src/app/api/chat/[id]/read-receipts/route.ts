@@ -7,7 +7,7 @@
  */
 
 import { Inquiry as InquiryModel, connectDB } from "@store/db";
-import { noContent } from "@store/shared";
+import { logger, noContent, serverError } from "@store/shared";
 
 import { enforceChatPollRateLimit } from "@/lib/api/chatRateLimit";
 import { resolveChatAccess } from "@/lib/chat/access";
@@ -33,22 +33,27 @@ export async function POST(request: Request, { params }: RouteContext) {
     return noContent();
   }
 
-  await connectDB();
-  const now = new Date();
-  await InquiryModel.updateOne(
-    { _id: inquiry._id },
-    {
-      $set: {
-        unreadByCustomer: 0,
-        "messages.$[unread].readByCustomerAt": now,
+  try {
+    await connectDB();
+    const now = new Date();
+    await InquiryModel.updateOne(
+      { _id: inquiry._id },
+      {
+        $set: {
+          unreadByCustomer: 0,
+          "messages.$[unread].readByCustomerAt": now,
+        },
       },
-    },
-    {
-      arrayFilters: [
-        { "unread.author": "agent", "unread.readByCustomerAt": { $exists: false } },
-      ],
-    },
-  );
+      {
+        arrayFilters: [
+          { "unread.author": "agent", "unread.readByCustomerAt": { $exists: false } },
+        ],
+      },
+    );
 
-  return noContent();
+    return noContent();
+  } catch (error) {
+    logger.error({ error, inquiryId: id }, "Failed to mark chat as read");
+    return serverError("Failed to mark chat as read.");
+  }
 }

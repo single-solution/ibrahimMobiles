@@ -29,12 +29,12 @@ export default function ForgotPasswordPage() {
 
       if (!response.ok) {
         setStatus("error");
-        setMessage(data.error || "Failed to request password reset.");
+        setMessage(data.error ?? "Failed to request password reset.");
         return;
       }
 
       setStatus("success");
-      setMessage(data.message || "If an account exists, a reset link has been generated. Check the server logs for the token.");
+      setMessage(data.message ?? "If an account exists, a reset link has been generated. Check the server logs for the token.");
     } catch (error) {
       setStatus("error");
       setMessage("An unexpected error occurred. Please try again.");

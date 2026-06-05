@@ -30,13 +30,15 @@ function bellHref(alertCount: {
   return "/inquiries";
 }
 
+const MAX_BADGE_COUNT = 9;
+
 export function MobileTopBar({ onOpenMenu }: MobileTopBarProps) {
   const { data: session } = useSession();
   const { siteName } = useStoreSettings();
   const { can } = useAdminPermissions();
   const alerts = useAdminAlerts();
   const initials = getInitials(session?.user?.name);
-  const brandShort = siteName.split(" ")[0];
+  const brandShort = siteName?.split(" ")[0] ?? "Store";
 
   const visibleAlerts = {
     unreadInquiries: can("inquiry_view") ? alerts.unreadInquiries : 0,
@@ -47,7 +49,7 @@ export function MobileTopBar({ onOpenMenu }: MobileTopBarProps) {
     ...visibleAlerts,
     openInquiries: 0,
   });
-  const badgeLabel = badgeCount > 9 ? "9+" : String(badgeCount);
+  const badgeLabel = badgeCount > MAX_BADGE_COUNT ? "9+" : String(badgeCount);
 
   return (
     <header className="safe-top sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)]/85 px-3 backdrop-blur md:hidden">

@@ -19,16 +19,16 @@ export interface ActivityEntryLean {
 
 export function toActivityResponse(doc: ActivityEntryLean): AdminActivityEntry {
   return {
-    id: objectIdString(doc._id),
-    actorUserId: objectIdString(doc.actorUserId) || undefined,
-    actorName: asString(doc.actorName, "System"),
-    actorRole: asString(doc.actorRole),
-    action: doc.action,
-    resourceType: doc.resourceType,
-    resourceId: doc.resourceId,
-    resourceLabel: asString(doc.resourceLabel),
-    detail: doc.detail,
-    createdAt: toIsoDate(doc.createdAt),
-    updatedAt: toIsoDate(doc.updatedAt),
+    id: objectIdString(doc?._id),
+    actorUserId: objectIdString(doc?.actorUserId) || undefined,
+    actorName: asString(doc?.actorName, "System"),
+    actorRole: asString(doc?.actorRole),
+    action: doc?.action,
+    resourceType: doc?.resourceType,
+    resourceId: doc?.resourceId,
+    resourceLabel: asString(doc?.resourceLabel),
+    detail: doc?.detail,
+    createdAt: toIsoDate(doc?.createdAt),
+    updatedAt: toIsoDate(doc?.updatedAt),
   };
 }

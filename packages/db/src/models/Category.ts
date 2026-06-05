@@ -28,6 +28,11 @@ export interface CategoryAttributes {
   seo?: SeoMeta;
 }
 
+const CATEGORY_SLUG_MAX_LENGTH = 64;
+const CATEGORY_LABEL_MAX_LENGTH = 60;
+const CATEGORY_DESC_MAX_LENGTH = 280;
+const ICON_MAX_LENGTH = 80;
+
 const categorySchema = new Schema<CategoryAttributes>(
   {
     slug: {
@@ -36,16 +41,16 @@ const categorySchema = new Schema<CategoryAttributes>(
       unique: true,
       lowercase: true,
       trim: true,
-      maxlength: 64,
+      maxlength: CATEGORY_SLUG_MAX_LENGTH,
       index: true,
     },
-    label: { type: String, required: true, trim: true, maxlength: 60 },
-    description: { type: String, required: true, trim: true, maxlength: 280 },
+    label: { type: String, required: true, trim: true, maxlength: CATEGORY_LABEL_MAX_LENGTH },
+    description: { type: String, required: true, trim: true, maxlength: CATEGORY_DESC_MAX_LENGTH },
     icon: {
       type: String,
       required: true,
       trim: true,
-      maxlength: 80,
+      maxlength: ICON_MAX_LENGTH,
       default: DEFAULT_ICON,
     },
     sortOrder: { type: Number, required: true, default: 0 },
@@ -59,10 +64,12 @@ const categorySchema = new Schema<CategoryAttributes>(
 categorySchema.pre<HydratedDocument<CategoryAttributes>>(
   "validate",
   async function categorySlugAndIcon() {
-    if ((!this.slug || this.slug.length === 0) && this.label) {
-      this.slug = slugify(this.label, 64);
+    if (this?.slug && this.slug.length > 0) {
+      // pass
+    } else if (this?.label) {
+      this.slug = slugify(this.label, CATEGORY_SLUG_MAX_LENGTH);
     }
-    if (!this.icon) {
+    if (!this?.icon) {
       this.icon = DEFAULT_ICON;
     }
   },

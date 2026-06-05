@@ -89,10 +89,10 @@ export function useNavigationTransition(): {
   isPending: boolean;
   startNavigation: (run: () => void) => void;
 } {
-  const [isPending, setIsPending] = useState(false);
   const timeoutRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
   const isPingedRef = useRef(false);
+  const [isPending, setIsPending] = useState(false);
 
   useEffect(() => {
     return () => {

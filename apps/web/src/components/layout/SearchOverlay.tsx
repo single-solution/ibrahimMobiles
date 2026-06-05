@@ -57,6 +57,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
   const { startNavigation } = useNavigationTransition();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- required for safe hydration
     setIsHydrated(true);
   }, []);
 
@@ -173,7 +174,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       const recent = stored ? JSON.parse(stored) : [];
       const updated = [
         trimmed,
-        ...recent.filter((q: string) => q.toLowerCase() !== trimmed.toLowerCase()),
+        ...recent.filter((recentSearch: string) => recentSearch.toLowerCase() !== trimmed.toLowerCase()),
       ].slice(0, MAX_RECENT_SEARCHES);
       window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
     } catch {
@@ -187,6 +188,40 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
 
   if (!isMounted || !isHydrated) {
     return null;
+  }
+
+  function renderContent() {
+    if (query.trim().length < MIN_QUERY_LEN) {
+      return (
+        <SearchEmptyState
+          hints={hints}
+          recentSearches={recentSearches}
+          onPick={(value) => submitSearch(value)}
+        />
+      );
+    }
+    if (isLoading && results.length === 0) {
+      return <SearchSkeleton />;
+    }
+    if (results.length === 0) {
+      return <NoResults query={query.trim()} onSearchAll={() => submitSearch(query)} />;
+    }
+    return (
+      <ul key={query} className="sheet-stagger space-y-1.5">
+        {results.map((result) => (
+          <SearchHit key={result.id} result={result} onNavigate={onClose} />
+        ))}
+        <li className="pt-2">
+          <button
+            type="button"
+            onClick={() => submitSearch(query)}
+            className="block w-full rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] px-3 py-2.5 text-center text-[13px] font-semibold text-[var(--color-accent-800)] active:bg-[var(--color-surface-muted)]"
+          >
+            See all results for &ldquo;{query.trim()}&rdquo;
+          </button>
+        </li>
+      </ul>
+    );
   }
 
   const overlayElement = (
@@ -248,32 +283,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 md:mx-auto md:w-full md:max-w-5xl">
-        {query.trim().length < MIN_QUERY_LEN ? (
-          <SearchEmptyState
-            hints={hints}
-            recentSearches={recentSearches}
-            onPick={(value) => submitSearch(value)}
-          />
-        ) : isLoading && results.length === 0 ? (
-          <SearchSkeleton />
-        ) : results.length === 0 ? (
-          <NoResults query={query.trim()} onSearchAll={() => submitSearch(query)} />
-        ) : (
-          <ul key={query} className="sheet-stagger space-y-1.5">
-            {results.map((result) => (
-              <SearchHit key={result.id} result={result} onNavigate={onClose} />
-            ))}
-            <li className="pt-2">
-              <button
-                type="button"
-                onClick={() => submitSearch(query)}
-                className="block w-full rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] px-3 py-2.5 text-center text-[13px] font-semibold text-[var(--color-accent-800)] active:bg-[var(--color-surface-muted)]"
-              >
-                See all results for &ldquo;{query.trim()}&rdquo;
-              </button>
-            </li>
-          </ul>
-        )}
+        {renderContent()}
       </div>
     </div>
   );

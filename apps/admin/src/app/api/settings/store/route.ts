@@ -31,6 +31,12 @@ import {
   type StoreSettings,
 } from "@store/shared";
 
+const LOW_STOCK_THRESHOLD_MAX = 1000;
+const META_PIXEL_REGEX = /^\d{6,20}$/;
+const GA_REGEX = /^G-[A-Z0-9]{4,20}$/;
+const GTM_REGEX = /^GTM-[A-Z0-9]{4,12}$/;
+const TIKTOK_PIXEL_REGEX = /^[A-Z0-9]{16,40}$/;
+
 export async function GET() {
   const { response } = await requireSession("settings_view");
   if (response) {
@@ -83,14 +89,14 @@ export async function PUT(request: Request) {
     }
     if (field === "lowStockThreshold") {
       const numeric = typeof coerced === "number" ? coerced : Number(coerced);
-      if (!Number.isFinite(numeric) || numeric < 0 || numeric > 1_000) {
+      if (!Number.isFinite(numeric) || numeric < 0 || numeric > LOW_STOCK_THRESHOLD_MAX) {
         return badRequest("Low-stock threshold must be between 0 and 1000.");
       }
       value = Math.floor(numeric) as StoreSettings[keyof StoreSettings];
     }
     if (field === "metaPixelId") {
       const trimmed = typeof coerced === "string" ? coerced.trim() : "";
-      if (trimmed.length > 0 && !/^\d{6,20}$/.test(trimmed)) {
+      if (trimmed.length > 0 && !META_PIXEL_REGEX.test(trimmed)) {
         return badRequest(
           "Meta Pixel ID must be 6–20 digits (no letters or dashes).",
         );
@@ -100,7 +106,7 @@ export async function PUT(request: Request) {
     if (field === "googleAnalyticsId") {
       const trimmed =
         typeof coerced === "string" ? coerced.trim().toUpperCase() : "";
-      if (trimmed.length > 0 && !/^G-[A-Z0-9]{4,20}$/.test(trimmed)) {
+      if (trimmed.length > 0 && !GA_REGEX.test(trimmed)) {
         return badRequest(
           'Google Analytics ID must look like "G-XXXXXXXXXX".',
         );
@@ -110,7 +116,7 @@ export async function PUT(request: Request) {
     if (field === "googleTagManagerId") {
       const trimmed =
         typeof coerced === "string" ? coerced.trim().toUpperCase() : "";
-      if (trimmed.length > 0 && !/^GTM-[A-Z0-9]{4,12}$/.test(trimmed)) {
+      if (trimmed.length > 0 && !GTM_REGEX.test(trimmed)) {
         return badRequest(
           'Google Tag Manager ID must look like "GTM-XXXXXX".',
         );
@@ -120,7 +126,7 @@ export async function PUT(request: Request) {
     if (field === "tiktokPixelId") {
       const trimmed =
         typeof coerced === "string" ? coerced.trim().toUpperCase() : "";
-      if (trimmed.length > 0 && !/^[A-Z0-9]{16,40}$/.test(trimmed)) {
+      if (trimmed.length > 0 && !TIKTOK_PIXEL_REGEX.test(trimmed)) {
         return badRequest(
           "TikTok Pixel ID must be 16–40 alphanumeric characters.",
         );

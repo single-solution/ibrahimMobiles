@@ -43,51 +43,55 @@ export async function GET(request: Request) {
     return response;
   }
 
-  await connectDB();
-  const { page, limit, skip, search, searchPattern } = readListOptions(request);
-  const url = new URL(request.url);
-  const categoryFilter = url.searchParams.get("category");
-  const includeArchived = url.searchParams.get("includeArchived") === "true";
+  try {
+    await connectDB();
+    const { page, limit, skip, search, searchPattern } = readListOptions(request);
+    const url = new URL(request.url);
+    const categoryFilter = url.searchParams.get("category");
+    const includeArchived = url.searchParams.get("includeArchived") === "true";
 
-  const filter: Record<string, unknown> = {};
-  if (search) {
-    filter.$or = [
-      { name: { $regex: searchPattern, $options: "i" } },
-      { slug: { $regex: searchPattern, $options: "i" } },
-    ];
+    const filter: Record<string, unknown> = {};
+    if (search) {
+      filter.$or = [
+        { name: { $regex: searchPattern, $options: "i" } },
+        { slug: { $regex: searchPattern, $options: "i" } },
+      ];
+    }
+    if (categoryFilter) {
+      filter.categorySlug = categoryFilter;
+    }
+    if (!includeArchived) {
+      filter.isArchived = { $ne: true };
+    }
+
+    const [docs, total, brandDocs, storeSettings] = await Promise.all([
+      Product.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean<ProductLean[]>(),
+      Product.countDocuments(filter),
+      Brand.find().lean<BrandLean[]>(),
+      getStoreSettings(),
+    ]);
+
+    const brandsByCategoryAndSlug = new Map(
+      brandDocs.flatMap((brand) =>
+        brand.categorySlugs.map((categorySlug) => [
+          brandLookupKey(categorySlug, brand.slug),
+          brand,
+        ] as const),
+      ),
+    );
+    
+    const storeName = storeSettings.siteName?.trim() || "Ibrahim Mobiles";
+    const items = docs.map((doc) => summariseProduct(doc, brandsByCategoryAndSlug, storeName));
+
+    const payload: ListResponse<AdminProductSummary> = { items, total, page, limit };
+    return ok(payload);
+  } catch (error) {
+    return handleMongoError(error);
   }
-  if (categoryFilter) {
-    filter.categorySlug = categoryFilter;
-  }
-  if (!includeArchived) {
-    filter.isArchived = { $ne: true };
-  }
-
-  const [docs, total, brandDocs, storeSettings] = await Promise.all([
-    Product.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean<ProductLean[]>(),
-    Product.countDocuments(filter),
-    Brand.find().lean<BrandLean[]>(),
-    getStoreSettings(),
-  ]);
-
-  const brandsByCategoryAndSlug = new Map(
-    brandDocs.flatMap((brand) =>
-      brand.categorySlugs.map((categorySlug) => [
-        brandLookupKey(categorySlug, brand.slug),
-        brand,
-      ] as const),
-    ),
-  );
-  
-  const storeName = storeSettings.siteName?.trim() || "Ibrahim Mobiles";
-  const items = docs.map((doc) => summariseProduct(doc, brandsByCategoryAndSlug, storeName));
-
-  const payload: ListResponse<AdminProductSummary> = { items, total, page, limit };
-  return ok(payload);
 }
 
 interface ProductCreateInput {

@@ -115,7 +115,7 @@ export function Drawer({
             <h2 className="text-[14px] font-semibold leading-snug tracking-[-0.01em] text-[var(--color-ink-900)] md:text-[15px]">
               {title}
             </h2>
-            {description && (
+            {Boolean(description) && (
               <div className="mt-0.5 max-w-prose text-[10.5px] leading-snug text-[var(--color-ink-500)] md:text-[11px]">
                 {description}
               </div>
@@ -133,7 +133,7 @@ export function Drawer({
           )}
         </header>
 
-        {topBar && (
+        {Boolean(topBar) && (
           <div className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-4 py-3 md:px-5">
             {topBar}
           </div>
@@ -156,7 +156,7 @@ export function Drawer({
           {children}
         </div>
 
-        {footer && (
+        {Boolean(footer) && (
           <footer
             className="safe-bottom border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-2 md:px-5 md:py-2.5"
             style={

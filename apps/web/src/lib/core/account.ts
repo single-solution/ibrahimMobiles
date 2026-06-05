@@ -16,6 +16,7 @@ import {
   type CustomerAttributes,
   type LoyaltyAccountAttributes,
   type OrderAttributes,
+  type WithTimestamps,
 } from "@store/db";
 import {
   asArray,
@@ -62,7 +63,7 @@ export async function getAccountCustomer(customerId: string): Promise<AccountCus
   }
   await connectDB();
   const customer = await Customer.findById(customerId).lean<
-    CustomerAttributes & { _id: Types.ObjectId }
+    WithTimestamps<CustomerAttributes> & { _id: Types.ObjectId }
   >();
   if (!customer) {
     return null;

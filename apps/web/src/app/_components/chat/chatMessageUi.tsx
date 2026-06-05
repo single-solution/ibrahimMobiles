@@ -143,10 +143,10 @@ export function formatChatDayLabel(iso: string): string {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
-  const sameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
+  const sameDay = (dateLeft: Date, dateRight: Date) =>
+    dateLeft.getFullYear() === dateRight.getFullYear() &&
+    dateLeft.getMonth() === dateRight.getMonth() &&
+    dateLeft.getDate() === dateRight.getDate();
   if (sameDay(messageDate, today)) return "Today";
   if (sameDay(messageDate, yesterday)) return "Yesterday";
   return messageDate.toLocaleDateString(undefined, {
@@ -283,9 +283,9 @@ export function ChatMessageBubble({
 function ChatAttachmentPreview({ attachment }: { attachment: ChatAttachment }) {
   if (attachment.kind === "image") {
     const thumb =
-      attachment.image.variants.thumb || attachment.image.variants.card;
+      attachment.image?.variants?.thumb || attachment.image?.variants?.card;
     const full =
-      attachment.image.variants.full || attachment.image.variants.detail;
+      attachment.image?.variants?.full || attachment.image?.variants?.detail;
     return (
       <a
         href={full}
@@ -294,12 +294,12 @@ function ChatAttachmentPreview({ attachment }: { attachment: ChatAttachment }) {
         className="block max-w-[240px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)]"
       >
         <Image
-          src={thumb}
+          src={thumb!}
           width={240}
           height={240}
-          alt={attachment.image.alt ?? "Attached image"}
-          placeholder={attachment.image.blurDataURL ? "blur" : undefined}
-          blurDataURL={attachment.image.blurDataURL ?? undefined}
+          alt={attachment.image?.alt ?? "Attached image"}
+          placeholder={attachment.image?.blurDataURL ? "blur" : undefined}
+          blurDataURL={attachment.image?.blurDataURL ?? undefined}
           className="block h-auto w-full object-cover"
           unoptimized
         />

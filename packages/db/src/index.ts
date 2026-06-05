@@ -22,6 +22,6 @@ export { seoSchema } from "./schemas/seoSchema";
  * consumers that read .lean() documents and want to format timestamps
  * back out can opt in via `WithTimestamps<MyModelAttributes>`.
  */
-export type WithTimestamps<T> = T & { createdAt: Date; updatedAt: Date };
+export type WithTimestamps<TModel> = TModel & { createdAt: Date; updatedAt: Date };
 
 export * from "./models";

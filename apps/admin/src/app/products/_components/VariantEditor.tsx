@@ -211,12 +211,12 @@ export function VariantEditor({
                   >
                     {grade?.label ?? "Select a grade"}
                   </span>
-                  {Object.entries(deferredDraft.attributes).map(([k, v]) => (
+                  {Object.entries(deferredDraft.attributes).map(([key, value]) => (
                     <span
-                      key={k}
+                      key={key}
                       className="inline-flex items-center rounded-full bg-[var(--color-ink-100)] px-2 py-0.5 text-[11px] font-semibold text-[var(--color-ink-700)]"
                     >
-                      {v}
+                      {value}
                     </span>
                   ))}
                 </div>

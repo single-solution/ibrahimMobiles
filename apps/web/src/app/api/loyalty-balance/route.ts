@@ -20,8 +20,10 @@ import {
   PER_MINUTE_WINDOW_MS,
   badRequest,
   isValidationError,
+  logger,
   ok,
   parseBody,
+  serverError,
   validateString,
 } from "@store/shared";
 
@@ -72,24 +74,29 @@ export async function POST(request: Request) {
     return badRequest(phoneResult.error);
   }
 
-  await connectDB();
-  const customer = await Customer.findOne({ phoneNumber: phoneResult })
-    .select("_id isLoyaltyMember")
-    .lean<{ _id: import("mongoose").Types.ObjectId; isLoyaltyMember: boolean }>();
-  if (!customer || !customer.isLoyaltyMember) {
-    return ok(NOT_A_MEMBER);
-  }
+  try {
+    await connectDB();
+    const customer = await Customer.findOne({ phoneNumber: phoneResult })
+      .select("_id isLoyaltyMember")
+      .lean<{ _id: import("mongoose").Types.ObjectId; isLoyaltyMember: boolean }>();
+    if (!customer || !customer.isLoyaltyMember) {
+      return ok(NOT_A_MEMBER);
+    }
 
-  const account = await LoyaltyAccount.findOne({ customerId: customer._id })
-    .select("balance lifetimeEarned")
-    .lean<{ balance: number; lifetimeEarned: number }>();
-  if (!account) {
-    return ok(NOT_A_MEMBER);
-  }
+    const account = await LoyaltyAccount.findOne({ customerId: customer._id })
+      .select("balance lifetimeEarned")
+      .lean<{ balance: number; lifetimeEarned: number }>();
+    if (!account) {
+      return ok(NOT_A_MEMBER);
+    }
 
-  return ok<LookupResponse>({
-    isMember: true,
-    balance: account.balance,
-    lifetimeEarned: account.lifetimeEarned,
-  });
+    return ok<LookupResponse>({
+      isMember: true,
+      balance: account.balance,
+      lifetimeEarned: account.lifetimeEarned,
+    });
+  } catch (error) {
+    logger.error({ error, phoneNumber: phoneResult }, "loyalty-balance check failed");
+    return serverError("Failed to look up balance.");
+  }
 }

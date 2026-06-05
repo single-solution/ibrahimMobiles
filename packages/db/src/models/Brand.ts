@@ -30,6 +30,9 @@ export interface BrandAttributes {
   seo?: SeoMeta;
 }
 
+const BRAND_SLUG_MAX_LENGTH = 64;
+const BRAND_NAME_MAX_LENGTH = 100;
+
 const brandSchema = new Schema<BrandAttributes>(
   {
     slug: {
@@ -37,17 +40,17 @@ const brandSchema = new Schema<BrandAttributes>(
       required: true,
       lowercase: true,
       trim: true,
-      maxlength: 64,
+      maxlength: BRAND_SLUG_MAX_LENGTH,
       index: true,
     },
-    name: { type: String, required: true, trim: true, maxlength: 100 },
+    name: { type: String, required: true, trim: true, maxlength: BRAND_NAME_MAX_LENGTH },
     categorySlugs: {
       type: [
         {
           type: String,
           lowercase: true,
           trim: true,
-          maxlength: 64,
+          maxlength: BRAND_SLUG_MAX_LENGTH,
         },
       ],
       required: true,
@@ -66,9 +69,13 @@ const brandSchema = new Schema<BrandAttributes>(
 brandSchema.pre<HydratedDocument<BrandAttributes>>(
   "validate",
   async function brandSlugAutogen() {
-    if ((!this.slug || this.slug.length === 0) && this.name) {
-      this.slug = slugify(this.name, 64);
+    if (this?.slug && this.slug.length > 0) {
+      return;
     }
+    if (!this?.name) {
+      return;
+    }
+    this.slug = slugify(this.name, BRAND_SLUG_MAX_LENGTH);
   },
 );
 

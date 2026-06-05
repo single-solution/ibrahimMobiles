@@ -5,6 +5,7 @@ import {
   Inquiry,
   Order,
   SIGNED_IN_INQUIRY_FILTER,
+  handleMongoError
 } from "@store/db";
 import { ok } from "@store/shared";
 
@@ -16,20 +17,24 @@ export async function GET() {
     return response;
   }
 
-  await connectDB();
+  try {
+    await connectDB();
 
-  const [ordersUnread, customersUnread, inquiriesUnread] = await Promise.all([
-    Order.countDocuments({ seenByAdminIds: { $ne: actor.id } }),
-    Customer.countDocuments({ seenByAdminIds: { $ne: actor.id } }),
-    Inquiry.countDocuments({
-      ...SIGNED_IN_INQUIRY_FILTER,
-      unreadByTeam: { $gt: 0 },
-    }),
-  ]);
+    const [ordersUnread, customersUnread, inquiriesUnread] = await Promise.all([
+      Order.countDocuments({ seenByAdminIds: { $ne: actor.id } }),
+      Customer.countDocuments({ seenByAdminIds: { $ne: actor.id } }),
+      Inquiry.countDocuments({
+        ...SIGNED_IN_INQUIRY_FILTER,
+        unreadByTeam: { $gt: 0 },
+      }),
+    ]);
 
-  return ok({
-    ordersUnread,
-    customersUnread,
-    inquiriesUnread,
-  });
+    return ok({
+      ordersUnread,
+      customersUnread,
+      inquiriesUnread,
+    });
+  } catch (error) {
+    return handleMongoError(error);
+  }
 }

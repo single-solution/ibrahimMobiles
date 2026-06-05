@@ -9,7 +9,7 @@
 
 import { useId, useRef, useState } from "react";
 import Image from "next/image";
-import { ImagePlus, ZoomIn } from "lucide-react";
+import { ImagePlus } from "lucide-react";
 
 import { ImageGalleryThumb } from "./ImageGalleryThumb";
 import { Lightbox } from "./Lightbox";
@@ -26,10 +26,6 @@ interface ImageGalleryProps {
   onChange: (images: GalleryImage[]) => void;
   /** Base alt text. The gallery appends ` · image <N>` per file. */
   altTextBase?: string;
-  /** Subject kind sent in the storage key prefix (e.g. `products`). */
-  subjectKind?: string;
-  /** Subject id (e.g. product id + variant id concatenated). */
-  subjectId?: string;
   /** Optional cap on the number of images. */
   maxImages?: number;
   /** Optional label rendered above the grid. */
@@ -38,8 +34,6 @@ interface ImageGalleryProps {
   compact?: boolean;
   /** Extra-small tiles for tight drawers (use with `compact`). */
   dense?: boolean;
-  /** Layout with a large hero preview on the left and gallery on the right. */
-  heroPreview?: boolean;
 }
 
 const DEFAULT_MAX = 8;
@@ -123,7 +117,7 @@ export function ImageGallery({
 
   return (
     <div className="flex flex-col gap-2">
-      {label && (
+      {Boolean(label) && (
         <label
           htmlFor={inputId}
           className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-700)]"
@@ -196,7 +190,7 @@ export function ImageGallery({
           </button>
         )}
       </div>
-      {error && (
+      {Boolean(error) && (
         <p className="text-[12px] text-[var(--color-rose-700)]" role="alert">
           {error}
         </p>

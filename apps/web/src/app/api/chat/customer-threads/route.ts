@@ -35,6 +35,20 @@ export async function POST(request: Request) {
     return csrf;
   }
 
+  const settings = await getChatSettings();
+  if (!settings.enabled) {
+    return badRequest("Chat is currently disabled.");
+  }
+
+  const session = await auth();
+  if (
+    session?.user?.role !== "customer" ||
+    !session.user.customerId ||
+    !Types.ObjectId.isValid(session.user.customerId)
+  ) {
+    return badRequest("Sign in to start a conversation.");
+  }
+
   let subjectProductId: string | undefined;
   let subjectProductName: string | undefined;
   try {
@@ -53,20 +67,6 @@ export async function POST(request: Request) {
     }
   } catch {
     // empty body is fine
-  }
-
-  const settings = await getChatSettings();
-  if (!settings.enabled) {
-    return badRequest("Chat is currently disabled.");
-  }
-
-  const session = await auth();
-  if (
-    session?.user?.role !== "customer" ||
-    !session.user.customerId ||
-    !Types.ObjectId.isValid(session.user.customerId)
-  ) {
-    return badRequest("Sign in to start a conversation.");
   }
 
   await connectDB();

@@ -265,7 +265,7 @@ export function OfferRulesEditor({
           label="Recurring Days of Week"
           value={schedule.daysOfWeek?.join(",") || ""}
           onChange={(e) => {
-            const vals = e.target.value.split(",").map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n >= 0 && n <= 6);
+            const vals = e.target.value.split(",").map(str => parseInt(str.trim(), 10)).filter(num => !isNaN(num) && num >= 0 && num <= 6);
             onChangeSchedule({ ...schedule, daysOfWeek: vals.length > 0 ? vals : undefined });
           }}
           hint="0=Sun, 1=Mon...6=Sat. Comma separated. Leave blank for every day."

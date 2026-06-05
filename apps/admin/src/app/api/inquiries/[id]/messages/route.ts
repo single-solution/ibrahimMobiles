@@ -70,6 +70,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     const inquiry = await Inquiry.findById(id).lean<InquiryLean>();
     if (!inquiry) return notFound("Inquiry not found");
 
+    const MSG_PREVIEW_MAX_LENGTH = 280;
     const now = new Date();
     const update: Record<string, unknown> = {
       $push: {
@@ -83,15 +84,15 @@ export async function POST(request: Request, { params }: RouteContext) {
       },
       $set: {
         lastMessageAt: now,
-        lastMessagePreview: bodyResult.slice(0, 280),
+        lastMessagePreview: bodyResult.slice(0, MSG_PREVIEW_MAX_LENGTH),
         lastMessageAuthor: "agent",
         unreadByTeam: 0,
         // A human just replied — let the assistant resume on future messages
         // and clear the escalation clock.
         assistantMuted: false,
         escalatedAt: null,
-        ...inquiryStatusPatchAfterMessage(inquiry.status, "team"),
-        ...(inquiry.assignedToUserId ? {} : { assignedToUserId: actor.id }),
+        ...inquiryStatusPatchAfterMessage(inquiry?.status, "team"),
+        ...(inquiry?.assignedToUserId ? {} : { assignedToUserId: actor.id }),
       },
       $inc: { unreadByCustomer: 1 },
     };

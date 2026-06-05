@@ -199,7 +199,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
       );
     }
 
-    await recordActivity({
+    void recordActivity({
       actor,
       action: "updated",
       resourceType: "attribute",
@@ -229,7 +229,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     if (!doc) {
       return notFound("Attribute not found");
     }
-    await recordActivity({
+    void recordActivity({
       actor,
       action: "deleted",
       resourceType: "attribute",

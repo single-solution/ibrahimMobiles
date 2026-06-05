@@ -153,30 +153,11 @@ export function Offers({ offers }: OffersProps) {
   const [drawer, setDrawer] = useState<DrawerState>(null);
   const [toDelete, setToDelete] = useState<AdminOffer | null>(null);
 
-  function refresh() {
-    pingNavigationProgress();
-    router.refresh();
-  }
-
-  async function handleDelete() {
-    if (!toDelete) {
-      return;
-    }
-    try {
-      await apiFetch(`/api/offers/${toDelete.id}`, { method: "DELETE" });
-      toast.warn(`"${toDelete.title}" deleted`);
-      setToDelete(null);
-      refresh();
-    } catch (error) {
-      toast.danger(error instanceof Error ? error.message : "Failed to delete offer");
-    }
-  }
-
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<OfferStatusFilter>("all");
   const deferredQuery = useDeferredValue(query);
 
-  const now = Date.now();
+  const [now] = useState(() => Date.now());
 
   const counts = useMemo(() => {
     const tally: Record<OfferStatusFilter, number> = {
@@ -206,6 +187,25 @@ export function Offers({ offers }: OffersProps) {
         .includes(term);
     });
   }, [offers, deferredQuery, statusFilter, now]);
+
+  function refresh() {
+    pingNavigationProgress();
+    router.refresh();
+  }
+
+  async function handleDelete() {
+    if (!toDelete) {
+      return;
+    }
+    try {
+      await apiFetch(`/api/offers/${toDelete.id}`, { method: "DELETE" });
+      toast.warn(`"${toDelete.title}" deleted`);
+      setToDelete(null);
+      refresh();
+    } catch (error) {
+      toast.danger(error instanceof Error ? error.message : "Failed to delete offer");
+    }
+  }
 
   return (
     <WorkspaceFrame>

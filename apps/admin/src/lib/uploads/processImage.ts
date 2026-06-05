@@ -113,8 +113,8 @@ export async function processImage(input: ProcessImageInput): Promise<StoredImag
         generateVariant(buffer, name, width, keyPrefix, storage),
       ),
     );
-    for (const r of results) {
-      generated.push({ name: r.name, url: r.url });
+    for (const result of results) {
+      generated.push({ name: result.name, url: result.url });
     }
 
     // Inline blur placeholder. 32×32 WebP @ quality 40 is typically ≤ 300 bytes.

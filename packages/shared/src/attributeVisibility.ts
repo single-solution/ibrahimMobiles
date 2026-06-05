@@ -35,7 +35,7 @@ function normalizeSlugs(values: string[] | undefined): string[] {
   if (!values?.length) {
     return [];
   }
-  return [...new Set(values.map((v) => v.trim().toLowerCase()).filter(Boolean))];
+  return [...new Set(values.map((value) => value.trim().toLowerCase()).filter(Boolean))];
 }
 
 function firstAttributeValue(
@@ -43,7 +43,7 @@ function firstAttributeValue(
   slug: string,
 ): string | undefined {
   const raw = attributes?.[slug]?.trim();
-  return raw || undefined;
+  return raw === "" ? undefined : raw;
 }
 
 /** Whether an attribute row should render for the given context. */
@@ -96,12 +96,12 @@ export function isVisibilitySatisfied(
 export function sortAttributesByVisibility<T extends AttributeVisibilityNode>(
   attributes: T[],
 ): T[] {
-  const bySlug = new Map(attributes.map((a) => [a.slug, a]));
+  const bySlug = new Map(attributes.map((attr) => [attr.slug, attr]));
   const depthCache = new Map<string, number>();
 
   function depth(slug: string, visiting = new Set<string>()): number {
     if (depthCache.has(slug)) {
-      return depthCache.get(slug)!;
+      return depthCache.get(slug) ?? 0;
     }
     if (visiting.has(slug)) {
       return 0;
@@ -109,13 +109,16 @@ export function sortAttributesByVisibility<T extends AttributeVisibilityNode>(
     visiting.add(slug);
     const attr = bySlug.get(slug);
     const vis = attr?.visibility ?? ATTRIBUTE_VISIBILITY_ALWAYS;
-    let parentDepth = 0;
-    if (vis.type === "attribute" && vis.attributeSlug) {
-      const parent = vis.attributeSlug.trim().toLowerCase();
-      if (bySlug.has(parent)) {
-        parentDepth = depth(parent, visiting) + 1;
-      }
+    
+    if (vis.type !== "attribute" || !vis.attributeSlug) {
+      visiting.delete(slug);
+      depthCache.set(slug, 0);
+      return 0;
     }
+    
+    const parent = vis.attributeSlug.trim().toLowerCase();
+    const parentDepth = bySlug.has(parent) ? depth(parent, visiting) + 1 : 0;
+    
     visiting.delete(slug);
     depthCache.set(slug, parentDepth);
     return parentDepth;
@@ -184,8 +187,8 @@ export function parseAttributeVisibility(value: unknown): AttributeVisibility {
     return {
       type: "brand",
       brandSlugs: candidate.brandSlugs
-        .filter((s): s is string => typeof s === "string")
-        .map((s) => s.trim())
+        .filter((str): str is string => typeof str === "string")
+        .map((str) => str.trim())
         .filter(Boolean),
     };
   }
@@ -193,8 +196,8 @@ export function parseAttributeVisibility(value: unknown): AttributeVisibility {
     return {
       type: "grade",
       gradeSlugs: candidate.gradeSlugs
-        .filter((s): s is string => typeof s === "string")
-        .map((s) => s.trim())
+        .filter((str): str is string => typeof str === "string")
+        .map((str) => str.trim())
         .filter(Boolean),
     };
   }
@@ -207,8 +210,8 @@ export function parseAttributeVisibility(value: unknown): AttributeVisibility {
       type: "attribute",
       attributeSlug: candidate.attributeSlug.trim(),
       optionValues: candidate.optionValues
-        .filter((s): s is string => typeof s === "string")
-        .map((s) => s.trim())
+        .filter((str): str is string => typeof str === "string")
+        .map((str) => str.trim())
         .filter(Boolean),
     };
   }

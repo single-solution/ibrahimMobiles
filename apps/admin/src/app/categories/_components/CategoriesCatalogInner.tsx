@@ -36,6 +36,17 @@ import type {
 } from "@/types/models";
 
 import { Categories } from "./Categories";
+import { CategoriesCatalogTablesPanel } from "./categoriesCatalogTablesPanel";
+import {
+  type CatalogTab,
+  type CategoryNavItem,
+  type DeleteIntent,
+  type DrawerKind,
+  type WorkspaceView,
+  isCatalogTab,
+  matchesQuery,
+} from "./categoriesCatalogTypes";
+import { CategorySidebar } from "./categoriesCatalogUi";
 
 // Editor drawers are heavy (StructuredContentEditor, image upload, attribute
 // option editor) and only render on click. Lazy chunks keep the categories
@@ -61,17 +72,6 @@ const GradeEditor = dynamic(
   () => import("./GradeEditor").then((mod) => ({ default: mod.GradeEditor })),
   { ssr: false },
 );
-import { CategoriesCatalogTablesPanel } from "./categoriesCatalogTablesPanel";
-import {
-  type CatalogTab,
-  type CategoryNavItem,
-  type DeleteIntent,
-  type DrawerKind,
-  type WorkspaceView,
-  isCatalogTab,
-  matchesQuery,
-} from "./categoriesCatalogTypes";
-import { CategorySidebar } from "./categoriesCatalogUi";
 
 export interface CategoriesCatalogInnerProps {
   initialCategories: AdminCategory[];

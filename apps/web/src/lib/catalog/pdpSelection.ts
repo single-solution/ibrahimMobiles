@@ -310,7 +310,7 @@ export function readLegacyVariantId(
 export function selectionSignature(selection: Record<string, string>): string {
   return Object.entries(selection)
     .filter(([, value]) => value)
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
     .map(([key, value]) => `${key}=${value}`)
     .join("&");
 }

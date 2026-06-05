@@ -215,6 +215,13 @@ function TeamCatalogInner({
     setInviteDrawerMounted(true);
   }, []);
 
+  const emptyStateTitle = searchQuery.trim() ? "No matching team members" : "No team members yet";
+  const emptyStateDescription = searchQuery.trim()
+    ? "Try adjusting your search query."
+    : segment === "all"
+      ? "No members added yet."
+      : `No ${ROLE_LABEL[segment].toLowerCase()}s yet.`;
+
   return (
     <>
       <WorkspaceFrame>
@@ -322,14 +329,8 @@ function TeamCatalogInner({
                 <li className="flex h-full items-center justify-center pb-8 pt-4">
                   <WorkspaceEmptyPane
                     iconElement={<Users size={22} />}
-                    title={searchQuery.trim() ? "No matching team members" : "No team members yet"}
-                    description={
-                      searchQuery.trim()
-                        ? "Try adjusting your search query."
-                        : segment === "all"
-                          ? "No members added yet."
-                          : `No ${ROLE_LABEL[segment].toLowerCase()}s yet.`
-                    }
+                    title={emptyStateTitle}
+                    description={emptyStateDescription}
                   />
                 </li>
               ) : (

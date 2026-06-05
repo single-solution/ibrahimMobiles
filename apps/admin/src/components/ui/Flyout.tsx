@@ -162,14 +162,14 @@ function FlyoutInner({
 }: FlyoutInnerProps) {
   return (
     <>
-      {(title || showCloseButton) && (
+      {Boolean(title || showCloseButton) && (
         <div className="flex items-start gap-2 border-b border-[var(--color-ink-100)] px-4 py-2.5">
-          {title && (
+          {Boolean(title) && (
             <div className="min-w-0 flex-1">
               <h2 className="text-[15px] font-semibold leading-snug tracking-tight text-[var(--color-ink-900)]">
                 {title}
               </h2>
-              {description && (
+              {Boolean(description) && (
                 <p className="mt-0.5 text-[11px] leading-snug text-[var(--color-ink-500)]">
                   {description}
                 </p>
@@ -198,7 +198,7 @@ function FlyoutInner({
         {children}
       </div>
 
-      {footer && (
+      {Boolean(footer) && (
         <div
           className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 pt-2.5"
           style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 10px)" }}

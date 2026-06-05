@@ -103,7 +103,7 @@ export function VideoUpload({
 
   return (
     <div className="flex flex-col gap-2">
-      {label && (
+      {Boolean(label) && (
         <label
           htmlFor={inputId}
           className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-700)]"
@@ -185,7 +185,7 @@ export function VideoUpload({
             <span className="text-[12.5px] font-semibold">
               {busy ? "Uploading…" : "Upload video"}
             </span>
-            {hint && <span className="text-[11px]">{hint}</span>}
+            {Boolean(hint) && <span className="text-[11px]">{hint}</span>}
           </button>
           <div className="flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-400)]">
             <span className="h-px flex-1 bg-[var(--color-ink-100)]" />
@@ -220,7 +220,7 @@ export function VideoUpload({
           </div>
         </div>
       )}
-      {error && (
+      {Boolean(error) && (
         <p className="text-[12px] text-[var(--color-rose-700)]" role="alert">
           {error}
         </p>

@@ -379,10 +379,10 @@ function darkenHex(hex: string | undefined, amount: number): string {
     return hex;
   }
   const num = Number.parseInt(match[1], 16);
-  const r = Math.max(0, Math.round(((num >> 16) & 0xff) * (1 - amount)));
-  const g = Math.max(0, Math.round(((num >> 8) & 0xff) * (1 - amount)));
-  const b = Math.max(0, Math.round((num & 0xff) * (1 - amount)));
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+  const red = Math.max(0, Math.round(((num >> 16) & 0xff) * (1 - amount)));
+  const green = Math.max(0, Math.round(((num >> 8) & 0xff) * (1 - amount)));
+  const blue = Math.max(0, Math.round((num & 0xff) * (1 - amount)));
+  return `#${((red << 16) | (green << 8) | blue).toString(16).padStart(6, "0")}`;
 }
 
 export function GradeShowcasePreview({ grade }: { grade: GradeDraft }) {
@@ -553,18 +553,6 @@ export function AttributeCardChipPreview({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-/* --------------------------------------------------------------------------
- * Listed-card placeholders used in the empty-state grid tiles
- * ------------------------------------------------------------------------ */
-
-export function NeighborSlot({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-md border border-dashed border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] p-2 text-[10.5px] italic text-[var(--color-ink-400)]">
-      {children}
     </div>
   );
 }

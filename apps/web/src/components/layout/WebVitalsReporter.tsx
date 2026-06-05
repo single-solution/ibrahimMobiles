@@ -23,10 +23,10 @@ interface GtagWindow extends Window {
 const ALLOWED_METRICS = new Set(["LCP", "INP", "CLS", "FCP", "TTFB"]);
 
 function reportToGa4(metric: { name: string; value: number; id: string }) {
-  const w = window as GtagWindow;
-  if (typeof w.gtag !== "function") return;
+  const globalWindow = window as GtagWindow;
+  if (typeof globalWindow.gtag !== "function") return;
 
-  w.gtag("event", metric.name, {
+  globalWindow.gtag("event", metric.name, {
     value: Math.round(metric.name === "CLS" ? metric.value * 1000 : metric.value),
     event_category: "web-vitals",
     event_label: metric.id,
@@ -73,8 +73,8 @@ export function WebVitalsReporter() {
 
     reportToGa4(payload);
 
-    const w = window as GtagWindow;
-    if (typeof w.gtag !== "function") {
+    const globalWindow = window as GtagWindow;
+    if (typeof globalWindow.gtag !== "function") {
       reportToServer(payload);
     }
   });

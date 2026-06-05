@@ -23,37 +23,41 @@ export async function GET(request: Request) {
     return response;
   }
 
-  await connectDB();
-  const { page, limit, skip, search, searchPattern } = readListOptions(request);
-  const url = new URL(request.url);
-  const group = url.searchParams.get("group");
-  const filter: Record<string, unknown> = {};
-  if (group) {
-    filter.group = group;
-  }
-  if (search) {
-    filter.$or = [
-      { key: { $regex: searchPattern, $options: "i" } },
-      { description: { $regex: searchPattern, $options: "i" } },
-    ];
-  }
+  try {
+    await connectDB();
+    const { page, limit, skip, search, searchPattern } = readListOptions(request);
+    const url = new URL(request.url);
+    const group = url.searchParams.get("group");
+    const filter: Record<string, unknown> = {};
+    if (group) {
+      filter.group = group;
+    }
+    if (search) {
+      filter.$or = [
+        { key: { $regex: searchPattern, $options: "i" } },
+        { description: { $regex: searchPattern, $options: "i" } },
+      ];
+    }
 
-  const [docs, total] = await Promise.all([
-    Setting.find(filter)
-      .sort({ group: 1, key: 1 })
-      .skip(skip)
-      .limit(limit)
-      .lean<SettingLean[]>(),
-    Setting.countDocuments(filter),
-  ]);
+    const [docs, total] = await Promise.all([
+      Setting.find(filter)
+        .sort({ group: 1, key: 1 })
+        .skip(skip)
+        .limit(limit)
+        .lean<SettingLean[]>(),
+      Setting.countDocuments(filter),
+    ]);
 
-  const payload: ListResponse<AdminSetting> = {
-    items: docs.map(toSettingResponse),
-    total,
-    page,
-    limit,
-  };
-  return ok(payload);
+    const payload: ListResponse<AdminSetting> = {
+      items: docs.map(toSettingResponse),
+      total,
+      page,
+      limit,
+    };
+    return ok(payload);
+  } catch (error) {
+    return handleMongoError(error);
+  }
 }
 
 interface SettingUpsertInput {
@@ -112,7 +116,7 @@ export async function PUT(request: Request) {
     if (keyResult.startsWith("seo.") || keyResult.startsWith("chat.")) {
       bustAdminCaches();
     }
-    await recordActivity({
+    void recordActivity({
       actor,
       action: "updated",
       resourceType: "settings",

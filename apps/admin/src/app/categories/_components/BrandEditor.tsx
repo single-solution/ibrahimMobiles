@@ -187,7 +187,7 @@ export function BrandEditor({
           <p className="rounded-md bg-[var(--color-canvas-deep)] px-3 py-2 text-[12px] text-[var(--color-ink-500)]">
             Brands list alphabetically on the storefront and in the admin — no manual sort order.
           </p>
-          {brand && brand.categorySlugs.length > 1 && (
+          {brand != null && brand.categorySlugs.length > 1 && (
             <p className="rounded-md bg-[var(--color-accent-50)] px-3 py-2 text-[12px] text-[var(--color-accent-800)]">
               This brand is shared with {brand.categorySlugs.length - 1} other
               categories. Editing here updates all of them.

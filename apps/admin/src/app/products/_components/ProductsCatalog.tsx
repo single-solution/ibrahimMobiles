@@ -288,6 +288,105 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
   const pendingCategoryQueryRef = useRef<string | null>(null);
   const pendingDeleteIdRef = useRef<string | null>(null);
   const pendingFiltersRef = useRef<ProductFilters | null>(null);
+  const totalByCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const product of products) {
+      map.set(product.categorySlug, (map.get(product.categorySlug) ?? 0) + 1);
+    }
+    return map;
+  }, [products]);
+
+  const categoryNav = useMemo((): CategoryNavItem[] => {
+    const knownSlugs = new Set(catalog.categories.map((row) => row.slug));
+    const items: CategoryNavItem[] = catalog.categories.map((category) => ({
+      category,
+      totalCount: totalByCategory.get(category.slug) ?? 0,
+    }));
+
+    const orphanTotal = [...totalByCategory.entries()]
+      .filter(([slug]) => !knownSlugs.has(slug))
+      .reduce((sum, [, count]) => sum + count, 0);
+
+    if (orphanTotal > 0) {
+      items.push({
+        category: {
+          id: UNCATEGORIZED_SLUG,
+          slug: UNCATEGORIZED_SLUG,
+          label: "Uncategorized",
+          description: "",
+          icon: "package",
+          isActive: true,
+          sortOrder: 999,
+          content: emptyStructuredContent(),
+          createdAt: "",
+          updatedAt: "",
+        },
+        totalCount: orphanTotal,
+      });
+    }
+
+    return items;
+  }, [catalog.categories, totalByCategory]);
+
+  const selectedNav = categoryNav.find(
+    (row) => row.category.slug === selectedCategorySlug,
+  );
+
+  const filteredCategoryNav = useMemo(() => {
+    if (!categoryQuery.trim()) return categoryNav;
+    return categoryNav.filter(({ category }) =>
+      matchesQuery(categorySearchHaystack(category), categoryQuery),
+    );
+  }, [categoryNav, categoryQuery]);
+
+  const categoryProducts = useMemo(() => {
+    if (!selectedCategorySlug) return [];
+    return products
+      .filter((product) => product.categorySlug === selectedCategorySlug)
+      .sort((left, right) => compareAlphabetically(left.name, right.name));
+  }, [products, selectedCategorySlug]);
+
+  const productsMatchingSearch = useMemo(() => {
+    if (!productQuery.trim()) return categoryProducts;
+    return categoryProducts.filter((product) =>
+      matchesQuery(productSearchHaystack(product), productQuery),
+    );
+  }, [categoryProducts, productQuery]);
+
+  // Brand / grade / attribute options come from the wizard catalog for
+  // the active category. Counts use `productsMatchingSearch` so they stay
+  // honest as the operator narrows the list with search.
+  const brandOptions = useMemo<FilterOption[]>(() => {
+    if (!selectedCategorySlug) return [];
+    const brands = catalog.brandsByCategory[selectedCategorySlug] ?? [];
+    return brands.map((brand) => ({
+      value: brand.slug,
+      label: brand.name,
+      count: productsMatchingSearch.filter(
+        (product) => product.brand.slug === brand.slug,
+      ).length,
+    }));
+  }, [catalog.brandsByCategory, productsMatchingSearch, selectedCategorySlug]);
+
+  const gradeOptions = useMemo<FilterOption[]>(() => {
+    if (!selectedCategorySlug) return [];
+    const grades = catalog.gradesByCategory[selectedCategorySlug] ?? [];
+    return grades.map((grade) => ({
+      value: grade.slug,
+      label: grade.label,
+      count: productsMatchingSearch.filter((product) =>
+        product.gradeSlugs.includes(grade.slug),
+      ).length,
+    }));
+  }, [catalog.gradesByCategory, productsMatchingSearch, selectedCategorySlug]);
+
+  const tableRows = useMemo(
+    () => productsMatchingSearch.filter((product) => matchesFilters(product, filters)),
+    [productsMatchingSearch, filters],
+  );
+
+  const filtersActive = hasActiveFilters(filters);
+
 
   const setPanelUrl = useCallback(
     (productId: string | null, panel: Panel | null) => {
@@ -461,45 +560,6 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     replace({ delete: null });
   }, [replace]);
 
-  const totalByCategory = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const product of products) {
-      map.set(product.categorySlug, (map.get(product.categorySlug) ?? 0) + 1);
-    }
-    return map;
-  }, [products]);
-
-  const categoryNav = useMemo((): CategoryNavItem[] => {
-    const knownSlugs = new Set(catalog.categories.map((row) => row.slug));
-    const items: CategoryNavItem[] = catalog.categories.map((category) => ({
-      category,
-      totalCount: totalByCategory.get(category.slug) ?? 0,
-    }));
-
-    const orphanTotal = [...totalByCategory.entries()]
-      .filter(([slug]) => !knownSlugs.has(slug))
-      .reduce((sum, [, count]) => sum + count, 0);
-
-    if (orphanTotal > 0) {
-      items.push({
-        category: {
-          id: UNCATEGORIZED_SLUG,
-          slug: UNCATEGORIZED_SLUG,
-          label: "Uncategorized",
-          description: "",
-          icon: "package",
-          isActive: true,
-          sortOrder: 999,
-          content: emptyStructuredContent(),
-          createdAt: "",
-          updatedAt: "",
-        },
-        totalCount: orphanTotal,
-      });
-    }
-
-    return items;
-  }, [catalog.categories, totalByCategory]);
 
   const selectCategory = useCallback(
     (slug: string) => {
@@ -550,16 +610,6 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     });
   }, [categoryNav, searchParams, setCategoryUrl]);
 
-  const selectedNav = categoryNav.find(
-    (row) => row.category.slug === selectedCategorySlug,
-  );
-
-  const filteredCategoryNav = useMemo(() => {
-    if (!categoryQuery.trim()) return categoryNav;
-    return categoryNav.filter(({ category }) =>
-      matchesQuery(categorySearchHaystack(category), categoryQuery),
-    );
-  }, [categoryNav, categoryQuery]);
 
   useEffect(() => {
     if (!categoryQuery.trim() || filteredCategoryNav.length === 0) return;
@@ -573,53 +623,6 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     }
   }, [categoryQuery, filteredCategoryNav, selectedCategorySlug, selectCategory]);
 
-  const categoryProducts = useMemo(() => {
-    if (!selectedCategorySlug) return [];
-    return products
-      .filter((product) => product.categorySlug === selectedCategorySlug)
-      .sort((left, right) => compareAlphabetically(left.name, right.name));
-  }, [products, selectedCategorySlug]);
-
-  const productsMatchingSearch = useMemo(() => {
-    if (!productQuery.trim()) return categoryProducts;
-    return categoryProducts.filter((product) =>
-      matchesQuery(productSearchHaystack(product), productQuery),
-    );
-  }, [categoryProducts, productQuery]);
-
-  // Brand / grade / attribute options come from the wizard catalog for
-  // the active category. Counts use `productsMatchingSearch` so they stay
-  // honest as the operator narrows the list with search.
-  const brandOptions = useMemo<FilterOption[]>(() => {
-    if (!selectedCategorySlug) return [];
-    const brands = catalog.brandsByCategory[selectedCategorySlug] ?? [];
-    return brands.map((brand) => ({
-      value: brand.slug,
-      label: brand.name,
-      count: productsMatchingSearch.filter(
-        (product) => product.brand.slug === brand.slug,
-      ).length,
-    }));
-  }, [catalog.brandsByCategory, productsMatchingSearch, selectedCategorySlug]);
-
-  const gradeOptions = useMemo<FilterOption[]>(() => {
-    if (!selectedCategorySlug) return [];
-    const grades = catalog.gradesByCategory[selectedCategorySlug] ?? [];
-    return grades.map((grade) => ({
-      value: grade.slug,
-      label: grade.label,
-      count: productsMatchingSearch.filter((product) =>
-        product.gradeSlugs.includes(grade.slug),
-      ).length,
-    }));
-  }, [catalog.gradesByCategory, productsMatchingSearch, selectedCategorySlug]);
-
-  const tableRows = useMemo(
-    () => productsMatchingSearch.filter((product) => matchesFilters(product, filters)),
-    [productsMatchingSearch, filters],
-  );
-
-  const filtersActive = hasActiveFilters(filters);
 
   async function handleDelete() {
     if (!deleteTarget) return;

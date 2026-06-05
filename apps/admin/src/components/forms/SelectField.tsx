@@ -43,7 +43,7 @@ export function SelectField({ label, options, hint, id, className, ...rest }: Se
           className="pointer-events-none absolute right-3 text-[var(--color-ink-400)]"
         />
       </div>
-      {hint && <p className="text-[11px] text-[var(--color-ink-500)]">{hint}</p>}
+      {Boolean(hint) && <p className="text-[11px] text-[var(--color-ink-500)]">{hint}</p>}
     </div>
   );
 }

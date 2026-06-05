@@ -161,7 +161,7 @@ function OrderRow({ order }: OrderRowProps) {
           {firstItem && (
             <div className="mb-1">
               <p className="line-clamp-1 text-[14px] font-semibold text-[var(--color-ink-900)]">
-                {firstItem.productName}
+                {firstItem?.productName}
                 {extraCount > 0 && (
                   <span className="ml-2 inline-flex items-center rounded-full bg-[var(--color-ink-100)] px-2 py-0.5 text-[10.5px] font-medium text-[var(--color-ink-700)]">
                     +{extraCount} more

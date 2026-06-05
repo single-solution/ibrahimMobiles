@@ -27,34 +27,38 @@ export async function GET(request: Request) {
     return response;
   }
 
-  await connectDB();
-  const { page, limit, skip, search, searchPattern } = readListOptions(request);
+  try {
+    await connectDB();
+    const { page, limit, skip, search, searchPattern } = readListOptions(request);
 
-  const filter: Record<string, unknown> = {};
-  if (search) {
-    filter.$or = [
-      { title: { $regex: searchPattern, $options: "i" } },
-      { slug: { $regex: searchPattern, $options: "i" } },
-      { badgeLabel: { $regex: searchPattern, $options: "i" } },
-    ];
+    const filter: Record<string, unknown> = {};
+    if (search) {
+      filter.$or = [
+        { title: { $regex: searchPattern, $options: "i" } },
+        { slug: { $regex: searchPattern, $options: "i" } },
+        { badgeLabel: { $regex: searchPattern, $options: "i" } },
+      ];
+    }
+
+    const [docs, total] = await Promise.all([
+      Offer.find(filter)
+        .sort({ sortOrder: 1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean<OfferLean[]>(),
+      Offer.countDocuments(filter),
+    ]);
+
+    const payload: ListResponse<AdminOffer> = {
+      items: docs.map(toOfferResponse),
+      total,
+      page,
+      limit,
+    };
+    return ok(payload);
+  } catch (error) {
+    return handleMongoError(error);
   }
-
-  const [docs, total] = await Promise.all([
-    Offer.find(filter)
-      .sort({ sortOrder: 1, createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean<OfferLean[]>(),
-    Offer.countDocuments(filter),
-  ]);
-
-  const payload: ListResponse<AdminOffer> = {
-    items: docs.map(toOfferResponse),
-    total,
-    page,
-    limit,
-  };
-  return ok(payload);
 }
 
 interface OfferInput {

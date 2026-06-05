@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Package, Phone, ShoppingCart, Trash2, Plus, Printer, MessageCircle } from "lucide-react";
+import { ShoppingCart, Trash2, Plus, Printer, MessageCircle } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useAdminPermissions } from "@/lib/permissionsContext";
@@ -33,7 +33,6 @@ import type { ListResponse } from "@/lib/api/listOptions";
 import type { AdminOrdersCounts } from "@/lib/cached";
 import {
   classNames,
-  FIELD_LIMITS,
   formatPrice,
   formatTimeAgo,
   ISO_DATE_LENGTH,
@@ -467,9 +466,9 @@ function OrderDetailPanel({
         ]);
         if (cancelled) return;
         setOrder(fetchedOrder);
-        setActivity(fetchedActivity.items);
-        setStatus(fetchedOrder.status);
-        setDispatchVideoUrl(fetchedOrder.dispatchVideoUrl || "");
+        setActivity(fetchedActivity?.items ?? []);
+        setStatus(fetchedOrder?.status ?? "");
+        setDispatchVideoUrl(fetchedOrder?.dispatchVideoUrl ?? "");
       } catch (error) {
         if (!cancelled) {
           toast.danger(error instanceof Error ? error.message : "Failed to load order");
@@ -816,6 +815,25 @@ function OrderDetailPanel({
     </div>
   );
 }
+function getTerminalStepClassName(isActive: boolean) {
+  const base = "rounded-[var(--radius-sm)] border px-2 py-1 text-[10px] font-semibold transition-colors";
+  const stateClass = isActive
+    ? "border-[var(--color-danger-500)] bg-[var(--color-danger-50)] text-[var(--color-danger-700)]"
+    : "border-[var(--color-ink-200)] bg-transparent text-[var(--color-ink-600)] hover:bg-[var(--color-ink-50)]";
+  return classNames(base, stateClass);
+}
+
+function getStepClassName(isActive: boolean, isPast: boolean, isClickable: boolean) {
+  const base = "relative z-10 flex h-7 items-center justify-center whitespace-nowrap rounded-full px-3 text-[11px] font-semibold transition-all";
+  const stateClass = isActive
+    ? "bg-[var(--color-accent-500)] text-[var(--color-ink-900)] shadow-sm ring-4 ring-[var(--color-surface)]"
+    : isPast
+      ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)] ring-4 ring-[var(--color-surface)]"
+      : "bg-[var(--color-ink-100)] text-[var(--color-ink-500)] ring-4 ring-[var(--color-surface)]";
+  const hoverClass = isClickable && !isActive ? "hover:scale-105 cursor-pointer" : "";
+  return classNames(base, stateClass, hoverClass);
+}
+
 function OrderStatusStepper({
   status,
   onChange,
@@ -847,15 +865,7 @@ function OrderStatusStepper({
                 type="button"
                 disabled={!isClickable}
                 onClick={() => onChange(step)}
-                className={classNames(
-                  "relative z-10 flex h-7 items-center justify-center whitespace-nowrap rounded-full px-3 text-[11px] font-semibold transition-all",
-                  isActive
-                    ? "bg-[var(--color-accent-500)] text-[var(--color-ink-900)] shadow-sm ring-4 ring-[var(--color-surface)]"
-                    : isPast
-                      ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)] ring-4 ring-[var(--color-surface)]"
-                      : "bg-[var(--color-ink-100)] text-[var(--color-ink-500)] ring-4 ring-[var(--color-surface)]",
-                  isClickable && !isActive ? "hover:scale-105 cursor-pointer" : ""
-                )}
+                className={getStepClassName(isActive, isPast, isClickable)}
               >
                 {index === currentIndex + 1 && !TERMINAL_STATES.includes(status) && (
                   <span className="absolute -right-0.5 -top-0.5 flex size-2.5">
@@ -885,12 +895,7 @@ function OrderStatusStepper({
             type="button"
             disabled={disabled}
             onClick={() => onChange(step)}
-            className={classNames(
-              "rounded-[var(--radius-sm)] border px-2 py-1 text-[10px] font-semibold transition-colors",
-              status === step
-                ? "border-[var(--color-danger-500)] bg-[var(--color-danger-50)] text-[var(--color-danger-700)]"
-                : "border-[var(--color-ink-200)] bg-transparent text-[var(--color-ink-600)] hover:bg-[var(--color-ink-50)]"
-            )}
+            className={getTerminalStepClassName(status === step)}
           >
             {STATUS_LABELS[step]}
           </button>

@@ -21,9 +21,9 @@ export function useOverlayPresence(
   isOpen: boolean,
   exitMs: number = DEFAULT_EXIT_MS,
 ): OverlayPresence {
+  const exitTimer = useRef<number | null>(null);
   const [isMounted, setIsMounted] = useState(isOpen);
   const [isClosing, setIsClosing] = useState(false);
-  const exitTimer = useRef<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {

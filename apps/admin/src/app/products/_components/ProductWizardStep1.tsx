@@ -49,7 +49,7 @@ export function ProductWizardStep1({
 
   const surface: CategorySurface | null = useMemo(() => {
     if (!draft.categorySlug) return null;
-    const category = catalog.categories.find((c) => c.slug === draft.categorySlug);
+    const category = catalog.categories.find((cat) => cat.slug === draft.categorySlug);
     if (!category) return null;
     return {
       category,
@@ -233,8 +233,6 @@ export function ProductWizardStep1({
                   value={draft.images}
                   onChange={updateImages}
                   altTextBase={draft.name || "Product"}
-                  subjectKind="products/new"
-                  subjectId={slugHint || "draft"}
                   maxImages={8}
                   compact
                   dense

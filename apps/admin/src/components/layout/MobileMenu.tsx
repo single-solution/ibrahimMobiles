@@ -26,7 +26,7 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
   const { siteName, publicSiteUrl: configuredStorefrontUrl } = useStoreSettings();
   const { can, isLoading } = useAdminPermissions();
   const user = session?.user;
-  const brandShort = siteName.split(" ")[0];
+  const brandShort = siteName?.split(" ")[0] ?? "Store";
   const publicSiteUrl = getPublicSiteUrl(configuredStorefrontUrl);
 
   async function handleLogout() {

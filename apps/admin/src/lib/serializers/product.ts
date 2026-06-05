@@ -55,8 +55,8 @@ function toVariantResponse(variant: VariantAttributes): AdminVariant {
  */
 function toBrandRef(product: ProductLean, brand: BrandLean | undefined) {
   return {
-    slug: brand?.slug ?? asString(product.brandSlug),
-    name: brand?.name ?? asString(product.brandSlug),
+    slug: brand?.slug ?? asString(product?.brandSlug),
+    name: brand?.name ?? asString(product?.brandSlug),
   };
 }
 
@@ -66,7 +66,7 @@ export function brandLookupKey(categorySlug: string, brandSlug: string): string 
 
 /** Variant-derived rollups (count, in-stock count, starting price, hero). */
 function computeVariantRollup(product: ProductLean, images: StoredImage[]) {
-  const variants = asArray<VariantAttributes>(product.variants);
+  const variants = asArray<VariantAttributes>(product?.variants);
   const variantCount = variants.length;
   const inStockCount = variants.filter((variant) => (variant?.quantity ?? 0) > 0).length;
   const prices = variants
@@ -85,7 +85,7 @@ function computeVariantRollup(product: ProductLean, images: StoredImage[]) {
  * underlying variant documents.
  */
 function computeVariantGradeSlugs(product: ProductLean): string[] {
-  const variants = asArray<VariantAttributes>(product.variants);
+  const variants = asArray<VariantAttributes>(product?.variants);
   const gradeSet = new Set<string>();
   for (const variant of variants) {
     const grade = asString(variant?.gradeSlug);
@@ -99,38 +99,38 @@ export function summariseProduct(
   brandsByCategoryAndSlug: Map<string, BrandLean>,
   storeName: string
 ): AdminProductSummary {
-  const categorySlug = asString(product.categorySlug);
+  const categorySlug = asString(product?.categorySlug);
   const brand = brandsByCategoryAndSlug.get(
-    brandLookupKey(categorySlug, asString(product.brandSlug)),
+    brandLookupKey(categorySlug, asString(product?.brandSlug)),
   );
-  const images = asStoredImageArray(product.images);
+  const images = asStoredImageArray(product?.images);
   const rollup = computeVariantRollup(product, images);
   const gradeSlugs = computeVariantGradeSlugs(product);
 
-  const seoScore = product.seo?.score ?? calculateProductSeoScore(
-    asString(product.name),
+  const seoScore = product?.seo?.score ?? calculateProductSeoScore(
+    asString(product?.name),
     brand?.name || "",
-    product.seo,
+    product?.seo,
     rollup.heroImage !== null,
     storeName
   );
 
   return {
-    id: objectIdString(product._id),
-    slug: asString(product.slug),
-    name: asString(product.name),
+    id: objectIdString(product?._id),
+    slug: asString(product?.slug),
+    name: asString(product?.name),
     categorySlug,
     brand: toBrandRef(product, brand),
-    isFeatured: product.isFeatured ?? false,
-    isActive: product.isActive ?? true,
-    isArchived: product.isArchived ?? false,
+    isFeatured: product?.isFeatured ?? false,
+    isActive: product?.isActive ?? true,
+    isArchived: product?.isArchived ?? false,
     ...rollup,
     gradeSlugs,
     hasImages: images.length > 0,
-    seo: product.seo,
+    seo: product?.seo,
     seoScore,
-    createdAt: toIsoDate(product.createdAt),
-    updatedAt: toIsoDate(product.updatedAt),
+    createdAt: toIsoDate(product?.createdAt),
+    updatedAt: toIsoDate(product?.updatedAt),
   };
 }
 
@@ -138,26 +138,26 @@ export function toProductResponse(
   product: ProductLean,
   brand: BrandLean | undefined,
 ): AdminProduct {
-  const images = asStoredImageArray(product.images);
+  const images = asStoredImageArray(product?.images);
   const rollup = computeVariantRollup(product, images);
   const gradeSlugs = computeVariantGradeSlugs(product);
 
   return {
-    id: objectIdString(product._id),
-    slug: asString(product.slug),
-    name: asString(product.name),
-    categorySlug: asString(product.categorySlug),
+    id: objectIdString(product?._id),
+    slug: asString(product?.slug),
+    name: asString(product?.name),
+    categorySlug: asString(product?.categorySlug),
     brand: toBrandRef(product, brand),
-    isFeatured: product.isFeatured ?? false,
-    isActive: product.isActive ?? true,
-    isArchived: product.isArchived ?? false,
+    isFeatured: product?.isFeatured ?? false,
+    isActive: product?.isActive ?? true,
+    isArchived: product?.isArchived ?? false,
     ...rollup,
     gradeSlugs,
     hasImages: images.length > 0,
     images,
-    variants: asArray<VariantAttributes>(product.variants).map(toVariantResponse),
-    seo: product.seo,
-    createdAt: toIsoDate(product.createdAt),
-    updatedAt: toIsoDate(product.updatedAt),
+    variants: asArray<VariantAttributes>(product?.variants).map(toVariantResponse),
+    seo: product?.seo,
+    createdAt: toIsoDate(product?.createdAt),
+    updatedAt: toIsoDate(product?.updatedAt),
   };
 }

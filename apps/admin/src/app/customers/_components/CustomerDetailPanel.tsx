@@ -778,6 +778,22 @@ function InquiriesTab({
   );
 }
 
+function getResourceLink(entry: AdminActivityEntry) {
+  const label = entry.resourceLabel || entry.resourceType;
+  const href = resolveResourceUrl(entry.resourceType, entry.resourceId);
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="hover:text-[var(--color-accent-700)] hover:underline"
+      >
+        {label}
+      </Link>
+    );
+  }
+  return <span>{label}</span>;
+}
+
 function ActivityTab({ entries }: { entries: AdminActivityEntry[] }) {
   if (entries.length === 0) {
     return (
@@ -795,20 +811,7 @@ function ActivityTab({ entries }: { entries: AdminActivityEntry[] }) {
         >
           <p className="font-semibold text-[var(--color-ink-900)]">
             {formatActivityAction(entry.action)} ·{" "}
-            {(() => {
-              const href = resolveResourceUrl(entry.resourceType, entry.resourceId);
-              if (href) {
-                return (
-                  <Link
-                    href={href}
-                    className="hover:text-[var(--color-accent-700)] hover:underline"
-                  >
-                    {entry.resourceLabel}
-                  </Link>
-                );
-              }
-              return entry.resourceLabel;
-            })()}
+            {getResourceLink(entry)}
           </p>
           <p className="text-[10px] text-[var(--color-ink-500)]">
             {entry.actorName} · {formatTimeAgo(entry.createdAt)}

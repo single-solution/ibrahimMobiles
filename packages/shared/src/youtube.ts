@@ -39,18 +39,20 @@ export function parseYouTubeId(input: string | null | undefined): string | null 
 	}
 
 	if (
-		host === "youtube.com" ||
-		host === "m.youtube.com" ||
-		host === "youtube-nocookie.com"
+		host !== "youtube.com" &&
+		host !== "m.youtube.com" &&
+		host !== "youtube-nocookie.com"
 	) {
-		const watchId = url.searchParams.get("v");
-		if (watchId && YOUTUBE_ID_REGEX.test(watchId)) return watchId;
+		return null;
+	}
 
-		const segments = url.pathname.split("/").filter(Boolean);
-		if (segments[0] === "embed" || segments[0] === "shorts" || segments[0] === "v") {
-			const id = segments[1] ?? "";
-			return YOUTUBE_ID_REGEX.test(id) ? id : null;
-		}
+	const watchId = url.searchParams.get("v");
+	if (watchId && YOUTUBE_ID_REGEX.test(watchId)) return watchId;
+
+	const segments = url.pathname.split("/").filter(Boolean);
+	if (segments[0] === "embed" || segments[0] === "shorts" || segments[0] === "v") {
+		const id = segments[1] ?? "";
+		return YOUTUBE_ID_REGEX.test(id) ? id : null;
 	}
 
 	return null;

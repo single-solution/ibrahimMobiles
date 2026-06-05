@@ -27,28 +27,32 @@ export async function GET(request: Request) {
     return response;
   }
 
-  await connectDB();
-  const { page, limit, skip, search, searchPattern } = readListOptions(request);
-  const filter: Record<string, unknown> = {};
-  if (search) {
-    filter.$or = [
-      { name: { $regex: searchPattern, $options: "i" } },
-      { slug: { $regex: searchPattern, $options: "i" } },
-    ];
+  try {
+    await connectDB();
+    const { page, limit, skip, search, searchPattern } = readListOptions(request);
+    const filter: Record<string, unknown> = {};
+    if (search) {
+      filter.$or = [
+        { name: { $regex: searchPattern, $options: "i" } },
+        { slug: { $regex: searchPattern, $options: "i" } },
+      ];
+    }
+
+    const [docs, total] = await Promise.all([
+      Brand.find(filter).sort({ name: 1 }).skip(skip).limit(limit).lean<BrandLean[]>(),
+      Brand.countDocuments(filter),
+    ]);
+
+    const payload: ListResponse<AdminBrand> = {
+      items: docs.map(toBrandResponse),
+      total,
+      page,
+      limit,
+    };
+    return ok(payload);
+  } catch (error) {
+    return handleMongoError(error);
   }
-
-  const [docs, total] = await Promise.all([
-    Brand.find(filter).sort({ name: 1 }).skip(skip).limit(limit).lean<BrandLean[]>(),
-    Brand.countDocuments(filter),
-  ]);
-
-  const payload: ListResponse<AdminBrand> = {
-    items: docs.map(toBrandResponse),
-    total,
-    page,
-    limit,
-  };
-  return ok(payload);
 }
 
 interface BrandInput {
@@ -143,7 +147,7 @@ export async function POST(request: Request) {
       isActive: body.isActive !== false,
       ...(seo ? { seo } : {}),
     });
-    await recordActivity({
+    void recordActivity({
       actor,
       action: "created",
       resourceType: "brand",

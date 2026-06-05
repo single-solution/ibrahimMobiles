@@ -46,13 +46,17 @@ export async function GET(_request: Request, { params }: RouteContext) {
     return badRequest("Invalid ID.");
   }
 
-  await connectDB();
-  const doc = await User.findById(id).lean<UserLean>();
-  if (!doc) {
-    return notFound("User not found");
-  }
+  try {
+    await connectDB();
+    const doc = await User.findById(id).lean<UserLean>();
+    if (!doc) {
+      return notFound("User not found");
+    }
 
-  return ok(toUserResponse(doc));
+    return ok(toUserResponse(doc));
+  } catch (error) {
+    return handleMongoError(error);
+  }
 }
 
 interface UserUpdateInput {
@@ -165,7 +169,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
     // on this user's very next request (security.md § Session Enrichment).
     invalidateSessionCache(id);
 
-    await recordActivity({
+    void recordActivity({
       actor,
       action: "updated",
       resourceType: "team",
@@ -201,9 +205,10 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       return notFound("User not found");
     }
 
+    const MIN_OWNERS_ALLOWED = 1;
     if (doc.isSuperAdmin) {
       const owners = await User.countDocuments({ isSuperAdmin: true });
-      if (owners <= 1) {
+      if (owners <= MIN_OWNERS_ALLOWED) {
         return conflict("Cannot remove the last super admin.");
       }
     }
@@ -211,7 +216,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     await User.findByIdAndDelete(id);
     invalidateSessionCache(id);
 
-    await recordActivity({
+    void recordActivity({
       actor,
       action: "deleted",
       resourceType: "team",

@@ -34,17 +34,19 @@ interface HeaderProps {
   onOpenSearch: () => void;
 }
 
+const SCROLL_THRESHOLD_PX = 4;
+
 export function Header({ onOpenSearch }: HeaderProps) {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const cart = useCart();
   const pathname = usePathname() ?? "/";
   const shopHref = useShopHref();
   const { siteName, brandLogoLight, brandLogoDark } = useStoreSettings();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 4);
+      setIsScrolled(window.scrollY > SCROLL_THRESHOLD_PX);
     };
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });

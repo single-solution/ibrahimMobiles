@@ -45,7 +45,7 @@ export function Switch({
     >
       <div className="min-w-0">
         <p className="text-sm font-medium text-[var(--color-ink-900)]">{label}</p>
-        {description && (
+        {Boolean(description) && (
           <p className="mt-0.5 text-xs text-[var(--color-ink-500)]">{description}</p>
         )}
       </div>
@@ -55,7 +55,7 @@ export function Switch({
         disabled={disabled}
         aria-label={label}
       />
-      {name && (
+      {Boolean(name) && (
         <input
           type="checkbox"
           name={name}

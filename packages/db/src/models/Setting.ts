@@ -6,9 +6,11 @@ interface SettingAttributes {
   description?: string;
   group?: string;
   updatedBy?: mongoose.Types.ObjectId;
-  createdAt: Date;
-  updatedAt: Date;
 }
+
+const SETTING_KEY_MAX_LENGTH = 160;
+const SETTING_DESC_MAX_LENGTH = 600;
+const SETTING_GROUP_MAX_LENGTH = 80;
 
 const settingSchema = new Schema<SettingAttributes>(
   {
@@ -17,12 +19,12 @@ const settingSchema = new Schema<SettingAttributes>(
       required: true,
       unique: true,
       trim: true,
-      maxlength: 160,
+      maxlength: SETTING_KEY_MAX_LENGTH,
       index: true,
     },
     value: { type: Schema.Types.Mixed, required: true },
-    description: { type: String, trim: true, maxlength: 600 },
-    group: { type: String, trim: true, maxlength: 80, index: true },
+    description: { type: String, trim: true, maxlength: SETTING_DESC_MAX_LENGTH },
+    group: { type: String, trim: true, maxlength: SETTING_GROUP_MAX_LENGTH, index: true },
     updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true },

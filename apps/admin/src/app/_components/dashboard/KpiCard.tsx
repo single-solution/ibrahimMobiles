@@ -60,7 +60,7 @@ export function KpiCard({
         <p className="text-[13px] font-medium text-[var(--color-ink-600)] transition-colors group-hover:text-[var(--color-ink-900)]">
           {label}
         </p>
-        {icon && (
+        {Boolean(icon) && (
           <span
             className={classNames(
               "text-[var(--color-ink-400)] transition-colors group-hover:text-[var(--color-ink-600)]",
@@ -88,7 +88,7 @@ export function KpiCard({
             </p>
           )}
         </div>
-        {spark && <div className="shrink-0 pb-1 opacity-90 transition-opacity group-hover:opacity-100">{spark}</div>}
+        {Boolean(spark) && <div className="shrink-0 pb-1 opacity-90 transition-opacity group-hover:opacity-100">{spark}</div>}
       </div>
     </div>
   );

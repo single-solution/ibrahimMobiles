@@ -201,12 +201,6 @@ export function AttributeEditor({
   );
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset form on drawer open; the drawer is the external system here
-    setForm(attribute ? formFromAttribute(attribute) : emptyForm());
-  }, [isOpen, attribute]);
-
   const deferredForm = useDeferredValue(form);
   const draft: AttributeDraft = useMemo(
     () => ({
@@ -217,6 +211,12 @@ export function AttributeEditor({
     }),
     [deferredForm],
   );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset form on drawer open; the drawer is the external system here
+    setForm(attribute ? formFromAttribute(attribute) : emptyForm());
+  }, [isOpen, attribute]);
 
   function updateOption(index: number, patch: Partial<OptionFormRow>) {
     setForm((prev) => {
@@ -520,7 +520,7 @@ export function AttributeEditor({
                     </option>
                   ))}
                 </select>
-                {parentAttribute && (
+                {parentAttribute != null && (
                   <div className="flex flex-wrap gap-1.5">
                     {parentAttribute.options.map((option) => {
                       const selected = form.parentOptionValues.includes(option.value);
@@ -627,13 +627,13 @@ export function AttributeEditor({
                         <X size={14} />
                       </button>
                     </div>
-                    {slugPreview && (
+                    {Boolean(slugPreview) && (
                       <p className="mt-1 text-[10.5px] text-[var(--color-ink-500)]">
                         Slug{" "}
                         <code className="rounded bg-[var(--color-surface)] px-1 py-0.5 font-mono text-[10px] text-[var(--color-ink-700)]">
                           {slugPreview}
                         </code>
-                        {attributeUnit && (
+                        {Boolean(attributeUnit) && (
                           <>
                             {" "}
                             · displays as{" "}

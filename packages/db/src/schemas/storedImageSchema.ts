@@ -16,6 +16,9 @@ import type { StoredImage, StoredImageVariants } from "@store/shared";
  * images × every product).
  */
 
+const MIN_IMAGE_DIMENSION = 1;
+const ALT_TEXT_MAX_LENGTH = 240;
+
 const storedImageVariantsSchema = new Schema<StoredImageVariants>(
   {
     thumb: { type: String, required: true, trim: true },
@@ -30,9 +33,9 @@ export const storedImageSchema = new Schema<StoredImage>(
   {
     variants: { type: storedImageVariantsSchema, required: true },
     blurDataURL: { type: String, required: true, trim: true },
-    width: { type: Number, required: true, min: 1 },
-    height: { type: Number, required: true, min: 1 },
-    alt: { type: String, required: true, trim: true, maxlength: 240 },
+    width: { type: Number, required: true, min: MIN_IMAGE_DIMENSION },
+    height: { type: Number, required: true, min: MIN_IMAGE_DIMENSION },
+    alt: { type: String, required: true, trim: true, maxlength: ALT_TEXT_MAX_LENGTH },
   },
   { _id: false },
 );

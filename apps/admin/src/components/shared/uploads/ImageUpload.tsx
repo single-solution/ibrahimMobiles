@@ -28,10 +28,6 @@ interface ImageUploadProps {
   onChange: (image: GalleryImage | null) => void;
   /** Base alt text sent with the upload. */
   altTextBase?: string;
-  /** Subject kind sent in the storage key prefix (e.g. `categories`). */
-  subjectKind?: string;
-  /** Subject id (e.g. category slug). Sanitised server-side. */
-  subjectId?: string;
   /** Aspect-ratio hint for the dropzone preview only. */
   aspect?: Aspect;
   /** Optional helper line under the input (e.g. recommended size). */
@@ -88,7 +84,7 @@ export function ImageUpload({
 
   return (
     <div className="flex flex-col gap-2">
-      {label && (
+      {Boolean(label) && (
         <label
           htmlFor={inputId}
           className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-700)]"
@@ -181,10 +177,10 @@ export function ImageUpload({
           <span className="text-[12.5px] font-semibold">
             Click to select
           </span>
-          {hint && <span className="text-[11px]">{hint}</span>}
+          {Boolean(hint) && <span className="text-[11px]">{hint}</span>}
         </button>
       )}
-      {error && (
+      {Boolean(error) && (
         <p className="text-[12px] text-[var(--color-rose-700)]" role="alert">
           {error}
         </p>

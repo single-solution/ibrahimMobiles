@@ -18,6 +18,21 @@ export type DeliveryMethod = (typeof DELIVERY_METHODS)[number];
 export const PAYMENT_METHODS = ["bank-transfer", "easypaisa", "jazzcash", "cod"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
+const PRODUCT_NAME_MAX_LENGTH = 160;
+const VARIANT_SUMMARY_MAX_LENGTH = 200;
+const RECIPIENT_NAME_MAX_LENGTH = 120;
+const PHONE_NUMBER_MAX_LENGTH = 32;
+const CITY_MAX_LENGTH = 80;
+const AREA_MAX_LENGTH = 120;
+const STREET_MAX_LENGTH = 200;
+const POSTAL_CODE_MAX_LENGTH = 16;
+const NOTE_MAX_LENGTH = 500;
+const ORDER_NUMBER_MAX_LENGTH = 32;
+const CUSTOMER_NAME_MAX_LENGTH = 160;
+const TRACKING_NOTE_MAX_LENGTH = 500;
+const DISPATCH_VIDEO_URL_MAX_LENGTH = 1000;
+const IDEMPOTENCY_KEY_MAX_LENGTH = 80;
+
 interface OrderItemAttributes {
   /** Mongoose-generated when pushing into the parent doc. */
   _id?: mongoose.Types.ObjectId;
@@ -83,8 +98,6 @@ export interface OrderAttributes {
   /** Array of admin User IDs who have viewed this order. */
   seenByAdminIds: mongoose.Types.ObjectId[];
   placedAt: Date;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export type OrderDoc = HydratedDocument<OrderAttributes>;
@@ -93,8 +106,8 @@ const orderItemSchema = new Schema<OrderItemAttributes>(
   {
     productId: { type: Schema.Types.ObjectId, ref: "Product", required: true },
     variantId: { type: Schema.Types.ObjectId, required: true },
-    productName: { type: String, required: true, trim: true, maxlength: 160 },
-    variantSummary: { type: String, required: true, trim: true, maxlength: 200 },
+    productName: { type: String, required: true, trim: true, maxlength: PRODUCT_NAME_MAX_LENGTH },
+    variantSummary: { type: String, required: true, trim: true, maxlength: VARIANT_SUMMARY_MAX_LENGTH },
     unitPriceRupees: { type: Number, required: true, min: 0 },
     quantity: { type: Number, required: true, min: 1, default: 1 },
   },
@@ -103,12 +116,12 @@ const orderItemSchema = new Schema<OrderItemAttributes>(
 
 const addressSchema = new Schema<OrderAddressAttributes>(
   {
-    recipientName: { type: String, required: true, trim: true, maxlength: 120 },
-    phoneNumber: { type: String, required: true, trim: true, maxlength: 32 },
-    city: { type: String, required: true, trim: true, maxlength: 80 },
-    area: { type: String, trim: true, maxlength: 120 },
-    street: { type: String, trim: true, maxlength: 200 },
-    postalCode: { type: String, trim: true, maxlength: 16 },
+    recipientName: { type: String, required: true, trim: true, maxlength: RECIPIENT_NAME_MAX_LENGTH },
+    phoneNumber: { type: String, required: true, trim: true, maxlength: PHONE_NUMBER_MAX_LENGTH },
+    city: { type: String, required: true, trim: true, maxlength: CITY_MAX_LENGTH },
+    area: { type: String, trim: true, maxlength: AREA_MAX_LENGTH },
+    street: { type: String, trim: true, maxlength: STREET_MAX_LENGTH },
+    postalCode: { type: String, trim: true, maxlength: POSTAL_CODE_MAX_LENGTH },
   },
   { _id: false, timestamps: false },
 );
@@ -117,7 +130,7 @@ const timelineSchema = new Schema<OrderTimelineEntryAttributes>(
   {
     status: { type: String, enum: ORDER_STATUSES, required: true },
     occurredAt: { type: Date, required: true, default: () => new Date() },
-    note: { type: String, trim: true, maxlength: 500 },
+    note: { type: String, trim: true, maxlength: NOTE_MAX_LENGTH },
   },
   { _id: true, timestamps: false },
 );
@@ -139,14 +152,14 @@ const orderSchema = new Schema<OrderAttributes>(
       required: true,
       unique: true,
       trim: true,
-      maxlength: 32,
+      maxlength: ORDER_NUMBER_MAX_LENGTH,
       index: true,
     },
     customerId: { type: Schema.Types.ObjectId, ref: "Customer", required: true, index: true },
     customerSnapshot: {
-      name: { type: String, required: true, trim: true, maxlength: 160 },
-      phoneNumber: { type: String, required: true, trim: true, maxlength: 32 },
-      city: { type: String, required: true, trim: true, maxlength: 80 },
+      name: { type: String, required: true, trim: true, maxlength: CUSTOMER_NAME_MAX_LENGTH },
+      phoneNumber: { type: String, required: true, trim: true, maxlength: PHONE_NUMBER_MAX_LENGTH },
+      city: { type: String, required: true, trim: true, maxlength: CITY_MAX_LENGTH },
     },
     status: { type: String, enum: ORDER_STATUSES, required: true, index: true },
     items: { type: [orderItemSchema], required: true },
@@ -155,13 +168,13 @@ const orderSchema = new Schema<OrderAttributes>(
     address: { type: addressSchema },
     totals: { type: totalsSchema, required: true },
     timeline: { type: [timelineSchema], default: [] },
-    trackingNote: { type: String, trim: true, maxlength: 500 },
-    dispatchVideoUrl: { type: String, trim: true, maxlength: 1000 },
+    trackingNote: { type: String, trim: true, maxlength: TRACKING_NOTE_MAX_LENGTH },
+    dispatchVideoUrl: { type: String, trim: true, maxlength: DISPATCH_VIDEO_URL_MAX_LENGTH },
     estimatedDeliveryAt: { type: Date },
     pointsEarned: { type: Number, required: true, min: 0, default: 0 },
     pointsRedeemed: { type: Number, required: true, min: 0, default: 0 },
     inventoryReserved: { type: Boolean, required: true, default: false },
-    idempotencyKey: { type: String, trim: true, maxlength: 80 },
+    idempotencyKey: { type: String, trim: true, maxlength: IDEMPOTENCY_KEY_MAX_LENGTH },
     seenByAdminIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], default: [] },
     placedAt: { type: Date, required: true, default: () => new Date() },
   },

@@ -61,13 +61,11 @@ function readFiniteDimension(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
-  if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return null;
   }
-  return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 /**
@@ -75,6 +73,8 @@ function readFiniteDimension(value: unknown): number | null {
  * More lenient than `isStoredImage` — used when reading Mongo lean docs
  * where numeric fields may arrive as strings.
  */
+const MIN_IMAGE_DIMENSION = 1;
+
 export function coerceStoredImage(value: unknown): StoredImage | null {
   if (value === null || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
@@ -97,8 +97,8 @@ export function coerceStoredImage(value: unknown): StoredImage | null {
     !alt ||
     width === null ||
     height === null ||
-    width < 1 ||
-    height < 1
+    width < MIN_IMAGE_DIMENSION ||
+    height < MIN_IMAGE_DIMENSION
   ) {
     return null;
   }

@@ -111,7 +111,7 @@ export function ProductWizardStep2({
 
   const surface: CategorySurface | null = useMemo(() => {
     if (!product) return null;
-    const category = catalog.categories.find((c) => c.slug === product.categorySlug);
+    const category = catalog.categories.find((cat) => cat.slug === product.categorySlug);
     if (!category) return null;
     return {
       category,
@@ -191,23 +191,6 @@ export function ProductWizardStep2({
     [resolveWorkspaceSelection, syncVariantWorkspaceUrl],
   );
 
-  useEffect(() => {
-    if (!product) {
-      workspaceInitProductIdRef.current = null;
-      return;
-    }
-    if (workspaceInitProductIdRef.current === product.id) return;
-    workspaceInitProductIdRef.current = product.id;
-
-    const categoryGrades = catalog.gradesByCategory[product.categorySlug] ?? [];
-    const urlGrade = isManage ? searchParams.get("vgrade") : null;
-    const urlUid = isManage ? searchParams.get("vuid") : null;
-    resetWorkspace(product, categoryGrades, urlGrade, urlUid);
-    // Local selection is source of truth after init. `historyOnly` URL updates do
-    // not refresh `useSearchParams`, so never mirror selection from stale params.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product?.id, catalog, resetWorkspace, isManage]);
-
   const flatCombinations = useMemo(() => {
     const rows: { gradeSlug: string; comboIndex: number; variant: VariantDraft }[] =
       [];
@@ -227,6 +210,23 @@ export function ProductWizardStep2({
   const selectedComboIndex = selectedVariant
     ? activeVariants.findIndex((row) => row.uid === selectedVariant.uid)
     : -1;
+
+  useEffect(() => {
+    if (!product) {
+      workspaceInitProductIdRef.current = null;
+      return;
+    }
+    if (workspaceInitProductIdRef.current === product.id) return;
+    workspaceInitProductIdRef.current = product.id;
+
+    const categoryGrades = catalog.gradesByCategory[product.categorySlug] ?? [];
+    const urlGrade = isManage ? searchParams.get("vgrade") : null;
+    const urlUid = isManage ? searchParams.get("vuid") : null;
+    resetWorkspace(product, categoryGrades, urlGrade, urlUid);
+    // Local selection is source of truth after init. `historyOnly` URL updates do
+    // not refresh `useSearchParams`, so never mirror selection from stale params.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id, catalog, resetWorkspace, isManage]);
 
   const selectGrade = useCallback(
     (gradeSlug: string) => {

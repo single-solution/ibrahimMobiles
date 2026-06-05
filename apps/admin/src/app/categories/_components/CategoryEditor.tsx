@@ -274,7 +274,7 @@ function Field({
         >
           {label}
         </label>
-        {hint && (
+        {Boolean(hint) && (
           <span className="text-[10.5px] text-[var(--color-ink-400)]">{hint}</span>
         )}
       </div>

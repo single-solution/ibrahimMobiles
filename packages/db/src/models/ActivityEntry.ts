@@ -56,6 +56,8 @@ interface ActivityEntryAttributes {
   detail?: string;
 }
 
+const ACTIVITY_DETAIL_MAX_LENGTH = 2_000;
+
 const activityEntrySchema = new Schema<ActivityEntryAttributes>(
   {
     actorUserId: { type: Schema.Types.ObjectId, ref: "User" },
@@ -65,7 +67,7 @@ const activityEntrySchema = new Schema<ActivityEntryAttributes>(
     resourceType: { type: String, enum: ACTIVITY_RESOURCE_TYPES, required: true, index: true },
     resourceId: { type: String, trim: true, index: true },
     resourceLabel: { type: String, required: true, trim: true },
-    detail: { type: String, trim: true, maxlength: 2_000 },
+    detail: { type: String, trim: true, maxlength: ACTIVITY_DETAIL_MAX_LENGTH },
   },
   { timestamps: true },
 );

@@ -53,6 +53,8 @@ function isOfferUsageExhausted(offer: ActiveOffer): boolean {
   );
 }
 
+const MINUTES_IN_HOUR = 60;
+
 export function isOfferActiveSchedule(schedule: OfferSchedule, now = new Date()): boolean {
   if (schedule.startDate && now < new Date(schedule.startDate)) return false;
   if (schedule.endDate && now > new Date(schedule.endDate)) return false;
@@ -64,16 +66,16 @@ export function isOfferActiveSchedule(schedule: OfferSchedule, now = new Date())
   if (schedule.startTime || schedule.endTime) {
     const hours = now.getHours();
     const minutes = now.getMinutes();
-    const currentMinutes = hours * 60 + minutes;
+    const currentMinutes = hours * MINUTES_IN_HOUR + minutes;
 
     if (schedule.startTime) {
       const [startH, startM] = schedule.startTime.split(":").map(Number);
-      if (currentMinutes < startH * 60 + startM) return false;
+      if (currentMinutes < startH * MINUTES_IN_HOUR + startM) return false;
     }
 
     if (schedule.endTime) {
       const [endH, endM] = schedule.endTime.split(":").map(Number);
-      if (currentMinutes > endH * 60 + endM) return false;
+      if (currentMinutes > endH * MINUTES_IN_HOUR + endM) return false;
     }
   }
 
@@ -106,17 +108,16 @@ function matchesCondition(
     case "cart_total":
       itemValue = cartTotal;
       break;
-    case "attributes":
-      // complex attribute matching
-      // value shape: { slug: string, value: string }
-      if (typeof condition.value === "object" && condition.value !== null) {
-        const attrVal = item.attributes[condition.value.slug];
-        if (Array.isArray(attrVal)) {
-          return attrVal.includes(condition.value.value);
-        }
-        return attrVal === condition.value.value;
+    case "attributes": {
+      if (typeof condition.value !== "object" || condition.value === null) {
+        return false;
       }
-      return false;
+      const attrVal = item.attributes?.[condition.value.slug];
+      if (Array.isArray(attrVal)) {
+        return attrVal.includes(condition.value.value);
+      }
+      return attrVal === condition.value.value;
+    }
     default:
       return false;
   }
@@ -147,6 +148,8 @@ function matchesCondition(
       return false;
   }
 }
+
+const PERCENTAGE_DIVISOR = 100;
 
 export function evaluateOffers(
   items: EvaluatableItem[],
@@ -195,44 +198,51 @@ export function evaluateOffers(
     if (offer.action.type === "free_shipping") {
       freeShipping = true;
       applied = true;
-    } else if (offer.action.target === "cart_total") {
-      let offerDiscount = 0;
-      if (offer.action.type === "percentage_discount") {
-        offerDiscount = cartTotal * (offer.action.value / 100);
-      } else if (offer.action.type === "fixed_amount_discount") {
-        offerDiscount = Math.min(offer.action.value, cartTotal);
-      }
-      if (offerDiscount > 0) {
-        cartDiscounts.push({
-          offerId: offer.id,
-          offerTitle: offer.title,
-          discountAmount: offerDiscount,
-        });
-        cartTotal -= offerDiscount;
-        totalDiscount += offerDiscount;
-        applied = true;
-      }
-    } else if (offer.action.target === "matched_items") {
-      for (const item of matchedItems) {
-        let itemDiscount = 0;
-        const itemLineTotal = item.price * item.quantity;
-        if (offer.action.type === "percentage_discount") {
-          itemDiscount = itemLineTotal * (offer.action.value / 100);
-        } else if (offer.action.type === "fixed_amount_discount") {
-          itemDiscount = Math.min(offer.action.value * item.quantity, itemLineTotal);
+    } else {
+      switch (offer.action.target) {
+        case "cart_total": {
+          let offerDiscount = 0;
+          if (offer.action.type === "percentage_discount") {
+            offerDiscount = cartTotal * (offer.action.value / PERCENTAGE_DIVISOR);
+          } else if (offer.action.type === "fixed_amount_discount") {
+            offerDiscount = Math.min(offer.action.value, cartTotal);
+          }
+          if (offerDiscount > 0) {
+            cartDiscounts.push({
+              offerId: offer.id,
+              offerTitle: offer.title,
+              discountAmount: offerDiscount,
+            });
+            cartTotal -= offerDiscount;
+            totalDiscount += offerDiscount;
+            applied = true;
+          }
+          break;
         }
+        case "matched_items": {
+          for (const item of matchedItems) {
+            let itemDiscount = 0;
+            const itemLineTotal = item.price * item.quantity;
+            if (offer.action.type === "percentage_discount") {
+              itemDiscount = itemLineTotal * (offer.action.value / PERCENTAGE_DIVISOR);
+            } else if (offer.action.type === "fixed_amount_discount") {
+              itemDiscount = Math.min(offer.action.value * item.quantity, itemLineTotal);
+            }
 
-        if (itemDiscount > 0) {
-          const currentItemDiscounts = itemDiscounts.get(item.id) || [];
-          currentItemDiscounts.push({
-            offerId: offer.id,
-            offerTitle: offer.title,
-            discountAmount: itemDiscount,
-          });
-          itemDiscounts.set(item.id, currentItemDiscounts);
-          totalDiscount += itemDiscount;
-          cartTotal -= itemDiscount;
-          applied = true;
+            if (itemDiscount > 0) {
+              const currentItemDiscounts = itemDiscounts.get(item.id) ?? [];
+              currentItemDiscounts.push({
+                offerId: offer.id,
+                offerTitle: offer.title,
+                discountAmount: itemDiscount,
+              });
+              itemDiscounts.set(item.id, currentItemDiscounts);
+              totalDiscount += itemDiscount;
+              cartTotal -= itemDiscount;
+              applied = true;
+            }
+          }
+          break;
         }
       }
     }
