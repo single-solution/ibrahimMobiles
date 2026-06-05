@@ -1,4 +1,4 @@
-# Ibrahim Mobiles — Exhaustive Functional Specification
+# Ibrahim Mobiles
 
 This document maps the exact business rules, state machines, limits, and conditionals of the platform. It uses visual flows, dense tables, and structured lists to provide maximum detail without lengthy paragraphs.
 
