@@ -12,7 +12,7 @@
  */
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { FILTER_PARAM_KEYS } from "@/lib/core/filterParams";
@@ -67,27 +67,36 @@ export function useInfiniteProducts({
 
   // Reset to the fresh SSR seed when the listing identity changes (a filter
   // or search change re-renders the server page and hands us a new `initial`).
-  useEffect(() => {
-    if (seedKey !== filterKey) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentionally sync reset
-      setSeedKey(filterKey);
-      setProducts(initial.products);
-      setPage(initial.page);
-      setPageCount(initial.pageCount);
-      setPageSize(initial.pageSize);
-      setTotal(initial.total);
-      setIsLoadingMore(false);
-      setHasError(false);
-      seenIdsRef.current = new Set(initial.products.map((product) => product.id));
-      isLoadingRef.current = false;
-    }
-  }, [seedKey, filterKey, initial]);
+  // Render-phase state sync is React's blessed alternative to a reset effect.
+  if (seedKey !== filterKey) {
+     
+    setSeedKey(filterKey);
+     
+    setProducts(initial.products);
+     
+    setPage(initial.page);
+     
+    setPageCount(initial.pageCount);
+     
+    setPageSize(initial.pageSize);
+     
+    setTotal(initial.total);
+     
+    setIsLoadingMore(false);
+     
+    setHasError(false);
+    // eslint-disable-next-line react-hooks/refs -- intentional sync reset
+    seenIdsRef.current = new Set(initial.products.map((product) => product.id));
+    // eslint-disable-next-line react-hooks/refs -- intentional sync reset
+    isLoadingRef.current = false;
+  }
 
-  useEffect(() => {
-    pageRef.current = page;
-    pageCountRef.current = pageCount;
-    pageSizeRef.current = pageSize;
-  }, [page, pageCount, pageSize]);
+  // eslint-disable-next-line react-hooks/refs -- intentional sync read
+  pageRef.current = page;
+  // eslint-disable-next-line react-hooks/refs -- intentional sync read
+  pageCountRef.current = pageCount;
+  // eslint-disable-next-line react-hooks/refs -- intentional sync read
+  pageSizeRef.current = pageSize;
 
   const loadMore = useCallback(() => {
     if (isLoadingRef.current || pageRef.current >= pageCountRef.current) {

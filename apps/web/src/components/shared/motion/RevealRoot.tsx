@@ -42,9 +42,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 const REVEAL_CANDIDATE = ".reveal:not([data-reveal='visible']), .reveal-fade:not([data-reveal='visible'])";
 /** Safety window: any reveal still hidden after this fires automatically. */
 const REVEAL_WATCHDOG_MS = 2500;
-const VIEWPORT_HEIGHT_MULTIPLIER = 0.94;
-const INTERSECTION_THRESHOLD = 0.04;
-const ROOT_MARGIN = "0px 0px -6% 0px";
 
 export function RevealRoot() {
   const pathname = usePathname();
@@ -63,7 +60,7 @@ export function RevealRoot() {
     const isInViewport = (element: HTMLElement): boolean => {
       const rect = element.getBoundingClientRect();
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-      return rect.top < viewportHeight * VIEWPORT_HEIGHT_MULTIPLIER && rect.bottom > 0;
+      return rect.top < viewportHeight * 0.94 && rect.bottom > 0;
     };
 
     const supportsIO = "IntersectionObserver" in window;
@@ -83,8 +80,8 @@ export function RevealRoot() {
         }
       },
       {
-        rootMargin: ROOT_MARGIN,
-        threshold: INTERSECTION_THRESHOLD,
+        rootMargin: "0px 0px -6% 0px",
+        threshold: 0.04,
       },
     );
 

@@ -143,9 +143,6 @@ interface ThreadConversationProps {
 }
 
 const LOAD_OLDER_SCROLL_THRESHOLD_PX = 80;
-const MS_PER_CHARACTER_TYPING = 20;
-const MS_PER_CHARACTER_READING = 100;
-const SCROLL_BOTTOM_THRESHOLD_PX = 120;
 
 export function ThreadConversation({
   thread,
@@ -182,24 +179,21 @@ export function ThreadConversation({
   // the first bubble immediately, then drip the rest one at a time with a
   // typing pause between. Customer/agent messages always show instantly.
   const messagesRef = useRef(thread.messages);
-  useLayoutEffect(() => {
-    messagesRef.current = thread.messages;
-  }, [thread.messages]);
-
-  const [revealedIds, setRevealedIds] = useState<Set<string>>(() => new Set(thread.messages.map((message) => message.id)));
-  const revealedIdsRef = useRef<Set<string>>(revealedIds);
-  useLayoutEffect(() => {
-    revealedIdsRef.current = revealedIds;
-  }, [revealedIds]);
-
+   
+  messagesRef.current = thread.messages;
+  const revealedIdsRef = useRef<Set<string>>(
+    new Set(thread.messages.map((message) => message.id)),
+  );
   const queueRef = useRef<string[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Reading/comprehension delay to prepend to the first bubble of a reply.
   const readDelayRef = useRef(0);
+  const [, bumpReveal] = useReducer((count: number) => count + 1, 0);
   const [botTyping, setBotTyping] = useState(false);
 
+   
   const visibleMessages = thread.messages.filter((message) =>
-    revealedIds.has(message.id),
+    revealedIdsRef.current.has(message.id),
   );
   const lastVisibleId = visibleMessages[visibleMessages.length - 1]?.id;
   const firstVisibleId = visibleMessages[0]?.id;
@@ -221,13 +215,11 @@ export function ThreadConversation({
       setBotTyping(true);
       timerRef.current = setTimeout(() => {
         queueRef.current.shift();
-        const nextSet = new Set(revealedIdsRef.current);
-        nextSet.add(nextId);
-        revealedIdsRef.current = nextSet;
-        setRevealedIds(nextSet);
+        revealedIdsRef.current.add(nextId);
+        bumpReveal();
         setBotTyping(false);
         timerRef.current = setTimeout(() => doPump(), STAGGER_GAP_MS);
-      }, nextBody.length * MS_PER_CHARACTER_TYPING);
+      }, nextBody.length * 20); // 20ms per character
     };
 
     if (startGap > 0) {
@@ -267,14 +259,12 @@ export function ThreadConversation({
         revealedAny = true;
       }
     }
-    if (revealedAny) {
-      setRevealedIds(new Set(revealedIdsRef.current));
-    }
+    if (revealedAny) bumpReveal();
     if (queueRef.current.length > 0 && !timerRef.current) {
       const lastCustomer = [...messagesRef.current]
         .reverse()
         .find((message) => message.author === "customer");
-      readDelayRef.current = (lastCustomer?.body ?? "").length * MS_PER_CHARACTER_READING;
+      readDelayRef.current = (lastCustomer?.body ?? "").length * 100;
       pump();
     }
   }, [thread.messages, pump]);
@@ -294,6 +284,20 @@ export function ThreadConversation({
   // Captured at the moment a scroll-up triggers an older-page load so the
   // viewport can be re-anchored after the prepended messages reflow.
   const olderAnchorRef = useRef<{ height: number; top: number } | null>(null);
+
+  function handleMessageListScroll() {
+    const el = messageListRef.current;
+    if (!el) return;
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (
+      el.scrollTop < LOAD_OLDER_SCROLL_THRESHOLD_PX &&
+      hasMoreOlder &&
+      !isLoadingOlder
+    ) {
+      olderAnchorRef.current = { height: el.scrollHeight, top: el.scrollTop };
+      onLoadOlder();
+    }
+  }
 
   // New bubble (or typing dots) landed: snap to bottom if already pinned.
   // rAF lets attachment/image reflow settle before we measure scrollHeight.
@@ -318,34 +322,20 @@ export function ThreadConversation({
   // Opening a thread (or switching threads) reveals all history instantly and
   // jumps to the newest message.
   useEffect(() => {
-    const nextSet = new Set(messagesRef.current.map((message) => message.id));
-    revealedIdsRef.current = nextSet;
+    revealedIdsRef.current = new Set(messagesRef.current.map((message) => message.id));
     queueRef.current = [];
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+     
     setBotTyping(false);
-    setRevealedIds(nextSet);
+    bumpReveal();
     const el = messageListRef.current;
     if (!el) return;
     stickToBottomRef.current = true;
     el.scrollTop = el.scrollHeight;
   }, [thread.id]);
-
-  function handleMessageListScroll() {
-    const el = messageListRef.current;
-    if (!el) return;
-    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < SCROLL_BOTTOM_THRESHOLD_PX;
-    if (
-      el.scrollTop < LOAD_OLDER_SCROLL_THRESHOLD_PX &&
-      hasMoreOlder &&
-      !isLoadingOlder
-    ) {
-      olderAnchorRef.current = { height: el.scrollHeight, top: el.scrollTop };
-      onLoadOlder();
-    }
-  }
 
   const groupedMessages = groupChatMessagesByDay(visibleMessages);
 

@@ -80,9 +80,8 @@ export function InquiryConversationPanel({
   const inquiryRef = useRef<AdminInquiry | null>(null);
   const stickToBottomRef = useRef(true);
   const olderAnchorRef = useRef<{ height: number; top: number } | null>(null);
-  useEffect(() => {
-    inquiryRef.current = inquiry;
-  }, [inquiry]);
+  // eslint-disable-next-line react-hooks/refs -- intentional sync read
+  inquiryRef.current = inquiry;
 
   // Fold an incremental thread response (poll / reply / metadata update) into the
   // loaded page: merge messages by id and keep the already-resolved older flag.
@@ -596,9 +595,9 @@ function InquiryAttachmentChip({
 }) {
   if (attachment.kind === "image") {
     const thumb =
-      attachment.image?.variants?.thumb || attachment.image?.variants?.card;
+      attachment.image.variants.thumb || attachment.image.variants.card;
     const full =
-      attachment.image?.variants?.full || attachment.image?.variants?.detail;
+      attachment.image.variants.full || attachment.image.variants.detail;
     return (
       <a
         href={full}
