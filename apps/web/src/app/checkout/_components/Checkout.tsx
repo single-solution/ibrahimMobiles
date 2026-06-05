@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CHECKOUT_TO_ORDER_PAYMENT,
@@ -84,6 +84,9 @@ export function Checkout({ customer }: CheckoutProps) {
   const [shouldRedeemLoyalty, setShouldRedeemLoyalty] = useState<boolean>(false);
   const [loyaltyBalance, setLoyaltyBalance] = useState<number>(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Stable across retries of the same attempt so a double-click / flaky network
+  // can't place two orders; reset only after a confirmed success.
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   const subtotalRupees = cart.subtotalRupees;
 
@@ -187,6 +190,9 @@ export function Checkout({ customer }: CheckoutProps) {
     }
     setErrorMessage(null);
     setIsPlacing(true);
+    if (!idempotencyKeyRef.current) {
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -210,6 +216,7 @@ export function Checkout({ customer }: CheckoutProps) {
           loyalty: {
             redeemPoints: cappedPointsToUse,
           },
+          idempotencyKey: idempotencyKeyRef.current,
         }),
       });
 
@@ -237,6 +244,8 @@ export function Checkout({ customer }: CheckoutProps) {
       if (serverRedeemed > 0) {
         params.set("redeemed", String(serverRedeemed));
       }
+      // Order confirmed — the next placement should get a fresh key.
+      idempotencyKeyRef.current = null;
       const url = `/checkout/success?${params.toString()}`;
       startNavigation(() => router.push(url));
     } catch {

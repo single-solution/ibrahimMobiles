@@ -69,6 +69,8 @@ export interface ChatThreadSummary {
 
 export interface ChatThread extends ChatThreadSummary {
   messages: ChatMessage[];
+  /** True when older messages exist before the loaded page (drives "load more"). */
+  hasMoreOlder?: boolean;
 }
 
 /** Validation regex shared by client + server for the customer's full name. */

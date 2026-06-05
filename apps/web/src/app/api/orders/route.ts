@@ -6,9 +6,12 @@
  *   - **Never trust client prices.** Every line's `unitPriceRupees` is
  *     re-read from the DB and re-computed server-side. Client-supplied price
  *     hints are ignored.
- *   - **Never trust stock state.** Every variant must currently be
- *     `isInStock: true`; otherwise the whole order is rejected with 409.
- *     Reserving stock is admin's responsibility once they confirm payment.
+ *   - **Stock is reserved at placement.** Every line's variant `quantity` is
+ *     atomically decremented under a `>= requested` guard (the oversell
+ *     guard); the order carries `inventoryReserved: true`. Stock returns to
+ *     the pool only when the order is cancelled / refunded / returned.
+ *   - **Placement is idempotent.** A client-supplied `idempotencyKey` makes a
+ *     retried submission return the original order instead of duplicating it.
  *   - **Customer identity comes from the session.** The client can submit a
  *     display name/address, but never chooses the customer record.
  *   - **Order numbers are unique even under contention.** A retry loop
@@ -17,10 +20,9 @@
  *     enforcePublicRateLimit caps placements per signed-in customer within the
  *     short-burst window (see SHORT_BURST_WINDOW_MS).
  *
- * Loyalty points are earned only when the order transitions to `delivered`,
- * and inventory is decremented only on the `confirmed` transition — both
- * happen in the admin app so retries on this public endpoint can't drift
- * the stock or balance.
+ * Loyalty points are earned only when the order transitions to `delivered`;
+ * redeemed points are debited atomically here at placement, and refunded if
+ * order creation fails.
  */
 
 import { type Types } from "mongoose";
@@ -29,15 +31,20 @@ import {
   connectDB,
   createWithUniqueOrderNumber,
   Customer,
+  isMongoDuplicateKeyError,
   LoyaltyAccount,
   Offer as OfferModel,
   Order as OrderModel,
   Product as ProductModel,
+  releaseStock,
+  reserveStock,
   getStoreSettings,
+  type StockLine,
   type CustomerAddressAttributes,
   type CustomerAttributes,
   type DeliveryMethod,
   type OfferAttributes,
+  type OrderDoc,
   type PaymentMethod,
   type ProductAttributes,
   type VariantAttributes,
@@ -124,7 +131,11 @@ interface OrderBody {
   loyalty?: {
     redeemPoints?: unknown;
   };
+  idempotencyKey?: unknown;
 }
+
+/** Max length we accept for a client-supplied idempotency key. */
+const MAX_IDEMPOTENCY_KEY_CHARS = 80;
 
 interface ResolvedItem {
   productDoc: ProductAttributes & { _id: Types.ObjectId };
@@ -176,7 +187,31 @@ export async function POST(request: Request) {
     return badRequest(`Cart cannot contain more than ${MAX_LINES_PER_ORDER} lines.`);
   }
 
+  const idempotencyKey =
+    typeof body.idempotencyKey === "string" && body.idempotencyKey.trim().length > 0
+      ? body.idempotencyKey.trim().slice(0, MAX_IDEMPOTENCY_KEY_CHARS)
+      : undefined;
+
   await connectDB();
+
+  // Idempotency: a retried submission (double-click, flaky network, second
+  // tab) reuses its key — return the original order instead of placing a new
+  // one. The unique index closes the simultaneous-request race at create time.
+  if (idempotencyKey) {
+    const priorOrder = await OrderModel.findOne({
+      idempotencyKey,
+      customerId: actor.id,
+    }).lean<{ _id: Types.ObjectId; orderNumber: string; totals: { totalRupees: number }; pointsEarned: number; pointsRedeemed: number }>();
+    if (priorOrder) {
+      return created({
+        id: priorOrder._id.toString(),
+        orderNumber: priorOrder.orderNumber,
+        totalRupees: priorOrder.totals.totalRupees,
+        pointsEarned: priorOrder.pointsEarned,
+        pointsRedeemed: priorOrder.pointsRedeemed,
+      });
+    }
+  }
 
   const existingCustomer = await Customer.findById(actor.id).lean<
     CustomerAttributes & { _id: Types.ObjectId }
@@ -230,7 +265,10 @@ export async function POST(request: Request) {
     quantity: number;
   }
   const productIds = new Set<string>();
-  const validatedLines: ValidatedLine[] = [];
+  // Merge by product+variant so the same variant sent across two lines is
+  // validated (and reserved) against one combined quantity — otherwise two
+  // qty-1 lines could each pass a "1 in stock" check and oversell.
+  const mergedLines = new Map<string, ValidatedLine>();
   for (const raw of body.items) {
     // `body.items` was confirmed to be an array above; each element still
     // arrives as a freshly-parsed JSON value, so we type it through the
@@ -247,16 +285,20 @@ export async function POST(request: Request) {
     if (!Number.isFinite(quantity) || quantity < MIN_QUANTITY_PER_LINE) {
       return badRequest(`Item quantity must be at least ${MIN_QUANTITY_PER_LINE}.`);
     }
-    if (quantity > MAX_QUANTITY_PER_LINE) {
+    const key = `${line.productId}:${line.variantId}`;
+    const existing = mergedLines.get(key);
+    const combined = (existing?.quantity ?? 0) + Math.floor(quantity);
+    if (combined > MAX_QUANTITY_PER_LINE) {
       return badRequest(`Quantity per line cannot exceed ${MAX_QUANTITY_PER_LINE}.`);
     }
     productIds.add(line.productId);
-    validatedLines.push({
+    mergedLines.set(key, {
       productId: line.productId,
       variantId: line.variantId,
-      quantity: Math.floor(quantity),
+      quantity: combined,
     });
   }
+  const validatedLines: ValidatedLine[] = Array.from(mergedLines.values());
   const products = await ProductModel.find({
     _id: { $in: Array.from(productIds) },
     isActive: true,
@@ -392,9 +434,22 @@ export async function POST(request: Request) {
   // Using `subtotalRupees` so a payment discount doesn't shrink the reward.
   const pointsEarned = pointsEarnedFor(subtotalRupees, settings.loyaltyEarnPercent);
 
+  // Reserve stock up front — this is the oversell guard. `reserveStock` rolls
+  // its own partial reservations back, so a failure leaves inventory untouched.
+  const stockLines: StockLine[] = resolvedItems.map((line) => ({
+    productId: line.productDoc._id,
+    variantId: line.variant._id,
+    quantity: line.quantity,
+  }));
+  const reservation = await reserveStock(stockLines);
+  if (!reservation.ok) {
+    return conflict("Some items just sold out. Please review your cart and try again.");
+  }
+
+  let createdOrder: OrderDoc | null = null;
   try {
-    const createdOrder = await createWithUniqueOrderNumber(async (orderNumber) => {
-      const doc = await OrderModel.create({
+    createdOrder = await createWithUniqueOrderNumber<OrderDoc>((orderNumber) =>
+      OrderModel.create({
         orderNumber,
         customerId: customerDoc._id,
         customerSnapshot: {
@@ -429,21 +484,35 @@ export async function POST(request: Request) {
         ],
         pointsEarned,
         pointsRedeemed,
+        inventoryReserved: true,
+        idempotencyKey,
         placedAt: new Date(),
-      });
-      return doc;
-    });
+      }),
+    );
 
-    if (pointsRedeemed > 0 && loyaltyAccount) {
-      loyaltyAccount.balance -= pointsRedeemed;
-      loyaltyAccount.transactions.push({
-        kind: "redeem",
-        amount: pointsRedeemed,
-        occurredAt: new Date(),
-        reason: "Redeemed during storefront checkout.",
-        orderRef: createdOrder.orderNumber,
-      });
-      await loyaltyAccount.save();
+    // Debit redeemed points atomically — the `balance >= pointsRedeemed` guard
+    // prevents two concurrent checkouts from overspending the same balance.
+    if (pointsRedeemed > 0) {
+      const debited = await LoyaltyAccount.findOneAndUpdate(
+        { customerId: customerDoc._id, balance: { $gte: pointsRedeemed } },
+        {
+          $inc: { balance: -pointsRedeemed },
+          $push: {
+            transactions: {
+              kind: "redeem",
+              amount: pointsRedeemed,
+              occurredAt: new Date(),
+              reason: "Redeemed during storefront checkout.",
+              orderRef: createdOrder.orderNumber,
+            },
+          },
+        },
+      );
+      if (!debited) {
+        await createdOrder.deleteOne();
+        await releaseStock(stockLines);
+        return conflict("Your loyalty balance changed. Please review your points and try again.");
+      }
     }
 
     // Best-effort usage tracking — a failure here must not fail a placed order.
@@ -466,6 +535,31 @@ export async function POST(request: Request) {
       pointsRedeemed,
     });
   } catch (error) {
+    // Unwind everything this attempt did so a failure never leaves stock held
+    // or a half-created order behind.
+    if (createdOrder) {
+      await createdOrder.deleteOne().catch(() => undefined);
+    }
+    await releaseStock(stockLines);
+
+    // A duplicate idempotency key means a parallel submission won the race —
+    // return that order instead of surfacing an error.
+    if (isMongoDuplicateKeyError(error) && idempotencyKey) {
+      const winner = await OrderModel.findOne({
+        idempotencyKey,
+        customerId: customerDoc._id,
+      }).lean<{ _id: Types.ObjectId; orderNumber: string; totals: { totalRupees: number }; pointsEarned: number; pointsRedeemed: number }>();
+      if (winner) {
+        return created({
+          id: winner._id.toString(),
+          orderNumber: winner.orderNumber,
+          totalRupees: winner.totals.totalRupees,
+          pointsEarned: winner.pointsEarned,
+          pointsRedeemed: winner.pointsRedeemed,
+        });
+      }
+    }
+
     logger.error({ error }, "Failed to create storefront order");
     return serverError("Could not place order. Please try again.");
   }

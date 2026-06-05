@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ShoppingBag, Trash2 } from "lucide-react";
 import { QuantityStepper } from "@store/ui";
@@ -22,6 +22,15 @@ import { formatPrice } from "@store/shared";
 export function Cart() {
   const cart = useCart();
   const { offers } = useActiveOffers();
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  // The cart store hydrates from localStorage only after mount, so the SSR /
+  // first-paint snapshot is always empty. Without this gate a populated cart
+  // flashes the "empty" state for one frame before the items appear.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot hydration detection
+    setIsHydrated(true);
+  }, []);
 
   const evaluatableItems = cart.items.map(item => ({
     id: item.id,
@@ -36,6 +45,10 @@ export function Cart() {
   }));
 
   const pricing = evaluateOffers(evaluatableItems, offers);
+
+  if (!isHydrated) {
+    return <div className="storefront-page-center" aria-hidden />;
+  }
 
   if (cart.isEmpty) {
     return (

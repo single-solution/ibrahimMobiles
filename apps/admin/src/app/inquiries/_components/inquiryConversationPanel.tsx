@@ -1,7 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { AlertTriangle, Paperclip, Phone, Send } from "lucide-react";
 import { Button } from "@store/ui";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -12,7 +18,7 @@ import { useToast } from "@/components/ui/Toast";
 import { WorkspaceDetailHeader } from "@/components/shared/workspaceUi";
 import { apiFetch } from "@/lib/api";
 import { getInitials } from "@/lib/initials";
-import { classNames, createChatTransport } from "@store/shared";
+import { classNames, createChatTransport, mergeChatMessagesById } from "@store/shared";
 import type {
   AdminInquiry,
   AdminInquiryAttachment,
@@ -67,9 +73,30 @@ export function InquiryConversationPanel({
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const pollCursorRef = useRef<string | null>(null);
+  const inquiryRef = useRef<AdminInquiry | null>(null);
+  const stickToBottomRef = useRef(true);
+  const olderAnchorRef = useRef<{ height: number; top: number } | null>(null);
+  inquiryRef.current = inquiry;
+
+  // Fold an incremental thread response (poll / reply / metadata update) into the
+  // loaded page: merge messages by id and keep the already-resolved older flag.
+  function applyThreadUpdate(updated: AdminInquiry) {
+    setInquiry((prev) =>
+      prev
+        ? {
+            ...updated,
+            messages: mergeChatMessagesById(prev.messages, updated.messages),
+            hasMoreOlder: prev.hasMoreOlder ?? updated.hasMoreOlder,
+          }
+        : updated,
+    );
+    setStatus(updated.status);
+    syncListSummary(updated);
+  }
 
   function syncListSummary(detail: AdminInquiry) {
     onThreadUpdated({
@@ -106,7 +133,21 @@ export function InquiryConversationPanel({
         );
         if (cancelled || detail === undefined) return;
         pollCursorRef.current = detail.lastMessageAt;
-        setInquiry(detail);
+        if (initial) {
+          setInquiry(detail);
+        } else {
+          // Poll returns only messages newer than the cursor; merge so loaded
+          // history (and older pages) stay in place.
+          setInquiry((prev) =>
+            prev
+              ? {
+                  ...detail,
+                  messages: mergeChatMessagesById(prev.messages, detail.messages),
+                  hasMoreOlder: prev.hasMoreOlder ?? detail.hasMoreOlder,
+                }
+              : detail,
+          );
+        }
         if (detail.unreadByTeam > 0) {
           void apiFetch(`/api/inquiries/${inquiryId}/read`, { method: "POST" })
             .then(() => {
@@ -150,11 +191,61 @@ export function InquiryConversationPanel({
     };
   }, [inquiryId, onRead, toast]);
 
+  const lastMessageId = inquiry?.messages.at(-1)?.id;
+  const firstMessageId = inquiry?.messages[0]?.id;
+
+  // Snap to the newest message when the reader is already near the bottom; never
+  // yank them down while they're reading older history.
   useEffect(() => {
     const el = messagesContainerRef.current;
-    if (!el) return;
+    if (!el || !stickToBottomRef.current) return;
     el.scrollTop = el.scrollHeight;
-  }, [inquiry?.messages.length]);
+  }, [lastMessageId, inquiryId]);
+
+  // Re-anchor the viewport after an older page prepends.
+  useLayoutEffect(() => {
+    const el = messagesContainerRef.current;
+    const anchor = olderAnchorRef.current;
+    if (!el || !anchor) return;
+    el.scrollTop = el.scrollHeight - anchor.height + anchor.top;
+    olderAnchorRef.current = null;
+  }, [firstMessageId]);
+
+  async function loadOlderMessages() {
+    const current = inquiryRef.current;
+    if (!current?.hasMoreOlder || current.messages.length === 0) return;
+    const oldestId = current.messages[0].id;
+    setIsLoadingOlder(true);
+    try {
+      const older = await apiFetch<AdminInquiry | undefined>(
+        `/api/inquiries/${inquiryId}?before=${encodeURIComponent(oldestId)}`,
+      );
+      if (!older) return;
+      setInquiry((prev) =>
+        prev
+          ? {
+              ...prev,
+              messages: mergeChatMessagesById(older.messages, prev.messages),
+              hasMoreOlder: older.hasMoreOlder,
+            }
+          : prev,
+      );
+    } catch {
+      // Leave as-is; the next scroll retries.
+    } finally {
+      setIsLoadingOlder(false);
+    }
+  }
+
+  function handleMessagesScroll() {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (el.scrollTop < 80 && inquiry?.hasMoreOlder && !isLoadingOlder) {
+      olderAnchorRef.current = { height: el.scrollHeight, top: el.scrollTop };
+      void loadOlderMessages();
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -169,9 +260,7 @@ export function InquiryConversationPanel({
           assignedToUserId: assignedToUserId || null,
         },
       });
-      setInquiry(updated);
-      setStatus(updated.status);
-      syncListSummary(updated);
+      applyThreadUpdate(updated);
       toast.success("Inquiry updated");
     } catch (error) {
       toast.danger(
@@ -191,9 +280,7 @@ export function InquiryConversationPanel({
         `/api/inquiries/${inquiryId}/messages`,
         { method: "POST", json: { body } },
       );
-      setInquiry(updated);
-      setStatus(updated.status);
-      syncListSummary(updated);
+      applyThreadUpdate(updated);
       setReply("");
     } catch (error) {
       toast.danger(
@@ -217,9 +304,7 @@ export function InquiryConversationPanel({
         `/api/inquiries/${inquiryId}/attachments`,
         { method: "POST", body: formData },
       );
-      setInquiry(updated);
-      setStatus(updated.status);
-      syncListSummary(updated);
+      applyThreadUpdate(updated);
       setReply("");
     } catch (error) {
       toast.danger(
@@ -358,8 +443,20 @@ export function InquiryConversationPanel({
 
       <div
         ref={messagesContainerRef}
+        onScroll={handleMessagesScroll}
         className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-4 md:px-5"
       >
+        {(inquiry.hasMoreOlder || isLoadingOlder) && (
+          <div className="flex justify-center py-1">
+            <span
+              aria-label="Loading earlier messages"
+              className={classNames(
+                "block size-4 rounded-full border-2 border-[var(--color-ink-300)] border-r-transparent",
+                isLoadingOlder ? "animate-spin" : "opacity-0",
+              )}
+            />
+          </div>
+        )}
         {inquiry.messages.length === 0 ? (
           <p className="text-center text-xs text-[var(--color-ink-500)]">
             Waiting for the customer&apos;s first message from the chat widget.

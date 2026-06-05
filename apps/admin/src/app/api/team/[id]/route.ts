@@ -25,6 +25,7 @@ import {
 
 import { requireSession } from "@/lib/api/requireSession";
 
+import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
 
 import { invalidateSessionCache } from "@/lib/permissions";
@@ -171,6 +172,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
       resourceId: id,
       resourceLabel: doc.name,
     });
+    bustAdminCaches();
     return ok(toUserResponse(doc));
   } catch (error) {
     return handleMongoError(error);
@@ -216,6 +218,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       resourceId: id,
       resourceLabel: doc.name,
     });
+    bustAdminCaches();
     return noContent();
   } catch (error) {
     return handleMongoError(error);

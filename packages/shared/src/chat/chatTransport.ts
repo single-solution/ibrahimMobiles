@@ -14,6 +14,8 @@ export interface ChatTransport {
   start(): void;
   stop(): void;
   touch(): void;
+  /** Run a tick immediately (e.g. when the tab regains visibility). */
+  pollNow(): void;
   isRunning(): boolean;
 }
 
@@ -67,6 +69,15 @@ export function createChatTransport(
     },
     touch() {
       lastActivityAt = Date.now();
+    },
+    pollNow() {
+      if (!running) return;
+      lastActivityAt = Date.now();
+      if (timer !== undefined) {
+        clearTimeout(timer);
+        timer = undefined;
+      }
+      void tick();
     },
     isRunning() {
       return running;

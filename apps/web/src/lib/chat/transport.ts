@@ -66,6 +66,20 @@ export async function fetchChatThread(id: string): Promise<ChatThread> {
   return (await jsonOrThrow(res)) as ChatThread;
 }
 
+/** Fetch the page of messages immediately older than `beforeId` (scroll-up). */
+export async function fetchOlderChatMessages(
+  id: string,
+  beforeId: string,
+): Promise<ChatThread> {
+  const params = new URLSearchParams({ before: beforeId });
+  const res = await fetch(`/api/chat/${encodeURIComponent(id)}?${params}`, {
+    method: "GET",
+    credentials: "same-origin",
+    cache: "no-store",
+  });
+  return (await jsonOrThrow(res)) as ChatThread;
+}
+
 /** Poll tick — returns `null` when the server responds 304 (unchanged). */
 export async function pollChatThread(
   id: string,
@@ -107,14 +121,6 @@ export async function markChatThreadRead(threadId: string): Promise<void> {
   }
 }
 
-export interface StartChatInput {
-  customerName: string;
-  phoneNumber: string;
-  body: string;
-  subjectProductId?: string;
-  subjectProductName?: string;
-}
-
 export interface StartAnonymousChatInput {
   subjectProductId?: string;
   subjectProductName?: string;
@@ -136,18 +142,6 @@ export async function startCustomerChatThread(): Promise<ChatThread> {
   const res = await fetch("/api/chat/customer-threads", {
     method: "POST",
     credentials: "same-origin",
-  });
-  return (await jsonOrThrow(res)) as ChatThread;
-}
-
-export async function startChatThread(
-  input: StartChatInput,
-): Promise<ChatThread> {
-  const res = await fetch("/api/chat/threads", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
   });
   return (await jsonOrThrow(res)) as ChatThread;
 }

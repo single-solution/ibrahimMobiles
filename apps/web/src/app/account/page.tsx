@@ -35,7 +35,9 @@ export const dynamic = "force-dynamic";
 export default async function AccountPage() {
   const session = await auth();
   if (!session?.user || session.user.role !== "customer" || !session.user.customerId) {
-    redirect("/account/sign-in?next=/account");
+    // Valid JWT but unusable claims — clear the cookie so we don't loop with
+    // the middleware (which would treat the request as still logged-in).
+    redirect("/account/sign-out");
   }
 
   const [overview] = await Promise.all([
@@ -43,8 +45,9 @@ export default async function AccountPage() {
     getStoreSettings(), // Prefetch to warm cache
   ]);
   if (!overview) {
-    // Customer record was deleted under a still-valid session — sign them out.
-    redirect("/account/sign-in?next=/account");
+    // Customer record was deleted under a still-valid session — sign them out
+    // (not just redirect to sign-in, or the middleware bounces us back here).
+    redirect("/account/sign-out");
   }
 
   return (

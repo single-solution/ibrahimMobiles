@@ -3,13 +3,13 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ArrowRight, Clock, Sparkles } from "lucide-react";
 import { OfferCard } from "@/components/shared/OfferCard";
-import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
+import { ShopProductFeed } from "@/components/shared/ShopProductFeed";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getOffersCached } from "@/lib/core/cached";
-import { getProductsOnOffer } from "@/lib/core";
+import { getOffersCached, getProductsPageCached } from "@/lib/core/cached";
+import type { ProductPage } from "@/lib/core";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
-import { classNames, formatRelativeDate, logger, type Offer, type Product } from "@store/shared";
+import { classNames, formatRelativeDate, logger, type Offer } from "@store/shared";
 
 /**
  * Safe wrappers around the two reads this page consumes.
@@ -32,15 +32,19 @@ async function loadOffers(): Promise<Offer[]> {
   }
 }
 
-async function loadProductsOnSale(limit: number): Promise<Product[]> {
+async function loadDealsPage(): Promise<ProductPage> {
   try {
-    return await getProductsOnOffer(limit);
+    return await getProductsPageCached({
+      isFeatured: true,
+      page: 1,
+      limit: PRODUCTS_ON_OFFER_LIMIT,
+    });
   } catch (error) {
     logger.error(
       { error },
       "deals: products-on-sale load failed, falling back to empty list this render",
     );
-    return [];
+    return { products: [], total: 0, page: 1, pageSize: PRODUCTS_ON_OFFER_LIMIT, pageCount: 1 };
   }
 }
 
@@ -197,25 +201,24 @@ async function MobileOffers() {
 }
 
 async function MobileProductsOnSale() {
-  const offeredProducts = await loadProductsOnSale(PRODUCTS_ON_OFFER_LIMIT);
+  const page = await loadDealsPage();
   return (
     <>
       <div className="reveal app-section-eyebrow">
         <span>Products on sale</span>
         <span className="lowercase tracking-normal text-[var(--color-ink-500)]">
-          {offeredProducts.length} items
+          {page.total} items
         </span>
       </div>
-      {offeredProducts.length === 0 ? (
+      {page.products.length === 0 ? (
         <DealsEmpty />
       ) : (
-        <div className="reveal-stagger grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3.5 md:grid-cols-4">
-          {offeredProducts.map((product, index) => (
-            <div key={product.id} className={index < 2 ? "h-full" : "reveal h-full"}>
-              <ProductCard product={product} priority={index < 2} />
-            </div>
-          ))}
-        </div>
+        <ShopProductFeed
+          initialPage={page}
+          categoryLabel="deals"
+          apiParams={{ featured: "1" }}
+          gridClassName="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3.5 md:grid-cols-4"
+        />
       )}
     </>
   );
@@ -245,8 +248,7 @@ async function DesktopOffers() {
 }
 
 async function DesktopProductsSection() {
-  // Single fetch — header (count) and grid both need the same list.
-  const offeredProducts = await loadProductsOnSale(PRODUCTS_ON_OFFER_LIMIT);
+  const page = await loadDealsPage();
   return (
     <>
       <div className="reveal flex items-end justify-between gap-3">
@@ -255,20 +257,19 @@ async function DesktopProductsSection() {
             Products on sale
           </h2>
           <p className="mt-1 text-sm text-[var(--color-ink-500)]">
-            {offeredProducts.length} product{offeredProducts.length === 1 ? "" : "s"} with an active offer.
+            {page.total} product{page.total === 1 ? "" : "s"} with an active offer.
           </p>
         </div>
       </div>
-      {offeredProducts.length === 0 ? (
+      {page.products.length === 0 ? (
         <DealsEmpty />
       ) : (
-        <div className="reveal-stagger grid grid-cols-4 gap-5">
-          {offeredProducts.map((product, index) => (
-            <div key={product.id} className={index < 2 ? "h-full" : "reveal h-full"}>
-              <ProductCard product={product} priority={index < 2} />
-            </div>
-          ))}
-        </div>
+        <ShopProductFeed
+          initialPage={page}
+          categoryLabel="deals"
+          apiParams={{ featured: "1" }}
+          gridClassName="grid grid-cols-4 gap-5"
+        />
       )}
     </>
   );

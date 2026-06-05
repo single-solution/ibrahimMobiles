@@ -5,14 +5,15 @@ import { signIn } from "next-auth/react";
 import { ArrowRight, KeyRound, MessageCircle, Phone as PhoneIcon } from "lucide-react";
 import { Button } from "@store/ui";
 import { Input } from "@/components/ui/Input";
+import { OtpInput } from "@/components/ui/OtpInput";
 import { buildWhatsAppLink, classNames, OTP_CODE_LENGTH } from "@store/shared";
 
+import { setSignedIn } from "@/lib/auth/useIsSignedIn";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 const RESEND_AFTER_SECONDS = 30;
 const COUNTDOWN_TICK_MS = 1_000;
 const CODE_AUTOFOCUS_DELAY_MS = 80;
-const NON_DIGIT_REGEX = /\D/g;
 
 interface IssueOtpResponse {
   phoneTail?: string;
@@ -72,10 +73,15 @@ export function PhoneOtpForm({
       const data = (await response.json()) as IssueOtpResponse;
       if (!response.ok) {
         setError(data.error ?? "Couldn't send code. Please try again.");
-        setDeliveryFailed(true);
         const retryAfterSeconds = Number(response.headers.get("Retry-After"));
         if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
           setResendIn(retryAfterSeconds);
+        }
+        // Only offer the team-issued-code path on a genuine delivery failure
+        // (5xx). An invalid number (400) or throttle (429) isn't a delivery
+        // problem, so surfacing the fallback there just confuses the user.
+        if (response.status >= 500) {
+          setDeliveryFailed(true);
         }
         return false;
       }
@@ -86,8 +92,8 @@ export function PhoneOtpForm({
       setResendIn(RESEND_AFTER_SECONDS);
       return true;
     } catch {
+      // Network error — not a delivery failure; don't unlock the team-code path.
       setError("Network error. Please try again.");
-      setDeliveryFailed(true);
       return false;
     } finally {
       setIsSendingCode(false);
@@ -118,9 +124,11 @@ export function PhoneOtpForm({
     }
   }
 
-  async function handleCodeSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (code.length < OTP_CODE_LENGTH) {
+  async function verifyCode(currentCode: string) {
+    if (isVerifying) {
+      return;
+    }
+    if (currentCode.length < OTP_CODE_LENGTH) {
       setError(`Please enter the full ${OTP_CODE_LENGTH}-digit code.`);
       return;
     }
@@ -130,18 +138,24 @@ export function PhoneOtpForm({
       const result = await signIn("customer-otp", {
         redirect: false,
         phoneNumber: phone.trim(),
-        code,
+        code: currentCode,
       });
       if (result?.error) {
         setError("That code didn't match. Please try again.");
         return;
       }
+      setSignedIn(true);
       onVerified();
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setIsVerifying(false);
     }
+  }
+
+  function handleCodeSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void verifyCode(code);
   }
 
   const contactHref = whatsappNumber
@@ -238,18 +252,15 @@ export function PhoneOtpForm({
         )}
       </p>
       <div className="reveal">
-        <Input
+        <OtpInput
           ref={codeInputRef}
           label="Verification code"
           value={code}
-          onChange={(e) => setCode(e.target.value.replace(NON_DIGIT_REGEX, "").slice(0, OTP_CODE_LENGTH))}
-          placeholder="123456"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={OTP_CODE_LENGTH}
-          isMonospace
+          onChange={setCode}
+          length={OTP_CODE_LENGTH}
           error={error}
-          isLoading={isVerifying}
+          disabled={isVerifying}
+          onComplete={(completed) => void verifyCode(completed)}
         />
       </div>
       <div className="reveal">

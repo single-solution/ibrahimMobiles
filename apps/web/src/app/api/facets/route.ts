@@ -8,8 +8,8 @@
 import { logger, ok, serverError } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
+import { getFacetsCached } from "@/lib/core/cached";
 import { parseFiltersFromSearchParams } from "@/lib/core/filterParams";
-import { getFacets } from "@/lib/core/facets";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
   });
 
   try {
-    const facets = await getFacets(filters);
+    const facets = await getFacetsCached(filters);
     return ok({ facets });
   } catch (error) {
     logger.error({ error, categorySlug }, "storefront facets failed");

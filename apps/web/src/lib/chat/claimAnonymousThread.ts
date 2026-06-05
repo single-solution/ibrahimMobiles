@@ -1,12 +1,71 @@
 import { Types } from "mongoose";
 
 import { Customer, Inquiry as InquiryModel, connectDB } from "@store/db";
+import type { InquiryMessageAttributes } from "@store/db";
 import { isAnonymousChatPhone } from "@store/shared";
 
 import type { InquiryLean } from "@/lib/chat/serializer";
 
+function sortedByCreatedAt(
+  messages: InquiryMessageAttributes[],
+): InquiryMessageAttributes[] {
+  return [...messages].sort(
+    (left, right) =>
+      new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
+  );
+}
+
+/**
+ * Fold a just-signed-in guest's preview thread into the customer's canonical
+ * conversation, then delete the guest doc — a customer must only ever hold ONE
+ * thread (enforced by the unique `customerId` index). The guest's messages are
+ * appended chronologically so history reads as a single timeline.
+ */
+async function mergeGuestIntoCanonical(
+  canonical: InquiryLean,
+  guest: InquiryLean,
+  customer: { name: string; phoneNumber: string },
+): Promise<InquiryLean> {
+  const messages = sortedByCreatedAt([
+    ...(canonical.messages ?? []),
+    ...(guest.messages ?? []),
+  ]);
+  const last = messages[messages.length - 1];
+  const status = last?.author === "customer" ? "open" : canonical.status;
+
+  await InquiryModel.updateOne(
+    { _id: canonical._id },
+    {
+      $set: {
+        messages,
+        status,
+        customerName: customer.name,
+        phoneNumber: customer.phoneNumber,
+        lastMessageAt: last?.createdAt ?? canonical.lastMessageAt,
+        lastMessagePreview: (last?.body ?? canonical.lastMessagePreview ?? "").slice(0, 280),
+        lastMessageAuthor: last?.author ?? canonical.lastMessageAuthor,
+        unreadByCustomer: (canonical.unreadByCustomer ?? 0) + (guest.unreadByCustomer ?? 0),
+        unreadByTeam: (canonical.unreadByTeam ?? 0) + (guest.unreadByTeam ?? 0),
+        ...(canonical.subjectProductId || !guest.subjectProductId
+          ? {}
+          : { subjectProductId: guest.subjectProductId }),
+        ...(canonical.subjectProductName || !guest.subjectProductName
+          ? {}
+          : { subjectProductName: guest.subjectProductName }),
+      },
+    },
+  );
+  await InquiryModel.deleteOne({ _id: guest._id });
+
+  const refreshed = await InquiryModel.findById(canonical._id).lean<InquiryLean>();
+  return refreshed ?? canonical;
+}
+
 /**
  * Link an anonymous preview thread to the signed-in customer after OTP login.
+ * If the customer already has a thread, the guest thread is merged into it and
+ * removed; otherwise the guest thread is claimed in place. Returns the canonical
+ * thread (note: its `_id` differs from the guest's when a merge happened).
  */
 export async function claimAnonymousThreadIfNeeded(
   inquiry: InquiryLean,
@@ -24,11 +83,20 @@ export async function claimAnonymousThreadIfNeeded(
     return inquiry;
   }
 
+  const customerObjectId = new Types.ObjectId(customerId);
+  const existing = await InquiryModel.findOne({ customerId: customerObjectId })
+    .sort({ createdAt: 1 })
+    .lean<InquiryLean>();
+
+  if (existing && existing._id.toString() !== inquiry._id.toString()) {
+    return mergeGuestIntoCanonical(existing, inquiry, customer);
+  }
+
   const updated = await InquiryModel.findByIdAndUpdate(
     inquiry._id,
     {
       $set: {
-        customerId: new Types.ObjectId(customerId),
+        customerId: customerObjectId,
         customerName: customer.name,
         phoneNumber: customer.phoneNumber,
       },

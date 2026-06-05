@@ -22,6 +22,7 @@ import {
 import { requireSession } from "@/lib/api/requireSession";
 import { hasPermission } from "@/lib/permissions";
 
+import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
 
 import {
@@ -130,6 +131,7 @@ export async function POST(request: Request, { params }: RouteContext) {
       detail: `${kind} ${amount} pts: ${reasonResult}`,
     });
 
+    bustAdminCaches();
     return created(toLoyaltyAccountResponse(account.toObject() as LoyaltyAccountLean, customer.name));
   } catch (error) {
     return handleMongoError(error);

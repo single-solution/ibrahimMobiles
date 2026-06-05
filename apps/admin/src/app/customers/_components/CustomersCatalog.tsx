@@ -18,7 +18,12 @@ import {
 } from "@/components/shared/workspaceUi";
 import { CustomerCreateDrawer } from "./CustomerCreateDrawer";
 import { CustomerDetailPanel } from "./CustomerDetailPanel";
+import { InfiniteScrollSentinel } from "@/components/shared/InfiniteScrollSentinel";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { apiFetch } from "@/lib/api";
+import { useInfiniteList } from "@/lib/useInfiniteList";
+import { useDeferredCounts } from "@/lib/useDeferredCounts";
+import { useUrlParams } from "@/lib/url/useUrlParams";
 import { useAdminPermissions } from "@/lib/permissionsContext";
 import {
   pingNavigationProgress,
@@ -26,12 +31,15 @@ import {
 } from "@/lib/navigation/navigationProgress";
 import { getInitials } from "@/lib/initials";
 import { classNames, formatPrice, formatTimeAgo } from "@store/shared";
+import type { ListResponse } from "@/lib/api/listOptions";
+import type { CustomerListCounts, CustomerSegment } from "@/lib/server/customerListQuery";
 import type { AdminCustomerSummary } from "@/types/models";
 
-type SegmentFilter = "all" | "loyalty" | "active";
+/** Debounce before a typed search is pushed to the URL (which refetches the seed). */
+const SEARCH_DEBOUNCE_MS = 300;
 
 interface CustomersCatalogProps {
-  customers: AdminCustomerSummary[];
+  initial: ListResponse<AdminCustomerSummary>;
   programmeRupeesPerPoint: number;
 }
 
@@ -44,17 +52,16 @@ export function CustomersCatalog(props: CustomersCatalogProps) {
 }
 
 function CustomersCatalogInner({
-  customers,
+  initial,
   programmeRupeesPerPoint,
 }: CustomersCatalogProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { startNavigation } = useNavigationTransition();
+  const { replace } = useUrlParams();
   const toast = useToast();
   const { can } = useAdminPermissions();
 
-  const [segment, setSegment] = useState<SegmentFilter>("all");
-  const [searchQuery, setSearchQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [toDelete, setToDelete] = useState<AdminCustomerSummary | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -63,35 +70,60 @@ function CustomersCatalogInner({
   const canCreate = can("customer_update");
   const canAdjustLoyalty = can("loyalty_manage") || can("customer_manage");
 
-  const totalLoyaltyBalance = useMemo(
-    () => customers.reduce((sum, row) => sum + row.loyaltyBalance, 0),
-    [customers],
-  );
+  const segmentParam = searchParams.get("segment");
+  const segment: CustomerSegment =
+    segmentParam === "loyalty" || segmentParam === "active" ? segmentParam : "all";
+  const urlQuery = searchParams.get("query") ?? "";
+  const [searchInput, setSearchInput] = useState(urlQuery);
 
-  const segmentCounts = useMemo(
-    () => ({
-      all: customers.length,
-      loyalty: customers.filter((row) => row.isLoyaltyMember).length,
-      active: customers.filter((row) => row.orderCount > 0).length,
-    }),
-    [customers],
-  );
-
-  const filteredCustomers = useMemo(() => {
-    let rows = customers;
-    if (segment === "loyalty") {
-      rows = rows.filter((row) => row.isLoyaltyMember);
-    } else if (segment === "active") {
-      rows = rows.filter((row) => row.orderCount > 0);
+  const listParams = useMemo<Record<string, string>>(() => {
+    const next: Record<string, string> = {};
+    if (segment !== "all") {
+      next.segment = segment;
     }
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return rows;
-    return rows.filter((row) =>
-      `${row.name} ${row.phoneNumber} ${row.city}`
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [customers, segment, searchQuery]);
+    if (urlQuery) {
+      next.query = urlQuery;
+    }
+    return next;
+  }, [segment, urlQuery]);
+
+  const {
+    items: customers,
+    total,
+    hasMore,
+    isLoadingMore,
+    hasError,
+    loadMore,
+    removeItem,
+  } = useInfiniteList<AdminCustomerSummary>({
+    endpoint: "/api/customers",
+    initial,
+    params: listParams,
+  });
+
+  // Collection-wide segment counts + loyalty total stream in after first paint.
+  const { counts, isLoading: countsLoading } = useDeferredCounts<CustomerListCounts>(
+    "/api/customers/counts",
+    initial,
+  );
+
+  // Debounced search → URL → SSR seed refetch (single source of truth).
+  useEffect(() => {
+    if (searchInput === urlQuery) {
+      return;
+    }
+    const id = setTimeout(() => {
+      replace({ query: searchInput || null });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [searchInput, urlQuery, replace]);
+
+  const setSegment = useCallback(
+    (next: CustomerSegment) => {
+      replace({ segment: next === "all" ? null : next });
+    },
+    [replace],
+  );
 
   const setActiveCustomerUrl = useCallback(
     (id: string | null) => {
@@ -123,21 +155,21 @@ function CustomersCatalogInner({
         setActiveId(fromUrl);
         return;
       }
-      if (filteredCustomers.length === 0) {
+      if (customers.length === 0) {
         if (activeId !== null) {
           setActiveCustomerUrl(null);
         }
         return;
       }
       const stillVisible =
-        activeId !== null && filteredCustomers.some((row) => row.id === activeId);
+        activeId !== null && customers.some((row) => row.id === activeId);
       if (stillVisible) return;
       const preferDesktop =
         typeof window !== "undefined" &&
         window.matchMedia("(min-width: 1024px)").matches;
-      setActiveCustomerUrl(preferDesktop ? filteredCustomers[0].id : null);
+      setActiveCustomerUrl(preferDesktop ? customers[0].id : null);
     });
-  }, [activeId, filteredCustomers, customers, searchParams, setActiveCustomerUrl]);
+  }, [activeId, customers, searchParams, setActiveCustomerUrl]);
 
   function refresh() {
     pingNavigationProgress();
@@ -149,6 +181,7 @@ function CustomersCatalogInner({
     try {
       await apiFetch(`/api/customers/${toDelete.id}`, { method: "DELETE" });
       toast.warn(`"${toDelete.name}" deleted`);
+      removeItem(toDelete.id);
       setToDelete(null);
       setActiveCustomerUrl(null);
       refresh();
@@ -173,7 +206,18 @@ function CustomersCatalogInner({
             <WorkspacePaneHeader
               iconElement={<UserCircle size={15} />}
               title="Customers"
-              subtitle={`${filteredCustomers.length} shown (recent 500) · website sign-up · ${formatPrice(totalLoyaltyBalance * programmeRupeesPerPoint)} loyalty`}
+              subtitle={
+                <>
+                  {customers.length} of {total} · website sign-up ·{" "}
+                  {counts ? (
+                    `${formatPrice(counts.totalLoyaltyBalance * programmeRupeesPerPoint)} loyalty`
+                  ) : countsLoading ? (
+                    <Skeleton shape="text" className="inline-block h-2.5 w-14 align-middle" />
+                  ) : (
+                    "loyalty —"
+                  )}
+                </>
+              }
               action={
                 canCreate ? (
                   <WorkspacePrimaryAction
@@ -186,8 +230,8 @@ function CustomersCatalogInner({
               search={
                 <>
                   <WorkspaceSearchField
-                    value={searchQuery}
-                    onChange={setSearchQuery}
+                    value={searchInput}
+                    onChange={setSearchInput}
                     placeholder="Search customers…"
                     aria-label="Search customers"
                     className="w-full"
@@ -196,21 +240,21 @@ function CustomersCatalogInner({
                     <WorkspaceFilterChip
                       compact
                       label="All"
-                      count={segmentCounts.all}
+                      count={counts ? counts.all : countsLoading ? null : undefined}
                       isActive={segment === "all"}
                       onClick={() => setSegment("all")}
                     />
                     <WorkspaceFilterChip
                       compact
                       label="Loyalty"
-                      count={segmentCounts.loyalty}
+                      count={counts ? counts.loyalty : countsLoading ? null : undefined}
                       isActive={segment === "loyalty"}
                       onClick={() => setSegment("loyalty")}
                     />
                     <WorkspaceFilterChip
                       compact
                       label="With orders"
-                      count={segmentCounts.active}
+                      count={counts ? counts.active : countsLoading ? null : undefined}
                       isActive={segment === "active"}
                       onClick={() => setSegment("active")}
                     />
@@ -219,24 +263,32 @@ function CustomersCatalogInner({
               }
             />
             <ul className="reveal-stagger min-h-0 flex-1 overflow-y-auto">
-              {filteredCustomers.length === 0 ? (
+              {customers.length === 0 ? (
                 <li className="px-4 py-8 text-center text-xs leading-relaxed text-[var(--color-ink-500)]">
-                  {searchQuery.trim()
+                  {urlQuery.trim()
                     ? "No customers match your search."
                     : segment === "all"
                       ? "No customers yet. Records appear when someone signs in with OTP or checks out on the storefront."
                       : "No customers in this segment."}
                 </li>
               ) : (
-                filteredCustomers.map((customer) => (
-                  <li key={customer.id} className="reveal">
-                    <CustomerListItem
-                      customer={customer}
-                      isActive={customer.id === activeId}
-                      onSelect={() => setActiveCustomerUrl(customer.id)}
-                    />
-                  </li>
-                ))
+                <>
+                  {customers.map((customer) => (
+                    <li key={customer.id} className="reveal">
+                      <CustomerListItem
+                        customer={customer}
+                        isActive={customer.id === activeId}
+                        onSelect={() => setActiveCustomerUrl(customer.id)}
+                      />
+                    </li>
+                  ))}
+                  <InfiniteScrollSentinel
+                    hasMore={hasMore}
+                    isLoadingMore={isLoadingMore}
+                    hasError={hasError}
+                    onLoadMore={loadMore}
+                  />
+                </>
               )}
             </ul>
           </section>

@@ -132,25 +132,40 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
   };
 
   const handleRemoveAddress = async (index: number) => {
+    const previous = addresses;
     const next = addresses.filter((_, i) => i !== index);
     if (addresses[index]?.isDefault && next.length > 0) {
       next[0].isDefault = true;
     }
     setAddresses(next);
-    await persistAddresses(next);
+    const saved = await persistAddresses(next);
+    if (!saved) {
+      // Server rejected the change — restore the list so the UI never shows an
+      // edit that wasn't persisted.
+      setAddresses(previous);
+    }
   };
 
   const handleSaveAddress = async (index: number, draft: AddressDraft) => {
+    const previous = addresses;
     const next = addresses.map((address, i) => (i === index ? draft : address));
     setAddresses(next);
     setEditingIndex(null);
-    await persistAddresses(next);
+    const saved = await persistAddresses(next);
+    if (!saved) {
+      setAddresses(previous);
+      setEditingIndex(index);
+    }
   };
 
   const handleMakeDefault = async (index: number) => {
+    const previous = addresses;
     const next = addresses.map((address, i) => ({ ...address, isDefault: i === index }));
     setAddresses(next);
-    await persistAddresses(next);
+    const saved = await persistAddresses(next);
+    if (!saved) {
+      setAddresses(previous);
+    }
   };
 
   return (

@@ -4,10 +4,13 @@ import {
   handleMongoError,
   Inquiry,
   INQUIRY_STATUSES,
+  type InquiryMessageAttributes,
   type InquiryStatus,
 } from "@store/db";
 import {
+  asArray,
   badRequest,
+  CHAT_MESSAGE_PAGE_SIZE,
   FIELD_LIMITS,
   isThreadUnchangedForPoll,
   isValidId,
@@ -17,11 +20,13 @@ import {
   ok,
   parseBody,
   parsePollSince,
+  sliceChatMessages,
   threadPollEtag,
 } from "@store/shared";
 
 import { recordActivity } from "@/lib/services/activityLog";
 import {
+  toInquiryLatestPage,
   toInquiryResponse,
   type InquiryLean,
 } from "@/lib/serializers/inquiry";
@@ -62,6 +67,7 @@ export async function GET(request: Request, { params }: RouteContext) {
 
   const url = new URL(request.url);
   const since = parsePollSince(url.searchParams.get("since"));
+  const beforeId = url.searchParams.get("before");
   const etag = threadPollEtag(doc.lastMessageAt);
   if (
     since &&
@@ -75,7 +81,21 @@ export async function GET(request: Request, { params }: RouteContext) {
     return notModified(etag);
   }
 
-  const res = ok(toInquiryResponse(doc, { includeInternal: true }));
+  const allMessages = asArray<InquiryMessageAttributes>(doc.messages);
+  const slice = sliceChatMessages(allMessages, {
+    beforeId,
+    sinceMillis: since ? since.getTime() : null,
+    limit: CHAT_MESSAGE_PAGE_SIZE,
+  });
+  const res = ok(
+    toInquiryResponse(doc, {
+      includeInternal: true,
+      page: {
+        messages: allMessages.slice(slice.start, slice.end),
+        hasMoreOlder: slice.hasMoreOlder,
+      },
+    }),
+  );
   res.headers.set("ETag", etag);
   return res;
 }
@@ -148,7 +168,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
       resourceLabel: label,
       detail: nextStatus ? `Status → ${nextStatus}` : undefined,
     });
-    return ok(toInquiryResponse(doc, { includeInternal: true }));
+    return ok(toInquiryLatestPage(doc));
   } catch (error) {
     return handleMongoError(error);
   }

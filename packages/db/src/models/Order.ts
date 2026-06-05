@@ -69,6 +69,17 @@ export interface OrderAttributes {
   estimatedDeliveryAt?: Date;
   pointsEarned: number;
   pointsRedeemed: number;
+  /**
+   * True while this order is holding variant stock (decremented at placement).
+   * Flipped to false when the order is cancelled / refunded / returned and the
+   * stock is returned to the pool — gates release so it can't run twice.
+   */
+  inventoryReserved: boolean;
+  /**
+   * Client-supplied key that makes placement idempotent: a retried submission
+   * with the same key returns the original order instead of creating a second.
+   */
+  idempotencyKey?: string;
   /** Array of admin User IDs who have viewed this order. */
   seenByAdminIds: mongoose.Types.ObjectId[];
   placedAt: Date;
@@ -149,6 +160,8 @@ const orderSchema = new Schema<OrderAttributes>(
     estimatedDeliveryAt: { type: Date },
     pointsEarned: { type: Number, required: true, min: 0, default: 0 },
     pointsRedeemed: { type: Number, required: true, min: 0, default: 0 },
+    inventoryReserved: { type: Boolean, required: true, default: false },
+    idempotencyKey: { type: String, trim: true, maxlength: 80 },
     seenByAdminIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], default: [] },
     placedAt: { type: Date, required: true, default: () => new Date() },
   },
@@ -157,6 +170,9 @@ const orderSchema = new Schema<OrderAttributes>(
 
 orderSchema.index({ status: 1, placedAt: -1 });
 orderSchema.index({ placedAt: -1 });
+// Idempotent placement: a retried submission reuses its key. Sparse so the
+// (vast majority of) legacy orders without a key don't collide on `null`.
+orderSchema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });
 // Backs the referential-integrity check inside DELETE /api/admin/products/[id]
 // and any "orders containing product X" lookup the admin reports drive.
 orderSchema.index({ "items.productId": 1 });

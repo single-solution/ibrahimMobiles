@@ -19,6 +19,7 @@ import {
   validateString,
 } from "@store/shared";
 
+import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
 import { loadCustomerOrderStats } from "@/lib/server/customerOrderStats";
 import { toCustomerResponse, type CustomerLean } from "@/lib/serializers/customer";
@@ -121,6 +122,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
       resourceId: id,
       resourceLabel: doc.name,
     });
+    bustAdminCaches();
     const stat = await loadCustomerOrderStats(doc._id);
     return ok(toCustomerResponse(doc, stat));
   } catch (error) {
@@ -164,6 +166,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
       resourceId: id,
       resourceLabel: doc.name,
     });
+    bustAdminCaches();
     return noContent();
   } catch (error) {
     return handleMongoError(error);

@@ -35,7 +35,7 @@ import { requireSession } from "@/lib/api/requireSession";
 import { notifyOnNewMessage } from "@/lib/notifications/chatNotifications";
 import { recordActivity } from "@/lib/services/activityLog";
 import {
-  toInquiryResponse,
+  toInquiryLatestPage,
   type InquiryLean,
 } from "@/lib/serializers/inquiry";
 
@@ -118,7 +118,7 @@ export async function POST(request: Request, { params }: RouteContext) {
         author: lastMessage.author,
       });
     }
-    return created(toInquiryResponse(refreshed, { includeInternal: true }));
+    return created(toInquiryLatestPage(refreshed));
   } catch (error) {
     return handleMongoError(error);
   }

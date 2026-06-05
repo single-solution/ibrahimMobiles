@@ -4,9 +4,7 @@ import { redirect } from "next/navigation";
 
 import { logger } from "@store/shared";
 
-import { ProductCard } from "@/components/shared/ProductCard";
-import { ResultsCountBar } from "@/components/shared/ResultsCountBar";
-import { ShopPagination } from "@/components/shared/ShopPagination";
+import { ShopProductFeed } from "@/components/shared/ShopProductFeed";
 import {
   getStoreSettingsCached,
   getCategoriesCached,
@@ -113,19 +111,15 @@ async function ShopSearchResults({
       </div>
 
       {page.products.length > 0 ? (
-        <>
-          <ResultsCountBar total={page.total} page={page.page} pageSize={page.pageSize} />
-          <section className="reveal-stagger cv-auto-lg mt-4 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 lg:grid-cols-4">
-            {page.products.map((product, index) => (
-              // First two cards preload as priority (mobile LCP row) and stay
-              // visible immediately; the rest spring/cascade in on scroll.
-              <div key={product.id} className={index < 2 ? "h-full" : "reveal h-full"}>
-                <ProductCard product={product} priority={index < 2} />
-              </div>
-            ))}
-          </section>
-          <ShopPagination page={page.page} pageCount={page.pageCount} basePath="/shop" />
-        </>
+        <div className="cv-auto-lg mt-4">
+          <ShopProductFeed
+            initialPage={page}
+            categoryLabel="results"
+            apiParams={{}}
+            showResultsCount
+            gridClassName="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 lg:grid-cols-4"
+          />
+        </div>
       ) : (
         <EmptySearchState />
       )}

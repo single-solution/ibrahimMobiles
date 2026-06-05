@@ -298,6 +298,8 @@ export interface AdminInquirySummary {
 export interface AdminInquiry extends AdminInquirySummary {
   internalNotes?: string;
   messages: AdminInquiryMessage[];
+  /** True when older messages exist before the loaded page (drives "load more"). */
+  hasMoreOlder?: boolean;
 }
 
 // ============================================================================

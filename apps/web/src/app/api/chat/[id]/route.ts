@@ -12,11 +12,15 @@
  */
 
 import { Inquiry as InquiryModel, connectDB } from "@store/db";
+import type { InquiryMessageAttributes } from "@store/db";
 import {
+  asArray,
+  CHAT_MESSAGE_PAGE_SIZE,
   isThreadUnchangedForPoll,
   notModified,
   ok,
   parsePollSince,
+  sliceChatMessages,
   threadPollEtag,
 } from "@store/shared";
 
@@ -44,6 +48,8 @@ export async function GET(request: Request, { params }: RouteContext) {
   const url = new URL(request.url);
   const since = parsePollSince(url.searchParams.get("since"));
   const isPoll = since !== null;
+  const beforeId = url.searchParams.get("before");
+  const isOlderPage = beforeId !== null;
   const ifNoneMatch = request.headers.get("If-None-Match");
 
   const inquiry = access.inquiry;
@@ -61,9 +67,10 @@ export async function GET(request: Request, { params }: RouteContext) {
     return notModified(etag);
   }
 
-  // Mark unread agent messages as read on full open — not on poll ticks.
+  // Mark unread agent messages as read on full open — not on poll ticks or
+  // older-page loads (those don't represent the customer reading new replies).
   let toReturn: InquiryLean = inquiry;
-  if (!isPoll && inquiry.unreadByCustomer > 0) {
+  if (!isPoll && !isOlderPage && inquiry.unreadByCustomer > 0) {
     await connectDB();
     const now = new Date();
     await InquiryModel.updateOne(
@@ -84,7 +91,18 @@ export async function GET(request: Request, { params }: RouteContext) {
     if (refreshed) toReturn = refreshed;
   }
 
-  const response = ok(toThread(toReturn));
+  const allMessages = asArray<InquiryMessageAttributes>(toReturn.messages);
+  const slice = sliceChatMessages(allMessages, {
+    beforeId,
+    sinceMillis: since ? since.getTime() : null,
+    limit: CHAT_MESSAGE_PAGE_SIZE,
+  });
+  const page = {
+    messages: allMessages.slice(slice.start, slice.end),
+    hasMoreOlder: slice.hasMoreOlder,
+  };
+
+  const response = ok(toThread(toReturn, page));
   response.headers.set("ETag", etag);
   return response;
 }

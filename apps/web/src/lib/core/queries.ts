@@ -919,22 +919,3 @@ export async function hasAnyProducts(): Promise<boolean> {
   const exists = await ProductModel.exists(PUBLIC_PRODUCT_FILTER);
   return Boolean(exists);
 }
-
-/**
- * Products that an admin-flagged offer applies to. After Phase 1 the
- * `originalPriceRupees` field is gone, so "on offer" is reduced to "any
- * featured product" until the Phase 7 `Offer.appliesTo` linking lands.
- */
-export async function getProductsOnOffer(
-  limit: number = DEFAULT_PRODUCT_PAGE_SIZE,
-): Promise<Product[]> {
-  const capped = Math.max(
-    MIN_PAGE_NUMBER,
-    Math.min(MAX_PRODUCT_PAGE_SIZE, limit),
-  );
-  const page = await getProductsPage({
-    isFeatured: true,
-    limit: capped,
-  });
-  return page.products;
-}

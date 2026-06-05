@@ -57,8 +57,8 @@ export function ShopMobileProductsAreaFallback() {
           className="grid grid-cols-2 gap-3 sm:gap-4"
         />
       </div>
-      <div className="mt-10">
-        <ShopPaginationFallback />
+      <div className="mt-8 flex justify-center">
+        <Skeleton shape="pill" className="h-10 w-32" />
       </div>
     </div>
   );
@@ -159,19 +159,9 @@ export function ShopDesktopProductsAreaFallback() {
   return (
     <div className="min-h-[70vh] space-y-6">
       <ProductGridSkeleton count={SHOP_DESKTOP_SKELETON_CARDS} />
-      <ShopPaginationFallback />
+      <div className="flex justify-center pt-2">
+        <Skeleton shape="pill" className="h-10 w-32" />
+      </div>
     </div>
-  );
-}
-
-export function ShopPaginationFallback() {
-  return (
-    <nav className="flex items-center justify-center gap-1.5">
-      <Skeleton shape="pill" className="h-9 w-9" />
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Skeleton key={index} shape="pill" className="h-9 w-9" />
-      ))}
-      <Skeleton shape="pill" className="h-9 w-9" />
-    </nav>
   );
 }

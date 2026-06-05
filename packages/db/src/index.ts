@@ -9,6 +9,7 @@
 
 export { connectDB } from "./connection";
 export { handleMongoError, isMongoDuplicateKeyError } from "./mongoErrors";
+export { reserveStock, releaseStock, type StockLine, type StockReservationResult } from "./inventory";
 export { nextOrderNumberForYear, createWithUniqueOrderNumber } from "./orderNumber";
 export { getStoreSettings, invalidateStoreSettingsCache } from "./storeSettings";
 export { storedImageSchema } from "./schemas/storedImageSchema";

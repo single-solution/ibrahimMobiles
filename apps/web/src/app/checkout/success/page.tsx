@@ -23,12 +23,9 @@ interface CheckoutSuccessPageProps {
 export default async function CheckoutSuccessPage({ searchParams }: CheckoutSuccessPageProps) {
   const session = await auth();
   if (!session?.user || session.user.role !== "customer" || !session.user.customerId) {
-    const params = await searchParams;
-    const orderParam = typeof params.order === "string" ? params.order : "";
-    const next = orderParam
-      ? `/checkout/success?order=${encodeURIComponent(orderParam)}`
-      : "/checkout/success";
-    redirect(`/account/sign-in?next=${encodeURIComponent(next)}`);
+    // A live JWT with unusable claims (deleted customer) would loop against the
+    // middleware if we sent it to sign-in; clear the cookie first.
+    redirect("/account/sign-out");
   }
 
   const params = await searchParams;

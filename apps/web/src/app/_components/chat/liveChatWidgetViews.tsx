@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, MessageSquare, Send, X } from "lucide-react";
 
 import {
   CHAT_GUEST_MESSAGE_LIMIT,
   CHAT_MESSAGE_BODY_MAX,
+  classNames,
   type ChatMessage,
   type ChatThread,
 } from "@store/shared";
@@ -57,15 +58,23 @@ function readingDelay(text: string): number {
 }
 
 /**
- * First-message bridge: shows the customer's just-sent bubble plus a typing
- * indicator while the thread is created in the background, so sending the very
- * first message never feels frozen behind a blank "Starting chat…" screen.
+ * First-message bridge: shows the customer's just-sent bubble while the thread
+ * is created in the background, so sending the very first message never feels
+ * frozen behind a blank "Starting chat…" screen. The typing indicator only
+ * appears when the AI assistant is on (it answers in seconds); a human can't
+ * reply instantly, so faking "typing…" for human-only chat is misleading.
  */
-export function StartingConversation({ message }: { message: ChatMessage }) {
+export function StartingConversation({
+  message,
+  assistantEnabled,
+}: {
+  message: ChatMessage;
+  assistantEnabled: boolean;
+}) {
   return (
     <div className="flex-1 space-y-3 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-3">
       <ChatMessageBubble message={message} />
-      <ChatTypingIndicator />
+      {assistantEnabled && <ChatTypingIndicator />}
     </div>
   );
 }
@@ -156,7 +165,13 @@ interface ThreadConversationProps {
   guestMessageLimit: number;
   welcomeMessageGuest?: string;
   welcomeMessageCustomer?: string;
+  assistantEnabled: boolean;
+  hasMoreOlder: boolean;
+  isLoadingOlder: boolean;
+  onLoadOlder: () => void;
 }
+
+const LOAD_OLDER_SCROLL_THRESHOLD_PX = 80;
 
 export function ThreadConversation({
   thread,
@@ -169,6 +184,10 @@ export function ThreadConversation({
   guestMessageLimit,
   welcomeMessageGuest,
   welcomeMessageCustomer,
+  assistantEnabled,
+  hasMoreOlder,
+  isLoadingOlder,
+  onLoadOlder,
 }: ThreadConversationProps) {
   const messageListRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(initialDraft);
@@ -204,6 +223,7 @@ export function ThreadConversation({
     revealedIdsRef.current.has(message.id),
   );
   const lastVisibleId = visibleMessages[visibleMessages.length - 1]?.id;
+  const firstVisibleId = visibleMessages[0]?.id;
 
   const pump = useCallback(() => {
     const nextId = queueRef.current[0];
@@ -235,11 +255,21 @@ export function ThreadConversation({
     );
     if (newOnes.length === 0) return;
 
+    // Newest already-revealed timestamp: messages older than this are a
+    // prepended history page (scroll-up) and must show instantly, never paced.
+    let latestRevealedAt = 0;
+    for (const message of messagesRef.current) {
+      if (revealedIdsRef.current.has(message.id)) {
+        latestRevealedAt = Math.max(latestRevealedAt, new Date(message.createdAt).getTime());
+      }
+    }
+
     let revealedAny = false;
     for (const message of newOnes) {
-      // Assistant bubbles are paced (read + type); customer/agent messages
-      // always show instantly.
-      if (message.author === "assistant") {
+      const isHistorical = new Date(message.createdAt).getTime() < latestRevealedAt;
+      // Live assistant bubbles are paced (read + type); customer/agent messages
+      // and any prepended history always show instantly.
+      if (message.author === "assistant" && !isHistorical) {
         queueRef.current.push(message.id);
       } else {
         revealedIdsRef.current.add(message.id);
@@ -268,11 +298,22 @@ export function ThreadConversation({
   // answer pushes the new distance past any threshold), so we record it
   // from scroll events instead and default to pinned.
   const stickToBottomRef = useRef(true);
+  // Captured at the moment a scroll-up triggers an older-page load so the
+  // viewport can be re-anchored after the prepended messages reflow.
+  const olderAnchorRef = useRef<{ height: number; top: number } | null>(null);
 
   function handleMessageListScroll() {
     const el = messageListRef.current;
     if (!el) return;
     stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (
+      el.scrollTop < LOAD_OLDER_SCROLL_THRESHOLD_PX &&
+      hasMoreOlder &&
+      !isLoadingOlder
+    ) {
+      olderAnchorRef.current = { height: el.scrollHeight, top: el.scrollTop };
+      onLoadOlder();
+    }
   }
 
   // New bubble (or typing dots) landed: snap to bottom if already pinned.
@@ -284,6 +325,16 @@ export function ThreadConversation({
       el.scrollTop = el.scrollHeight;
     });
   }, [lastVisibleId, sending, botTyping]);
+
+  // After an older page prepends, keep the viewport on the message the reader
+  // was looking at by restoring the pre-load scroll offset.
+  useLayoutEffect(() => {
+    const el = messageListRef.current;
+    const anchor = olderAnchorRef.current;
+    if (!el || !anchor) return;
+    el.scrollTop = el.scrollHeight - anchor.height + anchor.top;
+    olderAnchorRef.current = null;
+  }, [firstVisibleId]);
 
   // Opening a thread (or switching threads) reveals all history instantly and
   // jumps to the newest message.
@@ -328,6 +379,17 @@ export function ThreadConversation({
         onScroll={handleMessageListScroll}
         className="flex-1 space-y-3 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-3"
       >
+        {(hasMoreOlder || isLoadingOlder) && (
+          <div className="flex justify-center py-1">
+            <span
+              aria-label="Loading earlier messages"
+              className={classNames(
+                "block size-4 rounded-full border-2 border-[var(--color-ink-300)] border-r-transparent",
+                isLoadingOlder ? "animate-spin" : "opacity-0",
+              )}
+            />
+          </div>
+        )}
         {groupedMessages.map((group) => (
           <div key={group.day} className="space-y-2">
             <ChatMessageDayDivider label={group.day} />
@@ -336,7 +398,7 @@ export function ThreadConversation({
             ))}
           </div>
         ))}
-        {(sending || botTyping) && <ChatTypingIndicator />}
+        {assistantEnabled && botTyping && <ChatTypingIndicator />}
         {thread.messages.length === 0 && (
           <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3.5 text-xs leading-relaxed text-[var(--color-ink-600)] shadow-[var(--shadow-sm)]">
             {chatWelcomeMessage({

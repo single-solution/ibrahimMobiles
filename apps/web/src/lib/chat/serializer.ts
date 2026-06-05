@@ -21,10 +21,12 @@ import type {
 import {
   asArray,
   asString,
+  CHAT_MESSAGE_PAGE_SIZE,
   normalizeChatAttachment,
   normalizeChatMessageAuthor,
   normalizeChatStatus,
   objectIdString,
+  sliceChatMessages,
   toIsoDate,
 } from "@store/shared";
 
@@ -75,9 +77,28 @@ export function summariseThread(
   };
 }
 
-export function toThread(inquiry: InquiryLean): ChatThread {
+export function toThread(
+  inquiry: InquiryLean,
+  page?: { messages: InquiryMessageAttributes[]; hasMoreOlder: boolean },
+): ChatThread {
+  const messages = page?.messages ?? asArray<InquiryMessageAttributes>(inquiry.messages);
   return {
     ...summariseThread(inquiry),
-    messages: asArray<InquiryMessageAttributes>(inquiry.messages).map(toMessage),
+    messages: messages.map(toMessage),
+    hasMoreOlder: page?.hasMoreOlder ?? false,
   };
+}
+
+/**
+ * Serialize a thread carrying only its most recent message page (+ a flag for
+ * whether older history exists). Use on every endpoint that returns a thread so
+ * the wire payload stays bounded and the client can lazy-load older messages.
+ */
+export function toThreadLatestPage(inquiry: InquiryLean): ChatThread {
+  const all = asArray<InquiryMessageAttributes>(inquiry.messages);
+  const slice = sliceChatMessages(all, { limit: CHAT_MESSAGE_PAGE_SIZE });
+  return toThread(inquiry, {
+    messages: all.slice(slice.start, slice.end),
+    hasMoreOlder: slice.hasMoreOlder,
+  });
 }

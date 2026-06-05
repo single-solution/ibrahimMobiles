@@ -13,7 +13,6 @@ export {
   getProducts,
   getProductsPage,
   getProductBySlug,
-  getProductsOnOffer,
   getOffers,
   getCategories,
   getCategoryMetaBySlug,

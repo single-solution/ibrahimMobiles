@@ -5,7 +5,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,16 +12,19 @@ import { AlertTriangle, MessageSquare } from "lucide-react";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { StatusPill } from "@/components/shared/StatusPill";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
-import { useToast } from "@/components/ui/Toast";
 import {
   WorkspaceEmptyPane,
   WorkspaceFrame,
   WorkspacePaneHeader,
   WorkspaceSearchField,
 } from "@/components/shared/workspaceUi";
+import { InfiniteScrollSentinel } from "@/components/shared/InfiniteScrollSentinel";
 import { apiFetch } from "@/lib/api";
+import { useInfiniteList } from "@/lib/useInfiniteList";
+import { useUrlParams } from "@/lib/url/useUrlParams";
 import { getInitials } from "@/lib/initials";
-import { classNames, createChatTransport, formatTimeAgo } from "@store/shared";
+import { classNames, formatTimeAgo } from "@store/shared";
+import type { ListResponse } from "@/lib/api/listOptions";
 import type { AdminInquirySummary, AdminUser } from "@/types/models";
 import type { InquiriesPageAccess } from "@/app/inquiries/page";
 import type { PermissionKey } from "@/lib/permissionsCatalog";
@@ -30,8 +32,8 @@ import type { PermissionKey } from "@/lib/permissionsCatalog";
 import { InquiryConversationPanel } from "./inquiryConversationPanel";
 import { STATUS_LABELS, STATUS_TONE } from "./inquiriesStatus";
 
-const INQUIRY_POLL_FOCUSED_MS = 5_000;
-const INQUIRY_POLL_BLURRED_MS = 30_000;
+/** Debounce before a typed search is pushed to the URL (which refetches the seed). */
+const SEARCH_DEBOUNCE_MS = 300;
 
 /**
  * Admin inquiries inbox — list, read, reply, assign, and resolve customer inquiries.
@@ -39,7 +41,7 @@ const INQUIRY_POLL_BLURRED_MS = 30_000;
  */
 
 interface InquiriesProps {
-  inquiries: AdminInquirySummary[];
+  initial: ListResponse<AdminInquirySummary>;
   access: InquiriesPageAccess;
 }
 
@@ -64,22 +66,51 @@ export function Inquiries(props: InquiriesProps) {
   );
 }
 
-function InquiriesInner({ inquiries, access }: InquiriesProps) {
+function InquiriesInner({ initial, access }: InquiriesProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { startNavigation } = useNavigationTransition();
-  const toast = useToast();
+  const { replace } = useUrlParams();
   const flags = accessFlags(access.permissions);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [remoteInquiries, setRemoteInquiries] = useState(inquiries);
   const [teamById, setTeamById] = useState<Map<string, string>>(new Map());
-
-  useEffect(() => {
-    scheduleStateUpdate(() => {
-      setRemoteInquiries(inquiries);
-    });
-  }, [inquiries]);
   const [activeInquiryId, setActiveInquiryId] = useState<string | null>(null);
+
+  const urlQuery = searchParams.get("query") ?? "";
+  const [searchInput, setSearchInput] = useState(urlQuery);
+
+  const listParams = useMemo<Record<string, string>>(() => {
+    const next: Record<string, string> = {};
+    if (urlQuery) {
+      next.query = urlQuery;
+    }
+    return next;
+  }, [urlQuery]);
+
+  const {
+    items: inquiries,
+    total,
+    hasMore,
+    isLoadingMore,
+    hasError,
+    loadMore,
+    patchItem,
+    removeItem,
+  } = useInfiniteList<AdminInquirySummary>({
+    endpoint: "/api/inquiries",
+    initial,
+    params: listParams,
+  });
+
+  // Debounced search → URL → SSR seed refetch (single source of truth).
+  useEffect(() => {
+    if (searchInput === urlQuery) {
+      return;
+    }
+    const id = setTimeout(() => {
+      replace({ query: searchInput || null });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [searchInput, urlQuery, replace]);
 
   const setActiveInquiryUrl = useCallback(
     (id: string | null) => {
@@ -101,13 +132,21 @@ function InquiriesInner({ inquiries, access }: InquiriesProps) {
     setActiveInquiryUrl(null);
   }, [setActiveInquiryUrl]);
 
-  const handleInquiryRead = useCallback((id: string) => {
-    setRemoteInquiries((current) =>
-      current.map((candidate) =>
-        candidate.id === id ? { ...candidate, unreadByTeam: 0 } : candidate,
-      ),
-    );
-  }, []);
+  // Optimistic: clear the unread badge the moment a thread is opened/read.
+  const handleInquiryRead = useCallback(
+    (id: string) => {
+      patchItem(id, { unreadByTeam: 0 });
+    },
+    [patchItem],
+  );
+
+  // Optimistic: reflect status/assignment/preview changes in the row in place.
+  const refreshInquiryInList = useCallback(
+    (updated: AdminInquirySummary) => {
+      patchItem(updated.id, updated);
+    },
+    [patchItem],
+  );
 
   useEffect(() => {
     if (!flags.canManage && !flags.canViewTeam) {
@@ -134,34 +173,14 @@ function InquiriesInner({ inquiries, access }: InquiriesProps) {
     return teamById.get(userId) ?? "Assigned";
   }
 
-  const filteredInquiries = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (query.length === 0) {
-      return remoteInquiries;
-    }
-    return remoteInquiries.filter((inquiry) =>
-      `${inquiry.customerName} ${inquiry.phoneNumber} ${
-        inquiry.subjectProductName ?? ""
-      } ${inquiry.lastMessagePreview}`
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [remoteInquiries, searchQuery]);
-
-  const refreshInquiryInList = useCallback((updated: AdminInquirySummary) => {
-    setRemoteInquiries((current) =>
-      current.map((row) => (row.id === updated.id ? { ...row, ...updated } : row)),
-    );
-  }, []);
-
   useEffect(() => {
     scheduleStateUpdate(() => {
       const fromUrl = searchParams.get("inquiry");
-      if (fromUrl && remoteInquiries.some((inquiry) => inquiry.id === fromUrl)) {
+      if (fromUrl && inquiries.some((inquiry) => inquiry.id === fromUrl)) {
         setActiveInquiryId(fromUrl);
         return;
       }
-      if (filteredInquiries.length === 0) {
+      if (inquiries.length === 0) {
         if (activeInquiryId !== null) {
           setActiveInquiryUrl(null);
         }
@@ -169,34 +188,33 @@ function InquiriesInner({ inquiries, access }: InquiriesProps) {
       }
       const activeStillVisible =
         activeInquiryId !== null &&
-        filteredInquiries.some((inquiry) => inquiry.id === activeInquiryId);
+        inquiries.some((inquiry) => inquiry.id === activeInquiryId);
       if (activeStillVisible) {
         return;
       }
       const preferDesktop =
         typeof window !== "undefined" &&
         window.matchMedia("(min-width: 1024px)").matches;
-      setActiveInquiryUrl(preferDesktop ? filteredInquiries[0].id : null);
+      setActiveInquiryUrl(preferDesktop ? inquiries[0].id : null);
     });
-  }, [
-    activeInquiryId,
-    filteredInquiries,
-    remoteInquiries,
-    searchParams,
-    setActiveInquiryUrl,
-  ]);
+  }, [activeInquiryId, inquiries, searchParams, setActiveInquiryUrl]);
 
   return (
     <WorkspaceFrame>
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <ThreadListPane
-          inquiries={filteredInquiries}
+          inquiries={inquiries}
+          total={total}
           activeId={activeInquiryId}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+          searchQuery={searchInput}
+          onSearchChange={setSearchInput}
           onSelect={(id) => setActiveInquiryUrl(id)}
           assigneeLabel={assigneeLabel}
           hiddenOnMobile={Boolean(activeInquiryId)}
+          hasMore={hasMore}
+          isLoadingMore={isLoadingMore}
+          hasError={hasError}
+          onLoadMore={loadMore}
         />
 
         <section
@@ -222,8 +240,10 @@ function InquiriesInner({ inquiries, access }: InquiriesProps) {
               onRead={handleInquiryRead}
               onThreadUpdated={refreshInquiryInList}
               onDeleted={() => {
+                if (activeInquiryId) {
+                  removeItem(activeInquiryId);
+                }
                 setActiveInquiryUrl(null);
-                router.refresh();
               }}
               onCallTapped={(phoneNumber: string) => {
                 window.location.href = `tel:${phoneNumber.replace(/\s+/g, "")}`;
@@ -244,22 +264,32 @@ function InquiriesInner({ inquiries, access }: InquiriesProps) {
 
 interface ThreadListPaneProps {
   inquiries: AdminInquirySummary[];
+  total: number;
   activeId: string | null;
   searchQuery: string;
   onSearchChange: (value: string) => void;
   onSelect: (id: string) => void;
   assigneeLabel: (userId?: string) => string;
   hiddenOnMobile: boolean;
+  hasMore: boolean;
+  isLoadingMore: boolean;
+  hasError: boolean;
+  onLoadMore: () => void;
 }
 
 function ThreadListPane({
   inquiries,
+  total,
   activeId,
   searchQuery,
   onSearchChange,
   onSelect,
   assigneeLabel,
   hiddenOnMobile,
+  hasMore,
+  isLoadingMore,
+  hasError,
+  onLoadMore,
 }: ThreadListPaneProps) {
   return (
     <aside
@@ -271,7 +301,7 @@ function ThreadListPane({
       <WorkspacePaneHeader
         iconElement={<MessageSquare size={15} />}
         title="Inquiries"
-        subtitle={`${inquiries.length} conversation${inquiries.length === 1 ? "" : "s"} (recent 200) · from storefront chat`}
+        subtitle={`${inquiries.length} of ${total} conversation${total === 1 ? "" : "s"} · from storefront chat`}
         search={
           <WorkspaceSearchField
             value={searchQuery}
@@ -291,16 +321,24 @@ function ThreadListPane({
               : "No conversations yet. Threads appear when customers use the storefront chat widget."}
           </li>
         ) : (
-          inquiries.map((inquiry) => (
-            <li key={inquiry.id} className="reveal">
-              <ThreadListItem
-                inquiry={inquiry}
-                isActive={inquiry.id === activeId}
-                assigneeLabel={assigneeLabel}
-                onSelect={() => onSelect(inquiry.id)}
-              />
-            </li>
-          ))
+          <>
+            {inquiries.map((inquiry) => (
+              <li key={inquiry.id} className="reveal">
+                <ThreadListItem
+                  inquiry={inquiry}
+                  isActive={inquiry.id === activeId}
+                  assigneeLabel={assigneeLabel}
+                  onSelect={() => onSelect(inquiry.id)}
+                />
+              </li>
+            ))}
+            <InfiniteScrollSentinel
+              hasMore={hasMore}
+              isLoadingMore={isLoadingMore}
+              hasError={hasError}
+              onLoadMore={onLoadMore}
+            />
+          </>
         )}
       </ul>
     </aside>

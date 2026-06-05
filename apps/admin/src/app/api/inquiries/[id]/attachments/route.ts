@@ -30,7 +30,7 @@ import {
 import { requireSession } from "@/lib/api/requireSession";
 import { recordActivity } from "@/lib/services/activityLog";
 import {
-  toInquiryResponse,
+  toInquiryLatestPage,
   type InquiryLean,
 } from "@/lib/serializers/inquiry";
 import {
@@ -63,6 +63,30 @@ interface RouteContext {
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Verify a non-image upload's leading bytes match its declared MIME so a
+ * forged Content-Type can't smuggle arbitrary content past the allowlist.
+ * `text/plain` has no reliable signature, so it's accepted as-is.
+ */
+function fileSignatureMatches(buffer: Buffer, mime: string): boolean {
+  const startsWith = (signature: number[]): boolean =>
+    signature.every((byte, index) => buffer[index] === byte);
+  switch (mime) {
+    case "application/pdf":
+      return startsWith([0x25, 0x50, 0x44, 0x46]); // %PDF
+    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+      return startsWith([0x50, 0x4b, 0x03, 0x04]); // PK.. (Office Open XML = ZIP)
+    case "application/msword":
+    case "application/vnd.ms-excel":
+      return startsWith([0xd0, 0xcf, 0x11, 0xe0]); // OLE2 compound file
+    case "text/plain":
+      return true;
+    default:
+      return false;
+  }
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
@@ -116,6 +140,8 @@ export async function POST(request: Request, { params }: RouteContext) {
       if (sniffError) {
         return unsupportedMediaType(sniffError);
       }
+    } else if (!fileSignatureMatches(buffer, fileType)) {
+      return unsupportedMediaType(`File contents do not match declared type "${fileType}".`);
     }
     const storage = resolveStorageProvider();
     const keyPrefix = `chat/${existing._id.toString()}/${todayIsoDate()}`;
@@ -184,7 +210,7 @@ export async function POST(request: Request, { params }: RouteContext) {
       resourceLabel: label,
       detail: "Sent attachment",
     });
-    return created(toInquiryResponse(refreshed, { includeInternal: true }));
+    return created(toInquiryLatestPage(refreshed));
   } catch (error) {
     if (error instanceof UploadValidationError) {
       if (error.status === 413) return payloadTooLarge(error.message);

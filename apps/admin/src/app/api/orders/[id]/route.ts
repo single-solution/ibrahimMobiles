@@ -1,6 +1,7 @@
 import { requireSession } from "@/lib/api/requireSession";
 import {
   badRequest,
+  conflict,
   FIELD_LIMITS,
   isValidId,
   noContent,
@@ -13,6 +14,8 @@ import {
   handleMongoError,
   Order,
   ORDER_STATUSES,
+  releaseStock,
+  reserveStock,
   type OrderStatus,
 } from "@store/db";
 
@@ -149,19 +152,57 @@ export async function PUT(request: Request, { params }: RouteContext) {
     }
 
     if (Array.isArray(body.items) && body.items.length > 0) {
-      const newItems = body.items.map((item) => ({
-        productId: item.productId,
-        variantId: item.variantId,
-        productName: item.productName,
-        variantSummary: item.variantSummary,
-        unitPriceRupees: Number(item.unitPriceRupees),
-        quantity: Number(item.quantity),
-      }));
-      order.items = newItems as any;
+      const newItems = [];
+      for (const item of body.items) {
+        if (!isValidId(item.productId) || !isValidId(item.variantId)) {
+          return badRequest("Each item needs a valid productId and variantId.");
+        }
+        const unitPriceRupees = Number(item.unitPriceRupees);
+        const quantity = Number(item.quantity);
+        if (!Number.isFinite(unitPriceRupees) || unitPriceRupees < 0) {
+          return badRequest("Item price must be a non-negative number.");
+        }
+        if (!Number.isInteger(quantity) || quantity < 1) {
+          return badRequest("Item quantity must be a whole number of at least 1.");
+        }
+        newItems.push({
+          productId: item.productId,
+          variantId: item.variantId,
+          productName: String(item.productName ?? "").slice(0, 160),
+          variantSummary: String(item.variantSummary ?? "").slice(0, 200),
+          unitPriceRupees,
+          quantity,
+        });
+      }
+
+      // The order is holding stock for its current lines. Swap the reservation
+      // onto the edited lines: reserve the new set first, then release the old —
+      // so a shortfall rejects the edit with the original reservation intact.
+      if (order.inventoryReserved) {
+        const swap = await reserveStock(
+          newItems.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+          })),
+        );
+        if (!swap.ok) {
+          return conflict("Not enough stock to apply the edited items.");
+        }
+        await releaseStock(
+          order.items.map((line) => ({
+            productId: line.productId,
+            variantId: line.variantId,
+            quantity: line.quantity,
+          })),
+        );
+      }
+
+      order.set("items", newItems);
       const subtotal = newItems.reduce((acc, item) => acc + item.unitPriceRupees * item.quantity, 0);
       order.totals.subtotalRupees = subtotal;
       order.totals.totalRupees = Math.max(0, subtotal + order.totals.shippingRupees - order.totals.discountRupees);
-      
+
       order.timeline.push({
         status: order.status,
         occurredAt: new Date(),
@@ -238,11 +279,11 @@ export async function PUT(request: Request, { params }: RouteContext) {
  * Hard-delete an order. Used by the admin to clear out test / legacy /
  * accidentally-created orders.
  *
- * Side-effect handling: if the order is currently `confirmed` (i.e. stock
- * is reserved against its variant) or `delivered` (loyalty already credited),
- * we first transition it through `cancelled` so stock returns to the pool
- * and loyalty points are reversed. Then we hard-delete the document. This
- * keeps the catalog and customer balances accurate after a cleanup.
+ * Side-effect handling: orders hold stock from placement until they reach a
+ * terminal state, and `delivered` orders have credited loyalty. So unless the
+ * order is already cancelled/refunded, we first run the `cancelled` transition
+ * (releasing reserved stock and reversing any loyalty credit), then hard-delete
+ * the document. This keeps the catalog and customer balances accurate.
  *
  * Gated by `order_delete` — only `owner` role today.
  */

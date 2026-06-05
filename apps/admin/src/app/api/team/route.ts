@@ -22,6 +22,7 @@ import {
 import { requireSession } from "@/lib/api/requireSession";
 import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 
+import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
 
 import { toUserResponse, type UserLean } from "@/lib/serializers/user";
@@ -137,6 +138,7 @@ export async function POST(request: Request) {
       resourceLabel: doc.name,
       detail: `Role: ${role}`,
     });
+    bustAdminCaches();
     return created(toUserResponse(doc.toObject() as unknown as UserLean));
   } catch (error) {
     return handleMongoError(error);

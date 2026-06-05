@@ -5,24 +5,24 @@
  * status. Centralising the logic keeps stock and loyalty in sync regardless
  * of which caller triggers a transition.
  *
- * Transitions handled:
- *   any → confirmed       reserve variant stock (isInStock=false)
- *   any → delivered       credit loyalty points (pointsEarned on the order)
- *   any → cancelled       release variant stock; reverse any prior credit
- *   any → refunded        release variant stock; reverse any prior credit
+ * Stock is reserved at placement (the storefront decrements variant
+ * `quantity` when the order is created and sets `inventoryReserved: true`).
+ * This service therefore only ever *releases* stock — and only once, gated by
+ * the order's `inventoryReserved` flag so re-runs can't double-credit the pool.
  *
- * Intentional non-goals: partial refunds, multi-item stock counts (the model
- * is binary isInStock per variant), and idempotent re-runs of the same
- * transition. Each transition either updates state or no-ops; we do not track
- * "already credited" and instead rely on the order PUT handler to reject
- * same-status re-saves.
+ * Transitions handled:
+ *   any → delivered                    credit loyalty points (pointsEarned)
+ *   any → cancelled/refunded/returned  release reserved stock; reverse credit
+ *
+ * Intentional non-goals: partial refunds and partial-quantity returns.
  */
 
 import mongoose from "mongoose";
 
 import {
   LoyaltyAccount,
-  Product,
+  Order,
+  releaseStock,
   type OrderDoc,
   type OrderStatus,
 } from "@store/db";
@@ -30,18 +30,7 @@ import {
 import type { VerifiedUser } from "@/lib/permissions";
 import { logger } from "@store/shared";
 
-type StockAction = "reserve" | "release" | "noop";
-
-const STOCK_ACTION_BY_STATUS: Record<OrderStatus, StockAction> = {
-  "pending-payment": "noop",
-  confirmed: "reserve",
-    packed: "noop",
-    dispatched: "noop",
-    delivered: "noop",
-    cancelled: "release",
-    refunded: "release",
-    returned: "release",
-};
+const STOCK_RELEASE_STATUSES: OrderStatus[] = ["cancelled", "refunded", "returned"];
 
 const LOYALTY_CREDITED_STATUSES: OrderStatus[] = ["delivered"];
 const LOYALTY_REVERSED_STATUSES: OrderStatus[] = ["cancelled", "refunded"];
@@ -59,57 +48,33 @@ export async function applyOrderTransition(options: TransitionOptions): Promise<
     return;
   }
 
-  await updateStockForTransition(order, previousStatus, nextStatus);
+  await releaseStockForTransition(order, nextStatus);
   await updateLoyaltyForTransition(order, previousStatus, nextStatus, actor);
 }
 
-async function updateStockForTransition(
-  order: OrderDoc,
-  previousStatus: OrderStatus,
-  nextStatus: OrderStatus,
-) {
-  const previousAction = STOCK_ACTION_BY_STATUS[previousStatus];
-  const nextAction = STOCK_ACTION_BY_STATUS[nextStatus];
-  if (previousAction === nextAction) {
+async function releaseStockForTransition(order: OrderDoc, nextStatus: OrderStatus) {
+  if (!STOCK_RELEASE_STATUSES.includes(nextStatus)) {
     return;
   }
 
-  const shouldReserve = nextAction === "reserve" && previousAction !== "reserve";
-  const shouldRelease = nextAction === "release" && previousAction === "reserve";
-  if (!shouldReserve && !shouldRelease) {
+  // Claim the release atomically: only the transition that flips
+  // `inventoryReserved` true→false returns stock, so a re-saved or racing
+  // transition can't credit the pool twice.
+  const claimed = await Order.findOneAndUpdate(
+    { _id: order._id, inventoryReserved: true },
+    { $set: { inventoryReserved: false } },
+  ).lean();
+  if (!claimed) {
     return;
   }
+  order.inventoryReserved = false;
 
-  // Each order line points at one (productId, variantId). Group updates by
-  // product so we issue one Mongo write per product, not one per line.
-  const updatesByProductId = new Map<string, string[]>();
-  for (const line of order.items) {
-    const productKey = line.productId.toString();
-    const variantKey = line.variantId.toString();
-    const existing = updatesByProductId.get(productKey);
-    if (existing) {
-      existing.push(variantKey);
-    } else {
-      updatesByProductId.set(productKey, [variantKey]);
-    }
-  }
-
-  const targetIsInStock = shouldRelease;
-  await Promise.all(
-    Array.from(updatesByProductId.entries()).map(async ([productId, variantIds]) => {
-      try {
-        await Product.updateOne(
-          { _id: productId, "variants._id": { $in: variantIds } },
-          { $set: { "variants.$[variant].isInStock": targetIsInStock } },
-          { arrayFilters: [{ "variant._id": { $in: variantIds } }] },
-        );
-      } catch (error) {
-        logger.error(
-          { error, productId, variantIds, orderId: order._id?.toString() },
-          "Failed to update variant stock during order transition",
-        );
-      }
-    }),
+  await releaseStock(
+    order.items.map((line) => ({
+      productId: line.productId,
+      variantId: line.variantId,
+      quantity: line.quantity,
+    })),
   );
 }
 

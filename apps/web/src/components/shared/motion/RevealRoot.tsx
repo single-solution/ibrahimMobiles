@@ -53,11 +53,6 @@ export function RevealRoot() {
       return;
     }
 
-    // The component is mounted ⇒ the animation driver is alive ⇒ it is
-    // safe to remove the CSS fallback that kept content visible for
-    // no-JS / pre-hydration users.
-    document.documentElement.classList.remove("no-js");
-
     const reveal = (target: Element) => {
       target.setAttribute("data-reveal", "visible");
     };
@@ -71,6 +66,7 @@ export function RevealRoot() {
     const supportsIO = "IntersectionObserver" in window;
     if (!supportsIO) {
       document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach(reveal);
+      document.documentElement.classList.remove("no-js");
       return;
     }
 
@@ -139,7 +135,11 @@ export function RevealRoot() {
     // idle — that left above-the-fold `.reveal` nodes at opacity 0 and
     // made the storefront feel like it was still loading.
     const frame = window.requestAnimationFrame(() => {
+      // Promote above-the-fold reveals FIRST, then drop the `no-js` CSS
+      // fallback. Removing it earlier left in-viewport content invisible for
+      // the frame between strip and `observeAll()` — a load-time flicker.
       observeAll();
+      document.documentElement.classList.remove("no-js");
       const mutationRoot = document.querySelector("main") ?? document.body;
       mutation.observe(mutationRoot, { childList: true, subtree: true });
     });

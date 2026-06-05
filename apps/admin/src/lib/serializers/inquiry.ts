@@ -12,10 +12,12 @@ import type {
 import {
   asArray,
   asString,
+  CHAT_MESSAGE_PAGE_SIZE,
   normalizeChatAttachment,
   normalizeChatMessageAuthor,
   normalizeChatStatus,
   objectIdString,
+  sliceChatMessages,
   toIsoDate,
 } from "@store/shared";
 
@@ -78,12 +80,35 @@ export function summariseInquiry(inquiry: InquiryLean): AdminInquirySummary {
 
 export function toInquiryResponse(
   inquiry: InquiryLean,
-  options: { includeInternal?: boolean } = {},
+  options: {
+    includeInternal?: boolean;
+    page?: { messages: InquiryMessageAttributes[]; hasMoreOlder: boolean };
+  } = {},
 ): AdminInquiry {
   const summary = summariseInquiry(inquiry);
+  const messages =
+    options.page?.messages ?? asArray<InquiryMessageAttributes>(inquiry.messages);
   return {
     ...summary,
     internalNotes: options.includeInternal ? inquiry.internalNotes : undefined,
-    messages: asArray<InquiryMessageAttributes>(inquiry.messages).map(toMessageResponse),
+    messages: messages.map(toMessageResponse),
+    hasMoreOlder: options.page?.hasMoreOlder ?? false,
   };
+}
+
+/**
+ * Serialize an inquiry carrying only its most recent message page (+ a flag for
+ * whether older history exists). Used by reply / attachment endpoints so the
+ * payload stays bounded and the panel can lazy-load older messages.
+ */
+export function toInquiryLatestPage(inquiry: InquiryLean): AdminInquiry {
+  const all = asArray<InquiryMessageAttributes>(inquiry.messages);
+  const slice = sliceChatMessages(all, { limit: CHAT_MESSAGE_PAGE_SIZE });
+  return toInquiryResponse(inquiry, {
+    includeInternal: true,
+    page: {
+      messages: all.slice(slice.start, slice.end),
+      hasMoreOlder: slice.hasMoreOlder,
+    },
+  });
 }

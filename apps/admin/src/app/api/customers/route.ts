@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 import { requireSession } from "@/lib/api/requireSession";
-import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
+import { readListOptions } from "@/lib/api/listOptions";
 import {
   FIELD_LIMITS,
   badRequest,
@@ -18,12 +18,15 @@ import {
   Customer,
   handleMongoError,
   LoyaltyAccount,
-  Order,
 } from "@store/db";
 
+import { bustAdminCaches } from "@/lib/cached";
+import {
+  loadCustomerListPage,
+  type CustomerSegment,
+} from "@/lib/server/customerListQuery";
 import { recordActivity } from "@/lib/services/activityLog";
 import { toCustomerResponse, type CustomerLean } from "@/lib/serializers/customer";
-import type { AdminCustomerSummary } from "@/types/models";
 
 /** Placeholder city for manually-created customers — mirrors the storefront
  *  OTP upsert, which seeds the same value until the customer fills it in. */
@@ -38,74 +41,12 @@ export async function GET(request: Request) {
     return response;
   }
 
-  await connectDB();
-  const { page, limit, skip, search, searchPattern } = readListOptions(request);
+  const { page, limit, search } = readListOptions(request);
+  const segmentParam = new URL(request.url).searchParams.get("segment");
+  const segment: CustomerSegment =
+    segmentParam === "loyalty" || segmentParam === "active" ? segmentParam : "all";
 
-  const filter: Record<string, unknown> = {};
-  if (search) {
-    filter.$or = [
-      { name: { $regex: searchPattern, $options: "i" } },
-      { phoneNumber: { $regex: searchPattern, $options: "i" } },
-      { city: { $regex: searchPattern, $options: "i" } },
-    ];
-  }
-
-  const [customers, total] = await Promise.all([
-    Customer.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean<CustomerLean[]>(),
-    Customer.countDocuments(filter),
-  ]);
-
-  const stats = await Order.aggregate<{
-    _id: import("mongoose").Types.ObjectId;
-    orderCount: number;
-    lifetimeSpendRupees: number;
-    lastOrderAt: Date;
-  }>([
-    { $match: { customerId: { $in: customers.map((customer) => customer._id) } } },
-    {
-      $group: {
-        _id: "$customerId",
-        orderCount: { $sum: 1 },
-        lifetimeSpendRupees: { $sum: "$totals.totalRupees" },
-        lastOrderAt: { $max: "$placedAt" },
-      },
-    },
-  ]);
-  const statsMap = new Map(
-    stats.map((stat) => [
-      stat._id.toString(),
-      {
-        orderCount: stat.orderCount,
-        lifetimeSpendRupees: stat.lifetimeSpendRupees,
-        lastOrderAt: stat.lastOrderAt,
-      },
-    ]),
-  );
-
-  const items: AdminCustomerSummary[] = customers.map((customer) => {
-    const stat = statsMap.get(customer._id.toString()) ?? {
-      orderCount: 0,
-      lifetimeSpendRupees: 0,
-      lastOrderAt: undefined,
-    };
-    const full = toCustomerResponse(customer, stat);
-    return {
-      id: full.id,
-      name: full.name,
-      phoneNumber: full.phoneNumber,
-      city: full.city,
-      isLoyaltyMember: full.isLoyaltyMember,
-      loyaltyBalance: 0,
-      loyaltyLifetimeEarned: 0,
-      orderCount: full.orderCount,
-      lifetimeSpendRupees: full.lifetimeSpendRupees,
-      lastOrderAt: full.lastOrderAt,
-      createdAt: full.createdAt,
-      updatedAt: full.updatedAt,
-    };
-  });
-
-  const payload: ListResponse<AdminCustomerSummary> = { items, total, page, limit };
+  const payload = await loadCustomerListPage({ search, segment, page, limit });
   return ok(payload);
 }
 
@@ -239,6 +180,7 @@ export async function POST(request: Request) {
       });
     }
 
+    bustAdminCaches();
     return ok(
       toCustomerResponse(doc.toObject() as CustomerLean, {
         orderCount: 0,

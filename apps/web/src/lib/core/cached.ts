@@ -49,6 +49,8 @@ import {
   type ProductFilters,
   type ProductPage,
 } from "@/lib/core/queries";
+import { getFacets as getFacetsRaw } from "@/lib/core/facets";
+import type { AttributeFacet } from "@/lib/core/facets";
 
 /** Tag for filter-independent storefront reads. Admin mutations that should
  *  surface immediately (product save, brand toggle, category reorder) can
@@ -244,6 +246,27 @@ export function getProductsPageCached(
   filters: ProductFilters,
 ): Promise<ProductPage> {
   return getProductsPageInner(stableFilterKey(filters));
+}
+
+/**
+ * Cross-request cached facets — the filter sidebar's attribute aggregation.
+ * Keyed by the same canonical filter serialization as the products page so a
+ * `/shop/[category]` listing and its `/api/facets` companion (identical
+ * filters) share one Atlas round-trip within the 30s window. Tag-busted on
+ * any admin catalog mutation via `bustAdminCaches()`.
+ */
+const getFacetsInner = unstable_cache(
+  async (cacheKey: string): Promise<AttributeFacet[]> => {
+    return getFacetsRaw(JSON.parse(cacheKey) as ProductFilters);
+  },
+  ["storefront-facets-v1"],
+  { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+export function getFacetsCached(
+  filters: ProductFilters,
+): Promise<AttributeFacet[]> {
+  return getFacetsInner(stableFilterKey(filters));
 }
 
 /** Sort keys for a stable cache identity regardless of insertion order. */

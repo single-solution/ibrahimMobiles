@@ -12,7 +12,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "search-index": "node scripts/createSearchIndex.mjs"
+    "search-index": "node scripts/createSearchIndex.mjs",
+    "merge-duplicate-inquiries": "node scripts/mergeDuplicateInquiries.mjs"
   },
   "dependencies": {
     "@store/shared": "*",

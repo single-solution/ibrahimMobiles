@@ -194,6 +194,7 @@ export function SeoSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
   }
 
   async function handleSave() {
+    if (saving) return;
     setSaving(true);
     try {
       const disallowPaths = draft.robotsDisallow

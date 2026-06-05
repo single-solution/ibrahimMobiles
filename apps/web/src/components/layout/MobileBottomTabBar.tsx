@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, ShoppingBag, ShoppingCart, Tag, User } from "lucide-react";
 import { classNames } from "@store/shared";
+import { useIsSignedIn } from "@/lib/auth/useIsSignedIn";
 import { useCart } from "@/lib/cart/useCart";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 import { useShopHref } from "@/lib/core/storefrontReferenceContext";
@@ -32,6 +33,19 @@ export function MobileBottomTabBar() {
   const pathname = usePathname() ?? "/";
   const shopHref = useShopHref();
   const { itemCount } = useCart();
+  // Mirror the header: stay neutral ("Account") until the session check
+  // resolves, then show "Sign in" when we know there's no session.
+  const showSignIn = useIsSignedIn() === false;
+
+  function resolveTab(tab: Tab): { href: string; label: string } {
+    if (tab.matchBase === "/shop") {
+      return { href: shopHref, label: tab.label };
+    }
+    if (tab.matchBase === "/account" && showSignIn) {
+      return { href: "/account/sign-in", label: "Sign in" };
+    }
+    return { href: tab.href ?? tab.matchBase, label: tab.label };
+  }
 
   return (
     <nav
@@ -43,16 +57,20 @@ export function MobileBottomTabBar() {
         className="grid grid-cols-5"
         style={{ height: "var(--mobile-tabbar-h)" }}
       >
-        {TABS.map((tab) => (
-          <li key={tab.matchBase} className="flex p-1.5">
-            <TabLinkItem
-              tab={tab}
-              href={tab.matchBase === "/shop" ? shopHref : tab.href ?? tab.matchBase}
-              pathname={pathname}
-              badgeCount={tab.showCartBadge ? itemCount : 0}
-            />
-          </li>
-        ))}
+        {TABS.map((tab) => {
+          const resolved = resolveTab(tab);
+          return (
+            <li key={tab.matchBase} className="flex p-1.5">
+              <TabLinkItem
+                tab={tab}
+                href={resolved.href}
+                label={resolved.label}
+                pathname={pathname}
+                badgeCount={tab.showCartBadge ? itemCount : 0}
+              />
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );
@@ -71,11 +89,12 @@ function isLinkActive(matchBase: string, matchPaths: string[], pathname: string)
 interface TabLinkItemProps {
   tab: Tab;
   href: string;
+  label: string;
   pathname: string;
   badgeCount: number;
 }
 
-function TabLinkItem({ tab, href, pathname, badgeCount }: TabLinkItemProps) {
+function TabLinkItem({ tab, href, label, pathname, badgeCount }: TabLinkItemProps) {
   const isActive = isLinkActive(tab.matchBase, tab.matchPaths, pathname);
   const Icon = tab.icon;
   const prefetchHandlers = usePrefetchOnIntent(isActive ? null : href);
@@ -104,7 +123,7 @@ function TabLinkItem({ tab, href, pathname, badgeCount }: TabLinkItemProps) {
           </span>
         )}
       </span>
-      <span className="leading-none">{tab.label}</span>
+      <span className="leading-none">{label}</span>
     </Link>
   );
 }

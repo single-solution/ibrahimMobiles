@@ -37,7 +37,7 @@ import { getChatSettings } from "@/lib/chat/chatSettings";
 import { resolveChatAccess } from "@/lib/chat/access";
 import { claimAnonymousThreadIfNeeded } from "@/lib/chat/claimAnonymousThread";
 import { maybeReplyWithAssistant, reloadInquiry } from "@/lib/chat/assistant/maybeReply";
-import { toThread } from "@/lib/chat/serializer";
+import { toThreadLatestPage } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
 
 interface RouteContext {
@@ -106,7 +106,9 @@ export async function POST(request: Request, { params }: RouteContext) {
   await connectDB();
   try {
     const now = new Date();
-    const inquiryId = access.inquiry._id;
+    // Use the post-claim id: claiming may merge the guest thread into the
+    // customer's canonical thread (a different doc) and delete this one.
+    const inquiryId = inquiry._id;
     await InquiryModel.updateOne(
       { _id: inquiryId },
       {
@@ -151,7 +153,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     }
 
     const withAssistant = (await reloadInquiry(inquiryId)) ?? refreshed;
-    return created(toThread(withAssistant));
+    return created(toThreadLatestPage(withAssistant));
   } catch (error) {
     logger.error({ error, inquiryId: id }, "Failed to post chat message");
     return serverError("Could not send your message. Please try again.");

@@ -5,12 +5,11 @@ import { Suspense } from "react";
 
 import { logger } from "@store/shared";
 
-import { ShopProductGrid } from "@/components/shared/ShopProductGrid";
+import { ShopProductFeed } from "@/components/shared/ShopProductFeed";
 import { FilterSidebar } from "@/components/shared/FilterSidebar";
 import { ShopCategoryRail } from "@/app/shop/_components/ShopCategoryRail";
 import { MobileCategoryPicker } from "@/app/shop/_components/MobileCategoryPicker";
 import { ShopScrollReset } from "@/app/shop/_components/ShopScrollReset";
-import { ShopPagination } from "@/components/shared/ShopPagination";
 import {
   ShopCategoryRailFallback,
   ShopDesktopFilterSidebarFallback,
@@ -285,34 +284,24 @@ interface ProductsAreaProps {
 async function MobileProductsArea({ meta, filters }: ProductsAreaProps) {
   const page = await loadCategoryProducts(filters);
   return (
-    <>
-      <div className="mt-4">
-        <ShopProductGrid products={page.products} categoryLabel={meta.label} />
-      </div>
-      {page.pageCount > 1 ? (
-        <div className="mt-10">
-          <ShopPagination
-            page={page.page}
-            pageCount={page.pageCount}
-            basePath={`/shop/${meta.slug}`}
-          />
-        </div>
-      ) : null}
-    </>
+    <div className="mt-4">
+      <ShopProductFeed
+        initialPage={page}
+        categoryLabel={meta.label}
+        apiParams={{ category: meta.slug }}
+      />
+    </div>
   );
 }
 
 async function DesktopProductsArea({ meta, filters }: ProductsAreaProps) {
   const page = await loadCategoryProducts(filters);
   return (
-    <div className="space-y-6">
-      <ShopProductGrid products={page.products} categoryLabel={meta.label} />
-      <ShopPagination
-        page={page.page}
-        pageCount={page.pageCount}
-        basePath={`/shop/${meta.slug}`}
-      />
-    </div>
+    <ShopProductFeed
+      initialPage={page}
+      categoryLabel={meta.label}
+      apiParams={{ category: meta.slug }}
+    />
   );
 }
 

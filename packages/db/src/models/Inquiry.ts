@@ -237,6 +237,17 @@ const inquirySchema = new Schema<InquiryAttributes>(
   { timestamps: true },
 );
 
+// One conversation per signed-in customer. Partial so guest threads (no
+// `customerId`, phone = `anon:<uuid>`) are exempt and can coexist freely.
+// Existing duplicates must be merged first — see
+// `packages/db/scripts/mergeDuplicateInquiries.mjs`.
+inquirySchema.index(
+  { customerId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { customerId: { $type: "objectId" } },
+  },
+);
 // Inbox sort: status filter + recent activity descending.
 inquirySchema.index({ status: 1, lastMessageAt: -1 });
 // "My inbox" lookup for an admin viewer.

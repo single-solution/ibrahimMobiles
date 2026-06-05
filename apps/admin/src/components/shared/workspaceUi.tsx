@@ -5,6 +5,8 @@ import { ArrowLeft, Search } from "lucide-react";
 import { classNames } from "@store/shared";
 import { Button } from "@store/ui";
 
+import { Skeleton } from "@/components/ui/Skeleton";
+
 /** Content wrapper for split-pane workspaces (orders, customers, inquiries). */
 export const adminWorkspacePageClass =
   "admin-mobile-pad flex min-h-0 flex-1 flex-col overflow-hidden p-1.5 md:p-2";
@@ -48,7 +50,9 @@ export function WorkspaceSidebarNavItem({
   onClick,
 }: {
   label: string;
-  count: number;
+  /** `null` renders a shimmer (still loading); `undefined` renders a muted dash
+   *  (count unavailable) — for counts streamed in after first paint. */
+  count: number | null | undefined;
   isActive: boolean;
   onClick: () => void;
 }) {
@@ -65,7 +69,11 @@ export function WorkspaceSidebarNavItem({
         )}
       >
         <span className="truncate">{label}</span>
-        <span className="shrink-0 tabular-nums text-[10.5px] opacity-70">{count}</span>
+        {count === null ? (
+          <Skeleton shape="text" className="h-3 w-5 shrink-0" />
+        ) : (
+          <span className="shrink-0 tabular-nums text-[10.5px] opacity-70">{count ?? "—"}</span>
+        )}
       </button>
     </li>
   );
@@ -79,7 +87,8 @@ export function WorkspaceFilterChip({
   compact,
 }: {
   label: string;
-  count?: number;
+  /** Omit for no badge; pass `null` to render a shimmer while a count streams in. */
+  count?: number | null;
   isActive: boolean;
   onClick: () => void;
   compact?: boolean;
@@ -99,7 +108,9 @@ export function WorkspaceFilterChip({
       )}
     >
       {label}
-      {typeof count === "number" ? (
+      {count === null ? (
+        <Skeleton shape="pill" className="h-3 w-3.5" />
+      ) : typeof count === "number" ? (
         <span
           className={classNames(
             "rounded-full px-1 tabular-nums text-[0.5625rem]",
@@ -165,7 +176,7 @@ export function WorkspacePaneHeader({
   /** Render at `size={15}` for visual consistency. */
   iconElement: ReactNode;
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   search?: ReactNode;
   action?: ReactNode;
 }) {

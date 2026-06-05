@@ -22,7 +22,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
   const { id } = await params;
   const session = await auth();
   if (!session?.user || session.user.role !== "customer" || !session.user.customerId) {
-    redirect(`/account/sign-in?next=${encodeURIComponent(`/account/orders/${id}`)}`);
+    redirect("/account/sign-out");
   }
   const order = await getAccountOrder(session.user.customerId, id);
   if (!order) {

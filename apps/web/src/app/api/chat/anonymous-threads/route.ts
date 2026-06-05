@@ -26,7 +26,7 @@ import {
   anonymousChatPhone,
   getOrCreateAnonymousChatId,
 } from "@/lib/chat/anonymousSession";
-import { toThread } from "@/lib/chat/serializer";
+import { toThreadLatestPage } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
 
 const COOKIE_NAME = "inquiry_thread_token";
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
       return serverError("Thread vanished after creation.");
     }
 
-    const thread = toThread(lean);
+    const thread = toThreadLatestPage(lean);
     const cookieJar = await cookies();
     const existing = cookieJar.get(COOKIE_NAME)?.value;
     const reissued = await appendInquiryToGuestToken(

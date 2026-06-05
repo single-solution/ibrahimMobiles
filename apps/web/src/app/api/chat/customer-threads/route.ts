@@ -9,7 +9,7 @@
 
 import { Types } from "mongoose";
 
-import { Customer, Inquiry as InquiryModel, connectDB } from "@store/db";
+import { Customer, Inquiry as InquiryModel, connectDB, isMongoDuplicateKeyError } from "@store/db";
 import {
   badRequest,
   created,
@@ -21,7 +21,7 @@ import {
 import { enforceSameOrigin } from "@/lib/api/sameOrigin";
 import { auth } from "@/lib/auth";
 import { getChatSettings } from "@/lib/chat/chatSettings";
-import { toThread } from "@/lib/chat/serializer";
+import { toThreadLatestPage } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
 
 export async function POST(request: Request) {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     .sort({ lastMessageAt: -1 })
     .lean<InquiryLean>();
   if (existing) {
-    return created(toThread(existing));
+    return created(toThreadLatestPage(existing));
   }
 
   const customer = await Customer.findById(session.user.customerId)
@@ -87,8 +87,16 @@ export async function POST(request: Request) {
       return serverError("Thread vanished after creation.");
     }
 
-    return created(toThread(lean));
+    return created(toThreadLatestPage(lean));
   } catch (error) {
+    // Two concurrent first-opens race past the reuse check; the unique
+    // `customerId` index rejects the loser — fall back to the winner's thread.
+    if (isMongoDuplicateKeyError(error)) {
+      const winner = await InquiryModel.findOne({ customerId }).lean<InquiryLean>();
+      if (winner) {
+        return created(toThreadLatestPage(winner));
+      }
+    }
     logger.error({ error }, "Failed to start customer chat thread");
     return serverError("Could not open chat. Please try again.");
   }

@@ -22,14 +22,23 @@ interface ShopProductGridProps {
    * rail) can pass a higher count.
    */
   priorityCount?: number;
+  /**
+   * Column/gap utilities for the grid container. Defaults to the category
+   * listing layout; search and deals pass their own so wiring them through
+   * the shared feed preserves each surface's exact column counts.
+   */
+  gridClassName?: string;
 }
 
 const DEFAULT_PRIORITY_COUNT = 2;
+const DEFAULT_GRID_CLASS =
+  "grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 md:gap-6 xl:grid-cols-4 xl:gap-7";
 
 export function ShopProductGrid({
   products,
   categoryLabel,
   priorityCount = DEFAULT_PRIORITY_COUNT,
+  gridClassName = DEFAULT_GRID_CLASS,
 }: ShopProductGridProps) {
   const { params, clearAll } = useFilterParams();
   const filtersActive = hasActiveListingFilters(params);
@@ -49,7 +58,7 @@ export function ShopProductGrid({
 
   return (
     <div
-      className={`reveal-stagger grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 md:gap-6 xl:grid-cols-4 xl:gap-7${isListingSwap ? " listing-swap" : ""}`}
+      className={`reveal-stagger ${gridClassName}${isListingSwap ? " listing-swap" : ""}`}
     >
       {products.map((product, index) => (
         // Above-the-fold (priority/LCP) cards render visible immediately;

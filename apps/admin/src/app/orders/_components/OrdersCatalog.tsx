@@ -23,7 +23,14 @@ import {
   WorkspaceSearchField,
   WorkspaceSidebarNavItem,
 } from "@/components/shared/workspaceUi";
+import { InfiniteScrollSentinel } from "@/components/shared/InfiniteScrollSentinel";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { apiFetch } from "@/lib/api";
+import { useInfiniteList } from "@/lib/useInfiniteList";
+import { useDeferredCounts } from "@/lib/useDeferredCounts";
+import { useUrlParams } from "@/lib/url/useUrlParams";
+import type { ListResponse } from "@/lib/api/listOptions";
+import type { AdminOrdersCounts } from "@/lib/cached";
 import {
   classNames,
   FIELD_LIMITS,
@@ -36,6 +43,9 @@ import type { AdminOrder, AdminOrderSummary, AdminActivityEntry } from "@/types/
 import { OrderEditModal } from "./OrderEditModal";
 import { ActivityDetailGrid } from "@/components/shared/ActivityDetailGrid";
 import { formatActivityAction } from "@/lib/activityLabels";
+
+/** Debounce before a typed search is pushed to the URL (which refetches the seed). */
+const SEARCH_DEBOUNCE_MS = 300;
 
 const STATUS_TONE: Record<string, StatusTone> = {
   "pending-payment": "warn",
@@ -73,7 +83,7 @@ const STATUS_OPTIONS = [
 type StatusFilter = "all" | (typeof STATUS_OPTIONS)[number];
 
 interface OrdersCatalogProps {
-  orders: AdminOrderSummary[];
+  initial: ListResponse<AdminOrderSummary>;
 }
 
 export function OrdersCatalog(props: OrdersCatalogProps) {
@@ -84,15 +94,70 @@ export function OrdersCatalog(props: OrdersCatalogProps) {
   );
 }
 
-function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
+function OrdersCatalogInner({ initial }: OrdersCatalogProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { startNavigation } = useNavigationTransition();
+  const { replace } = useUrlParams();
   const { can } = useAdminPermissions();
   const canUpdate = can("order_update");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [searchQuery, setSearchQuery] = useState("");
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+
+  const statusParam = searchParams.get("status");
+  const statusFilter: StatusFilter =
+    statusParam && (STATUS_OPTIONS as readonly string[]).includes(statusParam)
+      ? (statusParam as StatusFilter)
+      : "all";
+  const urlQuery = searchParams.get("query") ?? "";
+  const [searchInput, setSearchInput] = useState(urlQuery);
+
+  const listParams = useMemo<Record<string, string>>(() => {
+    const next: Record<string, string> = {};
+    if (statusFilter !== "all") {
+      next.status = statusFilter;
+    }
+    if (urlQuery) {
+      next.query = urlQuery;
+    }
+    return next;
+  }, [statusFilter, urlQuery]);
+
+  const {
+    items: orders,
+    total,
+    hasMore,
+    isLoadingMore,
+    hasError,
+    loadMore,
+  } = useInfiniteList<AdminOrderSummary>({
+    endpoint: "/api/orders",
+    initial,
+    params: listParams,
+  });
+
+  // Collection-wide status counts + revenue stream in after first paint.
+  const { counts, isLoading: countsLoading } = useDeferredCounts<AdminOrdersCounts>(
+    "/api/orders/counts",
+    initial,
+  );
+
+  // Debounced search → URL → SSR seed refetch (single source of truth).
+  useEffect(() => {
+    if (searchInput === urlQuery) {
+      return;
+    }
+    const id = setTimeout(() => {
+      replace({ query: searchInput || null });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [searchInput, urlQuery, replace]);
+
+  const setStatusFilter = useCallback(
+    (status: StatusFilter) => {
+      replace({ status: status === "all" ? null : status });
+    },
+    [replace],
+  );
 
   const setActiveOrderUrl = useCallback(
     (id: string | null) => {
@@ -117,36 +182,6 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
     setActiveOrderUrl(null);
   }, [setActiveOrderUrl]);
 
-  const stats = useMemo(() => {
-    const revenue = orders
-      .filter((order) => !["cancelled", "refunded"].includes(order.status))
-      .reduce((sum, order) => sum + order.totalRupees, 0);
-    const pending = orders.filter((order) => order.status === "pending-payment").length;
-    return { revenue, pending, total: orders.length };
-  }, [orders]);
-
-  const counts = useMemo(() => {
-    const map = new Map<string, number>();
-    map.set("all", orders.length);
-    for (const status of STATUS_OPTIONS) {
-      map.set(status, orders.filter((order) => order.status === status).length);
-    }
-    return map;
-  }, [orders]);
-
-  const filteredOrders = useMemo(() => {
-    let rows = orders;
-    if (statusFilter !== "all") {
-      rows = rows.filter((order) => order.status === statusFilter);
-    }
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return rows;
-    return rows.filter((order) =>
-      `${order.orderNumber} ${order.customer.name} ${order.customer.phoneNumber} ${order.customer.city} ${order.payment} ${order.delivery}`
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [orders, statusFilter, searchQuery]);
 
   useEffect(() => {
     scheduleStateUpdate(() => {
@@ -155,7 +190,7 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
         setActiveOrderId(fromUrl);
         return;
       }
-      if (filteredOrders.length === 0) {
+      if (orders.length === 0) {
         if (activeOrderId !== null) {
           setActiveOrderUrl(null);
         }
@@ -163,14 +198,14 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
       }
       const stillVisible =
         activeOrderId !== null &&
-        filteredOrders.some((order) => order.id === activeOrderId);
+        orders.some((order) => order.id === activeOrderId);
       if (stillVisible) return;
       const preferDesktop =
         typeof window !== "undefined" &&
         window.matchMedia("(min-width: 1024px)").matches;
-      setActiveOrderUrl(preferDesktop ? filteredOrders[0].id : null);
+      setActiveOrderUrl(preferDesktop ? orders[0].id : null);
     });
-  }, [activeOrderId, filteredOrders, orders, searchParams, setActiveOrderUrl]);
+  }, [activeOrderId, orders, searchParams, setActiveOrderUrl]);
 
   return (
     <WorkspaceFrame>
@@ -183,7 +218,7 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
             <ul className="flex flex-col gap-0.5">
               <WorkspaceSidebarNavItem
                 label="All orders"
-                count={counts.get("all") ?? 0}
+                count={counts ? counts.total : countsLoading ? null : undefined}
                 isActive={statusFilter === "all"}
                 onClick={() => setStatusFilter("all")}
               />
@@ -191,7 +226,7 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
                 <WorkspaceSidebarNavItem
                   key={status}
                   label={STATUS_LABELS[status]}
-                  count={counts.get(status) ?? 0}
+                  count={counts ? counts.byStatus[status] ?? 0 : countsLoading ? null : undefined}
                   isActive={statusFilter === status}
                   onClick={() => setStatusFilter(status)}
                 />
@@ -200,17 +235,35 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
           </nav>
           <div className="mt-3 space-y-2 border-t border-[var(--color-ink-100)] pt-3 text-[10px] text-[var(--color-ink-500)]">
             <p>
-              <span className="font-semibold text-[var(--color-ink-800)]">{stats.total}</span>{" "}
+              {counts ? (
+                <span className="font-semibold text-[var(--color-ink-800)]">{counts.total}</span>
+              ) : countsLoading ? (
+                <Skeleton shape="text" className="inline-block h-3 w-8 align-middle" />
+              ) : (
+                <span className="font-semibold text-[var(--color-ink-800)]">—</span>
+              )}{" "}
               orders
             </p>
             <p>
-              <span className="font-semibold text-[var(--color-ink-800)]">{stats.pending}</span>{" "}
+              {counts ? (
+                <span className="font-semibold text-[var(--color-ink-800)]">{counts.pending}</span>
+              ) : countsLoading ? (
+                <Skeleton shape="text" className="inline-block h-3 w-8 align-middle" />
+              ) : (
+                <span className="font-semibold text-[var(--color-ink-800)]">—</span>
+              )}{" "}
               awaiting payment
             </p>
             <p>
-              <span className="font-semibold text-[var(--color-ink-800)]">
-                {formatPrice(stats.revenue)}
-              </span>{" "}
+              {counts ? (
+                <span className="font-semibold text-[var(--color-ink-800)]">
+                  {formatPrice(counts.netRevenueRupees)}
+                </span>
+              ) : countsLoading ? (
+                <Skeleton shape="text" className="inline-block h-3 w-16 align-middle" />
+              ) : (
+                <span className="font-semibold text-[var(--color-ink-800)]">—</span>
+              )}{" "}
               net revenue
             </p>
           </div>
@@ -225,12 +278,23 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
           <WorkspacePaneHeader
             iconElement={<ShoppingCart size={15} />}
             title="Orders"
-            subtitle={`${filteredOrders.length} shown (recent 200) · ${formatPrice(stats.revenue)} in view`}
+            subtitle={
+              <>
+                {orders.length} of {total} ·{" "}
+                {counts ? (
+                  `${formatPrice(counts.netRevenueRupees)} net revenue`
+                ) : countsLoading ? (
+                  <Skeleton shape="text" className="inline-block h-2.5 w-16 align-middle" />
+                ) : (
+                  "net revenue —"
+                )}
+              </>
+            }
             search={
               <>
                 <WorkspaceSearchField
-                  value={searchQuery}
-                  onChange={setSearchQuery}
+                  value={searchInput}
+                  onChange={setSearchInput}
                   placeholder="Search orders…"
                   aria-label="Search orders"
                   className="w-full"
@@ -256,28 +320,36 @@ function OrdersCatalogInner({ orders }: OrdersCatalogProps) {
             }
           />
           <ul className="reveal-stagger min-h-0 flex-1 overflow-y-auto">
-            {filteredOrders.length === 0 ? (
+            {orders.length === 0 ? (
               <li className="px-4 py-6">
                 <WorkspaceEmptyPane
                   iconElement={<ShoppingCart size={22} />}
-                  title={searchQuery.trim() ? "No matching orders" : "No orders in this view"}
+                  title={urlQuery.trim() ? "No matching orders" : "No orders in this view"}
                   description={
-                    searchQuery.trim()
+                    urlQuery.trim()
                       ? "Try a different search or status filter."
                       : "Orders will appear here when customers checkout."
                   }
                 />
               </li>
             ) : (
-              filteredOrders.map((order) => (
-                <li key={order.id} className="reveal">
-                  <OrderListItem
-                    order={order}
-                    isActive={order.id === activeOrderId}
-                    onSelect={() => setActiveOrderUrl(order.id)}
-                  />
-                </li>
-              ))
+              <>
+                {orders.map((order) => (
+                  <li key={order.id} className="reveal">
+                    <OrderListItem
+                      order={order}
+                      isActive={order.id === activeOrderId}
+                      onSelect={() => setActiveOrderUrl(order.id)}
+                    />
+                  </li>
+                ))}
+                <InfiniteScrollSentinel
+                  hasMore={hasMore}
+                  isLoadingMore={isLoadingMore}
+                  hasError={hasError}
+                  onLoadMore={loadMore}
+                />
+              </>
             )}
           </ul>
         </section>
@@ -368,6 +440,7 @@ function OrderDetailPanel({
   
   const [isEditing, setIsEditing] = useState(false);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   
   const [confirmCancel, setConfirmCancel] = useState(false);
 
@@ -464,7 +537,8 @@ function OrderDetailPanel({
   }
 
   async function handleEditSave(payload: any) {
-    if (!order) return;
+    if (!order || isSavingEdit) return;
+    setIsSavingEdit(true);
     try {
       const updated = await apiFetch<AdminOrder>(`/api/orders/${order.id}`, {
         method: "PUT",
@@ -478,6 +552,8 @@ function OrderDetailPanel({
     } catch (error) {
       toast.danger(error instanceof Error ? error.message : "Failed to update order");
       throw error;
+    } finally {
+      setIsSavingEdit(false);
     }
   }
 
@@ -717,7 +793,7 @@ function OrderDetailPanel({
           onSave={async (payload) => {
             await handleEditSave(payload);
           }}
-          isSaving={false}
+          isSaving={isSavingEdit}
         />
       )}
 

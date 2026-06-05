@@ -11,6 +11,7 @@ export * from "./chat/chatTransport";
 export * from "./chat/guestLimits";
 export * from "./chat/guestToken";
 export * from "./chat/inquiryStatus";
+export * from "./chat/messagePagination";
 export * from "./chat/poll";
 export * from "./chat/types";
 export * from "./chat/validators";
