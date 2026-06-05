@@ -34,15 +34,15 @@ import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
  * plus a small fixed "understand it" beat. Applied once, before the first
  * bubble of a reply — subsequent bubbles only carry their own typing time.
  */
-const TYPING_CHARS_PER_MIN_MIN = 2000;
-const TYPING_CHARS_PER_MIN_MAX = 2500;
-const TYPING_MIN_MS = 400;
-const TYPING_MAX_MS = 1200;
-const READING_CHARS_PER_MIN = 4000;
-const COMPREHENSION_BASE_MS = 200;
-const READING_MAX_MS = 800;
+const TYPING_CHARS_PER_MIN_MIN = 220;
+const TYPING_CHARS_PER_MIN_MAX = 300;
+const TYPING_MIN_MS = 800;
+const TYPING_MAX_MS = 6000;
+const READING_CHARS_PER_MIN = 1000;
+const COMPREHENSION_BASE_MS = 800;
+const READING_MAX_MS = 4000;
 /** Brief settle between a revealed bubble and the next typing pause. */
-const STAGGER_GAP_MS = 150;
+const STAGGER_GAP_MS = 250;
 
 function typingDelay(text: string): number {
   const charsPerMin =
@@ -53,8 +53,12 @@ function typingDelay(text: string): number {
 }
 
 function readingDelay(text: string): number {
-  const ms = COMPREHENSION_BASE_MS + (text.length / READING_CHARS_PER_MIN) * 60_000;
-  return Math.min(ms, READING_MAX_MS);
+  // Simulate a busy agent: 30% chance they take an extra 1-3 seconds before they start reading
+  const isBusy = Math.random() > 0.7;
+  const busyDelay = isBusy ? 1000 + Math.random() * 2000 : 0;
+  
+  const ms = COMPREHENSION_BASE_MS + (text.length / READING_CHARS_PER_MIN) * 60_000 + busyDelay;
+  return Math.min(ms, READING_MAX_MS + 3000); // Allow max to be higher if they are busy
 }
 
 /**
