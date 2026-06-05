@@ -217,7 +217,7 @@ export function ThreadConversation({
         bumpReveal();
         setBotTyping(false);
         timerRef.current = setTimeout(() => pump(), STAGGER_GAP_MS);
-      }, nextBody.length * 100);
+      }, nextBody.length * 40); // 40ms per character
     };
 
     if (startGap > 0) {
