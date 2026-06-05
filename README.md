@@ -1,6 +1,6 @@
-# Ibrahim Mobiles — Functional Specification
+# Ibrahim Mobiles — Exhaustive Functional Specification
 
-This document maps the exact business rules, state machines, layouts, and conditionals of the platform. It uses visual flows, dense tables, and structured lists to provide an exhaustive reference.
+This document maps the exact business rules, state machines, limits, and conditionals of the platform. It uses visual flows, dense tables, and structured lists to provide maximum detail without lengthy paragraphs.
 
 ---
 
@@ -29,14 +29,30 @@ flowchart LR
 ```
 
 ### Core Entities & Invariants
-| Entity | Business Rules & Invariants |
-|---|---|
-| **Category** | • **Layout:** Defines grades, attributes, and brands for its products.<br>• **Integrity:** Cannot be deleted if referenced by products, brands, or grades. Deactivate instead.<br>• **Content:** Has description, icon, sort order, and optional rich marketing content. |
-| **Brand** | • **Scoping:** Brands are per-category (e.g., Apple in Phones vs Apple in Watches).<br>• **Integrity:** Cannot be deleted if products exist. Deactivate instead. |
-| **Grade** | • **Scoping:** Per-category condition tier (e.g., "Like New").<br>• **Display:** Drives badges, hex colors, notes, and optional inspection videos on the PDP. |
-| **Attribute** | • **Scoping:** Per-category custom dimension (e.g., Storage, RAM, Color).<br>• **Visibility Rules:** Can show *Always*, *By Brand*, *By Grade*, or *By Parent Attribute* (cascading).<br>• **Card Position:** Renders on product cards as image overlay, title chips, or hidden. |
-| **Product** | • **Media:** Up to 8 shared photos per product (variants share the gallery). Index 0 is the hero image.<br>• **Flags:** Active (on/off), Archived (soft delete, hides from default admin views), Featured (boosts in UI rails). |
-| **Variant** | • **Truth:** The absolute source of truth for price, stock, warranty, and condition.<br>• **Stock:** In-stock if `quantity > 0`. Reserved at checkout, released on cancel/refund/return. |
+
+*   **Category**
+    *   **Identity:** URL slug (auto-generated from label if absent).
+    *   **Content:** Description blurb, icon, sort order, optional rich marketing content (summary + icon-tagged bullets), optional SEO overrides.
+    *   **Integrity:** Cannot be deleted if referenced by products, brands, or grades. Deactivate instead.
+    *   **Rule:** Inactive categories hide all descendant products from every shopper surface.
+*   **Brand**
+    *   **Scoping:** Brands are per-category (e.g., Apple in Phones vs Apple in Watches).
+    *   **Integrity:** Cannot be deleted if products exist. Deactivate instead.
+    *   **Rule:** Admin product form only shows brands whose `categorySlugs` includes the chosen category.
+*   **Grade (Condition)**
+    *   **Scoping:** Per-category condition tier (e.g., "Like New", "Refurbished").
+    *   **Display:** Drives badges, hex colors, notes, and optional inspection videos on the PDP.
+*   **Attribute (Custom Dimension)**
+    *   **Scoping:** Per-category custom dimension (e.g., Storage, RAM, Color).
+    *   **Visibility Rules:** Can show *Always*, *By Brand*, *By Grade*, or *By Parent Attribute* (cascading).
+    *   **Card Position:** Renders on product cards as image overlay, title chips, or hidden.
+    *   **Rule:** Cascading attributes clear dependent child filters when the parent changes.
+*   **Product**
+    *   **Media:** Up to 8 shared photos per product (variants share the gallery). Index 0 is the hero image.
+    *   **Flags:** Active (master on/off), Archived (soft delete, hides from default admin views), Featured (boosts in UI rails and deals page).
+*   **Variant**
+    *   **Truth:** The absolute source of truth for price, stock, warranty days, and condition.
+    *   **Stock:** In-stock if `quantity > 0`. Reserved atomically at checkout, released on cancel/refund/return.
 
 ---
 
@@ -50,11 +66,11 @@ flowchart LR
 *   **404 Page:** Shows message + links to home and shop browse.
 
 ### Home Page Sections (Streamed in with Skeletons)
-1.  **Hero:** Pill with active categories (or "Shop every category"), animated headline, trending products, "Visit store" CTA. On mobile, fills viewport minus header/tab bar.
-2.  **Browse by Category:** Featured cards. *Conditional:* Inactive categories show "Soon" and are unclickable. *Conditional:* If more categories exist than the cap, shows "Browse all".
-3.  **Process:** 3 flows (Store, Order, Return). Uses admin-configured money-back days and bank-transfer discount %.
-4.  **Grades (Dark Band):** Headline + category tabs. Per-grade cards with badge, notes, video. *Conditional:* If data fails, copy shows but grid is empty.
-5.  **Visit Store:** Address, hours, embedded map, Maps link, accepted payments, delivery blurb. *Layout:* Mobile puts map above details; Desktop is side-by-side.
+*   **Hero:** Pill with active categories (or "Shop every category"), animated headline, trending products, "Visit store" CTA. On mobile, fills viewport minus header/tab bar.
+*   **Browse by Category:** Featured cards. *Conditional:* Inactive categories show "Soon" and are unclickable. *Conditional:* If more categories exist than the cap, shows "Browse all".
+*   **Process:** 3 flows (Store, Order, Return). Uses admin-configured money-back days and bank-transfer discount %.
+*   **Grades (Dark Band):** Headline + category tabs. Per-grade cards with badge, notes, video. *Conditional:* If data fails, copy shows but grid is empty.
+*   **Visit Store:** Address, hours, embedded map, Maps link, accepted payments, delivery blurb. *Layout:* Mobile puts map above details; Desktop is side-by-side.
 
 ---
 
@@ -68,7 +84,8 @@ flowchart LR
 *   **Empty State:** "No results" with option to search all.
 
 ### Shop & Category Listings
-*   **Routing:** `/shop` redirects to first active category. `/shop?q=...` renders global search. `/shop/{category}` renders listing. *Conditional:* Unknown category = 404. Inactive category = "Coming soon" page without grid.
+*   **Routing:** `/shop` redirects to first active category. `/shop?q=...` renders global search. `/shop/{category}` renders listing.
+*   **Conditionals:** Unknown category = 404. Inactive category = "Coming soon" page without grid.
 *   **Layout:** Desktop has sticky left filter sidebar + category rail. Mobile has category picker dropdown + "Filters" bottom sheet.
 *   **Category Rail:** *Conditional:* Inactive categories appear disabled ("Soon"). Switching categories does not preserve filters.
 
@@ -138,7 +155,7 @@ flowchart TD
 | **2. Delivery** | • **Pickup:** Free. Shows store hours.<br>• **Courier:** Flat Rs 1,500 OR Free if subtotal ≥ admin threshold. Address required (min 2 chars). Pre-fills default saved address. |
 | **3. Payment** | • Options: Bank Transfer, Easypaisa, JazzCash, COD.<br>• **Discount:** Bank Transfer automatically applies admin-configured % discount. |
 | **4. Loyalty** | • **Min Redeem:** 100 points. **Max Redeem:** 20% of order subtotal.<br>• **Blocker:** Disabled if an active offer explicitly disallows loyalty redemption.<br>• **Input:** Toggle applies max available automatically (no partial manual entry). |
-| **5. Placement** | • **Validation:** Name > 1 char, Phone ≥ 7 chars, Address valid, Policy checked.<br>• **Security:** Idempotency key prevents double-charges.<br>• **Stock:** Reserved atomically at placement. Insufficient stock throws error. |
+| **5. Placement** | • **Validation:** Name > 1 char, Phone ≥ 7 chars, Address valid, Policy checked.<br>• **Security:** Idempotency key prevents double-charges. Max 5 placements / 15 min.<br>• **Server Truth:** Prices re-fetched from DB. Client prices ignored.<br>• **Stock:** Reserved atomically at placement. Insufficient stock throws error. |
 
 ### Checkout Success
 *   **Display:** Order number, timeline, payment instructions (if total > 0), and loyalty summary.
@@ -206,6 +223,7 @@ sequenceDiagram
 *   **Pacing:** Bubbles drip with human-paced typing delays (200-260 cpm).
 *   **AI Tools:** Can search catalog, check stock, list deals, check user orders/loyalty (scoped strictly to session ID).
 *   **UI States:** Unread badge on launcher. Proactive nudge after idle minutes. Reconnecting subtitle. "Speak to someone" footer hint.
+*   **Polling:** 5s when tab focused / 30s when blurred. 120/min/IP limit.
 
 ---
 
@@ -266,10 +284,11 @@ stateDiagram-v2
 ## 10. Admin Console: Workspaces & Flows
 
 ### Global Admin Patterns
-*   **Session:** Distinct cookie from storefront. Missing permissions redirect to dashboard with toast.
+*   **Session:** Distinct cookie from storefront. Drops on browser close, 30-day JWT ceiling. Missing permissions redirect to dashboard with toast.
 *   **Layout:** List + detail split on desktop; mobile shows list OR detail.
 *   **Infinite Scroll:** Orders, customers, inquiries load more pages on scroll.
 *   **Deferred Counts:** Heavy aggregates (total revenue, segment counts) stream in after first paint with shimmer skeletons.
+*   **Search:** Debounced text search syncs to the URL and refetches the list.
 
 ### Orders Workspace
 *   **Filters:** Status tabs. Search by order number, name, phone, city.
@@ -278,7 +297,7 @@ stateDiagram-v2
 
 ### Customers Workspace
 *   **Segments:** All, Loyalty, With Orders.
-*   **Create:** Phone normalized. Duplicate phone conflicts.
+*   **Create:** Phone normalized. Duplicate phone conflicts rejected.
 *   **Details:** Profile (phone is read-only), Addresses, Orders, Loyalty transactions, Inquiries.
 *   **Actions:** Generate 15-min manual sign-in code. Adjust loyalty balance (requires reason, cannot drive below zero). Delete blocked if `orderCount > 0`.
 
@@ -286,7 +305,7 @@ stateDiagram-v2
 *   **Filters:** Anonymous threads are excluded from the default view.
 *   **Read State:** Opening a thread zeros `unreadByTeam`. Replying increments `unreadByCustomer`.
 *   **Assignment:** Replying to an unassigned thread auto-assigns it to the operator.
-*   **Actions:** Change status (Open, Awaiting Customer, Resolved), add internal notes, attach files.
+*   **Actions:** Change status (Open, Awaiting Customer, Resolved), add internal notes, attach files (JPEG, PNG, WebP, PDF, plain text).
 
 ### Catalog (Products, Categories, Brands)
 *   **Products:** Delete blocked if referenced by orders. Use `isActive` toggle instead. Wizard Step 1 (Details & Photos) -> Step 2 (Variants by Grade). Duplicate attribute combinations are rejected.
@@ -296,6 +315,11 @@ stateDiagram-v2
 ---
 
 ## 11. Admin Console: System & Security
+
+### Admin Authentication
+*   **Limits:** 8 attempts / 15 min per IP+email.
+*   **Security:** Generic failure message (no hint whether email exists). Reset password token hashed, 1-hour expiry.
+*   **Passwords:** 8–128 chars, at least one letter and one digit.
 
 ### Roles & Permissions
 *Super-admin flag bypasses all role matrices and grants all keys.*
@@ -312,5 +336,5 @@ stateDiagram-v2
 *   **Settings Tabs:** Store details, Contact, Payments, Delivery, Notices, Loyalty, Policies, Inventory, SEO, Chat widget, Integrations, Data cleanup.
 *   **Live Updates:** Changes to branding, policies, payments, and chat config apply to the storefront immediately.
 *   **Data Cleanup:** Owner-only tool to bulk-delete catalog, orders, customers, or inquiries.
-*   **Activity Log:** Append-only audit trail of all mutations (actor, action, resource, timestamp). Failures to log do not block business operations. Filters by resource type and action.
+*   **Activity Log:** Append-only audit trail of all mutations (actor, action, resource, timestamp). Failures to log do not block business operations. Filters by resource type and action. Tracks: created, updated, deleted, archived, restored, status_changed, login, logout, invited, signin_code_issued.
 *   **Shop Health:** Dashboard card checks for missing site name, missing support contacts, invalid pixels, products without images, and out-of-stock variants.
