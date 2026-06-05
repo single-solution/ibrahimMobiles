@@ -30,14 +30,6 @@ import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 /** Brief settle between a revealed bubble and the next typing pause. */
 const STAGGER_GAP_MS = 250;
 
-function typingDelay(text: string): number {
-  return text.length * 300; // 0.3 seconds per character
-}
-
-function readingDelay(text: string): number {
-  return text.length * 100; // 0.1 seconds per character
-}
-
 /**
  * First-message bridge: shows the customer's just-sent bubble while the thread
  * is created in the background, so sending the very first message never feels
@@ -225,7 +217,7 @@ export function ThreadConversation({
         bumpReveal();
         setBotTyping(false);
         timerRef.current = setTimeout(() => pump(), STAGGER_GAP_MS);
-      }, typingDelay(nextBody));
+      }, nextBody.length * 300);
     };
 
     if (startGap > 0) {
@@ -270,7 +262,7 @@ export function ThreadConversation({
       const lastCustomer = [...messagesRef.current]
         .reverse()
         .find((message) => message.author === "customer");
-      readDelayRef.current = readingDelay(lastCustomer?.body ?? "");
+      readDelayRef.current = (lastCustomer?.body ?? "").length * 100;
       pump();
     }
   }, [thread.messages, pump]);
