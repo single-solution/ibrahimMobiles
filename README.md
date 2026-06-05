@@ -220,8 +220,9 @@ sequenceDiagram
 ### Chat Rules & Capabilities
 *   **Guest Limits:** Guests get 5 customer-authored messages max. Composer is then replaced by a sign-in gate. Threads merge to customer account upon sign-in.
 *   **AI Auto-Reply:** Triggers after customer messages if enabled and not in escalation grace period.
-*   **Pacing:** Bubbles drip with human-paced typing delays (200-260 cpm).
-*   **AI Tools:** Can search catalog, check stock, list deals, check user orders/loyalty (scoped strictly to session ID).
+*   **Pacing:** Bubbles drip with realistic human-paced delays. Includes message-length-based reading time (with simulated "busy" agent delays) followed by typing time (220-300 cpm). Typing indicator only shows during the actual typing phase.
+*   **Initial Connection:** Displays "Connecting you with someone..." instead of a typing indicator while the thread is being created.
+*   **AI Tools:** Can search catalog, check stock, list deals, check user orders/loyalty (scoped strictly to session ID). Product context is automatically passed if chat is opened from a PDP.
 *   **UI States:** Unread badge on launcher. Proactive nudge after idle minutes. Reconnecting subtitle. "Speak to someone" footer hint.
 *   **Polling:** 5s when tab focused / 30s when blurred. 120/min/IP limit.
 

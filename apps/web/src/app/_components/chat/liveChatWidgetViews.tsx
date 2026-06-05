@@ -239,14 +239,24 @@ export function ThreadConversation({
     // only their own typing time.
     const startGap = readDelayRef.current;
     readDelayRef.current = 0;
-    setBotTyping(true);
-    timerRef.current = setTimeout(() => {
-      queueRef.current.shift();
-      revealedIdsRef.current.add(nextId);
-      bumpReveal();
-      setBotTyping(false);
-      timerRef.current = setTimeout(() => pump(), STAGGER_GAP_MS);
-    }, startGap + typingDelay(nextBody));
+    
+    const typeAndReveal = () => {
+      setBotTyping(true);
+      timerRef.current = setTimeout(() => {
+        queueRef.current.shift();
+        revealedIdsRef.current.add(nextId);
+        bumpReveal();
+        setBotTyping(false);
+        timerRef.current = setTimeout(() => pump(), STAGGER_GAP_MS);
+      }, typingDelay(nextBody));
+    };
+
+    if (startGap > 0) {
+      setBotTyping(false); // Ensure typing is off while reading
+      timerRef.current = setTimeout(typeAndReveal, startGap);
+    } else {
+      typeAndReveal();
+    }
   }, []);
 
   useEffect(() => {
