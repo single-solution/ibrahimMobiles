@@ -188,7 +188,16 @@ export function LiveChatWidget({
     }
     if (prevSignedInRef.current !== signedInFlag) {
       prevSignedInRef.current = signedInFlag;
-      void refreshBootstrap();
+      void (async () => {
+        const data = await refreshBootstrap();
+        if (!data) return;
+        const threadId = activeThreadIdRef.current;
+        if (threadId && !data.threads.some((thread) => thread.id === threadId)) {
+          if (data.threads.length > 0) {
+            setActiveThreadId(data.threads[0].id);
+          }
+        }
+      })();
     }
   }, [signedInFlag, refreshBootstrap]);
 

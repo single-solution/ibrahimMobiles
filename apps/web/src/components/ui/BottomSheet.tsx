@@ -45,9 +45,9 @@ export function BottomSheet({
   contentClassName,
 }: BottomSheetProps) {
   const { isMounted, status } = usePresence(isOpen, SHEET_EXIT_MS);
+  const isClosing = status === "closing";
   const dialogRef = useRef<HTMLDivElement>(null);
   const [isHydrated, setIsHydrated] = useState(false);
-  const isClosing = status === "closing";
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- required for safe hydration

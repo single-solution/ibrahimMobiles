@@ -72,17 +72,11 @@ export function useInfiniteList<TItem extends { id: string }>({
 
   if (seedKey !== listKey) {
     // Listing identity changed (filter/search) — reset to the fresh SSR seed.
-     
     setSeedKey(listKey);
-     
     setItems(initial.items);
-     
     setTotal(initial.total);
-     
     setPage(initial.page);
-     
     setIsLoadingMore(false);
-     
     setHasError(false);
     // eslint-disable-next-line react-hooks/refs -- intentional sync reset
     seenIdsRef.current = new Set(initial.items.map((item) => item.id));
@@ -92,13 +86,12 @@ export function useInfiniteList<TItem extends { id: string }>({
     limitRef.current = initial.limit;
     // eslint-disable-next-line react-hooks/refs -- intentional sync reset
     initialRef.current = initial;
-  // eslint-disable-next-line react-hooks/refs -- intentional sync reset
+  // eslint-disable-next-line react-hooks/refs -- intentional sync read
   } else if (initialRef.current !== initial) {
     // Same listing, fresh server data (router.refresh after a mutation). Adopt
     // the new page as the head; keep already-loaded deeper pages as the tail.
     // eslint-disable-next-line react-hooks/refs -- intentional sync reset
     initialRef.current = initial;
-     
     setItems((previous) => {
       const headIds = new Set(initial.items.map((item) => item.id));
       const tail = previous.filter((item) => !headIds.has(item.id));
@@ -106,7 +99,6 @@ export function useInfiniteList<TItem extends { id: string }>({
       seenIdsRef.current = new Set(merged.map((item) => item.id));
       return merged;
     });
-     
     setTotal(initial.total);
   }
 

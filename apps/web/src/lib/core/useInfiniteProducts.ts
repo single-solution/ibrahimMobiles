@@ -69,21 +69,13 @@ export function useInfiniteProducts({
   // or search change re-renders the server page and hands us a new `initial`).
   // Render-phase state sync is React's blessed alternative to a reset effect.
   if (seedKey !== filterKey) {
-     
     setSeedKey(filterKey);
-     
     setProducts(initial.products);
-     
     setPage(initial.page);
-     
     setPageCount(initial.pageCount);
-     
     setPageSize(initial.pageSize);
-     
     setTotal(initial.total);
-     
     setIsLoadingMore(false);
-     
     setHasError(false);
     // eslint-disable-next-line react-hooks/refs -- intentional sync reset
     seenIdsRef.current = new Set(initial.products.map((product) => product.id));

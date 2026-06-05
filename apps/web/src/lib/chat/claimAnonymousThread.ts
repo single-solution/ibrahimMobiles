@@ -26,9 +26,23 @@ async function mergeGuestIntoCanonical(
   guest: InquiryLean,
   customer: { name: string; phoneNumber: string },
 ): Promise<InquiryLean> {
+  const canonicalMessages = canonical.messages ?? [];
+  const guestMessages = [...(guest.messages ?? [])];
+
+  // The guest thread always starts with a welcome message. If we append it to a canonical
+  // thread that already has messages, we'll get a duplicate welcome message in the middle
+  // of the history. Drop the guest's initial welcome message if it exists.
+  if (
+    canonicalMessages.length > 0 &&
+    guestMessages.length > 0 &&
+    guestMessages[0].author === "assistant"
+  ) {
+    guestMessages.shift();
+  }
+
   const messages = sortedByCreatedAt([
-    ...(canonical.messages ?? []),
-    ...(guest.messages ?? []),
+    ...canonicalMessages,
+    ...guestMessages,
   ]);
   const last = messages[messages.length - 1];
   const status = last?.author === "customer" ? "open" : canonical.status;
