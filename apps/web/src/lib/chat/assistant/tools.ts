@@ -27,7 +27,9 @@ import {
 import { getAccountChatProfile, type AccountChatProfile } from "@/lib/core/account";
 import {
   getOffersCached,
+  getPopularProductsCached,
   getProductBySlugCached,
+  getProductsPageCached,
   searchAssistantCatalogCached,
 } from "@/lib/core/cached";
 import { isProductInStock } from "@/lib/productSummary";
@@ -91,6 +93,21 @@ export const ASSISTANT_TOOL_SCHEMAS: AssistantToolSchema[] = [
     description:
       "List the store's currently active promotions and discounts. Use when the customer asks about deals/offers or when a relevant saving is worth mentioning.",
     parameters: { type: "object", properties: {} },
+  },
+  {
+    name: "get_top_products",
+    description:
+      "List the store's best-selling/popular products, or the newest arrivals. Use when the customer asks what's popular, best-selling, trending, most bought, recommended, or what's new/latest. Returns public product summaries (name, per-grade price, stock, link).",
+    parameters: {
+      type: "object",
+      properties: {
+        kind: {
+          type: "string",
+          description:
+            "'popular' for best-sellers (default), or 'new' for the newest arrivals.",
+        },
+      },
+    },
   },
   {
     name: "get_my_orders",
@@ -241,6 +258,18 @@ export async function executeAssistantTool(
   if (call.name === "list_active_deals") {
     const offers = await getOffersCached();
     return formatDeals(offers) ?? "No active promotions are running right now.";
+  }
+
+  if (call.name === "get_top_products") {
+    const kind = stringArg(call.arguments, "kind").trim().toLowerCase();
+    const products =
+      kind === "new"
+        ? (await getProductsPageCached({ sort: "newest", limit: SEARCH_RESULT_LIMIT })).products
+        : await getPopularProductsCached(SEARCH_RESULT_LIMIT);
+    if (products.length === 0) {
+      return "Nothing to show there yet. Don't invent any — suggest browsing a category or checking with the team.";
+    }
+    return products.map(formatCatalogLine).join("\n");
   }
 
   if (call.name === "get_my_orders") {

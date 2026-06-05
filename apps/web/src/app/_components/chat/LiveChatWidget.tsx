@@ -53,7 +53,6 @@ import {
   startAnonymousChatThread,
   startCustomerChatThread,
   ChatRequestError,
-  uploadChatAttachment,
 } from "@/lib/chat/transport";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
@@ -247,21 +246,6 @@ export function LiveChatWidget({
     }
   }
 
-  async function handleAttach(file: File, body?: string) {
-    if (!activeThread) return;
-    try {
-      const fresh = await uploadChatAttachment(activeThread.id, file, body);
-      lastActivityAtRef.current = Date.now();
-      setActiveThread(fresh);
-      void refreshBootstrap();
-    } catch (error) {
-      if (error instanceof ChatRequestError && error.code === "login_required") {
-        setBootstrapError(error.message);
-      }
-      throw error;
-    }
-  }
-
   async function handleSend(body: string) {
     if (!activeThread) return;
     const optimistic = makeOptimisticMessage({
@@ -391,8 +375,6 @@ export function LiveChatWidget({
         <ThreadConversation
           thread={activeThread}
           onSend={handleSend}
-          onAttach={handleAttach}
-          attachmentsEnabled={Boolean(settings?.attachmentsEnabled)}
           initialDraft={composerDraft}
           onDraftConsumed={() => setComposerDraft("")}
           loginRequired={loginRequired}

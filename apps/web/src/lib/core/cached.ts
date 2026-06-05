@@ -40,6 +40,7 @@ import {
   getCategoryMetaBySlug as getCategoryMetaBySlugRaw,
   getGrades as getGradesRaw,
   getOffers as getOffersRaw,
+  getPopularProducts as getPopularProductsRaw,
   getProductBySlug as getProductBySlugRaw,
   getProducts as getProductsRaw,
   getProductsPage as getProductsPageRaw,
@@ -276,4 +277,18 @@ export function searchAssistantCatalogCached(
   filters: ProductFilters,
 ): Promise<Product[]> {
   return searchAssistantCatalogInner(stableFilterKey(filters));
+}
+
+/**
+ * Cross-request cached best-sellers (derived from order history). Public
+ * product summaries only — used by the assistant's `get_top_products` tool.
+ */
+const getPopularProductsInner = unstable_cache(
+  async (limit: number): Promise<Product[]> => getPopularProductsRaw(limit),
+  ["assistant-popular-products-v1"],
+  { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+export function getPopularProductsCached(limit: number): Promise<Product[]> {
+  return getPopularProductsInner(limit);
 }

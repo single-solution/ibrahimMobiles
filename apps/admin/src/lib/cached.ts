@@ -33,6 +33,7 @@ import {
   Offer,
   Order,
   Product,
+  SIGNED_IN_INQUIRY_FILTER,
   User,
 } from "@store/db";
 import { LOYALTY_POINT_TO_RUPEE } from "@store/shared";
@@ -327,7 +328,7 @@ export const ADMIN_LOYALTY_POINT_TO_RUPEE = LOYALTY_POINT_TO_RUPEE;
 export const loadAdminInquiriesCached = unstable_cache(
   async (): Promise<AdminInquirySummary[]> => {
     await connectDB();
-    const docs = await Inquiry.find()
+    const docs = await Inquiry.find(SIGNED_IN_INQUIRY_FILTER)
       .sort({ lastMessageAt: -1 })
       .limit(ADMIN_INQUIRIES_LIST_LIMIT)
       .lean<InquiryLean[]>();

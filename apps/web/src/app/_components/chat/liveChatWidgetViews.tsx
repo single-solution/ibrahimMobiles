@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MessageSquare, Paperclip, Send, X } from "lucide-react";
+import { ArrowLeft, MessageSquare, Send, X } from "lucide-react";
 
 import {
   CHAT_GUEST_MESSAGE_LIMIT,
@@ -115,8 +115,6 @@ export function ChatShell({
 interface ThreadConversationProps {
   thread: ChatThread;
   onSend: (body: string) => Promise<void>;
-  onAttach: (file: File, body?: string) => Promise<void>;
-  attachmentsEnabled: boolean;
   initialDraft?: string;
   onDraftConsumed?: () => void;
   loginRequired: boolean;
@@ -130,8 +128,6 @@ interface ThreadConversationProps {
 export function ThreadConversation({
   thread,
   onSend,
-  onAttach,
-  attachmentsEnabled,
   initialDraft = "",
   onDraftConsumed,
   loginRequired,
@@ -142,10 +138,8 @@ export function ThreadConversation({
   welcomeMessageCustomer,
 }: ThreadConversationProps) {
   const messageListRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(initialDraft);
   const [sending, setSending] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -282,22 +276,6 @@ export function ThreadConversation({
     }
   }
 
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file || loginRequired) return;
-    setUploading(true);
-    setError(null);
-    try {
-      await onAttach(file, draft.trim() || undefined);
-      setDraft("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed.");
-    } finally {
-      setUploading(false);
-    }
-  }
-
   return (
     <>
       <div
@@ -345,47 +323,22 @@ export function ThreadConversation({
             onSubmit={handleSubmit}
             className="flex items-center gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2.5"
           >
-        {attachmentsEnabled && (
-          <>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,application/pdf,text/plain"
-              hidden
-              onChange={handleFileChange}
-            />
-            <button
-              type="button"
-              aria-label="Attach file"
-              disabled={uploading}
-              onClick={() => fileInputRef.current?.click()}
-              className="tap grid size-9 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-500)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-800)] disabled:opacity-40"
-            >
-              <Paperclip size={16} />
-            </button>
-          </>
-        )}
         <input
           type="text"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder={uploading ? "Uploading…" : "Type a message"}
+          placeholder="Type a message"
           aria-label="Type a message"
           maxLength={CHAT_MESSAGE_BODY_MAX}
-          disabled={uploading}
           className="h-9 flex-1 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] px-3 text-sm text-[var(--color-ink-800)] placeholder:text-[var(--color-ink-400)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-500)] disabled:opacity-60"
         />
         <button
           type="submit"
           aria-label="Send message"
-          disabled={sending || uploading || draft.trim().length === 0}
+          disabled={sending || draft.trim().length === 0}
           className="tap grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] disabled:opacity-40"
         >
-          {uploading ? (
-            <span className="block size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" />
-          ) : (
-            <Send size={14} />
-          )}
+          <Send size={14} />
         </button>
           </form>
         </>

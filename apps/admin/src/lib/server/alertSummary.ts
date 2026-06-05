@@ -1,4 +1,11 @@
-import { connectDB, getStoreSettings, Inquiry, Order, Product } from "@store/db";
+import {
+  connectDB,
+  getStoreSettings,
+  Inquiry,
+  Order,
+  Product,
+  SIGNED_IN_INQUIRY_FILTER,
+} from "@store/db";
 
 import { LOW_STOCK_VARIANT_THRESHOLD } from "@/lib/server/dashboardStats";
 
@@ -27,7 +34,10 @@ export async function loadAlertSummary(): Promise<AlertSummary> {
 
   const [unreadInquiries, pendingPayments, productAgg, openInquiries] =
     await Promise.all([
-      Inquiry.countDocuments({ unreadByTeam: { $gt: 0 } }),
+      Inquiry.countDocuments({
+        ...SIGNED_IN_INQUIRY_FILTER,
+        unreadByTeam: { $gt: 0 },
+      }),
       Order.countDocuments({ status: "pending-payment" }),
       Product.aggregate<{ _id: null; lowStockVariants: number }>([
         { $match: { isArchived: { $ne: true } } },
@@ -73,6 +83,7 @@ export async function loadAlertSummary(): Promise<AlertSummary> {
         },
       ]),
       Inquiry.countDocuments({
+        ...SIGNED_IN_INQUIRY_FILTER,
         status: { $in: ["open", "awaiting-customer"] },
       }),
     ]);

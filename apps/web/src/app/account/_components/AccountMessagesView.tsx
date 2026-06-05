@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Headset,
   MessageSquare,
-  Paperclip,
   Send,
 } from "lucide-react";
 
@@ -42,7 +41,6 @@ import {
   pollChatThread,
   sendChatMessage,
   startCustomerChatThread,
-  uploadChatAttachment,
 } from "@/lib/chat/transport";
 
 interface AccountMessagesViewProps {
@@ -204,22 +202,6 @@ export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProp
     }
   }
 
-  async function handleAttach(file: File, body?: string) {
-    if (!activeId || sending) return;
-    setSending(true);
-    setError(null);
-    try {
-      const fresh = await uploadChatAttachment(activeId, file, body);
-      setActiveThread(fresh);
-      if (body) setDraft("");
-      void loadThreads();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send attachment.");
-    } finally {
-      setSending(false);
-    }
-  }
-
   function handleSelectThread(id: string) {
     setActiveId(id);
     if (typeof window !== "undefined" && !window.matchMedia("(min-width: 40rem)").matches) {
@@ -299,8 +281,6 @@ export function AccountMessagesView({ initialThreadId }: AccountMessagesViewProp
               messageListRef={messageListRef}
               onDraftChange={setDraft}
               onSubmit={handleSend}
-              onAttach={handleAttach}
-              attachmentsEnabled={chatSettings.attachmentsEnabled}
               onBack={handleBackToList}
               hiddenOnMobile={!activeId}
               error={error}
@@ -455,8 +435,6 @@ interface ConversationPaneProps {
   messageListRef: React.RefObject<HTMLDivElement | null>;
   onDraftChange: (value: string) => void;
   onSubmit: (event: React.FormEvent) => void;
-  onAttach: (file: File, body?: string) => Promise<void>;
-  attachmentsEnabled: boolean;
   onBack: () => void;
   hiddenOnMobile: boolean;
   error: string | null;
@@ -471,8 +449,6 @@ function ConversationPane({
   messageListRef,
   onDraftChange,
   onSubmit,
-  onAttach,
-  attachmentsEnabled,
   onBack,
   hiddenOnMobile,
   error,
@@ -573,9 +549,7 @@ function ConversationPane({
         <ConversationComposer
           draft={draft}
           sending={sending}
-          attachmentsEnabled={attachmentsEnabled}
           onDraftChange={onDraftChange}
-          onAttach={onAttach}
         />
       </form>
     </section>
@@ -585,49 +559,16 @@ function ConversationPane({
 interface ConversationComposerProps {
   draft: string;
   sending: boolean;
-  attachmentsEnabled: boolean;
   onDraftChange: (value: string) => void;
-  onAttach: (file: File, body?: string) => Promise<void>;
 }
 
 function ConversationComposer({
   draft,
   sending,
-  attachmentsEnabled,
   onDraftChange,
-  onAttach,
 }: ConversationComposerProps) {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    void onAttach(file, draft.trim() || undefined);
-  }
-
   return (
     <div className="flex items-end gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/70 p-2 shadow-[var(--shadow-sm)]">
-      {attachmentsEnabled && (
-        <>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,application/pdf,text/plain"
-            hidden
-            onChange={handleFileChange}
-          />
-          <button
-            type="button"
-            aria-label="Attach a file"
-            disabled={sending}
-            onClick={() => fileInputRef.current?.click()}
-            className="tap grid size-10 shrink-0 place-items-center rounded-full text-[var(--color-ink-500)] transition-colors hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Paperclip size={16} />
-          </button>
-        </>
-      )}
       <textarea
         value={draft}
         onChange={(event) => onDraftChange(event.target.value)}

@@ -15,6 +15,7 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import {
   ASSISTANT_CORE_RULES,
+  STORE_HOW_IT_WORKS,
   CHAT_ASSISTANT_DEFAULT_MODELS,
   CHAT_ASSISTANT_DEFAULT_NAME,
   CHAT_ASSISTANT_PROVIDER_LABELS,
@@ -120,11 +121,21 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
             onCheckedChange={(value) => setField("enabled", value)}
           />
           <Switch
-            label="Attachments"
-            description="Allow image/file uploads."
-            checked={draft.attachmentsEnabled}
-            onCheckedChange={(value) => setField("attachmentsEnabled", value)}
+            label="Idle Nudge"
+            description="Teaser bubble when a visitor lingers."
+            checked={draft.proactiveNudgeEnabled}
+            onCheckedChange={(value) => setField("proactiveNudgeEnabled", value)}
             disabled={!draft.enabled}
+          />
+          <NumberField
+            label="Nudge After"
+            value={draft.proactiveNudgeMinutes}
+            onChange={(value) => setField("proactiveNudgeMinutes", value)}
+            suffix="min"
+            min={1}
+            max={60}
+            disabled={!draft.enabled || !draft.proactiveNudgeEnabled}
+            hint="Idle minutes before the nudge."
           />
           <NumberField
             label="Free Msg Limit"
@@ -310,6 +321,20 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
                   >
                     <span className="mt-1 size-1.5 shrink-0 rounded-full bg-[var(--color-accent-500)]" />
                     <span>{rule}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">
+                Store knowledge the bot always has (built-in)
+              </p>
+              <ul className="mt-2 space-y-1.5">
+                {STORE_HOW_IT_WORKS.map((fact) => (
+                  <li
+                    key={fact}
+                    className="flex gap-2 text-[11.5px] leading-relaxed text-[var(--color-ink-600)]"
+                  >
+                    <span className="mt-1 size-1.5 shrink-0 rounded-full bg-[var(--color-ink-300)]" />
+                    <span>{fact}</span>
                   </li>
                 ))}
               </ul>

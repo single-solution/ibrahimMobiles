@@ -10,6 +10,7 @@ import {
   LoyaltyAccount,
   Order,
   Product,
+  SIGNED_IN_INQUIRY_FILTER,
 } from "@store/db";
 
 import {
@@ -202,9 +203,11 @@ export async function loadDashboardKpis(): Promise<DashboardKpis> {
       },
     ]),
     Inquiry.countDocuments({
+      ...SIGNED_IN_INQUIRY_FILTER,
       status: { $in: ["open", "awaiting-customer"] },
     }),
     Inquiry.countDocuments({
+      ...SIGNED_IN_INQUIRY_FILTER,
       status: { $in: ["open", "awaiting-customer"] },
       createdAt: { $lt: weekStart },
     }),
@@ -321,7 +324,7 @@ export async function loadDashboardDailyRevenue(): Promise<{ date: string; rupee
  */
 export async function loadDashboardRecentInquiries(): Promise<AdminInquiry[]> {
   await connectDB();
-  const docs = await Inquiry.find()
+  const docs = await Inquiry.find(SIGNED_IN_INQUIRY_FILTER)
     .sort({ lastMessageAt: -1 })
     .limit(RECENT_INQUIRIES_LIMIT)
     .lean<InquiryLean[]>();
@@ -439,9 +442,11 @@ export async function loadDashboardData(): Promise<DashboardData> {
       },
     ]),
     Inquiry.countDocuments({
+      ...SIGNED_IN_INQUIRY_FILTER,
       status: { $in: ["open", "awaiting-customer"] },
     }),
     Inquiry.countDocuments({
+      ...SIGNED_IN_INQUIRY_FILTER,
       status: { $in: ["open", "awaiting-customer"] },
       createdAt: { $lt: weekStart },
     }),
@@ -471,7 +476,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
       },
       { $sort: { _id: 1 } },
     ]),
-    Inquiry.find()
+    Inquiry.find(SIGNED_IN_INQUIRY_FILTER)
       .sort({ lastMessageAt: -1 })
       .limit(RECENT_INQUIRIES_LIMIT)
       .lean<InquiryLean[]>(),

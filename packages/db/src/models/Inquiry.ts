@@ -40,6 +40,18 @@ export const INQUIRY_STATUSES = [
 ] as const;
 export type InquiryStatus = (typeof INQUIRY_STATUSES)[number];
 
+/**
+ * Admin-facing surfaces (inbox, dashboards, badges, alerts) only show real,
+ * signed-in customers. Anonymous guest preview threads (`phoneNumber` =
+ * `anon:<uuid>`, no `customerId`) are excluded until the guest signs in and
+ * the thread is claimed — which stamps a `customerId`. Merge this into every
+ * admin Inquiry query so guest chatter never leaks into admin or inflates
+ * counts.
+ */
+export const SIGNED_IN_INQUIRY_FILTER = {
+  customerId: { $exists: true, $ne: null },
+} as const;
+
 export const INQUIRY_MESSAGE_AUTHORS = ["customer", "agent", "assistant"] as const;
 export type InquiryMessageAuthor = (typeof INQUIRY_MESSAGE_AUTHORS)[number];
 

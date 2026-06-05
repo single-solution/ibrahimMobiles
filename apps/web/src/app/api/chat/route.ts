@@ -16,7 +16,7 @@ import { cookies } from "next/headers";
 import { Types } from "mongoose";
 
 import { Inquiry as InquiryModel, connectDB } from "@store/db";
-import { ok, verifyGuestToken } from "@store/shared";
+import { ok, toClientChatSettings, verifyGuestToken } from "@store/shared";
 
 import { enforceChatPollRateLimit } from "@/lib/api/chatRateLimit";
 import { auth } from "@/lib/auth";
@@ -35,6 +35,7 @@ export async function GET(request: Request) {
   }
 
   const settings = await getChatSettings();
+  const clientSettings = toClientChatSettings(settings);
   const session = await auth();
   const isSignedInCustomer =
     session?.user?.role === "customer" &&
@@ -42,7 +43,7 @@ export async function GET(request: Request) {
     Types.ObjectId.isValid(session?.user?.customerId ?? "");
 
   if (!settings.enabled) {
-    return ok({ enabled: false, threads: [], settings, isSignedInCustomer });
+    return ok({ enabled: false, threads: [], settings: clientSettings, isSignedInCustomer });
   }
 
   const url = new URL(request.url);
@@ -97,7 +98,7 @@ export async function GET(request: Request) {
   }
 
   if (filters.length === 0) {
-    return ok({ enabled: true, threads: [], settings, isSignedInCustomer });
+    return ok({ enabled: true, threads: [], settings: clientSettings, isSignedInCustomer });
   }
 
   const docs = await InquiryModel.find(filters.length === 1 ? filters[0] : { $or: filters })
@@ -108,7 +109,7 @@ export async function GET(request: Request) {
   return ok({
     enabled: true,
     threads: docs.map(summariseThread),
-    settings,
+    settings: clientSettings,
     isSignedInCustomer,
   });
 }

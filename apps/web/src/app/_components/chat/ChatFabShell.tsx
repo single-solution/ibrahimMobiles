@@ -9,6 +9,13 @@ import { classNames } from "@store/shared";
 import { useChatSettings } from "@/lib/chat/chatSettingsContext";
 import { fetchChatUnreadSummary } from "@/lib/chat/transport";
 import { OPEN_CHAT_EVENT, type OpenChatDetail } from "@/lib/chat/openChat";
+import {
+  buildChatNudgeLine,
+  chatPageContextKey,
+  getChatPageContext,
+  subscribeChatPageContext,
+  type ChatPageContext,
+} from "@/lib/chat/pageChatContext";
 
 const LiveChatWidget = dynamic(
   () =>
@@ -19,6 +26,55 @@ const LiveChatWidget = dynamic(
 const LABEL_AUTO_HIDE_MS = 4500;
 const HIDDEN_PREFIXES = ["/checkout", "/account/sign-in"];
 
+const NUDGE_OFF_KEY = "chat.nudge.off";
+const NUDGE_SHOWN_KEY = "chat.nudge.shown";
+
+/** Visitor dismissed the nudge or engaged the chat — silence it for the session. */
+function isNudgeOff(): boolean {
+  try {
+    return sessionStorage.getItem(NUDGE_OFF_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markNudgeOff(): void {
+  try {
+    sessionStorage.setItem(NUDGE_OFF_KEY, "1");
+  } catch {
+    // sessionStorage may be unavailable (private mode) — nudge just won't persist.
+  }
+}
+
+function nudgeShownContexts(): Set<string> {
+  try {
+    return new Set(JSON.parse(sessionStorage.getItem(NUDGE_SHOWN_KEY) ?? "[]") as string[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function markNudgeShown(key: string): void {
+  try {
+    const shown = nudgeShownContexts();
+    shown.add(key);
+    sessionStorage.setItem(NUDGE_SHOWN_KEY, JSON.stringify([...shown]));
+  } catch {
+    // best-effort
+  }
+}
+
+/** Seed the opener with the current product when one is in view. */
+function deriveOpenerDetail(context: ChatPageContext): OpenChatDetail | null {
+  if (context.kind === "product" && context.productId && context.productName) {
+    return {
+      subjectProductId: context.productId,
+      subjectProductName: context.productName,
+    };
+  }
+  return null;
+}
+
 export function ChatFabShell() {
   const chatSettings = useChatSettings();
   const pathname = usePathname() ?? "";
@@ -26,10 +82,22 @@ export function ChatFabShell() {
   const [isLabelVisible, setIsLabelVisible] = useState(true);
   const [unread, setUnread] = useState(0);
   const [openDetail, setOpenDetail] = useState<OpenChatDetail | null>(null);
+  const [pageContext, setPageContext] = useState<ChatPageContext>(getChatPageContext());
+  const [nudge, setNudge] = useState<string | null>(null);
 
   const hidden =
     !chatSettings.enabled ||
     HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+
+  const openChat = useCallback(
+    (detail?: OpenChatDetail | null) => {
+      setOpenDetail(detail ?? deriveOpenerDetail(pageContext));
+      setIsOpen(true);
+      setNudge(null);
+      markNudgeOff();
+    },
+    [pageContext],
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => setIsLabelVisible(false), LABEL_AUTO_HIDE_MS);
@@ -102,10 +170,54 @@ export function ChatFabShell() {
       const detail = (event as CustomEvent<OpenChatDetail>).detail;
       setOpenDetail(detail ?? null);
       setIsOpen(true);
+      setNudge(null);
+      markNudgeOff();
     }
     window.addEventListener(OPEN_CHAT_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_CHAT_EVENT, onOpen);
   }, []);
+
+  // Track what the visitor is looking at (product / category / deals / …).
+  useEffect(() => subscribeChatPageContext(setPageContext), []);
+
+  // Proactive idle nudge: after N idle minutes, show a context-aware teaser
+  // beside the closed launcher. Once per session, plus once per new product /
+  // category context. Suppressed if open, already chatted (unread), or dismissed.
+  useEffect(() => {
+    if (
+      hidden ||
+      !chatSettings.proactiveNudgeEnabled ||
+      isOpen ||
+      unread > 0 ||
+      nudge !== null
+    ) {
+      return;
+    }
+    if (typeof window === "undefined" || isNudgeOff()) {
+      return;
+    }
+    const key = chatPageContextKey(pageContext);
+    if (nudgeShownContexts().has(key)) {
+      return;
+    }
+    const delayMs = Math.max(1, chatSettings.proactiveNudgeMinutes) * 60_000;
+    const timer = window.setTimeout(() => {
+      if (isNudgeOff()) {
+        return;
+      }
+      setNudge(buildChatNudgeLine(pageContext));
+      markNudgeShown(key);
+    }, delayMs);
+    return () => window.clearTimeout(timer);
+  }, [
+    hidden,
+    chatSettings.proactiveNudgeEnabled,
+    chatSettings.proactiveNudgeMinutes,
+    isOpen,
+    unread,
+    nudge,
+    pageContext,
+  ]);
 
   if (hidden) return null;
 
@@ -122,9 +234,32 @@ export function ChatFabShell() {
         />
       )}
 
+      {nudge && !isOpen && unread === 0 && (
+        <div className="reveal-rise flex max-w-[260px] items-start gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-2.5 pl-3 pr-2 shadow-[var(--shadow-md)]">
+          <button
+            type="button"
+            onClick={() => openChat()}
+            className="tap text-left text-[12.5px] leading-snug text-[var(--color-ink-700)] hover:text-[var(--color-ink-900)]"
+          >
+            {nudge}
+          </button>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            onClick={() => {
+              setNudge(null);
+              markNudgeOff();
+            }}
+            className="tap -mr-0.5 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[var(--color-ink-400)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-700)]"
+          >
+            <X size={12} strokeWidth={2.4} />
+          </button>
+        </div>
+      )}
+
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => (isOpen ? setIsOpen(false) : openChat())}
         aria-label={isOpen ? "Close chat" : "Ask us a question"}
         aria-expanded={isOpen}
         className={classNames(

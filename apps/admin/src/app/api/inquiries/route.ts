@@ -7,6 +7,7 @@ import {
   Customer,
   Inquiry,
   INQUIRY_STATUSES,
+  SIGNED_IN_INQUIRY_FILTER,
   type InquiryStatus,
 } from "@store/db";
 
@@ -33,6 +34,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   if (url.searchParams.get("summary") === "1") {
     const unreadByTeam = await Inquiry.countDocuments({
+      ...SIGNED_IN_INQUIRY_FILTER,
       status: { $ne: "resolved" },
       unreadByTeam: { $gt: 0 },
     });
@@ -45,7 +47,7 @@ export async function GET(request: Request) {
   const customerId = url.searchParams.get("customerId");
 
   const filter: Record<string, unknown> = {};
-  const andConditions: Record<string, unknown>[] = [];
+  const andConditions: Record<string, unknown>[] = [SIGNED_IN_INQUIRY_FILTER];
 
   if (customerId && isValidId(customerId)) {
     const customer = await Customer.findById(customerId)
@@ -56,7 +58,7 @@ export async function GET(request: Request) {
         $or: [{ customerId }, { phoneNumber: customer.phoneNumber }],
       });
     } else {
-      filter.customerId = customerId;
+      andConditions.push({ customerId });
     }
   }
   if (search) {

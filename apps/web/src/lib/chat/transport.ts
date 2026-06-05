@@ -168,25 +168,6 @@ export async function sendChatMessage(
   return (await jsonOrThrow(res)) as ChatThread;
 }
 
-export async function uploadChatAttachment(
-  threadId: string,
-  file: File,
-  body?: string,
-): Promise<ChatThread> {
-  const formData = new FormData();
-  formData.append("file", file);
-  if (body) formData.append("body", body);
-  const res = await fetch(
-    `/api/chat/${encodeURIComponent(threadId)}/attachments`,
-    {
-      method: "POST",
-      credentials: "same-origin",
-      body: formData,
-    },
-  );
-  return (await jsonOrThrow(res)) as ChatThread;
-}
-
 /**
  * Optimistic message stub — used by the composer to render the message
  * locally before the server round-trip. Replaced by the real id when the

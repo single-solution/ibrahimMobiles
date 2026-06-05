@@ -41,7 +41,6 @@ export function NoticesSettings({ draft, saved, setField, onSaved, canUpdate }: 
           placeholder="e.g. 3 to 5 working days"
           hint="Appears on PDPs and at checkout."
           disabled={!canUpdate}
-          containerClassName="max-w-md"
         />
       </FormSection>
 
@@ -49,7 +48,7 @@ export function NoticesSettings({ draft, saved, setField, onSaved, canUpdate }: 
         title="Store notice banner"
         description="A global banner displayed at the top of the storefront for important announcements like delayed deliveries or holidays."
       >
-        <div className="space-y-4 max-w-2xl">
+        <div className="space-y-4">
           <Switch
             label="Enable store notice"
             description="Show the banner on the storefront."

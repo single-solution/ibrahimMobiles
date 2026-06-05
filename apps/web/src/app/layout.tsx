@@ -15,6 +15,7 @@ import {
 } from "@/lib/core/cached";
 import { getChatSettings } from "@/lib/chat/chatSettings";
 import { ChatSettingsProvider } from "@/lib/chat/chatSettingsContext";
+import { toClientChatSettings } from "@store/shared";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
 import { getGoogleSiteVerification } from "@/lib/seo/googleVerification";
 import { StoreSettingsProvider } from "@/lib/core/storeSettingsContext";
@@ -245,7 +246,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       >
         <MarketingPixelsNoScript googleTagManagerId={settings.googleTagManagerId} />
         <StoreSettingsProvider value={settings}>
-          <ChatSettingsProvider value={chatSettings}>
+          <ChatSettingsProvider value={toClientChatSettings(chatSettings)}>
             <ReferenceProvider value={reference}>
               <AppShell footer={<Footer settings={settings} />}>
                 {children}

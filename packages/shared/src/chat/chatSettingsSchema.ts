@@ -35,7 +35,10 @@ export interface ChatSettingsValues {
   pollIntervalMsBlurred: number;
   guestThreadTokenDays: number;
   guestMessageLimit: number;
-  attachmentsEnabled: boolean;
+  /** Show a context-aware teaser bubble beside the closed launcher when idle. */
+  proactiveNudgeEnabled: boolean;
+  /** Idle minutes before the proactive nudge appears (per session). */
+  proactiveNudgeMinutes: number;
 }
 
 export const CHAT_SETTING_DEFAULTS: ChatSettingsValues = {
@@ -60,7 +63,8 @@ export const CHAT_SETTING_DEFAULTS: ChatSettingsValues = {
   pollIntervalMsBlurred: 30_000,
   guestThreadTokenDays: 90,
   guestMessageLimit: CHAT_GUEST_MESSAGE_LIMIT,
-  attachmentsEnabled: false,
+  proactiveNudgeEnabled: true,
+  proactiveNudgeMinutes: 7,
 };
 
 export type ChatAssistantRuntimeSettings = Pick<
@@ -120,7 +124,8 @@ const CHAT_SETTING_DB_KEYS: Record<keyof ChatSettingsValues, string> = {
   pollIntervalMsBlurred: "chat.pollIntervalMsBlurred",
   guestThreadTokenDays: "chat.guestThreadTokenDays",
   guestMessageLimit: "chat.guestMessageLimit",
-  attachmentsEnabled: "chat.attachmentsEnabled",
+  proactiveNudgeEnabled: "chat.proactiveNudgeEnabled",
+  proactiveNudgeMinutes: "chat.proactiveNudgeMinutes",
 };
 
 export const CHAT_SETTING_DB_KEY_LIST = Object.values(CHAT_SETTING_DB_KEYS);
@@ -150,7 +155,7 @@ export function coerceChatSettingValue<K extends keyof ChatSettingsValues>(
     case "enabled":
     case "assistantEnabled":
     case "liveModeEnabled":
-    case "attachmentsEnabled":
+    case "proactiveNudgeEnabled":
       return (typeof value === "boolean" ? value : null) as ChatSettingsValues[K] | null;
     case "assistantName":
       return (
@@ -223,6 +228,12 @@ export function coerceChatSettingValue<K extends keyof ChatSettingsValues>(
           ? clampNumber(Math.round(value), 1, 100)
           : null
       ) as ChatSettingsValues[K] | null;
+    case "proactiveNudgeMinutes":
+      return (
+        typeof value === "number" && Number.isFinite(value)
+          ? clampNumber(Math.round(value), 1, 60)
+          : null
+      ) as ChatSettingsValues[K] | null;
     default:
       return null;
   }
@@ -269,7 +280,24 @@ export function mergeChatSettingsFromDb(
     pollIntervalMsBlurred: readChatSetting(map, "pollIntervalMsBlurred"),
     guestThreadTokenDays: readChatSetting(map, "guestThreadTokenDays"),
     guestMessageLimit: readChatSetting(map, "guestMessageLimit"),
-    attachmentsEnabled: readChatSetting(map, "attachmentsEnabled"),
+    proactiveNudgeEnabled: readChatSetting(map, "proactiveNudgeEnabled"),
+    proactiveNudgeMinutes: readChatSetting(map, "proactiveNudgeMinutes"),
+  };
+}
+
+/**
+ * Strip server-only secrets before chat settings cross to the browser.
+ * The widget needs display + polling fields, never the provider API keys or
+ * the assistant instructions (which are effectively the system prompt). Both
+ * the root layout and the bootstrap endpoint MUST pass settings through here.
+ */
+export function toClientChatSettings(settings: ChatSettingsValues): ChatSettingsValues {
+  return {
+    ...settings,
+    providerApiKeyOpenai: "",
+    providerApiKeyGoogle: "",
+    providerApiKeyAnthropic: "",
+    assistantInstructions: "",
   };
 }
 

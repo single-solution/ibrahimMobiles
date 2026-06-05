@@ -28,6 +28,7 @@ import {
   Attribute as AttributeModel,
   Grade as GradeModel,
   Offer as OfferModel,
+  Order as OrderModel,
   Product as ProductModel,
   connectDB,
 } from "@store/db";
@@ -701,6 +702,51 @@ export async function getProductById(
   }
   const brandLookup = await buildBrandLookup();
   return toProduct(product, brandLookup);
+}
+
+/** Order statuses that count as a "sale" for popularity (mirrors search hints).
+ *  Cancelled/refunded are excluded so a return doesn't sink a product. */
+const POPULARITY_ORDER_STATUSES = [
+  "pending-payment",
+  "confirmed",
+  "dispatched",
+  "delivered",
+] as const;
+
+/**
+ * Best-sellers, derived live from order history (most-ordered public products).
+ * Returns only public product summaries — no order/customer data or raw counts
+ * leave this function. Order is preserved by popularity (highest first).
+ */
+export async function getPopularProducts(limit = 12): Promise<Product[]> {
+  await connectDB();
+  const topAgg = await OrderModel.aggregate<{ _id: unknown; count: number }>([
+    { $match: { status: { $in: POPULARITY_ORDER_STATUSES } } },
+    { $unwind: "$items" },
+    { $group: { _id: "$items.productId", count: { $sum: 1 } } },
+    { $sort: { count: -1 } },
+    { $limit: Math.max(1, limit) },
+  ]);
+  const ids = topAgg.map((row) => row._id).filter(Boolean);
+  if (ids.length === 0) {
+    return [];
+  }
+
+  const filter: Record<string, unknown> = { _id: { $in: ids }, ...PUBLIC_PRODUCT_FILTER };
+  applyCatalogVisibility(filter, await resolveCatalogVisibility());
+  const docs = await ProductModel.find(filter).lean<ProductLean[]>();
+  const brandLookup = await buildBrandLookup();
+
+  const rank = new Map(ids.map((id, index) => [String(id), index]));
+  const products: Product[] = [];
+  for (const doc of docs) {
+    const converted = toProduct(doc, brandLookup);
+    if (converted) {
+      products.push(converted);
+    }
+  }
+  products.sort((first, second) => (rank.get(first.id) ?? 9_999) - (rank.get(second.id) ?? 9_999));
+  return products;
 }
 
 /** One product by URL slug. */

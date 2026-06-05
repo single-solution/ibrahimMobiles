@@ -128,11 +128,9 @@ export function NumberField({
       hint={hint}
       inputMode="decimal"
       disabled={disabled}
-      // Numeric values like "5%" or "30 days" only need ~10 characters of input
-      // width — letting them stretch to 1000px on a wide monitor looks odd. We
-      // cap at `max-w-xs` (~20rem) by default; callers can override for fields
-      // that benefit from more room (e.g. large rupee amounts).
-      containerClassName={containerClassName ?? "max-w-xs"}
+      // Fields fill their grid cell; callers can still pass a cap when a field
+      // sits outside a grid and would otherwise stretch the full panel width.
+      containerClassName={containerClassName}
     />
   );
 }

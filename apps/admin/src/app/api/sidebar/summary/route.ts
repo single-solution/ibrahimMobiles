@@ -1,5 +1,11 @@
 import { requireSession } from "@/lib/api/requireSession";
-import { connectDB, Customer, Inquiry, Order } from "@store/db";
+import {
+  connectDB,
+  Customer,
+  Inquiry,
+  Order,
+  SIGNED_IN_INQUIRY_FILTER,
+} from "@store/db";
 import { ok } from "@store/shared";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +21,10 @@ export async function GET() {
   const [ordersUnread, customersUnread, inquiriesUnread] = await Promise.all([
     Order.countDocuments({ seenByAdminIds: { $ne: actor.id } }),
     Customer.countDocuments({ seenByAdminIds: { $ne: actor.id } }),
-    Inquiry.countDocuments({ unreadByTeam: { $gt: 0 } }),
+    Inquiry.countDocuments({
+      ...SIGNED_IN_INQUIRY_FILTER,
+      unreadByTeam: { $gt: 0 },
+    }),
   ]);
 
   return ok({
