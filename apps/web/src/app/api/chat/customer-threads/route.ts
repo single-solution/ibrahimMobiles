@@ -24,10 +24,35 @@ import { getChatSettings } from "@/lib/chat/chatSettings";
 import { toThreadLatestPage } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
 
+interface CreateCustomerThreadBody {
+  subjectProductId?: unknown;
+  subjectProductName?: unknown;
+}
+
 export async function POST(request: Request) {
   const csrf = enforceSameOrigin(request);
   if (csrf) {
     return csrf;
+  }
+
+  let subjectProductId: string | undefined;
+  let subjectProductName: string | undefined;
+  try {
+    const body = (await request.json()) as CreateCustomerThreadBody;
+    if (typeof body.subjectProductId === "string") {
+      const trimmed = body.subjectProductId.trim();
+      if (trimmed) {
+        subjectProductId = trimmed;
+      }
+    }
+    if (typeof body.subjectProductName === "string") {
+      const trimmed = body.subjectProductName.trim();
+      if (trimmed) {
+        subjectProductName = trimmed.slice(0, 200);
+      }
+    }
+  } catch {
+    // empty body is fine
   }
 
   const settings = await getChatSettings();

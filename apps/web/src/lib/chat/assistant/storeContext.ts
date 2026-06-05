@@ -125,7 +125,6 @@ export function formatCatalogLine(product: Product): string {
   const priceText =
     cheapestByGrade.size > 0
       ? [...cheapestByGrade.entries()]
-          .slice(0, 5)
           .map(([grade, price]) => `${grade} from ${formatPrice(price)}`)
           .join(", ")
       : "price on request";
