@@ -296,15 +296,26 @@ export function LiveChatWidget({
             }
             lastActivityAtRef.current = Date.now();
             transport.touch();
-            setActiveThread((prev) =>
-              prev
-                ? {
-                    ...fresh,
-                    messages: mergeChatMessagesById(prev.messages, fresh.messages),
-                    hasMoreOlder: prev.hasMoreOlder ?? fresh.hasMoreOlder,
-                  }
-                : fresh,
-            );
+            setActiveThread((prev) => {
+              if (!prev) return fresh;
+              
+              // Deduplicate optimistic messages if the real one arrived via polling
+              const newCustomerBodies = new Set(
+                fresh.messages.filter(m => m.author === "customer").map(m => m.body.trim())
+              );
+              const filteredPrevMessages = prev.messages.filter(m => {
+                if (m.id.startsWith("local-") && newCustomerBodies.has(m.body.trim())) {
+                  return false;
+                }
+                return true;
+              });
+
+              return {
+                ...fresh,
+                messages: mergeChatMessagesById(filteredPrevMessages, fresh.messages),
+                hasMoreOlder: prev.hasMoreOlder ?? fresh.hasMoreOlder,
+              };
+            });
             markChatThreadRead(threadId).catch(() => undefined);
           }
         } else {

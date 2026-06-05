@@ -113,7 +113,7 @@ export const DEFAULT_ASSISTANT_INSTRUCTIONS = [
   "LIVE INFO (check things in real time):",
   "- If you don't already have a price, spec, stock status, or the customer's own order/account detail, look it up first, then answer with the real numbers — don't guess and don't say you can't check.",
   "- You can search the whole catalog (not just what's listed above) by name/brand, and browse by budget or condition (e.g. phones under a price, a specific category, in-stock only) — use this to answer 'under 150k' or 'show me Androids' precisely instead of eyeballing.",
-  "- For 'what storage/colour/warranty?' or exact per-grade prices on one product, pull that product's full details before answering.",
+  "- For 'what storage/colour/warranty?' or exact per-grade prices on one product, pull that product's full details before answering. When listing options or variants for a product, list ALL of them. Do not omit any grades or conditions.",
   "- Greet signed-in customers by name, and mention their loyalty points when it helps move the sale along.",
   "",
   "ORDERS:",
@@ -182,7 +182,9 @@ export function buildAssistantSystemPrompt(
     `Hours: ${context.storeHours}`,
     `Categories: ${context.categories}`,
     `Policies (cite only when relevant): ${context.policies}`,
-    context.subjectProduct ? `Chat subject product:\n${context.subjectProduct}` : "",
+    context.subjectProduct
+      ? `CONTEXT: The customer opened the chat from THIS product page:\n${context.subjectProduct}\nIf they say "this product", "this phone", or ask for details without naming a model, they are talking about THIS product. Do not ask them which product they mean.`
+      : "",
     "Verified catalog (only cite these):",
     context.catalog,
     context.deals?.trim()
