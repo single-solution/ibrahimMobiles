@@ -196,7 +196,7 @@ function AttributeGroupPill({
 
   const label = formatGroupPillLabel(visible, hiddenCount);
   const pillClass =
-    "inline-flex max-w-full items-center truncate rounded-full px-1.5 py-0.5 text-[10px] font-semibold shadow-sm backdrop-blur md:px-2 md:text-[11px]";
+    "inline-flex max-w-full items-center truncate rounded-full px-1.5 py-0.5 text-[10px] font-semibold shadow-sm md:px-2 md:text-[11px]";
   const neutralClass =
     variant === "overlay"
       ? `${pillClass} bg-[var(--color-surface)]/95 text-[var(--color-ink-900)]`

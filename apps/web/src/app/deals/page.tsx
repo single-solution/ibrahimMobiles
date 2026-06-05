@@ -237,7 +237,7 @@ async function DesktopOffers() {
   return (
     <section
       className={classNames(
-        "reveal-stagger cv-auto mt-16",
+        "reveal-stagger mt-16",
         offers.length === 1 ? "block" : "columns-2 gap-5",
       )}
     >
@@ -331,7 +331,7 @@ function MobileProductsFallback() {
 
 function DesktopOffersFallback() {
   return (
-    <section className="cv-auto mt-16 columns-2 gap-5">
+    <section className="mt-16 columns-2 gap-5">
       {Array.from({ length: OFFER_SKELETON_COUNT }).map((_, index) => (
         <div
           key={index}

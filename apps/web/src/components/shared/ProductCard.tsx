@@ -209,7 +209,7 @@ export function ProductCard({
               </div>
               <div className="absolute right-1.5 top-1.5 z-10 flex flex-col items-end gap-1 md:right-3 md:top-3 md:gap-1.5">
                 {activeOffer && (
-                  <span className="rounded-sm bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-accent-800)] shadow-sm backdrop-blur-md">
+                  <span className="rounded-sm bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-accent-800)] shadow-sm">
                     {activeOffer.offerTitle}
                   </span>
                 )}
@@ -232,7 +232,7 @@ export function ProductCard({
           )}
 
           {(!hasVariants || !inStock) && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-ink-900)]/45 backdrop-blur-[1px]">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-[var(--color-ink-900)]/55">
               <span className="rounded-[var(--radius-full)] bg-[var(--color-surface)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--color-ink-900)] shadow-[var(--shadow-md)] md:px-4 md:py-1.5 md:text-[11px]">
                 {hasVariants ? "Sold out" : "Unavailable"}
               </span>

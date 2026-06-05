@@ -191,20 +191,25 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           href="https://cdn.simpleicons.org"
           crossOrigin="anonymous"
         />
-        {/* Speculation Rules — Chrome/Edge will prerender same-origin
-           links once a pointer/touch lands on them. `conservative`
-           eagerness means no prerender until the user is clearly about
-           to click, so wasted bandwidth on visits that never happen is
-           minimal. Excludes admin, account, checkout, sign-in (auth /
-           dynamic-by-session) and API routes (non-navigational). Other
-           browsers silently ignore the tag — pure upside for Chromium.
+        {/* Speculation Rules — Chrome/Edge will prefetch same-origin
+           links once a pointer/touch lands on them. We use `prefetch`
+           (not `prerender`): prerender activated a fully-built page for
+           a frame on click, which flashed real content before the
+           route's own Suspense skeletons settled. Prefetch warms the
+           document without rendering it, so navigation stays fast and
+           the page commits skeleton-first like a fresh load.
+           `conservative` eagerness means no fetch until the user is
+           clearly about to click, so wasted bandwidth on visits that
+           never happen is minimal. Excludes admin, account, checkout,
+           sign-in (auth / dynamic-by-session) and API routes
+           (non-navigational). Other browsers silently ignore the tag.
            Network Information API is respected by Chrome itself: Data
-           Saver / 2g connections skip the prerender automatically. */}
+           Saver / 2g connections skip the prefetch automatically. */}
         <script
           type="speculationrules"
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
-              prerender: [
+              prefetch: [
                 {
                   source: "document",
                   where: {

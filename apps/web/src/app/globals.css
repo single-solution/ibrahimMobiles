@@ -191,11 +191,6 @@
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --motion-slow: 260ms;
-  /* Route swap motion — kept short so navigation feels instant even when
-     the new RSC payload streams in over the network. Anything > ~180ms
-     starts to read as "content was lost and is fading back in" rather
-     than a polish cue. */
-  --motion-route: 360ms;
   --motion-stagger: 60ms;
 
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -543,13 +538,6 @@ html,
 body {
   min-height: 100dvh;
   background-color: var(--color-canvas);
-  background-image: var(--storefront-page-gradient);
-  background-repeat: no-repeat;
-  /* Anchor the wash to the viewport so it stays a gentle full-page tint as
-     you scroll, instead of only painting the top 28rem. `fixed` is cheap
-     here — a single static gradient layer, no scroll-linked repaint. */
-  background-size: cover;
-  background-attachment: fixed;
   color: var(--color-ink-800);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -564,6 +552,20 @@ body {
   word-break: normal;
   overflow-wrap: break-word;
   hyphens: manual;
+}
+
+/* Viewport-anchored page wash on its own compositor layer. Using a fixed
+   pseudo-element (instead of `background-attachment: fixed` on the body)
+   keeps the gradient visually pinned to the viewport while letting the
+   compositor hold it still during scroll — no full-viewport repaint per
+   frame, which is the buttery-scroll win. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--storefront-page-gradient);
+  pointer-events: none;
 }
 
 html {
@@ -1202,74 +1204,6 @@ html {
   animation: item-in 280ms var(--ease-out-quart);
 }
 
-/* View Transitions API — cross-fade only the main content column on
-   pathname changes (`RouteTransition`). Query-only filter/sort updates
-   skip this entirely. Root is frozen so header/footer/tab bar do not
-   flash or slide with every URL tweak. */
-.app-main {
-  view-transition-name: app-main;
-}
-
-/* Disable nested reveals during a route transition so we
-   don't get double-motion (fading in while sliding up).
-   The .route-transitioning class is applied to the wrapper during both
-   View Transitions and fallback CSS transitions. */
-.route-transitioning .reveal,
-.route-transitioning .reveal-fade {
-  animation: none !important;
-  transform: none !important;
-  opacity: 1 !important;
-  transition: none !important;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none;
-  }
-  ::view-transition-old(app-main) {
-    animation: route-vt-out var(--motion-route) var(--ease-out-quart) both;
-  }
-  ::view-transition-new(app-main) {
-    animation: route-vt-in var(--motion-route) var(--ease-out-quart) both;
-  }
-}
-@keyframes route-vt-out {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.99);
-  }
-}
-@keyframes route-vt-in {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.99);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* Route commit — soft cross-fade after client navigations / query swaps. */
-@keyframes route-content-in {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.99);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-.route-enter {
-  animation: route-content-in var(--motion-route) var(--ease-out-quart);
-}
-
 /* Shop listing — filter/sort/pagination result swap. */
 @keyframes listing-swap-in {
   from {
@@ -1579,7 +1513,6 @@ html {
   }
   .reveal,
   .reveal-fade,
-  .route-enter,
   .listing-swap {
     opacity: 1 !important;
     transform: none !important;

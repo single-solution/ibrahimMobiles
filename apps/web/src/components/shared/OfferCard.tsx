@@ -38,7 +38,7 @@ export function OfferCard({ offer, size = "md" }: OfferCardProps) {
         <Pill
           tone="dark"
           size="sm"
-          className="!bg-[color-mix(in_srgb,var(--color-ink-900)_30%,transparent)] !text-[var(--color-on-dark)] backdrop-blur"
+          className="!bg-[color-mix(in_srgb,var(--color-ink-900)_45%,transparent)] !text-[var(--color-on-dark)]"
         >
           {offer.badgeLabel}
         </Pill>
