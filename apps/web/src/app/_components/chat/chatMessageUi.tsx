@@ -182,7 +182,7 @@ export function ChatMessageDayDivider({ label }: { label: string }) {
 }
 
 /** Three-dot "support is typing" bubble shown while awaiting an assistant reply. */
-export function ChatTypingIndicator() {
+export function ChatTypingIndicator({ label }: { label?: string }) {
   return (
     <div className="chat-msg-in flex justify-start gap-2.5">
       <span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-300)] to-[var(--color-accent-500)] text-[11px] font-semibold text-[var(--color-ink-900)]">
@@ -190,7 +190,7 @@ export function ChatTypingIndicator() {
       </span>
       <div className="flex items-center gap-2 rounded-[var(--radius-lg)] rounded-tl-sm border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3.5 py-3 shadow-[var(--shadow-sm)]">
         <span className="text-xs font-medium text-[var(--color-ink-500)]">
-          {CHAT_SUPPORT_DISPLAY_NAME} is typing
+          {label ?? `${CHAT_SUPPORT_DISPLAY_NAME} is typing`}
         </span>
         <span className="flex items-center gap-1">
           <span className="size-1.5 animate-bounce rounded-full bg-[var(--color-ink-400)] [animation-delay:-0.3s]" />

@@ -60,6 +60,7 @@ import {
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { useIsSignedIn } from "@/lib/auth/useIsSignedIn";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
+import { getChatPageContext } from "@/lib/chat/pageChatContext";
 
 import {
   ChatShell,
@@ -340,13 +341,17 @@ export function LiveChatWidget({
     setPendingFirstMessage(makeOptimisticMessage({ body }));
     setView("starting");
     try {
+      const pageContext = getChatPageContext();
       const thread = isSignedInCustomer
         ? await startCustomerChatThread()
         : await startAnonymousChatThread({
             subjectProductId: composeProductIdRef.current,
             subjectProductName: composeSubjectName,
           });
-      const fresh = await sendChatMessage(thread.id, body);
+      const fresh = await sendChatMessage(thread.id, body, {
+        subjectProductId: pageContext.productId || composeProductIdRef.current,
+        subjectProductName: pageContext.productName || composeSubjectName,
+      });
       lastActivityAtRef.current = Date.now();
       pollCursorRef.current = newestServerCreatedAt(fresh.messages);
       setActiveThreadId(fresh.id);
@@ -386,7 +391,11 @@ export function LiveChatWidget({
       lastMessageAuthor: "customer",
     });
     try {
-      const fresh = await sendChatMessage(activeThread.id, body);
+      const pageContext = getChatPageContext();
+      const fresh = await sendChatMessage(activeThread.id, body, {
+        subjectProductId: pageContext.productId,
+        subjectProductName: pageContext.productName,
+      });
       lastActivityAtRef.current = Date.now();
       pollCursorRef.current = newestServerCreatedAt(fresh.messages) ?? pollCursorRef.current;
       // `fresh` is the recent page; drop the optimistic stub and merge so any
@@ -516,7 +525,6 @@ export function LiveChatWidget({
       {view === "starting" && pendingFirstMessage && (
         <StartingConversation
           message={pendingFirstMessage}
-          assistantEnabled={settings?.assistantEnabled ?? false}
         />
       )}
       {view === "compose" && (

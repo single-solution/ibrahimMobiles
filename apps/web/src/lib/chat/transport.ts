@@ -149,6 +149,10 @@ export async function startCustomerChatThread(): Promise<ChatThread> {
 export async function sendChatMessage(
   threadId: string,
   body: string,
+  context?: {
+    subjectProductId?: string;
+    subjectProductName?: string;
+  },
 ): Promise<ChatThread> {
   const res = await fetch(
     `/api/chat/${encodeURIComponent(threadId)}/messages`,
@@ -156,7 +160,7 @@ export async function sendChatMessage(
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body }),
+      body: JSON.stringify({ body, ...context }),
     },
   );
   return (await jsonOrThrow(res)) as ChatThread;

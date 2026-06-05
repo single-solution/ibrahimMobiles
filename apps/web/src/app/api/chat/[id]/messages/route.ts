@@ -46,6 +46,8 @@ interface RouteContext {
 
 interface PostBody {
   body?: unknown;
+  subjectProductId?: unknown;
+  subjectProductName?: unknown;
 }
 
 const MAX_PER_WINDOW = 30;
@@ -74,6 +76,15 @@ export async function POST(request: Request, { params }: RouteContext) {
   }
   if (bodyResult.length > CHAT_MESSAGE_BODY_MAX) {
     return badRequest("Message too long.");
+  }
+
+  let subjectProductId: string | undefined;
+  let subjectProductName: string | undefined;
+  if (typeof parsed.subjectProductId === "string" && parsed.subjectProductId.trim()) {
+    subjectProductId = parsed.subjectProductId.trim();
+  }
+  if (typeof parsed.subjectProductName === "string" && parsed.subjectProductName.trim()) {
+    subjectProductName = parsed.subjectProductName.trim().slice(0, 200);
   }
 
   const session = await auth();
@@ -129,6 +140,8 @@ export async function POST(request: Request, { params }: RouteContext) {
           ...(inquiry.customerId ? { customerId: inquiry.customerId } : {}),
           ...(inquiry.customerName ? { customerName: inquiry.customerName } : {}),
           ...(inquiry.phoneNumber ? { phoneNumber: inquiry.phoneNumber } : {}),
+          ...(subjectProductId ? { subjectProductId } : {}),
+          ...(subjectProductName ? { subjectProductName } : {}),
         },
         $inc: { unreadByTeam: 1 },
       },

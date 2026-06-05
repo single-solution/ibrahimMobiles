@@ -34,15 +34,15 @@ import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
  * plus a small fixed "understand it" beat. Applied once, before the first
  * bubble of a reply — subsequent bubbles only carry their own typing time.
  */
-const TYPING_CHARS_PER_MIN_MIN = 200;
-const TYPING_CHARS_PER_MIN_MAX = 260;
-const TYPING_MIN_MS = 700;
-const TYPING_MAX_MS = 7000;
-const READING_CHARS_PER_MIN = 1000;
-const COMPREHENSION_BASE_MS = 500;
-const READING_MAX_MS = 4500;
+const TYPING_CHARS_PER_MIN_MIN = 2000;
+const TYPING_CHARS_PER_MIN_MAX = 2500;
+const TYPING_MIN_MS = 400;
+const TYPING_MAX_MS = 1200;
+const READING_CHARS_PER_MIN = 4000;
+const COMPREHENSION_BASE_MS = 200;
+const READING_MAX_MS = 800;
 /** Brief settle between a revealed bubble and the next typing pause. */
-const STAGGER_GAP_MS = 250;
+const STAGGER_GAP_MS = 150;
 
 function typingDelay(text: string): number {
   const charsPerMin =
@@ -66,15 +66,13 @@ function readingDelay(text: string): number {
  */
 export function StartingConversation({
   message,
-  assistantEnabled,
 }: {
   message: ChatMessage;
-  assistantEnabled: boolean;
 }) {
   return (
     <div className="flex-1 space-y-3 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-3">
       <ChatMessageBubble message={message} />
-      {assistantEnabled && <ChatTypingIndicator />}
+      <ChatTypingIndicator label="Connecting you with someone..." />
     </div>
   );
 }

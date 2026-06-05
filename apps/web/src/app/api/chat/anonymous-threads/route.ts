@@ -51,9 +51,16 @@ export async function POST(request: Request) {
     return badRequest("Chat is currently disabled.");
   }
 
+  let subjectProductId: string | undefined;
   let subjectProductName: string | undefined;
   try {
     const body = (await request.json()) as CreateAnonymousThreadBody;
+    if (typeof body.subjectProductId === "string") {
+      const trimmed = body.subjectProductId.trim();
+      if (trimmed) {
+        subjectProductId = trimmed;
+      }
+    }
     if (typeof body.subjectProductName === "string") {
       const trimmed = body.subjectProductName.trim();
       if (trimmed) {
@@ -89,6 +96,7 @@ export async function POST(request: Request) {
       lastMessageAuthor: "assistant",
       unreadByCustomer: 0,
       unreadByTeam: 0,
+      subjectProductId,
       subjectProductName,
       messages: [],
     });
