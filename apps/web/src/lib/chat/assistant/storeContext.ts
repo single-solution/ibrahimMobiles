@@ -28,7 +28,7 @@ const CATALOG_CONTEXT_LIMIT = 10;
 
 /** How many of the customer's orders to load; full detail on the most recent few. */
 const ORDER_CONTEXT_LIMIT = 8;
-const ORDER_CONTEXT_DETAILED = 3;
+const ORDER_CONTEXT_DETAILED = 8;
 
 function formatOrderDate(iso?: string): string {
   if (!iso) {

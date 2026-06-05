@@ -162,7 +162,6 @@ function formatVariantLine(variant: Product["variants"][number]): string {
   }
   const specs = Object.values(variant.attributeDisplay ?? {})
     .filter(Boolean)
-    .slice(0, 4)
     .join(", ");
   if (specs) {
     parts.push(specs);
