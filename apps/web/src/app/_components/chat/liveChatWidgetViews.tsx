@@ -22,43 +22,20 @@ import {
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
 /**
- * Human pacing model for bot bubbles. A real support agent reads the incoming
- * message, understands it, then types each reply bubble at a believable speed.
- * We simulate both so the bot never dumps an instant wall of text.
- *
- * Typing: an average agent types ~200–260 characters per minute. We pick a
- * fresh rate per bubble (jitter) and clamp the result so a one-liner still
- * takes a beat and a long bubble never hangs the thread.
- *
- * Reading: skim-reading the customer's last message is faster (~1000 cpm)
- * plus a small fixed "understand it" beat. Applied once, before the first
- * bubble of a reply — subsequent bubbles only carry their own typing time.
+ * Human pacing model for bot bubbles.
+ * We use a clean, deterministic character-count approach:
+ * - 0.3 seconds per character for typing.
+ * - 0.1 seconds per character for reading.
  */
-const TYPING_CHARS_PER_MIN_MIN = 220;
-const TYPING_CHARS_PER_MIN_MAX = 300;
-const TYPING_MIN_MS = 800;
-const TYPING_MAX_MS = 6000;
-const READING_CHARS_PER_MIN = 1000;
-const COMPREHENSION_BASE_MS = 800;
-const READING_MAX_MS = 4000;
 /** Brief settle between a revealed bubble and the next typing pause. */
 const STAGGER_GAP_MS = 250;
 
 function typingDelay(text: string): number {
-  const charsPerMin =
-    TYPING_CHARS_PER_MIN_MIN +
-    Math.random() * (TYPING_CHARS_PER_MIN_MAX - TYPING_CHARS_PER_MIN_MIN);
-  const ms = (text.length / charsPerMin) * 60_000;
-  return Math.max(TYPING_MIN_MS, Math.min(TYPING_MAX_MS, ms));
+  return text.length * 300; // 0.3 seconds per character
 }
 
 function readingDelay(text: string): number {
-  // Simulate a busy agent: 30% chance they take an extra 1-3 seconds before they start reading
-  const isBusy = Math.random() > 0.7;
-  const busyDelay = isBusy ? 1000 + Math.random() * 2000 : 0;
-  
-  const ms = COMPREHENSION_BASE_MS + (text.length / READING_CHARS_PER_MIN) * 60_000 + busyDelay;
-  return Math.min(ms, READING_MAX_MS + 3000); // Allow max to be higher if they are busy
+  return text.length * 100; // 0.1 seconds per character
 }
 
 /**
