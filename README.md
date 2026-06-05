@@ -1,6 +1,6 @@
 # Ibrahim Mobiles — Functional Specification
 
-This document maps the exact business rules, state machines, and conditionals of the platform. It uses visual flows and dense tables to provide an exhaustive reference without lengthy paragraphs.
+This document maps the exact business rules, state machines, layouts, and conditionals of the platform. It uses visual flows, dense tables, and structured lists to provide an exhaustive reference.
 
 ---
 
@@ -28,81 +28,83 @@ flowchart LR
     style H fill:#ef4444,stroke:#b91c1c,color:white
 ```
 
-### Core Entities
+### Core Entities & Invariants
 | Entity | Business Rules & Invariants |
 |---|---|
-| **Category** | • **Integrity:** Cannot be deleted if referenced by products, brands, or grades.<br>• **Display:** Defines the vocabulary (grades, attributes) for its products. |
-| **Brand** | • **Scoping:** Brands are per-category (e.g., Apple in Phones vs Apple in Watches).<br>• **Integrity:** Cannot be deleted if products exist. |
-| **Grade** | • **Scoping:** Per-category condition tier (e.g., "Like New").<br>• **Display:** Drives badges, colors, and optional inspection videos on the PDP. |
-| **Attribute** | • **Scoping:** Per-category custom dimension (e.g., Storage, RAM, Color).<br>• **Visibility Rules:** Can show *Always*, *By Brand*, *By Grade*, or *By Parent Attribute* (cascading). |
-| **Product** | • **Media:** Up to 8 shared photos per product (variants share the gallery).<br>• **Flags:** Active (on/off), Archived (soft delete), Featured (boosts in UI). |
-| **Variant** | • **Truth:** The absolute source of truth for price, stock, and condition.<br>• **Stock:** In-stock if `quantity > 0`. Reserved at checkout, released on cancel/refund/return. |
+| **Category** | • **Layout:** Defines grades, attributes, and brands for its products.<br>• **Integrity:** Cannot be deleted if referenced by products, brands, or grades. Deactivate instead.<br>• **Content:** Has description, icon, sort order, and optional rich marketing content. |
+| **Brand** | • **Scoping:** Brands are per-category (e.g., Apple in Phones vs Apple in Watches).<br>• **Integrity:** Cannot be deleted if products exist. Deactivate instead. |
+| **Grade** | • **Scoping:** Per-category condition tier (e.g., "Like New").<br>• **Display:** Drives badges, hex colors, notes, and optional inspection videos on the PDP. |
+| **Attribute** | • **Scoping:** Per-category custom dimension (e.g., Storage, RAM, Color).<br>• **Visibility Rules:** Can show *Always*, *By Brand*, *By Grade*, or *By Parent Attribute* (cascading).<br>• **Card Position:** Renders on product cards as image overlay, title chips, or hidden. |
+| **Product** | • **Media:** Up to 8 shared photos per product (variants share the gallery). Index 0 is the hero image.<br>• **Flags:** Active (on/off), Archived (soft delete, hides from default admin views), Featured (boosts in UI rails). |
+| **Variant** | • **Truth:** The absolute source of truth for price, stock, warranty, and condition.<br>• **Stock:** In-stock if `quantity > 0`. Reserved at checkout, released on cancel/refund/return. |
 
 ---
 
-## 2. Storefront: Browsing & Discovery
+## 2. Storefront: Global Shell & Home Page
 
-### Global Shell & Home Page
-| Feature | Rules & Conditionals |
-|---|---|
-| **Navigation** | • **Desktop:** Sticky top header. **Mobile:** Compact header + fixed bottom tab bar.<br>• **Auth State:** "Account" vs "Sign in" label resolves client-side. |
-| **Home Sections** | • **Hero:** Pill with active categories, trending products, "Visit store" CTA.<br>• **Categories:** Featured cards. Inactive categories show "Soon" and are unclickable.<br>• **Process:** 3 flows (Store, Order, Return). Uses admin-configured money-back days.<br>• **Grades:** Dark band with per-grade cards and videos.<br>• **Footer:** Maps, hours, delivery blurb, accepted payments. |
-| **Notice Banner** | • Shown only if enabled in Admin with text. Dismissible for the session. |
+### Global Layout & Navigation
+*   **Desktop:** Sticky top header with full navigation. Cart opens as a dropdown popover.
+*   **Mobile:** Compact top header + fixed bottom tab bar (Home, Shop, Deals, Cart, Account). Extra bottom padding ensures content clears the tab bar. Cart tab opens full page.
+*   **Auth State:** "Account" vs "Sign in" label resolves client-side.
+*   **Notice Banner:** Shown only if enabled in Admin with text. Dismissible for the session.
+*   **404 Page:** Shows message + links to home and shop browse.
 
-### Search, Filters & Listing
-| Feature | Rules & Conditionals |
-|---|---|
-| **Search Overlay** | • **< 2 chars:** Shows random hints + 5 recent browser searches.<br>• **≥ 2 chars:** Debounced live results (max 10) with variant counts.<br>• **Submit:** Routes to `/shop?q=...` and saves to recent searches. Max 100 chars. |
-| **Filters (AND)** | • **Sync:** All active filters sync to URL query params.<br>• **Dynamic Facets:** Attribute options load dynamically based on current filter set.<br>• **Hiding:** Zero-count brand/grade options are hidden unless currently selected.<br>• **Price:** Min/Max requires explicit "Apply" click. |
-| **Infinite Scroll** | • **Batch:** 24 items per page.<br>• **Trigger:** Auto-loads ~600px before end, or via "Load more" fallback.<br>• **Reset:** Changing any filter resets infinite scroll to page 1. |
-| **Deals Page** | • **Offers:** Streams in active offers. Hidden if none exist.<br>• **Sale Grid:** Shows admin-flagged "Featured" products. |
-
-### Product Detail Page (PDP)
-| Element | Rules & Conditionals |
-|---|---|
-| **URL Sync** | • Variant selections sync to URL params. Invalid combos silently reset to defaults. |
-| **Configurator** | • **Incomplete:** Price hidden, missing attributes highlighted.<br>• **Complete:** Price, stock, quantity stepper, and "Add to cart" appear.<br>• **Closest Match:** If exact combo doesn't exist, auto-selects closest stocked variant and shows a pre-filled WhatsApp inquiry button. |
-| **Stock & Qty** | • **Max Qty:** Variant stock minus current cart quantity.<br>• **Shortcut:** "Buy all (N)" appears if stock > 1 and qty < max.<br>• **Sold Out:** Button disabled. Mobile sticky bar drops WhatsApp button. |
-| **Showcase** | • **Grade Panel:** Updates with selected variant's grade (notes, warranty, video).<br>• **Related:** Same category + brand, excluding current product. |
+### Home Page Sections (Streamed in with Skeletons)
+1.  **Hero:** Pill with active categories (or "Shop every category"), animated headline, trending products, "Visit store" CTA. On mobile, fills viewport minus header/tab bar.
+2.  **Browse by Category:** Featured cards. *Conditional:* Inactive categories show "Soon" and are unclickable. *Conditional:* If more categories exist than the cap, shows "Browse all".
+3.  **Process:** 3 flows (Store, Order, Return). Uses admin-configured money-back days and bank-transfer discount %.
+4.  **Grades (Dark Band):** Headline + category tabs. Per-grade cards with badge, notes, video. *Conditional:* If data fails, copy shows but grid is empty.
+5.  **Visit Store:** Address, hours, embedded map, Maps link, accepted payments, delivery blurb. *Layout:* Mobile puts map above details; Desktop is side-by-side.
 
 ---
 
-## 3. Storefront: Cart, Checkout & Auth
+## 3. Storefront: Shop, Search & Filters
 
-### OTP Sign-In Flow
-```mermaid
-flowchart LR
-    A[Enter Phone] --> B{Rate Limited?}
-    B -- Yes --> C[Error: Retry-After]
-    B -- No --> D[Generate 6-digit OTP]
-    D --> E[SMS Delivered]
-    E --> F[Enter OTP]
-    F --> G{Valid?}
-    G -- No --> H[Increment Fail Count]
-    H --> |5 Fails| I[Invalidate Code]
-    G -- Yes --> J(((Create Session)))
-```
+### Search Overlay
+*   **Trigger:** Opens full-screen from header. Body scroll locks. Input auto-focuses.
+*   **< 2 chars:** Shows randomized hint chips + up to 5 recent browser searches.
+*   **≥ 2 chars:** Debounced live results (max 10) with variant counts and loading skeletons.
+*   **Submit:** Routes to `/shop?q=...`, saves to recent searches, closes overlay. Max 100 chars.
+*   **Empty State:** "No results" with option to search all.
 
-### Cart & Account
-| Feature | Rules & Conditionals |
-|---|---|
-| **Cart Limits** | • **Max Lines:** 20 distinct product+variant pairs.<br>• **Max Qty:** 10 per line (or variant stock, whichever is lower).<br>• **Persistence:** LocalStorage, syncs across tabs, survives refresh. |
-| **OTP Auth** | • **Identity:** Phone number (normalized to last 10 digits). No passwords.<br>• **Limits:** Max 5 issues / 15 min. Resend cooldown 30s.<br>• **Fallback:** If SMS provider fails (5xx), UI offers manual admin code entry. |
-| **Profile** | • Phone is immutable. Name and City required to save.<br>• Addresses: Max 6. Cannot delete the last remaining address. |
+### Shop & Category Listings
+*   **Routing:** `/shop` redirects to first active category. `/shop?q=...` renders global search. `/shop/{category}` renders listing. *Conditional:* Unknown category = 404. Inactive category = "Coming soon" page without grid.
+*   **Layout:** Desktop has sticky left filter sidebar + category rail. Mobile has category picker dropdown + "Filters" bottom sheet.
+*   **Category Rail:** *Conditional:* Inactive categories appear disabled ("Soon"). Switching categories does not preserve filters.
 
-### Checkout Steps & Success
-| Step | Rules & Conditionals |
-|---|---|
-| **0. Auth Gate** | • **Guest:** Blocked. Shows read-only summary and sign-in panel.<br>• **Signed-in:** Allowed to proceed. |
-| **1. Delivery** | • **Pickup:** Free.<br>• **Courier:** Flat Rs 1,500 OR Free if subtotal ≥ admin threshold. Address required. |
-| **2. Payment** | • Options: Bank Transfer, Easypaisa, JazzCash, COD (toggled in admin).<br>• **Discount:** Bank Transfer automatically applies admin-configured % discount. |
-| **3. Loyalty** | • **Min Redeem:** 100 points. **Max Redeem:** 20% of order subtotal.<br>• **Blocker:** Disabled if an active offer explicitly disallows loyalty redemption.<br>• **Input:** Toggle applies max available automatically (no partial manual entry). |
-| **4. Placement** | • **Validation:** Name > 1 char, Phone ≥ 7 chars, Address valid, Policy checked.<br>• **Security:** Idempotency key prevents double-charges.<br>• **Server Truth:** Prices re-fetched from DB. Client prices ignored.<br>• **Stock:** Reserved atomically at placement. Insufficient stock throws error. |
-| **5. Success** | • Shows order number, timeline, payment instructions (if total > 0), and loyalty summary. |
+### Filters (AND Logic) & Infinite Scroll
+*   **Sync:** All active filters (brand, grade, min/max price, attributes, sort, q) sync to URL query params.
+*   **Price:** Min/Max requires explicit "Apply" click (no auto-apply on blur).
+*   **Dynamic Facets:** Attribute options load dynamically based on current filter set. *Conditional:* Zero-count brand/grade options are hidden unless currently selected.
+*   **Infinite Scroll:** 24 items per page. Auto-loads ~600px before end, or via "Load more" fallback. Furthest-loaded page replaces browser history.
+*   **Reset:** Changing any filter resets infinite scroll to page 1.
+*   **Empty States:** *Conditional:* Filters active, no matches = "No more products match your selection". *Conditional:* No filters, no stock = "No {category} in stock right now".
+
+### Product Cards & Deals Page
+*   **Product Cards:** Show brand, name, hero image, grade badge, attribute chips. *Conditional:* Multiple grades = cycles grade slides on hover. *Conditional:* Out of stock = "Sold out" overlay. *Conditional:* Active offer = Offer title badge.
+*   **Deals Page:** Static hero. *Conditional:* Active offers stream in (hidden if none). Sale Grid shows admin-flagged "Featured" products.
 
 ---
 
-## 4. Pricing, Offers & Loyalty
+## 4. Storefront: Product Detail Page (PDP)
+
+### Layout & Routing
+*   **URL Sync:** Variant selections sync to URL params. *Conditional:* Invalid combos silently reset to defaults. Legacy `?variant=id` auto-redirects to readable attribute params.
+*   **Layout:** Desktop = Breadcrumbs + 2-column (gallery | configurator) + grade showcase + related rail. Mobile = Gallery card + configurator + grade showcase + related rail + sticky bottom purchase bar.
+*   **Gallery:** Hero image, thumbnails, lightbox zoom. Mobile supports swipe/cross-fade. Images follow selected variant if variant-specific images exist.
+
+### Configurator & Actions
+*   **Incomplete Selection:** Price hidden, missing attributes highlighted.
+*   **Complete Selection:** Price, stock, quantity stepper, and "Add to cart" appear.
+*   **Closest Match:** *Conditional:* If exact combo doesn't exist, auto-selects closest stocked variant and shows a pre-filled WhatsApp inquiry button.
+*   **Stock & Qty:** Max qty is variant stock minus current cart qty. *Conditional:* "Buy all (N)" shortcut appears if stock > 1 and qty < max. *Conditional:* Sold Out = Button disabled, mobile sticky bar drops WhatsApp button.
+*   **Pricing:** Evaluates active offers client-side. Shows strikethrough, discounted price, and offer badge if applicable.
+*   **Grade Showcase:** Updates with selected variant's grade (notes, warranty, video). *Conditional:* Omitted if grade data missing.
+*   **Related Products:** Same category + brand. *Conditional:* "No more products" if none.
+
+---
+
+## 5. Storefront: Cart & Checkout
 
 ### Price Calculation Flow
 Prices are never trusted from the client. The server re-evaluates the cart at placement using this exact sequence.
@@ -123,16 +125,109 @@ flowchart TD
     style I fill:#3b82f6,stroke:#1d4ed8,color:white
 ```
 
-### Offers & Loyalty Rules
-| System | Rules & Conditionals |
+### Cart Behavior
+*   **Limits:** Max 20 distinct product+variant pairs. Max 10 qty per line (or variant stock cap).
+*   **Persistence:** LocalStorage, syncs across tabs, survives refresh. Hydration gate prevents empty flash.
+*   **Layout:** Desktop dropdown shows summary + line items. Full page `/cart` has mobile scrollable list vs desktop sidebar.
+
+### Checkout Steps & Validation
+| Step | Rules & Conditionals |
 |---|---|
-| **Offers Engine** | • **Evaluation:** Sequential based on admin `sortOrder`.<br>• **Stacking:** First applied *non-stackable* offer stops evaluation.<br>• **Conditions:** Product, Category, Brand, Grade, Attribute, Price Range, Cart Total.<br>• **Actions:** % off, Fixed Rs off, Free Shipping. Target: Matched items or Cart. |
-| **Loyalty Earn** | • **Rate:** Configurable % of subtotal (e.g., 1%).<br>• **Trigger:** Points credited ONLY when order status → `delivered`.<br>• **Reversal:** Points reversed if a `delivered` order changes to `cancelled` or `refunded`. |
-| **Loyalty Value** | • 1 Point = Rs 1. |
+| **0. Auth Gate** | • **Guest:** Blocked. Shows read-only summary and sign-in panel.<br>• **Signed-in:** Allowed to proceed. |
+| **1. Contact** | • Name (editable, min 2 chars). Phone (read-only from verified account). |
+| **2. Delivery** | • **Pickup:** Free. Shows store hours.<br>• **Courier:** Flat Rs 1,500 OR Free if subtotal ≥ admin threshold. Address required (min 2 chars). Pre-fills default saved address. |
+| **3. Payment** | • Options: Bank Transfer, Easypaisa, JazzCash, COD.<br>• **Discount:** Bank Transfer automatically applies admin-configured % discount. |
+| **4. Loyalty** | • **Min Redeem:** 100 points. **Max Redeem:** 20% of order subtotal.<br>• **Blocker:** Disabled if an active offer explicitly disallows loyalty redemption.<br>• **Input:** Toggle applies max available automatically (no partial manual entry). |
+| **5. Placement** | • **Validation:** Name > 1 char, Phone ≥ 7 chars, Address valid, Policy checked.<br>• **Security:** Idempotency key prevents double-charges.<br>• **Stock:** Reserved atomically at placement. Insufficient stock throws error. |
+
+### Checkout Success
+*   **Display:** Order number, timeline, payment instructions (if total > 0), and loyalty summary.
+*   **Guards:** Requires valid session and `order` query param.
 
 ---
 
-## 5. Order Lifecycle & Fulfillment
+## 6. Storefront: Auth & Account
+
+### OTP Sign-In Flow
+```mermaid
+flowchart LR
+    A[Enter Phone] --> B{Rate Limited?}
+    B -- Yes --> C[Error: Retry-After]
+    B -- No --> D[Generate 6-digit OTP]
+    D --> E[SMS Delivered]
+    E --> F[Enter OTP]
+    F --> G{Valid?}
+    G -- No --> H[Increment Fail Count]
+    H --> |5 Fails| I[Invalidate Code]
+    G -- Yes --> J(((Create Session)))
+```
+
+### Account Rules
+*   **Identity:** Phone number (normalized to last 10 digits). No passwords.
+*   **OTP Limits:** Max 5 issues / 15 min. Resend cooldown 30s. Max 5 wrong guesses per code.
+*   **OTP Fallback:** If SMS provider fails (5xx), UI offers manual admin code entry ("I have a code from our team").
+*   **Session:** 30-day persistent HTTP-only cookie. Claims any anonymous chat threads matching the phone on creation.
+*   **Profile:** Phone is immutable. Name and City required to save. Addresses: Max 6. Cannot delete the last remaining address.
+*   **Dashboard:** Shows active orders, total spent, order history filters. Loyalty sidebar shows balance and pending points.
+*   **Sign-out:** Clears session, anonymous chat cookies, local cart, and client signed-in flag.
+
+---
+
+## 7. Chat & AI Assistant
+
+### Escalation Timeline
+When the AI detects frustration or a direct request for a human, it triggers a strict escalation protocol.
+
+```mermaid
+sequenceDiagram
+    actor Customer
+    participant AI as AI Assistant
+    participant System
+    actor Admin as Human Agent
+
+    Customer->>AI: "I want to speak to a manager"
+    AI->>System: call escalate_to_human()
+    System-->>Admin: Flag thread "Needs Senior"
+    System->>AI: Mute AI (3 min grace period)
+    
+    alt Admin replies within 3 mins
+        Admin->>Customer: "Hi, I'm the manager..."
+        System->>AI: Unmute AI, clear escalation flag
+    else No admin reply in 3 mins
+        System->>AI: Unmute in "Reassurance-only" mode
+        Customer->>AI: "Hello?"
+        AI->>Customer: "Our senior team is reviewing this..."
+    end
+```
+
+### Chat Rules & Capabilities
+*   **Guest Limits:** Guests get 5 customer-authored messages max. Composer is then replaced by a sign-in gate. Threads merge to customer account upon sign-in.
+*   **AI Auto-Reply:** Triggers after customer messages if enabled and not in escalation grace period.
+*   **Pacing:** Bubbles drip with human-paced typing delays (200-260 cpm).
+*   **AI Tools:** Can search catalog, check stock, list deals, check user orders/loyalty (scoped strictly to session ID).
+*   **UI States:** Unread badge on launcher. Proactive nudge after idle minutes. Reconnecting subtitle. "Speak to someone" footer hint.
+
+---
+
+## 8. Loyalty & Offers Engine
+
+### Offers Engine
+*   **Evaluation:** Sequential based on admin `sortOrder`.
+*   **Stacking:** First applied *non-stackable* offer stops evaluation.
+*   **Conditions:** Product, Category, Brand, Grade, Attribute, Price Range, Cart Total. Operators: in, not_in, between, gte, lte.
+*   **Actions:** % off, Fixed Rs off, Free Shipping. Target: Matched items or Cart.
+*   **Constraints:** Schedule window, usage limit, allow loyalty points flag.
+
+### Loyalty Rules
+*   **Earn Rate:** Configurable % of subtotal (e.g., 1%). Earned on subtotal *before* payment discounts.
+*   **Trigger:** Points credited ONLY when order status → `delivered`.
+*   **Reversal:** Points reversed if a `delivered` order changes to `cancelled` or `refunded`. (Returns do *not* reverse loyalty).
+*   **Value:** 1 Point = Rs 1.
+*   **Bonuses:** Review and Referral bonuses exist in copy but are awarded via manual admin adjustment.
+
+---
+
+## 9. Order Lifecycle & Fulfillment
 
 ### Status Timeline & Side Effects
 This state machine dictates how an order progresses, when stock is released, and when loyalty points are awarded or reversed.
@@ -168,60 +263,39 @@ stateDiagram-v2
 
 ---
 
-## 6. Chat & AI Assistant
+## 10. Admin Console: Workspaces & Flows
 
-### Escalation Timeline
-When the AI detects frustration or a direct request for a human, it triggers a strict escalation protocol.
+### Global Admin Patterns
+*   **Session:** Distinct cookie from storefront. Missing permissions redirect to dashboard with toast.
+*   **Layout:** List + detail split on desktop; mobile shows list OR detail.
+*   **Infinite Scroll:** Orders, customers, inquiries load more pages on scroll.
+*   **Deferred Counts:** Heavy aggregates (total revenue, segment counts) stream in after first paint with shimmer skeletons.
 
-```mermaid
-sequenceDiagram
-    actor Customer
-    participant AI as AI Assistant
-    participant System
-    actor Admin as Human Agent
+### Orders Workspace
+*   **Filters:** Status tabs. Search by order number, name, phone, city.
+*   **Stepper:** Clickable forward steps. Can only step backward if < dispatched.
+*   **Actions:** Print invoice, WhatsApp customer (normalizes phone), Cancel order (runs cancel side-effects). Hard delete requires `order_delete` permission.
 
-    Customer->>AI: "I want to speak to a manager"
-    AI->>System: call escalate_to_human()
-    System-->>Admin: Flag thread "Needs Senior"
-    System->>AI: Mute AI (3 min grace period)
-    
-    alt Admin replies within 3 mins
-        Admin->>Customer: "Hi, I'm the manager..."
-        System->>AI: Unmute AI, clear escalation flag
-    else No admin reply in 3 mins
-        System->>AI: Unmute in "Reassurance-only" mode
-        Customer->>AI: "Hello?"
-        AI->>Customer: "Our senior team is reviewing this..."
-    end
-```
+### Customers Workspace
+*   **Segments:** All, Loyalty, With Orders.
+*   **Create:** Phone normalized. Duplicate phone conflicts.
+*   **Details:** Profile (phone is read-only), Addresses, Orders, Loyalty transactions, Inquiries.
+*   **Actions:** Generate 15-min manual sign-in code. Adjust loyalty balance (requires reason, cannot drive below zero). Delete blocked if `orderCount > 0`.
 
-### Chat Rules & Capabilities
-| Feature | Rules & Conditionals |
-|---|---|
-| **Guest Limits** | • Guests get 5 customer-authored messages max. Composer is then replaced by a sign-in gate.<br>• Threads merge to customer account upon sign-in. |
-| **AI Auto-Reply** | • Triggers after customer messages if enabled and not in escalation grace period.<br>• **Pacing:** Bubbles drip with human-paced typing delays (200-260 cpm). |
-| **AI Tools** | • Can search catalog, check stock, list deals, check user orders/loyalty (scoped strictly to session ID). |
+### Inquiries Inbox
+*   **Filters:** Anonymous threads are excluded from the default view.
+*   **Read State:** Opening a thread zeros `unreadByTeam`. Replying increments `unreadByCustomer`.
+*   **Assignment:** Replying to an unassigned thread auto-assigns it to the operator.
+*   **Actions:** Change status (Open, Awaiting Customer, Resolved), add internal notes, attach files.
+
+### Catalog (Products, Categories, Brands)
+*   **Products:** Delete blocked if referenced by orders. Use `isActive` toggle instead. Wizard Step 1 (Details & Photos) -> Step 2 (Variants by Grade). Duplicate attribute combinations are rejected.
+*   **Categories:** Create/edit label, slug, icon, sort order, structured marketing content, SEO.
+*   **Brands:** Scoped to a category. Used in product wizard brand picker.
 
 ---
 
-## 7. Admin Console: Workspaces
-
-### Customers & Inquiries
-| Workspace | Rules & Conditionals |
-|---|---|
-| **Customers** | • **Segments:** All, Loyalty, With Orders.<br>• **Counts:** Total loyalty balance streams in progressively.<br>• **Delete:** Blocked if `orderCount > 0`.<br>• **Manual OTP:** Admins can generate a 15-min sign-in code for users failing to get SMS. |
-| **Inquiries** | • **Filters:** Anonymous threads are excluded from the default view.<br>• **Read State:** Opening a thread zeros `unreadByTeam`. Replying increments `unreadByCustomer`.<br>• **Assignment:** Replying to an unassigned thread auto-assigns it to the operator. |
-
-### Products, Categories & Brands
-| Workspace | Rules & Conditionals |
-|---|---|
-| **Products** | • **Delete:** Blocked if referenced by orders. Use `isActive` toggle instead.<br>• **Variants:** Duplicate attribute combinations are rejected by the server.<br>• **Wizard:** Step 1 (Details & Photos) -> Step 2 (Variants by Grade). |
-| **Categories** | • **Management:** Create/edit label, slug, icon, sort order, structured marketing content, SEO. |
-| **Brands** | • **Management:** Scoped to a category. Used in product wizard brand picker. |
-
----
-
-## 8. Admin Console: System & Security
+## 11. Admin Console: System & Security
 
 ### Roles & Permissions
 *Super-admin flag bypasses all role matrices and grants all keys.*
@@ -229,13 +303,14 @@ sequenceDiagram
 | Role | Capabilities & Limits |
 |---|---|
 | **Owner** | Full access. Only role with `order_delete` and `data_cleanup`. |
-| **Business Mgr** | Catalog, Orders, Customers, Loyalty, Chat, Offers, Settings.<br>*Blocked:* Team invites, hard deletes. |
+| **Business Mgr** | Catalog, Orders, Customers, Loyalty, Chat, Offers, Settings.<br>*Blocked:* Team invites, hard deletes, data cleanup. |
 | **Product Mgr** | Catalog CRUD and Media only. |
 | **Marketing Mgr** | Offers, Categories, Brands, Media. Read-only products. |
 | **Support Staff** | Read-only Catalog/Orders/Customers. Can view + reply to chats. |
 
 ### Settings & Activity Log
-| Feature | Rules & Conditionals |
-|---|---|
-| **Settings** | • **Live Updates:** Changes to branding, policies, payments, and chat config apply to the storefront immediately.<br>• **Data Cleanup:** Owner-only tool to bulk-delete catalog, orders, customers, or inquiries. |
-| **Activity Log** | • Append-only audit trail of all mutations (actor, action, resource, timestamp). Failures to log do not block business operations. |
+*   **Settings Tabs:** Store details, Contact, Payments, Delivery, Notices, Loyalty, Policies, Inventory, SEO, Chat widget, Integrations, Data cleanup.
+*   **Live Updates:** Changes to branding, policies, payments, and chat config apply to the storefront immediately.
+*   **Data Cleanup:** Owner-only tool to bulk-delete catalog, orders, customers, or inquiries.
+*   **Activity Log:** Append-only audit trail of all mutations (actor, action, resource, timestamp). Failures to log do not block business operations. Filters by resource type and action.
+*   **Shop Health:** Dashboard card checks for missing site name, missing support contacts, invalid pixels, products without images, and out-of-stock variants.
