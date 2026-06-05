@@ -81,7 +81,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   let subjectProductId: string | undefined;
   let subjectProductName: string | undefined;
   if (typeof parsed.subjectProductId === "string" && parsed.subjectProductId.trim()) {
-    subjectProductId = parsed.subjectProductId.trim();
+    subjectProductId = parsed.subjectProductId.trim().slice(0, 64);
   }
   if (typeof parsed.subjectProductName === "string" && parsed.subjectProductName.trim()) {
     subjectProductName = parsed.subjectProductName.trim().slice(0, 200);

@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     if (typeof body.subjectProductId === "string") {
       const trimmed = body.subjectProductId.trim();
       if (trimmed) {
-        subjectProductId = trimmed;
+        subjectProductId = trimmed.slice(0, 64);
       }
     }
     if (typeof body.subjectProductName === "string") {
