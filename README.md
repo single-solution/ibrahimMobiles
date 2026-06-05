@@ -223,7 +223,7 @@ sequenceDiagram
 *   **Pacing:** Bubbles drip with realistic human-paced delays. Includes message-length-based reading time (with simulated "busy" agent delays) followed by typing time (220-300 cpm). Typing indicator only shows during the actual typing phase.
 *   **Initial Connection:** Displays "Connecting you with someone..." instead of a typing indicator while the thread is being created.
 *   **AI Tools:** Can search catalog, check stock, list deals, check user orders/loyalty (scoped strictly to session ID). Product context is automatically passed if chat is opened from a PDP, and the AI is explicitly instructed to use this context to understand vague references like "this product". When listing product variants, the AI will list all available grades and conditions without omitting any.
-*   **UI States:** Unread badge on launcher. Proactive nudge after idle minutes. Reconnecting subtitle. "Speak to someone" footer hint. Optimistic UI prevents message flickering by deduplicating local messages against background polling.
+*   **UI States:** Unread badge on launcher. Proactive nudge after idle minutes. Reconnecting subtitle. "Speak to someone" footer hint. Optimistic UI prevents message flickering by strictly 1-to-1 deduplicating local messages against background polling, ensuring double-sends are handled gracefully without ghosting.
 *   **Polling:** 5s when tab focused / 30s when blurred. 120/min/IP limit.
 
 ---

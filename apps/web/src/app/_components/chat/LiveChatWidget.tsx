@@ -300,12 +300,38 @@ export function LiveChatWidget({
               if (!prev) return fresh;
               
               // Deduplicate optimistic messages if the real one arrived via polling
-              const newCustomerBodies = new Set(
-                fresh.messages.filter(m => m.author === "customer").map(m => m.body.trim())
-              );
+              const prevRealBodies = new Map<string, number>();
+              for (const m of prev.messages) {
+                if (m.author === "customer" && !m.id.startsWith("local-")) {
+                  const b = m.body.trim();
+                  prevRealBodies.set(b, (prevRealBodies.get(b) || 0) + 1);
+                }
+              }
+
+              const freshRealBodies = new Map<string, number>();
+              for (const m of fresh.messages) {
+                if (m.author === "customer") {
+                  const b = m.body.trim();
+                  freshRealBodies.set(b, (freshRealBodies.get(b) || 0) + 1);
+                }
+              }
+
+              const newlyArrivedCounts = new Map<string, number>();
+              for (const [b, freshCount] of freshRealBodies.entries()) {
+                const prevCount = prevRealBodies.get(b) || 0;
+                if (freshCount > prevCount) {
+                  newlyArrivedCounts.set(b, freshCount - prevCount);
+                }
+              }
+
               const filteredPrevMessages = prev.messages.filter(m => {
-                if (m.id.startsWith("local-") && newCustomerBodies.has(m.body.trim())) {
-                  return false;
+                if (m.id.startsWith("local-")) {
+                  const b = m.body.trim();
+                  const availableToDrop = newlyArrivedCounts.get(b) || 0;
+                  if (availableToDrop > 0) {
+                    newlyArrivedCounts.set(b, availableToDrop - 1);
+                    return false; // Drop this local message, it's covered by a new real one
+                  }
                 }
                 return true;
               });
@@ -413,10 +439,10 @@ export function LiveChatWidget({
       // older messages already loaded above stay in place.
       setActiveThread((prev) => {
         const base = prev ?? fresh;
-        const withoutOptimistic = base.messages.filter((m) => !m.id.startsWith("local-"));
+        const withoutResolvedOptimistic = base.messages.filter((m) => m.id !== optimistic.id);
         return {
           ...fresh,
-          messages: mergeChatMessagesById(withoutOptimistic, fresh.messages),
+          messages: mergeChatMessagesById(withoutResolvedOptimistic, fresh.messages),
           hasMoreOlder: base.hasMoreOlder ?? fresh.hasMoreOlder,
         };
       });
