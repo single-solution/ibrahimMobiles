@@ -1,8 +1,8 @@
 "use client";
 
-import { Check, MessageCircle, ShoppingBag } from "lucide-react";
+import { Check, ShoppingBag } from "lucide-react";
 
-import { buildWhatsAppLink, formatPrice } from "@store/shared";
+import { formatPrice } from "@store/shared";
 
 import { Button } from "@store/ui";
 import { QuantityStepper } from "@store/ui";
@@ -141,7 +141,6 @@ interface MobileStickyCtaProps {
   quantity: number;
   maxQuantity: number;
   onQuantityChange: (quantity: number) => void;
-  whatsappMessage: string;
   onAddToCart: () => void;
   hasJustBeenAdded: boolean;
   activeOffer?: DiscountApplication;
@@ -156,13 +155,12 @@ export function MobileStickyCta({
   quantity,
   maxQuantity,
   onQuantityChange,
-  whatsappMessage,
   onAddToCart,
   hasJustBeenAdded,
   activeOffer,
   discountAmount,
 }: MobileStickyCtaProps) {
-  const { whatsappNumber, globalDeliveryNote } = useStoreSettings();
+  const { globalDeliveryNote } = useStoreSettings();
   const showBuyAll = isInStock && maxQuantity > 1 && quantity < maxQuantity;
 
   return (
@@ -223,15 +221,6 @@ export function MobileStickyCta({
               onChange={onQuantityChange}
               size="sm"
             />
-            <a
-              href={buildWhatsAppLink(whatsappMessage, whatsappNumber)}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Inquire on WhatsApp"
-              className="tap grid size-8 shrink-0 place-items-center rounded-[var(--radius-full)] bg-[var(--color-whatsapp)] text-[var(--color-on-dark)] shadow-[var(--shadow-sm)] active:bg-[var(--color-whatsapp-dark)]"
-            >
-              <MessageCircle size={14} className="fill-[var(--color-on-dark)]" />
-            </a>
             <button
               type="button"
               onClick={onAddToCart}

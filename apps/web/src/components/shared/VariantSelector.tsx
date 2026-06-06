@@ -373,7 +373,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
           quantity={orderQuantity}
           maxQuantity={maxSelectableQuantity}
           onQuantityChange={setAddQuantity}
-          whatsappMessage={whatsappMessage}
           activeOffer={activeOffer}
           discountAmount={activeOffer?.discountAmount ?? 0}
         />
