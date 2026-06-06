@@ -112,7 +112,7 @@ function DimensionTabRow({
 }: DimensionTabRowProps) {
   return (
     <div
-      className="flex w-full divide-x divide-[var(--color-ink-200)] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-200)]"
+      className="flex w-full flex-wrap gap-px overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-ink-200)] md:flex-nowrap md:gap-0 md:divide-x md:divide-[var(--color-ink-200)] md:bg-transparent"
       role="tablist"
       aria-label={dimension.label}
     >
@@ -142,7 +142,7 @@ function DimensionTabRow({
                 : undefined
             }
             className={classNames(
-              "flex flex-1 items-center justify-center whitespace-nowrap border-0 px-1.5 py-1.5 text-center text-[10px] font-medium leading-snug transition-all md:px-2 md:py-2 md:text-[11px]",
+              "flex grow basis-[31%] items-center justify-center whitespace-nowrap border-0 px-1.5 py-1.5 text-center text-[10px] font-medium leading-snug transition-all md:basis-0 md:flex-1 md:px-2 md:py-2 md:text-[11px]",
               isSelected &&
                 "rounded-[var(--radius-sm)] bg-[var(--color-accent-50)] font-semibold text-[var(--color-accent-800)] shadow-[var(--shadow-sm)] ring-1 ring-inset ring-[var(--color-accent-500)]",
               !isSelected &&

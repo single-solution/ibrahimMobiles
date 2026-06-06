@@ -167,9 +167,9 @@ export function MobileStickyCta({
 
   return (
     <div
-      className="fixed inset-x-0 z-30 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)]/95 px-2.5 pt-2 backdrop-blur md:hidden"
+      className="fixed inset-x-3 z-30 rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 pt-2 shadow-[var(--shadow-lg)] md:hidden"
       style={{
-        bottom: "calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px))",
+        bottom: "calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px) + 12px)",
         paddingBottom: "10px",
       }}
     >
@@ -283,9 +283,9 @@ export function MobileStickyPlaceholder({
 }) {
   return (
     <div
-      className="fixed inset-x-0 z-30 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)]/95 px-2.5 pt-2 backdrop-blur md:hidden"
+      className="fixed inset-x-3 z-30 rounded-[var(--radius-2xl)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-2.5 pt-2 shadow-[var(--shadow-lg)] md:hidden"
       style={{
-        bottom: "calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px))",
+        bottom: "calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px) + 12px)",
         paddingBottom: "10px",
       }}
     >

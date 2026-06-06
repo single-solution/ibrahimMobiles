@@ -368,7 +368,7 @@ export function SettingsSaveFooter({
       ? `${dirtyCount} unsaved ${dirtyCount === 1 ? "change" : "changes"} on this tab.`
       : "Up to date — changes appear on the storefront within about a minute.");
   return (
-    <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)]/90 px-3 py-2 backdrop-blur md:gap-3 md:px-6 md:py-3">
+    <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2 md:gap-3 md:px-6 md:py-3">
       <p className="text-[10.5px] text-[var(--color-ink-500)] md:text-[11px]">
         {computedHint}
       </p>

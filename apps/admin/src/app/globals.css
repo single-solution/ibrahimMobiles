@@ -524,63 +524,6 @@ html {
   animation: disclosure-in 200ms var(--ease-out-quart);
 }
 
-/* View Transitions API — cross-fade ONLY the main content column on
-   pathname changes (driven by `RouteTransition`). Query-only filter/sort
-   updates skip this entirely. The document root is frozen so the sidebar,
-   header, and footer never flash or slide on navigation — without this the
-   persistent shell would cross-fade as one whole-page snapshot. */
-.app-main {
-  view-transition-name: app-main;
-}
-@media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none;
-  }
-  ::view-transition-old(app-main) {
-    animation: route-vt-out var(--motion-slow) var(--ease-out-quart) both;
-  }
-  ::view-transition-new(app-main) {
-    animation: route-vt-in var(--motion-slow) var(--ease-out-quart) both;
-  }
-}
-@keyframes route-vt-out {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.99);
-  }
-}
-@keyframes route-vt-in {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.99);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* Fallback for browsers without the View Transitions API: `RouteTransition`
-   toggles `.route-enter` on the content wrapper for one keyframe cycle. */
-@keyframes route-content-in {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.99);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-.route-enter {
-  animation: route-content-in var(--motion-slow) var(--ease-out-quart);
-}
-
 /* Skeleton shimmer — hardware-accelerated for performance. */
 @keyframes shimmer {
   100% { transform: translateX(100%); }

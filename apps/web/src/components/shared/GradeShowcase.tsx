@@ -189,7 +189,7 @@ function VideoFrame({ label, accentColor, videoUrl, isCompact }: VideoFrameProps
           />
           <div className="absolute inset-0 flex flex-col justify-between p-4 text-[var(--color-on-dark)]">
             <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-on-dark-15)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] backdrop-blur">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-on-dark-25)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]">
                 <Camera size={11} />
                 Sample inspection
               </span>
@@ -214,7 +214,7 @@ function VideoFrame({ label, accentColor, videoUrl, isCompact }: VideoFrameProps
             <button
               type="button"
               aria-label="Play sample inspection video"
-              className="grid place-items-center rounded-full bg-[var(--color-on-dark-15)] p-3 text-[var(--color-on-dark)] backdrop-blur transition hover:bg-[var(--color-on-dark-25)]"
+              className="grid place-items-center rounded-full bg-[var(--color-on-dark-15)] p-3 text-[var(--color-on-dark)] transition hover:bg-[var(--color-on-dark-25)]"
             >
               <PlayCircle size={isCompact ? 32 : 44} strokeWidth={1.6} />
             </button>

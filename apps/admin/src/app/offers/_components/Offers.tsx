@@ -319,10 +319,10 @@ function OfferCard({ offer, status, onEdit, onDelete, onToggled }: OfferCardProp
         style={{ background }}
       >
         <div className="relative flex items-start justify-between gap-2">
-          <span className="inline-flex rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] backdrop-blur">
+          <span className="inline-flex rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]">
             {offer.badgeLabel || "Offer"}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium backdrop-blur">
+          <span className="inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-medium">
             <CalendarClock size={11} />
             {summarizeWindow(offer, status)}
           </span>

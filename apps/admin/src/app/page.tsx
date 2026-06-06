@@ -1074,7 +1074,7 @@ interface HeroStatProps {
 function HeroStat({ icon, label, value, changePercent }: HeroStatProps) {
   const isPositive = (changePercent ?? 0) >= 0;
   return (
-    <div className="min-w-[8.5rem] rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]/75 px-3.5 py-2.5 backdrop-blur-sm">
+    <div className="min-w-[8.5rem] rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3.5 py-2.5">
       <p className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--color-ink-500)]">
         <span className="text-[var(--color-accent-700)]">{icon}</span>
         {label}

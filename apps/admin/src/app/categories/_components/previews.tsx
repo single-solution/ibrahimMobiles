@@ -299,7 +299,7 @@ export function OfferCardCompactPreview({ offer }: { offer: OfferDraft }) {
       style={{ background }}
     >
       <div className="relative flex items-center justify-between">
-        <span className="inline-flex rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white backdrop-blur">
+        <span className="inline-flex rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
           {offer.badgeLabel || "Limited"}
         </span>
         <span className="text-[10px] text-white/85">
@@ -333,7 +333,7 @@ export function OfferCardFullPreview({ offer }: { offer: OfferDraft }) {
       style={{ background }}
     >
       <div className="relative flex items-center justify-between">
-        <span className="inline-flex rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white backdrop-blur">
+        <span className="inline-flex rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">
           {offer.badgeLabel || "Limited"}
         </span>
         <span className="inline-flex items-center gap-1 text-xs text-white/85">

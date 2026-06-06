@@ -52,7 +52,7 @@ export function MobileTopBar({ onOpenMenu }: MobileTopBarProps) {
   const badgeLabel = badgeCount > MAX_BADGE_COUNT ? "9+" : String(badgeCount);
 
   return (
-    <header className="safe-top sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)]/85 px-3 backdrop-blur md:hidden">
+    <header className="safe-top sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 md:hidden">
       <button
         type="button"
         onClick={onOpenMenu}

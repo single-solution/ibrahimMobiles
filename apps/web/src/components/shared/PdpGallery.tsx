@@ -255,7 +255,7 @@ function PdpGalleryInner({
         >
           {heroLayers}
           {hero && (
-            <span className="pointer-events-none absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-[var(--color-ink-900)]/55 text-[var(--color-on-dark)] backdrop-blur">
+            <span className="pointer-events-none absolute right-3 top-3 grid size-9 place-items-center rounded-full bg-[var(--color-ink-900)]/65 text-[var(--color-on-dark)]">
               <ZoomIn size={16} />
             </span>
           )}
@@ -318,7 +318,7 @@ function PdpGalleryInner({
       >
         {heroLayers}
         {hero && (
-          <span className="pointer-events-none absolute right-4 top-4 z-10 grid size-10 place-items-center rounded-full bg-[var(--color-ink-900)]/55 text-[var(--color-on-dark)] backdrop-blur">
+          <span className="pointer-events-none absolute right-4 top-4 z-10 grid size-10 place-items-center rounded-full bg-[var(--color-ink-900)]/65 text-[var(--color-on-dark)]">
             <ZoomIn size={16} />
           </span>
         )}
