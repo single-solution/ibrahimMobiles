@@ -112,50 +112,52 @@ function DimensionTabRow({
 }: DimensionTabRowProps) {
   return (
     <div
-      className="flex w-full flex-wrap gap-px overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-ink-200)] md:flex-nowrap md:gap-0 md:divide-x md:divide-[var(--color-ink-200)] md:bg-transparent"
+      className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-200)]"
       role="tablist"
       aria-label={dimension.label}
     >
-      {dimension.options.map((option) => {
-        const isSelected = currentSelection[dimension.key] === option.key;
-        const state = trackAvailability
-          ? computeOptionState(
-              dimension.key,
-              option.key,
-              variants,
-              currentSelection,
-            )
-          : "available";
-        const isUnavailable = state === "unavailable" && !isSelected;
+      <div className="-ml-px -mt-px flex flex-wrap md:m-0 md:flex-nowrap md:divide-x md:divide-[var(--color-ink-200)]">
+        {dimension.options.map((option) => {
+          const isSelected = currentSelection[dimension.key] === option.key;
+          const state = trackAvailability
+            ? computeOptionState(
+                dimension.key,
+                option.key,
+                variants,
+                currentSelection,
+              )
+            : "available";
+          const isUnavailable = state === "unavailable" && !isSelected;
 
-        return (
-          <button
-            key={option.key}
-            type="button"
-            role="tab"
-            onClick={() => onPick(dimension.key, option.key)}
-            aria-selected={isSelected}
-            data-state={trackAvailability ? state : undefined}
-            title={
-              isUnavailable
-                ? "Not stocked with current pick — auto-switches"
-                : undefined
-            }
-            className={classNames(
-              "flex grow basis-[31%] items-center justify-center whitespace-nowrap border-0 px-1.5 py-1.5 text-center text-[10px] font-medium leading-snug transition-all md:basis-0 md:flex-1 md:px-2 md:py-2 md:text-[11px]",
-              isSelected &&
-                "rounded-[var(--radius-sm)] bg-[var(--color-accent-50)] font-semibold text-[var(--color-accent-800)] shadow-[var(--shadow-sm)] ring-1 ring-inset ring-[var(--color-accent-500)]",
-              !isSelected &&
-                !isUnavailable &&
-                "bg-[var(--color-surface)] text-[var(--color-ink-800)] hover:bg-[var(--color-accent-50)] hover:text-[var(--color-accent-800)]",
-              isUnavailable &&
-                "bg-[var(--color-canvas-deep)]/40 text-[var(--color-ink-400)] line-through decoration-[var(--color-ink-300)] decoration-1 opacity-50 hover:bg-[var(--color-canvas-deep)]/55 hover:text-[var(--color-ink-500)]",
-            )}
-          >
-            {option.label}
-          </button>
-        );
-      })}
+          return (
+            <button
+              key={option.key}
+              type="button"
+              role="tab"
+              onClick={() => onPick(dimension.key, option.key)}
+              aria-selected={isSelected}
+              data-state={trackAvailability ? state : undefined}
+              title={
+                isUnavailable
+                  ? "Not stocked with current pick — auto-switches"
+                  : undefined
+              }
+              className={classNames(
+                "flex grow basis-[31%] items-center justify-center whitespace-nowrap border-l border-t border-[var(--color-ink-200)] px-1.5 py-1.5 text-center text-[10px] font-medium leading-snug transition-all md:basis-0 md:flex-1 md:border-0 md:px-2 md:py-2 md:text-[11px]",
+                isSelected &&
+                  "rounded-[var(--radius-sm)] bg-[var(--color-accent-50)] font-semibold text-[var(--color-accent-800)] shadow-[var(--shadow-sm)] ring-1 ring-inset ring-[var(--color-accent-500)]",
+                !isSelected &&
+                  !isUnavailable &&
+                  "bg-[var(--color-surface)] text-[var(--color-ink-800)] hover:bg-[var(--color-accent-50)] hover:text-[var(--color-accent-800)]",
+                isUnavailable &&
+                  "bg-[var(--color-canvas-deep)]/40 text-[var(--color-ink-400)] line-through decoration-[var(--color-ink-300)] decoration-1 opacity-50 hover:bg-[var(--color-canvas-deep)]/55 hover:text-[var(--color-ink-500)]",
+              )}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
