@@ -236,7 +236,7 @@ export default async function ProductDetailPage({
   ]);
 
   return (
-    <VariantProvider initialVariantId={initialVariant.id}>
+    <VariantProvider product={product} initialVariantId={initialVariant.id}>
       <PdpScrollReset />
       <ProductChatBeacon productId={product.id} productName={`${brandName} ${product.name}`} />
       <script

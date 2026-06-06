@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, MessageCircle, Settings2, ShoppingBag } from "lucide-react";
 
 import {
@@ -27,18 +27,10 @@ import {
   attributeValuesOnVariant,
   findVariantBySelection,
   getRequiredAttributeSlugsForProduct,
-  hasPdpConfigurationInSearch,
   isPdpSelectionComplete,
-  parsePdpSelectionFromSearch,
-  resolvePickerSelection,
-  selectionFromVariant,
-  selectionSignature,
-  selectionToUrlPatch,
 } from "@/lib/catalog/pdpSelection";
 import { CART_MAX_LINES } from "@/lib/cart/store";
 import { useCart } from "@/lib/cart/useCart";
-import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
-import { usePdpUrlParams } from "@/lib/core/usePdpUrlParams";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import {
   useAttributesForCategory,
@@ -75,13 +67,8 @@ interface VariantSelectorProps {
  * isn't stocked, the closest variant is auto-selected with an inline
  * "ask on WhatsApp" hint.
  */
-function hasSelectionValues(selection: Record<string, string>): boolean {
-  return Object.values(selection).some((value) => Boolean(value));
-}
-
 export function VariantSelector({ product, brandName }: VariantSelectorProps) {
-  const { selectedVariantId, setSelectedVariantId } = useVariantSelection();
-  const { searchParams, replace } = usePdpUrlParams();
+  const { selectedVariantId, currentSelection, pick } = useVariantSelection();
   const cart = useCart();
   const { toast } = useToast();
   const [hasJustBeenAdded, setHasJustBeenAdded] = useState(false);
@@ -104,19 +91,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
       ),
     [requiredAttributeSlugs, categoryAttributes],
   );
-  const pendingSelectionSigRef = useRef<string | null>(null);
-
-  const syncSelectionToUrl = useCallback(
-    (selection: Record<string, string>) => {
-      const signature = selectionSignature(selection);
-      if (!hasSelectionValues(selection)) {
-        return;
-      }
-      pendingSelectionSigRef.current = signature;
-      replace(selectionToUrlPatch(selection, attributeSlugs));
-    },
-    [attributeSlugs, replace],
-  );
   const dimensions = useMemo(
     () => buildDimensions(product, categoryAttributes, grades),
     [product, categoryAttributes, grades],
@@ -127,74 +101,12 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
     product.variants[0] ??
     EMPTY_VARIANT;
 
-  /** Shopper’s chip picks — owned by us. Updated only by explicit code paths
-   *  (chip click, URL hydration) so multi-value picks survive. */
-  const [pickerSelection, setPickerSelection] = useState(() =>
-    selectionFromVariant(selected),
-  );
-
+  // Quantity stepper resets to 1 whenever the active variant changes, so a
+  // fresh pick always starts at 1 (matches the previous in-handler reset).
   useEffect(() => {
-    const searchRecord = Object.fromEntries(searchParams.entries());
-    const fromUrl = parsePdpSelectionFromSearch(searchRecord, attributeSlugs);
-    const urlSignature = selectionSignature(fromUrl);
-    const pending = pendingSelectionSigRef.current;
-
-    if (pending !== null && urlSignature !== pending) {
-      return;
-    }
-    if (pending !== null && urlSignature === pending) {
-      pendingSelectionSigRef.current = null;
-    }
-
-    if (!hasPdpConfigurationInSearch(searchRecord, attributeSlugs)) {
-      return;
-    }
-
-    // Bad URL (combination doesn't exist on any variant) → fall back to the
-    // default variant and drop the bad params. No reload, no banner — just a
-    // clean reset matching a fresh PDP load.
-    const exact = findVariantBySelection(product.variants, fromUrl);
-    if (!exact) {
-      const currentVariant =
-        product.variants.find((row) => row.id === selectedVariantId) ??
-        product.variants[0] ??
-        EMPTY_VARIANT;
-      const fallbackSelection = selectionFromVariant(currentVariant);
-      pendingSelectionSigRef.current = selectionSignature(fallbackSelection);
-      scheduleStateUpdate(() => {
-        setPickerSelection(fallbackSelection);
-        setSelectedVariantId(currentVariant.id);
-      });
-      syncSelectionToUrl(fallbackSelection);
-      return;
-    }
-
-    scheduleStateUpdate(() => {
-      setPickerSelection(fromUrl);
-      setSelectedVariantId(exact.id);
-    });
-  }, [
-    searchParams,
-    attributeSlugs,
-    product,
-    selectedVariantId,
-    setSelectedVariantId,
-    syncSelectionToUrl,
-  ]);
-
-  useEffect(() => {
-    if (
-      hasPdpConfigurationInSearch(
-        Object.fromEntries(searchParams.entries()),
-        attributeSlugs,
-      )
-    ) {
-      return;
-    }
-    syncSelectionToUrl(selectionFromVariant(selected));
-  }, [searchParams, attributeSlugs, selected, syncSelectionToUrl]);
-
-  const currentSelection = pickerSelection;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- keyed reset on variant change
+    setAddQuantity(1);
+  }, [selectedVariantId]);
 
   const resolvedVariant = useMemo(
     () => findVariantBySelection(product.variants, currentSelection),
@@ -260,20 +172,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
     attributeSummary ? ` (${attributeSummary})` : ""
   } for ${formatPrice(selected.priceRupees)}.`;
 
-  const handlePickOption = (dimensionKey: string, optionKey: string) => {
-    const proposed = { ...currentSelection, [dimensionKey]: optionKey };
-    const { variant, selection: resolvedSelection } = resolvePickerSelection(
-      product.variants,
-      proposed,
-      dimensionKey,
-    );
-    pendingSelectionSigRef.current = selectionSignature(resolvedSelection);
-    setPickerSelection(resolvedSelection);
-    syncSelectionToUrl(resolvedSelection);
-    setSelectedVariantId(variant.id);
-    setAddQuantity(1);
-  };
-
   const handleAddToCart = () => {
     if (!selected.id || !heroImage || !inStock) {
       return;
@@ -329,7 +227,7 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
           dimensions={dimensions}
           variants={product.variants}
           currentSelection={currentSelection}
-          onPick={handlePickOption}
+          onPick={pick}
         />
 
         {!isExactMatch && isComplete && (
