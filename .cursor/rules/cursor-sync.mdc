@@ -43,7 +43,7 @@ Update `vibeCodingRules` whenever you:
 
 ## Full rulebook mirror (Cursor)
 
-**Minimum install** (every project): `vibe-rulebook.mdc`, `token-efficiency.mdc`, `feature-discovery.mdc`, `naming.mdc`, plus per-project sync rule.
+**Minimum install** (every project): `vibe-rulebook.mdc`, `token-efficiency.mdc`, `feature-discovery.mdc`, `naming.mdc`, `documentation.mdc`, plus per-project sync rule.
 
 **Full mirror:** For each universal behavior agents must follow without opening the repo, maintain a paired `cursor/<topic>.mdc` whose body matches the root `*.md` (YAML frontmatter only). `vibe-rulebook.mdc` stays a pointer to `AGENTS.md` — not a duplicate of all chapters.
 

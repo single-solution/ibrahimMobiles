@@ -4,6 +4,13 @@ This document maps the exact business rules, state machines, limits, and conditi
 
 ---
 
+## Documentation
+
+For developer onboarding, installation, and architecture, see the `docs/` folder:
+- [Setup & Onboarding](docs/setup.md)
+
+---
+
 ## 1. Catalog & Domain Rules
 
 ### Visibility Cascade
@@ -220,7 +227,7 @@ sequenceDiagram
 ### Chat Rules & Capabilities
 *   **Guest Limits:** Guests get 5 customer-authored messages max. Composer is then replaced by a sign-in gate. Threads merge to customer account upon sign-in.
 *   **AI Auto-Reply:** Triggers after customer messages if enabled and not in escalation grace period.
-*   **Pacing:** Bubbles drip with deterministic delays based on character count: 0.1s per character for reading, and 0.04s per character for typing. Typing indicator only shows during the actual typing phase.
+*   **Pacing:** Bubbles drip with deterministic delays based on character count: 0.1s per character for reading, and 0.04s per character for typing. To prevent ugly blank gaps, a "Just a moment..." indicator shows during the reading phase, switching to the standard typing indicator during the typing phase.
 *   **Initial Connection:** Displays "Connecting you with someone..." instead of a typing indicator while the thread is being created.
 *   **AI Tools:** Can search catalog, check stock, list deals, check user orders/loyalty (scoped strictly to session ID). Product context is automatically passed if chat is opened from a PDP, and the AI is explicitly instructed to use this context to understand vague references like "this product". When listing product variants, the AI will list all available grades and conditions without omitting any.
 *   **UI States:** Unread badge on launcher. Proactive nudge after idle minutes. Reconnecting subtitle. "Speak to someone" footer hint. Optimistic UI prevents message flickering by strictly 1-to-1 deduplicating local messages against background polling, ensuring double-sends are handled gracefully without ghosting.

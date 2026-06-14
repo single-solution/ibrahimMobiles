@@ -19,6 +19,7 @@ Before any code change, the agent MUST:
 
 Hard bans (no exception without documented reason):
 
+- Skipping README updates on behavior-changing work when domain rules are affected (see documentation.md)
 - Skipping REQUIRED files
 - Guessing requirements when discovery is required
 - Drive-by refactors outside the stated task

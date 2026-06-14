@@ -26,7 +26,7 @@ Coding patterns for database design and usage. IF your project has a database, a
 
 ## Naming (Database Level)
 
-**Principle:** Pick one naming convention per database technology and be consistent. Document the convention in the project README.
+**Principle:** Pick one naming convention per database technology and be consistent. Document the convention in `docs/architecture.md` or the README entity section (see documentation.md).
 
 [REFERENCE] Common database naming conventions:
 

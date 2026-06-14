@@ -53,10 +53,10 @@ When DTO shapes are identical across apps → shared package. Otherwise per-app 
 project-root/
 ├── .env.example           # Environment template (NEVER commit .env)
 ├── .gitignore
-├── README.md              # Setup instructions, architecture overview
+├── README.md              # Domain rules, flows, limits (see documentation.md)
 ├── LICENSE                # If open-source
 ├── rules/                 # This rulebook (copy to every project)
-├── docs/                  # Architecture decisions, API docs, diagrams
+├── docs/                  # Setup, onboarding, architecture, ADRs, API docs
 ├── scripts/               # Build, deploy, seed, migration scripts
 ├── tests/                 # Integration / E2E tests (unit tests colocated)
 └── src/                   # All application source code

@@ -67,7 +67,7 @@ After the feature works:
 - [ ] Loading states — every async operation has loading/error/success states in UI
 - [ ] Types are correct — no `any` without justification
 - [ ] Tests per `testing.md` (not listed here — user/harness policy)
-- [ ] Documentation updated — JSDoc on exported functions, README if setup changed
+- [ ] Documentation updated — JSDoc on exported functions; README if behavior changed; docs/ if setup/env/architecture changed (see documentation.md)
 ```
 
 ---
@@ -228,7 +228,8 @@ Schedule a dedicated cleanup session periodically:
    - Is there duplicated logic across multiple files?
 
 3. DOCUMENTATION REFRESH
-   - Is the README still accurate? (follow setup steps on a fresh machine)
+   - Does README still match product behavior? (domain rules, flows, limits)
+   - Does docs/setup.md still work on a fresh machine?
    - Are API docs current? (do they match the actual endpoints?)
    - Are ADRs up to date? (any new decisions that need recording?)
 

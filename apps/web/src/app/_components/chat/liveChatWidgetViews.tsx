@@ -189,7 +189,7 @@ export function ThreadConversation({
   // Reading/comprehension delay to prepend to the first bubble of a reply.
   const readDelayRef = useRef(0);
   const [, bumpReveal] = useReducer((count: number) => count + 1, 0);
-  const [botTyping, setBotTyping] = useState(false);
+  const [botActivity, setBotActivity] = useState<"reading" | "typing" | false>(false);
 
    
   const visibleMessages = thread.messages.filter((message) =>
@@ -202,7 +202,7 @@ export function ThreadConversation({
     const nextId = queueRef.current[0];
     if (nextId === undefined) {
       timerRef.current = null;
-      setBotTyping(false);
+      setBotActivity(false);
       return;
     }
     const nextBody = messagesRef.current.find((message) => message.id === nextId)?.body ?? "";
@@ -212,18 +212,18 @@ export function ThreadConversation({
     readDelayRef.current = 0;
     
     const typeAndReveal = () => {
-      setBotTyping(true);
+      setBotActivity("typing");
       timerRef.current = setTimeout(() => {
         queueRef.current.shift();
         revealedIdsRef.current.add(nextId);
         bumpReveal();
-        setBotTyping(false);
+        setBotActivity(false);
         timerRef.current = setTimeout(() => doPump(), STAGGER_GAP_MS);
       }, nextBody.length * 20); // 20ms per character
     };
 
     if (startGap > 0) {
-      setBotTyping(false); // Ensure typing is off while reading
+      setBotActivity("reading"); // Show activity during reading phase to avoid blank gaps
       timerRef.current = setTimeout(typeAndReveal, startGap);
     } else {
       typeAndReveal();
@@ -307,7 +307,7 @@ export function ThreadConversation({
     requestAnimationFrame(() => {
       el.scrollTop = el.scrollHeight;
     });
-  }, [lastVisibleId, sending, botTyping]);
+  }, [lastVisibleId, sending, botActivity]);
 
   // After an older page prepends, keep the viewport on the message the reader
   // was looking at by restoring the pre-load scroll offset.
@@ -329,7 +329,7 @@ export function ThreadConversation({
       timerRef.current = null;
     }
      
-    setBotTyping(false);
+    setBotActivity(false);
     bumpReveal();
     const el = messageListRef.current;
     if (!el) return;
@@ -382,7 +382,9 @@ export function ThreadConversation({
             ))}
           </div>
         ))}
-        {assistantEnabled && botTyping && <ChatTypingIndicator />}
+        {assistantEnabled && botActivity && (
+          <ChatTypingIndicator label={botActivity === "reading" ? "Just a moment..." : undefined} />
+        )}
         {thread.messages.length === 0 && (
           <div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3.5 text-xs leading-relaxed text-[var(--color-ink-600)] shadow-[var(--shadow-sm)]">
             {chatWelcomeMessage({
