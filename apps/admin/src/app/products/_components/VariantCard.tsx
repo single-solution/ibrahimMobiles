@@ -41,6 +41,8 @@ interface VariantCardProps {
   errorPathPrefix?: string;
   /** Lets admins pick multiple global options per attribute (wizard combinations). */
   allowMultiAttributeSelect?: boolean;
+  /** Product-specific custom options aggregated from all variants. */
+  productCustomOptions?: Record<string, { value: string; label: string }[]>;
   /** Flat layout inside a master–detail pane (no card chrome). */
   embedded?: boolean;
 }
@@ -57,6 +59,7 @@ export function VariantCard({
   lockGradeSlug,
   errorPathPrefix,
   allowMultiAttributeSelect = false,
+  productCustomOptions = {},
   embedded = false,
 }: VariantCardProps) {
   const prefix = errorPathPrefix ?? `variants.${index}`;
@@ -185,6 +188,7 @@ export function VariantCard({
                 error={attrError(attr.slug)}
                 onChange={onChange}
                 allowMultiSelect={allowMultiAttributeSelect}
+                productCustomOptions={productCustomOptions[attr.slug] ?? []}
               />
             ))}
           </div>
@@ -331,12 +335,14 @@ function AttributeValuePicker({
   error,
   onChange,
   allowMultiSelect = false,
+  productCustomOptions = [],
 }: {
   attribute: AdminAttribute;
   variant: VariantDraft;
   error?: string;
   onChange: (next: VariantDraft) => void;
   allowMultiSelect?: boolean;
+  productCustomOptions?: { value: string; label: string }[];
 }) {
   const unit = attribute.unit?.trim() ?? "";
   const selectedValues = attributeValuesOnDraft(variant, attribute.slug);
@@ -380,8 +386,15 @@ function AttributeValuePicker({
       toggleMultiValue(value);
       return;
     }
+    
+    const isProductCustom = productCustomOptions.find((o) => o.value === value);
     const nextDisplay = { ...(variant.attributeDisplay ?? {}) };
-    delete nextDisplay[attribute.slug];
+    if (isProductCustom) {
+      nextDisplay[attribute.slug] = isProductCustom.label;
+    } else {
+      delete nextDisplay[attribute.slug];
+    }
+    
     const nextMulti = { ...(variant.attributesMulti ?? {}) };
     delete nextMulti[attribute.slug];
     onChange({
@@ -418,12 +431,20 @@ function AttributeValuePicker({
     });
   }
 
-  const tabOptions = sortAttributeOptions(attribute.options, attribute.unit).map(
-    (option) => ({
+  const globalValues = new Set(attribute.options.map((option) => option.value));
+  const filteredCustomOptions = productCustomOptions.filter((o) => !globalValues.has(o.value));
+
+  const tabOptions = sortAttributeOptions(attribute.options, attribute.unit)
+    .map((option) => ({
       key: option.value,
       label: formatAttributeOptionLabel(option.label, attribute.unit),
-    }),
-  );
+    }))
+    .concat(
+      filteredCustomOptions.map((opt) => ({
+        key: opt.value,
+        label: opt.label,
+      }))
+    );
 
   const selectedKeys = allowMultiSelect
     ? selectedValues

@@ -202,6 +202,28 @@ export function ProductWizardStep2({
     return rows;
   }, [sections]);
 
+  const productCustomOptions = useMemo(() => {
+    const map: Record<string, Map<string, string>> = {};
+    for (const row of flatCombinations) {
+      if (!row.variant.attributeDisplay) continue;
+      for (const [attrSlug, label] of Object.entries(row.variant.attributeDisplay)) {
+        const val = row.variant.attributes[attrSlug];
+        if (typeof val === "string" && val) {
+          if (!map[attrSlug]) map[attrSlug] = new Map();
+          map[attrSlug].set(val, label);
+        }
+      }
+    }
+    const result: Record<string, { value: string; label: string }[]> = {};
+    for (const [attrSlug, optionsMap] of Object.entries(map)) {
+      result[attrSlug] = Array.from(optionsMap.entries()).map(([value, label]) => ({
+        value,
+        label,
+      }));
+    }
+    return result;
+  }, [flatCombinations]);
+
   const activeSection = sections.find(
     (section) => section.gradeSlug === selectedGradeSlug,
   );
@@ -572,7 +594,8 @@ export function ProductWizardStep2({
                         productNameForAlt={product.name}
                         lockGradeSlug={selectedGradeSlug}
                         errorPathPrefix={`grade.${selectedGradeSlug}.combinations.${selectedComboIndex}`}
-                        allowMultiAttributeSelect
+                        allowMultiAttributeSelect={false}
+                        productCustomOptions={productCustomOptions}
                         embedded
                         onChange={(next) =>
                           updateCombination(

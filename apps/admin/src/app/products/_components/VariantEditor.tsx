@@ -148,6 +148,28 @@ export function VariantEditor({
 
   const grade = grades.find((g) => g.slug === deferredDraft.gradeSlug);
 
+  const productCustomOptions = useMemo(() => {
+    const map: Record<string, Map<string, string>> = {};
+    for (const v of product.variants) {
+      if (!v.attributeDisplay) continue;
+      for (const [attrSlug, label] of Object.entries(v.attributeDisplay)) {
+        const val = v.attributes[attrSlug];
+        if (typeof val === "string" && val) {
+          if (!map[attrSlug]) map[attrSlug] = new Map();
+          map[attrSlug].set(val, label);
+        }
+      }
+    }
+    const result: Record<string, { value: string; label: string }[]> = {};
+    for (const [attrSlug, optionsMap] of Object.entries(map)) {
+      result[attrSlug] = Array.from(optionsMap.entries()).map(([value, label]) => ({
+        value,
+        label,
+      }));
+    }
+    return result;
+  }, [product.variants]);
+
   return (
     <Drawer
       isOpen={isOpen}
@@ -184,7 +206,8 @@ export function VariantEditor({
           attributes={attributes}
           brandSlug={product.brand.slug}
           errorByPath={errorMap}
-          allowMultiAttributeSelect
+          allowMultiAttributeSelect={false}
+          productCustomOptions={productCustomOptions}
           onChange={(next) => {
             setDraft(next);
             setErrors((prev) =>
