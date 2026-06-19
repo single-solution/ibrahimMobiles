@@ -1,189 +1,241 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
-import { buildProcessFlows } from "@/app/_components/home/homeProcessFlows";
+
+import { HomeCategoryComingSoon } from "@/app/_components/home/HomeCategoryComingSoon";
+import { HomeCompactBanner } from "@/app/_components/home/HomeCompactBanner";
+import { HomeSearchResults } from "@/app/_components/home/HomeSearchResults";
+import { HomeStorefrontFallback } from "@/app/_components/home/homeStorefrontFallbacks";
+import { HomeScrollReset } from "@/app/_components/home/HomeScrollReset";
+import { parseFiltersFromSearchParams, type CategoryMeta, type ProductPage } from "@/lib/core";
 import {
-  DesktopGrades,
-  DesktopHero,
-  DesktopProcessSection,
-  DesktopShopTypesSection,
-  DesktopVisitStore,
-} from "@/app/_components/home/homePageDesktopSections";
+	getCategoriesCached,
+	getCategoryBySlugCached,
+	getProductsPageCached,
+	getStoreSettingsCached,
+} from "@/lib/core/cached";
+import { composeCategorySeo } from "@/lib/seo/composeSeoMeta";
+import { getSeoSettings } from "@/lib/seo/seoSettings";
 import {
-  DesktopGradesFallback,
-  DesktopHeroFallback,
-  DesktopProcessFallback,
-  DesktopShopTypesFallback,
-  DesktopVisitStoreFallback,
-  MobileGradesFallback,
-  MobileHeroFallback,
-  MobileProcessFallback,
-  MobileShopTypesFallback,
-  MobileVisitStoreFallback,
-} from "@/app/_components/home/homePageFallbacks";
-import {
-  MobileGradesSection,
-  MobileHero,
-  MobileProcessSection,
-  MobileShopTypesSection,
-  MobileVisitStoreSection,
-} from "@/app/_components/home/homePageMobileSections";
-import {
-  getHomeHeroData,
-  loadHomeCategoryTiles,
-  type HomePageCategory,
-} from "@/lib/core/pageData";
-import { shopHrefFromCategories } from "@/lib/catalog/productPaths";
-import { getStoreSettingsCached } from "@/lib/core/cached";
+	breadcrumbJsonLd,
+	collectionPageJsonLd,
+	jsonLdScriptContent,
+} from "@/lib/seo/jsonLd";
+import { logger } from "@store/shared";
 
-// ISR interval is set on `app/page.tsx` (Next.js requires segment config there).
+const LISTING_PAGE_SIZE = 24;
+const CATEGORY_PARAM = "category";
 
-/**
- * Storefront home page.
- *
- * Render strategy — static-first, then stream:
- *   • The page itself is synchronous: the root layout, the section
- *     wrappers and the fully-static `GradesSection` paint immediately,
- *     so on first byte the user sees the page skeleton plus all the
- *     copy that doesn't depend on data ("How we grade", grade cards,
- *     trust chips, etc.).
- *   • Each data-bound section sits behind its own `<Suspense>`
- *     boundary with a content-shaped fallback. Hero, shop-type tiles,
- *     process flows, and the visit-store block all stream in
- *     independently — one slow read never blocks another.
- *   • Each Suspense child awaits ONLY the data its section actually
- *     consumes — there is no shared bundle. Hero only waits for
- *     hero-products + brands; ShopTypes only waits for categories +
- *     counts. That means a fast section never has to wait for a slow
- *     sibling's fetch before its skeleton clears.
- *   • `unstable_cache` (30s TTL, tagged) keeps cross-request dedupe so
- *     a hot homepage doesn't replay the underlying Mongo round-trips
- *     per visitor.
- */
-export default function HomePage() {
-  return (
-    <>
-      {/* Mobile only — native app layout. 1:1 with desktop structure:
-           hero → shop-type tiles → process → grades (dark band) → visit + map. */}
-      <div className="app-page pb-2 md:hidden space-y-4">
-        <Suspense fallback={<MobileHeroFallback />}>
-          <MobileHeroData />
-        </Suspense>
-        <Suspense fallback={<MobileShopTypesFallback />}>
-          <MobileShopTypesData />
-        </Suspense>
-        <Suspense fallback={<MobileProcessFallback />}>
-          <MobileProcessData />
-        </Suspense>
-        <Suspense fallback={<MobileGradesFallback />}>
-          <MobileGradesSection />
-        </Suspense>
-        <Suspense fallback={<MobileVisitStoreFallback />}>
-          <MobileVisitStoreData />
-        </Suspense>
-      </div>
-
-      {/* Desktop — single layout that scales fluidly. Each section owns
-           its own vertical breathing room (py-24) so the rhythm is intentional
-           rather than relying on a uniform space-y wrapper. */}
-      <div className="hidden md:block">
-        <Suspense fallback={<DesktopHeroFallback />}>
-          <DesktopHeroData />
-        </Suspense>
-        <Suspense fallback={<DesktopShopTypesFallback />}>
-          <DesktopShopTypesData />
-        </Suspense>
-        <Suspense fallback={<DesktopProcessFallback />}>
-          <DesktopProcessData />
-        </Suspense>
-        <Suspense fallback={<DesktopGradesFallback />}>
-          <DesktopGrades />
-        </Suspense>
-        <Suspense fallback={<DesktopVisitStoreFallback />}>
-          <DesktopVisitStoreData />
-        </Suspense>
-      </div>
-    </>
-  );
+interface HomePageProps {
+	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-/** Active category labels for the hero scope pill, capped so the pill
- *  never overflows on narrow viewports. */
-const HERO_PILL_CATEGORY_LIMIT = 3;
+export async function generateMetadata({ searchParams }: HomePageProps): Promise<Metadata> {
+	const rawSearchParams = await searchParams;
+	const searchQuery = readSearchQuery(rawSearchParams);
 
-function toHeroCategoryLabels(categories: HomePageCategory[]): string[] {
-  return categories
-    .filter((category) => category.isActive)
-    .slice(0, HERO_PILL_CATEGORY_LIMIT)
-    .map((category) => category.label);
+	if (searchQuery) {
+		const { siteName } = await getStoreSettingsCached();
+		return {
+			title: `Search: ${searchQuery}`,
+			description: `Search results for "${searchQuery}" at ${siteName}.`,
+		};
+	}
+
+	const rawCategory = rawSearchParams[CATEGORY_PARAM];
+	const categorySlug = Array.isArray(rawCategory) ? rawCategory[0] : rawCategory;
+	if (!categorySlug?.trim()) {
+		const { siteName } = await getStoreSettingsCached();
+		return {
+			title: siteName,
+			description: `Browse ${siteName}. Every item graded by condition.`,
+		};
+	}
+
+	const meta = await getCategoryBySlugCached(categorySlug.trim());
+	if (!meta) {
+		return { title: "Browse" };
+	}
+
+	const seoSettings = await getSeoSettings();
+	const resolved = composeCategorySeo({
+		category: {
+			slug: meta.slug,
+			label: meta.label,
+			description: meta.description,
+		},
+		settings: seoSettings,
+	});
+
+	const categories = await getCategoriesCached();
+	const homeCategorySlug = categories.find((category) => category.isActive)?.slug;
+	const canonical =
+		meta.slug === homeCategorySlug
+			? seoSettings.siteUrl
+			: `${seoSettings.siteUrl}/?category=${meta.slug}`;
+
+	return {
+		title: resolved.title,
+		description: resolved.description,
+		alternates: { canonical },
+		robots: resolved.robots,
+		openGraph: {
+			title: resolved.title,
+			description: resolved.description,
+			url: canonical,
+			type: "website",
+			images: resolved.ogImageUrl ? [resolved.ogImageUrl] : undefined,
+		},
+		twitter: {
+			card: resolved.twitterCard,
+			title: resolved.title,
+			description: resolved.description,
+			images: resolved.ogImageUrl ? [resolved.ogImageUrl] : undefined,
+		},
+	};
 }
 
-/* ─────────────────────────── Mobile data slots ─────────────────────────── */
-//
-// Each slot awaits only the reads its own section consumes. That way the
-// hero suspense unblocks the moment brands+hero-products land, regardless of
-// how slow the categories+counts join takes — and vice versa. There is no
-// shared bundle anywhere on this page, so no Suspense boundary ever waits
-// for a fetch it doesn't actually use.
-
-async function MobileHeroData() {
-  const [{ heroProducts }, settings, categories] = await Promise.all([
-    getHomeHeroData(),
-    getStoreSettingsCached(),
-    loadHomeCategoryTiles(),
-  ]);
-  return (
-    <MobileHero
-      heroProducts={heroProducts}
-      settings={settings}
-      categoryLabels={toHeroCategoryLabels(categories)}
-      shopHref={shopHrefFromCategories(categories)}
-    />
-  );
+export default function HomePage({ searchParams }: HomePageProps) {
+	return (
+		<div className="pb-[calc(var(--mobile-tabbar-h)+env(safe-area-inset-bottom,0px)+1rem)] md:pb-16">
+			<Suspense fallback={<HomeStorefrontFallback />}>
+				<HomeStorefront searchParams={searchParams} />
+			</Suspense>
+		</div>
+	);
 }
 
-async function MobileShopTypesData() {
-  const categories = await loadHomeCategoryTiles();
-  return <MobileShopTypesSection categories={categories} />;
+async function HomeStorefront({ searchParams }: HomePageProps) {
+	const rawSearchParams = await searchParams;
+	const searchQuery = readSearchQuery(rawSearchParams);
+
+	if (searchQuery) {
+		return (
+			<HomeSearchResults
+				query={searchQuery}
+				requestedPage={normalisePage(rawSearchParams.page)}
+			/>
+		);
+	}
+
+	const [categories, settings] = await Promise.all([
+		getCategoriesCached(),
+		getStoreSettingsCached(),
+	]);
+
+	const homeCategory = categories.find((category) => category.isActive);
+	if (!homeCategory) {
+		return (
+			<div className="mx-auto max-w-lg px-6 py-24 text-center">
+				<p className="text-sm text-[var(--color-ink-600)]">No categories are available yet.</p>
+			</div>
+		);
+	}
+
+	const activeCategory = resolveCategory(categories, rawSearchParams, homeCategory);
+
+	if (!activeCategory.isActive) {
+		return (
+			<>
+				<HomeCompactBanner settings={settings} />
+				<HomeCategoryComingSoon meta={activeCategory} />
+			</>
+		);
+	}
+
+	const filters = parseFiltersFromSearchParams(rawSearchParams, {
+		categorySlug: activeCategory.slug,
+	});
+
+	let productPage: ProductPage = {
+		products: [],
+		total: 0,
+		page: 1,
+		pageSize: LISTING_PAGE_SIZE,
+		pageCount: 1,
+	};
+	try {
+		productPage = await getProductsPageCached(filters);
+	} catch (error) {
+		logger.error({ error }, "home: storefront product load failed");
+	}
+
+	return (
+		<>
+			<Suspense fallback={null}>
+				<HomeScrollReset />
+			</Suspense>
+			<Suspense fallback={null}>
+				<CategoryJsonLd meta={activeCategory} productPage={productPage} />
+			</Suspense>
+			<HomeCompactBanner settings={settings} />
+		</>
+	);
 }
 
-async function MobileProcessData() {
-  const settings = await getStoreSettingsCached();
-  return <MobileProcessSection flows={buildProcessFlows(settings)} />;
+async function CategoryJsonLd({
+	meta,
+	productPage,
+}: {
+	meta: CategoryMeta;
+	productPage: ProductPage;
+}) {
+	const [seoSettings, categories] = await Promise.all([getSeoSettings(), getCategoriesCached()]);
+	const homeCategorySlug = categories.find((category) => category.isActive)?.slug;
+	const collectionLd = collectionPageJsonLd({
+		category: { slug: meta.slug, label: meta.label },
+		products: productPage.products,
+		settings: seoSettings,
+	});
+	const categoryUrl =
+		meta.slug === homeCategorySlug
+			? seoSettings.siteUrl
+			: `${seoSettings.siteUrl}/?category=${meta.slug}`;
+	const breadcrumbLd = breadcrumbJsonLd([
+		{ name: "Home", url: seoSettings.siteUrl },
+		{ name: meta.label, url: categoryUrl },
+	]);
+
+	return (
+		<>
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(collectionLd) }}
+			/>
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(breadcrumbLd) }}
+			/>
+		</>
+	);
 }
 
-async function MobileVisitStoreData() {
-  const settings = await getStoreSettingsCached();
-  return <MobileVisitStoreSection settings={settings} />;
+function resolveCategory(
+	categories: CategoryMeta[],
+	rawSearchParams: Record<string, string | string[] | undefined>,
+	homeCategory: CategoryMeta,
+): CategoryMeta {
+	const rawCategory = rawSearchParams[CATEGORY_PARAM];
+	const requestedSlug = Array.isArray(rawCategory) ? rawCategory[0] : rawCategory;
+	if (requestedSlug?.trim()) {
+		const match = categories.find((category) => category.slug === requestedSlug.trim());
+		if (match) {
+			return match;
+		}
+	}
+
+	return homeCategory;
 }
 
-/* ─────────────────────────── Desktop data slots ─────────────────────────── */
-
-async function DesktopHeroData() {
-  const [{ heroProducts }, settings, categories] = await Promise.all([
-    getHomeHeroData(),
-    getStoreSettingsCached(),
-    loadHomeCategoryTiles(),
-  ]);
-  return (
-    <DesktopHero
-      heroProducts={heroProducts}
-      settings={settings}
-      categoryLabels={toHeroCategoryLabels(categories)}
-      shopHref={shopHrefFromCategories(categories)}
-    />
-  );
+function readSearchQuery(
+	rawSearchParams: Record<string, string | string[] | undefined>,
+): string {
+	const raw = rawSearchParams.q ?? rawSearchParams.query;
+	const value = Array.isArray(raw) ? raw[0] : raw;
+	return (value ?? "").trim().slice(0, 100);
 }
 
-async function DesktopShopTypesData() {
-  const categories = await loadHomeCategoryTiles();
-  return <DesktopShopTypesSection categories={categories} />;
-}
-
-async function DesktopProcessData() {
-  const settings = await getStoreSettingsCached();
-  return <DesktopProcessSection flows={buildProcessFlows(settings)} />;
-}
-
-async function DesktopVisitStoreData() {
-  const settings = await getStoreSettingsCached();
-  return <DesktopVisitStore settings={settings} />;
+function normalisePage(value: string | string[] | undefined): number {
+	const raw = Array.isArray(value) ? value[0] : value;
+	const parsed = Number.parseInt(raw ?? "", 10);
+	return Number.isFinite(parsed) && parsed > 1 ? parsed : 1;
 }

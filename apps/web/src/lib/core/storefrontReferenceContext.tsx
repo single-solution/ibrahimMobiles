@@ -11,7 +11,7 @@ import {
   type Variant,
 } from "@store/shared";
 
-import { productHref, shopHrefFromCategories } from "@/lib/catalog/productPaths";
+import { catalogRootHref, firstCategoryHref, productHref } from "@/lib/catalog/productPaths";
 import type { CategoryMeta } from "@/lib/core";
 
 /**
@@ -157,13 +157,20 @@ export function useCategory(
 }
 
 /**
- * Storefront entry URL pointing straight at the first active category, so
- * "Shop"/"Store" links skip the `/shop` → first-category server redirect.
- * Falls back to `/shop` when no category is configured.
+ * Storefront catalog home — first active category (matches `/` redirect).
  */
 export function useShopHref(): string {
-  const categories = useCategories();
-  return useMemo(() => shopHrefFromCategories(categories), [categories]);
+	const categories = useCategories();
+	return useMemo(
+		() => firstCategoryHref(categories) ?? catalogRootHref(),
+		[categories],
+	);
+}
+
+/** True when `pathname` is the catalog home (`/` or the default category route). */
+export function useIsCatalogHome(pathname: string): boolean {
+	const homeHref = useShopHref();
+	return pathname === "/" || pathname === homeHref;
 }
 
 /**
@@ -181,7 +188,7 @@ export function useProductHref(
   variant?: Variant,
 ): string {
   if (!product.categorySlug || !product.slug) {
-    return "/shop";
+    return catalogRootHref();
   }
   return productHref(product, variant ? { variant } : undefined);
 }

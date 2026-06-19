@@ -3,6 +3,8 @@ import Link from "next/link";
 import { classNames } from "@store/shared";
 
 import { Icon } from "@/components/shared/Icon";
+import { shopCatalogPillClass } from "@/components/shared/shopCatalogPillStyles";
+import { categoryHref } from "@/lib/catalog/productPaths";
 import type { CategoryMeta } from "@/lib/core/queries";
 
 interface ShopCategoryRailProps {
@@ -18,14 +20,14 @@ export function ShopCategoryRail({ activeSlug, categories }: ShopCategoryRailPro
   const activeCategory = categories.find((category) => category.slug === activeSlug);
 
   return (
-    <div>
+    <div className="min-w-0 flex-1">
       {activeCategory ? (
         <h1 className="sr-only">{activeCategory.label}</h1>
       ) : null}
 
       <nav
         aria-label="Shop categories"
-        className="reveal-stagger -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 scrollbar-none snap-x snap-mandatory md:mx-0 md:flex-wrap md:gap-3 md:overflow-visible md:px-0 md:pb-0"
+        className="flex min-w-0 flex-1 flex-wrap justify-start gap-2 md:gap-2.5"
       >
         {categories.map((category) => (
           <CategoryRailPill
@@ -48,25 +50,22 @@ function CategoryRailPill({
 }) {
   const isAvailable = category.isActive;
   const className = classNames(
-    "tap inline-flex w-full items-center gap-2 rounded-[var(--radius-full)] px-3.5 py-2 text-[13px] font-semibold tracking-tight transition-[background-color,color] duration-[var(--motion-fast)] md:px-4 md:py-2.5 md:text-[14px]",
-    isActive
-      ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
-      : isAvailable
-        ? "bg-[var(--color-surface)] text-[var(--color-ink-900)] shadow-[var(--shadow-sm)] hover:bg-[var(--color-canvas-deep)]"
-        : "cursor-not-allowed bg-[var(--color-canvas-deep)]/50 text-[var(--color-ink-500)] opacity-80",
+    shopCatalogPillClass(isActive),
+    !isAvailable &&
+      "cursor-not-allowed border-dashed bg-[var(--color-canvas-deep)]/50 text-[var(--color-ink-500)] opacity-80 hover:translate-y-0 hover:border-[var(--color-ink-200)] hover:bg-[var(--color-canvas-deep)]/50",
   );
 
   const inner = (
     <>
       <Icon
         node={category.iconNode}
-        size={16}
-        strokeWidth={2.2}
+        size={12}
+        strokeWidth={2}
         className="shrink-0"
       />
       <span className="whitespace-nowrap">{category.label}</span>
       {!isAvailable && (
-        <span className="rounded-full bg-[var(--color-ink-100)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--color-ink-500)]">
+        <span className="rounded-full bg-[var(--color-ink-100)] px-1 py-0.5 text-[8px] font-semibold uppercase tracking-[0.06em] text-[var(--color-ink-500)]">
           Soon
         </span>
       )}
@@ -79,7 +78,7 @@ function CategoryRailPill({
     </span>
   ) : (
     <Link
-      href={`/shop/${category.slug}`}
+      href={categoryHref(category.slug)}
       scroll={false}
       aria-current={isActive ? "page" : undefined}
       className={className}
@@ -88,10 +87,8 @@ function CategoryRailPill({
     </Link>
   );
 
-  // Reveal lives on the wrapper so the pill keeps its own interaction
-  // transitions (`.tap`, hover border) — `.reveal` is unlayered and would
-  // otherwise clobber the pill's `transition-*` utilities.
-  return <div className="reveal flex shrink-0 snap-start">{pill}</div>;
+  // Wrapper keeps pill interaction transitions isolated from layout churn.
+  return <div className="flex shrink-0">{pill}</div>;
 }
 
 interface ShopCategoryHubGridProps {
@@ -145,7 +142,7 @@ function CategoryHubCard({ category }: { category: CategoryMeta }) {
   }
 
   return (
-    <Link href={`/shop/${category.slug}`} className="group block h-full focus:outline-none">
+    <Link href={categoryHref(category.slug)} className="group block h-full focus:outline-none">
       {inner}
     </Link>
   );

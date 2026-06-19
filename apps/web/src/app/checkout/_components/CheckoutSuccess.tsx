@@ -168,7 +168,7 @@ export function CheckoutSuccess({
           >
             View order details
           </ButtonLink>
-          <ButtonLink href="/shop" variant="outline" size="md">
+          <ButtonLink href="/" variant="outline" size="md">
             Keep shopping
           </ButtonLink>
         </div>

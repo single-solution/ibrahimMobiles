@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { BrandLockup } from "@/components/layout/BrandLockup";
 import { classNames } from "@store/shared";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
+import { useShopHref } from "@/lib/core/storefrontReferenceContext";
 
 interface MobileHeaderProps {
   onOpenSearch: () => void;
@@ -13,6 +14,7 @@ interface MobileHeaderProps {
 export function MobileHeader({ onOpenSearch }: MobileHeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const { siteName, brandLogoLight, brandLogoDark } = useStoreSettings();
+  const catalogHomeHref = useShopHref();
 
   // Mirror the desktop header's frosted-on-scroll behaviour so the
   // mobile header dissolves into the hero gradient at the top of the
@@ -43,7 +45,7 @@ export function MobileHeader({ onOpenSearch }: MobileHeaderProps) {
     >
       <div className="flex h-full items-center gap-2 px-3">
         <BrandLockup
-          href="/"
+          href={catalogHomeHref}
           siteName={siteName}
           logoUrl={brandLogoLight || brandLogoDark}
           tone="light"

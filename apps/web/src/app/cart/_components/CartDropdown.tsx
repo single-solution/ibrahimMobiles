@@ -8,7 +8,7 @@ import { ButtonLink } from "@store/ui";
 import { QuantityStepper } from "@store/ui";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
-import { productHref } from "@/lib/catalog/productPaths";
+import { catalogRootHref, productHref } from "@/lib/catalog/productPaths";
 import { useCart } from "@/lib/cart/useCart";
 import { usePresence } from "@/components/shared/motion/usePresence";
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
@@ -126,7 +126,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
                 <p className="max-w-prose text-[12.5px] text-[var(--color-ink-500)]">
                   Add a product from the shop to get started.
                 </p>
-                <ButtonLink href="/shop" variant="primary" size="sm" onClick={onClose}>
+                <ButtonLink href={catalogRootHref()} variant="primary" size="sm" onClick={onClose}>
                   Browse products
                 </ButtonLink>
               </div>
@@ -212,7 +212,7 @@ function CartDropdownLine({
           { categorySlug: line.categorySlug, slug: line.productSlug },
           { selection: cartSelection },
         )
-      : "/shop";
+      : catalogRootHref();
   const attributeEntries = Object.entries(line.attributes ?? {});
 
   const handleRemove = () => {

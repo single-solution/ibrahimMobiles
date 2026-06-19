@@ -37,14 +37,13 @@ export function GradeShowcase({ product, variant = "desktop" }: GradeShowcasePro
   const selectedVariantId = useSelectedVariantId();
   const variants = product.variants;
   const selected =
-    variants.find((candidate) => candidate.id === selectedVariantId) ??
-    variants[0];
+    variants.find((candidate) => candidate.id === selectedVariantId) ?? null;
   const descriptor = useGrade(
     product.categorySlug,
     selected?.gradeSlug ?? "",
   );
 
-  if (!selected || !descriptor) {
+  if (!selected?.id || !descriptor) {
     return null;
   }
 

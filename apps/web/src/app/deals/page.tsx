@@ -125,7 +125,7 @@ export default function DealsPage() {
       </div>
 
       {/* Desktop — single layout */}
-      <div className="mx-auto hidden w-full max-w-[1440px] px-4 pb-24 pt-6 md:block md:px-6 md:pb-16 md:pt-10 lg:px-8">
+      <div className="mx-auto hidden w-full max-w-[1440px] px-4 pb-24 pt-6 md:block sm:px-6 md:pb-16 md:pt-10 lg:px-8">
         <header className="reveal space-y-3">
           <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
             <Sparkles size={12} />

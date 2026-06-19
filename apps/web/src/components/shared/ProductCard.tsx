@@ -4,16 +4,14 @@ import { useMemo } from "react";
 import Link from "next/link";
 
 import { type Product } from "@store/shared";
-import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
-import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
 import { evaluateOffers } from "@store/shared";
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { productHref } from "@/lib/catalog/productPaths";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
+import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
 import {
   countProductGrades,
-  getDefaultVariant,
   getVariantsInDisplayOrder,
   isProductInStock,
   resolveListingVariant,
@@ -44,7 +42,7 @@ interface ProductCardProps {
   product: Product;
   /** Full product row (all grades) for catalog-wide price range in product view. */
   catalogProduct?: Product;
-  /** Grade view: link opens PDP with this grade selected. */
+  /** Grade view: card copy scoped to this grade; link is always the base PDP URL. */
   pinnedGradeSlug?: string;
   /**
    * When `true` the hero image renders as a `priority` `<Image>` so the
@@ -111,12 +109,7 @@ export function ProductCard({
     isGradeListing && shouldCycleVariantChips
       ? (orderedVariantsInGrade[slideCycle.activeIndex] ?? displayVariant)
       : displayVariant;
-  const href = isGradeListing
-    ? productHref(catalog, {
-        selection: { [GRADE_DIMENSION_KEY]: pinnedGradeSlug! },
-        variant: listingVariant,
-      })
-    : productHref(catalog, { variant: getDefaultVariant(catalog) });
+  const href = productHref(catalog);
 
   const attributeSource = isGradeListing ? product : catalog;
   const productHeroImage = resolveProductHeroImage(catalog) ?? resolveProductHeroImage(product);

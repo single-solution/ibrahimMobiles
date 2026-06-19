@@ -10,22 +10,18 @@ import { CartDropdown } from "@/app/cart/_components/CartDropdown";
 import { useCart } from "@/lib/cart/useCart";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 import { useIsSignedIn } from "@/lib/auth/useIsSignedIn";
-import { useShopHref } from "@/lib/core/storefrontReferenceContext";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
+import { useShopHref } from "@/lib/core/storefrontReferenceContext";
 
-// `matchBase` is the path used to highlight the active nav link; `href` (when
-// set) is the destination the link actually points to. Shop resolves its href
-// at render to the first category so the click skips the `/shop` redirect,
-// while still lighting up across every `/shop/*` route.
 const NAV_LINKS = [
   { matchBase: "/", label: "Home" },
-  { matchBase: "/shop", label: "Shop" },
   { matchBase: "/deals", label: "Deals" },
+  { matchBase: "/about", label: "About" },
 ] as const;
 
-function isNavActive(matchBase: string, pathname: string): boolean {
+function isNavActive(matchBase: string, pathname: string, catalogHomeHref: string): boolean {
   if (matchBase === "/") {
-    return pathname === "/";
+    return pathname === "/" || pathname === catalogHomeHref;
   }
   return pathname === matchBase || pathname.startsWith(`${matchBase}/`);
 }
@@ -39,7 +35,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const cart = useCart();
   const pathname = usePathname() ?? "/";
-  const shopHref = useShopHref();
+  const catalogHomeHref = useShopHref();
   const { siteName, brandLogoLight, brandLogoDark } = useStoreSettings();
 
   useEffect(() => {
@@ -72,7 +68,7 @@ export function Header({ onOpenSearch }: HeaderProps) {
       >
         <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-4 px-4 sm:px-6 lg:px-8">
         <BrandLockup
-          href="/"
+          href={catalogHomeHref}
           siteName={siteName}
           logoUrl={brandLogoLight || brandLogoDark}
           tone="light"
@@ -81,8 +77,8 @@ export function Header({ onOpenSearch }: HeaderProps) {
 
         <nav className="flex items-center gap-1">
           {NAV_LINKS.map((navLink) => {
-            const isActive = isNavActive(navLink.matchBase, pathname);
-            const href = navLink.matchBase === "/shop" ? shopHref : navLink.matchBase;
+            const href = navLink.matchBase === "/" ? catalogHomeHref : navLink.matchBase;
+            const isActive = isNavActive(navLink.matchBase, pathname, catalogHomeHref);
             return (
               <HeaderNavLink
                 key={navLink.matchBase}

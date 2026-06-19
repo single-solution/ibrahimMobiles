@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Check, SlidersHorizontal, X } from "lucide-react";
+import { Check, ChevronDown, SlidersHorizontal, X } from "lucide-react";
 
 import {
   attributeSlugsToClearOnFilterChange,
@@ -51,6 +51,30 @@ interface FilterSidebarProps {
   initialFacets?: AttributeFacet[];
 }
 
+export type FilterPanelSection = "grade" | "brand" | "attributes" | "price";
+
+export interface FilterPanelProps {
+  isMobile?: boolean;
+  categorySlug?: string;
+  brands: Brand[];
+  gradeCounts: Record<string, number>;
+  initialFacets: AttributeFacet[];
+  /** When set, only render these groups (used by shop filter dropdown rows). */
+  sections?: FilterPanelSection[];
+  /** Limits the attributes section to one facet axis (per-axis dropdowns). */
+  attributeSlug?: string;
+  /** Multi-column layout for attribute groups (More filters grid menu). */
+  attributesLayout?: "stack" | "grid";
+  /** `plain` drops the sticky sidebar chrome — for popover panels. */
+  layout?: "sidebar" | "plain";
+  showClearAll?: boolean;
+}
+
+export type ShopFilterDataProps = Pick<
+  FilterSidebarProps,
+  "categorySlug" | "brands" | "gradeCounts" | "initialFacets"
+>;
+
 export function FilterSidebar({
   categorySlug,
   brands = [],
@@ -81,6 +105,14 @@ export function FilterSidebar({
               {activeFilterCount}
             </span>
           )}
+          <ChevronDown
+            size={12}
+            aria-hidden
+            className={classNames(
+              "shrink-0 text-[var(--color-ink-500)] transition-transform duration-[var(--motion-slow)] ease-[var(--ease-out-quart)]",
+              isMobileOpen && "rotate-180",
+            )}
+          />
         </button>
       </div>
 
@@ -134,21 +166,27 @@ export function FilterSidebar({
   );
 }
 
-interface FilterPanelProps {
-  isMobile?: boolean;
-  categorySlug?: string;
-  brands: Brand[];
-  gradeCounts: Record<string, number>;
-  initialFacets: AttributeFacet[];
-}
+interface FilterPanelPropsInternal extends FilterPanelProps {}
 
-function FilterPanel({
+export function FilterPanel({
   isMobile = false,
   categorySlug,
   brands,
   gradeCounts,
   initialFacets,
-}: FilterPanelProps) {
+  sections,
+  attributeSlug,
+  attributesLayout = "stack",
+  layout = "sidebar",
+  showClearAll,
+}: FilterPanelPropsInternal) {
+  const activeSections = sections ?? (["grade", "brand", "attributes", "price"] as FilterPanelSection[]);
+  const includeGrade = activeSections.includes("grade");
+  const includeBrand = activeSections.includes("brand");
+  const includeAttributes = activeSections.includes("attributes");
+  const includePrice = activeSections.includes("price");
+  const shouldShowClearAll = showClearAll ?? (!isMobile && layout === "sidebar");
+  const isCompactPanel = layout === "plain";
   const filterApi = useFilterParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -361,61 +399,67 @@ function FilterPanel({
   };
 
   const filterGroups = (
-    <div className={isMobile ? "sheet-stagger space-y-6" : "reveal-stagger space-y-3 p-2.5 pb-3"}>
-      <FilterGroup title="Grade" reveal={!isMobile}>
-        {visibleGrades.length === 0 ? (
-          <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
-            No grades configured yet.
-          </p>
-        ) : (
-          <div className="space-y-0.5">
-            {visibleGrades.map((descriptor) => (
-              <FilterCheckRow
-                key={`${descriptor.categorySlug}:${descriptor.slug}`}
-                label={descriptor.label}
-                count={gradeCounts[descriptor.slug]}
-                checked={grades.includes(descriptor.slug)}
-                onToggle={() => toggleGrade(descriptor.slug)}
-              />
-            ))}
-          </div>
-        )}
-      </FilterGroup>
+    <div className={isMobile ? "sheet-stagger space-y-6" : "space-y-3 p-0"}>
+      {includeGrade ? (
+        <>
+          <FilterGroup title="Grade" reveal={!isMobile && layout === "sidebar"}>
+            {visibleGrades.length === 0 ? (
+              <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
+                No grades configured yet.
+              </p>
+            ) : (
+              <div className="space-y-0.5">
+                {visibleGrades.map((descriptor) => (
+                  <FilterCheckRow
+                    key={`${descriptor.categorySlug}:${descriptor.slug}`}
+                    label={descriptor.label}
+                    count={gradeCounts[descriptor.slug]}
+                    checked={grades.includes(descriptor.slug)}
+                    onToggle={() => toggleGrade(descriptor.slug)}
+                    compact={isCompactPanel}
+                  />
+                ))}
+              </div>
+            )}
+          </FilterGroup>
+          {(includeBrand || includeAttributes) && layout === "sidebar" ? <FilterDivider /> : null}
+        </>
+      ) : null}
 
-      <FilterDivider />
+      {includeBrand ? (
+        <>
+          <FilterGroup title="Brand" reveal={!isMobile && layout === "sidebar"}>
+            {sortedBrands.length === 0 ? (
+              <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
+                No brands available yet.
+              </p>
+            ) : (
+              <div className="space-y-0.5">
+                {sortedBrands.map((brand) => (
+                  <FilterCheckRow
+                    key={brand.slug}
+                    label={brand.name}
+                    count={brand.productCount}
+                    checked={brandSlugs.includes(brand.slug)}
+                    onToggle={() => toggleBrand(brand.slug)}
+                    compact={isCompactPanel}
+                  />
+                ))}
+              </div>
+            )}
+          </FilterGroup>
+          {includeAttributes && layout === "sidebar" ? <FilterDivider /> : null}
+        </>
+      ) : null}
 
-      <FilterGroup title="Brand" reveal={!isMobile}>
-        {sortedBrands.length === 0 ? (
-          <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
-            No brands available yet.
-          </p>
-        ) : (
-          <div className="space-y-0.5">
-            {sortedBrands.map((brand) => (
-              <FilterCheckRow
-                key={brand.slug}
-                label={brand.name}
-                count={brand.productCount}
-                checked={brandSlugs.includes(brand.slug)}
-                onToggle={() => toggleBrand(brand.slug)}
-              />
-            ))}
-          </div>
-        )}
-      </FilterGroup>
-
-      <FilterDivider />
-
-      {categorySlug ? (
-        <div className={isMobile ? undefined : "reveal"}>
+      {includeAttributes && categorySlug ? (
+        <div className={layout === "sidebar" && !isMobile ? "reveal" : undefined}>
           <AttributeFacetGroups
             key={facetFetchKey}
             categorySlug={categorySlug}
             initialFacets={initialFacets}
             filterParams={filterApi.params}
             getMulti={(key) => {
-              // Strip the "attr." prefix so we can look up the optimistic mirror.
-              // Any attribute we haven't toggled yet falls back to the URL value.
               const attrSlug = key.startsWith("attr.") ? key.slice(5) : null;
               if (attrSlug && optimisticAttributes[attrSlug]) {
                 return optimisticAttributes[attrSlug];
@@ -423,28 +467,32 @@ function FilterPanel({
               return filterApi.getMulti(key);
             }}
             onToggleAttribute={toggleAttribute}
+            hideDividers={layout === "plain" || attributesLayout === "grid"}
+            onlySlug={attributeSlug}
+            compact={isCompactPanel}
+            groupLayout={attributesLayout}
           />
         </div>
       ) : null}
 
-      {!isMobile && countActiveFilters(filterApi.params) > 0 && (
+      {shouldShowClearAll && countActiveFilters(filterApi.params) > 0 ? (
         <div className="pt-1">
           <button
             type="button"
             onClick={() => filterApi.clearAll()}
-            className="inline-flex h-8 items-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 text-[12px] font-semibold text-[var(--color-ink-700)] hover:border-[var(--color-ink-300)]"
+            className="inline-flex h-7 items-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2.5 text-[11px] font-medium text-[var(--color-ink-700)] hover:border-[var(--color-ink-300)]"
           >
             <X size={12} />
             Clear all filters
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 
-  const priceFooter = (
-    <div className={isMobile ? "mt-6 border-t border-[var(--color-ink-100)] pt-4" : "border-t border-[var(--color-ink-100)] p-2.5"}>
-      <FilterGroup title="Price">
+  const priceFooter = includePrice ? (
+    <div className={isMobile ? "mt-6 border-t border-[var(--color-ink-100)] pt-4" : layout === "sidebar" ? "border-t border-[var(--color-ink-100)] p-2.5" : "pt-1"}>
+      <FilterGroup title={layout === "plain" && !isMobile ? undefined : "Price"}>
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <PriceInput
@@ -466,15 +514,18 @@ function FilterPanel({
           <button
             type="button"
             onClick={applyPriceRange}
-            className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-[13px] font-semibold text-[var(--color-ink-900)] transition-colors hover:bg-[var(--color-accent-600)]"
+            className={classNames(
+              "inline-flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--color-accent-500)] font-medium text-[var(--color-ink-900)] transition-colors hover:bg-[var(--color-accent-600)]",
+              isCompactPanel ? "h-8 text-[12px]" : "h-9 text-[13px]",
+            )}
           >
-            <Check size={14} strokeWidth={2.6} />
+            <Check size={isCompactPanel ? 12 : 14} strokeWidth={2.6} />
             Apply
           </button>
         </div>
       </FilterGroup>
     </div>
-  );
+  ) : null;
 
   if (isMobile) {
     return (
@@ -485,14 +536,23 @@ function FilterPanel({
     );
   }
 
+  if (layout === "plain") {
+    return (
+      <div className="space-y-3">
+        {filterGroups}
+        {priceFooter}
+      </div>
+    );
+  }
+
   return (
     /* Concentric: inner FilterCheckRow --radius-md (8) sits ~10px
        from sidebar edge → outer 18 ≈ --radius-xl (20, within 2px). */
     <div className="flex h-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-200)]/45 bg-[var(--color-surface)]">
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        {filterGroups}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 pb-3">
+        <div className="reveal-stagger space-y-3">{filterGroups}</div>
       </div>
-      <div className="shrink-0 bg-[var(--color-surface)]">{priceFooter}</div>
+      {priceFooter ? <div className="shrink-0 bg-[var(--color-surface)]">{priceFooter}</div> : null}
     </div>
   );
 }
@@ -503,16 +563,19 @@ interface AttributeFacetGroupsProps {
   filterParams: URLSearchParams;
   getMulti: (key: string) => string[];
   onToggleAttribute: (attributeSlug: string, value: string) => void;
+  hideDividers?: boolean;
+  /** When set, render only this attribute slug (per-axis dropdown). */
+  onlySlug?: string;
+  compact?: boolean;
+  groupLayout?: "stack" | "grid";
 }
 
-/** Remount when category/filters change so facet state resets without sync effects. */
-function AttributeFacetGroups({
-  categorySlug,
-  initialFacets,
-  filterParams,
-  getMulti,
-  onToggleAttribute,
-}: AttributeFacetGroupsProps) {
+/** Live attribute facets for the active category + current URL filters. */
+export function useAttributeFacets(
+  categorySlug: string,
+  filterParams: URLSearchParams,
+  initialFacets: AttributeFacet[],
+) {
   const [facets, setFacets] = useState<AttributeFacet[]>(initialFacets);
   const [facetsLoading, setFacetsLoading] = useState(true);
 
@@ -544,6 +607,27 @@ function AttributeFacetGroups({
     return () => controller.abort();
   }, [categorySlug, filterParams]);
 
+  return { facets, facetsLoading };
+}
+
+/** Remount when category/filters change so facet state resets without sync effects. */
+function AttributeFacetGroups({
+  categorySlug,
+  initialFacets,
+  filterParams,
+  getMulti,
+  onToggleAttribute,
+  hideDividers = false,
+  onlySlug,
+  compact = false,
+  groupLayout = "stack",
+}: AttributeFacetGroupsProps) {
+  const { facets, facetsLoading } = useAttributeFacets(
+    categorySlug,
+    filterParams,
+    initialFacets,
+  );
+
   if (!facetsLoading && facets.length === 0) {
     return (
       <p className="max-w-prose px-2 text-[12px] leading-snug text-[var(--color-ink-500)]">
@@ -553,36 +637,61 @@ function AttributeFacetGroups({
     );
   }
 
+  const visibleFacets = onlySlug
+    ? facets.filter((facet) => facet.slug === onlySlug)
+    : facets;
+
+  const renderFacetGroup = (facet: (typeof visibleFacets)[number]) => {
+    const selectedValues = getMulti(`attr.${facet.slug}`);
+    return (
+      <FilterGroup title={onlySlug ? undefined : facet.label}>
+        {facetsLoading && facet.options.length === 0 ? (
+          <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
+            Loading options…
+          </p>
+        ) : facet.options.length === 0 ? (
+          <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
+            No values in current results.
+          </p>
+        ) : (
+          <div className="space-y-0.5">
+            {facet.options.map((option) => (
+              <FilterCheckRow
+                key={option.value}
+                label={option.label}
+                count={option.count}
+                checked={selectedValues.includes(option.value)}
+                onToggle={() => onToggleAttribute(facet.slug, option.value)}
+                compact={compact}
+              />
+            ))}
+          </div>
+        )}
+      </FilterGroup>
+    );
+  };
+
+  if (groupLayout === "grid") {
+    return (
+      <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+        {visibleFacets.map((facet) => (
+          <div key={facet.slug} className="min-w-0">
+            {renderFacetGroup(facet)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <>
-      {facets.map((facet, attributeIndex) => {
-        const selectedValues = getMulti(`attr.${facet.slug}`);
+      {visibleFacets.map((facet, attributeIndex) => {
         return (
           <div key={facet.slug}>
-            <FilterGroup title={facet.label}>
-              {facetsLoading && facet.options.length === 0 ? (
-                <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
-                  Loading options…
-                </p>
-              ) : facet.options.length === 0 ? (
-                <p className="px-2 text-[12px] text-[var(--color-ink-500)]">
-                  No values in current results.
-                </p>
-              ) : (
-                <div className="space-y-0.5">
-                  {facet.options.map((option) => (
-                    <FilterCheckRow
-                      key={option.value}
-                      label={option.label}
-                      count={option.count}
-                      checked={selectedValues.includes(option.value)}
-                      onToggle={() => onToggleAttribute(facet.slug, option.value)}
-                    />
-                  ))}
-                </div>
-              )}
-            </FilterGroup>
-            {attributeIndex < facets.length - 1 && <FilterDivider />}
+            {renderFacetGroup(facet)}
+            {!hideDividers && attributeIndex < visibleFacets.length - 1 ? (
+              <FilterDivider />
+            ) : null}
           </div>
         );
       })}
@@ -591,7 +700,7 @@ function AttributeFacetGroups({
 }
 
 /** Quick count of how many filter groups are currently set. */
-function countActiveFilters(params: URLSearchParams): number {
+export function countActiveFilters(params: URLSearchParams): number {
   let activeCount = 0;
   for (const key of Object.values(FILTER_PARAM_KEYS)) {
     if (
@@ -613,8 +722,114 @@ function countActiveFilters(params: URLSearchParams): number {
   return activeCount;
 }
 
+/** Count comma-separated values for a single URL param key. */
+export function countMultiParam(params: URLSearchParams, key: string): number {
+  const raw = params.get(key);
+  if (!raw) {
+    return 0;
+  }
+  return raw.split(",").map((token) => token.trim()).filter(Boolean).length;
+}
+
+/** Count attribute axes with at least one selected value. */
+export function countActiveAttributeFilters(params: URLSearchParams): number {
+  let activeCount = 0;
+  for (const key of Array.from(params.keys())) {
+    if (key.startsWith("attr.") && params.get(key)) {
+      activeCount += 1;
+    }
+  }
+  return activeCount;
+}
+
+/** More filters unlock after grade/brand selection, or when attrs are already set. */
+export function shouldShowMoreAttributeFilters(
+  params: URLSearchParams,
+  categoryAttributes: Array<{ visibility?: { type?: string } }>,
+): boolean {
+  if (countActiveAttributeFilters(params) > 0) {
+    return true;
+  }
+  if (categoryAttributes.length === 0) {
+    return false;
+  }
+  const hasBrand = countMultiParam(params, FILTER_PARAM_KEYS.brands) > 0;
+  const hasGrade = countMultiParam(params, FILTER_PARAM_KEYS.grades) > 0;
+  if (hasBrand || hasGrade) {
+    return true;
+  }
+  return categoryAttributes.some(
+    (attribute) => (attribute.visibility?.type ?? "always") === "always",
+  );
+}
+
+export function isPriceFilterActive(params: URLSearchParams): boolean {
+  return Boolean(
+    params.get(FILTER_PARAM_KEYS.minPrice) || params.get(FILTER_PARAM_KEYS.maxPrice),
+  );
+}
+
+/** Remove one value from a multi URL param; clears dependent attribute filters when needed. */
+export function useListingFilterMutations(categorySlug?: string) {
+  const filterApi = useFilterParams();
+  const categoryAttributes = useAttributesForCategory(categorySlug ?? "");
+  const attributeNodes = useMemo(
+    () =>
+      categoryAttributes.map((attribute) => ({
+        slug: attribute.slug,
+        label: attribute.label,
+        visibility: attribute.visibility ?? { type: "always" as const },
+      })),
+    [categoryAttributes],
+  );
+
+  const clearDependentAttributes = useCallback(
+    (next: URLSearchParams, changed: "brand" | "grade" | string) => {
+      for (const slug of attributeSlugsToClearOnFilterChange(attributeNodes, changed)) {
+        next.delete(`attr.${slug}`);
+      }
+    },
+    [attributeNodes],
+  );
+
+  const removeFromMulti = useCallback(
+    (paramKey: string, value: string) => {
+      const next = new URLSearchParams(filterApi.params.toString());
+      const current = filterApi.getMulti(paramKey);
+      const set = new Set(current);
+      set.delete(value);
+      const nextValues = Array.from(set);
+      if (nextValues.length === 0) {
+        next.delete(paramKey);
+      } else {
+        next.set(paramKey, nextValues.join(","));
+      }
+      if (paramKey === FILTER_PARAM_KEYS.brands) {
+        clearDependentAttributes(next, "brand");
+      } else if (paramKey === FILTER_PARAM_KEYS.grades) {
+        clearDependentAttributes(next, "grade");
+      } else if (paramKey.startsWith("attr.")) {
+        clearDependentAttributes(next, paramKey.slice(5));
+      }
+      filterApi.replaceParams(next);
+    },
+    [clearDependentAttributes, filterApi],
+  );
+
+  const clearPrice = useCallback(() => {
+    const next = new URLSearchParams(filterApi.params.toString());
+    next.delete(FILTER_PARAM_KEYS.minPrice);
+    next.delete(FILTER_PARAM_KEYS.maxPrice);
+    filterApi.replaceParams(next);
+  }, [filterApi]);
+
+  const clearAll = filterApi.clearAll;
+
+  return { removeFromMulti, clearPrice, clearAll, params: filterApi.params };
+}
+
 interface FilterGroupProps {
-  title: string;
+  title?: string;
   children: React.ReactNode;
   /** Desktop-only scroll reveal. Off on mobile, where `sheet-stagger` drives entrance. */
   reveal?: boolean;
@@ -623,9 +838,11 @@ interface FilterGroupProps {
 function FilterGroup({ title, children, reveal = false }: FilterGroupProps) {
   return (
     <div className={classNames("space-y-3", reveal && "reveal")}>
-      <h3 className="px-1 text-[12.5px] font-bold tracking-wide text-[var(--color-ink-900)]">
-        {title}
-      </h3>
+      {title ? (
+        <h3 className="px-1 text-[12.5px] font-bold tracking-wide text-[var(--color-ink-900)]">
+          {title}
+        </h3>
+      ) : null}
       {children}
     </div>
   );
@@ -665,39 +882,48 @@ interface FilterCheckRowProps {
   count?: number;
   checked: boolean;
   onToggle: () => void;
+  compact?: boolean;
 }
 
-function FilterCheckRow({ label, count, checked, onToggle }: FilterCheckRowProps) {
+function FilterCheckRow({ label, count, checked, onToggle, compact = false }: FilterCheckRowProps) {
   return (
     <button
       type="button"
       onClick={onToggle}
       aria-pressed={checked}
       className={classNames(
-        "tap flex w-full cursor-pointer items-center justify-between gap-3 rounded-[var(--radius-md)] px-2.5 py-1.5 text-[14.5px] transition-all duration-300 ease-out-quart",
+        "tap flex w-full cursor-pointer items-center justify-between gap-2 rounded-[var(--radius-md)] transition-all duration-300 ease-out-quart",
+        compact ? "px-2 py-1 text-[13px]" : "gap-3 px-2.5 py-1.5 text-[14.5px]",
         checked
-          ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
+          ? "bg-[var(--color-accent-100)] font-medium text-[var(--color-accent-800)]"
           : "font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
       )}
     >
-      <span className="flex items-center gap-3">
+      <span className={classNames("flex items-center", compact ? "gap-2" : "gap-3")}>
         <span
           aria-hidden
           className={classNames(
-            "grid size-[20px] shrink-0 place-items-center rounded-[6px] border transition-colors",
+            "grid shrink-0 place-items-center rounded-[6px] border transition-colors",
+            compact ? "size-[16px]" : "size-[20px]",
             checked
               ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)]"
               : "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
           )}
         >
-          {checked && <Check size={14} strokeWidth={3} className="animate-badge-pop" />}
+          {checked && (
+            <Check
+              size={compact ? 11 : 14}
+              strokeWidth={3}
+              className="animate-badge-pop"
+            />
+          )}
         </span>
         <span>{label}</span>
       </span>
       {count !== undefined && (
         <span
           className={classNames(
-            "text-[12px]",
+            compact ? "text-[11px]" : "text-[12px]",
             checked ? "text-[var(--color-accent-700)]" : "text-[var(--color-ink-400)]",
           )}
         >

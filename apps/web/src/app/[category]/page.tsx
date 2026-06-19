@@ -6,17 +6,13 @@ import { Suspense } from "react";
 import { logger } from "@store/shared";
 
 import { ShopProductFeed } from "@/components/shared/ShopProductFeed";
-import { FilterSidebar } from "@/components/shared/FilterSidebar";
-import { ShopCategoryRail } from "@/app/shop/_components/ShopCategoryRail";
-import { MobileCategoryPicker } from "@/app/shop/_components/MobileCategoryPicker";
-import { ShopScrollReset } from "@/app/shop/_components/ShopScrollReset";
+import { ShopCategoryToolbar } from "@/app/_components/shop/ShopCategoryToolbar";
+import { SHOP_CATEGORY_GRID_CLASS, SHOP_CATEGORY_PAGE_CLASS } from "@/lib/catalog/shopListingGrid";
+import { ShopScrollReset } from "@/app/_components/shop/ShopScrollReset";
+import { catalogRootHref, categoryHref } from "@/lib/catalog/productPaths";
 import {
-  ShopCategoryRailFallback,
-  ShopDesktopFilterSidebarFallback,
-  ShopDesktopProductsAreaFallback,
-  ShopMobileCategoryPickerFallback,
-  ShopMobileProductsAreaFallback,
-  ShopMobileToolbarFilterFallback,
+  ShopCatalogToolbarFallback,
+  ShopProductsAreaFallback,
 } from "@/components/shared/ShopListingSkeleton";
 import { NavigationPendingFallback } from "@/components/shared/NavigationPendingFallback";
 import { StructuredContentFull } from "@/components/shared/StructuredContent";
@@ -26,11 +22,7 @@ import {
   type ProductFilters,
   type ProductPage,
 } from "@/lib/core";
-import { getFacets } from "@/lib/core/facets";
 import {
-  getBrandsCached,
-  getGradeCountsCached,
-  getCategoriesCached,
   getCategoryBySlugCached,
   getProductsPageCached,
 } from "@/lib/core/cached";
@@ -126,55 +118,18 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       <Suspense fallback={null}>
         <CategoryJsonLd meta={meta} filters={filters} />
       </Suspense>
-      {/* Mobile only — native. Compact toolbar: [Category ▾] picker
-          + [Filter (n)] button (sort lives inside the filter sheet,
-          alongside view mode). Grade view-mode segmented control
-          floats below the toolbar, above the grid. */}
-      <div className="app-page reveal-stagger pb-10 pt-1 md:hidden">
-        <div className="reveal shop-listing-toolbar mt-0 flex items-center gap-2 p-2">
-          <Suspense fallback={<ShopMobileCategoryPickerFallback />}>
-            <MobileCategoryPickerData activeSlug={meta.slug} />
-          </Suspense>
-          <Suspense fallback={<ShopMobileToolbarFilterFallback />}>
-            <FilterSidebarData categorySlug={meta.slug} filters={filters} />
-          </Suspense>
-        </div>
 
-        <div className="reveal">
-          <Suspense fallback={<ShopMobileProductsAreaFallback />}>
-            <NavigationPendingFallback fallback={<ShopMobileProductsAreaFallback />}>
-              <MobileProductsArea meta={meta} filters={filters} />
+      <div className={`${SHOP_CATEGORY_PAGE_CLASS} pb-10 md:pb-20`}>
+        <Suspense fallback={<ShopCatalogToolbarFallback />}>
+          <ShopCategoryToolbar activeSlug={meta.slug} filters={filters} />
+        </Suspense>
+
+        <div className="shop-listing-mobile-scroll-pad pt-1">
+          <Suspense fallback={<ShopProductsAreaFallback />}>
+            <NavigationPendingFallback fallback={<ShopProductsAreaFallback />}>
+              <ProductsArea meta={meta} filters={filters} />
             </NavigationPendingFallback>
           </Suspense>
-        </div>
-      </div>
-
-      {/* Desktop */}
-      <div className="hidden md:block">
-        <div className="reveal-stagger mx-auto max-w-[1440px] px-6 pb-20 pt-1">
-          <div className="grid grid-cols-[272px_1fr] gap-5 xl:grid-cols-[280px_1fr] xl:gap-6">
-            <div className="reveal">
-              <Suspense fallback={<ShopDesktopFilterSidebarFallback />}>
-                <FilterSidebarData categorySlug={meta.slug} filters={filters} />
-              </Suspense>
-            </div>
-
-            <div className="min-w-0 space-y-3">
-              <div className="reveal">
-                <Suspense fallback={<ShopCategoryRailFallback />}>
-                  <CategorySelectorData activeSlug={meta.slug} />
-                </Suspense>
-              </div>
-
-              <div className="reveal">
-                <Suspense fallback={<ShopDesktopProductsAreaFallback />}>
-                  <NavigationPendingFallback fallback={<ShopDesktopProductsAreaFallback />}>
-                    <DesktopProductsArea meta={meta} filters={filters} />
-                  </NavigationPendingFallback>
-                </Suspense>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </>
@@ -219,8 +174,7 @@ async function CategoryJsonLd({ meta, filters }: CategoryJsonLdProps) {
   });
   const breadcrumbLd = breadcrumbJsonLd([
     { name: "Home", url: seoSettings.siteUrl },
-    { name: "Shop", url: `${seoSettings.siteUrl}/shop` },
-    { name: meta.label, url: `${seoSettings.siteUrl}/shop/${meta.slug}` },
+    { name: meta.label, url: `${seoSettings.siteUrl}${categoryHref(meta.slug)}` },
   ]);
   return (
     <>
@@ -238,69 +192,19 @@ async function CategoryJsonLd({ meta, filters }: CategoryJsonLdProps) {
 
 /* ─────────────────────── Async RSC section loaders ─────────────────────── */
 
-interface CategorySelectorDataProps {
-  activeSlug: string;
-}
-
-async function CategorySelectorData({ activeSlug }: CategorySelectorDataProps) {
-  const categories = await getCategoriesCached();
-  return <ShopCategoryRail activeSlug={activeSlug} categories={categories} />;
-}
-
-async function MobileCategoryPickerData({ activeSlug }: CategorySelectorDataProps) {
-  const categories = await getCategoriesCached();
-  return <MobileCategoryPicker activeSlug={activeSlug} categories={categories} />;
-}
-
-interface FilterSidebarDataProps {
-  categorySlug: string;
-  filters: ProductFilters;
-}
-
-async function FilterSidebarData({
-  categorySlug,
-  filters,
-}: FilterSidebarDataProps) {
-  const [brands, facets, gradeCounts] = await Promise.all([
-    getBrandsCached(categorySlug),
-    getFacets(filters),
-    getGradeCountsCached(categorySlug),
-  ]);
-  return (
-    <FilterSidebar
-      categorySlug={categorySlug}
-      brands={brands}
-      gradeCounts={gradeCounts}
-      initialFacets={facets}
-    />
-  );
-}
-
 interface ProductsAreaProps {
   meta: CategoryMeta;
   filters: ProductFilters;
 }
 
-async function MobileProductsArea({ meta, filters }: ProductsAreaProps) {
-  const page = await loadCategoryProducts(filters);
-  return (
-    <div className="mt-4">
-      <ShopProductFeed
-        initialPage={page}
-        categoryLabel={meta.label}
-        apiParams={{ category: meta.slug }}
-      />
-    </div>
-  );
-}
-
-async function DesktopProductsArea({ meta, filters }: ProductsAreaProps) {
+async function ProductsArea({ meta, filters }: ProductsAreaProps) {
   const page = await loadCategoryProducts(filters);
   return (
     <ShopProductFeed
       initialPage={page}
       categoryLabel={meta.label}
       apiParams={{ category: meta.slug }}
+      gridClassName={SHOP_CATEGORY_GRID_CLASS}
     />
   );
 }
@@ -326,7 +230,7 @@ function ComingSoon({ meta }: { meta: CategoryMeta }) {
         bulletItemClassName="justify-center text-[13.5px] text-[var(--color-ink-700)]"
       />
       <Link
-        href="/shop"
+        href={catalogRootHref()}
         className="mt-6 inline-flex items-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-4 py-2 text-[13px] font-semibold text-[var(--color-ink-800)] hover:border-[var(--color-ink-300)]"
       >
         Browse other shops →

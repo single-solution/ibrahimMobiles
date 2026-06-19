@@ -90,7 +90,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       continue;
     }
     entries.push({
-      url: `${base}/shop/${category.slug}`,
+      url: `${base}/${category.slug}`,
       lastModified: now,
       changeFrequency: "daily",
       priority: 0.8,
@@ -103,7 +103,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         continue;
       }
       entries.push({
-        url: `${base}/shop/${category.slug}?brand=${encodeURIComponent(brand.slug)}`,
+        url: `${base}/${category.slug}?brand=${encodeURIComponent(brand.slug)}`,
         lastModified: now,
         changeFrequency: "weekly",
         priority: 0.6,
@@ -116,7 +116,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       continue;
     }
     entries.push({
-      url: `${base}/shop/${product.categorySlug}/${product.slug}`,
+      url: `${base}/${product.categorySlug}/${product.slug}`,
       lastModified: product.updatedAt ?? now,
       changeFrequency: "weekly",
       priority: 0.7,

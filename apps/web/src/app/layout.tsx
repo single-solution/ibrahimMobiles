@@ -17,6 +17,7 @@ import { getChatSettings } from "@/lib/chat/chatSettings";
 import { ChatSettingsProvider } from "@/lib/chat/chatSettingsContext";
 import { toClientChatSettings } from "@store/shared";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
+import { firstCategoryHref } from "@/lib/catalog/productPaths";
 import { getGoogleSiteVerification } from "@/lib/seo/googleVerification";
 import { StoreSettingsProvider } from "@/lib/core/storeSettingsContext";
 import {
@@ -159,6 +160,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
     loadStorefrontReference(),
     getChatSettings(),
   ]);
+  const catalogHomeHref = firstCategoryHref(reference.categories) ?? "/";
   return (
     <html
       lang="en"
@@ -253,7 +255,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <StoreSettingsProvider value={settings}>
           <ChatSettingsProvider value={toClientChatSettings(chatSettings)}>
             <ReferenceProvider value={reference}>
-              <AppShell footer={<Footer settings={settings} />}>
+              <AppShell footer={<Footer settings={settings} catalogHomeHref={catalogHomeHref} />}>
                 {children}
               </AppShell>
             </ReferenceProvider>

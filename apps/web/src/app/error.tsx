@@ -14,6 +14,7 @@
 import { useEffect } from "react";
 
 import { Button, ButtonLink } from "@store/ui";
+import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -28,7 +29,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
   }, [error]);
 
   return (
-    <div className="storefront-page-center mx-auto max-w-xl text-center">
+    <div className={`storefront-page-center ${STOREFRONT_SHELL_CLASS} w-full text-center`}>
       <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--color-accent-700)] sm:text-xs">
         Something went wrong
       </p>

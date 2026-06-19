@@ -13,6 +13,7 @@ import {
   orderPaymentToCheckoutId,
 } from "@store/shared";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
+import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
 import { PaymentInstructionsCard } from "@/app/checkout/_components/PaymentInstructionsCard";
 import {
   ArrowLeft,
@@ -98,7 +99,7 @@ export function OrderDetail({ order }: OrderDetailProps) {
   const paymentLabel = getPaymentMethodLabel(orderPaymentToCheckoutId(order.payment));
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">
+    <div className={`${STOREFRONT_SHELL_CLASS} pb-24 pt-4 md:pb-16 md:pt-10`}>
       <Link
         href="/account#orders"
         className="cta-arrow tap inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-ink-500)] hover:text-[var(--color-ink-800)]"

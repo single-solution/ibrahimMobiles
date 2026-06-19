@@ -2,25 +2,20 @@ import Link from "next/link";
 import {
   ArrowRight,
   ArrowUpRight,
-  BadgeCheck,
-  Banknote,
   ChevronDown,
   Clock,
   MapPin,
   Sparkles,
-  Undo2,
-  Video,
 } from "lucide-react";
+import { classNames } from "@store/shared";
 import { ButtonLink } from "@store/ui";
-import { Pill } from "@/components/ui/Pill";
 import { Icon } from "@/components/shared/Icon";
 import {
   StructuredContentCompact,
   StructuredContentFull,
 } from "@/components/shared/StructuredContent";
 import { GradesByCategoryTabs } from "@/app/_components/home/GradesByCategoryTabs";
-import { HeroMaskSweepHeadline } from "@/app/_components/home/HeroMaskSweepHeadline";
-import { HeroTrendingProductBand } from "@/app/_components/home/HeroTrendingProductBand";
+import { HeroHeadlineWithTrendingProducts } from "@/app/_components/home/HeroTrendingProductBand";
 import type { ProcessFlow } from "@/app/_components/home/homeProcessFlows";
 import { KineticHeading } from "@/components/shared/motion/KineticHeading";
 import { MagneticHover } from "@/components/shared/motion/MagneticHover";
@@ -36,12 +31,14 @@ import {
   getGradesCached,
 } from "@/lib/core/cached";
 import { buildGradeCategoryGroups } from "@/lib/core/gradeGroups";
+import { SHOP_CATEGORY_PAGE_CLASS } from "@/lib/catalog/shopListingGrid";
 import {
   HOME_FEATURED_CATEGORY_COUNT,
   formatCategorySectionTitle,
   getHomeCategoryGridClass,
   shouldShowBrowseAllCategories,
 } from "@/lib/core/categoryDisplay";
+import { homeCategoryHref } from "@/lib/catalog/homeCategoryHref";
 import type { HomePageCategory } from "@/lib/core/pageData";
 
 export const DESKTOP_CATEGORY_STAGGER_MS = 100;
@@ -53,18 +50,13 @@ export const DESKTOP_CATEGORY_STAGGER_MS = 100;
 export interface HeroProps {
   heroProducts: Product[];
   settings: StoreSettings;
-  /** Active storefront category labels, shown in the hero scope pill. */
-  categoryLabels: string[];
-  /**
-   * Pre-resolved storefront entry URL — the first active category
-   * (`/shop/<slug>`) so the CTA lands on real content directly instead
-   * of bouncing through the `/shop` → first-category server redirect.
-   */
+  /** Storefront catalog entry — `/` or `/?category=…` for the default category. */
   shopHref: string;
+  showVisitStoreButton?: boolean;
+  showWeAreDifferentCue?: boolean;
+  /** `viewport` fills the screen (About). `content` sizes to its children (shop banner). */
+  layout?: "viewport" | "content";
 }
-
-/** Neutral fallback when no categories are configured yet. */
-const HERO_PILL_FALLBACK = "Shop every category";
 
 export interface ShopTypesSectionProps {
   categories: HomePageCategory[];
@@ -78,109 +70,85 @@ export interface VisitStoreSectionProps {
   settings: StoreSettings;
 }
 
-function HeroTrustHints({
+const DESKTOP_HERO_GRADIENT =
+  "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 60%, var(--color-canvas)) 0%, var(--color-canvas) 60%, var(--color-canvas) 100%)";
+
+export function DesktopHero({
+  heroProducts,
   settings,
-  variant,
-}: {
-  settings: StoreSettings;
-  variant: "mobile" | "desktop";
-}) {
-  const items = [
-    { icon: Undo2, label: `${settings.moneybackDays}-day moneyback` },
-    { icon: Video, label: "Video before dispatch" },
-    {
-      icon: Banknote,
-      label: `${settings.bankTransferDiscountPercent}% off bank transfer`,
-    },
-  ] as const;
-
-  if (variant === "mobile") {
-    /* Flex-wrap + `justify-center` so the items cluster as a group in
-       the middle (not stretched into grid cells where each label would
-       hug the left of its cell and lose the centred feel). With the
-       three current labels the first two land on row 1 and the third
-       naturally wraps to a centred row 2 — the layout the design asks
-       for, without the grid's column-anchored alignment. */
-    return (
-      <ul className="flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-[12px] text-[var(--color-ink-600)]">
-        {items.map(({ icon: Icon, label }) => (
-          <li key={label} className="flex items-center gap-1.5">
-            <Icon size={13} className="shrink-0 text-[var(--color-accent-600)]" />
-            <span>{label}</span>
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-[var(--color-ink-500)]">
-      {items.map(({ icon: Icon, label }) => (
-        <div key={label} className="flex items-center gap-2">
-          <Icon size={15} className="text-[var(--color-accent-600)]" />
-          <span>{label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function DesktopHero({ heroProducts, settings, categoryLabels, shopHref }: HeroProps) {
+  shopHref,
+  showVisitStoreButton = true,
+  showWeAreDifferentCue = true,
+  layout = "viewport",
+}: HeroProps) {
   const productNames = heroProducts.map((product) => product.name);
-  const pillLabel = categoryLabels.length > 0 ? categoryLabels.join(" · ") : HERO_PILL_FALLBACK;
+  const isContentLayout = layout === "content";
 
   return (
     <section
       data-magnetic-field
-      className="relative flex overflow-hidden border-b border-[var(--color-ink-100)]"
+      className={classNames(
+        "relative flex overflow-hidden",
+        !isContentLayout && "border-b border-[var(--color-ink-100)]",
+        "-mt-[var(--desktop-header-h)]",
+        isContentLayout
+          ? "flex-col pb-8 pt-[calc(var(--desktop-header-h)+2rem)] md:pb-10 md:pt-[calc(var(--desktop-header-h)+2.5rem)]"
+          : "flex-col pt-[var(--desktop-header-h)]",
+      )}
       style={{
-        minHeight: "calc(100dvh - var(--desktop-header-h))",
-        background:
-          "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 60%, var(--color-canvas)) 0%, var(--color-canvas) 60%, var(--color-canvas) 100%)",
+        background: DESKTOP_HERO_GRADIENT,
+        ...(isContentLayout ? {} : { minHeight: "100dvh" }),
       }}
     >
       <div
-        className="reveal-stagger relative z-10 mx-auto flex w-full max-w-5xl flex-col items-center justify-evenly px-6 text-center"
-        style={{ minHeight: "calc(100dvh - var(--desktop-header-h))" }}
+        className={classNames(
+          "relative z-10 flex w-full flex-col items-center text-center",
+          !isContentLayout && "reveal-stagger",
+          isContentLayout ? SHOP_CATEGORY_PAGE_CLASS : "mx-auto max-w-5xl justify-evenly px-6",
+        )}
+        style={isContentLayout ? undefined : { minHeight: "calc(100dvh - var(--desktop-header-h))" }}
       >
-        <div className="reveal">
-          <Pill tone="accent" size="md" leadingIcon={<BadgeCheck size={12} />}>
-            {pillLabel}
-          </Pill>
+        <div
+          className={classNames(
+            "w-full overflow-hidden px-0.5 py-1.5",
+            !isContentLayout && "reveal",
+          )}
+        >
+          <HeroHeadlineWithTrendingProducts
+            productNames={productNames}
+            variant="desktop"
+            density={isContentLayout ? "compact" : "default"}
+          />
         </div>
 
-        <div className="reveal w-full">
-          <HeroMaskSweepHeadline variant="desktop" />
-        </div>
+        {showVisitStoreButton ? (
+          <div className={classNames("flex flex-col items-center gap-6", !isContentLayout && "reveal")}>
+            <MagneticHover fieldSelector="[data-magnetic-field]" strength={0.2} maxOffset={30}>
+              <ButtonLink
+                href={shopHref}
+                variant="primary"
+                size="lg"
+                className="cta-arrow !rounded-full shadow-[0_12px_36px_-16px_color-mix(in_srgb,var(--color-accent-500)_75%,transparent)]"
+                trailingIcon={<ArrowUpRight size={17} strokeWidth={2.4} />}
+              >
+                Visit store
+              </ButtonLink>
+            </MagneticHover>
+          </div>
+        ) : null}
 
-        <div className="reveal w-full">
-          <HeroTrendingProductBand productNames={productNames} variant="desktop" />
-        </div>
-
-        <div className="reveal flex flex-col items-center gap-6">
-          <MagneticHover fieldSelector="[data-magnetic-field]" strength={0.2} maxOffset={30}>
-            <ButtonLink
-              href={shopHref}
-              variant="primary"
-              size="lg"
-              className="cta-arrow !rounded-full shadow-[0_12px_36px_-16px_color-mix(in_srgb,var(--color-accent-500)_75%,transparent)]"
-              trailingIcon={<ArrowUpRight size={17} strokeWidth={2.4} />}
+        {showWeAreDifferentCue ? (
+          <div className={!isContentLayout ? "reveal" : undefined}>
+            <a
+              href="#how-to-buy"
+              aria-label="Scroll to next section"
+              className="hero-scroll-cue tap group inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] hover:text-[var(--color-ink-900)]"
             >
-              Visit store
-            </ButtonLink>
-          </MagneticHover>
-        </div>
-
-        <div className="reveal">
-          <a
-            href="#how-to-buy"
-            aria-label="Scroll to next section"
-            className="hero-scroll-cue tap group inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] hover:text-[var(--color-ink-900)]"
-          >
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">We Are Different</span>
-            <ChevronDown size={20} strokeWidth={2.2} className="animate-bounce" />
-          </a>
-        </div>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">We Are Different</span>
+              <ChevronDown size={20} strokeWidth={2.2} className="animate-bounce" />
+            </a>
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -195,9 +163,10 @@ export function DesktopShopTypesSection({ categories }: ShopTypesSectionProps) {
   const featured = categories.slice(0, HOME_FEATURED_CATEGORY_COUNT);
   const showBrowseAll = shouldShowBrowseAllCategories(categories.length);
   const headlineLabels = categories.map((category) => category.label);
+  const homeCategorySlug = categories.find((category) => category.isActive)?.slug ?? "";
 
   return (
-    <section className="cv-auto relative mx-auto max-w-[1440px] overflow-hidden px-6 py-24">
+    <section className="cv-auto relative mx-auto w-full max-w-[1440px] overflow-hidden px-4 py-24 sm:px-6 lg:px-8">
       <SectionAmbience intensity="soft" side="right" />
       <div className="relative z-10 reveal">
         <DesktopSectionHeader
@@ -216,13 +185,14 @@ export function DesktopShopTypesSection({ categories }: ShopTypesSectionProps) {
             meta={meta}
             variant="desktop"
             delayMs={(index + 1) * DESKTOP_CATEGORY_STAGGER_MS}
+            homeCategorySlug={homeCategorySlug}
           />
         ))}
       </div>
       {showBrowseAll ? (
         <div className="relative z-10 reveal mt-8 text-center">
           <Link
-            href="/shop"
+            href="/"
             className="cta-arrow tap inline-flex items-center gap-1.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-5 py-2.5 text-[14px] font-semibold text-[var(--color-accent-700)] hover:border-[var(--color-ink-300)]"
           >
             Browse all categories
@@ -247,9 +217,10 @@ export interface ShopTypeCardProps {
   meta: HomePageCategory;
   variant: "mobile" | "desktop";
   delayMs: number;
+  homeCategorySlug: string;
 }
 
-export function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
+export function ShopTypeCard({ meta, variant, delayMs, homeCategorySlug }: ShopTypeCardProps) {
   const isActive = meta.isActive;
 
   const inner = (
@@ -333,7 +304,7 @@ export function ShopTypeCard({ meta, variant, delayMs }: ShopTypeCardProps) {
     return inner;
   }
   return (
-    <Link href={`/shop/${meta.slug}`} className="tap group block focus:outline-none">
+    <Link href={homeCategoryHref(meta.slug, homeCategorySlug)} className="tap group block focus:outline-none">
       {inner}
     </Link>
   );
@@ -349,7 +320,7 @@ export function DesktopProcessSection({ flows }: ProcessSectionProps) {
   return (
     <section
       id="how-to-buy"
-      className="cv-auto relative mx-auto max-w-[1440px] scroll-mt-[var(--desktop-header-h)] overflow-hidden px-6 py-24"
+      className="cv-auto relative mx-auto w-full max-w-[1440px] scroll-mt-[var(--desktop-header-h)] overflow-hidden px-4 py-24 sm:px-6 lg:px-8"
     >
       <SectionAmbience intensity="soft" side="left" />
       <div className="relative z-10">
@@ -431,7 +402,7 @@ export async function DesktopGrades() {
 
   return (
     <section className="cv-auto bg-[var(--color-ink-900)] py-24 text-[var(--color-canvas)]">
-      <div className="mx-auto max-w-[1440px] px-6">
+      <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-[1fr_2fr] gap-12">
           <div className="reveal space-y-4">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-400)]">
@@ -464,7 +435,7 @@ export async function DesktopGrades() {
 
 export function DesktopVisitStore({ settings }: VisitStoreSectionProps) {
   return (
-    <section id="contact" className="cv-auto relative mx-auto max-w-[1440px] overflow-hidden px-6 py-24">
+    <section id="contact" className="cv-auto relative mx-auto w-full max-w-[1440px] overflow-hidden px-4 py-24 sm:px-6 lg:px-8">
       <SectionAmbience intensity="soft" side="right" />
       <div
         className="relative z-10 reveal overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]"

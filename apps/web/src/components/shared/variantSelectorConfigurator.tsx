@@ -5,18 +5,25 @@ import { MessageCircle, Settings2 } from "lucide-react";
 import { buildWhatsAppLink, classNames } from "@store/shared";
 import type { Variant } from "@store/shared";
 
+import { GRADE_DIMENSION_KEY, variantsForGrade } from "@/lib/catalog/pdpSelection";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 import {
+  buildConfiguratorIntroHint,
   computeOptionState,
+  filterOptionsForUpstreamSelection,
+  gradeOptionState,
   type Dimension,
 } from "./variantSelectorDimensions";
+import { ConfigurationRealignmentNotice } from "./variantSelectorConfigurationFeedback";
 
 interface ConfiguratorProps {
   dimensions: Dimension[];
   variants: Variant[];
   currentSelection: Record<string, string>;
   onPick: (dimensionKey: string, optionKey: string) => void;
+  realignmentNotice?: string | null;
+  realignmentDimensionKey?: string | null;
 }
 
 export function Configurator({
@@ -24,10 +31,20 @@ export function Configurator({
   variants,
   currentSelection,
   onPick,
+  realignmentNotice = null,
+  realignmentDimensionKey = null,
 }: ConfiguratorProps) {
   if (dimensions.length === 0) {
     return null;
   }
+
+  const activeGradeSlug = currentSelection[GRADE_DIMENSION_KEY] ?? "";
+  const gradeScopedVariants = activeGradeSlug
+    ? variantsForGrade(variants, activeGradeSlug)
+    : variants;
+  const hasHierarchy = dimensions.length > 1;
+  const introHint = buildConfiguratorIntroHint(dimensions);
+
   return (
     <section
       aria-label="Build your configuration"
@@ -44,16 +61,27 @@ export function Configurator({
             Build your configuration
           </h2>
         </div>
+        {introHint ? (
+          <p className="mt-1 text-[10px] leading-snug text-[var(--color-ink-500)] md:mt-1.5 md:text-[10.5px]">
+            {introHint}
+          </p>
+        ) : null}
       </header>
       <div className="divide-y divide-[var(--color-ink-100)]">
         {dimensions.map((dimension, index) => (
           <DimensionRow
             key={dimension.key}
             dimension={dimension}
-            variants={variants}
+            dimensionIndex={index}
+            dimensions={dimensions}
+            variants={dimension.isGrade ? variants : gradeScopedVariants}
+            allVariants={variants}
             currentSelection={currentSelection}
             onPick={onPick}
-            isFirst={index === 0}
+            isAnchor={hasHierarchy && index === 0}
+            realignmentNotice={
+              realignmentDimensionKey === dimension.key ? realignmentNotice : null
+            }
           />
         ))}
       </div>
@@ -63,52 +91,87 @@ export function Configurator({
 
 interface DimensionRowProps {
   dimension: Dimension;
+  dimensionIndex: number;
+  dimensions: Dimension[];
   variants: Variant[];
+  allVariants: Variant[];
   currentSelection: Record<string, string>;
   onPick: (dimensionKey: string, optionKey: string) => void;
-  isFirst?: boolean;
+  isAnchor?: boolean;
+  realignmentNotice?: string | null;
 }
 
 function DimensionRow({
   dimension,
+  dimensionIndex,
+  dimensions,
   variants,
+  allVariants,
   currentSelection,
   onPick,
-  isFirst = false,
+  isAnchor = false,
+  realignmentNotice = null,
 }: DimensionRowProps) {
+  const visibleOptions = filterOptionsForUpstreamSelection(
+    dimension,
+    dimensionIndex,
+    dimensions,
+    allVariants,
+    currentSelection,
+  );
+
+  if (visibleOptions.length === 0) {
+    return null;
+  }
+
   return (
     <div
       className={classNames(
-        "flex flex-col gap-1.5 px-2.5 pb-2 pt-0 md:px-3 md:pb-2.5 md:pt-0",
-        isFirst && "pt-2 md:pt-2.5",
+        "flex flex-col gap-1.5 px-2.5 py-2 md:px-3 md:py-2.5",
+        isAnchor &&
+          "border-b-2 border-[var(--color-accent-500)] bg-gradient-to-b from-[var(--color-accent-50)] to-[var(--color-surface)]",
       )}
     >
-      <span className="text-[9.5px] font-semibold uppercase tracking-[0.2em] text-[var(--color-ink-500)] md:text-[10.5px]">
-        {dimension.label}
-      </span>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <span
+          className={classNames(
+            "text-[9.5px] font-semibold uppercase tracking-[0.2em] md:text-[10.5px]",
+            isAnchor ? "text-[var(--color-accent-800)]" : "text-[var(--color-ink-500)]",
+          )}
+        >
+          {dimension.label}
+        </span>
+      </div>
 
       <DimensionTabRow
         dimension={dimension}
+        options={visibleOptions}
         variants={variants}
         currentSelection={currentSelection}
         onPick={onPick}
-        trackAvailability={!dimension.isGrade}
       />
+
+      {realignmentNotice ? (
+        <ConfigurationRealignmentNotice message={realignmentNotice} />
+      ) : null}
     </div>
   );
 }
 
-interface DimensionTabRowProps extends DimensionRowProps {
-  /** When true, options incompatible with the current pick are styled as unavailable. */
-  trackAvailability: boolean;
+interface DimensionTabRowProps {
+  dimension: Dimension;
+  options: Dimension["options"];
+  variants: Variant[];
+  currentSelection: Record<string, string>;
+  onPick: (dimensionKey: string, optionKey: string) => void;
 }
 
 function DimensionTabRow({
   dimension,
+  options,
   variants,
   currentSelection,
   onPick,
-  trackAvailability,
 }: DimensionTabRowProps) {
   return (
     <div
@@ -117,17 +180,17 @@ function DimensionTabRow({
       aria-label={dimension.label}
     >
       <div className="-ml-px -mt-px flex flex-wrap md:m-0 md:flex-nowrap md:divide-x md:divide-[var(--color-ink-200)]">
-        {dimension.options.map((option) => {
+        {options.map((option) => {
           const isSelected = currentSelection[dimension.key] === option.key;
-          const state = trackAvailability
-            ? computeOptionState(
+          const state = dimension.isGrade
+            ? gradeOptionState(option.key, variants, currentSelection)
+            : computeOptionState(
                 dimension.key,
                 option.key,
                 variants,
                 currentSelection,
-              )
-            : "available";
-          const isUnavailable = state === "unavailable" && !isSelected;
+              );
+          const isOutOfStock = state === "out_of_stock" && !isSelected;
 
           return (
             <button
@@ -135,11 +198,13 @@ function DimensionTabRow({
               type="button"
               role="tab"
               onClick={() => onPick(dimension.key, option.key)}
+              disabled={isOutOfStock}
               aria-selected={isSelected}
-              data-state={trackAvailability ? state : undefined}
+              aria-disabled={isOutOfStock}
+              data-state={state}
               title={
-                isUnavailable
-                  ? "Not stocked with current pick — auto-switches"
+                isOutOfStock
+                  ? "Out of stock for this grade"
                   : undefined
               }
               className={classNames(
@@ -147,10 +212,10 @@ function DimensionTabRow({
                 isSelected &&
                   "rounded-[var(--radius-sm)] bg-[var(--color-accent-50)] font-semibold text-[var(--color-accent-800)] shadow-[var(--shadow-sm)] ring-1 ring-inset ring-[var(--color-accent-500)]",
                 !isSelected &&
-                  !isUnavailable &&
+                  !isOutOfStock &&
                   "bg-[var(--color-surface)] text-[var(--color-ink-800)] hover:bg-[var(--color-accent-50)] hover:text-[var(--color-accent-800)]",
-                isUnavailable &&
-                  "bg-[var(--color-canvas-deep)]/40 text-[var(--color-ink-400)] line-through decoration-[var(--color-ink-300)] decoration-1 opacity-50 hover:bg-[var(--color-canvas-deep)]/55 hover:text-[var(--color-ink-500)]",
+                isOutOfStock &&
+                  "cursor-not-allowed bg-[var(--color-canvas-deep)]/40 text-[var(--color-ink-400)] opacity-60",
               )}
             >
               {option.label}

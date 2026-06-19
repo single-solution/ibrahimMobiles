@@ -18,7 +18,6 @@ export function MobileHeroFallback() {
           "calc(100dvh - var(--mobile-header-h) - var(--mobile-tabbar-h))",
       }}
     >
-      <Skeleton shape="pill" className="h-6 w-56" />
       <div className="flex w-full flex-col items-center gap-2 px-3">
         <Skeleton shape="text" className="h-14 w-4/5" />
         <Skeleton shape="text" className="h-20 w-full" />
@@ -174,7 +173,6 @@ export function DesktopHeroFallback() {
         className="mx-auto flex w-full max-w-5xl flex-col items-center justify-evenly px-6 text-center"
         style={{ minHeight: "calc(100dvh - var(--desktop-header-h))" }}
       >
-        <Skeleton shape="pill" className="h-7 w-72" />
         <div className="flex w-full flex-col items-center gap-3">
           <Skeleton shape="text" className="h-24 w-3/4" />
           <Skeleton shape="text" className="h-36 w-full max-w-3xl" />
@@ -199,7 +197,7 @@ export function DesktopHeroFallback() {
 
 export function DesktopShopTypesFallback() {
   return (
-    <section className="mx-auto max-w-[1440px] px-6 py-24">
+    <section className="mx-auto w-full max-w-[1440px] px-4 py-24 sm:px-6 lg:px-8">
       <div className="space-y-3">
         <Skeleton shape="text" className="h-3 w-32" />
         <Skeleton shape="text" className="h-10 w-2/3" />
@@ -229,7 +227,7 @@ export function DesktopShopTypesFallback() {
 
 export function DesktopProcessFallback() {
   return (
-    <section className="mx-auto max-w-[1440px] px-6 py-24">
+    <section className="mx-auto w-full max-w-[1440px] px-4 py-24 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-2xl space-y-3 text-center">
         <Skeleton shape="text" className="mx-auto h-3 w-24" />
         <Skeleton shape="text" className="mx-auto h-12 w-3/4" />
@@ -270,7 +268,7 @@ export function DesktopProcessFallback() {
 export function DesktopGradesFallback() {
   return (
     <section className="bg-[var(--color-ink-900)] py-24 text-[var(--color-canvas)]">
-      <div className="mx-auto max-w-[1440px] px-6">
+      <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-[1fr_2fr] gap-12">
           <div className="space-y-4">
             <Skeleton shape="text" className="h-3 w-32 bg-[var(--color-on-dark-15)]" />
@@ -304,7 +302,7 @@ export function DesktopGradesFallback() {
 
 export function DesktopVisitStoreFallback() {
   return (
-    <section className="mx-auto max-w-[1440px] px-6 py-24">
+    <section className="mx-auto w-full max-w-[1440px] px-4 py-24 sm:px-6 lg:px-8">
       <div className="grid grid-cols-2 gap-12">
         <div className="space-y-4">
           <Skeleton shape="text" className="h-3 w-32" />

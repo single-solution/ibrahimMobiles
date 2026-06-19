@@ -242,7 +242,7 @@ export async function buildAssistantStoreContext(input: {
     storeAddress: `${settings.storeAddressLine1}, ${settings.storeAddressLine2}`.trim(),
     storeHours: settings.storeHours,
     policies,
-    categories: activeCategories || "See /shop",
+    categories: activeCategories || "See /",
     catalog:
       catalogLines.size > 0
         ? [...catalogLines.values()].join("\n")

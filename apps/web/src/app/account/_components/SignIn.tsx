@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { PhoneOtp } from "@/app/account/_components/PhoneOtp";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
+import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
 
 export function SignIn() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export function SignIn() {
   }
 
   return (
-    <div className="storefront-page-center">
+    <div className={`storefront-page-center ${STOREFRONT_SHELL_CLASS} w-full`}>
       <div className="w-full max-w-md">
         <div className="reveal text-center">
           <span className="inline-grid size-12 place-items-center rounded-2xl bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">

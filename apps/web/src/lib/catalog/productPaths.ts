@@ -1,71 +1,107 @@
 import type { Product, Variant } from "@store/shared";
 
 import {
-  GRADE_DIMENSION_KEY,
-  resolveProductVariantFromSearch,
-  selectionFromVariant,
+	GRADE_DIMENSION_KEY,
+	selectionFromVariant,
 } from "@/lib/catalog/pdpSelection";
 
+/** App-router segments that must not be treated as catalog category slugs. */
+export const STOREFRONT_RESERVED_SEGMENTS = new Set([
+	"about",
+	"account",
+	"api",
+	"cart",
+	"checkout",
+	"deals",
+]);
+
+export function catalogRootHref(): string {
+	return "/";
+}
+
+export function categoryHref(categorySlug: string): string {
+	return `/${categorySlug}`;
+}
+
 /**
- * Build `/shop/<categorySlug>/<slug>` with human-readable configuration params
+ * Build `/<categorySlug>/<slug>` with human-readable configuration params
  * (`?grade=…&storage=…`) instead of opaque variant ids.
  */
 export function productHref(
-  product: Pick<Product, "categorySlug" | "slug">,
-  options?: {
-    selection?: Record<string, string>;
-    variant?: Variant;
-  },
+	product: Pick<Product, "categorySlug" | "slug">,
+	options?: {
+		selection?: Record<string, string>;
+		variant?: Variant;
+	},
 ): string {
-  const base = `/shop/${product.categorySlug}/${product.slug}`;
-  const selection =
-    options?.selection ??
-    (options?.variant ? selectionFromVariant(options.variant) : undefined);
-  if (!selection || !hasSelectionValues(selection)) {
-    return base;
-  }
-  const params = new URLSearchParams();
-  const grade = selection[GRADE_DIMENSION_KEY];
-  if (grade) {
-    params.set("grade", grade);
-  }
-  for (const [key, value] of Object.entries(selection)) {
-    if (key === GRADE_DIMENSION_KEY || !value) {
-      continue;
-    }
-    params.set(key, value);
-  }
-  const query = params.toString();
-  return query ? `${base}?${query}` : base;
+	const base = categoryHref(product.categorySlug) + `/${product.slug}`;
+	const selection =
+		options?.selection ??
+		(options?.variant ? selectionFromVariant(options.variant) : undefined);
+	if (!selection || !hasSelectionValues(selection)) {
+		return base;
+	}
+	const params = new URLSearchParams();
+	const grade = selection[GRADE_DIMENSION_KEY];
+	if (grade) {
+		params.set("grade", grade);
+	}
+	for (const [key, value] of Object.entries(selection)) {
+		if (key === GRADE_DIMENSION_KEY || !value) {
+			continue;
+		}
+		params.set(key, value);
+	}
+	const query = params.toString();
+	return query ? `${base}?${query}` : base;
 }
 
 function hasSelectionValues(selection: Record<string, string>): boolean {
-  return Object.values(selection).some((value) => Boolean(value));
+	return Object.values(selection).some((value) => Boolean(value));
 }
 
 /**
- * Resolve the storefront entry URL to the first active category, in the same
- * catalog order the `/shop` route redirects to — so "Shop"/"Store" links skip
- * the `/shop` → first-category server redirect. Falls back to `/shop` when no
- * active category exists (the route then handles the edge case).
+ * Storefront entry URL — same as catalog root. Category rail links use
+ * `categoryHref` directly.
  */
 export function shopHrefFromCategories(
-  categories: ReadonlyArray<{ slug: string; isActive: boolean }>,
+	categories: ReadonlyArray<{ slug: string; isActive: boolean }>,
 ): string {
-  const firstActive = categories.find((category) => category.isActive);
-  return firstActive ? `/shop/${firstActive.slug}` : "/shop";
+	return firstCategoryHref(categories) ?? catalogRootHref();
+}
+
+/** First active category in catalog order (matches `/` redirect). */
+export function firstCategoryHref(
+	categories: ReadonlyArray<{ slug: string; isActive: boolean }>,
+): string | null {
+	const firstActive = categories.find((category) => category.isActive);
+	return firstActive ? categoryHref(firstActive.slug) : null;
+}
+
+export function catalogSearchHref(query: string): string {
+	const params = new URLSearchParams({ q: query.trim().slice(0, 100) });
+	return `/?${params.toString()}`;
+}
+
+/** True for `/<category>/<product>` paths (not reserved app routes). */
+export function isProductDetailPath(pathname: string): boolean {
+	const segments = pathname.split("/").filter(Boolean);
+	if (segments.length < 2) {
+		return false;
+	}
+	return !STOREFRONT_RESERVED_SEGMENTS.has(segments[0] ?? "");
 }
 
 /** Absolute PDP URL for metadata, JSON-LD, and breadcrumbs. */
 export function productAbsoluteUrl(
-  siteUrl: string,
-  product: Pick<Product, "categorySlug" | "slug">,
-  options?: {
-    selection?: Record<string, string>;
-    variant?: Variant;
-  },
+	siteUrl: string,
+	product: Pick<Product, "categorySlug" | "slug">,
+	options?: {
+		selection?: Record<string, string>;
+		variant?: Variant;
+	},
 ): string {
-  const path = productHref(product, options);
-  const origin = siteUrl.replace(/\/$/, "");
-  return `${origin}${path}`;
+	const path = productHref(product, options);
+	const origin = siteUrl.replace(/\/$/, "");
+	return `${origin}${path}`;
 }

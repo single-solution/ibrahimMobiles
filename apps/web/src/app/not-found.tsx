@@ -17,7 +17,7 @@ export default function NotFoundPage() {
         <ButtonLink href="/" variant="primary" size="sm" className="md:h-11 md:px-5 md:text-sm">
           Go home
         </ButtonLink>
-        <ButtonLink href="/shop" variant="outline" size="sm" className="md:h-11 md:px-5 md:text-sm">
+        <ButtonLink href="/" variant="outline" size="sm" className="md:h-11 md:px-5 md:text-sm">
           Browse products
         </ButtonLink>
       </div>

@@ -94,11 +94,13 @@ function newestServerCreatedAt(messages: ChatMessage[]): string | null {
 interface LiveChatWidgetProps {
   onCollapse?: () => void;
   initialOpenDetail?: OpenChatDetail | null;
+  layout?: "popover" | "page";
 }
 
 export function LiveChatWidget({
   onCollapse,
   initialOpenDetail = null,
+  layout = "popover",
 }: LiveChatWidgetProps) {
   const { siteName, whatsappNumber } = useStoreSettings();
   const signedInFlag = useIsSignedIn();
@@ -516,10 +518,12 @@ export function LiveChatWidget({
       : null;
 
   const supportLabel = customerChatSupportLabel(settings?.assistantName);
+  const shellClose = layout === "page" ? undefined : onCollapse;
+  const shellLayout = layout;
 
   if (!bootstrapLoaded) {
     return (
-      <ChatShell onClose={onCollapse} title={siteName} subtitle="Connecting…">
+      <ChatShell layout={shellLayout} onClose={shellClose} title={siteName} subtitle="Connecting…">
         <div className="flex flex-1 items-center justify-center text-sm text-[var(--color-ink-500)]">
           Loading chat…
         </div>
@@ -529,7 +533,7 @@ export function LiveChatWidget({
 
   if (!enabled) {
     return (
-      <ChatShell onClose={onCollapse} title={siteName} subtitle="Chat is offline">
+      <ChatShell layout={shellLayout} onClose={shellClose} title={siteName} subtitle="Chat is offline">
         <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-sm text-[var(--color-ink-500)]">
           <p className="max-w-prose">
             Chat is currently disabled. Please reach us on WhatsApp.
@@ -549,7 +553,8 @@ export function LiveChatWidget({
 
   return (
     <ChatShell
-      onClose={onCollapse}
+      layout={shellLayout}
+      onClose={shellClose}
       title={
         settings?.assistantEnabled ? supportLabel : siteName
       }

@@ -6,7 +6,7 @@ import { ArrowUpRight, ShoppingBag, Trash2 } from "lucide-react";
 import { QuantityStepper } from "@store/ui";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
-import { productHref } from "@/lib/catalog/productPaths";
+import { catalogRootHref, productHref } from "@/lib/catalog/productPaths";
 import { useCart } from "@/lib/cart/useCart";
 import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
 import { evaluateOffers } from "@store/shared";
@@ -63,7 +63,7 @@ export function Cart() {
           Browse the shop, add a product to your cart, then come back to check out.
         </p>
         <Link
-          href="/shop"
+          href={catalogRootHref()}
           className="cta-arrow mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[var(--color-accent-500)] px-5 text-[14px] font-semibold text-[var(--color-ink-900)]"
         >
           Visit the shop
@@ -161,7 +161,7 @@ function CartLine({ line, discounts = [] }: { line: CartItem; discounts?: Discou
           { categorySlug: line.categorySlug, slug: line.productSlug },
           { selection: cartSelection },
         )
-      : "/shop";
+      : catalogRootHref();
   const attributeEntries = Object.entries(line.attributes ?? {});
 
   const totalDiscountAmount = discounts.reduce((sum, discount) => sum + discount.discountAmount, 0);

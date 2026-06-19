@@ -795,7 +795,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       id: "actions",
       header: "Actions",
       cell: (product) => {
-        const productUrl = `${publicUrl}/shop/${product.categorySlug}/${product.slug}`;
+        const productUrl = `${publicUrl}/${product.categorySlug}/${product.slug}`;
         
         return (
           <div className="flex flex-wrap justify-end gap-1.5">

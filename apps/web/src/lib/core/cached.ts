@@ -189,6 +189,41 @@ export function getHomeHeroProductsCached(
 }
 
 /**
+ * Shop category banner — in-stock products from every active category
+ * except the one the customer is browsing.
+ */
+const getShopHeroProductsInner = unstable_cache(
+  async (limit: number, excludeCategorySlug: string): Promise<Product[]> => {
+    const categories = await getCategoriesRaw();
+    const otherCategorySlugs = categories
+      .filter(
+        (category) => category.isActive && category.slug !== excludeCategorySlug,
+      )
+      .map((category) => category.slug);
+
+    if (otherCategorySlugs.length === 0) {
+      return [];
+    }
+
+    return getProductsRaw({
+      sort: "recently-updated",
+      inStockOnly: true,
+      limit,
+      categorySlugs: otherCategorySlugs,
+    });
+  },
+  ["storefront-shop-hero-products-v1"],
+  { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+export function getShopHeroProductsCached(
+  limit: number,
+  excludeCategorySlug: string,
+): Promise<Product[]> {
+  return getShopHeroProductsInner(limit, excludeCategorySlug);
+}
+
+/**
  * Cached `getProductsPage` — the heavy aggregation that powers
  * `/shop/[category]`. We key by a canonical serialization of the filter
  * object so two identical requests (same category + same query string)

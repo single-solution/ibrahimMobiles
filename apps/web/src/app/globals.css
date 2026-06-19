@@ -169,6 +169,18 @@
 
   --mobile-tabbar-h: 64px;
   --mobile-header-h: 56px;
+  --mobile-tabbar-bottom-offset: calc(env(safe-area-inset-bottom, 0px) + 4px);
+  --mobile-tabbar-inline-inset: 0.75rem;
+  /* Category + filter dock — sits above the floating tab bar on mobile shop home. */
+  --mobile-shop-toolbar-h: 52px;
+  --mobile-shop-toolbar-inline-inset: 1.75rem;
+  --mobile-shop-toolbar-gap: 4px;
+  --mobile-shop-toolbar-bottom: calc(
+    var(--mobile-tabbar-bottom-offset) + var(--mobile-tabbar-h) + var(--mobile-shop-toolbar-gap)
+  );
+  --mobile-chat-sheet-top: calc(env(safe-area-inset-top, 0px) + var(--mobile-header-h) + 8px);
+  --mobile-chat-sheet-bottom: calc(var(--mobile-tabbar-bottom-offset) + var(--mobile-tabbar-h) + 8px);
+  --mobile-toolbar-sticky-top: calc(env(safe-area-inset-top, 0px) + var(--mobile-header-h));
 
   /* Desktop header height = 64px nav row. */
   --desktop-header-h: 64px;
@@ -287,6 +299,34 @@
   }
 }
 
+@keyframes hero-product-pop-flank {
+  0%,
+  5% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  15%,
+  35% {
+    opacity: 0.55;
+    transform: translateY(0);
+  }
+  45%,
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.hero-product-pop-flank {
+  opacity: 0;
+  color: var(--color-ink-400);
+  animation: hero-product-pop-flank 8s ease-in-out infinite;
+  animation-fill-mode: both;
+  /* Glyphs and antialiasing paint past the layout box — inset avoids edge clipping. */
+  padding-inline: 0.2em;
+  box-decoration-break: clone;
+}
+
 @keyframes hero-product-pop {
   0%,
   5% {
@@ -354,6 +394,13 @@
     animation: none;
     opacity: 0.28;
     transform: translate(-50%, -50%) scale(1);
+  }
+
+  .hero-product-pop-flank {
+    animation: none;
+    opacity: 0.45;
+    transform: translateY(0);
+    color: var(--color-ink-400);
   }
 }
 
@@ -789,6 +836,42 @@ html {
   transform-origin: top center;
 }
 
+/* Filter / category dropdown panels — gentler slide + longer ease than cart. */
+@keyframes filter-panel-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -5px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+.animate-filter-panel-in {
+  animation: filter-panel-in 280ms var(--ease-out-expo);
+  transform-origin: top center;
+}
+
+/* PDP configuration summary — snappy pop below the option picker. */
+@keyframes config-card-pop {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.94);
+  }
+  70% {
+    opacity: 1;
+    transform: translate3d(0, -2px, 0) scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+.animate-config-card-pop {
+  animation: config-card-pop 260ms var(--ease-out-expo);
+  transform-origin: center top;
+}
+
 /* ----- Centered dialog / lightbox enter -----
    Confirm dialogs, image lightboxes, icon pickers — anything centered.
    Backdrop is `.animate-sheet-fade`; the card uses this for a calm
@@ -853,12 +936,29 @@ html {
   animation: popover-out 160ms var(--ease-standard) forwards;
   transform-origin: top center;
 }
+@keyframes filter-panel-out {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, -4px, 0) scale(0.985);
+  }
+}
+.animate-filter-panel-out {
+  animation: filter-panel-out 220ms var(--ease-standard) forwards;
+  transform-origin: top center;
+}
 .animate-lightbox-out {
   animation: lightbox-out 220ms var(--ease-standard) forwards;
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-popover-out,
-  .animate-lightbox-out {
+  .animate-lightbox-out,
+  .animate-filter-panel-in,
+  .animate-filter-panel-out,
+  .animate-config-card-pop {
     animation: none;
   }
 }
@@ -1038,6 +1138,18 @@ html {
   transform: scale(0.85);
 }
 
+/* Shop category + filter pills — slower than `--motion-fast` so hover
+   lift and colour shifts feel eased, not snappy. Placed after `.tap` so
+   it owns the transition list without fighting Tailwind utilities. */
+.shop-catalog-pill {
+  transition:
+    transform var(--motion-slow) var(--ease-spring-soft),
+    background-color var(--motion-slow) var(--ease-out-quart),
+    border-color var(--motion-slow) var(--ease-out-quart),
+    color var(--motion-base) var(--ease-out-quart),
+    box-shadow var(--motion-base) var(--ease-out-quart);
+}
+
 /* Keyboard focus ring for ad-hoc controls that aren't the design-system
    Button (which carries its own ring). Two-stop shadow = canvas gap +
    accent ring, so it reads on any surface without layout shift. */
@@ -1109,7 +1221,7 @@ html {
 .scroll-header {
   -webkit-backdrop-filter: blur(14px) saturate(140%);
   backdrop-filter: blur(14px) saturate(140%);
-  background-color: color-mix(in srgb, var(--color-canvas) 6%, transparent);
+  background-color: transparent;
   border-color: transparent;
   transition:
     box-shadow var(--motion-base) var(--ease-out-quart),
@@ -1121,18 +1233,17 @@ html {
 .scroll-header[data-scrolled="true"] {
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   backdrop-filter: blur(20px) saturate(160%);
-  background-color: color-mix(in srgb, var(--color-canvas) 78%, transparent);
+  background-color: transparent;
   border-color: var(--color-ink-100);
 }
 
 @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  /* Fallback: when the browser can't blur, bump the canvas tint up so
-     content underneath doesn't muddy the header text. */
+  /* Fallback: keep header untinted when blur is unavailable. */
   .scroll-header {
-    background-color: color-mix(in srgb, var(--color-canvas) 60%, transparent);
+    background-color: transparent;
   }
   .scroll-header[data-scrolled="true"] {
-    background-color: var(--color-canvas);
+    background-color: transparent;
   }
 }
 
@@ -1475,6 +1586,21 @@ html {
   bottom: calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px) + 24px);
 }
 
+.floating-dock--mobile-sheet {
+  inset-inline: 0.75rem;
+  top: var(--mobile-chat-sheet-top);
+  bottom: var(--mobile-chat-sheet-bottom);
+  min-height: 0;
+}
+
+@media (min-width: 48rem) {
+  .floating-dock--mobile-sheet {
+    inset-inline: auto;
+    top: auto;
+    bottom: 28px;
+  }
+}
+
 @media (min-width: 40rem) {
   .floating-dock {
     bottom: 28px;
@@ -1621,6 +1747,56 @@ html {
   box-shadow: var(--shadow-sm);
 }
 
+/* Mobile shop home — category + filter dock fixed above the bottom tab bar. */
+.shop-listing-toolbar-sticky {
+  position: fixed;
+  inset-inline: var(--mobile-shop-toolbar-inline-inset);
+  bottom: var(--mobile-shop-toolbar-bottom);
+  top: auto;
+  z-index: calc(var(--z-sticky) - 1);
+  overflow: hidden;
+  padding-bottom: 0;
+  border-radius: var(--radius-full);
+}
+
+.shop-listing-toolbar-sticky .shop-listing-toolbar {
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-ink-100);
+  background: var(--color-canvas);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Extra scroll room so the last product row clears the dock + tab bar. */
+.shop-listing-mobile-scroll-pad {
+  padding-bottom: calc(
+    var(--mobile-tabbar-bottom-offset) + var(--mobile-tabbar-h) + var(--mobile-shop-toolbar-h) +
+      var(--mobile-shop-toolbar-gap) + 2.5rem
+  );
+}
+
+@media (min-width: 48rem) {
+  .shop-listing-toolbar-sticky {
+    position: static;
+    inset-inline: auto;
+    bottom: auto;
+    z-index: auto;
+    overflow: visible;
+    border-radius: 0;
+    padding-bottom: 1rem;
+  }
+
+  .shop-listing-toolbar-sticky .shop-listing-toolbar {
+    border-radius: var(--radius-lg);
+    border: 1px solid color-mix(in srgb, var(--color-accent-200) 45%, var(--color-ink-100));
+    background: color-mix(in srgb, var(--color-surface) 88%, var(--color-accent-50));
+    box-shadow: var(--shadow-sm);
+  }
+
+  .shop-listing-mobile-scroll-pad {
+    padding-bottom: 0;
+  }
+}
+
 .pdp-related-panel {
   border: 1px solid var(--color-ink-100);
   border-radius: var(--radius-xl);
@@ -1663,14 +1839,11 @@ html {
 }
 
 /* ----- Scrollbar styling -----
-   Thin, rounded, brand-matched scrollbars site-wide. Track is transparent
-   so it blends into whatever surface is scrolling;    thumb uses accent-100 —
-   the same warm cream tone applied to a checked filter row in the shop
-   sidebar. Hover deepens to accent-300 for a clearer affordance. Padding-
-   box clip on the thumb gives it air on both sides for a soft capsule look. */
+   Thin, rounded scrollbars site-wide. Track stays transparent; thumb uses
+   brand gunmetal (ink scale) with a deeper hover state. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-accent-100) transparent;
+  scrollbar-color: var(--color-ink-500) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -1683,7 +1856,7 @@ html {
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: var(--color-accent-100);
+  background-color: var(--color-ink-500);
   background-clip: padding-box;
   border: 2px solid transparent;
   border-radius: 9999px;
@@ -1691,7 +1864,7 @@ html {
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-accent-300);
+  background-color: var(--color-ink-700);
 }
 
 *::-webkit-scrollbar-corner {

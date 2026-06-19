@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState, type ComponentType } from "react";
 import dynamic from "next/dynamic";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { MobileHeader } from "@/components/layout/MobileHeader";
 import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
@@ -11,7 +11,7 @@ import { StoreNoticeBanner } from "@/components/layout/StoreNoticeBanner";
 import { RevealRoot } from "@/components/shared/motion/RevealRoot";
 import { RouteTransition } from "@/components/shared/motion/RouteTransition";
 import { ToastProvider } from "@/components/ui/Toast";
-import { prefetchAllowed } from "@/lib/navigation/prefetchAllowed";
+import { IdleRoutePrefetch } from "@/components/layout/IdleRoutePrefetch";
 
 /**
  * Lazy-load a non-critical client island. Swallows `ChunkLoadError` when a
@@ -64,15 +64,8 @@ interface AppShellProps {
  *  the chat FAB / nav progress bar / vitals reporter hidden forever. */
 const DEFERRED_MOUNT_TIMEOUT_MS = 1500;
 
-/** Routes worth warming in the router cache after first paint. These
- *  are reached from buttons (search overlay submit) or from elsewhere
- *  in the app (cart drawer "view full cart") where `<Link prefetch>`
- *  doesn't see them ahead of time. */
-const IDLE_PREFETCH_ROUTES = ["/shop", "/cart"];
-
 export function AppShell({ children, footer }: AppShellProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const isAdminRoute = pathname?.startsWith("/admin") ?? false;
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -94,30 +87,6 @@ export function AppShell({ children, footer }: AppShellProps) {
     );
     return () => window.clearTimeout(handle);
   }, [areDeferredMounted]);
-
-  // Warm router cache for routes that aren't reachable through a `<Link
-  // prefetch>` visible in the current viewport. Fires once per session
-  // on the first idle frame and respects the bandwidth gate.
-  useEffect(() => {
-    if (isAdminRoute) return;
-    if (!prefetchAllowed()) return;
-    const supportsIdle = typeof window.requestIdleCallback === "function";
-    const run = () => {
-      for (const route of IDLE_PREFETCH_ROUTES) {
-        try {
-          router.prefetch(route);
-        } catch {
-          // ignore — bad URL or duplicate prefetch, neither blocks the app.
-        }
-      }
-    };
-    if (supportsIdle) {
-      const handle = window.requestIdleCallback(run, { timeout: 3000 });
-      return () => window.cancelIdleCallback(handle);
-    }
-    const handle = window.setTimeout(run, 1500);
-    return () => window.clearTimeout(handle);
-  }, [isAdminRoute, router]);
 
   /* If the user taps the search trigger before the idle callback fires,
      force-mount the deferred chunks immediately so the overlay can render
@@ -147,6 +116,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         <Suspense fallback={null}>
           <RevealRoot />
         </Suspense>
+        {!isAdminRoute ? <IdleRoutePrefetch /> : null}
         {areDeferredMounted ? <WebVitalsReporter /> : null}
         {/*
          * `NavigationProgress` reads `useSearchParams()` to detect query-only

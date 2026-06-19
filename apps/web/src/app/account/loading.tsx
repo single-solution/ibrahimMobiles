@@ -2,17 +2,18 @@
  * Account overview skeleton.
  *
  * Mirrors the real page layout (header → loyalty card → three stat tiles →
- * recent-orders column + profile/quick-actions aside) at the same
- * `max-w-[1440px]` container as the shop / checkout / home pages, so there's
- * no width jump or reflow when the live data swaps in.
+ * recent-orders column + profile/quick-actions aside) at the same storefront
+ * shell as the shop / checkout / home pages, so there's no width jump or
+ * reflow when the live data swaps in.
  */
+import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
 const STAT_TILE_COUNT = 3;
 const ORDER_ROW_COUNT = 3;
 const QUICK_ACTION_COUNT = 3;
 
 export default function AccountLoading() {
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-6 md:px-6 md:pb-16 md:pt-10 lg:px-8">
+    <div className={`${STOREFRONT_SHELL_CLASS} pb-24 pt-6 md:pb-16 md:pt-10`}>
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div className="space-y-2">
           <div className="skeleton h-3 w-24" />

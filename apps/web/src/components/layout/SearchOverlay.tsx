@@ -10,6 +10,7 @@ import { classNames, formatPrice, type StoredImage } from "@store/shared";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import { usePresence } from "@/components/shared/motion/usePresence";
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
+import { productHref } from "@/lib/catalog/productPaths";
 import { Input } from "@/components/ui/Input";
 
 interface SearchOverlayProps {
@@ -182,7 +183,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
     }
 
     onClose();
-    const url = `/shop?q=${encodeURIComponent(trimmed)}`;
+    const url = `/?q=${encodeURIComponent(trimmed)}`;
     startNavigation(() => router.push(url));
   }
 
@@ -292,8 +293,8 @@ interface SearchHitProps {
 function SearchHit({ result, onNavigate }: SearchHitProps) {
   const href =
     result.categorySlug && result.slug
-      ? `/shop/${result.categorySlug}/${result.slug}`
-      : "/shop";
+      ? productHref({ categorySlug: result.categorySlug, slug: result.slug })
+      : "/";
   const thumb = result.image?.variants.thumb ?? null;
   const globalEager = useGlobalEagerLoad();
   

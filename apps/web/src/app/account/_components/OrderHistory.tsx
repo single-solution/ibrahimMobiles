@@ -217,7 +217,7 @@ function Empty({ filter, onClearFilter }: { filter: FilterId; onClearFilter: () 
       <p className="max-w-xs text-[13px] text-[var(--color-ink-600)]">{messages[filter]}</p>
       {filter === "all" ? (
         <ButtonLink
-          href="/shop"
+          href="/"
           variant="primary"
           size="sm"
           className="cta-arrow"

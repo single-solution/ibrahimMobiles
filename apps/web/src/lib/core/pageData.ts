@@ -22,6 +22,7 @@ import { logger } from "@store/shared";
 import type { CategoryMeta } from "@/lib/core";
 import {
   getHomeHeroProductsCached,
+  getShopHeroProductsCached,
   getCategoriesCached,
 } from "@/lib/core/cached";
 import type {
@@ -73,6 +74,26 @@ export async function getHomeHeroData(): Promise<HomeHeroData> {
     logger.error(
       { error },
       "home: hero data load failed, falling back to empty hero this render",
+    );
+    return { heroProducts: [] };
+  }
+}
+
+/**
+ * Shop category banner — flank animation uses products from other categories
+ * so the active listing is not repeated in the hero band.
+ */
+export async function getShopHeroData(excludeCategorySlug: string): Promise<HomeHeroData> {
+  try {
+    const heroProducts = await getShopHeroProductsCached(
+      HERO_PRODUCTS_LIMIT,
+      excludeCategorySlug,
+    );
+    return { heroProducts };
+  } catch (error) {
+    logger.error(
+      { error, excludeCategorySlug },
+      "shop: hero data load failed, falling back to empty hero this render",
     );
     return { heroProducts: [] };
   }

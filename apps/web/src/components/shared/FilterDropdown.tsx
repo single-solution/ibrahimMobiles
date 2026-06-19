@@ -1,0 +1,121 @@
+"use client";
+
+import { useEffect, useId, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
+
+import { classNames } from "@store/shared";
+
+import { usePresence } from "@/components/shared/motion/usePresence";
+import { shopCatalogPillClass } from "@/components/shared/shopCatalogPillStyles";
+
+/** Matches `.animate-filter-panel-out` duration in globals.css. */
+const FILTER_PANEL_EXIT_MS = 220;
+
+interface FilterDropdownProps {
+	label: string;
+	activeCount?: number;
+	children: React.ReactNode;
+	className?: string;
+	panelClassName?: string;
+	align?: "left" | "center" | "right";
+}
+
+/** Pill trigger + anchored panel — used by shop filter row variants. */
+export function FilterDropdown({
+	label,
+	activeCount = 0,
+	children,
+	className,
+	panelClassName,
+	align = "left",
+}: FilterDropdownProps) {
+	const [isOpen, setIsOpen] = useState(false);
+	const rootRef = useRef<HTMLDivElement>(null);
+	const panelId = useId();
+	const isActive = activeCount > 0;
+	const { isMounted: isPanelMounted, status: panelStatus } = usePresence(
+		isOpen,
+		FILTER_PANEL_EXIT_MS,
+	);
+	const isPanelClosing = panelStatus === "closing";
+
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		const handlePointerDown = (event: MouseEvent) => {
+			if (rootRef.current?.contains(event.target as Node)) {
+				return;
+			}
+			setIsOpen(false);
+		};
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				setIsOpen(false);
+			}
+		};
+
+		document.addEventListener("mousedown", handlePointerDown);
+		document.addEventListener("keydown", handleKeyDown);
+		return () => {
+			document.removeEventListener("mousedown", handlePointerDown);
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [isOpen]);
+
+	const panelOriginClass =
+		align === "center"
+			? "origin-top"
+			: align === "right"
+				? "origin-top-right"
+				: "origin-top-left";
+
+	return (
+		<div ref={rootRef} className={classNames("relative shrink-0", className)}>
+			<button
+				type="button"
+				onClick={() => setIsOpen((open) => !open)}
+				aria-expanded={isOpen}
+				aria-controls={panelId}
+				className={classNames(shopCatalogPillClass(isActive))}
+			>
+				<span className="max-w-[9rem] truncate whitespace-nowrap sm:max-w-[11rem]">{label}</span>
+				{isActive ? (
+					<span className="grid size-3.5 place-items-center rounded-full bg-[var(--color-accent-500)] text-[8px] font-semibold leading-none text-[var(--color-ink-900)]">
+						{activeCount}
+					</span>
+				) : null}
+				<ChevronDown
+					size={12}
+					aria-hidden
+					className={classNames(
+						"shrink-0 text-[var(--color-ink-500)] transition-transform duration-[var(--motion-slow)] ease-[var(--ease-out-quart)]",
+						isOpen && "rotate-180",
+					)}
+				/>
+			</button>
+
+			{isPanelMounted ? (
+				<div
+					id={panelId}
+					className={classNames(
+						"absolute top-[calc(100%+8px)] z-50 overflow-y-auto overscroll-contain rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2.5 shadow-[var(--shadow-lg)]",
+						panelOriginClass,
+						isPanelClosing ? "animate-filter-panel-out" : "animate-filter-panel-in",
+						align === "center"
+							? "left-1/2 -translate-x-1/2"
+							: align === "right"
+								? "right-0"
+								: "left-0",
+						panelClassName ??
+							"max-h-[min(360px,52vh)] min-w-[240px] max-w-[min(320px,calc(100vw-2rem))]",
+					)}
+				>
+					{children}
+				</div>
+			) : null}
+		</div>
+	);
+}

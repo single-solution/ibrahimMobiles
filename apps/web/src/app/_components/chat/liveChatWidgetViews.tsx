@@ -66,6 +66,7 @@ interface ChatShellProps {
   subtitle: string;
   onClose?: () => void;
   onBack?: () => void;
+  layout?: "popover" | "page";
   children: React.ReactNode;
 }
 
@@ -74,6 +75,7 @@ export function ChatShell({
   subtitle,
   onClose,
   onBack,
+  layout: _layout = "popover",
   children,
 }: ChatShellProps) {
   return (
@@ -85,7 +87,7 @@ export function ChatShell({
          Sized to match the cart dropdown so chat and cart feel like
          siblings, with mobile shrinking only when the viewport can't fit
          the desktop dimensions. */
-      className="animate-popover-in flex h-[min(620px,calc(100dvh-var(--mobile-header-h)-var(--mobile-tabbar-h)-env(safe-area-inset-bottom,0px)-104px))] w-[min(440px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[440px]"
+      className="animate-popover-in flex h-full w-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[440px] md:rounded-[var(--radius-lg)]"
     >
       <header className="flex items-center gap-3 border-b border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3 py-3 text-[var(--color-ink-900)]">
         {onBack ? (
@@ -113,7 +115,7 @@ export function ChatShell({
             type="button"
             aria-label="Close chat"
             onClick={onClose}
-            className="tap grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-700)] hover:bg-[var(--color-ink-900)]/10 hover:text-[var(--color-ink-900)]"
+            className="tap max-md:hidden grid size-8 place-items-center rounded-[var(--radius-md)] text-[var(--color-ink-700)] hover:bg-[var(--color-ink-900)]/10 hover:text-[var(--color-ink-900)]"
           >
             <X size={16} />
           </button>

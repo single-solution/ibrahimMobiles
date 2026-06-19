@@ -6,11 +6,11 @@ import { formatPrice } from "@store/shared";
 
 import { Button } from "@store/ui";
 import { QuantityStepper } from "@store/ui";
-import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 import { formatMissingPrompt } from "./variantSelectorDimensions";
 
-import type { DiscountApplication } from "@store/shared";
+const BUY_ALL_BUTTON_CLASS =
+	"tap shrink-0 rounded-[var(--radius-full)] border border-[var(--color-accent-400)] bg-[var(--color-accent-100)] px-2.5 py-1 text-[12px] font-semibold text-[var(--color-accent-800)] shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--color-accent-200)] active:bg-[var(--color-accent-300)] md:px-3 md:py-1 md:text-[13px]";
 
 interface PurchaseSummaryProps {
   isInStock: boolean;
@@ -22,7 +22,6 @@ interface PurchaseSummaryProps {
   onQuantityChange: (quantity: number) => void;
   onAddToCart: () => void;
   hasJustBeenAdded: boolean;
-  activeOffer?: DiscountApplication;
   discountAmount?: number;
 }
 
@@ -36,10 +35,8 @@ export function PurchaseSummary({
   onQuantityChange,
   onAddToCart,
   hasJustBeenAdded,
-  activeOffer,
   discountAmount,
 }: PurchaseSummaryProps) {
-  const { globalDeliveryNote } = useStoreSettings();
   const stockLabel = isInStock
     ? `${stockQuantity} in stock${
         remainingStock < stockQuantity
@@ -62,17 +59,17 @@ export function PurchaseSummary({
           outer 18 ≈ --radius-xl (20, within 2px). */}
       <div className="rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2.5 shadow-[var(--shadow-sm)]">
         <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-ink-500)]">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--color-ink-500)] md:text-[13px]">
               {stockLabel}
             </p>
             {showBuyAll ? (
               <button
                 type="button"
                 onClick={() => onQuantityChange(maxQuantity)}
-                className="text-[10px] font-semibold text-[var(--color-accent-700)] underline-offset-2 hover:text-[var(--color-accent-800)] hover:underline"
+                className={BUY_ALL_BUTTON_CLASS}
               >
-                Buy all ({maxQuantity})
+                Buy all
               </button>
             ) : null}
           </div>
@@ -85,11 +82,6 @@ export function PurchaseSummary({
                 <p className="text-xl font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
                   {formatPrice(priceRupees - discountAmount)}
                 </p>
-                {activeOffer && (
-                  <span className="mt-1 rounded-sm bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--color-accent-800)]">
-                    {activeOffer.offerTitle}
-                  </span>
-                )}
               </>
             ) : (
               <p className="text-xl font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
@@ -121,11 +113,6 @@ export function PurchaseSummary({
             {getButtonLabel()}
           </Button>
         </div>
-        {globalDeliveryNote && (
-          <p className="mt-2 text-center text-[11px] font-medium text-[var(--color-ink-500)]">
-            🚚 Delivery: {globalDeliveryNote}
-          </p>
-        )}
       </div>
     </div>
   );
@@ -143,7 +130,6 @@ interface MobileStickyCtaProps {
   onQuantityChange: (quantity: number) => void;
   onAddToCart: () => void;
   hasJustBeenAdded: boolean;
-  activeOffer?: DiscountApplication;
   discountAmount?: number;
 }
 
@@ -157,10 +143,8 @@ export function MobileStickyCta({
   onQuantityChange,
   onAddToCart,
   hasJustBeenAdded,
-  activeOffer,
   discountAmount,
 }: MobileStickyCtaProps) {
-  const { globalDeliveryNote } = useStoreSettings();
   const showBuyAll = isInStock && maxQuantity > 1 && quantity < maxQuantity;
 
   return (
@@ -171,9 +155,9 @@ export function MobileStickyCta({
         paddingBottom: "10px",
       }}
     >
-      <div className="mb-1.5 flex min-w-0 items-baseline justify-between gap-2">
-        <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <p className="text-[10px] font-medium text-[var(--color-ink-500)]">
+      <div className="mb-1.5 flex min-w-0 items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="text-[12px] font-medium text-[var(--color-ink-500)]">
             {isInStock ? (
               <>
                 {stockQuantity} in stock
@@ -189,9 +173,9 @@ export function MobileStickyCta({
             <button
               type="button"
               onClick={() => onQuantityChange(maxQuantity)}
-              className="shrink-0 text-[10px] font-semibold text-[var(--color-accent-700)] underline-offset-2 hover:text-[var(--color-accent-800)] hover:underline"
+              className={BUY_ALL_BUTTON_CLASS}
             >
-              Buy all ({maxQuantity})
+              Buy all
             </button>
           ) : null}
         </div>
@@ -238,11 +222,6 @@ export function MobileStickyCta({
           </span>
         )}
       </div>
-      {globalDeliveryNote && (
-        <p className="mt-1 w-full text-center text-[9px] font-medium text-[var(--color-ink-500)]">
-          🚚 Delivery: {globalDeliveryNote}
-        </p>
-      )}
     </div>
   );
 }

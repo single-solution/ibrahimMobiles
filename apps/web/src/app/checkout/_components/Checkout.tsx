@@ -14,6 +14,7 @@ import { evaluateOffers } from "@store/shared";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import type { AccountAddress, AccountCustomer } from "@/lib/core/account";
+import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
 import {
   CheckoutHeader,
   CheckoutSignInPanel,
@@ -260,7 +261,7 @@ export function Checkout({ customer }: CheckoutProps) {
 
   if (!customer) {
     return (
-      <div className="mx-auto max-w-[1440px] px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">
+      <div className={`${STOREFRONT_SHELL_CLASS} pb-24 pt-4 md:pb-16 md:pt-10`}>
         <CheckoutHeader />
         <div className="mt-5 grid gap-6 md:mt-8 md:grid-cols-[minmax(0,1fr)_360px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
           <div className="reveal">
@@ -282,7 +283,7 @@ export function Checkout({ customer }: CheckoutProps) {
         e.preventDefault();
         void handlePlaceOrder();
       }}
-      className="mx-auto max-w-[1440px] px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8"
+      className={`${STOREFRONT_SHELL_CLASS} pb-24 pt-4 md:pb-16 md:pt-10`}
     >
       <CheckoutHeader />
 

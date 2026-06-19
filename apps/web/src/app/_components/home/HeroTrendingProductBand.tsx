@@ -1,121 +1,215 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+
 import { classNames } from "@store/shared";
 
-type BandVariant = "mobile" | "desktop";
+import { HeroMaskSweepHeadline } from "@/app/_components/home/HeroMaskSweepHeadline";
 
-interface SlotLayout {
-  size: "sm" | "md" | "lg";
-  top: number;
-  left: number;
-  name: string;
+type BandVariant = "mobile" | "desktop";
+type FlankSide = "left" | "right";
+type HeadlineDensity = "default" | "compact";
+
+interface FlankSlot {
+	size: "sm" | "md" | "lg";
+	top: number;
+	/** Offset from the center-facing edge (%), shop banner mid-flank spread. */
+	offset: number;
+	name: string;
 }
 
-const DESKTOP_SIZE_CLASS: Record<SlotLayout["size"], string> = {
-  lg: "text-[26px]",
-  md: "text-[19px]",
-  sm: "text-sm",
+const DESKTOP_SIZE_CLASS: Record<FlankSlot["size"], string> = {
+	lg: "text-[22px]",
+	md: "text-[17px]",
+	sm: "text-sm",
 };
 
-const MOBILE_SIZE_CLASS: Record<SlotLayout["size"], string> = {
-  lg: "text-xl",
-  md: "text-[15px]",
-  sm: "text-xs",
+const DESKTOP_SIZE_CLASS_COMPACT: Record<FlankSlot["size"], string> = {
+	lg: "text-[18px]",
+	md: "text-[15px]",
+	sm: "text-[13px]",
 };
 
-function generateDistributedSlots(count: number, products: string[]): SlotLayout[] {
-  if (products.length === 0) return [];
-  const sizes: ("sm" | "md" | "lg")[] = ["sm", "md", "lg", "md", "sm", "lg"];
-  const slots: SlotLayout[] = [];
-  
-  // Shuffle products to ensure random selection and prevent repetition
-  const shuffledProducts = [...products].sort(() => Math.random() - 0.5);
-  
-  for (let i = 0; i < count; i++) {
-    // Divide horizontal space into `count` segments to ensure they spread out nicely
-    const segmentWidth = 90 / count;
-    const baseLeft = 5 + (i * segmentWidth);
-    // Give it a random left within the segment to avoid spilling over
-    const left = baseLeft + Math.random() * (segmentWidth * 0.6); 
-    
-    // Top: alternate between top half and bottom half to prevent vertical overlap
-    const isTopHalf = i % 2 === 0;
-    const top = isTopHalf 
-      ? 15 + Math.random() * 20   // 15% to 35%
-      : 65 + Math.random() * 20;  // 65% to 85%
-    
-    slots.push({
-      size: sizes[Math.floor(Math.random() * sizes.length)],
-      top,
-      left,
-      name: shuffledProducts[i % shuffledProducts.length] ?? "",
-    });
-  }
-  
-  // Shuffle the final slots so the popping animation sequence isn't purely left-to-right
-  return slots.sort(() => Math.random() - 0.5);
+const MOBILE_SIZE_CLASS: Record<FlankSlot["size"], string> = {
+	lg: "text-[15px]",
+	md: "text-[13px]",
+	sm: "text-[11px]",
+};
+
+const MOBILE_SIZE_CLASS_COMPACT: Record<FlankSlot["size"], string> = {
+	lg: "text-[13px]",
+	md: "text-[11px]",
+	sm: "text-[10px]",
+};
+
+const DESKTOP_COLUMN_HEIGHT = "self-stretch";
+const MOBILE_COLUMN_HEIGHT = "self-stretch";
+
+function generateFlankSlots(
+	count: number,
+	products: string[],
+	side: FlankSide,
+	wideSpread = false,
+): FlankSlot[] {
+	if (products.length === 0) {
+		return [];
+	}
+
+	const sizes: FlankSlot["size"][] = ["sm", "md", "lg", "md", "sm"];
+	const shuffledProducts = [...products].sort(() => Math.random() - 0.5);
+	const sideOffset = side === "left" ? 0 : 1;
+	const slots: FlankSlot[] = [];
+
+	for (let index = 0; index < count; index += 1) {
+		const productIndex = (index * 2 + sideOffset) % shuffledProducts.length;
+		const top = 12 + ((index + 1) / (count + 1)) * 76 + (Math.random() - 0.5) * 8;
+		// Keep anchors off the outer column edge so long names keep side-bearing room.
+		const offset = wideSpread ? 32 + Math.round(Math.random() * 28) : 0;
+
+		slots.push({
+			size: sizes[index % sizes.length] ?? "md",
+			top,
+			offset,
+			name: shuffledProducts[productIndex] ?? "",
+		});
+	}
+
+	return slots.sort(() => Math.random() - 0.5);
 }
 
 interface HeroTrendingProductBandProps {
-  productNames: string[];
-  variant: BandVariant;
+	productNames: string[];
+	variant: BandVariant;
+	side: FlankSide;
+	density?: HeadlineDensity;
 }
 
 export function HeroTrendingProductBand({
-  productNames,
-  variant,
+	productNames,
+	variant,
+	side,
+	density = "default",
 }: HeroTrendingProductBandProps) {
-  const [isMounted, setIsMounted] = useState(false);
-  const [labels, setLabels] = useState<SlotLayout[]>([]);
-  
-  const popCycle = variant === "desktop" ? 8 : 6;
-  const count = variant === "desktop" ? 6 : 4;
-  
-  // Delay mounting to let the main page load smoothly without hanging
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLabels(generateDistributedSlots(count, productNames));
-      setIsMounted(true);
-    }, 600); // 600ms delay to let initial paint and LCP settle
-    return () => clearTimeout(timer);
-  }, [productNames, count, variant]);
+	const [labels, setLabels] = useState<FlankSlot[]>([]);
 
-  const sizeClass = variant === "desktop" ? DESKTOP_SIZE_CLASS : MOBILE_SIZE_CLASS;
-  const heightClass = variant === "desktop" ? "h-[140px]" : "h-[100px]";
+	const isCompact = density === "compact";
+	const wideSpread = isCompact;
+	const popCycle = variant === "desktop" ? 8 : 6;
+	const count = variant === "desktop" ? 3 : 2;
 
-  if (productNames.length === 0) return null;
+	useEffect(() => {
+		const timer = window.setTimeout(() => {
+			setLabels(generateFlankSlots(count, productNames, side, wideSpread));
+		}, 600);
 
-  return (
-    <div
-      className={classNames(
-        "relative w-full overflow-hidden transition-all duration-[800ms] ease-out-quart",
-        isMounted ? heightClass : "h-0 opacity-0"
-      )}
-      aria-hidden
-    >
-      {isMounted && labels.map((item, index) => {
-        const delay = (popCycle / labels.length) * index;
-        return (
-          <span
-            key={`${item.name}-${index}`}
-            className={classNames(
-              "card-chip-cycle pointer-events-none absolute whitespace-nowrap font-bold tracking-tight text-[var(--color-ink-900)]",
-              sizeClass[item.size]
-            )}
-            style={{
-              top: `${item.top}%`,
-              left: `${item.left}%`,
-              animationDuration: `${popCycle}s`,
-              animationDelay: `${delay}s`,
-              animationIterationCount: "infinite",
-              animationName: "hero-product-pop", // Defined in globals.css
-            }}
-          >
-            {item.name}
-          </span>
-        );
-      })}
-    </div>
-  );
+		return () => window.clearTimeout(timer);
+	}, [productNames, count, side, wideSpread]);
+	const sizeClass =
+		variant === "desktop"
+			? isCompact
+				? DESKTOP_SIZE_CLASS_COMPACT
+				: DESKTOP_SIZE_CLASS
+			: isCompact
+				? MOBILE_SIZE_CLASS_COMPACT
+				: MOBILE_SIZE_CLASS;
+	const columnHeight = variant === "desktop" ? DESKTOP_COLUMN_HEIGHT : MOBILE_COLUMN_HEIGHT;
+	const columnWidth = wideSpread
+		? side === "left"
+			? "min-w-0 w-full py-1 pl-2.5 sm:pl-3 md:pl-4"
+			: "min-w-0 w-full py-1 pr-2.5 sm:pr-3 md:pr-4"
+		: variant === "desktop"
+			? "min-w-[96px] flex-1"
+			: "min-w-[44px] max-w-[96px] flex-1 sm:max-w-[120px]";
+	const anchorClass = wideSpread
+		? side === "left"
+			? "text-right"
+			: "text-left"
+		: side === "left"
+			? "right-0 text-right"
+			: "left-0 text-left";
+
+	if (productNames.length === 0) {
+		return <div className={classNames("shrink-0", columnWidth, columnHeight)} aria-hidden />;
+	}
+
+	return (
+		<div
+			className={classNames("relative", columnWidth, columnHeight)}
+			aria-hidden
+		>
+			{labels.map((item, index) => {
+				const delay = (popCycle / Math.max(labels.length, 1)) * index;
+				return (
+					<span
+						key={`${side}-${item.name}-${index}`}
+						className={classNames(
+							"hero-product-pop-flank pointer-events-none absolute whitespace-nowrap font-medium tracking-tight",
+							sizeClass[item.size],
+							anchorClass,
+						)}
+						style={{
+							top: `${item.top}%`,
+							...(wideSpread
+								? side === "left"
+									? { right: `${item.offset}%` }
+									: { left: `${item.offset}%` }
+								: {}),
+							animationDuration: `${popCycle}s`,
+							animationDelay: `${delay}s`,
+							animationIterationCount: "infinite",
+						}}
+					>
+						{item.name}
+					</span>
+				);
+			})}
+		</div>
+	);
+}
+
+interface HeroHeadlineWithTrendingProductsProps {
+	productNames: string[];
+	variant: BandVariant;
+	density?: HeadlineDensity;
+}
+
+/** Inspected / Trusted lockup with cycling product names flanking each side. */
+export function HeroHeadlineWithTrendingProducts({
+	productNames,
+	variant,
+	density = "default",
+}: HeroHeadlineWithTrendingProductsProps) {
+	const wideSpread = density === "compact";
+
+	return (
+		<div
+			className={classNames(
+				"w-full min-w-0 items-stretch",
+				wideSpread
+					? "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-3 sm:gap-x-5 md:gap-x-8 lg:gap-x-10"
+					: "flex justify-between gap-2 sm:gap-3 md:gap-5 lg:gap-6",
+			)}
+		>
+			<HeroTrendingProductBand
+				productNames={productNames}
+				variant={variant}
+				side="left"
+				density={density}
+			/>
+			<div
+				className={classNames(
+					"shrink-0 self-center justify-self-center px-0.5",
+					density === "compact" ? "py-1.5 md:py-2" : "py-1",
+				)}
+			>
+				<HeroMaskSweepHeadline variant={variant} density={density} />
+			</div>
+			<HeroTrendingProductBand
+				productNames={productNames}
+				variant={variant}
+				side="right"
+				density={density}
+			/>
+		</div>
+	);
 }

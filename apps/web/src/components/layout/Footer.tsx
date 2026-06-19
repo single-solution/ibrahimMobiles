@@ -9,9 +9,11 @@ import {
   TiktokIcon,
   YoutubeIcon,
 } from "@/components/ui/SocialIcons";
+import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
 
 interface FooterProps {
   settings: StoreSettings;
+  catalogHomeHref: string;
 }
 
 /**
@@ -19,7 +21,7 @@ interface FooterProps {
  * reading `useStoreSettings()`) so it can render on the server and stay out
  * of the client bundle — it is injected as a slot by the client chrome.
  */
-export function Footer({ settings }: FooterProps) {
+export function Footer({ settings, catalogHomeHref }: FooterProps) {
   const socialButtons = [
     { href: settings.socialFacebook, label: "Facebook", icon: <FacebookIcon size={15} /> },
     { href: settings.socialInstagram, label: "Instagram", icon: <InstagramIcon size={15} /> },
@@ -29,11 +31,11 @@ export function Footer({ settings }: FooterProps) {
 
   return (
     <footer className="cv-auto mt-14 border-t border-[var(--color-ink-100)] bg-[var(--color-ink-900)] text-[var(--color-ink-200)] sm:mt-24">
-      <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+      <div className={`${STOREFRONT_SHELL_CLASS} py-8 sm:py-10`}>
         <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center">
             <BrandLockup
-              href="/"
+              href={catalogHomeHref}
               siteName={settings.siteName}
               /* Prefer the dark-surface logo down here since the footer
                  sits on `--color-ink-900`; fall back to the light logo

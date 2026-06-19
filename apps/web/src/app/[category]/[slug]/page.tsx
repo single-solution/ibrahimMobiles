@@ -24,12 +24,11 @@ import { getDefaultVariant } from "@/lib/productSummary";
 import {
   productAbsoluteUrl,
   productHref,
-  shopHrefFromCategories,
+  categoryHref,
 } from "@/lib/catalog/productPaths";
 import {
   getAttributesCached,
   getBrandBySlugCached,
-  getCategoriesCached,
   getCategoryBySlugCached,
   getProductBySlugCached,
   getProductsPageCached,
@@ -45,6 +44,7 @@ import {
   jsonLdScriptContent,
   productJsonLd,
 } from "@/lib/seo/jsonLd";
+import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
 
 /**
  * Category-agnostic product detail page.
@@ -188,55 +188,55 @@ export default async function ProductDetailPage({
     search,
     attributeSlugs,
   );
-  const initialVariant = exactFromUrl ?? getDefaultVariant(product);
+  const variantForSeo = exactFromUrl ?? getDefaultVariant(product);
 
   if (product.categorySlug !== categoryMeta.slug) {
-    redirect(productHref(product, { variant: initialVariant }));
+    redirect(productHref(product));
   }
 
   const legacyVariantId = readLegacyVariantId(search);
   if (legacyVariantId) {
-    // Legacy `?variant=<id>` links migrate once to readable params.
-    redirect(productHref(product, { variant: initialVariant }));
+    redirect(productHref(product));
   }
 
   // Bad URL recovery (combination doesn't exist on any variant) is handled
   // client-side via `history.replaceState` (see usePdpUrlParams) so configurator
   // picks never refetch this RSC page.
 
-  const [brand, seoSettings, categories] = await Promise.all([
+  const [brand, seoSettings] = await Promise.all([
     getBrandBySlugCached(product.brandSlug, product.categorySlug),
     getSeoSettings(),
-    getCategoriesCached(),
   ]);
   const brandName = brand?.name ?? product.brandSlug;
-  const brandFilterHref = `/shop/${categoryMeta.slug}?brand=${product.brandSlug}`;
-  const shopHref = shopHrefFromCategories(categories);
+  const brandFilterHref = `${categoryHref(categoryMeta.slug)}?brand=${product.brandSlug}`;
 
   const productLd = productJsonLd({
     product,
-    variant: initialVariant,
+    variant: variantForSeo,
     brand: brand ? { slug: brand.slug, name: brand.name } : null,
     category: { slug: categoryMeta.slug, label: categoryMeta.label },
     settings: seoSettings,
   });
   const breadcrumbLd = breadcrumbJsonLd([
     { name: "Home", url: seoSettings.siteUrl },
-    { name: "Shop", url: `${seoSettings.siteUrl}/shop` },
     {
       name: categoryMeta.label,
-      url: `${seoSettings.siteUrl}/shop/${categoryMeta.slug}`,
+      url: `${seoSettings.siteUrl}${categoryHref(categoryMeta.slug)}`,
+    },
+    {
+      name: brandName,
+      url: `${seoSettings.siteUrl}${brandFilterHref}`,
     },
     {
       name: `${brandName} ${product.name}`,
       url: productAbsoluteUrl(seoSettings.siteUrl, product, {
-        variant: initialVariant,
+        variant: variantForSeo,
       }),
     },
   ]);
 
   return (
-    <VariantProvider product={product} initialVariantId={initialVariant.id}>
+    <VariantProvider product={product}>
       <PdpScrollReset />
       <ProductChatBeacon productId={product.id} productName={`${brandName} ${product.name}`} />
       <script
@@ -249,15 +249,17 @@ export default async function ProductDetailPage({
       />
       {/* Mobile */}
       <div className="pdp-shell reveal-stagger pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-2 md:hidden">
-        <div className="reveal mx-4 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
-          <VariantAwareGallery
-            product={product}
-            brandName={brandName}
-            layout="mobile"
-          />
+        <div className={`reveal ${STOREFRONT_SHELL_CLASS}`}>
+          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+            <VariantAwareGallery
+              product={product}
+              brandName={brandName}
+              layout="mobile"
+            />
+          </div>
         </div>
 
-        <div className="app-page pdp-content px-4 pt-4">
+        <div className={`pdp-content ${STOREFRONT_SHELL_CLASS} space-y-5 pt-4`}>
           <div className="reveal">
             <Suspense
               fallback={
@@ -285,10 +287,9 @@ export default async function ProductDetailPage({
       </div>
 
       {/* Desktop */}
-      <div className="pdp-shell reveal-stagger mx-auto hidden w-full max-w-[1440px] px-6 pb-12 pt-8 md:block">
+      <div className={`pdp-shell reveal-stagger hidden pb-12 pt-8 md:block ${STOREFRONT_SHELL_CLASS}`}>
         <div className="reveal">
           <Breadcrumbs
-            shopHref={shopHref}
             categorySlug={categoryMeta.slug}
             categoryLabel={categoryMeta.label}
             brandName={brandName}
@@ -522,7 +523,6 @@ function DesktopRelatedRailSkeleton() {
 /* ─────────────────────── Static layout pieces ─────────────────────── */
 
 interface BreadcrumbsProps {
-  shopHref: string;
   categorySlug: string;
   categoryLabel: string;
   brandName: string;
@@ -531,7 +531,6 @@ interface BreadcrumbsProps {
 }
 
 function Breadcrumbs({
-  shopHref,
   categorySlug,
   categoryLabel,
   brandName,
@@ -539,26 +538,22 @@ function Breadcrumbs({
   modelName,
 }: BreadcrumbsProps) {
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm text-[var(--color-ink-500)]">
+    <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-sm text-[var(--color-ink-500)]">
       <Link href="/" className="hover:text-[var(--color-ink-800)]">
         Home
       </Link>
-      <ChevronRight size={14} />
-      <Link href={shopHref} className="hover:text-[var(--color-ink-800)]">
-        Shop
-      </Link>
-      <ChevronRight size={14} />
+      <ChevronRight size={14} aria-hidden className="shrink-0" />
       <Link
-        href={`/shop/${categorySlug}`}
+        href={categoryHref(categorySlug)}
         className="hover:text-[var(--color-ink-800)]"
       >
         {categoryLabel}
       </Link>
-      <ChevronRight size={14} />
+      <ChevronRight size={14} aria-hidden className="shrink-0" />
       <Link href={brandFilterHref} className="hover:text-[var(--color-ink-800)]">
         {brandName}
       </Link>
-      <ChevronRight size={14} />
+      <ChevronRight size={14} aria-hidden className="shrink-0" />
       <span className="text-[var(--color-ink-800)]">{modelName}</span>
     </nav>
   );

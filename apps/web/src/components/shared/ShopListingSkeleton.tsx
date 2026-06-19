@@ -1,41 +1,118 @@
 import { ProductGridSkeleton } from "@/components/shared/ProductCardSkeleton";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
+import {
+	SHOP_CATEGORY_GRID_CLASS,
+	SHOP_CATEGORY_PAGE_CLASS,
+	SHOP_CATEGORY_SKELETON_CARDS,
+} from "@/lib/catalog/shopListingGrid";
+
+const SHOP_INTRO_DESKTOP_GRADIENT =
+	"linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 60%, var(--color-canvas)) 0%, var(--color-canvas) 60%, var(--color-canvas) 100%)";
+
+const SHOP_INTRO_MOBILE_GRADIENT =
+	"linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 55%, var(--color-canvas)) 0%, var(--color-canvas) 55%, var(--color-canvas) 100%)";
+
+const SHOP_FLANK_LABEL_COUNT = 3;
+
+function ShopIntroHeroFlankFallback({ side }: { side: "left" | "right" }) {
+	const alignClass = side === "left" ? "items-end pr-2 sm:pr-3 md:pr-4" : "items-start pl-2 sm:pl-3 md:pl-4";
+
+	return (
+		<div className={`flex min-w-0 flex-col justify-center gap-5 py-1 ${alignClass}`}>
+			{Array.from({ length: SHOP_FLANK_LABEL_COUNT }).map((_, index) => (
+				<Skeleton
+					key={index}
+					shape="text"
+					className={
+						index === 1
+							? "h-4 w-[5.5rem] sm:w-24"
+							: index === 0
+								? "h-3 w-16 sm:w-20"
+								: "h-3.5 w-20 sm:w-[5.5rem]"
+					}
+				/>
+			))}
+		</div>
+	);
+}
+
+function ShopIntroHeroDesktopFallback() {
+	return (
+		<section
+			aria-hidden
+			className="relative -mt-[var(--desktop-header-h)] flex flex-col overflow-hidden pb-8 pt-[calc(var(--desktop-header-h)+2rem)] md:pb-10 md:pt-[calc(var(--desktop-header-h)+2.5rem)]"
+			style={{ background: SHOP_INTRO_DESKTOP_GRADIENT }}
+		>
+			<div
+				className={`relative z-10 flex w-full flex-col items-center text-center ${SHOP_CATEGORY_PAGE_CLASS}`}
+			>
+				<div className="w-full min-w-0 overflow-hidden px-0.5 py-1.5">
+					<div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-3 sm:gap-x-5 md:gap-x-8 lg:gap-x-10">
+						<ShopIntroHeroFlankFallback side="left" />
+						<div className="flex shrink-0 flex-col items-center gap-2 px-0.5 py-1">
+							<Skeleton shape="text" className="h-[2.4rem] w-[8.5rem] md:h-[3rem] md:w-[10.5rem]" />
+							<Skeleton shape="text" className="h-[3.8rem] w-[10rem] md:h-[4.6rem] md:w-[12.5rem]" />
+						</div>
+						<ShopIntroHeroFlankFallback side="right" />
+					</div>
+				</div>
+			</div>
+		</section>
+	);
+}
+
+function ShopIntroHeroMobileFallback() {
+	return (
+		<section
+			aria-hidden
+			className="relative -mt-[var(--mobile-header-h)] flex flex-col items-center overflow-hidden pb-8 pt-[calc(var(--mobile-header-h)+1.75rem)] text-center md:pb-10 md:pt-[calc(var(--mobile-header-h)+2.25rem)]"
+			style={{ background: SHOP_INTRO_MOBILE_GRADIENT }}
+		>
+			<div className={`relative z-10 flex w-full flex-col items-center text-center ${SHOP_CATEGORY_PAGE_CLASS}`}>
+				<div className="w-full min-w-0 overflow-hidden px-0.5 py-1.5">
+					<div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch gap-x-3 sm:gap-x-5">
+						<ShopIntroHeroFlankFallback side="left" />
+						<div className="flex shrink-0 flex-col items-center gap-1.5 px-0.5 py-1">
+							<Skeleton shape="text" className="h-8 w-[6.5rem]" />
+							<Skeleton shape="text" className="h-12 w-[8rem]" />
+						</div>
+						<ShopIntroHeroFlankFallback side="right" />
+					</div>
+				</div>
+			</div>
+		</section>
+	);
+}
+
+/** Shape-matched fallback for `ShopIntroHero` (compact content layout). */
+export function ShopIntroHeroFallback() {
+	return (
+		<>
+			<div className="md:hidden">
+				<ShopIntroHeroMobileFallback />
+			</div>
+			<div className="hidden md:block">
+				<ShopIntroHeroDesktopFallback />
+			</div>
+		</>
+	);
+}
 
 /**
- * Shop listing skeleton pieces — consumed by:
- *   - `shop/loading.tsx` and `shop/[category]/loading.tsx` (route-level
- *     fallbacks during pathname changes)
- *   - in-page `<Suspense>` boundaries in `[category]/page.tsx`
- *
- * Query-only updates (filters, sort, pagination) keep the live toolbar
- * and category rail visible and only swap the grid via
- * `NavigationPendingFallback`. Pathname changes (category switch) show
- * the products + sidebar skeletons here while the category rail / mobile
- * picker stay rendered from the loading boundary.
- *
- * Sizing rule: each block sets an intrinsic min-height so the viewport
- * never collapses while a section streams.
+ * Home catalog listing skeletons — used by category loading and Suspense fallbacks.
  */
-
-export const SHOP_MOBILE_SKELETON_CARDS = 6;
-export const SHOP_DESKTOP_SKELETON_CARDS = 12;
 
 export function ShopCategoryRailFallback({ pillCount = 6 }: { pillCount?: number }) {
   return (
     <nav
       aria-hidden
-      className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 scrollbar-none md:mx-0 md:flex-wrap md:gap-3 md:px-0 md:pb-0"
+      className="flex min-w-0 flex-1 flex-wrap justify-start gap-2 md:gap-2.5"
     >
       {Array.from({ length: pillCount }).map((_, index) => (
-        <Skeleton key={index} shape="pill" className="h-9 w-28 shrink-0 md:h-10 md:w-32" />
+        <Skeleton key={index} shape="pill" className="h-8 w-[4.5rem] shrink-0 md:w-20" />
       ))}
     </nav>
   );
-}
-
-/** Matches the mobile category trigger pill in `MobileCategoryPicker`. */
-export function ShopMobileCategoryPickerFallback() {
-  return <Skeleton shape="pill" className="h-9 min-w-0 max-w-[12rem] flex-1" />;
 }
 
 export function ShopMobileToolbarFilterFallback() {
@@ -43,25 +120,21 @@ export function ShopMobileToolbarFilterFallback() {
 }
 
 export function ShopMobileProductsAreaFallback() {
-  return (
-    <div
-      // `min-h-[60vh]` keeps the mobile shop viewport "full" while data
-      // streams, even on very tall phones — without this the skeleton
-      // grid (6 cards) collapses to ~half the viewport on large mobiles
-      // and the page looks empty/ugly between paint and hydration.
-      className="min-h-[60vh]"
-    >
-      <div className="mt-4">
-        <ProductGridSkeleton
-          count={SHOP_MOBILE_SKELETON_CARDS}
-          className="grid grid-cols-2 gap-3 sm:gap-4"
-        />
-      </div>
-      <div className="mt-8 flex justify-center">
-        <Skeleton shape="pill" className="h-10 w-32" />
-      </div>
-    </div>
-  );
+	return <ShopProductsAreaFallback />;
+}
+
+export function ShopCategoryPageLoading({ includeHero = false }: { includeHero?: boolean }) {
+	return (
+		<SkeletonScreen label="Loading shop">
+			{includeHero ? <ShopIntroHeroFallback /> : null}
+			<div className={`${SHOP_CATEGORY_PAGE_CLASS} pb-10 md:pb-20`}>
+				<ShopCatalogToolbarFallback />
+				<div className="shop-listing-mobile-scroll-pad pt-1">
+					<ShopProductsAreaFallback />
+				</div>
+			</div>
+		</SkeletonScreen>
+	);
 }
 
 /**
@@ -155,13 +228,50 @@ function FilterCheckRowSkeletonList({ rows }: { rows: number }) {
   );
 }
 
-export function ShopDesktopProductsAreaFallback() {
+export function ShopFilterRowFallback() {
   return (
-    <div className="min-h-[70vh] space-y-6">
-      <ProductGridSkeleton count={SHOP_DESKTOP_SKELETON_CARDS} />
-      <div className="flex justify-center pt-2">
-        <Skeleton shape="pill" className="h-10 w-32" />
-      </div>
+    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 md:gap-2.5" aria-hidden>
+      {Array.from({ length: 4 }).map((_, pillIndex) => (
+        <Skeleton key={pillIndex} shape="pill" className="h-8 w-[4.5rem] md:w-20" />
+      ))}
     </div>
   );
+}
+
+export function ShopCatalogToolbarFallback() {
+	return (
+		<>
+			<div className="shop-listing-toolbar-sticky md:hidden">
+				<div className="shop-listing-toolbar flex items-center gap-2 p-2" aria-hidden>
+					<Skeleton shape="pill" className="h-9 flex-1" />
+					<Skeleton shape="pill" className="h-9 flex-1" />
+				</div>
+			</div>
+
+			<div className="hidden flex-col gap-3 pb-4 md:flex md:pb-5">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+					<ShopCategoryRailFallback />
+					<ShopFilterRowFallback />
+				</div>
+			</div>
+		</>
+	);
+}
+
+export function ShopProductsAreaFallback() {
+	return (
+		<div className="min-h-[60vh] space-y-6 md:min-h-[70vh]">
+			<ProductGridSkeleton
+				count={SHOP_CATEGORY_SKELETON_CARDS}
+				className={SHOP_CATEGORY_GRID_CLASS}
+			/>
+			<div className="flex justify-center pt-2">
+				<Skeleton shape="pill" className="h-10 w-32" />
+			</div>
+		</div>
+	);
+}
+
+export function ShopDesktopProductsAreaFallback() {
+  return <ShopProductsAreaFallback />;
 }

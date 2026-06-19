@@ -18,6 +18,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@store/ui";
 import { classNames } from "@store/shared";
 import type { AccountAddress, AccountCustomer } from "@/lib/core/account";
+import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
 
 const SAVED_FLASH_MS = 1_800;
 
@@ -169,7 +170,7 @@ export function CustomerProfile({ customer }: CustomerProfileProps) {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-24 pt-4 md:px-6 md:pb-16 md:pt-10 lg:px-8">
+    <div className={`${STOREFRONT_SHELL_CLASS} pb-24 pt-4 md:pb-16 md:pt-10`}>
       <Link
         href="/account"
         className="cta-arrow tap inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-ink-500)] hover:text-[var(--color-ink-800)]"

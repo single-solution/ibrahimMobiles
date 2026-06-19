@@ -53,7 +53,7 @@ export function EmptyCartState() {
         Browse the shop, add a product to your cart, then come back here to check out.
       </p>
       <Link
-        href="/shop"
+        href="/"
         className="cta-arrow tap mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-[var(--color-accent-500)] px-5 text-[14px] font-semibold text-[var(--color-ink-900)] hover:bg-[var(--color-accent-600)]"
       >
         Visit the shop
@@ -68,7 +68,7 @@ export function CheckoutHeader() {
     <div className="reveal flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
         <Link
-          href="/shop"
+          href="/"
           className="cta-arrow tap inline-flex items-center gap-1.5 text-[12px] font-medium text-[var(--color-ink-500)] hover:text-[var(--color-ink-800)]"
         >
           <ArrowLeft size={13} />

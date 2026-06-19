@@ -121,7 +121,7 @@ export function composeProductSeo({
 }): ResolvedSeoMeta {
   const brandName = brand?.name ?? product.brandName;
   const baseTitle = `${brandName} ${product.name}`.trim();
-  const path = `/shop/${product.categorySlug}/${product.slug}`;
+  const path = `/${product.categorySlug}/${product.slug}`;
   const heroImage = product.images[0]?.variants?.detail ?? "";
   const derivedDescription = category
     ? `${baseTitle} — graded ${category.label.toLowerCase()} from ${resolveStoreName(
@@ -202,7 +202,7 @@ export function composeBrandSeo({
   seo?: SeoMeta;
 }): ResolvedSeoMeta {
   const baseTitle = brand.name;
-  const path = `/shop?brand=${brand.slug}`;
+  const path = `/?brand=${brand.slug}`;
   const derivedDescription = `${brand.name} products at ${resolveStoreName(settings)}.`;
 
   return {

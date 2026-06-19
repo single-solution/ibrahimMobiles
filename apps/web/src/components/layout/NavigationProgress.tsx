@@ -205,37 +205,6 @@ export function NavigationProgress() {
           style={{ transform: `scaleX(${percent / 100})` }}
         />
       </div>
-
-      {isVisible && (
-        <div
-          aria-hidden
-          className="fixed inset-0 z-[90] flex items-center justify-center bg-[var(--color-ink-900)]/15 backdrop-blur-[2px]"
-          // Hold the overlay back ~0.45s so prefetched / medium-speed routes
-          // (which commit before then) never flash the dim+spinner — the top
-          // progress bar already gives instant tap feedback. Only genuinely
-          // slow navigations surface the overlay.
-          style={{ animation: "nav-overlay-in 0.25s ease-out 0.45s both" }}
-        >
-          <div className="grid size-[34px] grid-cols-2 gap-[3px]">
-            <div
-              className="origin-bottom-right rounded-[2px] bg-[var(--color-accent-500)]"
-              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0s" }}
-            />
-            <div
-              className="origin-bottom-left rounded-[2px] bg-[var(--color-ink-900)]"
-              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.3s" }}
-            />
-            <div
-              className="origin-top-right rounded-[2px] bg-[var(--color-ink-900)]"
-              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.9s" }}
-            />
-            <div
-              className="origin-top-left rounded-[2px] bg-[var(--color-accent-500)]"
-              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.6s" }}
-            />
-          </div>
-        </div>
-      )}
     </>
   );
 }

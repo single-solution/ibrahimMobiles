@@ -123,6 +123,41 @@ export function findVariantBySelection(
   return variants.find((variant) => variantMatchesSelection(variant, selection));
 }
 
+/** Variants for one grade — configurator scopes attribute options to this set. */
+export function variantsForGrade(
+  variants: Variant[],
+  gradeSlug: string,
+): Variant[] {
+  if (!gradeSlug) {
+    return variants;
+  }
+  return variants.filter((variant) => variant.gradeSlug === gradeSlug);
+}
+
+/** Keep attribute picks that still exist on the new grade; drop the rest. */
+export function mergeSelectionForGradeChange(
+  previousSelection: Record<string, string>,
+  nextGradeSlug: string,
+  variants: Variant[],
+): Record<string, string> {
+  const gradeScoped = variantsForGrade(variants, nextGradeSlug);
+  const merged: Record<string, string> = {
+    [GRADE_DIMENSION_KEY]: nextGradeSlug,
+  };
+  for (const [key, value] of Object.entries(previousSelection)) {
+    if (key === GRADE_DIMENSION_KEY || !value) {
+      continue;
+    }
+    const stillValid = gradeScoped.some((variant) =>
+      attributeValuesOnVariant(variant, key).includes(value),
+    );
+    if (stillValid) {
+      merged[key] = value;
+    }
+  }
+  return merged;
+}
+
 export function findClosestVariant(
   variants: Variant[],
   selection: Record<string, string>,
@@ -397,6 +432,13 @@ export function resolveExactVariantFromSearch(
     return null;
   }
   const selection = parsePdpSelectionFromSearch(search, categoryAttributeSlugs);
+  const requiredSlugs = getRequiredAttributeSlugsForProduct(
+    product,
+    categoryAttributeSlugs,
+  );
+  if (!isPdpSelectionComplete(selection, requiredSlugs)) {
+    return null;
+  }
   return findVariantBySelection(product.variants, selection) ?? null;
 }
 

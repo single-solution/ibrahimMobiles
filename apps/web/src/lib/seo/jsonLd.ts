@@ -10,7 +10,7 @@
 
 import type { Product, Variant } from "@store/shared";
 
-import { productAbsoluteUrl } from "@/lib/catalog/productPaths";
+import { categoryHref, productAbsoluteUrl } from "@/lib/catalog/productPaths";
 import { getDefaultVariant } from "@/lib/productSummary";
 
 interface SeoSettings {
@@ -121,7 +121,7 @@ export function collectionPageJsonLd({
   products: Product[];
   settings: SeoSettings;
 }): Record<string, unknown> {
-  const url = `${settings.siteUrl}/shop/${category.slug}`;
+  const url = `${settings.siteUrl}${categoryHref(category.slug)}`;
   const items = products.slice(0, 24).map((product, index) => ({
     "@type": "ListItem",
     position: index + 1,
@@ -189,7 +189,7 @@ export function websiteJsonLd(settings: SeoSettings): Record<string, unknown> {
     url: settings.siteUrl,
     potentialAction: {
       "@type": "SearchAction",
-      target: `${settings.siteUrl}/shop?q={search_term_string}`,
+      target: `${settings.siteUrl}/?q={search_term_string}`,
       "query-input": "required name=search_term_string",
     },
   };

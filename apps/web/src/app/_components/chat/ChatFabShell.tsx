@@ -8,7 +8,7 @@ import { classNames } from "@store/shared";
 
 import { useChatSettings } from "@/lib/chat/chatSettingsContext";
 import { fetchChatUnreadSummary } from "@/lib/chat/transport";
-import { OPEN_CHAT_EVENT, type OpenChatDetail } from "@/lib/chat/openChat";
+import { OPEN_CHAT_EVENT, CLOSE_CHAT_EVENT, dispatchChatOpenState, type OpenChatDetail } from "@/lib/chat/openChat";
 import {
   buildChatNudgeLine,
   chatPageContextKey,
@@ -100,6 +100,20 @@ export function ChatFabShell() {
   );
 
   useEffect(() => {
+    dispatchChatOpenState(isOpen);
+  }, [isOpen]);
+
+  // Mobile tab bar owns chat entry — dismiss the overlay when navigating away.
+  useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 767px)");
+    if (!mobileQuery.matches) {
+      return;
+    }
+    setIsOpen(false);
+    setOpenDetail(null);
+  }, [pathname]);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => setIsLabelVisible(false), LABEL_AUTO_HIDE_MS);
     return () => window.clearTimeout(timer);
   }, []);
@@ -173,9 +187,18 @@ export function ChatFabShell() {
       setNudge(null);
       markNudgeOff();
     }
+    function onClose() {
+      setIsOpen(false);
+      setOpenDetail(null);
+      void refreshUnread();
+    }
     window.addEventListener(OPEN_CHAT_EVENT, onOpen);
-    return () => window.removeEventListener(OPEN_CHAT_EVENT, onOpen);
-  }, []);
+    window.addEventListener(CLOSE_CHAT_EVENT, onClose);
+    return () => {
+      window.removeEventListener(OPEN_CHAT_EVENT, onOpen);
+      window.removeEventListener(CLOSE_CHAT_EVENT, onClose);
+    };
+  }, [refreshUnread]);
 
   // Track what the visitor is looking at (product / category / deals / …).
   useEffect(() => subscribeChatPageContext(setPageContext), []);
@@ -222,7 +245,13 @@ export function ChatFabShell() {
   if (hidden) return null;
 
   return (
-    <div className="floating-dock fixed right-4 z-40 flex flex-col items-end gap-2.5 md:right-7">
+    <div
+      className={classNames(
+        "floating-dock fixed z-40 flex flex-col gap-2.5",
+        isOpen ? "floating-dock--mobile-sheet max-md:items-stretch" : "md:items-end",
+        "md:right-7",
+      )}
+    >
       {isOpen && (
         <LiveChatWidget
           onCollapse={() => {
@@ -235,7 +264,7 @@ export function ChatFabShell() {
       )}
 
       {Boolean(nudge) && !isOpen && unread === 0 && (
-        <div className="reveal-rise flex max-w-[260px] items-start gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-2.5 pl-3 pr-2 shadow-[var(--shadow-md)]">
+        <div className="reveal-rise max-md:hidden flex max-w-[260px] items-start gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-2.5 pl-3 pr-2 shadow-[var(--shadow-md)]">
           <button
             type="button"
             onClick={() => openChat()}
@@ -263,7 +292,7 @@ export function ChatFabShell() {
         aria-label={isOpen ? "Close chat" : "Ask us a question"}
         aria-expanded={isOpen}
         className={classNames(
-          "tap group relative flex cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-ink-900)] py-2.5 text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink-800)] hover:shadow-[var(--shadow-lg)]",
+          "tap group relative flex cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-ink-900)] py-2.5 text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink-800)] hover:shadow-[var(--shadow-lg)] max-md:hidden",
           isLabelVisible && !isOpen ? "gap-2 pl-3 pr-4" : "gap-0 px-2.5",
           "md:gap-2 md:pl-3 md:pr-4",
         )}

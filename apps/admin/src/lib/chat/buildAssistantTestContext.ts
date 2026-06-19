@@ -35,7 +35,7 @@ function formatProductLine(product: ProductLean, brandName: string): string {
     minPrice ? `from ${formatPrice(minPrice)}` : "price on request",
     inStock ? "in stock" : "out of stock",
     grades.length ? `grades: ${grades.join(", ")}` : null,
-    `link: /shop/${product.categorySlug}/${product.slug}`,
+    `link: /${product.categorySlug}/${product.slug}`,
   ]
     .filter(Boolean)
     .join(" | ");
@@ -110,7 +110,7 @@ export async function buildAssistantTestContext(input: {
     storeAddress: `${settings.storeAddressLine1}, ${settings.storeAddressLine2}`.trim(),
     storeHours: settings.storeHours,
     policies,
-    categories: categories.map((category) => category.label).join(", ") || "See /shop",
+    categories: categories.map((category) => category.label).join(", ") || "See /",
     catalog:
       catalogLines.size > 0
         ? [...catalogLines.values()].join("\n")

@@ -212,7 +212,7 @@ export function ProductWizardStep1({
                   <p className="mt-1 text-[11.5px] text-[var(--color-ink-500)]">
                     Storefront URL:{" "}
                     <code>
-                      /shop/{draft.categorySlug}/{slugHint}
+                      /{draft.categorySlug}/{slugHint}
                     </code>
                   </p>
                 )}

@@ -2,13 +2,11 @@ import Link from "next/link";
 import {
   ArrowRight,
   ArrowUpRight,
-  BadgeCheck,
   ChevronDown,
   MapPin,
 } from "lucide-react";
 import { GradesByCategoryTabs } from "@/app/_components/home/GradesByCategoryTabs";
-import { HeroMaskSweepHeadline } from "@/app/_components/home/HeroMaskSweepHeadline";
-import { HeroTrendingProductBand } from "@/app/_components/home/HeroTrendingProductBand";
+import { HeroHeadlineWithTrendingProducts } from "@/app/_components/home/HeroTrendingProductBand";
 import {
   ShopTypeCard,
   type HeroProps,
@@ -19,7 +17,7 @@ import {
 import { StoreMapEmbed } from "@/components/shared/StoreMapEmbed";
 import { KineticHeading } from "@/components/shared/motion/KineticHeading";
 import { MagneticHover } from "@/components/shared/motion/MagneticHover";
-import { getPaymentMethods } from "@store/shared";
+import { classNames, getPaymentMethods } from "@store/shared";
 import {
   getCategoriesCached,
   getGradesCached,
@@ -27,9 +25,11 @@ import {
 import { buildGradeCategoryGroups } from "@/lib/core/gradeGroups";
 import {
   HOME_FEATURED_CATEGORY_COUNT,
+  formatCategorySectionTitle,
   getHomeCategoryGridClass,
   shouldShowBrowseAllCategories,
 } from "@/lib/core/categoryDisplay";
+import { SHOP_CATEGORY_PAGE_CLASS } from "@/lib/catalog/shopListingGrid";
 import type { HomePageCategory } from "@/lib/core/pageData";
 
 export const MOBILE_CATEGORY_STAGGER_MS = 80;
@@ -70,6 +70,7 @@ export function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
   const featured = categories.slice(0, HOME_FEATURED_CATEGORY_COUNT);
   const showBrowseAll = shouldShowBrowseAllCategories(categories.length);
   const headlineLabels = categories.map((category) => category.label);
+  const homeCategorySlug = categories.find((category) => category.isActive)?.slug ?? "";
 
   return (
     <section className="app-section cv-auto">
@@ -91,12 +92,13 @@ export function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
             meta={meta}
             variant="mobile"
             delayMs={(index + 1) * MOBILE_CATEGORY_STAGGER_MS}
+            homeCategorySlug={homeCategorySlug}
           />
         ))}
       </div>
       {showBrowseAll ? (
         <Link
-          href="/shop"
+          href="/"
           className="cta-arrow tap mt-4 inline-flex w-full items-center justify-center gap-1 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-4 py-2.5 text-[13px] font-semibold text-[var(--color-accent-700)] active:bg-[var(--color-canvas-deep)]"
         >
           Browse all categories
@@ -107,55 +109,88 @@ export function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
   );
 }
 
-export function MobileHero({ heroProducts, settings, categoryLabels, shopHref }: HeroProps) {
+const MOBILE_HERO_GRADIENT =
+  "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 55%, var(--color-canvas)) 0%, var(--color-canvas) 55%, var(--color-canvas) 100%)";
+
+export function MobileHero({
+  heroProducts,
+  settings,
+  shopHref,
+  showVisitStoreButton = true,
+  showWeAreDifferentCue = true,
+  layout = "viewport",
+}: HeroProps) {
   const productNames = heroProducts.map((product) => product.name);
-  const pillLabel = categoryLabels.length > 0 ? categoryLabels.join(" · ") : "Shop every category";
+  const isContentLayout = layout === "content";
 
   return (
     <section
-      className="reveal-stagger relative -mx-4 flex flex-col items-center justify-evenly overflow-hidden border-b border-[var(--color-ink-100)] px-4 text-center"
+      className={classNames(
+        "relative flex flex-col items-center overflow-hidden text-center",
+        !isContentLayout && "reveal-stagger",
+        !isContentLayout && "-mx-4 border-b border-[var(--color-ink-100)] px-4",
+        "-mt-[var(--mobile-header-h)]",
+        isContentLayout
+          ? "pb-8 pt-[calc(var(--mobile-header-h)+1.75rem)] md:pb-10 md:pt-[calc(var(--mobile-header-h)+2.25rem)]"
+          : "justify-evenly pt-[var(--mobile-header-h)]",
+      )}
       style={{
-        minHeight:
-          "calc(100dvh - var(--mobile-header-h) - var(--mobile-tabbar-h))",
-        background:
-          "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 55%, var(--color-canvas)) 0%, var(--color-canvas) 55%, var(--color-canvas) 100%)",
+        background: MOBILE_HERO_GRADIENT,
+        ...(isContentLayout
+          ? {}
+          : { minHeight: "calc(100dvh - var(--mobile-tabbar-h))" }),
       }}
     >
-      <span className="reveal relative z-10 inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent-100)]/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-800)]">
-        <BadgeCheck size={11} />
-        {pillLabel}
-      </span>
-
-      <div className="reveal relative z-10 w-full">
-        <HeroMaskSweepHeadline variant="mobile" />
-      </div>
-
-      <div className="reveal relative z-10 w-full">
-        <HeroTrendingProductBand productNames={productNames} variant="mobile" />
-      </div>
-
-      <div className="reveal relative z-10 flex w-full flex-col items-center gap-3">
-        <MagneticHover strength={0.3} maxOffset={25}>
-          <Link
-            href={shopHref}
-            className="cta-arrow tap inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent-500)] px-6 text-[14px] font-semibold text-[var(--color-ink-900)] shadow-[0_8px_24px_-12px_color-mix(in_srgb,var(--color-accent-500)_70%,transparent)] transition-shadow active:bg-[var(--color-accent-600)]"
-          >
-            Visit store
-            <ArrowUpRight size={15} strokeWidth={2.4} />
-          </Link>
-        </MagneticHover>
-      </div>
-
-      <a
-        href="#how-to-buy"
-        aria-label="Scroll to next section"
-        className="reveal hero-scroll-cue tap group relative z-10 inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] active:text-[var(--color-ink-900)]"
+      <div
+        className={classNames(
+          "relative z-10 flex w-full flex-col items-center text-center",
+          !isContentLayout && "reveal-stagger",
+          isContentLayout ? SHOP_CATEGORY_PAGE_CLASS : "w-full",
+        )}
       >
-        <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">
-          We Are Different
-        </span>
-        <ChevronDown size={18} strokeWidth={2.2} className="animate-bounce" />
-      </a>
+        <div
+          className={classNames(
+            "w-full min-w-0 overflow-hidden px-0.5 py-1.5",
+            !isContentLayout && "reveal",
+          )}
+        >
+          <HeroHeadlineWithTrendingProducts
+            productNames={productNames}
+            variant="mobile"
+            density={isContentLayout ? "compact" : "default"}
+          />
+        </div>
+      </div>
+
+      {showVisitStoreButton ? (
+        <div className={classNames("relative z-10 flex w-full flex-col items-center gap-3", !isContentLayout && "reveal")}>
+          <MagneticHover strength={0.3} maxOffset={25}>
+            <Link
+              href={shopHref}
+              className="cta-arrow tap inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent-500)] px-6 text-[14px] font-semibold text-[var(--color-ink-900)] shadow-[0_8px_24px_-12px_color-mix(in_srgb,var(--color-accent-500)_70%,transparent)] transition-shadow active:bg-[var(--color-accent-600)]"
+            >
+              Visit store
+              <ArrowUpRight size={15} strokeWidth={2.4} />
+            </Link>
+          </MagneticHover>
+        </div>
+      ) : null}
+
+      {showWeAreDifferentCue ? (
+        <a
+          href="#how-to-buy"
+          aria-label="Scroll to next section"
+          className={classNames(
+            "hero-scroll-cue tap group relative z-10 inline-flex flex-col items-center gap-1 text-[var(--color-ink-500)] active:text-[var(--color-ink-900)]",
+            !isContentLayout && "reveal",
+          )}
+        >
+          <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">
+            We Are Different
+          </span>
+          <ChevronDown size={18} strokeWidth={2.2} className="animate-bounce" />
+        </a>
+      ) : null}
     </section>
   );
 }

@@ -40,6 +40,7 @@ import {
 import { Configurator, ClosestMatchNotice } from "./variantSelectorConfigurator";
 import {
   buildDimensions,
+  describePickRealignment,
   describeSelection,
   EMPTY_VARIANT,
 } from "./variantSelectorDimensions";
@@ -51,6 +52,7 @@ import {
 } from "./variantSelectorPurchase";
 
 const ADD_TO_CART_FLASH_MS = 1_500;
+const REALIGNMENT_NOTICE_MS = 6_000;
 
 const isVariantInStock = (variant: Variant): boolean =>
   (variant.quantity ?? 0) > 0;
@@ -68,11 +70,13 @@ interface VariantSelectorProps {
  * "ask on WhatsApp" hint.
  */
 export function VariantSelector({ product, brandName }: VariantSelectorProps) {
-  const { selectedVariantId, currentSelection, pick } = useVariantSelection();
+  const { selectedVariantId, currentSelection, pick: pickSelection } = useVariantSelection();
   const cart = useCart();
   const { toast } = useToast();
   const [hasJustBeenAdded, setHasJustBeenAdded] = useState(false);
   const [addQuantity, setAddQuantity] = useState(1);
+  const [realignmentNotice, setRealignmentNotice] = useState<string | null>(null);
+  const [realignmentDimensionKey, setRealignmentDimensionKey] = useState<string | null>(null);
   const categoryAttributes = useAttributesForCategory(product.categorySlug);
   const grades = useGradesForCategory(product.categorySlug);
   const attributeSlugs = useMemo(
@@ -98,7 +102,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 
   const selected =
     product.variants.find((variant) => variant.id === selectedVariantId) ??
-    product.variants[0] ??
     EMPTY_VARIANT;
 
   // Quantity stepper resets to 1 whenever the active variant changes, so a
@@ -143,6 +146,30 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 
   const activeGrade = grades.find((row) => row.slug === selected.gradeSlug);
   const gradeLabelForCopy = activeGrade?.label ?? selected.gradeSlug;
+
+  const handlePick = (dimensionKey: string, optionKey: string) => {
+    const result = pickSelection(dimensionKey, optionKey);
+    const message = describePickRealignment(
+      dimensions,
+      result.before,
+      result.after,
+      result.clickedDimensionKey,
+      activeGrade?.label ?? gradeLabelForCopy,
+    );
+    if (message) {
+      setRealignmentNotice(message);
+      setRealignmentDimensionKey(dimensionKey);
+      window.setTimeout(() => {
+        setRealignmentNotice((current) => (current === message ? null : current));
+        setRealignmentDimensionKey((currentKey) =>
+          currentKey === dimensionKey ? null : currentKey,
+        );
+      }, REALIGNMENT_NOTICE_MS);
+    } else {
+      setRealignmentNotice(null);
+      setRealignmentDimensionKey(null);
+    }
+  };
   const heroImage = product.images?.[0];
 
   const { offers } = useActiveOffers();
@@ -227,7 +254,9 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
           dimensions={dimensions}
           variants={product.variants}
           currentSelection={currentSelection}
-          onPick={pick}
+          onPick={handlePick}
+          realignmentNotice={realignmentNotice}
+          realignmentDimensionKey={realignmentDimensionKey}
         />
 
         {!isExactMatch && isComplete && (
@@ -252,7 +281,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
             onQuantityChange={setAddQuantity}
             onAddToCart={handleAddToCart}
             hasJustBeenAdded={hasJustBeenAdded}
-            activeOffer={activeOffer}
             discountAmount={activeOffer?.discountAmount ?? 0}
           />
         ) : (
@@ -271,7 +299,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
           quantity={orderQuantity}
           maxQuantity={maxSelectableQuantity}
           onQuantityChange={setAddQuantity}
-          activeOffer={activeOffer}
           discountAmount={activeOffer?.discountAmount ?? 0}
         />
       ) : (

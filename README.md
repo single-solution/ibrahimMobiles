@@ -66,18 +66,31 @@ flowchart LR
 ## 2. Storefront: Global Shell & Home Page
 
 ### Global Layout & Navigation
-*   **Desktop:** Sticky top header with full navigation. Cart opens as a dropdown popover.
-*   **Mobile:** Compact top header + fixed bottom tab bar (Home, Shop, Deals, Cart, Account). Extra bottom padding ensures content clears the tab bar. Cart tab opens full page.
+*   **Desktop:** Sticky top header — Home, Deals, About, Account, Search, Cart. No separate Shop link; the catalog lives on Home.
+*   **Mobile:** Compact top header + fixed bottom tab bar (Home, Deals, Support, Cart, Account). **Support** opens live chat (highlighted while open; no header close on mobile — switch tabs to dismiss). WhatsApp when chat is off or on checkout/sign-in. About remains in the desktop header only.
 *   **Auth State:** "Account" vs "Sign in" label resolves client-side.
 *   **Notice Banner:** Shown only if enabled in Admin with text. Dismissible for the session.
-*   **404 Page:** Shows message + links to home and shop browse.
+*   **404 Page:** Shows message + links to home browse.
 
-### Home Page Sections (Streamed in with Skeletons)
-*   **Hero:** Pill with active categories (or "Shop every category"), animated headline, trending products, "Visit store" CTA. On mobile, fills viewport minus header/tab bar.
-*   **Browse by Category:** Featured cards. *Conditional:* Inactive categories show "Soon" and are unclickable. *Conditional:* If more categories exist than the cap, shows "Browse all".
+### Home Page (Catalog — Concept B + full shop listing)
+*   **Purpose:** Single storefront entry — the entire former shop listing lives here. No separate shop page.
+*   **Compact Banner:** Short gradient band with animated mask-sweep headline and trust hints.
+*   **Sticky Category Pills:** Horizontal category switcher — same `max-w-[1440px]` / `app-page` alignment as the listing below. No row border. Default category uses `/`; others use `/?category={slug}`.
+*   **Mobile listing:** Category + **Filters** dock fixed above the bottom tab bar while scrolling; infinite-scroll product grid below the hero.
+*   **Desktop listing:** Sticky **filter sidebar** (272px) + infinite-scroll product grid (same as former shop desktop).
+*   **Search:** `/?q=…` renders global search results on home. Legacy `/shop?q=…` redirects here.
+*   **Coming soon:** `/?category={inactive-slug}` shows the category coming-soon state (not a separate route).
+*   **Legacy URLs:** `/shop` and `/shop/{category}` redirect to home (params preserved). Product detail URLs stay `/shop/{category}/{product}`.
+*   **About Page (`/about`):** Full former homepage — hero, browse-by-category tiles, process, grades, and visit-store sections. Category tiles and CTAs link to the catalog on `/`.
+
+### About Page (former homepage content)
+*   **Hero:** Full-viewport hero with mask-sweep headline, trending product name band, and **Visit store** CTA → `/`.
+*   **Browse by category:** Featured category cards (same grid as old home). Active cards link to `/` or `/?category={slug}`; inactive show **Soon**. **Browse all categories** → `/` when more categories exist than the featured cap.
 *   **Process:** 3 flows (Store, Order, Return). Uses admin-configured money-back days and bank-transfer discount %.
 *   **Grades (Dark Band):** Headline + category tabs. Per-grade cards with badge, notes, video. *Conditional:* If data fails, copy shows but grid is empty.
 *   **Visit Store:** Address, hours, embedded map, Maps link, accepted payments, delivery blurb. *Layout:* Mobile puts map above details; Desktop is side-by-side.
+
+### Home Page — Informational (removed from `/`)
 
 ---
 
@@ -91,18 +104,9 @@ flowchart LR
 *   **Empty State:** "No results" with option to search all.
 
 ### Shop & Category Listings
-*   **Routing:** `/shop` redirects to first active category. `/shop?q=...` renders global search. `/shop/{category}` renders listing.
-*   **Conditionals:** Unknown category = 404. Inactive category = "Coming soon" page without grid.
-*   **Layout:** Desktop has sticky left filter sidebar + category rail. Mobile has category picker dropdown + "Filters" bottom sheet.
-*   **Category Rail:** *Conditional:* Inactive categories appear disabled ("Soon"). Switching categories does not preserve filters.
-
-### Filters (AND Logic) & Infinite Scroll
-*   **Sync:** All active filters (brand, grade, min/max price, attributes, sort, q) sync to URL query params.
-*   **Price:** Min/Max requires explicit "Apply" click (no auto-apply on blur).
-*   **Dynamic Facets:** Attribute options load dynamically based on current filter set. *Conditional:* Zero-count brand/grade options are hidden unless currently selected.
-*   **Infinite Scroll:** 24 items per page. Auto-loads ~600px before end, or via "Load more" fallback. Furthest-loaded page replaces browser history.
-*   **Reset:** Changing any filter resets infinite scroll to page 1.
-*   **Empty States:** *Conditional:* Filters active, no matches = "No more products match your selection". *Conditional:* No filters, no stock = "No {category} in stock right now".
+*   **Routing:** Catalog lives on `/` with optional `?category={slug}` and filter query params. `/shop` and `/shop/{category}` **redirect** to home (legacy bookmarks). `/shop?q=…` redirects to `/?q=…`. Product pages stay at `/shop/{category}/{product}`.
+*   **Conditionals:** Unknown category slug on `/?category=…` falls back to the first active category. Inactive category slug → 404.
+*   **Filters (AND Logic) & Infinite Scroll:** Same as before — brand, grade, price, attributes, sort, `q` sync to URL. Filters open in a bottom sheet on home. 24 items per page, infinite scroll + "Load more" fallback.
 
 ### Product Cards & Deals Page
 *   **Product Cards:** Show brand, name, hero image, grade badge, attribute chips. *Conditional:* Multiple grades = cycles grade slides on hover. *Conditional:* Out of stock = "Sold out" overlay. *Conditional:* Active offer = Offer title badge.
@@ -118,11 +122,12 @@ flowchart LR
 *   **Gallery:** Hero image, thumbnails, lightbox zoom. Mobile supports swipe/cross-fade. Images follow selected variant if variant-specific images exist.
 
 ### Configurator & Actions
+*   **Hierarchy hint:** *Conditional:* Multi-option products show intro copy under “Build your configuration” — e.g. “Pick grade first — the options below update to match.” Single-dimension products omit it.
 *   **Incomplete Selection:** Price hidden, missing attributes highlighted.
 *   **Complete Selection:** Price, stock, quantity stepper, and "Add to cart" appear.
 *   **Closest Match:** *Conditional:* If exact combo doesn't exist, auto-selects closest stocked variant and shows a pre-filled WhatsApp inquiry button.
-*   **Stock & Qty:** Max qty is variant stock minus current cart qty. *Conditional:* "Buy all (N)" shortcut appears if stock > 1 and qty < max. *Conditional:* Sold Out = Button disabled, mobile sticky bar drops WhatsApp button.
-*   **Pricing:** Evaluates active offers client-side. Shows strikethrough, discounted price, and offer badge if applicable.
+*   **Stock & Qty:** Max qty is variant stock minus current cart qty. *Conditional:* "Buy all" shortcut appears if stock > 1 and qty < max. *Conditional:* Sold Out = Button disabled, mobile sticky bar drops WhatsApp button.
+*   **Pricing:** Evaluates active offers client-side. Shows strikethrough and discounted price when an offer applies.
 *   **Grade Showcase:** Updates with selected variant's grade (notes, warranty, video). *Conditional:* Omitted if grade data missing.
 *   **Related Products:** Same category + brand. *Conditional:* "No more products" if none.
 

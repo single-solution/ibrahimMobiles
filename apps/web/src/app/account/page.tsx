@@ -24,6 +24,7 @@ import { getAccountOverview } from "@/lib/core/account";
 
 import { SignOutButton } from "@/app/account/_components/SignOutButton";
 import { OrderHistory } from "@/app/account/_components/OrderHistory";
+import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
 
 export const metadata: Metadata = {
   title: "Your account",
@@ -51,7 +52,7 @@ export default async function AccountPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-6 md:px-6 md:pb-16 md:pt-10 lg:px-8">
+    <div className={`${STOREFRONT_SHELL_CLASS} pb-24 pt-6 md:pb-16 md:pt-10`}>
       <AccountHeader name={overview.customer.name} joinedAt={overview.customer.joinedAt} />
 
       <div className="mt-6 grid gap-6 md:mt-8 md:grid-cols-[1fr_360px] md:gap-6 lg:gap-8 lg:grid-cols-[1fr_400px]">

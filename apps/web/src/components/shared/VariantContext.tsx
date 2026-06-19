@@ -6,8 +6,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
-  useState,
   type ReactNode,
 } from "react";
 
@@ -15,172 +13,127 @@ import type { Product } from "@store/shared";
 
 import {
   findVariantBySelection,
+  getRequiredAttributeSlugsForProduct,
+  GRADE_DIMENSION_KEY,
   hasPdpConfigurationInSearch,
+  isPdpSelectionComplete,
+  mergeSelectionForGradeChange,
   parsePdpSelectionFromSearch,
   resolvePickerSelection,
-  selectionFromVariant,
-  selectionSignature,
   selectionToUrlPatch,
+  variantsForGrade,
 } from "@/lib/catalog/pdpSelection";
 import { useAttributesForCategory } from "@/lib/core/storefrontReferenceContext";
 import { usePdpUrlParams } from "@/lib/core/usePdpUrlParams";
-import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
-
-import { EMPTY_VARIANT } from "./variantSelectorDimensions";
 
 interface VariantContextValue {
   selectedVariantId: string;
-  setSelectedVariantId: (id: string) => void;
   currentSelection: Record<string, string>;
-  pick: (dimensionKey: string, optionKey: string) => void;
+  pick: (dimensionKey: string, optionKey: string) => PickResult;
+}
+
+export interface PickResult {
+  clickedDimensionKey: string;
+  before: Record<string, string>;
+  after: Record<string, string>;
 }
 
 const VariantContext = createContext<VariantContextValue | null>(null);
 
 interface VariantProviderProps {
   product: Product;
-  initialVariantId: string;
   children: ReactNode;
 }
 
-function hasSelectionValues(selection: Record<string, string>): boolean {
-  return Object.values(selection).some((value) => Boolean(value));
-}
-
 /**
- * Single source of truth for PDP variant selection.
- *
- * The PDP mounts two responsive `<VariantSelector>` layouts (mobile +
- * desktop) under one provider; CSS shows one per viewport but both stay
- * mounted. Holding the selection state, URL sync, and pick handler here —
- * rather than inside each selector — means the hidden layout can no longer
- * clobber the visible one's variant (the bug where the mobile price only
- * updated on refresh). Consumers derive their own price/stock from their
- * live-commerce product copy using the shared `selectedVariantId`.
+ * PDP variant selection — query params are the only source of truth.
+ * Chip state, price, and stock all derive from the URL; picks call
+ * `history.replaceState` via {@link usePdpUrlParams}.
  */
-export function VariantProvider({
-  product,
-  initialVariantId,
-  children,
-}: VariantProviderProps) {
+export function VariantProvider({ product, children }: VariantProviderProps) {
   const { searchParams, replace } = usePdpUrlParams();
   const categoryAttributes = useAttributesForCategory(product.categorySlug);
   const attributeSlugs = useMemo(
     () => categoryAttributes.map((row) => row.slug),
     [categoryAttributes],
   );
-
-  const [selectedVariantId, setSelectedVariantId] = useState(initialVariantId);
-
-  const selected =
-    product.variants.find((variant) => variant.id === selectedVariantId) ??
-    product.variants[0] ??
-    EMPTY_VARIANT;
-
-  /** Shopper's chip picks — owned here. Updated only by explicit code paths
-   *  (chip click, URL hydration) so multi-value picks survive. */
-  const [pickerSelection, setPickerSelection] = useState(() =>
-    selectionFromVariant(selected),
+  const requiredAttributeSlugs = useMemo(
+    () => getRequiredAttributeSlugsForProduct(product, attributeSlugs),
+    [product, attributeSlugs],
   );
 
-  const pendingSelectionSigRef = useRef<string | null>(null);
-
-  const syncSelectionToUrl = useCallback(
-    (selection: Record<string, string>) => {
-      if (!hasSelectionValues(selection)) {
-        return;
-      }
-      pendingSelectionSigRef.current = selectionSignature(selection);
-      replace(selectionToUrlPatch(selection, attributeSlugs));
-    },
-    [attributeSlugs, replace],
+  const searchRecord = useMemo(
+    () => Object.fromEntries(searchParams.entries()),
+    [searchParams],
   );
+
+  const currentSelection = useMemo(
+    () => parsePdpSelectionFromSearch(searchRecord, attributeSlugs),
+    [searchRecord, attributeSlugs],
+  );
+
+  const selectedVariantId = useMemo(() => {
+    if (!isPdpSelectionComplete(currentSelection, requiredAttributeSlugs)) {
+      return "";
+    }
+    return findVariantBySelection(product.variants, currentSelection)?.id ?? "";
+  }, [currentSelection, requiredAttributeSlugs, product.variants]);
 
   useEffect(() => {
-    const searchRecord = Object.fromEntries(searchParams.entries());
-    const fromUrl = parsePdpSelectionFromSearch(searchRecord, attributeSlugs);
-    const urlSignature = selectionSignature(fromUrl);
-    const pending = pendingSelectionSigRef.current;
-
-    if (pending !== null && urlSignature !== pending) {
-      return;
-    }
-    if (pending !== null && urlSignature === pending) {
-      pendingSelectionSigRef.current = null;
-    }
-
     if (!hasPdpConfigurationInSearch(searchRecord, attributeSlugs)) {
       return;
     }
-
-    // Bad URL (combination doesn't exist on any variant) → fall back to the
-    // current variant and drop the bad params. No reload, no banner — just a
-    // clean reset matching a fresh PDP load.
-    const exact = findVariantBySelection(product.variants, fromUrl);
-    if (!exact) {
-      const currentVariant =
-        product.variants.find((row) => row.id === selectedVariantId) ??
-        product.variants[0] ??
-        EMPTY_VARIANT;
-      const fallbackSelection = selectionFromVariant(currentVariant);
-      pendingSelectionSigRef.current = selectionSignature(fallbackSelection);
-      scheduleStateUpdate(() => {
-        setPickerSelection(fallbackSelection);
-        setSelectedVariantId(currentVariant.id);
-      });
-      syncSelectionToUrl(fallbackSelection);
-      return;
+    if (!findVariantBySelection(product.variants, currentSelection)) {
+      replace(selectionToUrlPatch({}, attributeSlugs));
     }
-
-    scheduleStateUpdate(() => {
-      setPickerSelection(fromUrl);
-      setSelectedVariantId(exact.id);
-    });
-  }, [
-    searchParams,
-    attributeSlugs,
-    product,
-    selectedVariantId,
-    setSelectedVariantId,
-    syncSelectionToUrl,
-  ]);
-
-  useEffect(() => {
-    if (
-      hasPdpConfigurationInSearch(
-        Object.fromEntries(searchParams.entries()),
-        attributeSlugs,
-      )
-    ) {
-      return;
-    }
-    syncSelectionToUrl(selectionFromVariant(selected));
-  }, [searchParams, attributeSlugs, selected, syncSelectionToUrl]);
+  }, [searchRecord, attributeSlugs, product.variants, currentSelection, replace]);
 
   const pick = useCallback(
-    (dimensionKey: string, optionKey: string) => {
-      const proposed = { ...pickerSelection, [dimensionKey]: optionKey };
-      const { variant, selection } = resolvePickerSelection(
-        product.variants,
+    (dimensionKey: string, optionKey: string): PickResult => {
+      const before = parsePdpSelectionFromSearch(
+        Object.fromEntries(searchParams.entries()),
+        attributeSlugs,
+      );
+
+      if (dimensionKey === GRADE_DIMENSION_KEY) {
+        const merged = mergeSelectionForGradeChange(
+          before,
+          optionKey,
+          product.variants,
+        );
+        const gradeScoped = variantsForGrade(product.variants, optionKey);
+        const { selection } = resolvePickerSelection(
+          gradeScoped,
+          merged,
+          GRADE_DIMENSION_KEY,
+        );
+        replace(selectionToUrlPatch(selection, attributeSlugs));
+        return { clickedDimensionKey: dimensionKey, before, after: selection };
+      }
+
+      const proposed = { ...before, [dimensionKey]: optionKey };
+      const activeGrade = before[GRADE_DIMENSION_KEY];
+      const scopedVariants = activeGrade
+        ? variantsForGrade(product.variants, activeGrade)
+        : product.variants;
+      const { selection } = resolvePickerSelection(
+        scopedVariants,
         proposed,
         dimensionKey,
       );
-      pendingSelectionSigRef.current = selectionSignature(selection);
-      setPickerSelection(selection);
-      syncSelectionToUrl(selection);
-      setSelectedVariantId(variant.id);
+      replace(selectionToUrlPatch(selection, attributeSlugs));
+      return { clickedDimensionKey: dimensionKey, before, after: selection };
     },
-    [pickerSelection, product.variants, syncSelectionToUrl],
+    [searchParams, attributeSlugs, product.variants, replace],
   );
 
   const value = useMemo(
     () => ({
       selectedVariantId,
-      setSelectedVariantId,
-      currentSelection: pickerSelection,
+      currentSelection,
       pick,
     }),
-    [selectedVariantId, pickerSelection, pick],
+    [selectedVariantId, currentSelection, pick],
   );
 
   return (
