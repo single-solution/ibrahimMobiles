@@ -1,16 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { Trash2, GripVertical } from "lucide-react";
-import { classNames, formatWarrantyPeriod } from "@store/shared";
+import { classNames, formatWarrantyPeriod, filterAttributesForProduct, mergeProductPoolIntoAttributeOptions, type ProductAttributeConfig } from "@store/shared";
 import {
   coloredPillStyle,
-  compactAttributeOptionValue,
   compareAlphabetically,
   formatAttributeOptionLabel,
-  isVisibilitySatisfied,
   sortAttributeOptions,
-  sortAttributesByVisibility,
 } from "@store/shared";
 import { ColoredPill } from "@/components/shared/ColoredPill";
 
@@ -22,7 +19,6 @@ import {
 } from "./attributeOptionTabRow";
 import {
   attributeValuesOnDraft,
-  visibilityAttributesFromDraft,
   type VariantDraft,
 } from "./productFormState";
 
@@ -31,7 +27,6 @@ interface VariantCardProps {
   variant: VariantDraft;
   grades: AdminGrade[];
   attributes: AdminAttribute[];
-  brandSlug: string;
   errorByPath: Map<string, string>;
   productNameForAlt?: string;
   onChange: (next: VariantDraft) => void;
@@ -41,8 +36,8 @@ interface VariantCardProps {
   errorPathPrefix?: string;
   /** Lets admins pick multiple global options per attribute (wizard combinations). */
   allowMultiAttributeSelect?: boolean;
-  /** Product-specific custom options aggregated from all variants. */
-  productCustomOptions?: Record<string, { value: string; label: string }[]>;
+  /** Product attribute subset + option pools. */
+  productConfig: ProductAttributeConfig;
   /** Flat layout inside a master–detail pane (no card chrome). */
   embedded?: boolean;
 }
@@ -52,14 +47,13 @@ export function VariantCard({
   variant,
   grades,
   attributes,
-  brandSlug,
   errorByPath,
   onChange,
   onRemove,
   lockGradeSlug,
   errorPathPrefix,
   allowMultiAttributeSelect = false,
-  productCustomOptions = {},
+  productConfig,
   embedded = false,
 }: VariantCardProps) {
   const prefix = errorPathPrefix ?? `variants.${index}`;
@@ -72,26 +66,21 @@ export function VariantCard({
 
   const grade = grades.find((gradeItem) => gradeItem.slug === variant.gradeSlug);
 
-  const visibleAttributes = useMemo(() => {
-    const nodes = attributes.map((attribute) => ({
-      slug: attribute.slug,
-      label: attribute.label,
-      visibility: attribute.visibility ?? { type: "always" as const },
-    }));
-    const sorted = sortAttributesByVisibility(nodes);
-    return sorted
-      .map((node) => attributes.find((row) => row.slug === node.slug))
-      .filter((row): row is AdminAttribute => {
-        if (!row) {
-          return false;
-        }
-        return isVisibilitySatisfied(row.visibility, {
-          brandSlug: brandSlug.trim().toLowerCase(),
-          gradeSlug: variant.gradeSlug,
-          attributes: visibilityAttributesFromDraft(variant),
-        });
-      });
-  }, [attributes, brandSlug, variant]);
+  const productAttributes = useMemo(
+    () => filterAttributesForProduct(attributes, productConfig),
+    [attributes, productConfig],
+  );
+
+  const scopedAttributes = useMemo(
+    () =>
+      [...productAttributes]
+        .sort((left, right) => compareAlphabetically(left.label, right.label))
+        .map((attribute) => ({
+          ...attribute,
+          options: mergeProductPoolIntoAttributeOptions(attribute, productConfig),
+        })),
+    [productAttributes, productConfig],
+  );
 
   return (
     <article
@@ -167,7 +156,7 @@ export function VariantCard({
         </div>
       )}
 
-      {visibleAttributes.length > 0 && (
+      {scopedAttributes.length > 0 && (
         <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
           <div className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]/55 px-2.5 py-2">
             <p className="text-[13px] font-semibold tracking-tight text-[var(--color-ink-900)]">
@@ -176,11 +165,11 @@ export function VariantCard({
             <p className="mt-0.5 text-[11px] text-[var(--color-ink-500)]">
               {allowMultiAttributeSelect
                 ? "Select every value this variant covers (e.g. White and Black on one SKU)."
-                : "Pick a template option or Custom for a product-only value."}
+                : "Pick one option per attribute."}
             </p>
           </div>
           <div className="divide-y divide-[var(--color-ink-100)]">
-            {visibleAttributes.map((attr) => (
+            {scopedAttributes.map((attr) => (
               <AttributeValuePicker
                 key={attr.id}
                 attribute={attr}
@@ -188,7 +177,6 @@ export function VariantCard({
                 error={attrError(attr.slug)}
                 onChange={onChange}
                 allowMultiSelect={allowMultiAttributeSelect}
-                productCustomOptions={productCustomOptions[attr.slug] ?? []}
               />
             ))}
           </div>
@@ -212,7 +200,7 @@ export function VariantCard({
             error={fieldError("quantity")}
           />
           <WarrantyDaysField
-            value={variant.warrantyDays ?? 0}
+            value={variant.warrantyDays}
             onChange={(value) => onChange({ ...variant, warrantyDays: value })}
             error={fieldError("warrantyDays")}
           />
@@ -237,25 +225,8 @@ export function VariantDetailFooter({
   onChange,
   onRemove,
 }: VariantDetailFooterProps) {
-  const lastQuantityRef = useRef(1);
-  const inStock = variant.quantity > 0;
-
   function fieldError(field: string) {
     return errorByPath.get(`${errorPathPrefix}.${field}`);
-  }
-
-  function setInStock(next: boolean) {
-    if (next) {
-      onChange({
-        ...variant,
-        quantity: lastQuantityRef.current > 0 ? lastQuantityRef.current : 1,
-      });
-      return;
-    }
-    if (variant.quantity > 0) {
-      lastQuantityRef.current = variant.quantity;
-    }
-    onChange({ ...variant, quantity: 0 });
   }
 
   return (
@@ -274,48 +245,15 @@ export function VariantDetailFooter({
           value={variant.quantity}
           min={0}
           compact
-          disabled={!inStock}
-          onChange={(value) => {
-            if (value > 0) {
-              lastQuantityRef.current = value;
-            }
-            onChange({ ...variant, quantity: value });
-          }}
+          onChange={(value) => onChange({ ...variant, quantity: value })}
           error={fieldError("quantity")}
         />
         <WarrantyDaysField
-          value={variant.warrantyDays ?? 0}
+          value={variant.warrantyDays}
           compact
           onChange={(value) => onChange({ ...variant, warrantyDays: value })}
           error={fieldError("warrantyDays")}
         />
-        <label className="flex h-8 cursor-pointer items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2.5">
-          <input
-            type="checkbox"
-            checked={inStock}
-            onChange={(event) => setInStock(event.target.checked)}
-            className="sr-only"
-          />
-          <span
-            aria-hidden
-            className={classNames(
-              "relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors",
-              inStock
-                ? "bg-[var(--color-ink-900)]"
-                : "bg-[var(--color-ink-200)]",
-            )}
-          >
-            <span
-              className={classNames(
-                "absolute size-3 rounded-full bg-white shadow-[var(--shadow-sm)] transition-transform",
-                inStock ? "translate-x-3.5" : "translate-x-0.5",
-              )}
-            />
-          </span>
-          <span className="whitespace-nowrap text-[11px] font-semibold text-[var(--color-ink-700)]">
-            In stock
-          </span>
-        </label>
         <button
           type="button"
           onClick={onRemove}
@@ -335,27 +273,16 @@ function AttributeValuePicker({
   error,
   onChange,
   allowMultiSelect = false,
-  productCustomOptions = [],
 }: {
   attribute: AdminAttribute;
   variant: VariantDraft;
   error?: string;
   onChange: (next: VariantDraft) => void;
   allowMultiSelect?: boolean;
-  productCustomOptions?: { value: string; label: string }[];
 }) {
-  const unit = attribute.unit?.trim() ?? "";
   const selectedValues = attributeValuesOnDraft(variant, attribute.slug);
   const hasMulti = allowMultiSelect && selectedValues.length > 0;
   const selectedValue = hasMulti ? undefined : variant.attributes[attribute.slug];
-  const globalValues = new Set(attribute.options.map((option) => option.value));
-  const isCustom =
-    Boolean(selectedValue) &&
-    !globalValues.has(selectedValue as string);
-  const [customOpen, setCustomOpen] = useState(isCustom);
-  const [customLabel, setCustomLabel] = useState(
-    isCustom ? variant.attributeDisplay?.[attribute.slug] ?? "" : "",
-  );
 
   function toggleMultiValue(value: string) {
     const current = variant.attributesMulti?.[attribute.slug] ?? [];
@@ -378,23 +305,17 @@ function AttributeValuePicker({
       attributeDisplay: nextDisplay,
       attributesMulti: nextMulti,
     });
-    setCustomOpen(false);
   }
 
-  function selectGlobal(value: string) {
+  function selectOption(value: string) {
     if (allowMultiSelect) {
       toggleMultiValue(value);
       return;
     }
-    
-    const isProductCustom = productCustomOptions.find((o) => o.value === value);
+
     const nextDisplay = { ...(variant.attributeDisplay ?? {}) };
-    if (isProductCustom) {
-      nextDisplay[attribute.slug] = isProductCustom.label;
-    } else {
-      delete nextDisplay[attribute.slug];
-    }
-    
+    delete nextDisplay[attribute.slug];
+
     const nextMulti = { ...(variant.attributesMulti ?? {}) };
     delete nextMulti[attribute.slug];
     onChange({
@@ -403,52 +324,16 @@ function AttributeValuePicker({
       attributeDisplay: nextDisplay,
       attributesMulti: nextMulti,
     });
-    setCustomOpen(false);
   }
 
-  function applyCustomLabel(label: string) {
-    const trimmed = label.trim();
-    if (!trimmed) {
-      const nextAttributes = { ...variant.attributes };
-      delete nextAttributes[attribute.slug];
-      const nextDisplay = { ...(variant.attributeDisplay ?? {}) };
-      delete nextDisplay[attribute.slug];
-      onChange({
-        ...variant,
-        attributes: nextAttributes,
-        attributeDisplay: nextDisplay,
-      });
-      return;
-    }
-    const slug = compactAttributeOptionValue(trimmed, unit);
-    onChange({
-      ...variant,
-      attributes: { ...variant.attributes, [attribute.slug]: slug },
-      attributeDisplay: {
-        ...(variant.attributeDisplay ?? {}),
-        [attribute.slug]: trimmed,
-      },
-    });
-  }
-
-  const globalValues = new Set(attribute.options.map((option) => option.value));
-  const filteredCustomOptions = productCustomOptions.filter((o) => !globalValues.has(o.value));
-
-  const tabOptions = sortAttributeOptions(attribute.options, attribute.unit)
-    .map((option) => ({
-      key: option.value,
-      label: formatAttributeOptionLabel(option.label, attribute.unit),
-    }))
-    .concat(
-      filteredCustomOptions.map((opt) => ({
-        key: opt.value,
-        label: opt.label,
-      }))
-    );
+  const tabOptions = sortAttributeOptions(attribute.options, attribute.unit).map((option) => ({
+    key: option.value,
+    label: formatAttributeOptionLabel(option.label, attribute.unit),
+  }));
 
   const selectedKeys = allowMultiSelect
     ? selectedValues
-    : selectedValue && !isCustom
+    : selectedValue
       ? [selectedValue]
       : [];
 
@@ -462,48 +347,58 @@ function AttributeValuePicker({
         ariaLabel={attribute.label}
         options={tabOptions}
         selectedKeys={selectedKeys}
-        onSelect={(key) => selectGlobal(key)}
-        trailingOption={
-          !allowMultiSelect
-            ? {
-                key: "__custom",
-                label: "Custom",
-                isSelected: isCustom || customOpen,
-                onSelect: () => setCustomOpen((open) => !open),
-              }
-            : undefined
-        }
+        onSelect={(key) => selectOption(key)}
       />
       {hasMulti && selectedValues.length > 1 && (
         <p className="mt-1 text-[10.5px] text-[var(--color-ink-500)]">
           {selectedValues.length} values on this variant (shown together on the shop).
         </p>
       )}
-      {!allowMultiSelect && (customOpen || isCustom) && (
-        <div className="mt-2 flex flex-col gap-1">
-          <input
-            type="text"
-            value={customLabel}
-            onChange={(event) => {
-              const next = event.target.value;
-              setCustomLabel(next);
-              applyCustomLabel(next);
-            }}
-            placeholder="Product-only value (not added to global options)"
-            className="rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[13px] focus:border-[var(--color-accent-500)] focus:outline-none"
-          />
-          {selectedValue && isCustom && (
-            <p className="text-[10.5px] text-[var(--color-ink-500)]">
-              Slug{" "}
-              <code className="rounded bg-[var(--color-canvas-deep)] px-1 font-mono text-[10px]">
-                {selectedValue}
-              </code>
-            </p>
-          )}
-        </div>
-      )}
       <FieldError message={error} />
     </div>
+  );
+}
+
+export function VariantInStockToggle({
+  variant,
+  onChange,
+}: {
+  variant: VariantDraft;
+  onChange: (next: VariantDraft) => void;
+}) {
+  const isSelling = !variant.forceOutOfStock;
+
+  function setSelling(next: boolean) {
+    onChange({ ...variant, forceOutOfStock: !next });
+  }
+
+  return (
+    <label
+      className="inline-flex shrink-0 cursor-pointer"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <input
+        type="checkbox"
+        checked={isSelling}
+        onChange={(event) => setSelling(event.target.checked)}
+        aria-label={isSelling ? "Available for sale" : "Forced sold out"}
+        className="sr-only"
+      />
+      <span
+        aria-hidden
+        className={classNames(
+          "relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors",
+          isSelling ? "bg-[var(--color-ink-900)]" : "bg-[var(--color-ink-200)]",
+        )}
+      >
+        <span
+          className={classNames(
+            "absolute size-3 rounded-full bg-white shadow-[var(--shadow-sm)] transition-transform",
+            isSelling ? "translate-x-3.5" : "translate-x-0.5",
+          )}
+        />
+      </span>
+    </label>
   );
 }
 
@@ -530,13 +425,13 @@ function WarrantyDaysField({
   error,
   compact = false,
 }: {
-  value: number;
-  onChange: (value: number) => void;
+  value: number | null;
+  onChange: (value: number | null) => void;
   error?: string;
   compact?: boolean;
 }) {
   const summary =
-    value > 0 ? formatWarrantyPeriod(value) : "No warranty period";
+    value !== null && value > 0 ? formatWarrantyPeriod(value) : "No warranty period";
 
   const labelClass = classNames(
     "whitespace-nowrap font-semibold uppercase text-[var(--color-ink-500)]",
@@ -572,12 +467,18 @@ function WarrantyDaysField({
       >
         <input
           type="number"
-          value={value}
+          value={value ?? ""}
           min={0}
           step={1}
+          placeholder="—"
           onChange={(event) => {
+            const raw = event.target.value;
+            if (raw === "") {
+              onChange(null);
+              return;
+            }
             const parsed = event.target.valueAsNumber;
-            onChange(Number.isFinite(parsed) ? parsed : 0);
+            onChange(Number.isFinite(parsed) ? parsed : null);
           }}
           className={inputClass}
         />
@@ -623,11 +524,17 @@ function NumberField({
       </span>
       <input
         type="number"
-        value={value}
+        value={value === 0 ? "" : value}
         min={min}
         disabled={disabled}
-        onChange={(e) => {
-          const parsed = e.target.valueAsNumber;
+        placeholder="—"
+        onChange={(event) => {
+          const raw = event.target.value;
+          if (raw === "") {
+            onChange(0);
+            return;
+          }
+          const parsed = event.target.valueAsNumber;
           onChange(Number.isFinite(parsed) ? parsed : 0);
         }}
         className={

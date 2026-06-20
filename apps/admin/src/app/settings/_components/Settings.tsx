@@ -18,6 +18,7 @@ import { LoyaltySettings } from "@/app/settings/_components/settingsLoyaltyTab";
 import { PaymentSettings } from "@/app/settings/_components/settingsPaymentsTab";
 import { PolicySettings } from "@/app/settings/_components/settingsPoliciesTab";
 import { StoreDetailsSettings } from "@/app/settings/_components/settingsStoreTab";
+import { SiteUrlsSettings } from "@/app/settings/_components/settingsUrlsTab";
 import {
   getSettingsTabMeta,
   isSettingsTabId,
@@ -37,17 +38,24 @@ import {
 
 interface SettingsProps {
   initialSettings: StoreSettings;
+  envFallbackStorefrontUrl: string;
 }
 
-export function Settings({ initialSettings }: SettingsProps) {
+export function Settings({ initialSettings, envFallbackStorefrontUrl }: SettingsProps) {
   return (
     <Suspense fallback={null}>
-      <SettingsInner initialSettings={initialSettings} />
+      <SettingsInner
+        initialSettings={initialSettings}
+        envFallbackStorefrontUrl={envFallbackStorefrontUrl}
+      />
     </Suspense>
   );
 }
 
-function SettingsInner({ initialSettings }: SettingsProps) {
+function SettingsInner({
+  initialSettings,
+  envFallbackStorefrontUrl,
+}: SettingsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { startNavigation } = useNavigationTransition();
@@ -107,6 +115,16 @@ function SettingsInner({ initialSettings }: SettingsProps) {
   }
 
   const tabContent: Record<SettingsTabId, ReactNode> = {
+    urls: (
+      <SiteUrlsSettings
+        draft={draft}
+        saved={savedSettings}
+        setField={setField}
+        onSaved={setSavedSettings}
+        canUpdate={canUpdate}
+        envFallbackStorefrontUrl={envFallbackStorefrontUrl}
+      />
+    ),
     store: (
       <StoreDetailsSettings
         draft={draft}

@@ -203,7 +203,7 @@
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --motion-slow: 260ms;
-  --motion-stagger: 60ms;
+  --motion-stagger: 72ms;
 
   --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
@@ -578,6 +578,34 @@
 @media (min-width: 40rem) {
   :root {
     --spacing: clamp(0.213rem, calc(0.17rem + 0.089vw), 0.313rem);
+  }
+}
+
+@layer base {
+  /* Native controls and ARIA widgets — browsers default buttons to arrow. */
+  a[href],
+  summary,
+  label[for],
+  select:not(:disabled),
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  button:not(:disabled):not([aria-disabled="true"]),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"],
+  [role="option"],
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="link"],
+  ::file-selector-button {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
   }
 }
 
@@ -1120,6 +1148,27 @@ html {
 .reveal-stagger > *:nth-child(11) { --reveal-delay: calc(var(--motion-stagger) * 10); }
 .reveal-stagger > *:nth-child(12) { --reveal-delay: calc(var(--motion-stagger) * 11); }
 
+/* Scroll-driven lists/grids: each item reveals when it enters the viewport.
+   No nth-child stagger and no CSS safety fallback — off-screen items stay
+   hidden until IntersectionObserver promotes them. */
+.reveal-scroll-list > .reveal,
+.reveal-scroll-list > li.reveal,
+.reveal-scroll {
+  --reveal-delay: 0ms;
+  animation: none;
+}
+.reveal-scroll.reveal-rise,
+.reveal-scroll-list > .reveal.reveal-rise,
+.reveal-scroll-list > li.reveal.reveal-rise {
+  --reveal-distance: 26px;
+  --reveal-spring-duration: 0.68s;
+}
+.reveal-scroll-list > .reveal:not([data-reveal="visible"]),
+.reveal-scroll-list > li.reveal:not([data-reveal="visible"]),
+.reveal-scroll:not([data-reveal="visible"]) {
+  transform: translate3d(0, var(--reveal-distance, 26px), 0) scale(0.988);
+}
+
 /* Tap feedback — apply on any interactive element to get a soft press. */
 /* The single fluid-interaction primitive. `.tap` is unlayered, so its
    `transition` would otherwise clobber any Tailwind `transition-*` on the
@@ -1127,12 +1176,17 @@ html {
    colour/shadow props that hover states animate). Press rides a soft
    spring so the release "pops" back rather than easing flatly. */
 .tap {
+  cursor: pointer;
   transition:
     transform 320ms var(--ease-spring),
     box-shadow var(--motion-base) var(--ease-out-quart),
     background-color var(--motion-base) var(--ease-out-quart),
     border-color var(--motion-base) var(--ease-out-quart),
     color var(--motion-base) var(--ease-out-quart);
+}
+.tap:disabled,
+.tap[aria-disabled="true"] {
+  cursor: not-allowed;
 }
 .tap:active {
   transform: scale(0.85);
@@ -1282,6 +1336,13 @@ html {
   );
   animation: shimmer 2s infinite;
 }
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+    transform: none;
+    opacity: 0.35;
+  }
+}
 
 /* Badge pop — for cart count, qty changes. */
 @keyframes badge-pop {
@@ -1354,6 +1415,10 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .nav-progress-bar {
     transition: none;
+  }
+  /* Class hook on NavigationProgress origami grid — never escape Tailwind arbitrary values in CSS selectors. */
+  .nav-preloader-origami > * {
+    animation: none !important;
   }
 }
 
@@ -1584,21 +1649,6 @@ html {
 
 .floating-dock {
   bottom: calc(var(--mobile-tabbar-h) + env(safe-area-inset-bottom, 0px) + 24px);
-}
-
-.floating-dock--mobile-sheet {
-  inset-inline: 0.75rem;
-  top: var(--mobile-chat-sheet-top);
-  bottom: var(--mobile-chat-sheet-bottom);
-  min-height: 0;
-}
-
-@media (min-width: 48rem) {
-  .floating-dock--mobile-sheet {
-    inset-inline: auto;
-    top: auto;
-    bottom: 28px;
-  }
 }
 
 @media (min-width: 40rem) {

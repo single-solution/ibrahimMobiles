@@ -9,6 +9,7 @@ import { OtpInput } from "@/components/ui/OtpInput";
 import { buildWhatsAppLink, classNames, OTP_CODE_LENGTH } from "@store/shared";
 
 import { setSignedIn } from "@/lib/auth/useIsSignedIn";
+import { resolvePublicErrorMessage } from "@/lib/errors/publicErrorMessage";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 const RESEND_AFTER_SECONDS = 30;
@@ -146,8 +147,8 @@ export function PhoneOtp({
       }
       setSignedIn(true);
       onVerified();
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (error) {
+      setError(resolvePublicErrorMessage(error));
     } finally {
       setIsVerifying(false);
     }

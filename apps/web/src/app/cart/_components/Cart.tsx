@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ShoppingBag, Trash2 } from "lucide-react";
 import { QuantityStepper } from "@store/ui";
+import { CartPageSkeletonBody } from "@/components/shared/CartPageSkeleton";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
 import { catalogRootHref, productHref } from "@/lib/catalog/productPaths";
@@ -47,7 +48,7 @@ export function Cart() {
   const pricing = evaluateOffers(evaluatableItems, offers);
 
   if (!isHydrated) {
-    return <div className="storefront-page-center" aria-hidden />;
+    return <CartPageSkeletonBody />;
   }
 
   if (cart.isEmpty) {
@@ -90,7 +91,7 @@ export function Cart() {
       </div>
 
       <div className="reveal mt-4 flex min-h-0 flex-1 flex-col gap-3 md:mt-6 md:grid md:flex-none md:grid-cols-[1fr_320px] md:gap-6 lg:grid-cols-[1fr_360px]">
-        <ul className="reveal-stagger min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] md:flex-none md:overflow-visible">
+        <ul className="reveal-scroll-list min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] md:flex-none md:overflow-visible">
           {cart.items.map((line) => (
             <CartLine key={line.id} line={line} discounts={pricing.itemDiscounts.get(line.id) || []} />
           ))}
@@ -177,7 +178,7 @@ function CartLine({ line, discounts = [] }: { line: CartItem; discounts?: Discou
 
   return (
     <li
-      className="reveal group flex items-start gap-4 p-4"
+      className="reveal reveal-scroll reveal-rise group flex items-start gap-4 p-4"
       data-item-state={isRemoving ? "removing" : undefined}
     >
       <Link

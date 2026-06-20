@@ -25,6 +25,7 @@ import {
   type ProductCardMediaSlide,
 } from "./productCardChipModel";
 import { GroupedAttributeChipRow } from "./productCardChipRow";
+import { ProductCardOfferBadge } from "./ProductCardOfferBadge";
 
 const GRADE_CYCLE_MS = 2000;
 
@@ -72,6 +73,8 @@ export function ProductCardMediaCycle({
   pinnedGradeSlug,
   heroImage,
   priority = false,
+  offerBadgeLabel,
+  offerBadgeLabels,
 }: {
   slides: ProductCardMediaSlide[];
   activeIndex: number;
@@ -84,8 +87,48 @@ export function ProductCardMediaCycle({
   heroImage?: StoredImage;
   /** Preload the hero — used for above-the-fold cards. */
   priority?: boolean;
+  /** Single badge when the card does not cycle slides. */
+  offerBadgeLabel?: string | null;
+  /** Per-slide badge labels — crossfades with grade / variant slides. */
+  offerBadgeLabels?: (string | null)[];
 }) {
   const activeSlide = slides[activeIndex] ?? slides[0];
+  const slideBadgeLabels =
+    offerBadgeLabels && offerBadgeLabels.some((label) => label)
+      ? offerBadgeLabels
+      : null;
+  const staticBadgeLabel = slideBadgeLabels ? null : offerBadgeLabel;
+
+  function renderOfferBadge(label: string) {
+    return <ProductCardOfferBadge label={label} />;
+  }
+
+  function renderOfferBadgeStack() {
+    if (!slideBadgeLabels) {
+      return null;
+    }
+    return (
+      <div className="card-fade-stack justify-items-end">
+        {slides.map((slide, index) => {
+          const label = slideBadgeLabels[index];
+          if (!label) {
+            return null;
+          }
+          return (
+            <div
+              key={`offer-${slide.slideKey}`}
+              className={`card-fade-stack__layer ${
+                index === activeIndex ? "card-fade-stack__layer--active" : ""
+              }`}
+              aria-hidden={index !== activeIndex}
+            >
+              {renderOfferBadge(label)}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -107,7 +150,8 @@ export function ProductCardMediaCycle({
           we never flash between labels of different widths. When pinned (grade
           listing), just render the one badge. */}
       {pinnedGradeSlug ? (
-        <div className="absolute right-1.5 top-1.5 z-10 md:right-3 md:top-3">
+        <div className="absolute right-1.5 top-1.5 z-10 flex flex-col items-end gap-1 md:right-3 md:top-3 md:gap-1.5">
+          {staticBadgeLabel ? renderOfferBadge(staticBadgeLabel) : renderOfferBadgeStack()}
           <GradeBadge
             categorySlug={categorySlug}
             gradeSlug={pinnedGradeSlug}
@@ -115,7 +159,9 @@ export function ProductCardMediaCycle({
           />
         </div>
       ) : slides.some((slide) => slide.gradeSlug) ? (
-        <div className="card-fade-stack absolute right-1.5 top-1.5 z-10 justify-items-end md:right-3 md:top-3">
+        <div className="absolute right-1.5 top-1.5 z-10 flex flex-col items-end gap-1 md:right-3 md:top-3 md:gap-1.5">
+          {staticBadgeLabel ? renderOfferBadge(staticBadgeLabel) : renderOfferBadgeStack()}
+          <div className="card-fade-stack justify-items-end">
           {slides.map((slide, index) =>
             slide.gradeSlug ? (
               <div
@@ -133,6 +179,11 @@ export function ProductCardMediaCycle({
               </div>
             ) : null,
           )}
+          </div>
+        </div>
+      ) : staticBadgeLabel || slideBadgeLabels ? (
+        <div className="absolute right-1.5 top-1.5 z-10 md:right-3 md:top-3">
+          {staticBadgeLabel ? renderOfferBadge(staticBadgeLabel) : renderOfferBadgeStack()}
         </div>
       ) : null}
 

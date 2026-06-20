@@ -55,10 +55,10 @@ import {
   conflict,
   created,
   evaluateOffers,
-  formatStorage,
   isValidId,
   isValidationError,
   logger,
+  isVariantInStock,
   maxRedeemable,
   parseBody,
   pointsEarnedFor,
@@ -69,6 +69,8 @@ import {
   validateString,
   type ActiveOffer,
   type EvaluatableItem,
+  orderPaymentToCheckoutId,
+  toActiveOffer,
 } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
@@ -318,7 +320,14 @@ export async function POST(request: Request) {
     if (!variant) {
       return conflict(`Variant not found on ${product.name}.`);
     }
-    if ((variant.quantity ?? 0) <= 0) {
+    if (
+      !isVariantInStock({
+        quantity: variant.quantity,
+        forceOutOfStock:
+          variant.forceOutOfStock === true ||
+          (variant as { isActive?: boolean }).isActive === false,
+      })
+    ) {
       return conflict(`${product.name} is sold out.`);
     }
     if (variant.quantity < line.quantity) {
@@ -349,7 +358,7 @@ export async function POST(request: Request) {
   // re-evaluated here from live offer documents so a tampered cart can't claim
   // a discount that doesn't apply. Schedule/usage-limit gating happens inside
   // `evaluateOffers`.
-  const offerDocs = await OfferModel.find({ isActive: true }).lean<
+  const offerDocs = await OfferModel.find({ isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean<
     (OfferAttributes & { _id: Types.ObjectId })[]
   >();
   const evaluatableItems: EvaluatableItem[] = resolvedItems.map((line) => ({
@@ -363,7 +372,9 @@ export async function POST(request: Request) {
     quantity: line.quantity,
     attributes: line.variant.attributes ?? {},
   }));
-  const offerPricing = evaluateOffers(evaluatableItems, offerDocs.map(toActiveOffer));
+  const offerPricing = evaluateOffers(evaluatableItems, offerDocs.map(toActiveOffer), {
+    paymentMethod: orderPaymentToCheckoutId(payment),
+  });
   const offerDiscountRupees = Math.round(offerPricing.totalDiscount);
 
   const paymentDiscountRupees =
@@ -698,20 +709,6 @@ function mergeCheckoutAddress(
  * insertion order followed by the grade slug; the storefront has the
  * actual `Grade.label` cached and uses it on the order detail page.
  */
-/** Map a stored offer document to the evaluator's `ActiveOffer` shape. */
-function toActiveOffer(doc: OfferAttributes & { _id: Types.ObjectId }): ActiveOffer {
-  return {
-    id: doc._id.toString(),
-    title: doc.title,
-    conditions: doc.conditions ?? [],
-    action: doc.action ?? { type: "percentage_discount", value: 0, target: "cart_total" },
-    schedule: doc.schedule ?? {},
-    isStackable: doc.constraints?.isStackable ?? false,
-    allowLoyaltyPoints: doc.constraints?.allowLoyaltyPoints ?? false,
-    usageLimit: doc.constraints?.usageLimit,
-    usageCount: doc.constraints?.usageCount ?? 0,
-  };
-}
 
 function buildVariantSummary(variant: VariantAttributes): string {
   const parts: string[] = [];

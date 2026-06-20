@@ -107,9 +107,9 @@ export function OrderHistory({ orders }: OrderHistoryProps) {
         {filtered.length === 0 ? (
           <Empty filter={filter} onClearFilter={() => setFilter("all")} />
         ) : (
-          <ul className="reveal-stagger space-y-3">
+          <ul className="reveal-scroll-list space-y-3">
             {filtered.map((order) => (
-              <li key={order.id} className="reveal">
+              <li key={order.id} className="reveal reveal-scroll reveal-rise">
                 <OrderRow order={order} />
               </li>
             ))}

@@ -1,6 +1,6 @@
 import { ShopCategoryPageLoading } from "@/components/shared/ShopListingSkeleton";
 
-/** Root catalog entry — shown while `/` resolves or redirects to the active category. */
+/** Root catalog entry — toolbar + grid only; hero streams from category layout. */
 export default function RootLoading() {
-	return <ShopCategoryPageLoading includeHero />;
+	return <ShopCategoryPageLoading />;
 }

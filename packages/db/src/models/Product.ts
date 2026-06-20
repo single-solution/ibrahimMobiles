@@ -36,6 +36,8 @@ export interface VariantAttributes {
   gradeSlug: string;
   priceRupees: number;
   quantity: number;
+  /** When true, storefront treats variant as sold out; `quantity` is unchanged. */
+  forceOutOfStock: boolean;
   /** Whole days; storefront formats as months + days when ≥ 30. */
   warrantyDays?: number;
   /** @deprecated Use `warrantyDays`; kept for legacy reads. */
@@ -66,6 +68,17 @@ export interface ProductAttributes {
   images: StoredImage[];
   variants: VariantAttributes[];
   /**
+   * Category attribute slugs this product uses. When absent, legacy behavior
+   * applies: every category attribute is required on variants.
+   */
+  attributeSlugs?: string[];
+  /** Allowed global option values per attribute slug. */
+  attributeOptionPool?: Record<string, string[]>;
+  /** Product-only custom options per attribute slug. */
+  attributeCustomOptions?: Record<string, Array<{ value: string; label: string }>>;
+  /** Default option values pre-filled when authoring new variants. */
+  attributeDefaults?: Record<string, string>;
+  /**
    * Optional per-product SEO overrides. When fields are absent the
    * storefront falls back to auto-generated values built from the
    * product + brand + category + Settings.
@@ -84,6 +97,7 @@ const variantSchema = new Schema<VariantAttributes>(
     },
     priceRupees: { type: Number, required: true, min: 0 },
     quantity: { type: Number, required: true, min: 0, default: 0 },
+    forceOutOfStock: { type: Boolean, required: true, default: false },
     warrantyDays: { type: Number, min: 0 },
     warrantyMonths: { type: Number, min: 0 },
     attributes: {
@@ -140,6 +154,22 @@ const productSchema = new Schema<ProductAttributes>(
     variants: {
       type: [variantSchema],
       default: [],
+    },
+    attributeSlugs: {
+      type: [String],
+      default: undefined,
+    },
+    attributeOptionPool: {
+      type: Schema.Types.Mixed,
+      default: undefined,
+    },
+    attributeCustomOptions: {
+      type: Schema.Types.Mixed,
+      default: undefined,
+    },
+    attributeDefaults: {
+      type: Schema.Types.Mixed,
+      default: undefined,
     },
     seo: { type: seoSchema, default: () => ({}) },
   },

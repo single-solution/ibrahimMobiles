@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { getStoreSettings } from "@store/db";
+import { resolvePublicSiteUrl } from "@store/shared";
 
 import { Settings } from "@/app/settings/_components/Settings";
 import { SettingsWorkspaceSkeleton } from "@/components/loading/SettingsWorkspaceSkeleton";
@@ -24,5 +25,10 @@ export default async function AdminSettingsPage() {
 
 async function SettingsData() {
   const settings = await getStoreSettings();
-  return <Settings initialSettings={settings} />;
+  return (
+    <Settings
+      initialSettings={settings}
+      envFallbackStorefrontUrl={resolvePublicSiteUrl("")}
+    />
+  );
 }

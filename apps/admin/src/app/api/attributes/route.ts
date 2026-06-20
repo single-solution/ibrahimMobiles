@@ -22,7 +22,6 @@ import {
   type AttributeLean,
 } from "@/lib/serializers/attribute";
 import {
-  detectVisibilityCycle,
   parseAttributeOptions,
   parseAttributeUnit,
   parseAttributeVisibilityInput,
@@ -150,14 +149,6 @@ export async function POST(request: Request) {
   await connectDB();
   if (await hasAttributeCategoryConflict(categorySlug, slug)) {
     return conflict("An attribute with this label already exists in this category.");
-  }
-
-  const siblings = await Attribute.find({ categorySlug })
-    .select("slug visibility")
-    .lean<Array<{ slug: string; visibility?: import("@store/shared").AttributeVisibility }>>();
-  const cycleError = detectVisibilityCycle(slug, visibility, siblings);
-  if (cycleError) {
-    return badRequest(cycleError);
   }
 
   try {

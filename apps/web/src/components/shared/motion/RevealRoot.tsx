@@ -1,164 +1,186 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+
+/** Fired when a client navigation commits — RevealRoot re-scans for entrances. */
+export const ROUTE_REVEAL_EVENT = "storefront:route-reveal";
+
+export function dispatchRouteReveal(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.dispatchEvent(new Event(ROUTE_REVEAL_EVENT));
+}
 
 /**
  * Single, app-wide IntersectionObserver that flips any `.reveal` element
- * into the visible state once it scrolls into view. Pair with the
- * `.reveal` or `.reveal-fade` class for the actual animation.
- *
- * Architecture notes:
- *
- *   • **The hidden state is purely CSS.** A `.reveal` element starts at
- *     `opacity: 0` and animates in only when `data-reveal="visible"` is
- *     present. We do **not** render `data-reveal="hidden"` from SSR
- *     because that attribute was the root cause of React 19's hydration
- *     mismatch under Next 16's progressive Suspense hydration.
- *
- *   • **`no-js` is stripped HERE, not by an inline `<script>`.** The
- *     old layout shipped a tiny script that ran before this component
- *     mounted, which on slow networks left `.reveal` nodes invisible
- *     during the window between strip and hydration. Stripping at
- *     mount means the CSS fallback (`.no-js .reveal { opacity: 1 }`)
- *     stays effective until the animation driver is actually ready.
- *
- *   • **Watchdog reveal.** After {@link REVEAL_WATCHDOG_MS} ms any
- *     `.reveal` element that the IO hasn't promoted yet is force-
- *     revealed. Guarantees no content is invisible beyond that window
- *     regardless of bundle latency, hydration race, or IO bug. The
- *     CSS keyframe safety in `globals.css` is a second, independent
- *     layer that fires even if this component never mounts.
- *
- *   • **MutationObserver scoped to `<main>`.** Most dynamic content
- *     mounts there; observing the whole document body forced an extra
- *     callback on every chat-widget render. We fall back to `body` if
- *     `<main>` isn't present yet.
- *
- *   • **One observer per app, not per element.** We disconnect on
- *     unmount/route change and rebuild — keeps memory flat as the user
- *     navigates.
+ * into the visible state once it scrolls into view.
  */
-const REVEAL_CANDIDATE = ".reveal:not([data-reveal='visible']), .reveal-fade:not([data-reveal='visible'])";
-/** Safety window: any reveal still hidden after this fires automatically. */
-const REVEAL_WATCHDOG_MS = 2500;
+const REVEAL_CANDIDATE =
+  ".reveal:not([data-reveal='visible']), .reveal-fade:not([data-reveal='visible'])";
+const REVEAL_WATCHDOG_MS = 4000;
 
-export function RevealRoot() {
-  const pathname = usePathname();
+function isScrollRevealTarget(element: Element): boolean {
+  return (
+    element.classList.contains("reveal-scroll") ||
+    Boolean(element.closest(".reveal-scroll-list"))
+  );
+}
+
+function RevealRootSearchSync({ onSearchKey }: { onSearchKey: (key: string) => void }) {
   const searchParams = useSearchParams();
-  const routeKey = `${pathname}?${searchParams?.toString() ?? ""}`;
 
+  useEffect(() => {
+    onSearchKey(searchParams?.toString() ?? "");
+  }, [searchParams, onSearchKey]);
+
+  return null;
+}
+
+function RevealRootDriver({ routeKey }: { routeKey: string }) {
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
 
-    const reveal = (target: Element) => {
+    const reveal = (target: Element, viaScroll = false) => {
+      if (viaScroll || isScrollRevealTarget(target)) {
+        (target as HTMLElement).style.setProperty("--reveal-delay", "0ms");
+      }
       target.setAttribute("data-reveal", "visible");
     };
 
     const isInViewport = (element: HTMLElement): boolean => {
       const rect = element.getBoundingClientRect();
       const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-      return rect.top < viewportHeight * 0.94 && rect.bottom > 0;
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+      return (
+        rect.top < viewportHeight * 0.92 &&
+        rect.bottom > viewportHeight * 0.04 &&
+        rect.left < viewportWidth &&
+        rect.right > 0
+      );
     };
 
     const supportsIO = "IntersectionObserver" in window;
-    if (!supportsIO) {
-      document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach(reveal);
-      document.documentElement.classList.remove("no-js");
-      return;
-    }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            reveal(entry.target);
-            observer.unobserve(entry.target);
-          }
-        }
-      },
-      {
-        rootMargin: "0px 0px -6% 0px",
-        threshold: 0.04,
-      },
-    );
+    let observer: IntersectionObserver | null = null;
+    let mutation: MutationObserver | null = null;
 
     const observeAll = () => {
+      if (!supportsIO || !observer) {
+        document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach((element) => {
+          reveal(element, isScrollRevealTarget(element));
+        });
+        return;
+      }
       document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach((element) => {
         if (isInViewport(element)) {
-          reveal(element);
+          reveal(element, isScrollRevealTarget(element));
           return;
         }
-        observer.observe(element);
+        observer?.observe(element);
       });
     };
 
     const visitAddedNode = (node: HTMLElement) => {
       if (node.matches?.(REVEAL_CANDIDATE)) {
         if (isInViewport(node)) {
-          reveal(node);
+          reveal(node, isScrollRevealTarget(node));
         } else {
-          observer.observe(node);
+          observer?.observe(node);
         }
       }
-      // Cheap pre-check — if the subtree has no reveal targets, skip
-      // the expensive `querySelectorAll` walk. Big win on chat-widget
-      // / image-fade churn where most added nodes are irrelevant.
       const querySelector = node.querySelector?.bind(node);
       if (!querySelector || !querySelector(".reveal, .reveal-fade")) {
         return;
       }
-      node
-        .querySelectorAll<HTMLElement>(REVEAL_CANDIDATE)
-        .forEach((element) => {
-          if (isInViewport(element)) {
-            reveal(element);
-          } else {
-            observer.observe(element);
-          }
-        });
+      node.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach((element) => {
+        if (isInViewport(element)) {
+          reveal(element, isScrollRevealTarget(element));
+        } else {
+          observer?.observe(element);
+        }
+      });
     };
 
-    const mutation = new MutationObserver((records) => {
-      for (const record of records) {
-        record.addedNodes.forEach((node) => {
-          if (node instanceof HTMLElement) {
-            visitAddedNode(node);
-          }
-        });
+    const bootstrap = () => {
+      if (supportsIO) {
+        observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (entry.isIntersecting) {
+                reveal(entry.target, true);
+                observer?.unobserve(entry.target);
+              }
+            }
+          },
+          {
+            rootMargin: "0px 0px -5% 0px",
+            threshold: 0.06,
+          },
+        );
       }
-    });
 
-    // Run on the next frame so layout is settled, but don't defer to
-    // idle — that left above-the-fold `.reveal` nodes at opacity 0 and
-    // made the storefront feel like it was still loading.
-    const frame = window.requestAnimationFrame(() => {
-      // Promote above-the-fold reveals FIRST, then drop the `no-js` CSS
-      // fallback. Removing it earlier left in-viewport content invisible for
-      // the frame between strip and `observeAll()` — a load-time flicker.
       observeAll();
       document.documentElement.classList.remove("no-js");
+
+      mutation = new MutationObserver((records) => {
+        for (const record of records) {
+          record.addedNodes.forEach((node) => {
+            if (node instanceof HTMLElement) {
+              visitAddedNode(node);
+            }
+          });
+        }
+      });
+
       const mutationRoot = document.querySelector("main") ?? document.body;
       mutation.observe(mutationRoot, { childList: true, subtree: true });
-    });
+    };
 
-    // Watchdog — force-reveal anything still hidden after the budget.
-    // This is the JS layer of the guarantee; the CSS keyframe in
-    // `globals.css` is the independent backup if the JS never reaches
-    // this point at all.
+    const frame = window.requestAnimationFrame(bootstrap);
+
+    const onRouteReveal = () => {
+      window.requestAnimationFrame(observeAll);
+    };
+    window.addEventListener(ROUTE_REVEAL_EVENT, onRouteReveal);
+
     const watchdog = window.setTimeout(() => {
-      document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach(reveal);
+      document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach((element) => {
+        if (isInViewport(element)) {
+          reveal(element, isScrollRevealTarget(element));
+        }
+      });
     }, REVEAL_WATCHDOG_MS);
 
     return () => {
       window.cancelAnimationFrame(frame);
       window.clearTimeout(watchdog);
-      observer.disconnect();
-      mutation.disconnect();
+      window.removeEventListener(ROUTE_REVEAL_EVENT, onRouteReveal);
+      observer?.disconnect();
+      mutation?.disconnect();
     };
   }, [routeKey]);
 
   return null;
+}
+
+export function RevealRoot() {
+  const pathname = usePathname();
+  const [searchKey, setSearchKey] = useState("");
+  const onSearchKey = useCallback((key: string) => {
+    setSearchKey(key);
+  }, []);
+  const routeKey = `${pathname}?${searchKey}`;
+
+  return (
+    <>
+      <RevealRootDriver routeKey={routeKey} />
+      <Suspense fallback={null}>
+        <RevealRootSearchSync onSearchKey={onSearchKey} />
+      </Suspense>
+    </>
+  );
 }

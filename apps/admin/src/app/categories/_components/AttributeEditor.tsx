@@ -38,7 +38,6 @@ interface AttributeEditorProps {
   onClose: () => void;
   attribute: AdminAttribute | null;
   category: AdminCategory;
-  siblingAttributes: AdminAttribute[];
   brands: AdminBrand[];
   grades: AdminGrade[];
   onSaved: () => void;
@@ -62,8 +61,6 @@ interface FormState {
   visibilityType: AttributeVisibilityType;
   brandSlugs: string[];
   gradeSlugs: string[];
-  parentAttributeSlug: string;
-  parentOptionValues: string[];
   options: OptionFormRow[];
 }
 
@@ -75,26 +72,19 @@ function emptyForm(): FormState {
     visibilityType: "always",
     brandSlugs: [],
     gradeSlugs: [],
-    parentAttributeSlug: "",
-    parentOptionValues: [],
     options: [{ label: "", backgroundColor: "" }],
   };
 }
 
 function visibilityFromAttribute(
   visibility: AttributeVisibility | undefined,
-): Pick<
-  FormState,
-  "visibilityType" | "brandSlugs" | "gradeSlugs" | "parentAttributeSlug" | "parentOptionValues"
-> {
+): Pick<FormState, "visibilityType" | "brandSlugs" | "gradeSlugs"> {
   const rule = visibility ?? ATTRIBUTE_VISIBILITY_ALWAYS;
   if (rule.type === "brand") {
     return {
       visibilityType: "brand",
       brandSlugs: rule.brandSlugs ?? [],
       gradeSlugs: [],
-      parentAttributeSlug: "",
-      parentOptionValues: [],
     };
   }
   if (rule.type === "grade") {
@@ -102,25 +92,12 @@ function visibilityFromAttribute(
       visibilityType: "grade",
       brandSlugs: [],
       gradeSlugs: rule.gradeSlugs ?? [],
-      parentAttributeSlug: "",
-      parentOptionValues: [],
-    };
-  }
-  if (rule.type === "attribute") {
-    return {
-      visibilityType: "attribute",
-      brandSlugs: [],
-      gradeSlugs: [],
-      parentAttributeSlug: rule.attributeSlug ?? "",
-      parentOptionValues: rule.optionValues ?? [],
     };
   }
   return {
     visibilityType: "always",
     brandSlugs: [],
     gradeSlugs: [],
-    parentAttributeSlug: "",
-    parentOptionValues: [],
   };
 }
 
@@ -130,13 +107,6 @@ function buildVisibilityPayload(form: FormState): AttributeVisibility {
   }
   if (form.visibilityType === "grade") {
     return { type: "grade", gradeSlugs: form.gradeSlugs };
-  }
-  if (form.visibilityType === "attribute") {
-    return {
-      type: "attribute",
-      attributeSlug: form.parentAttributeSlug,
-      optionValues: form.parentOptionValues,
-    };
   }
   return ATTRIBUTE_VISIBILITY_ALWAYS;
 }
@@ -190,7 +160,6 @@ export function AttributeEditor({
   onClose,
   attribute,
   category,
-  siblingAttributes,
   brands,
   grades,
   onSaved,
@@ -325,12 +294,6 @@ export function AttributeEditor({
   }, [draft]);
 
   const attributeUnit = form.unit.trim();
-  const parentCandidates = siblingAttributes.filter(
-    (row) => row.id !== attribute?.id,
-  );
-  const parentAttribute = parentCandidates.find(
-    (row) => row.slug === form.parentAttributeSlug,
-  );
 
   return (
     <Drawer
@@ -413,8 +376,8 @@ export function AttributeEditor({
               Show when
             </legend>
             <p className="mb-2 text-[11.5px] text-[var(--color-ink-500)]">
-              Controls when this attribute appears in shop filters and on variants.
-              Child attributes unlock after a parent option is selected.
+              Controls when this attribute appears in shop filters. Per-product variant
+              attributes are configured on each product&apos;s details page.
             </p>
             <div className="flex flex-wrap gap-2">
               {(
@@ -422,7 +385,6 @@ export function AttributeEditor({
                   ["always", "Always"],
                   ["brand", "Brand"],
                   ["grade", "Grade"],
-                  ["attribute", "Parent attribute"],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -498,62 +460,6 @@ export function AttributeEditor({
                     </button>
                   );
                 })}
-              </div>
-            )}
-            {form.visibilityType === "attribute" && (
-              <div className="mt-2 space-y-2">
-                <select
-                  value={form.parentAttributeSlug}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      parentAttributeSlug: event.target.value,
-                      parentOptionValues: [],
-                    }))
-                  }
-                  className="w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-2.5 py-1.5 text-[13px]"
-                >
-                  <option value="">Select parent attribute</option>
-                  {parentCandidates.map((row) => (
-                    <option key={row.id} value={row.slug}>
-                      {row.label}
-                    </option>
-                  ))}
-                </select>
-                {parentAttribute != null && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {parentAttribute.options.map((option) => {
-                      const selected = form.parentOptionValues.includes(option.value);
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() =>
-                            setForm((prev) => ({
-                              ...prev,
-                              parentOptionValues: selected
-                                ? prev.parentOptionValues.filter(
-                                    (value) => value !== option.value,
-                                  )
-                                : [...prev.parentOptionValues, option.value],
-                            }))
-                          }
-                          className={
-                            "rounded-full border px-2.5 py-1 text-[12px] font-medium " +
-                            (selected
-                              ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
-                              : "border-[var(--color-ink-200)] text-[var(--color-ink-700)]")
-                          }
-                        >
-                          {formatAttributeOptionLabel(
-                            option.label,
-                            parentAttribute.unit,
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             )}
           </fieldset>

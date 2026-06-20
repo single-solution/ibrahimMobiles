@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { Check, ChevronDown, X } from "lucide-react";
+import { useRef, useState, type MouseEvent } from "react";
+import { ChevronDown, X } from "lucide-react";
+import { SearchableMultiSelectPanel, SearchableSelectPanel } from "@store/ui";
 import { classNames } from "@store/shared";
 import { Popover } from "@/components/ui/Popover";
 
@@ -26,22 +27,7 @@ interface FilterDropdownProps {
  * Universal Filter Dropdown Component (Standard)
  *
  * Compact admin list-filter dropdown used in list views and tables.
- * This is the standard component to use whenever you need to filter a table
- * or list.
- * 
- * Powered by `<Popover>`: Uses a React portal to render the dropdown menu at
- * the document root. This ensures that the filter menu will NEVER be trapped
- * behind animated table rows, `overflow: hidden` containers, or z-index 
- * stacking contexts.
- *
- * Single-select mode: closes on pick, replaces the chip label with
- * "Label: Value" so the active selection is visible without opening.
- *
- * Multi-select mode: toggles each option, surfaces an inline `×` on the
- * trigger to clear in one click, and renders a "Clear (N)" footer when
- * any value is selected.
- *
- * Popover dismisses on outside click and Escape.
+ * Search appears automatically when six or more options are available.
  */
 export function FilterDropdown({
 	label,
@@ -54,26 +40,6 @@ export function FilterDropdown({
 }: FilterDropdownProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		if (!isOpen) return;
-		function handlePointerDown(event: globalThis.MouseEvent) {
-			if (!containerRef.current?.contains(event.target as Node)) {
-				setIsOpen(false);
-			}
-		}
-		function handleKey(event: KeyboardEvent) {
-			if (event.key === "Escape") {
-				setIsOpen(false);
-			}
-		}
-		document.addEventListener("mousedown", handlePointerDown);
-		document.addEventListener("keydown", handleKey);
-		return () => {
-			document.removeEventListener("mousedown", handlePointerDown);
-			document.removeEventListener("keydown", handleKey);
-		};
-	}, [isOpen]);
 
 	const activeCount = selected.length;
 	const isActive = activeCount > 0;
@@ -156,63 +122,29 @@ export function FilterDropdown({
 			<Popover
 				isOpen={isOpen}
 				anchorRef={containerRef}
+				onRequestClose={() => setIsOpen(false)}
 				align="left"
 				role="listbox"
-				className="animate-popover-in min-w-[12rem] max-w-[18rem] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1 shadow-[var(--shadow-md)]"
+				className="animate-popover-in min-w-[12rem] max-w-[18rem] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]"
 			>
-					<div className="max-h-64 overflow-y-auto">
-						{options.length === 0 ? (
-							<p className="px-3 py-2 text-[11px] text-[var(--color-ink-400)]">
-								Nothing to filter.
-							</p>
-						) : (
-							options.map((option) => {
-								const isSelected = selected.includes(option.value);
-								return (
-									<button
-										key={option.value}
-										type="button"
-										role="option"
-										aria-selected={isSelected}
-										onClick={() => toggle(option.value)}
-										className={classNames(
-											"flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-xs transition-colors",
-											isSelected
-												? "bg-[var(--color-accent-50)] font-semibold text-[var(--color-accent-900)]"
-												: "text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
-										)}
-									>
-										<span className="flex min-w-0 items-center gap-2">
-											<span
-												aria-hidden
-												className={classNames(
-													"grid size-3.5 shrink-0 place-items-center border transition-colors",
-													single ? "rounded-full" : "rounded-[var(--radius-sm)]",
-													isSelected
-														? "border-[var(--color-accent-700)] bg-[var(--color-accent-700)] text-white"
-														: "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
-												)}
-											>
-												{isSelected ? (
-													single ? (
-														<span className="size-1.5 rounded-full bg-white" />
-													) : (
-														<Check size={8} strokeWidth={3} />
-													)
-												) : null}
-											</span>
-											<span className="truncate">{option.label}</span>
-										</span>
-										{typeof option.count === "number" ? (
-											<span className="shrink-0 tabular-nums text-[10px] text-[var(--color-ink-400)]">
-												{option.count}
-											</span>
-										) : null}
-									</button>
-								);
-							})
-						)}
-					</div>
+				{single ? (
+						<SearchableSelectPanel
+							options={options}
+							value={selected[0] ?? ""}
+							onSelect={toggle}
+							isOpen={isOpen}
+							emptyMessage="Nothing to filter."
+							singleSelectStyle="radio"
+						/>
+					) : (
+						<SearchableMultiSelectPanel
+							options={options}
+							selectedValues={selected}
+							onToggle={toggle}
+							isOpen={isOpen}
+							emptyMessage="Nothing to filter."
+						/>
+					)}
 					{!single && activeCount > 0 ? (
 						<div className="border-t border-[var(--color-ink-100)] px-3 py-1.5 text-right">
 							<button

@@ -15,6 +15,7 @@ import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import type { AccountAddress, AccountCustomer } from "@/lib/core/account";
 import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
+import { resolvePublicErrorMessage } from "@/lib/errors/publicErrorMessage";
 import {
   CheckoutHeader,
   CheckoutSignInPanel,
@@ -56,6 +57,8 @@ export function Checkout({ customer }: CheckoutProps) {
   const settings = useStoreSettings();
   const { offers } = useActiveOffers();
 
+  const [payment, setPayment] = useState<PaymentMethodId>("bank");
+
   const evaluatableItems = useMemo(() => cart.items.map(item => ({
     id: item.id,
     productId: item.productId,
@@ -68,7 +71,10 @@ export function Checkout({ customer }: CheckoutProps) {
     attributes: item.attributes,
   })), [cart.items]);
 
-  const pricing = useMemo(() => evaluateOffers(evaluatableItems, offers), [evaluatableItems, offers]);
+  const pricing = useMemo(
+    () => evaluateOffers(evaluatableItems, offers, { paymentMethod: payment }),
+    [evaluatableItems, offers, payment],
+  );
 
   const defaultAddress =
     customer?.addresses.find((candidate) => candidate.isDefault) ??
@@ -79,7 +85,6 @@ export function Checkout({ customer }: CheckoutProps) {
   const [address, setAddress] = useState<AddressFormState>(() =>
     addressToForm(defaultAddress),
   );
-  const [payment, setPayment] = useState<PaymentMethodId>("bank");
   const [hasAgreed, setHasAgreed] = useState<boolean>(false);
   const [isPlacing, setIsPlacing] = useState<boolean>(false);
   const [shouldRedeemLoyalty, setShouldRedeemLoyalty] = useState<boolean>(false);
@@ -249,8 +254,8 @@ export function Checkout({ customer }: CheckoutProps) {
       idempotencyKeyRef.current = null;
       const url = `/checkout/success?${params.toString()}`;
       startNavigation(() => router.push(url));
-    } catch {
-      setErrorMessage("Network error — could not reach the server. Please try again.");
+    } catch (error) {
+      setErrorMessage(resolvePublicErrorMessage(error, "Could not place your order. Please try again."));
       setIsPlacing(false);
     }
   };

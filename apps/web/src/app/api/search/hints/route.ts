@@ -6,7 +6,7 @@
  * Returns a small shuffled array of suggestion labels for the
  * `SearchOverlay` empty state — a mix of random categories, top-selling
  * products, and bottom-selling products. Each label is intended to be
- * submitted directly as a `/shop?q=<label>` query when the customer taps
+ * submitted directly as a `/?q=<label>` query when the customer taps
  * the chip.
  *
  * Security:

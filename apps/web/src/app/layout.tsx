@@ -6,7 +6,7 @@ import {
   MarketingPixels,
   MarketingPixelsNoScript,
 } from "@/app/_components/marketing/MarketingPixels";
-import { getBaseUrl } from "@/lib/core/baseUrl";
+import { getStorefrontBaseUrl } from "@/lib/core/baseUrl";
 import {
   getAttributesCached,
   getCategoriesCached,
@@ -40,17 +40,17 @@ const oswald = Oswald({
   display: "swap",
 });
 
-const STOREFRONT_BASE_URL = getBaseUrl();
-
 export async function generateMetadata(): Promise<Metadata> {
   const [
     { siteName, siteTagline, brandFaviconLight, brandFaviconDark },
     seoSettings,
     googleVerification,
+    storefrontBaseUrl,
   ] = await Promise.all([
     getStoreSettingsCached(),
     getSeoSettings(),
     getGoogleSiteVerification(),
+    getStorefrontBaseUrl(),
   ]);
   const defaultOg = seoSettings.defaultOgImageUrl || undefined;
 
@@ -74,7 +74,7 @@ export async function generateMetadata(): Promise<Metadata> {
     iconDescriptors.push({ url: "/favicon.ico" });
   }
   return {
-    metadataBase: new URL(STOREFRONT_BASE_URL),
+    metadataBase: new URL(storefrontBaseUrl),
     title: {
       default: `${siteName} — ${siteTagline}`,
       template: `%s · ${siteName}`,
@@ -89,7 +89,7 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: siteName,
       title: `${siteName} — ${siteTagline}`,
       description: siteTagline,
-      url: STOREFRONT_BASE_URL,
+      url: storefrontBaseUrl,
       locale: "en_PK",
       images: defaultOg ? [defaultOg] : undefined,
     },

@@ -58,6 +58,7 @@ import {
   ChatRequestError,
 } from "@/lib/chat/transport";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
+import { resolvePublicErrorMessage } from "@/lib/errors/publicErrorMessage";
 import { useIsSignedIn } from "@/lib/auth/useIsSignedIn";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { getChatPageContext } from "@/lib/chat/pageChatContext";
@@ -151,8 +152,7 @@ export function LiveChatWidget({
       setIsSignedInCustomer(data.isSignedInCustomer);
       return data;
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Unable to load chat.";
-      setBootstrapError(msg);
+      setBootstrapError(resolvePublicErrorMessage(error, "Unable to load chat."));
       return null;
     }
   }, []);
@@ -415,9 +415,7 @@ export function LiveChatWidget({
       requestAnimationFrame(() => setActiveThread(fresh));
       void refreshBootstrap();
     } catch (error) {
-      const msg =
-        error instanceof Error ? error.message : "Could not start chat.";
-      setBootstrapError(msg);
+      setBootstrapError(resolvePublicErrorMessage(error, "Could not start chat."));
       setPendingFirstMessage(null);
       setView("compose");
       throw error;
@@ -468,7 +466,7 @@ export function LiveChatWidget({
           : prev,
       );
       if (error instanceof ChatRequestError && error.code === "login_required") {
-        setBootstrapError(error.message);
+        setBootstrapError(resolvePublicErrorMessage(error));
       }
       throw error;
     }

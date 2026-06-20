@@ -120,9 +120,11 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       </Suspense>
 
       <div className={`${SHOP_CATEGORY_PAGE_CLASS} pb-10 md:pb-20`}>
-        <Suspense fallback={<ShopCatalogToolbarFallback />}>
-          <ShopCategoryToolbar activeSlug={meta.slug} filters={filters} />
-        </Suspense>
+        <div className="reveal reveal-rise">
+          <Suspense fallback={<ShopCatalogToolbarFallback />}>
+            <ShopCategoryToolbar activeSlug={meta.slug} filters={filters} />
+          </Suspense>
+        </div>
 
         <div className="shop-listing-mobile-scroll-pad pt-1">
           <Suspense fallback={<ShopProductsAreaFallback />}>

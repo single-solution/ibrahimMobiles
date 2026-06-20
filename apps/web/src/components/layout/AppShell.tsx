@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Header } from "@/components/layout/Header";
 import { MobileHeader } from "@/components/layout/MobileHeader";
 import { MobileBottomTabBar } from "@/components/layout/MobileBottomTabBar";
+import { NavigationProgress } from "@/components/layout/NavigationProgress";
 import { WebVitalsReporter } from "@/components/layout/WebVitalsReporter";
 import { StoreNoticeBanner } from "@/components/layout/StoreNoticeBanner";
 import { RevealRoot } from "@/components/shared/motion/RevealRoot";
@@ -40,10 +41,6 @@ function deferredNamedIsland<P extends object>(
    next idle frame (or 1.5 s after FCP) to cut Total Blocking Time.
    `WebVitalsReporter` is imported statically: it renders null and is
    tiny; a dynamic chunk for it was prone to ChunkLoadError after HMR. */
-const NavigationProgress = deferredNamedIsland(
-  () => import("@/components/layout/NavigationProgress"),
-  "NavigationProgress",
-);
 const ChatFabShell = deferredNamedIsland(
   () => import("@/app/_components/chat/ChatFabShell"),
   "ChatFabShell",
@@ -60,8 +57,7 @@ interface AppShellProps {
   footer: React.ReactNode;
 }
 
-/** Hard ceiling on the idle wait so even a busy main thread can't keep
- *  the chat FAB / nav progress bar / vitals reporter hidden forever. */
+/** Hard ceiling on the idle wait so chat FAB / search overlay aren't hidden forever. */
 const DEFERRED_MOUNT_TIMEOUT_MS = 1500;
 
 export function AppShell({ children, footer }: AppShellProps) {
@@ -113,25 +109,10 @@ export function AppShell({ children, footer }: AppShellProps) {
         >
           Skip to content
         </a>
-        <Suspense fallback={null}>
-          <RevealRoot />
-        </Suspense>
+        <RevealRoot />
         {!isAdminRoute ? <IdleRoutePrefetch /> : null}
         {areDeferredMounted ? <WebVitalsReporter /> : null}
-        {/*
-         * `NavigationProgress` reads `useSearchParams()` to detect query-only
-         * route changes. In Next 16 any component that calls
-         * `useSearchParams()` must sit inside a Suspense boundary on routes
-         * that are statically prerendered — otherwise the build bails on
-         * `/_not-found` with "missing-suspense-with-csr-bailout". The
-         * progress bar has no SSR-visible state worth showing (it's a 2px
-         * accent line that appears on click), so a null fallback is correct.
-         */}
-        {areDeferredMounted ? (
-          <Suspense fallback={null}>
-            <NavigationProgress />
-          </Suspense>
-        ) : null}
+        <NavigationProgress />
         <StoreNoticeBanner />
         <Header onOpenSearch={openSearch} />
         <MobileHeader onOpenSearch={openSearch} />

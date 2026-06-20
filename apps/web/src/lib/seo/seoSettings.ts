@@ -19,9 +19,8 @@ import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
 import { connectDB, getStoreSettings, Setting } from "@store/db";
-import type { StoredImage } from "@store/shared";
+import { resolvePublicSiteUrl, type StoredImage } from "@store/shared";
 
-import { getBaseUrl } from "@/lib/core/baseUrl";
 import { STOREFRONT_CACHE_TAG } from "@/lib/core/cached";
 import type { SeoSettings } from "./composeSeoMeta";
 
@@ -82,7 +81,7 @@ const loadSeoSettings = unstable_cache(
     return {
       siteName: store.siteName,
       siteTagline: store.siteTagline,
-      siteUrl: getBaseUrl(),
+      siteUrl: resolvePublicSiteUrl(store.publicSiteUrl),
       seoStoreName: asString(map.get("seo.storeName"), ""),
       titleTemplate: asString(
         map.get("seo.titleTemplate"),

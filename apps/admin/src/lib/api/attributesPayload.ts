@@ -111,43 +111,7 @@ export function parseAttributeVisibilityInput(
     }
     return parsed;
   }
-  if (parsed.type === "attribute") {
-    if (!parsed.attributeSlug?.trim()) {
-      return { error: "Parent attribute is required for attribute-gated visibility." };
-    }
-    if (!parsed.optionValues?.length) {
-      return { error: "Select at least one parent option for attribute-gated visibility." };
-    }
-    return parsed;
-  }
   return parsed;
-}
-
-/** Reject visibility rules that create a cycle in the parent chain. */
-export function detectVisibilityCycle(
-  slug: string,
-  visibility: AttributeVisibility,
-  siblings: Array<{ slug: string; visibility?: AttributeVisibility }>,
-): string | null {
-  if (visibility.type !== "attribute" || !visibility.attributeSlug) {
-    return null;
-  }
-  const normalizedSlug = slug.trim().toLowerCase();
-  const visited = new Set<string>([normalizedSlug]);
-  let parent = visibility.attributeSlug.trim().toLowerCase();
-  while (parent) {
-    if (visited.has(parent)) {
-      return "Visibility parent chain cannot include a cycle.";
-    }
-    visited.add(parent);
-    const parentDef = siblings.find((row) => row.slug === parent);
-    const parentVis = parentDef?.visibility;
-    if (!parentVis || parentVis.type !== "attribute" || !parentVis.attributeSlug) {
-      return null;
-    }
-    parent = parentVis.attributeSlug.trim().toLowerCase();
-  }
-  return null;
 }
 
 export function parseOptionalHexColor(value: unknown): string | undefined {

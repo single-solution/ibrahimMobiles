@@ -16,7 +16,7 @@ export function IdleRoutePrefetch() {
 			return;
 		}
 
-		const routes = [catalogHomeHref, "/cart"];
+		const routes = [catalogHomeHref, "/cart", "/deals", "/about"];
 		const run = () => {
 			for (const route of routes) {
 				try {

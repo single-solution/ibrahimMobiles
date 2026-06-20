@@ -60,6 +60,7 @@ function toPreviewProduct(input: ProductSeoInput): Product {
           gradeSlug: v.gradeSlug || "preview",
           priceRupees: 0,
           quantity: 1,
+          forceOutOfStock: false,
           attributes: {},
         }))
       : [
@@ -68,6 +69,7 @@ function toPreviewProduct(input: ProductSeoInput): Product {
             gradeSlug: "preview",
             priceRupees: 0,
             quantity: 1,
+            forceOutOfStock: false,
             attributes: {},
           },
         ];

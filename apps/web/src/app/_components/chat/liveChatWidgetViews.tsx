@@ -87,7 +87,7 @@ export function ChatShell({
          Sized to match the cart dropdown so chat and cart feel like
          siblings, with mobile shrinking only when the viewport can't fit
          the desktop dimensions. */
-      className="animate-popover-in flex h-full w-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[440px] md:rounded-[var(--radius-lg)]"
+      className="flex h-full w-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:rounded-[var(--radius-lg)]"
     >
       <header className="flex items-center gap-3 border-b border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3 py-3 text-[var(--color-ink-900)]">
         {onBack ? (

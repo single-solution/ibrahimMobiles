@@ -5,18 +5,19 @@ import { cache, Suspense } from "react";
 import { ChevronRight } from "lucide-react";
 
 import type { Product } from "@store/shared";
+import { productConfiguratorAttributeSlugs } from "@store/shared";
 
 import { PdpScrollReset } from "./_components/PdpScrollReset";
 import { ProductChatBeacon } from "./_components/ProductChatBeacon";
 import { GradeShowcase } from "@/components/shared/GradeShowcase";
 import { VariantAwareGallery } from "@/components/shared/PdpGallery";
+import { PdpOfferBadgeOverlay } from "@/components/shared/PdpOfferBadgeOverlay";
 import { ProductCard } from "@/components/shared/ProductCard";
 import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { VariantProvider } from "@/components/shared/VariantContext";
 import { VariantSelector } from "@/components/shared/VariantSelector";
 import {
-  categoryAttributeSlugsFromProduct,
   readLegacyVariantId,
   resolveExactVariantFromSearch,
 } from "@/lib/catalog/pdpSelection";
@@ -89,13 +90,10 @@ function attributeSlugsForProduct(
   product: Product,
   allAttributes: Awaited<ReturnType<typeof getAttributesCached>>,
 ): string[] {
-  const fromCatalog = allAttributes
-    .filter((row) => row.categorySlug === product.categorySlug)
-    .map((row) => row.slug);
-  const fromVariants = categoryAttributeSlugsFromProduct(product);
-  return Array.from(new Set([...fromCatalog, ...fromVariants])).sort((a, b) =>
-    a.localeCompare(b),
+  const categoryAttributes = allAttributes.filter(
+    (row) => row.categorySlug === product.categorySlug,
   );
+  return productConfiguratorAttributeSlugs(product, categoryAttributes);
 }
 
 export async function generateMetadata({
@@ -249,13 +247,21 @@ export default async function ProductDetailPage({
       />
       {/* Mobile */}
       <div className="pdp-shell reveal-stagger pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-2 md:hidden">
-        <div className={`reveal ${STOREFRONT_SHELL_CLASS}`}>
-          <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+        <div className={`reveal space-y-3 ${STOREFRONT_SHELL_CLASS}`}>
+          <Breadcrumbs
+            categorySlug={categoryMeta.slug}
+            categoryLabel={categoryMeta.label}
+            brandName={brandName}
+            brandFilterHref={brandFilterHref}
+            modelName={product.name}
+          />
+          <div className="relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
             <VariantAwareGallery
               product={product}
               brandName={brandName}
               layout="mobile"
             />
+            <PdpOfferBadgeOverlay product={product} />
           </div>
         </div>
 
@@ -299,12 +305,13 @@ export default async function ProductDetailPage({
         </div>
 
         <div className="mt-6 grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] items-start gap-10">
-          <div className="reveal min-w-0 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-sm)]">
+          <div className="reveal relative min-w-0 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-sm)]">
             <VariantAwareGallery
               product={product}
               brandName={brandName}
               layout="desktop"
             />
+            <PdpOfferBadgeOverlay product={product} />
           </div>
 
           <div className="reveal flex min-h-0 min-w-0 flex-col">
@@ -464,9 +471,9 @@ async function MobileRelatedRail({
     );
   }
   return (
-    <div className="reveal-stagger grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
+    <div className="reveal-scroll-list grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-4">
       {related.map((relatedProduct) => (
-        <div key={relatedProduct.id} className="reveal h-full">
+        <div key={relatedProduct.id} className="reveal reveal-scroll reveal-rise h-full">
           <ProductCard product={relatedProduct} />
         </div>
       ))}
@@ -490,9 +497,9 @@ async function DesktopRelatedRail({
     );
   }
   return (
-    <div className="reveal-stagger mt-6 grid grid-cols-4 gap-5">
+    <div className="reveal-scroll-list mt-6 grid grid-cols-4 gap-5">
       {related.map((relatedProduct) => (
-        <div key={relatedProduct.id} className="reveal h-full">
+        <div key={relatedProduct.id} className="reveal reveal-scroll reveal-rise h-full">
           <ProductCard product={relatedProduct} />
         </div>
       ))}
@@ -538,7 +545,10 @@ function Breadcrumbs({
   modelName,
 }: BreadcrumbsProps) {
   return (
-    <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1.5 text-sm text-[var(--color-ink-500)]">
+    <nav
+      aria-label="Breadcrumb"
+      className="flex flex-wrap items-center gap-1 text-xs text-[var(--color-ink-500)] sm:gap-1.5 sm:text-sm"
+    >
       <Link href="/" className="hover:text-[var(--color-ink-800)]">
         Home
       </Link>

@@ -4,24 +4,27 @@ import { useMemo } from "react";
 import Link from "next/link";
 
 import { type Product } from "@store/shared";
-import { evaluateOffers } from "@store/shared";
+import { isVariantInStock, resolveItemOfferBadgeLabel } from "@store/shared";
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { productHref } from "@/lib/catalog/productPaths";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
+import { buildEvaluatableItem } from "@/lib/pricing/productOfferMatch";
 import {
   countProductGrades,
   getVariantsInDisplayOrder,
   isProductInStock,
   resolveListingVariant,
   resolveProductHeroImage,
+  scopeProductToGrade,
 } from "@/lib/productSummary";
 import {
   useAttributesForCategory,
   useGradesForCategory,
 } from "@/lib/core/storefrontReferenceContext";
 
+import { ProductCardOfferBadge } from "./ProductCardOfferBadge";
 import {
   CARD_FOOTER_CHIP_SLOT_CLASS,
   OVERLAY_CHIP_ROW_MAX_PX,
@@ -131,23 +134,54 @@ export function ProductCard({
 
   const { offers } = useActiveOffers();
 
-  // Evaluate offers for the display variant
-  const evaluatableItem = useMemo(() => {
-    return {
-      id: "product_card_eval",
-      productId: catalog.id,
-      variantId: listingVariant.id,
-      categorySlug: catalog.categorySlug,
-      brandSlug: catalog.brandSlug,
-      gradeSlug: listingVariant.gradeSlug,
-      price: listingVariant.priceRupees,
-      quantity: 1,
-      attributes: listingVariant.attributes,
-    };
-  }, [catalog, listingVariant]);
+  const slideOfferBadgeLabels = useMemo(() => {
+    if (!chipSlides || offers.length === 0) {
+      return null;
+    }
 
-  const pricing = useMemo(() => evaluateOffers([evaluatableItem], offers), [evaluatableItem, offers]);
-  const activeOffer = pricing.itemDiscounts.get("product_card_eval")?.[0];
+    return chipSlides.map((slide) => {
+      if (gradeSlides && slide.gradeSlug) {
+        const scoped = scopeProductToGrade(catalog, slide.gradeSlug);
+        const variant = resolveListingVariant(scoped);
+        if (!isVariantInStock(variant)) {
+          return null;
+        }
+        return resolveItemOfferBadgeLabel(buildEvaluatableItem(catalog, variant), offers);
+      }
+
+      if (variantSlides) {
+        const variant = product.variants.find((row) => row.id === slide.slideKey);
+        if (!variant || !isVariantInStock(variant)) {
+          return null;
+        }
+        return resolveItemOfferBadgeLabel(buildEvaluatableItem(catalog, variant), offers);
+      }
+
+      return null;
+    });
+  }, [catalog, chipSlides, gradeSlides, offers, product.variants, variantSlides]);
+
+  const evaluatableItem = useMemo(() => {
+    const gradeSlug =
+      shouldCycleGradeMedia && gradeSlides
+        ? (gradeSlides[slideCycle.activeIndex]?.gradeSlug ?? listingVariant.gradeSlug)
+        : listingVariant.gradeSlug;
+
+    return buildEvaluatableItem(catalog, {
+      ...listingVariant,
+      gradeSlug,
+    });
+  }, [catalog, gradeSlides, listingVariant, shouldCycleGradeMedia, slideCycle.activeIndex]);
+
+  const staticOfferBadgeLabel = useMemo(() => {
+    if (slideOfferBadgeLabels?.some((label) => label)) {
+      return null;
+    }
+    if (!isVariantInStock(listingVariant)) {
+      return null;
+    }
+    return resolveItemOfferBadgeLabel(evaluatableItem, offers);
+  }, [evaluatableItem, listingVariant.quantity, offers, slideOfferBadgeLabels]);
 
   return (
     <Link
@@ -163,7 +197,7 @@ export function ProductCard({
         prefetchHandlers.onFocus?.();
       }}
     >
-      <div className="reveal lift glass-shine flex h-full flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] hover:border-[var(--color-ink-200)]">
+      <div className="lift glass-shine flex h-full flex-col overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] hover:border-[var(--color-ink-200)]">
         <div className="product-media-well relative aspect-square shrink-0 bg-[var(--color-canvas-deep)]">
           {shouldCycleGradeMedia && gradeSlides ? (
             <ProductCardMediaCycle
@@ -175,6 +209,7 @@ export function ProductCard({
               name={product.name}
               slides={gradeSlides}
               priority={priority}
+              offerBadgeLabels={slideOfferBadgeLabels ?? undefined}
             />
           ) : isGradeListing && shouldCycleVariantChips && variantSlides ? (
             <ProductCardMediaCycle
@@ -187,6 +222,7 @@ export function ProductCard({
               pinnedGradeSlug={pinnedGradeSlug}
               slides={variantSlides}
               priority={priority}
+              offerBadgeLabels={slideOfferBadgeLabels ?? undefined}
             />
           ) : (
             <>
@@ -201,11 +237,9 @@ export function ProductCard({
                 />
               </div>
               <div className="absolute right-1.5 top-1.5 z-10 flex flex-col items-end gap-1 md:right-3 md:top-3 md:gap-1.5">
-                {activeOffer && (
-                  <span className="rounded-sm bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--color-accent-800)] shadow-sm">
-                    {activeOffer.offerTitle}
-                  </span>
-                )}
+                {staticOfferBadgeLabel ? (
+                  <ProductCardOfferBadge label={staticOfferBadgeLabel} />
+                ) : null}
                 <GradeBadge
                   categorySlug={product.categorySlug}
                   gradeSlug={staticGradeSlug}

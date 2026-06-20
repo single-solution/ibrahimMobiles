@@ -1,33 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
+import { dispatchRouteReveal } from "@/components/shared/motion/RevealRoot";
 import { useNavigationProgressCount } from "@/lib/navigation/navigationProgress";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
 /**
  * Thin progress bar that gives instant tap feedback on navigation.
  *
- * Two trigger sources feed one bar:
- *
- *   1. **Anchor / `<Link>` clicks + back/forward** — we listen for the
- *      click that *would* start a navigation (any in-app anchor that
- *      doesn't open a new tab) and `popstate`, so the bar fires the
- *      instant the user taps.
- *   2. **Programmatic transitions** — components that update the URL
- *      via `useNavigationTransition().startNavigation(...)` bump a
- *      shared counter. When the counter goes from 0 to >0, the bar
- *      starts; when it drains, the bar completes. This covers filter
- *      chips, segment toggles, view-mode tabs, sort dropdowns, and
- *      anything else that calls `router.push/replace` outside an `<a>`.
- *
- * In both cases the new route segment commit (detected via `usePathname` /
- * `useSearchParams`) drives the bar to 100% and the fade-out.
- *
- * `prefers-reduced-motion` collapses the bar to a flat top accent line
- * (no shimmer, no width tween) so motion-sensitive users still get the
- * "something is happening" signal without animation.
+ * Click / popstate listeners sit in the same tree as the bar (outside the
+ * `useSearchParams` Suspense child) so taps start the bar on the first
+ * frame. Route commit detection needs search params and lives in
+ * {@link NavigationProgressRouteSync}.
  */
 const SHOW_AFTER_CLICK_MS = 0;
 const TRICKLE_START_PERCENT = 30;
@@ -37,72 +23,13 @@ const TRICKLE_INTERVAL_MS = 260;
 const COMPLETION_FADE_MS = 340;
 const SAME_ROUTE_AUTO_CANCEL_MS = 15000;
 
-export function NavigationProgress() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const programmaticCount = useNavigationProgressCount();
-  const [isVisible, setIsVisible] = useState(false);
-  const [percent, setPercent] = useState(0);
-  const trickleIntervalRef = useRef<number | null>(null);
-  const fadeTimeoutRef = useRef<number | null>(null);
-  const autoCancelTimeoutRef = useRef<number | null>(null);
-  const lastRouteKeyRef = useRef<string>(`${pathname}?${searchParams?.toString() ?? ""}`);
-
-  const clearTrickle = useCallback(() => {
-    if (trickleIntervalRef.current !== null) {
-      window.clearInterval(trickleIntervalRef.current);
-      trickleIntervalRef.current = null;
-    }
-  }, []);
-
-  const clearFade = useCallback(() => {
-    if (fadeTimeoutRef.current !== null) {
-      window.clearTimeout(fadeTimeoutRef.current);
-      fadeTimeoutRef.current = null;
-    }
-  }, []);
-
-  const clearAutoCancel = useCallback(() => {
-    if (autoCancelTimeoutRef.current !== null) {
-      window.clearTimeout(autoCancelTimeoutRef.current);
-      autoCancelTimeoutRef.current = null;
-    }
-  }, []);
-
-  const completeNavigation = useCallback(() => {
-    clearTrickle();
-    clearAutoCancel();
-    setPercent(100);
-    clearFade();
-    fadeTimeoutRef.current = window.setTimeout(() => {
-      setIsVisible(false);
-      setPercent(0);
-    }, COMPLETION_FADE_MS);
-  }, [clearAutoCancel, clearFade, clearTrickle]);
-
-  const startNavigation = useCallback(() => {
-    clearFade();
-    clearAutoCancel();
-    setIsVisible(true);
-    setPercent(TRICKLE_START_PERCENT);
-    clearTrickle();
-    trickleIntervalRef.current = window.setInterval(() => {
-      setPercent((current) => {
-        if (current >= TRICKLE_CEILING_PERCENT) {
-          return current;
-        }
-        return Math.min(current + TRICKLE_STEP_PERCENT, TRICKLE_CEILING_PERCENT);
-      });
-    }, TRICKLE_INTERVAL_MS);
-    autoCancelTimeoutRef.current = window.setTimeout(() => {
-      completeNavigation();
-    }, SAME_ROUTE_AUTO_CANCEL_MS);
-  }, [clearAutoCancel, clearFade, clearTrickle, completeNavigation]);
-
+function NavigationProgressClickListener({
+  onStart,
+}: {
+  onStart: () => void;
+}) {
   useEffect(() => {
     const handleClick = (event: MouseEvent) => {
-      // Ignore modified clicks — the browser will open a new tab / save the
-      // link, not navigate the SPA.
       if (
         event.defaultPrevented ||
         event.button !== 0 ||
@@ -133,7 +60,6 @@ export function NavigationProgress() {
       ) {
         return;
       }
-      // External link — let the browser take over, don't show the bar.
       try {
         const targetUrl = new URL(href, window.location.href);
         if (targetUrl.origin !== window.location.origin) {
@@ -149,40 +75,34 @@ export function NavigationProgress() {
       }
 
       if (SHOW_AFTER_CLICK_MS === 0) {
-        startNavigation();
+        onStart();
       } else {
-        window.setTimeout(startNavigation, SHOW_AFTER_CLICK_MS);
+        window.setTimeout(onStart, SHOW_AFTER_CLICK_MS);
       }
     };
 
     document.addEventListener("click", handleClick, { capture: true });
-    window.addEventListener("popstate", startNavigation);
+    window.addEventListener("popstate", onStart);
 
     return () => {
       document.removeEventListener("click", handleClick, { capture: true });
-      window.removeEventListener("popstate", startNavigation);
-      clearTrickle();
-      clearFade();
-      clearAutoCancel();
+      window.removeEventListener("popstate", onStart);
     };
-  }, [clearAutoCancel, clearFade, clearTrickle, startNavigation]);
+  }, [onStart]);
 
-  // Programmatic transitions (filter chips, view-mode tabs, …) bump
-  // `programmaticCount`. Rising edge starts the bar; falling edge
-  // completes it. The pathname/searchParams effect below provides a
-  // belt-and-suspenders settle in case the count somehow lags the URL.
-  useEffect(() => {
-    if (programmaticCount > 0) {
-      scheduleStateUpdate(startNavigation);
-      return;
-    }
-    if (isVisible) {
-      scheduleStateUpdate(completeNavigation);
-    }
-    // `isVisible` is intentionally not in deps — we only react to count
-    // transitions, not bar visibility flips.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [programmaticCount, startNavigation, completeNavigation]);
+  return null;
+}
+
+function NavigationProgressRouteSync({
+  onRouteCommit,
+}: {
+  onRouteCommit: () => void;
+}) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const lastRouteKeyRef = useRef<string>(
+    `${pathname}?${searchParams?.toString() ?? ""}`,
+  );
 
   useEffect(() => {
     const routeKey = `${pathname}?${searchParams?.toString() ?? ""}`;
@@ -190,21 +110,149 @@ export function NavigationProgress() {
       return;
     }
     lastRouteKeyRef.current = routeKey;
-    completeNavigation();
-  }, [pathname, searchParams, completeNavigation]);
+    onRouteCommit();
+  }, [pathname, searchParams, onRouteCommit]);
+
+  return null;
+}
+
+function NavigationProgressBar({
+  isVisible,
+  percent,
+}: {
+  isVisible: boolean;
+  percent: number;
+}) {
+  return (
+    <div
+      aria-hidden
+      data-visible={isVisible ? "true" : "false"}
+      className="nav-progress pointer-events-none fixed inset-x-0 top-0 z-[var(--z-max)] h-[2px]"
+    >
+      <div
+        className="nav-progress-bar h-full w-full bg-[var(--color-accent-500)]"
+        style={{ transform: `scaleX(${percent / 100})` }}
+      />
+    </div>
+  );
+}
+
+export function NavigationProgress() {
+  const programmaticCount = useNavigationProgressCount();
+  const [isVisible, setIsVisible] = useState(false);
+  const [percent, setPercent] = useState(0);
+  const trickleIntervalRef = useRef<number | null>(null);
+  const fadeTimeoutRef = useRef<number | null>(null);
+  const autoCancelTimeoutRef = useRef<number | null>(null);
+  const programmaticActiveRef = useRef(false);
+
+  const clearTrickle = useCallback(() => {
+    if (trickleIntervalRef.current !== null) {
+      window.clearInterval(trickleIntervalRef.current);
+      trickleIntervalRef.current = null;
+    }
+  }, []);
+
+  const clearFade = useCallback(() => {
+    if (fadeTimeoutRef.current !== null) {
+      window.clearTimeout(fadeTimeoutRef.current);
+      fadeTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearAutoCancel = useCallback(() => {
+    if (autoCancelTimeoutRef.current !== null) {
+      window.clearTimeout(autoCancelTimeoutRef.current);
+      autoCancelTimeoutRef.current = null;
+    }
+  }, []);
+
+  const completeNavigation = useCallback(() => {
+    clearTrickle();
+    clearAutoCancel();
+    programmaticActiveRef.current = false;
+    setPercent(100);
+    clearFade();
+    dispatchRouteReveal();
+    fadeTimeoutRef.current = window.setTimeout(() => {
+      setIsVisible(false);
+      setPercent(0);
+    }, COMPLETION_FADE_MS);
+  }, [clearAutoCancel, clearFade, clearTrickle]);
+
+  const startNavigation = useCallback(() => {
+    clearFade();
+    clearAutoCancel();
+    setIsVisible(true);
+    setPercent(TRICKLE_START_PERCENT);
+    clearTrickle();
+    trickleIntervalRef.current = window.setInterval(() => {
+      setPercent((current) => {
+        if (current >= TRICKLE_CEILING_PERCENT) {
+          return current;
+        }
+        return Math.min(current + TRICKLE_STEP_PERCENT, TRICKLE_CEILING_PERCENT);
+      });
+    }, TRICKLE_INTERVAL_MS);
+    autoCancelTimeoutRef.current = window.setTimeout(() => {
+      completeNavigation();
+    }, SAME_ROUTE_AUTO_CANCEL_MS);
+  }, [clearAutoCancel, clearFade, clearTrickle, completeNavigation]);
+
+  useEffect(() => {
+    if (programmaticCount > 0) {
+      programmaticActiveRef.current = true;
+      scheduleStateUpdate(startNavigation);
+      return;
+    }
+    if (programmaticActiveRef.current) {
+      programmaticActiveRef.current = false;
+      scheduleStateUpdate(completeNavigation);
+    }
+  }, [programmaticCount, startNavigation, completeNavigation]);
+
+  useEffect(
+    () => () => {
+      clearTrickle();
+      clearFade();
+      clearAutoCancel();
+    },
+    [clearAutoCancel, clearFade, clearTrickle],
+  );
 
   return (
     <>
-      <div
-        aria-hidden
-        data-visible={isVisible ? "true" : "false"}
-        className="nav-progress pointer-events-none fixed inset-x-0 top-0 z-[var(--z-max)] h-[2px]"
-      >
+      <NavigationProgressClickListener onStart={startNavigation} />
+      <NavigationProgressBar isVisible={isVisible} percent={percent} />
+      {isVisible ? (
         <div
-          className="nav-progress-bar h-full w-full bg-[var(--color-accent-500)]"
-          style={{ transform: `scaleX(${percent / 100})` }}
-        />
-      </div>
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-[90] flex items-center justify-center bg-[var(--color-ink-900)]/15 backdrop-blur-[2px]"
+          style={{ animation: "nav-overlay-in 0.25s ease-out 0.45s both" }}
+        >
+          <div className="nav-preloader-origami grid size-[34px] grid-cols-2 gap-[3px]" aria-hidden>
+            <div
+              className="origin-bottom-right rounded-[2px] bg-[var(--color-accent-500)]"
+              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0s" }}
+            />
+            <div
+              className="origin-bottom-left rounded-[2px] bg-[var(--color-ink-900)]"
+              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.3s" }}
+            />
+            <div
+              className="origin-top-right rounded-[2px] bg-[var(--color-ink-900)]"
+              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.9s" }}
+            />
+            <div
+              className="origin-top-left rounded-[2px] bg-[var(--color-accent-500)]"
+              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.6s" }}
+            />
+          </div>
+        </div>
+      ) : null}
+      <Suspense fallback={null}>
+        <NavigationProgressRouteSync onRouteCommit={completeNavigation} />
+      </Suspense>
     </>
   );
 }

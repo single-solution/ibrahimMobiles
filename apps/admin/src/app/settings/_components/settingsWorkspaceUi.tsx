@@ -7,6 +7,7 @@ import { Button } from "@store/ui";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 export type SettingsTabId =
+  | "urls"
   | "store"
   | "contact"
   | "payments"
@@ -38,9 +39,15 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
     label: "General",
     tabs: [
       {
+        id: "urls",
+        label: "Site URLs",
+        description:
+          "Public storefront address used for SEO, sitemaps, canonical links, and admin product links.",
+      },
+      {
         id: "store",
         label: "Store details",
-        description: "Site name and tagline shown across the storefront, browser titles, and chat.",
+        description: "Site name, tagline, and brand logos shown across the storefront and chat.",
       },
       {
         id: "contact",
@@ -323,7 +330,7 @@ export function FormGrid({
  * Scrollable form body with optional sticky save footer inside the panel.
  *
  * Always stretches to the full width of the settings tab area so dense
- * surfaces like the chat assistant test panel and SEO previews can use
+ * surfaces like chat assistant settings and SEO previews can use
  * every available pixel. The form card itself caps individual fields with
  * `max-w-prose` to keep short inputs from spanning huge monitors.
  */

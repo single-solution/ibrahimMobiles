@@ -6,8 +6,9 @@ import { Check, MessageCircle, Settings2, ShoppingBag } from "lucide-react";
 import {
   buildWhatsAppLink,
   classNames,
-  evaluateOffers,
   formatPrice,
+  getStorefrontItemOffers,
+  isVariantInStock,
   resolveVariantAttributeLabel,
   type AttributeDescriptor,
   type GradeDescriptor,
@@ -32,12 +33,11 @@ import {
 import { CART_MAX_LINES } from "@/lib/cart/store";
 import { useCart } from "@/lib/cart/useCart";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
-import {
-  useAttributesForCategory,
-  useGradesForCategory,
-} from "@/lib/core/storefrontReferenceContext";
+import { useProductAttributeScope } from "@/lib/catalog/productAttributeScope";
+import { useGradesForCategory } from "@/lib/core/storefrontReferenceContext";
 
 import { Configurator, ClosestMatchNotice } from "./variantSelectorConfigurator";
+import { ProductApplicableOffers } from "./ProductApplicableOffers";
 import {
   buildDimensions,
   describePickRealignment,
@@ -53,9 +53,6 @@ import {
 
 const ADD_TO_CART_FLASH_MS = 1_500;
 const REALIGNMENT_NOTICE_MS = 6_000;
-
-const isVariantInStock = (variant: Variant): boolean =>
-  (variant.quantity ?? 0) > 0;
 
 interface VariantSelectorProps {
   product: Product;
@@ -77,7 +74,8 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
   const [addQuantity, setAddQuantity] = useState(1);
   const [realignmentNotice, setRealignmentNotice] = useState<string | null>(null);
   const [realignmentDimensionKey, setRealignmentDimensionKey] = useState<string | null>(null);
-  const categoryAttributes = useAttributesForCategory(product.categorySlug);
+  const { config: productAttributeConfig, attributes: categoryAttributes } =
+    useProductAttributeScope(product);
   const grades = useGradesForCategory(product.categorySlug);
   const attributeSlugs = useMemo(
     () => categoryAttributes.map((row) => row.slug),
@@ -96,8 +94,8 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
     [requiredAttributeSlugs, categoryAttributes],
   );
   const dimensions = useMemo(
-    () => buildDimensions(product, categoryAttributes, grades),
-    [product, categoryAttributes, grades],
+    () => buildDimensions(product, categoryAttributes, grades, productAttributeConfig),
+    [product, categoryAttributes, grades, productAttributeConfig],
   );
 
   const selected =
@@ -187,8 +185,10 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
     };
   }, [product, selected]);
 
-  const pricing = useMemo(() => evaluateOffers([evaluatableItem], offers), [evaluatableItem, offers]);
-  const activeOffer = pricing.itemDiscounts.get("pdp_eval")?.[0];
+  const applicableOffers = useMemo(
+    () => getStorefrontItemOffers(evaluatableItem, offers),
+    [evaluatableItem, offers],
+  );
 
   const attributeSummary = useMemo(
     () => describeSelection(selected, categoryAttributes),
@@ -271,18 +271,20 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 
       <div className="shrink-0 space-y-3 md:mt-4 md:pt-3">
         {isComplete ? (
-          <PurchaseSummary
-            isInStock={inStock}
-            stockQuantity={stockQuantity}
-            remainingStock={remainingStock}
-            priceRupees={selected.priceRupees}
-            quantity={orderQuantity}
-            maxQuantity={maxSelectableQuantity}
-            onQuantityChange={setAddQuantity}
-            onAddToCart={handleAddToCart}
-            hasJustBeenAdded={hasJustBeenAdded}
-            discountAmount={activeOffer?.discountAmount ?? 0}
-          />
+          <>
+            <ProductApplicableOffers offers={applicableOffers} />
+            <PurchaseSummary
+              isInStock={inStock}
+              stockQuantity={stockQuantity}
+              remainingStock={remainingStock}
+              priceRupees={selected.priceRupees}
+              quantity={orderQuantity}
+              maxQuantity={maxSelectableQuantity}
+              onQuantityChange={setAddQuantity}
+              onAddToCart={handleAddToCart}
+              hasJustBeenAdded={hasJustBeenAdded}
+            />
+          </>
         ) : (
           <SelectToSeePrice attributeLabels={missingAttributeLabels} />
         )}
@@ -299,7 +301,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
           quantity={orderQuantity}
           maxQuantity={maxSelectableQuantity}
           onQuantityChange={setAddQuantity}
-          discountAmount={activeOffer?.discountAmount ?? 0}
         />
       ) : (
         <MobileStickyPlaceholder attributeLabels={missingAttributeLabels} />

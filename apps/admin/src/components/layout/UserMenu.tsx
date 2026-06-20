@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, KeyRound, LogOut, User } from "lucide-react";
 import { classNames } from "@store/shared";
@@ -46,26 +46,6 @@ export function UserMenu({
   const displayName = name.trim() || "Admin";
   const displayRole = roleLabel(role, isSuperAdmin);
 
-  useEffect(() => {
-    if (!open) return;
-    function handlePointerDown(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
-
   return (
     <div ref={rootRef} className="relative">
       <button
@@ -102,6 +82,7 @@ export function UserMenu({
       <Popover
         isOpen={open}
         anchorRef={rootRef}
+        onRequestClose={() => setOpen(false)}
         role="menu"
         className="animate-popover-in w-56 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-1.5 shadow-[var(--shadow-lg)]"
       >

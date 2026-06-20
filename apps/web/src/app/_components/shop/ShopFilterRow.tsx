@@ -6,10 +6,6 @@ import { useMemo } from "react";
 
 
 
-import { formatPrice } from "@store/shared";
-
-
-
 import { FilterDropdown } from "@/components/shared/FilterDropdown";
 
 import {
@@ -126,10 +122,6 @@ export function ShopFilterRow({
 
 	const brandSlugs = filterApi.getMulti(FILTER_PARAM_KEYS.brands);
 
-	const minPrice = filterApi.getSingle(FILTER_PARAM_KEYS.minPrice);
-
-	const maxPrice = filterApi.getSingle(FILTER_PARAM_KEYS.maxPrice);
-
 
 
 	const gradeLabels = useMemo(
@@ -166,45 +158,9 @@ export function ShopFilterRow({
 
 
 
-	const priceLabel = useMemo(() => {
-
-		if (!isPriceFilterActive(params)) {
-
-			return "Price";
-
-		}
-
-		const min = minPrice ? Number.parseInt(minPrice, 10) : undefined;
-
-		const max = maxPrice ? Number.parseInt(maxPrice, 10) : undefined;
-
-		if (min !== undefined && max !== undefined) {
-
-			return `${formatPrice(min)} – ${formatPrice(max)}`;
-
-		}
-
-		if (min !== undefined) {
-
-			return `From ${formatPrice(min)}`;
-
-		}
-
-		if (max !== undefined) {
-
-			return `Up to ${formatPrice(max)}`;
-
-		}
-
-		return "Price";
-
-	}, [maxPrice, minPrice, params]);
-
-
-
 	return (
 
-		<div className="flex shrink-0 flex-wrap items-center justify-end gap-2 md:gap-2.5">
+		<div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2 md:gap-2.5">
 
 			<FilterDropdown
 
@@ -274,9 +230,13 @@ export function ShopFilterRow({
 
 			<FilterDropdown
 
-				label={priceLabel}
+				label="Price"
 
 				activeCount={isPriceFilterActive(params) ? 1 : 0}
+
+				align="right"
+
+				panelClassName="max-h-[min(360px,52vh)] w-[min(280px,calc(100vw-2rem))] min-w-[min(240px,calc(100vw-2rem))]"
 
 			>
 
@@ -289,5 +249,4 @@ export function ShopFilterRow({
 	);
 
 }
-
 

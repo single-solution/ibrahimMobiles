@@ -23,7 +23,7 @@ import {
   selectionToUrlPatch,
   variantsForGrade,
 } from "@/lib/catalog/pdpSelection";
-import { useAttributesForCategory } from "@/lib/core/storefrontReferenceContext";
+import { useProductAttributeScope } from "@/lib/catalog/productAttributeScope";
 import { usePdpUrlParams } from "@/lib/core/usePdpUrlParams";
 
 interface VariantContextValue {
@@ -52,10 +52,10 @@ interface VariantProviderProps {
  */
 export function VariantProvider({ product, children }: VariantProviderProps) {
   const { searchParams, replace } = usePdpUrlParams();
-  const categoryAttributes = useAttributesForCategory(product.categorySlug);
+  const { attributes: scopedAttributes } = useProductAttributeScope(product);
   const attributeSlugs = useMemo(
-    () => categoryAttributes.map((row) => row.slug),
-    [categoryAttributes],
+    () => scopedAttributes.map((row) => row.slug),
+    [scopedAttributes],
   );
   const requiredAttributeSlugs = useMemo(
     () => getRequiredAttributeSlugsForProduct(product, attributeSlugs),

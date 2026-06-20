@@ -22,7 +22,6 @@ import {
   type AttributeLean,
 } from "@/lib/serializers/attribute";
 import {
-  detectVisibilityCycle,
   parseAttributeOptions,
   parseAttributeUnit,
   parseAttributeVisibilityInput,
@@ -157,26 +156,6 @@ export async function PUT(request: Request, { params }: RouteContext) {
         return conflict("An attribute with this slug already exists in this category.");
       }
       update.slug = nextSlug;
-    }
-
-    if (update.visibility !== undefined) {
-      const currentDoc = await Attribute.findById(id)
-        .select("slug")
-        .lean<{ slug: string }>();
-      const siblings = await Attribute.find({
-        categorySlug: current.categorySlug,
-        _id: { $ne: id },
-      })
-        .select("slug visibility")
-        .lean<Array<{ slug: string; visibility?: import("@store/shared").AttributeVisibility }>>();
-      const cycleError = detectVisibilityCycle(
-        currentDoc?.slug ?? "",
-        update.visibility as Parameters<typeof detectVisibilityCycle>[1],
-        siblings,
-      );
-      if (cycleError) {
-        return badRequest(cycleError);
-      }
     }
 
     const doc = await Attribute.findByIdAndUpdate(

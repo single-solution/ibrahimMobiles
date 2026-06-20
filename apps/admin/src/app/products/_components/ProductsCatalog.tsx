@@ -11,7 +11,7 @@ import {
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Boxes, Check, Copy, ExternalLink, EyeOff, MoreHorizontal, Pencil, Star, Trash2 } from "lucide-react";
+import { Boxes, Check, ExternalLink, EyeOff, Star } from "lucide-react";
 import {
   classNames,
   compareAlphabetically,
@@ -52,12 +52,15 @@ import { getPublicSiteUrl } from "@/lib/seo/publicSiteUrl";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 
 import { ProductCreateWizard } from "./ProductCreateWizard";
+import { ProductRowEditMenu } from "./ProductRowEditMenu";
 
 // The edit drawer carries the variant editor, structured-content
 // editor, and image upload — together by far the heaviest client modules on
 // this page. Dynamic-import + render-on-demand keeps that JS out of the
 // initial /products bundle. Once a drawer opens it stays mounted, so close
 // animations and form state are preserved across subsequent opens.
+import type { ProductEditStep } from "./ProductEditDrawer";
+
 const ProductEditDrawer = dynamic(
   () =>
     import("./ProductEditDrawer").then((mod) => ({
@@ -71,7 +74,23 @@ interface ProductsCatalogProps {
   catalog: ProductWizardCatalog;
 }
 
-type Panel = "edit";
+type ProductPanel = "details" | "variants" | "seo";
+
+const PANEL_TO_STEP: Record<ProductPanel, ProductEditStep> = {
+  details: 1,
+  variants: 2,
+  seo: 3,
+};
+
+function parseProductPanel(value: string | null): ProductPanel | null {
+  if (value === "details" || value === "variants" || value === "seo") {
+    return value;
+  }
+  if (value === "edit") {
+    return "details";
+  }
+  return null;
+}
 
 interface CategoryNavItem {
   category: AdminCategory;
@@ -270,7 +289,10 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(
     null,
   );
-  const [editId, setEditId] = useState<string | null>(null);
+  const [editState, setEditState] = useState<{
+    productId: string;
+    panel: ProductPanel;
+  } | null>(null);
   // Once a drawer has been opened we keep it mounted so its close
   // animation runs and the dynamic chunk stays cached. Initial render
   // never mounts either drawer, so its bundle stays out of the cold
@@ -289,26 +311,29 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
   const pendingDeleteIdRef = useRef<string | null>(null);
   const pendingFiltersRef = useRef<ProductFilters | null>(null);
 
-  const setPanelUrl = useCallback(
-    (productId: string | null, panel: Panel | null) => {
-      if (productId && panel) {
-        replace({
-          product: productId,
-          panel,
-          vgrade: null,
-          vuid: null,
-        });
-      } else {
-        replace({
-          product: null,
-          panel: null,
-          vgrade: null,
-          vuid: null,
-        });
-      }
+  const openEdit = useCallback(
+    (id: string, panel: ProductPanel) => {
+      setEditState({ productId: id, panel });
+      setEditDrawerMounted(true);
+      replace({
+        product: id,
+        panel,
+        vgrade: null,
+        vuid: null,
+      });
     },
     [replace],
   );
+
+  const closePanels = useCallback(() => {
+    setEditState(null);
+    replace({
+      product: null,
+      panel: null,
+      vgrade: null,
+      vuid: null,
+    });
+  }, [replace]);
 
   const setCategoryUrl = useCallback(
     (categorySlug: string) => {
@@ -317,38 +342,21 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     [replace],
   );
 
-  const openEdit = useCallback(
-    (id: string) => {
-      setEditId(id);
-      setEditDrawerMounted(true);
-      setPanelUrl(id, "edit");
-    },
-    [setPanelUrl],
-  );
-
-  const closePanels = useCallback(() => {
-    setEditId(null);
-    setPanelUrl(null, null);
-  }, [setPanelUrl]);
-
   useEffect(() => {
     const productId = searchParams.get("product");
-    const panel = searchParams.get("panel");
+    const panel = parseProductPanel(searchParams.get("panel"));
     scheduleStateUpdate(() => {
-      if (!productId) {
-        setEditId(null);
+      if (!productId || !panel) {
+        setEditState(null);
         return;
       }
-      if (!canUpdate && (panel === "edit")) {
-        setEditId(null);
+      if (!canUpdate) {
+        setEditState(null);
         replace({ product: productId, panel: null, vgrade: null, vuid: null });
         return;
       }
-      if (panel === "edit") {
-        setEditId(productId);
-        setEditDrawerMounted(true);
-        return;
-      }
+      setEditState({ productId, panel });
+      setEditDrawerMounted(true);
     });
   }, [canUpdate, replace, searchParams]);
 
@@ -637,7 +645,7 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       // toast. One batched patch avoids the race.
       pendingDeleteIdRef.current = null;
       setDeleteTarget(null);
-      setEditId(null);
+      setEditState(null);
       replace({
         delete: null,
         product: null,
@@ -665,17 +673,29 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
       header: "Product",
       sortable: true,
       sortAccessor: (product) => product.name,
-      cell: (product) => (
+      cell: (product) => {
+        const productUrl = `${publicUrl}/${product.categorySlug}/${product.slug}`;
+
+        return (
         <div className="flex min-w-0 items-center gap-3">
           <ProductThumb product={product} />
           <div className="flex min-w-0 max-w-[18rem] flex-col py-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span
                 className="truncate text-xs font-semibold text-[var(--color-ink-900)]"
                 title={product.name || "Untitled product"}
               >
                 {product.name || "Untitled product"}
               </span>
+              <a
+                href={productUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open in storefront"
+                className="shrink-0 rounded p-0.5 text-[var(--color-ink-400)] transition-colors hover:text-[var(--color-accent-700)]"
+              >
+                <ExternalLink size={12} strokeWidth={2.2} aria-hidden />
+              </a>
               {product.isFeatured ? (
                 <ProductFlagBadge label="Featured" tone="dark">
                   <Star size={10} strokeWidth={2.4} />
@@ -709,7 +729,8 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
             </div>
           </div>
         </div>
-      ),
+        );
+      },
     },
     {
       id: "grades",
@@ -794,58 +815,16 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
     {
       id: "actions",
       header: "Actions",
-      cell: (product) => {
-        const productUrl = `${publicUrl}/${product.categorySlug}/${product.slug}`;
-        
-        return (
-          <div className="flex flex-wrap justify-end gap-1.5">
-            <button
-              type="button"
-              onClick={() => {
-                void navigator.clipboard.writeText(productUrl);
-                toast.success("Link copied to clipboard");
-              }}
-              title="Copy storefront link"
-              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]"
-            >
-              <Copy size={13} aria-hidden />
-              <span className="hidden min-[1200px]:inline">Copy</span>
-            </button>
-            <a
-              href={productUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Open in storefront"
-              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]"
-            >
-              <ExternalLink size={13} aria-hidden />
-              <span className="hidden min-[1200px]:inline">View</span>
-            </a>
-            {canUpdate && (
-              <button
-                type="button"
-                onClick={() => openEdit(product.id)}
-                title="Edit details"
-                className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-canvas-deep)]"
-              >
-                <Pencil size={13} aria-hidden />
-                <span className="hidden min-[1200px]:inline">Edit</span>
-              </button>
-            )}
-            {canDelete && (
-              <button
-                type="button"
-                onClick={() => openDeleteConfirm(product)}
-                title="Delete product"
-                className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-rose-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-rose-700)] transition-colors hover:bg-[var(--color-rose-50)]"
-              >
-                <Trash2 size={13} aria-hidden />
-                <span className="hidden min-[1200px]:inline">Delete</span>
-              </button>
-            )}
-          </div>
-        );
-      },
+      cell: (product) => (
+        <ProductRowEditMenu
+          canUpdate={canUpdate}
+          canDelete={canDelete}
+          onEditProduct={() => openEdit(product.id, "details")}
+          onManageVariants={() => openEdit(product.id, "variants")}
+          onEditSeo={() => openEdit(product.id, "seo")}
+          onDelete={() => openDeleteConfirm(product)}
+        />
+      ),
     },
   ];
 
@@ -1004,11 +983,12 @@ function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
         </div>
       </WorkspaceFrame>
 
-      {editDrawerMounted ? (
+      {editDrawerMounted && editState ? (
         <ProductEditDrawer
-          productId={editId}
+          productId={editState.productId}
+          step={PANEL_TO_STEP[editState.panel]}
           catalog={catalog}
-          isOpen={editId !== null}
+          isOpen
           onClose={closePanels}
           onSaved={() => router.refresh()}
         />

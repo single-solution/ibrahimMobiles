@@ -64,26 +64,6 @@ export function NotificationsMenu() {
   const total = totalAdminAlertCount(alerts);
   const badgeLabel = total > MAX_BADGE_COUNT ? "9+" : String(total);
 
-  // Close on outside click + Escape, mirroring UserMenu's behaviour so the
-  // top bar dropdowns feel consistent.
-  useEffect(() => {
-    if (!open) return;
-    function handlePointerDown(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open]);
-
   // Auto-close when the user navigates so the menu doesn't linger on the
   // destination page (Link clicks don't bubble past the dropdown otherwise).
   useEffect(() => {
@@ -182,6 +162,7 @@ export function NotificationsMenu() {
       <Popover
         isOpen={open}
         anchorRef={rootRef}
+        onRequestClose={() => setOpen(false)}
         role="menu"
         aria-label="Notifications"
         className="animate-popover-in w-72 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]"

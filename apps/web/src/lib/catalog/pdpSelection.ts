@@ -1,4 +1,5 @@
 import type { Product, Variant } from "@store/shared";
+import { isVariantInStock } from "@store/shared";
 
 import { getDefaultVariant } from "@/lib/productSummary";
 
@@ -177,7 +178,7 @@ export function findClosestVariant(
       }
     }
     const matchCount = countMatchingDimensions(variant, selection);
-    const inStock = (variant.quantity ?? 0) > 0;
+    const inStock = isVariantInStock(variant);
     const score =
       matchCount * 1000 +
       (inStock ? 10 : 0) -
@@ -219,6 +220,7 @@ export function resolvePickerSelection(
       gradeSlug: "",
       priceRupees: 0,
       quantity: 0,
+      forceOutOfStock: false,
       warrantyDays: 0,
       attributes: {},
     };

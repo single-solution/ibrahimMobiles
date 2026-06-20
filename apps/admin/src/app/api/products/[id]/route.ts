@@ -31,6 +31,7 @@ import {
 import { recordActivity } from "@/lib/services/activityLog";
 import { PRODUCT_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import { parseSeoPayload } from "@/lib/api/seoPayload";
+import { validateProductAttributeConfig } from "@/lib/api/productAttributeConfigValidation";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -69,6 +70,10 @@ interface ProductUpdateInput {
   isActive?: unknown;
   isArchived?: unknown;
   seo?: unknown;
+  attributeSlugs?: unknown;
+  attributeOptionPool?: unknown;
+  attributeCustomOptions?: unknown;
+  attributeDefaults?: unknown;
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -129,6 +134,36 @@ export async function PUT(request: Request, { params }: RouteContext) {
     }
   }
 
+  const hasAttributeConfig =
+    body.attributeSlugs !== undefined ||
+    body.attributeOptionPool !== undefined ||
+    body.attributeCustomOptions !== undefined ||
+    body.attributeDefaults !== undefined;
+
+  if (hasAttributeConfig) {
+    await connectDB();
+    const currentCategory = await Product.findById(id)
+      .select("categorySlug")
+      .lean<{ categorySlug: string }>();
+    if (!currentCategory) {
+      return notFound("Product not found");
+    }
+    const categorySlug =
+      typeof update.categorySlug === "string"
+        ? update.categorySlug
+        : currentCategory.categorySlug;
+    const configResult = await validateProductAttributeConfig(body, categorySlug, {
+      strictPools: hasAttributeConfig,
+    });
+    if (!configResult.ok) {
+      return badRequest(configResult.error);
+    }
+    update.attributeSlugs = configResult.value.attributeSlugs;
+    update.attributeOptionPool = configResult.value.attributeOptionPool;
+    update.attributeCustomOptions = configResult.value.attributeCustomOptions ?? {};
+    update.attributeDefaults = configResult.value.attributeDefaults ?? {};
+  }
+
   if (Object.keys(update).length === 0) {
     return badRequest("No fields to update.");
   }
@@ -161,7 +196,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
     const doc = await Product.findByIdAndUpdate(
       id,
       { $set: update },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     ).lean<ProductLean>();
     if (!doc) {
       return notFound("Product not found");

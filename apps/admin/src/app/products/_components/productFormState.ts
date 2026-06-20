@@ -6,7 +6,9 @@
 
 import {
   formatAttributeOptionLabel,
-  isVisibilitySatisfied,
+  filterAttributesForProduct,
+  mergeProductPoolIntoAttributeOptions,
+  type ProductAttributeConfig,
   WARRANTY_DAYS_PER_MONTH,
   type SeoMeta,
 } from "@store/shared";
@@ -31,6 +33,8 @@ export interface VariantDraft {
   gradeSlug: string;
   priceRupees: number;
   quantity: number;
+  /** Force sold out on storefront without changing `quantity`. */
+  forceOutOfStock: boolean;
   warrantyDays: number | null;
   attributes: Record<string, string>;
   attributeDisplay?: Record<string, string>;
@@ -78,7 +82,8 @@ export function emptyVariantDraft(): VariantDraft {
     uid: newVariantUid(),
     gradeSlug: "",
     priceRupees: 0,
-    quantity: 0,
+    quantity: 1,
+    forceOutOfStock: false,
     warrantyDays: null,
     attributes: {},
     attributeDisplay: {},
@@ -131,21 +136,6 @@ export function mergeVariantDraftAttributes(
   return merged;
 }
 
-/** First value per slug — used for attribute visibility rules (parent gating). */
-export function visibilityAttributesFromDraft(
-  draft: VariantDraft,
-): Record<string, string> {
-  const merged = mergeVariantDraftAttributes(draft);
-  const result: Record<string, string> = {};
-  for (const [slug, raw] of Object.entries(merged)) {
-    const value = Array.isArray(raw) ? raw[0] : raw;
-    if (value) {
-      result[slug] = value;
-    }
-  }
-  return result;
-}
-
 /** Selected option values for one attribute (single + multi-select). */
 export function attributeValuesOnDraft(
   draft: VariantDraft,
@@ -182,6 +172,7 @@ export function adminVariantToDraft(variant: AdminVariant): VariantDraft {
     gradeSlug: variant.gradeSlug,
     priceRupees: variant.priceRupees,
     quantity: variant.quantity,
+    forceOutOfStock: variant.forceOutOfStock ?? false,
     warrantyDays:
       variant.warrantyDays ??
       (variant.warrantyMonths !== undefined
@@ -211,6 +202,7 @@ export interface ProductValidationOk {
       gradeSlug: string;
       priceRupees: number;
       quantity: number;
+      forceOutOfStock: boolean;
       warrantyDays?: number;
       attributes: VariantAttributesMap;
       attributeDisplay?: Record<string, string>;
@@ -270,9 +262,16 @@ function collectVariantErrors(
   surface: CategorySurface,
   brandSlug: string,
   pathForIndex: (index: number) => string,
+  productConfig: ProductAttributeConfig,
 ): ProductValidationError[] {
   const errors: ProductValidationError[] = [];
-  const requiredAttributes = surface.attributes;
+  const requiredAttributes = filterAttributesForProduct(
+    surface.attributes,
+    productConfig,
+  ).map((attribute) => ({
+    ...attribute,
+    options: mergeProductPoolIntoAttributeOptions(attribute, productConfig),
+  }));
 
   variants.forEach((variant, index) => {
     const prefix = pathForIndex(index);
@@ -282,10 +281,10 @@ function collectVariantErrors(
         message: "Pick a grade.",
       });
     }
-    if (!Number.isInteger(variant.priceRupees) || variant.priceRupees < 0) {
+    if (!Number.isInteger(variant.priceRupees) || variant.priceRupees <= 0) {
       errors.push({
         path: `${prefix}.priceRupees`,
-        message: "Price must be a non-negative whole number.",
+        message: "Enter a price.",
       });
     }
     if (!Number.isInteger(variant.quantity) || variant.quantity < 0) {
@@ -303,17 +302,8 @@ function collectVariantErrors(
         message: "Warranty days must be a non-negative whole number.",
       });
     }
-    const visibilityContext = {
-      brandSlug,
-      gradeSlug: variant.gradeSlug,
-      attributes: visibilityAttributesFromDraft(variant),
-    };
 
     for (const attr of requiredAttributes) {
-      if (!isVisibilitySatisfied(attr.visibility, visibilityContext)) {
-        continue;
-      }
-
       const selectedValues = attributeValuesOnDraft(variant, attr.slug);
       if (selectedValues.length === 0) {
         errors.push({
@@ -324,27 +314,15 @@ function collectVariantErrors(
       }
 
       for (const value of selectedValues) {
-        const valid = attr.options.some((opt) => opt.value === value);
-        if (!valid) {
+        const inPool = attr.options.some(
+          (option) => option.value.toLowerCase() === value.toLowerCase(),
+        );
+        if (!inPool) {
           errors.push({
             path: `${prefix}.attributes.${attr.slug}`,
-            message: `Invalid option for ${attr.label.toLowerCase()}.`,
+            message: `${value} is not in this product's option pool for ${attr.label.toLowerCase()}.`,
           });
         }
-      }
-
-      const singleValue = variant.attributes[attr.slug];
-      const isCustomSingle =
-        Boolean(singleValue) &&
-        !attr.options.some((opt) => opt.value === singleValue);
-      if (
-        isCustomSingle &&
-        !variant.attributeDisplay?.[attr.slug]?.trim()
-      ) {
-        errors.push({
-          path: `${prefix}.attributes.${attr.slug}`,
-          message: `Enter a display label for custom ${attr.label.toLowerCase()}.`,
-        });
       }
     }
   });
@@ -371,9 +349,16 @@ export function validateVariantDrafts(
   variants: VariantDraft[],
   surface: CategorySurface,
   brandSlug: string,
+  productConfig: ProductAttributeConfig,
   pathForIndex: (index: number) => string = (index) => `variants.${index}`,
 ): ProductValidationOk | ProductValidationFail {
-  const errors = collectVariantErrors(variants, surface, brandSlug, pathForIndex);
+  const errors = collectVariantErrors(
+    variants,
+    surface,
+    brandSlug,
+    pathForIndex,
+    productConfig,
+  );
 
   if (errors.length > 0) {
     return { ok: false, errors };
@@ -390,6 +375,7 @@ export function validateVariantDrafts(
           gradeSlug: variant.gradeSlug,
           priceRupees: variant.priceRupees,
           quantity: variant.quantity,
+          forceOutOfStock: variant.forceOutOfStock,
           attributes: mergeVariantDraftAttributes(variant),
         };
         if (variant.warrantyDays !== null) {
@@ -407,6 +393,7 @@ export function validateVariantDrafts(
 export function validateDraft(
   draft: ProductDraft,
   surface: CategorySurface | null,
+  productConfig?: ProductAttributeConfig,
 ): ProductValidationOk | ProductValidationFail {
   const shell = validateShellDraft(draft);
   if (!shell.ok) {
@@ -424,11 +411,24 @@ export function validateDraft(
     };
   }
 
+  const resolvedConfig =
+    productConfig ??
+    ({
+      attributeSlugs: surface.attributes.map((attribute) => attribute.slug),
+      attributeOptionPool: Object.fromEntries(
+        surface.attributes.map((attribute) => [
+          attribute.slug,
+          attribute.options.map((option) => option.value),
+        ]),
+      ),
+    } satisfies ProductAttributeConfig);
+
   const variantErrors = collectVariantErrors(
     draft.variants,
     surface,
     draft.brandSlug,
     (index) => `variants.${index}`,
+    resolvedConfig,
   );
   const imageErrors = collectProductImageErrors(draft.images);
   const allErrors = [...variantErrors, ...imageErrors];
@@ -452,6 +452,7 @@ export function validateDraft(
           gradeSlug: variant.gradeSlug,
           priceRupees: variant.priceRupees,
           quantity: variant.quantity,
+          forceOutOfStock: variant.forceOutOfStock,
           attributes: mergeVariantDraftAttributes(variant),
         };
         if (variant.warrantyDays !== null) {
@@ -474,4 +475,51 @@ export function errorsByPath(errors: ProductValidationError[]) {
     }
   }
   return map;
+}
+
+/** Whether any validation error belongs to one variant draft path prefix. */
+export function variantHasErrors(
+  errorByPath: Map<string, string>,
+  pathPrefix: string,
+): boolean {
+  for (const path of errorByPath.keys()) {
+    if (path === pathPrefix || path.startsWith(`${pathPrefix}.`)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function variantErrorCount(
+  errorByPath: Map<string, string>,
+  pathPrefix: string,
+): number {
+  let count = 0;
+  for (const path of errorByPath.keys()) {
+    if (path === pathPrefix || path.startsWith(`${pathPrefix}.`)) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+export function gradeErrorCount(
+  errorByPath: Map<string, string>,
+  gradeSlug: string,
+): number {
+  const prefix = `grade.${gradeSlug}.combinations.`;
+  let count = 0;
+  for (const path of errorByPath.keys()) {
+    if (path.startsWith(prefix)) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+export function gradeHasErrors(
+  errorByPath: Map<string, string>,
+  gradeSlug: string,
+): boolean {
+  return gradeErrorCount(errorByPath, gradeSlug) > 0;
 }

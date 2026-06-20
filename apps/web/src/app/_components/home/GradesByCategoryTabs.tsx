@@ -90,14 +90,14 @@ function GradeCardGrid({
       <ul
         role="tabpanel"
         id={`grades-panel-${panelId}`}
-        className="animate-tab-panel-in reveal-stagger grid grid-cols-2 gap-2.5"
+        className="animate-tab-panel-in reveal-scroll-list grid grid-cols-2 gap-2.5"
       >
         {grades.map((descriptor) => (
           <li
             key={`${descriptor.categorySlug}:${descriptor.slug}`}
             /* Concentric: inner GradeBadge --radius-md (8) + p-3 (12) →
                outer 20 = --radius-xl. */
-            className="reveal flex flex-col gap-2 rounded-[var(--radius-xl)] border border-[var(--color-on-dark-10)] bg-[var(--color-on-dark-06)] p-3"
+            className="reveal reveal-scroll reveal-rise flex flex-col gap-2 rounded-[var(--radius-xl)] border border-[var(--color-on-dark-10)] bg-[var(--color-on-dark-06)] p-3"
           >
             <GradeBadge
               categorySlug={descriptor.categorySlug}
@@ -116,14 +116,14 @@ function GradeCardGrid({
     <div
       role="tabpanel"
       id={`grades-panel-${panelId}`}
-      className="animate-tab-panel-in reveal-stagger grid grid-cols-3 gap-3"
+      className="animate-tab-panel-in reveal-scroll-list grid grid-cols-3 gap-3"
     >
       {grades.map((descriptor) => (
         <div
           key={`${descriptor.categorySlug}:${descriptor.slug}`}
           /* Concentric: inner GradeBadge --radius-md (8) + p-5 (20) →
              outer 28 ≈ --radius-3xl (32, within 4px). */
-          className="reveal flex flex-col gap-2.5 rounded-[var(--radius-3xl)] border border-[var(--color-on-dark-10)] bg-[var(--color-on-dark-05)] p-5"
+          className="reveal reveal-scroll reveal-rise flex flex-col gap-2.5 rounded-[var(--radius-3xl)] border border-[var(--color-on-dark-10)] bg-[var(--color-on-dark-05)] p-5"
         >
           <GradeBadge
             categorySlug={descriptor.categorySlug}

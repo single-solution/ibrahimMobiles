@@ -451,9 +451,6 @@ export function Categories({
           onClose={() => setDrawer(null)}
           category={drawer.category}
           attribute={drawer.attribute}
-          siblingAttributes={attributes.filter(
-            (row) => row.categorySlug === drawer.category.slug,
-          )}
           brands={brands.filter((row) =>
             row.categorySlugs.includes(drawer.category.slug),
           )}

@@ -151,19 +151,6 @@ export async function cascadeAttributeSlugChange(
       await product.save();
     }
   }
-
-  const dependents = await Attribute.find({
-    categorySlug,
-    "visibility.type": "attribute",
-    "visibility.attributeSlug": oldSlug,
-  });
-  for (const attribute of dependents) {
-    if (attribute.visibility?.attributeSlug === oldSlug) {
-      attribute.visibility.attributeSlug = newSlug;
-      attribute.markModified("visibility");
-      await attribute.save();
-    }
-  }
 }
 
 export async function categorySlugTaken(

@@ -8,11 +8,12 @@ export async function GET() {
     
     // We fetch all active offers from the database.
     // The actual evaluation against cart items will happen client-side using OfferEvaluator.
-    const docs = await OfferModel.find({ isActive: true }).lean();
+    const docs = await OfferModel.find({ isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean();
     
     const offers = docs.map((doc) => ({
       id: doc._id.toString(),
       title: doc?.title,
+      badgeLabel: doc?.badgeLabel,
       conditions: doc?.conditions || [],
       action: doc?.action || { type: "percentage_discount", value: 0, target: "cart_total" },
       schedule: doc?.schedule || {},

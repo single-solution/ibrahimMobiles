@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus } from "lucide-react";
-import { compareAlphabetically, isValidId } from "@store/shared";
+import { compareAlphabetically, isValidId, buildVariantDefaultsFromProductConfig, filterAttributesForProduct } from "@store/shared";
 
 import { Button } from "@store/ui";
 import { Drawer } from "@/components/ui/Drawer";
@@ -14,10 +14,11 @@ import {
 } from "@/lib/url/useUrlParams";
 import { useToast } from "@/components/ui/Toast";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
-import type { AdminAttribute, AdminGrade, AdminProduct } from "@/types/models";
+import type { AdminGrade, AdminProduct } from "@/types/models";
 
 import { VariantCard, VariantDetailFooter } from "./VariantCard";
 import { VariantSidebarTile } from "./VariantSidebarTile";
+import { attributeConfigFromProduct } from "./productAttributeConfigState";
 import { WizardEmptyHint } from "./productWizardUi";
 import {
   adminVariantToDraft,
@@ -26,6 +27,9 @@ import {
   mergeVariantDraftAttributes,
   newVariantUid,
   validateVariantDrafts,
+  variantErrorCount,
+  variantHasErrors,
+  gradeErrorCount,
   type CategorySurface,
   type ProductValidationError,
   type VariantDraft,
@@ -44,6 +48,8 @@ interface ProductWizardStep2Props {
   onSaved: (product?: AdminProduct) => void;
   /** `wizard` = after create; `manage` = catalog row action. */
   purpose?: "wizard" | "manage";
+  /** Standalone catalog drawer — Close + Save only (no wizard stepper). */
+  standalone?: boolean;
   stepLabel?: string;
   onBack?: () => void;
   nextLabel?: string;
@@ -98,6 +104,7 @@ export function ProductWizardStep2({
   stepLabel = "Step 2 of 2",
   onBack,
   nextLabel,
+  standalone = false,
 }: ProductWizardStep2Props) {
   const isManage = purpose === "manage";
   const { searchParams, replace } = useUrlParams();
@@ -123,7 +130,19 @@ export function ProductWizardStep2({
 
   const grades = surface?.grades ?? [];
   const attributes = surface?.attributes ?? [];
+  const attributeConfig = useMemo(
+    () => (product ? attributeConfigFromProduct(product, attributes) : { attributeSlugs: [], attributeOptionPool: {} }),
+    [product, attributes],
+  );
   const errorMap = useMemo(() => errorsByPath(errors), [errors]);
+
+  const totalErrorCount = errors.length;
+  const otherGradeErrorCount = useMemo(() => {
+    if (!selectedGradeSlug) {
+      return totalErrorCount;
+    }
+    return Math.max(0, totalErrorCount - gradeErrorCount(errorMap, selectedGradeSlug));
+  }, [errorMap, selectedGradeSlug, totalErrorCount]);
 
   const resolveWorkspaceSelection = useCallback(
     (
@@ -202,28 +221,6 @@ export function ProductWizardStep2({
     return rows;
   }, [sections]);
 
-  const productCustomOptions = useMemo(() => {
-    const map: Record<string, Map<string, string>> = {};
-    for (const row of flatCombinations) {
-      if (!row.variant.attributeDisplay) continue;
-      for (const [attrSlug, label] of Object.entries(row.variant.attributeDisplay)) {
-        const val = row.variant.attributes[attrSlug];
-        if (typeof val === "string" && val) {
-          if (!map[attrSlug]) map[attrSlug] = new Map();
-          map[attrSlug].set(val, label);
-        }
-      }
-    }
-    const result: Record<string, { value: string; label: string }[]> = {};
-    for (const [attrSlug, optionsMap] of Object.entries(map)) {
-      result[attrSlug] = Array.from(optionsMap.entries()).map(([value, label]) => ({
-        value,
-        label,
-      }));
-    }
-    return result;
-  }, [flatCombinations]);
-
   const activeSection = sections.find(
     (section) => section.gradeSlug === selectedGradeSlug,
   );
@@ -275,11 +272,18 @@ export function ProductWizardStep2({
 
   function addCombination(gradeSlug: string) {
     const uid = newVariantUid();
+    const defaults = buildVariantDefaultsFromProductConfig(attributeConfig);
     updateSection(gradeSlug, (section) => ({
       ...section,
       combinations: [
         ...section.combinations,
-        { ...emptyVariantDraft(), uid, gradeSlug },
+        {
+          ...emptyVariantDraft(),
+          uid,
+          gradeSlug,
+          attributes: { ...defaults.attributes },
+          attributeDisplay: defaults.attributeDisplay ?? {},
+        },
       ],
     }));
     setSelectedGradeSlug(gradeSlug);
@@ -377,6 +381,7 @@ export function ProductWizardStep2({
       variants,
       surface,
       product.brand.slug,
+      attributeConfig,
       (index) => {
         const row = flatCombinations[index];
         return `grade.${row.gradeSlug}.combinations.${row.comboIndex}`;
@@ -385,10 +390,27 @@ export function ProductWizardStep2({
 
     if (!result.ok) {
       setErrors(result.errors);
+      const nextErrorMap = errorsByPath(result.errors);
+      const firstInvalid = flatCombinations.find((row) =>
+        variantHasErrors(
+          nextErrorMap,
+          `grade.${row.gradeSlug}.combinations.${row.comboIndex}`,
+        ),
+      );
+      if (firstInvalid) {
+        setSelectedGradeSlug(firstInvalid.gradeSlug);
+        setSelectedVariantUid(firstInvalid.variant.uid);
+        syncVariantWorkspaceUrl(firstInvalid.gradeSlug, firstInvalid.variant.uid);
+      }
+      const gradeLabel =
+        grades.find((row) => row.slug === firstInvalid?.gradeSlug)?.label ??
+        firstInvalid?.gradeSlug;
       toast.danger(
-        result.errors.length === 1
-          ? result.errors[0].message
-          : `${result.errors.length} fields need attention.`,
+        firstInvalid
+          ? `Fix the highlighted variant in ${gradeLabel ?? "another grade"}.`
+          : result.errors.length === 1
+            ? result.errors[0].message
+            : `${result.errors.length} fields need attention.`,
       );
       return;
     }
@@ -454,6 +476,11 @@ export function ProductWizardStep2({
     }
   }
 
+  const productScopedAttributes = useMemo(
+    () => filterAttributesForProduct(attributes, attributeConfig),
+    [attributes, attributeConfig],
+  );
+
   if (!product) {
     return null;
   }
@@ -495,6 +522,7 @@ export function ProductWizardStep2({
                     id: grade.slug,
                     label: grade.label,
                     count: section?.combinations.length ?? 0,
+                    errorCount: gradeErrorCount(errorMap, grade.slug),
                   };
                 }),
                 ...sections
@@ -507,6 +535,7 @@ export function ProductWizardStep2({
                     id: section.gradeSlug,
                     label: section.gradeSlug,
                     count: section.combinations.length,
+                    errorCount: gradeErrorCount(errorMap, section.gradeSlug),
                   })),
               ]}
               activeId={selectedGradeSlug ?? grades[0]?.slug ?? ""}
@@ -528,15 +557,29 @@ export function ProductWizardStep2({
                     </p>
                   ) : (
                     <ul className="flex flex-col gap-2">
-                      {activeVariants.map((variant) => (
-                        <VariantSidebarTile
-                          key={variant.uid}
-                          variant={variant}
-                          attributes={attributes}
-                          isSelected={variant.uid === selectedVariantUid}
-                          onSelect={() => selectVariantUid(variant.uid)}
-                        />
-                      ))}
+                      {activeVariants.map((variant, comboIndex) => {
+                        if (!selectedGradeSlug) {
+                          return null;
+                        }
+                        const gradeSlug = selectedGradeSlug;
+                        const errorPrefix = `grade.${gradeSlug}.combinations.${comboIndex}`;
+                        const hasErrors = variantHasErrors(errorMap, errorPrefix);
+                        const errorCount = variantErrorCount(errorMap, errorPrefix);
+                        return (
+                          <VariantSidebarTile
+                            key={variant.uid}
+                            variant={variant}
+                            attributes={productScopedAttributes}
+                            isSelected={variant.uid === selectedVariantUid}
+                            hasErrors={hasErrors}
+                            errorCount={errorCount}
+                            onSelect={() => selectVariantUid(variant.uid)}
+                            onChange={(next) =>
+                              updateCombination(gradeSlug, variant.uid, next)
+                            }
+                          />
+                        );
+                      })}
                     </ul>
                   )}
                 </nav>
@@ -583,19 +626,35 @@ export function ProductWizardStep2({
                   </div>
                 ) : (
                   <>
+                    {otherGradeErrorCount > 0 ? (
+                      <div className="border-b border-[var(--color-amber-200)] bg-[var(--color-amber-50)] px-3 py-2 text-[12px] font-medium text-[var(--color-amber-900)]">
+                        {otherGradeErrorCount === 1
+                          ? "1 field needs attention in another grade — check the grade tab with the red badge."
+                          : `${otherGradeErrorCount} fields need attention in other grades — check the grade tabs with red badges.`}
+                      </div>
+                    ) : null}
+                    {selectedComboIndex >= 0 &&
+                    variantHasErrors(
+                      errorMap,
+                      `grade.${selectedGradeSlug}.combinations.${selectedComboIndex}`,
+                    ) ? (
+                      <div className="border-b border-[var(--color-rose-200)] bg-[var(--color-rose-50)] px-3 py-2 text-[12px] font-medium text-[var(--color-rose-800)]">
+                        This variant has fields that need attention — check attributes, price, and
+                        stock below.
+                      </div>
+                    ) : null}
                     <div className="min-h-0 flex-1 overflow-y-auto p-3">
                       <VariantCard
                         index={selectedComboIndex}
                         variant={selectedVariant}
                         grades={grades}
                         attributes={attributes}
-                        brandSlug={product.brand.slug}
                         errorByPath={errorMap}
                         productNameForAlt={product.name}
                         lockGradeSlug={selectedGradeSlug}
                         errorPathPrefix={`grade.${selectedGradeSlug}.combinations.${selectedComboIndex}`}
                         allowMultiAttributeSelect={false}
-                        productCustomOptions={productCustomOptions}
+                        productConfig={attributeConfig}
                         embedded
                         onChange={(next) =>
                           updateCombination(
@@ -632,12 +691,20 @@ export function ProductWizardStep2({
         )}
       </form>
       <div className="safe-bottom shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-3 md:px-5 md:py-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="text-sm font-medium text-[var(--color-ink-500)]">
-            {stepLabel}
-          </div>
+        <div
+          className={
+            standalone
+              ? "flex flex-wrap items-center justify-end gap-2"
+              : "flex flex-wrap items-center justify-between gap-2"
+          }
+        >
+          {!standalone && stepLabel ? (
+            <div className="text-sm font-medium text-[var(--color-ink-500)]">
+              {stepLabel}
+            </div>
+          ) : null}
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {!isManage && !onBack && (
+            {!isManage && !onBack && !standalone ? (
               <Button
                 variant="ghost"
                 size="sm"
@@ -648,9 +715,9 @@ export function ProductWizardStep2({
               >
                 Skip for now
               </Button>
-            )}
+            ) : null}
             
-            {onBack ? (
+            {onBack && !standalone ? (
               <Button
                 variant="ghost"
                 size="sm"
@@ -662,7 +729,7 @@ export function ProductWizardStep2({
               </Button>
             ) : (
               <Button variant="ghost" size="sm" type="button" onClick={handleClose} disabled={submitting}>
-                {isManage ? "Close" : "Cancel"}
+                {standalone || isManage ? "Close" : "Cancel"}
               </Button>
             )}
             
@@ -673,7 +740,7 @@ export function ProductWizardStep2({
               form="product-wizard-step2"
               isLoading={submitting}
             >
-              {nextLabel ?? (isManage ? "Save changes" : "Save variations")}
+              {standalone ? "Save" : nextLabel ?? (isManage ? "Save changes" : "Save variations")}
             </Button>
           </div>
         </div>

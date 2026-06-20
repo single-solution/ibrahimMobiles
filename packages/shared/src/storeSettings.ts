@@ -216,10 +216,10 @@ export const STORE_SETTING_KEYS = Object.keys(STORE_SETTING_DEFAULTS) as Array<k
  * Used by the admin UI for tabbed editing and by the API for filtering.
  */
 export const STORE_SETTING_GROUPS = {
+  urls: ["publicSiteUrl"] as const,
   branding: [
     "siteName",
     "siteTagline",
-    "publicSiteUrl",
     "brandLogoLight",
     "brandLogoDark",
     "brandFaviconLight",

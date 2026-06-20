@@ -176,16 +176,15 @@ export function DesktopShopTypesSection({ categories }: ShopTypesSectionProps) {
         />
       </div>
       <div
-        className={`relative z-10 reveal mt-12 ${getHomeCategoryGridClass(featured.length, "desktop")}`}
-        style={{ ["--reveal-delay" as string]: "120ms" }}
+        className={`relative z-10 mt-12 reveal-scroll-list ${getHomeCategoryGridClass(featured.length, "desktop")}`}
       >
-        {featured.map((meta, index) => (
+        {featured.map((meta) => (
           <ShopTypeCard
             key={meta.slug}
             meta={meta}
             variant="desktop"
-            delayMs={(index + 1) * DESKTOP_CATEGORY_STAGGER_MS}
             homeCategorySlug={homeCategorySlug}
+            scrollReveal
           />
         ))}
       </div>
@@ -216,11 +215,18 @@ const SHOP_TYPE_DEFAULT_GRADIENT =
 export interface ShopTypeCardProps {
   meta: HomePageCategory;
   variant: "mobile" | "desktop";
-  delayMs: number;
+  delayMs?: number;
   homeCategorySlug: string;
+  scrollReveal?: boolean;
 }
 
-export function ShopTypeCard({ meta, variant, delayMs, homeCategorySlug }: ShopTypeCardProps) {
+export function ShopTypeCard({
+  meta,
+  variant,
+  delayMs = 0,
+  homeCategorySlug,
+  scrollReveal = false,
+}: ShopTypeCardProps) {
   const isActive = meta.isActive;
 
   const inner = (
@@ -230,11 +236,13 @@ export function ShopTypeCard({ meta, variant, delayMs, homeCategorySlug }: ShopT
          --radius-lg (14) + p-6 (24) → outer 38 ≈ --radius-3xl (32,
          within 6px). See radius table in globals.css. */
       className={`reveal lift relative flex h-full overflow-hidden border bg-gradient-to-br ${SHOP_TYPE_DEFAULT_GRADIENT} ${
+        scrollReveal ? "reveal-scroll reveal-rise" : ""
+      } ${
         isActive
           ? "border-[var(--color-ink-100)] hover:border-[var(--color-ink-200)]"
           : "cursor-not-allowed border-dashed border-[var(--color-ink-200)] opacity-80"
       } ${variant === "desktop" ? "min-h-[240px] flex-col rounded-[var(--radius-3xl)] p-6" : "min-h-[110px] flex-row items-center gap-3 rounded-[var(--radius-2xl)] p-3.5"}`}
-      style={{ ["--reveal-delay" as string]: `${delayMs}ms` }}
+      style={scrollReveal ? undefined : { ["--reveal-delay" as string]: `${delayMs}ms` }}
     >
       <span
         className={`grid shrink-0 place-items-center rounded-[var(--radius-lg)] border border-[var(--color-accent-400)]/25 bg-[var(--color-accent-500)]/10 text-[var(--color-accent-800)] ${
@@ -331,13 +339,13 @@ export function DesktopProcessSection({ flows }: ProcessSectionProps) {
             description="From sourcing to refund — every step on record."
           />
         </div>
-        <div className="reveal-stagger mt-12 grid grid-cols-3 gap-4">
+        <div className="reveal-scroll-list mt-12 grid grid-cols-3 gap-4">
           {flows.map((flow) => {
             const Icon = flow.icon;
             return (
               <div
                 key={flow.key}
-                className="reveal flex flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] transition-shadow hover:shadow-[var(--shadow-md)]"
+                className="reveal reveal-scroll reveal-rise flex flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] transition-shadow hover:shadow-[var(--shadow-md)]"
               >
                 <div className="flex items-center gap-3 bg-[var(--color-ink-900)] px-6 py-4 text-[var(--color-canvas)]">
                   <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">

@@ -1,12 +1,11 @@
 import {
-  ATTRIBUTE_OPTION_VALUE_MAX_LENGTH,
   FIELD_LIMITS,
-  isVisibilitySatisfied,
-  parseAttributeVisibility,
+  isGlobalOptionInProductPool,
+  resolveProductAttributeConfig,
   WARRANTY_DAYS_PER_MONTH,
-  type VisibilityContext,
+  type ProductAttributeConfig,
 } from "@store/shared";
-import { Attribute, Grade, connectDB } from "@store/db";
+import { Attribute, connectDB, Grade, Product } from "@store/db";
 
 /**
  * Hard upper bound on any rupee field. Even the most expensive items
@@ -26,6 +25,7 @@ export interface VariantInput {
   gradeSlug?: unknown;
   priceRupees?: unknown;
   quantity?: unknown;
+  forceOutOfStock?: unknown;
   warrantyDays?: unknown;
   /** @deprecated Accepted for older clients; converted to days. */
   warrantyMonths?: unknown;
@@ -43,6 +43,8 @@ interface ValidationContext {
   categorySlug: string;
   /** Product brand — used for brand-gated attribute visibility. */
   brandSlug?: string;
+  /** Resolved product attribute subset + option pools. */
+  productConfig?: ProductAttributeConfig;
 }
 
 /**
@@ -103,6 +105,15 @@ export async function validateVariant(
     value.quantity = quantity;
   }
 
+  if (input.forceOutOfStock !== undefined) {
+    if (typeof input.forceOutOfStock !== "boolean") {
+      return { ok: false, error: "Force out of stock must be true or false." };
+    }
+    value.forceOutOfStock = input.forceOutOfStock;
+  } else if (requireAll) {
+    value.forceOutOfStock = false;
+  }
+
   if (input.warrantyDays !== undefined || input.warrantyMonths !== undefined) {
     let days: number;
     if (input.warrantyDays !== undefined) {
@@ -141,8 +152,7 @@ export async function validateVariant(
     }
   }
 
-  // Dynamic per-category attribute map — keys = Attribute.slug; values may
-  // be global options or product-only custom slugs (with attributeDisplay).
+  // Dynamic per-category attribute map — values must be in the product option pool.
   if (input.attributes !== undefined || requireAll) {
     const attributes = (input.attributes ?? {}) as unknown;
     if (
@@ -154,20 +164,15 @@ export async function validateVariant(
     }
     const map = attributes as Record<string, unknown>;
 
-    let displayMap: Record<string, unknown> = {};
     if (input.attributeDisplay !== undefined) {
       const rawDisplay = input.attributeDisplay;
       if (
-        rawDisplay === null ||
-        typeof rawDisplay !== "object" ||
-        Array.isArray(rawDisplay)
+        rawDisplay !== null &&
+        (typeof rawDisplay !== "object" || Array.isArray(rawDisplay))
       ) {
         return { ok: false, error: "attributeDisplay must be an object map." };
       }
-      displayMap = rawDisplay as Record<string, unknown>;
     }
-
-    const validatedDisplay: Record<string, string> = {};
 
     const defs = await Attribute.find({
       categorySlug: context.categorySlug,
@@ -177,34 +182,8 @@ export async function validateVariant(
       .exec();
     const defsBySlug = new Map(defs.map((d) => [d.slug, d]));
 
-    const gradeSlug =
-      typeof value.gradeSlug === "string"
-        ? value.gradeSlug
-        : typeof input.gradeSlug === "string"
-          ? input.gradeSlug
-          : undefined;
-
-    const visibilityContext: VisibilityContext = {
-      brandSlug: context.brandSlug?.trim().toLowerCase(),
-      gradeSlug,
-      attributes: Object.fromEntries(
-        Object.entries(map).flatMap(([slug, raw]) => {
-          if (typeof raw === "string" && raw.length > 0) {
-            return [[slug, raw] as const];
-          }
-          if (Array.isArray(raw)) {
-            const first = raw.find(
-              (entry): entry is string =>
-                typeof entry === "string" && entry.length > 0,
-            );
-            return first ? [[slug, first] as const] : [];
-          }
-          return [];
-        }),
-      ),
-    };
-
     const validated: Record<string, string | string[]> = {};
+    const productSlugs = context.productConfig?.attributeSlugs;
 
     for (const [slug, raw] of Object.entries(map)) {
       const def = defsBySlug.get(slug);
@@ -212,6 +191,12 @@ export async function validateVariant(
         return {
           ok: false,
           error: `Unknown attribute '${slug}' for category '${context.categorySlug}'.`,
+        };
+      }
+      if (productSlugs && !productSlugs.includes(slug)) {
+        return {
+          ok: false,
+          error: `Attribute '${slug}' is not enabled for this product.`,
         };
       }
 
@@ -230,39 +215,30 @@ export async function validateVariant(
         };
       }
 
-      const visibility = parseAttributeVisibility(def.visibility);
-      if (!isVisibilitySatisfied(visibility, visibilityContext)) {
-        return {
-          ok: false,
-          error: `Attribute '${slug}' is not available for this variant context.`,
-        };
-      }
-
       const optionValues = new Set(def.options.map((o) => o.value));
       const normalizedSlug = slug.slice(0, FIELD_LIMITS.shortLabel);
 
       for (const value of values) {
-        if (!optionValues.has(value)) {
-          if (value.length > ATTRIBUTE_OPTION_VALUE_MAX_LENGTH) {
+        const inGlobalCatalog = optionValues.has(value);
+        const inProductPool =
+          context.productConfig &&
+          isGlobalOptionInProductPool(context.productConfig, slug, value);
+
+        if (!inGlobalCatalog) {
+          if (!inProductPool) {
             return {
               ok: false,
-              error: `Custom value slug for '${slug}' is too long.`,
+              error: `Unknown option '${value}' for attribute '${slug}'.`,
             };
           }
-          const displayRaw = displayMap[slug];
-          const displayLabel =
-            typeof displayRaw === "string" ? displayRaw.trim() : "";
-          if (!displayLabel) {
-            return {
-              ok: false,
-              error: `Custom value for '${slug}' requires a display label.`,
-            };
-          }
-          validatedDisplay[normalizedSlug] = displayLabel.slice(
-            0,
-            FIELD_LIMITS.shortLabel,
-          );
-          break;
+          continue;
+        }
+
+        if (context.productConfig && !inProductPool) {
+          return {
+            ok: false,
+            error: `Option '${value}' is not enabled for '${slug}' on this product.`,
+          };
         }
       }
 
@@ -270,10 +246,24 @@ export async function validateVariant(
         values.length === 1 ? values[0] : values.map((value) => value);
     }
 
+    if (requireAll && context.productConfig) {
+      for (const slug of context.productConfig.attributeSlugs) {
+        const def = defsBySlug.get(slug);
+        if (!def) {
+          continue;
+        }
+        const existing = validated[slug.slice(0, FIELD_LIMITS.shortLabel)];
+        if (!existing || (Array.isArray(existing) && existing.length === 0)) {
+          return {
+            ok: false,
+            error: `Attribute '${slug}' is required for this product.`,
+          };
+        }
+      }
+    }
+
     value.attributes = validated;
-    if (Object.keys(validatedDisplay).length > 0) {
-      value.attributeDisplay = validatedDisplay;
-    } else if (input.attributeDisplay !== undefined) {
+    if (input.attributeDisplay !== undefined) {
       value.attributeDisplay = {};
     }
   }
@@ -305,5 +295,47 @@ export async function validateVariantsBatch(
       }
       return entry.result.value;
     }),
+  };
+}
+
+/** Load category + resolved product attribute config for variant validation. */
+export async function loadVariantValidationContext(productId: string): Promise<
+  | {
+      categorySlug: string;
+      brandSlug: string;
+      productConfig: ProductAttributeConfig;
+    }
+  | null
+> {
+  await connectDB();
+  const product = await Product.findById(productId)
+    .select(
+      "categorySlug brandSlug attributeSlugs attributeOptionPool attributeCustomOptions attributeDefaults variants.attributes",
+    )
+    .lean<{
+      categorySlug: string;
+      brandSlug: string;
+      attributeSlugs?: string[];
+      attributeOptionPool?: Record<string, string[]>;
+      attributeCustomOptions?: Record<string, Array<{ value: string; label: string }>>;
+      attributeDefaults?: Record<string, string>;
+      variants?: Array<{ attributes?: Record<string, string | string[]> }>;
+    }>();
+  if (!product) {
+    return null;
+  }
+
+  const defs = await Attribute.find({
+    categorySlug: product.categorySlug,
+    isActive: true,
+  })
+    .select("slug options.value")
+    .lean<Array<{ slug: string; options: Array<{ value: string }> }>>()
+    .exec();
+
+  return {
+    categorySlug: product.categorySlug,
+    brandSlug: product.brandSlug,
+    productConfig: resolveProductAttributeConfig(product, defs),
   };
 }

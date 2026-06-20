@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Eye, Globe2, ImagePlus, Smile, Sparkles } from "lucide-react";
+import { ImagePlus, Smile, Sparkles } from "lucide-react";
 import { STORE_SETTING_GROUPS } from "@store/shared";
 import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";
@@ -13,7 +13,6 @@ import type { SectionProps } from "@/app/settings/_components/settingsSectionPro
 export function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
   const hasName = draft.siteName.trim().length > 0;
   const hasTagline = draft.siteTagline.trim().length > 0;
-  const hasUrl = draft.publicSiteUrl.trim().length > 0;
   const brandAssetCount = [
     draft.brandLogoLight,
     draft.brandLogoDark,
@@ -32,12 +31,6 @@ export function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdat
       value: hasTagline ? draft.siteTagline : "Not set",
       tone: hasTagline ? "good" : "warn",
       icon: Smile,
-    },
-    {
-      label: "Storefront URL",
-      value: hasUrl ? draft.publicSiteUrl : "Auto (env)",
-      tone: hasUrl ? "good" : "neutral",
-      icon: Globe2,
     },
     {
       label: "Brand assets",
@@ -60,24 +53,7 @@ export function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdat
       setField={setField}
       onSaved={onSaved}
       canUpdate={canUpdate}
-      hero={
-        <SettingsTabHero
-          metrics={heroMetrics}
-          actions={
-            hasUrl ? (
-              <a
-                href={draft.publicSiteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--color-ink-800)] hover:border-[var(--color-accent-300)] hover:text-[var(--color-accent-800)]"
-              >
-                <Eye size={13} /> Open storefront
-                <ExternalLink size={11} className="opacity-60" />
-              </a>
-            ) : null
-          }
-        />
-      }
+      hero={<SettingsTabHero metrics={heroMetrics} />}
     >
       <FormSection
         title="Site identity"
@@ -90,17 +66,6 @@ export function StoreDetailsSettings({ draft, saved, setField, onSaved, canUpdat
             onChange={(event) => setField("siteName", event.target.value)}
             placeholder="e.g. Ibrahim Mobiles"
             hint="Appears in the navbar, page titles, emails, and assistant greetings."
-            disabled={!canUpdate}
-          />
-          <TextField
-            label="Storefront URL"
-            type="url"
-            value={draft.publicSiteUrl}
-            onChange={(event) => setField("publicSiteUrl", event.target.value)}
-            placeholder="https://ibrahimmobiles.com"
-            inputMode="url"
-            autoComplete="url"
-            hint="Leave blank to fall back to the deploy environment URL."
             disabled={!canUpdate}
           />
         </FormGrid>

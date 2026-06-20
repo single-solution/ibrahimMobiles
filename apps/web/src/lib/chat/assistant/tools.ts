@@ -11,6 +11,7 @@
 import {
   formatPrice,
   formatWarrantyPeriod,
+  isVariantInStock,
   resolveWarrantyDays,
   slugify,
   type AssistantToolCall,
@@ -154,7 +155,11 @@ function formatVariantLine(variant: Product["variants"][number]): string {
   const parts = [
     variant.gradeSlug || "standard",
     formatPrice(variant.priceRupees),
-    variant.quantity > 0 ? `${variant.quantity} in stock` : "out of stock",
+    isVariantInStock(variant)
+      ? `${variant.quantity} in stock`
+      : variant.forceOutOfStock
+        ? "forced sold out"
+        : "out of stock",
   ];
   const warrantyDays = resolveWarrantyDays(variant);
   if (warrantyDays > 0) {

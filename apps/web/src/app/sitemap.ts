@@ -22,7 +22,7 @@ import type { MetadataRoute } from "next";
 
 import { logger } from "@store/shared";
 
-import { getBaseUrl } from "@/lib/core/baseUrl";
+import { getStorefrontBaseUrl } from "@/lib/core/baseUrl";
 import {
   getCategoriesCached,
   getSitemapBrandsCached,
@@ -65,7 +65,7 @@ async function loadDynamicData(): Promise<DynamicSitemapData | null> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = getBaseUrl();
+  const base = await getStorefrontBaseUrl();
   const now = new Date();
 
   const entries: MetadataRoute.Sitemap = STATIC_PATHS.map((staticPath) => ({

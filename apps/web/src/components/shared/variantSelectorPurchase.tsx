@@ -22,7 +22,6 @@ interface PurchaseSummaryProps {
   onQuantityChange: (quantity: number) => void;
   onAddToCart: () => void;
   hasJustBeenAdded: boolean;
-  discountAmount?: number;
 }
 
 export function PurchaseSummary({
@@ -35,7 +34,6 @@ export function PurchaseSummary({
   onQuantityChange,
   onAddToCart,
   hasJustBeenAdded,
-  discountAmount,
 }: PurchaseSummaryProps) {
   const stockLabel = isInStock
     ? `${stockQuantity} in stock${
@@ -73,22 +71,9 @@ export function PurchaseSummary({
               </button>
             ) : null}
           </div>
-          <div className="flex flex-col items-end">
-            {discountAmount && discountAmount > 0 ? (
-              <>
-                <p className="text-[12px] font-medium text-[var(--color-ink-500)] line-through">
-                  {formatPrice(priceRupees)}
-                </p>
-                <p className="text-xl font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
-                  {formatPrice(priceRupees - discountAmount)}
-                </p>
-              </>
-            ) : (
-              <p className="text-xl font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
-                {formatPrice(priceRupees)}
-              </p>
-            )}
-          </div>
+          <p className="text-xl font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
+            {formatPrice(priceRupees)}
+          </p>
         </div>
 
         <div className="mt-2 flex items-center gap-2">
@@ -130,7 +115,6 @@ interface MobileStickyCtaProps {
   onQuantityChange: (quantity: number) => void;
   onAddToCart: () => void;
   hasJustBeenAdded: boolean;
-  discountAmount?: number;
 }
 
 export function MobileStickyCta({
@@ -143,7 +127,6 @@ export function MobileStickyCta({
   onQuantityChange,
   onAddToCart,
   hasJustBeenAdded,
-  discountAmount,
 }: MobileStickyCtaProps) {
   const showBuyAll = isInStock && maxQuantity > 1 && quantity < maxQuantity;
 
@@ -179,22 +162,9 @@ export function MobileStickyCta({
             </button>
           ) : null}
         </div>
-        <div className="flex flex-col items-end">
-          {discountAmount && discountAmount > 0 ? (
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-medium text-[var(--color-ink-500)] line-through">
-                {formatPrice(priceRupees)}
-              </span>
-              <p className="text-[15px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
-                {formatPrice(priceRupees - discountAmount)}
-              </p>
-            </div>
-          ) : (
-            <p className="text-[15px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
-              {formatPrice(priceRupees)}
-            </p>
-          )}
-        </div>
+        <p className="text-[15px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)]">
+          {formatPrice(priceRupees)}
+        </p>
       </div>
       <div className="flex items-center gap-1.5">
         {isInStock ? (

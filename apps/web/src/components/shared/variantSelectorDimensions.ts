@@ -1,11 +1,14 @@
 "use client";
 
 import {
+  getProductOptionPool,
   resolveVariantAttributeLabel,
   type AttributeDescriptor,
   type GradeDescriptor,
   type Product,
+  type ProductAttributeConfig,
   type Variant,
+  isVariantInStock,
 } from "@store/shared";
 
 import { toAttributeLabelSource } from "@/lib/catalog/attributeLabels";
@@ -23,6 +26,7 @@ export const EMPTY_VARIANT: Variant = {
   gradeSlug: "",
   priceRupees: 0,
   quantity: 0,
+  forceOutOfStock: false,
   warrantyDays: 0,
   attributes: {},
 };
@@ -66,6 +70,7 @@ export function buildDimensions(
   product: Product,
   attributeDefinitions: AttributeDescriptor[],
   grades: GradeDescriptor[],
+  productConfig?: ProductAttributeConfig,
 ): Dimension[] {
   const dimensions: Dimension[] = [];
 
@@ -81,7 +86,14 @@ export function buildDimensions(
   }
 
   for (const attribute of attributeDefinitions) {
-    const options = collectAttributeOptions(product.variants, attribute);
+    const allowedPool = productConfig
+      ? new Set(
+          getProductOptionPool(productConfig, attribute.slug, attribute).map((value) =>
+            value.toLowerCase(),
+          ),
+        )
+      : undefined;
+    const options = collectAttributeOptions(product.variants, attribute, allowedPool);
     if (options.length === 0) {
       continue;
     }
@@ -129,12 +141,16 @@ function collectGradeOptions(
 function collectAttributeOptions(
   variants: Variant[],
   attribute: AttributeDescriptor,
+  allowedPool?: Set<string>,
 ): DimensionOption[] {
   const seen = new Map<string, DimensionOption>();
   const source = toAttributeLabelSource(attribute);
 
   for (const variant of variants) {
     for (const value of attributeValuesOnVariant(variant, attribute.slug)) {
+      if (allowedPool && !allowedPool.has(value.toLowerCase())) {
+        continue;
+      }
       if (seen.has(value)) {
         continue;
       }
@@ -167,7 +183,7 @@ export function computeOptionState(
   const probe = { ...currentSelection, [dimensionKey]: optionKey };
   const exact = findVariantBySelection(variants, probe);
   if (exact) {
-    return (exact.quantity ?? 0) > 0 ? "available" : "out_of_stock";
+    return isVariantInStock(exact) ? "available" : "out_of_stock";
   }
   // Exists on this grade but not with every other pick — still clickable;
   // resolvePickerSelection realigns the remaining dimensions on click.
@@ -177,7 +193,7 @@ export function computeOptionState(
   if (withValue.length === 0) {
     return "unavailable";
   }
-  const hasStock = withValue.some((variant) => (variant.quantity ?? 0) > 0);
+  const hasStock = withValue.some((variant) => isVariantInStock(variant));
   return hasStock ? "available" : "out_of_stock";
 }
 
@@ -293,7 +309,7 @@ export function gradeOptionState(
   if (gradeVariants.length === 0) {
     return "unavailable";
   }
-  const hasStock = gradeVariants.some((variant) => (variant.quantity ?? 0) > 0);
+  const hasStock = gradeVariants.some((variant) => isVariantInStock(variant));
   return hasStock ? "available" : "out_of_stock";
 }
 

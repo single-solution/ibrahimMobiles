@@ -9,17 +9,14 @@
  *     is gone. Default variant selection now uses one product-card
  *     heuristic: cheapest in-stock first, falling back to cheapest
  *     overall when the product is fully out of stock.
- *   - Stock is the variant's `quantity > 0` (no separate `isInStock`).
+ *   - Stock is `quantity > 0` unless `forceOutOfStock` is set (quantity unchanged).
  *   - There is no `originalPriceRupees` on a variant anymore, so the
  *     old "has any offer" helper is removed — offers are decoupled from
  *     individual variants and live on the `Offer` collection.
  */
 
 import type { GradeDescriptor, Product, StoredImage, Variant } from "@store/shared";
-import { formatPrice } from "@store/shared";
-
-const isVariantInStock = (variant: Variant): boolean =>
-  (variant.quantity ?? 0) > 0;
+import { formatPrice, isVariantInStock } from "@store/shared";
 
 /**
  * Sensible "starting" variant for any product. Picks the cheapest in-stock
@@ -35,6 +32,7 @@ export function getDefaultVariant(product: Product): Variant {
       gradeSlug: "",
       priceRupees: 0,
       quantity: 0,
+      forceOutOfStock: false,
       warrantyDays: 0,
       attributes: {},
     };

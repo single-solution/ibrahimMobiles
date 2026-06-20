@@ -4,22 +4,6 @@ import {
 	MS_PER_MINUTE,
 } from "./constants";
 
-/**
- * Legacy shape kept for `formatBatteryRange` only. Phase 1 dropped the
- * hardcoded battery-health fields from the public catalog types — UIs
- * that still want to render a range simply pass `{ minPercent, maxPercent }`
- * by hand (e.g. parsed from a `Variant.attributes.batteryHealth` value).
- */
-export interface BatteryRange {
-	minPercent: number;
-	maxPercent: number;
-}
-
-/** GB → TB threshold: storage at or above this is rendered in terabytes. */
-const STORAGE_GB_PER_TB = 1024;
-/** Denominator for percent-based math. */
-const PERCENT_DENOMINATOR = 100;
-
 const DAYS_PER_WEEK = 7;
 /** Approximate days/months used for "Xmo ago" / "Xy ago" rendering only. */
 const DAYS_PER_MONTH = 30;
@@ -36,37 +20,6 @@ export function formatPrice(rupees: number): string {
 		maximumFractionDigits: 0,
 	}).format(rupees);
 	return `Rs ${formatted}`;
-}
-
-/** Render a battery-health range as `min–max%` (or a single value if equal). */
-export function formatBatteryRange(range: BatteryRange): string {
-	if (range.minPercent === range.maxPercent) {
-		return `${range.minPercent}%`;
-	}
-	return `${range.minPercent}–${range.maxPercent}%`;
-}
-
-/** Render storage capacity: ≥ 1024 GB folds into TB, otherwise stays in GB. */
-export function formatStorage(storageGb: number): string {
-	return storageGb >= STORAGE_GB_PER_TB
-		? `${storageGb / STORAGE_GB_PER_TB} TB`
-		: `${storageGb} GB`;
-}
-
-/**
- * Return the discount percent (0–100, rounded) implied by an original and
- * current price. Returns `0` when the inputs don't represent a real discount.
- */
-export function calculateDiscountPercent(
-	originalRupees: number,
-	currentRupees: number,
-): number {
-	if (originalRupees <= 0 || currentRupees >= originalRupees) {
-		return 0;
-	}
-	return Math.round(
-		((originalRupees - currentRupees) / originalRupees) * PERCENT_DENOMINATOR,
-	);
 }
 
 /** Render an offer-style countdown ("Ends in 3 days", "Ends today", …). */

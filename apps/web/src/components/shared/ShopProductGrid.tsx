@@ -58,12 +58,10 @@ export function ShopProductGrid({
 
   return (
     <div
-      className={`reveal-stagger ${gridClassName}${isListingSwap ? " listing-swap" : ""}`}
+      className={`reveal-scroll-list ${gridClassName}${isListingSwap ? " listing-swap" : ""}`}
     >
       {products.map((product, index) => (
-        // Above-the-fold (priority/LCP) cards render visible immediately;
-        // the rest spring/cascade in as they scroll into view.
-        <div key={product.id} className={index < priorityCount ? "h-full" : "h-full reveal"}>
+        <div key={product.id} className="reveal reveal-rise reveal-scroll h-full">
           <ProductCard
             product={product}
             catalogProduct={product}

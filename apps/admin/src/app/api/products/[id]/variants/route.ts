@@ -6,6 +6,7 @@ import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
 import {
   validateVariant,
+  loadVariantValidationContext,
   type VariantInput,
 } from "@/lib/api/variantValidation";
 import {
@@ -35,19 +36,12 @@ export async function POST(request: Request, { params }: RouteContext) {
   }
 
   await connectDB();
-  // Read the parent product first so the variant validator can scope its
-  // grade + attribute lookups by `categorySlug`.
-  const product = await Product.findById(id)
-    .select("categorySlug brandSlug")
-    .lean<{ categorySlug: string; brandSlug: string }>();
-  if (!product) {
+  const context = await loadVariantValidationContext(id);
+  if (!context) {
     return notFound("Product not found");
   }
 
-  const result = await validateVariant(body, true, {
-    categorySlug: product.categorySlug,
-    brandSlug: product.brandSlug,
-  });
+  const result = await validateVariant(body, true, context);
   if (!result.ok) {
     return badRequest(result.error);
   }
@@ -56,7 +50,7 @@ export async function POST(request: Request, { params }: RouteContext) {
     const updated = await Product.findByIdAndUpdate(
       id,
       { $push: { variants: result.value } },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     ).lean<ProductLean>();
     if (!updated) {
       return notFound("Product not found");

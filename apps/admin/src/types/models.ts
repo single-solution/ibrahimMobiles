@@ -102,6 +102,8 @@ export interface AdminVariant {
   priceRupees: number;
   quantity: number;
   warrantyDays?: number;
+  /** Storefront sold-out override — stock stays in `quantity`. */
+  forceOutOfStock: boolean;
   /** @deprecated Legacy; use `warrantyDays`. */
   warrantyMonths?: number;
   /**
@@ -144,6 +146,11 @@ export interface AdminProduct extends AdminProductSummary {
   /** Ordered product gallery (shared across every variant). */
   images: StoredImage[];
   variants: AdminVariant[];
+  /** Category attribute slugs this product uses. Absent = legacy (all attributes). */
+  attributeSlugs?: string[];
+  attributeOptionPool?: Record<string, string[]>;
+  attributeCustomOptions?: Record<string, Array<{ value: string; label: string }>>;
+  attributeDefaults?: Record<string, string>;
   seo?: SeoMeta;
 }
 

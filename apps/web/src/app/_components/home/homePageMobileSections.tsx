@@ -85,14 +85,14 @@ export function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
           One shop. One graded standard. Tap a category to start browsing.
         </p>
       </div>
-      <div className={`reveal-stagger ${getHomeCategoryGridClass(featured.length, "mobile")}`}>
-        {featured.map((meta, index) => (
+      <div className={`reveal-scroll-list ${getHomeCategoryGridClass(featured.length, "mobile")}`}>
+        {featured.map((meta) => (
           <ShopTypeCard
             key={meta.slug}
             meta={meta}
             variant="mobile"
-            delayMs={(index + 1) * MOBILE_CATEGORY_STAGGER_MS}
             homeCategorySlug={homeCategorySlug}
+            scrollReveal
           />
         ))}
       </div>
@@ -212,13 +212,13 @@ export function MobileProcessSection({ flows }: ProcessSectionProps) {
           From sourcing to refund — every step on record.
         </p>
       </div>
-      <div className="reveal-stagger space-y-4">
+      <div className="reveal-scroll-list space-y-4">
         {flows.map((flow) => {
           const Icon = flow.icon;
           return (
             <div
               key={flow.key}
-              className="reveal overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]"
+              className="reveal reveal-scroll reveal-rise overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)]"
             >
               <div className="flex items-center gap-2.5 bg-[var(--color-ink-900)] px-3.5 py-3 text-[var(--color-canvas)]">
                 <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--color-accent-500)] text-[var(--color-ink-900)]">

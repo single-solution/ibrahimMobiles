@@ -12,7 +12,7 @@
  *
  * Output is shuffled and truncated to `targetCount`. There's no special
  * tagging — every label is just a search term the customer can land on
- * via `/shop?q=<label>`.
+ * via `/?q=<label>`.
  */
 
 import { Category as CategoryModel, Order as OrderModel, Product as ProductModel, connectDB } from "@store/db";

@@ -51,15 +51,17 @@ flowchart LR
     *   **Display:** Drives badges, hex colors, notes, and optional inspection videos on the PDP.
 *   **Attribute (Custom Dimension)**
     *   **Scoping:** Per-category custom dimension (e.g., Storage, RAM, Color).
-    *   **Visibility Rules:** Can show *Always*, *By Brand*, *By Grade*, or *By Parent Attribute* (cascading).
+    *   **Visibility Rules:** Shop filters may show *Always*, *By Brand*, or *By Grade*. Which attributes appear on a product's variants is configured per product on the product details page (`attributeSlugs`).
     *   **Card Position:** Renders on product cards as image overlay, title chips, or hidden.
-    *   **Rule:** Cascading attributes clear dependent child filters when the parent changes.
 *   **Product**
     *   **Media:** Up to 8 shared photos per product (variants share the gallery). Index 0 is the hero image.
     *   **Flags:** Active (master on/off), Archived (soft delete, hides from default admin views), Featured (boosts in UI rails and deals page).
+    *   **Attribute setup (admin Step 2):** Each product chooses a **subset** of its category's attributes (`attributeSlugs`) and, per attribute, which **global options** are in the pool (`attributeOptionPool` — all, some, or none). Optional `attributeDefaults` pre-fill new variants. *Legacy:* products without `attributeSlugs` behave as before (every category attribute + every global option).
 *   **Variant**
     *   **Truth:** The absolute source of truth for price, stock, warranty days, and condition.
-    *   **Stock:** In-stock if `quantity > 0`. Reserved atomically at checkout, released on cancel/refund/return.
+    *   **Attributes:** Values come from the product's option pool (global catalog options and product-added options share one list).
+    *   **Stock:** In-stock if `quantity > 0` and not `forceOutOfStock`. Reserved atomically at checkout, released on cancel/refund/return.
+    *   **Force sold out:** Variant `forceOutOfStock` marks a variant unavailable on the storefront without changing `quantity`.
 
 ---
 
@@ -72,25 +74,17 @@ flowchart LR
 *   **Notice Banner:** Shown only if enabled in Admin with text. Dismissible for the session.
 *   **404 Page:** Shows message + links to home browse.
 
-### Home Page (Catalog — Concept B + full shop listing)
-*   **Purpose:** Single storefront entry — the entire former shop listing lives here. No separate shop page.
-*   **Compact Banner:** Short gradient band with animated mask-sweep headline and trust hints.
-*   **Sticky Category Pills:** Horizontal category switcher — same `max-w-[1440px]` / `app-page` alignment as the listing below. No row border. Default category uses `/`; others use `/?category={slug}`.
-*   **Mobile listing:** Category + **Filters** dock fixed above the bottom tab bar while scrolling; infinite-scroll product grid below the hero.
-*   **Desktop listing:** Sticky **filter sidebar** (272px) + infinite-scroll product grid (same as former shop desktop).
-*   **Search:** `/?q=…` renders global search results on home. Legacy `/shop?q=…` redirects here.
-*   **Coming soon:** `/?category={inactive-slug}` shows the category coming-soon state (not a separate route).
-*   **Legacy URLs:** `/shop` and `/shop/{category}` redirect to home (params preserved). Product detail URLs stay `/shop/{category}/{product}`.
-*   **About Page (`/about`):** Full former homepage — hero, browse-by-category tiles, process, grades, and visit-store sections. Category tiles and CTAs link to the catalog on `/`.
+### Home Page (`/`)
+*   **Purpose:** Catalog entry — search only. With no `?q=` param, redirects to the first active category (`/{categorySlug}`).
+*   **Search:** `/?q=…` renders global search results (hero + product grid). Search overlay submit uses the same URL.
+*   **About Page (`/about`):** Full marketing homepage — hero, browse-by-category tiles, process, grades, and visit-store sections. Category tiles link to `/{categorySlug}`.
 
 ### About Page (former homepage content)
 *   **Hero:** Full-viewport hero with mask-sweep headline, trending product name band, and **Visit store** CTA → `/`.
-*   **Browse by category:** Featured category cards (same grid as old home). Active cards link to `/` or `/?category={slug}`; inactive show **Soon**. **Browse all categories** → `/` when more categories exist than the featured cap.
+*   **Browse by category:** Featured category cards. Active cards link to `/{categorySlug}`; inactive show **Soon**.
 *   **Process:** 3 flows (Store, Order, Return). Uses admin-configured money-back days and bank-transfer discount %.
 *   **Grades (Dark Band):** Headline + category tabs. Per-grade cards with badge, notes, video. *Conditional:* If data fails, copy shows but grid is empty.
 *   **Visit Store:** Address, hours, embedded map, Maps link, accepted payments, delivery blurb. *Layout:* Mobile puts map above details; Desktop is side-by-side.
-
-### Home Page — Informational (removed from `/`)
 
 ---
 
@@ -100,17 +94,19 @@ flowchart LR
 *   **Trigger:** Opens full-screen from header. Body scroll locks. Input auto-focuses.
 *   **< 2 chars:** Shows randomized hint chips + up to 5 recent browser searches.
 *   **≥ 2 chars:** Debounced live results (max 10) with variant counts and loading skeletons.
-*   **Submit:** Routes to `/shop?q=...`, saves to recent searches, closes overlay. Max 100 chars.
+*   **Submit:** Routes to `/?q=…`, saves to recent searches, closes overlay. Max 100 chars.
 *   **Empty State:** "No results" with option to search all.
 
 ### Shop & Category Listings
-*   **Routing:** Catalog lives on `/` with optional `?category={slug}` and filter query params. `/shop` and `/shop/{category}` **redirect** to home (legacy bookmarks). `/shop?q=…` redirects to `/?q=…`. Product pages stay at `/shop/{category}/{product}`.
-*   **Conditionals:** Unknown category slug on `/?category=…` falls back to the first active category. Inactive category slug → 404.
-*   **Filters (AND Logic) & Infinite Scroll:** Same as before — brand, grade, price, attributes, sort, `q` sync to URL. Filters open in a bottom sheet on home. 24 items per page, infinite scroll + "Load more" fallback.
+*   **Routing:** Category listings live at `/{categorySlug}` with filter query params on the same URL. Product detail URLs are `/{categorySlug}/{productSlug}`. Reserved segments (`/about`, `/cart`, etc.) are not categories.
+*   **Conditionals:** Unknown category slug → 404. Inactive category slug → coming-soon state on `/{categorySlug}` (not a separate route).
+*   **Mobile listing:** Category picker + **Filters** dock fixed above the bottom tab bar; infinite-scroll product grid below the hero band.
+*   **Desktop listing:** Sticky **filter sidebar** (272px) + filter pill row + infinite-scroll product grid.
+*   **Filters (AND Logic) & Infinite Scroll:** Brand, grade, price, attributes, sort, `q` sync to URL. Filters open in a bottom sheet on mobile. 24 items per page, infinite scroll + "Load more" fallback.
 
 ### Product Cards & Deals Page
-*   **Product Cards:** Show brand, name, hero image, grade badge, attribute chips. *Conditional:* Multiple grades = cycles grade slides on hover. *Conditional:* Out of stock = "Sold out" overlay. *Conditional:* Active offer = Offer title badge.
-*   **Deals Page:** Static hero. *Conditional:* Active offers stream in (hidden if none). Sale Grid shows admin-flagged "Featured" products.
+*   **Product Cards:** Show brand, name, hero image, grade badge, attribute chips. *Conditional:* Multiple grades = cycles grade slides on hover. *Conditional:* Out of stock = "Sold out" overlay. *Conditional:* Item-scoped active offer = **offer `badgeLabel`** pill on the image (top-right, above grade badge; crossfades per slide when cycling grades/variants; no price cut on card).
+*   **Deals Page:** Hero + **Deal of the week** spotlight (first featured in-stock product with a live item offer, else first featured). **Offer-led sections** — each active item-scoped offer card anchors a product rail matched by offer rules (not the old flat Featured grid). Bank-transfer % remains checkout-only via settings. Empty state when no offers and no spotlight.
 
 ---
 
@@ -127,7 +123,7 @@ flowchart LR
 *   **Complete Selection:** Price, stock, quantity stepper, and "Add to cart" appear.
 *   **Closest Match:** *Conditional:* If exact combo doesn't exist, auto-selects closest stocked variant and shows a pre-filled WhatsApp inquiry button.
 *   **Stock & Qty:** Max qty is variant stock minus current cart qty. *Conditional:* "Buy all" shortcut appears if stock > 1 and qty < max. *Conditional:* Sold Out = Button disabled, mobile sticky bar drops WhatsApp button.
-*   **Pricing:** Evaluates active offers client-side. Shows strikethrough and discounted price when an offer applies.
+*   **Pricing:** List price only in sticky CTA and purchase summary. *Conditional:* Item-scoped offers show **`badgeLabel` on the gallery** plus an **info panel** (title + checkout hint — no computed discount). Cart/checkout run full offer math.
 *   **Grade Showcase:** Updates with selected variant's grade (notes, warranty, video). *Conditional:* Omitted if grade data missing.
 *   **Related Products:** Same category + brand. *Conditional:* "No more products" if none.
 
@@ -243,10 +239,11 @@ sequenceDiagram
 ## 8. Loyalty & Offers Engine
 
 ### Offers Engine
-*   **Evaluation:** Sequential based on admin `sortOrder`.
-*   **Stacking:** First applied *non-stackable* offer stops evaluation.
-*   **Conditions:** Product, Category, Brand, Grade, Attribute, Price Range, Cart Total. Operators: in, not_in, between, gte, lte.
-*   **Actions:** % off, Fixed Rs off, Free Shipping. Target: Matched items or Cart.
+*   **Evaluation:** Sequential by admin `sortOrder`. **One offer per order** — first eligible offer applies, then evaluation stops.
+*   **Display vs checkout:** Cards and PDP show item-scoped offer **hints only** (ignore cart-total and payment-method conditions). Cart and checkout (and order placement API) evaluate full rules including cart total, line quantity, and payment method.
+*   **Bank transfer %:** Separate from offers — `settings.bankTransferDiscountPercent` at checkout; not an offer condition.
+*   **Conditions:** Product, Category, Brand, Grade, Attribute, Price Range, Cart Total, **Min line quantity**, **Payment method**. Operators: in, not_in, between, gte, lte.
+*   **Actions:** % off, Fixed Rs off, Free Shipping. Target: Matched items or Cart. (`buy_x_get_y` schema only — not evaluated yet.)
 *   **Constraints:** Schedule window, usage limit, allow loyalty points flag.
 
 ### Loyalty Rules
@@ -321,7 +318,7 @@ stateDiagram-v2
 *   **Actions:** Change status (Open, Awaiting Customer, Resolved), add internal notes, attach files (JPEG, PNG, WebP, PDF, plain text).
 
 ### Catalog (Products, Categories, Brands)
-*   **Products:** Delete blocked if referenced by orders. Use `isActive` toggle instead. Wizard Step 1 (Details & Photos) -> Step 2 (Variants by Grade). Duplicate attribute combinations are rejected.
+*   **Products:** Delete blocked if referenced by orders. Use product `isActive` toggle instead. Wizard Step 1 (Details & Photos) -> Step 2 (attribute setup + variants by grade). Each variant has an **In stock** toggle (force sold out — quantity unchanged) and a **Quantity** field (actual stock count). Duplicate attribute combinations are rejected.
 *   **Categories:** Create/edit label, slug, icon, sort order, structured marketing content, SEO.
 *   **Brands:** Scoped to a category. Used in product wizard brand picker.
 
@@ -346,7 +343,8 @@ stateDiagram-v2
 | **Support Staff** | Read-only Catalog/Orders/Customers. Can view + reply to chats. |
 
 ### Settings & Activity Log
-*   **Settings Tabs:** Store details, Contact, Payments, Delivery, Notices, Loyalty, Policies, Inventory, SEO, Chat widget, Integrations, Data cleanup.
+*   **Settings Tabs:** Site URLs, Store details, Contact, Payments, Delivery, Notices, Loyalty, Policies, Inventory, SEO, Chat widget, Integrations, Data cleanup.
+*   **Site URLs:** Admin-managed public storefront origin (`Settings → General → Site URLs`). Drives SEO canonicals, sitemap, product “open storefront” links, and admin sidebar links. When unset, falls back to `STOREFRONT_BASE_URL` / deploy env, then localhost in dev.
 *   **Live Updates:** Changes to branding, policies, payments, and chat config apply to the storefront immediately.
 *   **Data Cleanup:** Owner-only tool to bulk-delete catalog, orders, customers, or inquiries.
 *   **Activity Log:** Append-only audit trail of all mutations (actor, action, resource, timestamp). Failures to log do not block business operations. Filters by resource type and action. Tracks: created, updated, deleted, archived, restored, status_changed, login, logout, invited, signin_code_issued.

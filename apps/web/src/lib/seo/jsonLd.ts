@@ -9,6 +9,7 @@
  */
 
 import type { Product, Variant } from "@store/shared";
+import { isVariantInStock } from "@store/shared";
 
 import { categoryHref, productAbsoluteUrl } from "@/lib/catalog/productPaths";
 import { getDefaultVariant } from "@/lib/productSummary";
@@ -58,8 +59,7 @@ export function productJsonLd({
     url,
     priceCurrency: "PKR",
     price: variant.priceRupees,
-    availability:
-      variant.quantity > 0
+    availability: isVariantInStock(variant)
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
   };

@@ -6,6 +6,7 @@ import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
 import {
   validateVariant,
+  loadVariantValidationContext,
   type VariantInput,
 } from "@/lib/api/variantValidation";
 import {
@@ -38,17 +39,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
 
   await connectDB();
-  const product = await Product.findById(id)
-    .select("categorySlug brandSlug")
-    .lean<{ categorySlug: string; brandSlug: string }>();
-  if (!product) {
+  const context = await loadVariantValidationContext(id);
+  if (!context) {
     return notFound("Product not found");
   }
 
-  const result = await validateVariant(body, false, {
-    categorySlug: product.categorySlug,
-    brandSlug: product.brandSlug,
-  });
+  const result = await validateVariant(body, false, context);
   if (!result.ok) {
     return badRequest(result.error);
   }
@@ -76,7 +72,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
         ...(Object.keys(set).length > 0 ? { $set: set } : {}),
         ...(Object.keys(unset).length > 0 ? { $unset: unset } : {}),
       },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     ).lean<ProductLean>();
     if (!updated) {
       return notFound("Product or variant not found");
@@ -120,7 +116,7 @@ export async function DELETE(_request: Request, { params }: RouteContext) {
     const updated = await Product.findByIdAndUpdate(
       id,
       { $pull: { variants: { _id: variantId } } },
-      { new: true },
+      { returnDocument: "after" },
     ).lean<ProductLean>();
     if (!updated) {
       return notFound("Product not found");

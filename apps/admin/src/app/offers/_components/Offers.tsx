@@ -18,7 +18,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Stepper } from "@/components/ui/Stepper";
 import { StatusPill, type StatusTone } from "@/components/shared/StatusPill";
 import { TextField } from "@/components/forms/TextField";
-import { ColorChips } from "@/components/forms/ColorChips";
+import { SelectionToggleCards } from "@/components/forms/SelectionToggleCards";
 import { StructuredContentEditor } from "@/components/forms/StructuredContentEditor";
 import { Toggle } from "@/components/ui/Toggle";
 import { useToast } from "@/components/ui/Toast";
@@ -31,6 +31,7 @@ import {
   emptyStructuredContent,
   formatRelativeDate,
   normalizeStructuredContent,
+  seoScoreTone,
 } from "@store/shared";
 import type { SeoMeta, StructuredContent } from "@store/shared";
 import { CatalogSeoPanel } from "@/app/settings/_components/CatalogSeoPanel";
@@ -53,17 +54,32 @@ const OFFER_SLUG_MAX_CHARS = 96;
 const DEFAULT_OFFER_COLOR = "#e1ff51";
 
 const ACCENT_OPTIONS = [
-  { value: "#10b981", label: "Emerald", swatch: "var(--color-offer-emerald)" },
-  { value: "#e1ff51", label: "Chartreuse", swatch: "var(--color-accent-500)" },
-  { value: "#f43f5e", label: "Rose", swatch: "var(--color-offer-rose)" },
-  { value: "#0ea5e9", label: "Sky", swatch: "var(--color-offer-sky)" },
+  { label: "Lime", value: "#e1ff51" },
+  { label: "Cyan", value: "#06b6d4" },
+  { label: "Purple", value: "#a855f7" },
+  { label: "Rose", value: "#f43f5e" },
+  { label: "Orange", value: "#f97316" },
+  { label: "Amber", value: "#f59e0b" },
+  { label: "Emerald", value: "#10b981" },
+  { label: "Teal", value: "#14b8a6" },
+  { label: "Blue", value: "#3b82f6" },
+  { label: "Indigo", value: "#6366f1" },
+  { label: "Pink", value: "#ec4899" },
+  { label: "Slate", value: "#64748b" },
+  { label: "Red", value: "#ef4444" },
+  { label: "Yellow", value: "#eab308" },
+  { label: "Green", value: "#22c55e" },
+  { label: "Fuchsia", value: "#d946ef" },
 ];
 
 interface OffersProps {
   offers: AdminOffer[];
 }
 
-type DrawerState = { mode: "new" } | { mode: "edit"; offer: AdminOffer } | null;
+type DrawerState =
+  | { mode: "new" }
+  | { mode: "edit"; offer: AdminOffer; step?: number }
+  | null;
 
 type OfferStatus = "live" | "scheduled" | "expired" | "hidden";
 type OfferStatusFilter = OfferStatus | "all";
@@ -257,7 +273,7 @@ export function Offers({ offers }: OffersProps) {
                 key={offer.id}
                 offer={offer}
                 status={getOfferStatus(offer, now)}
-                onEdit={() => setDrawer({ mode: "edit", offer })}
+                onEdit={(step) => setDrawer({ mode: "edit", offer, step })}
                 onDelete={() => setToDelete(offer)}
                 onToggled={refresh}
               />
@@ -297,7 +313,7 @@ export function Offers({ offers }: OffersProps) {
 interface OfferCardProps {
   offer: AdminOffer;
   status: OfferStatus;
-  onEdit: () => void;
+  onEdit: (step?: number) => void;
   onDelete: () => void;
   onToggled: () => void;
 }
@@ -353,19 +369,9 @@ function OfferCard({ offer, status, onEdit, onDelete, onToggled }: OfferCardProp
               {scheduleSummary}
             </StatusPill>
           ) : null}
-          {offer.constraints?.isStackable ? (
-            <StatusPill tone="neutral" leadingIcon={<Layers size={11} />}>
-              Stackable
-            </StatusPill>
-          ) : null}
           {offer.constraints?.allowLoyaltyPoints ? (
             <StatusPill tone="neutral" leadingIcon={<Sparkles size={11} />}>
               Loyalty
-            </StatusPill>
-          ) : null}
-          {typeof offer.constraints?.usageLimit === "number" ? (
-            <StatusPill tone="neutral">
-              {offer.constraints.usageCount}/{offer.constraints.usageLimit} used
             </StatusPill>
           ) : null}
         </div>
@@ -376,30 +382,78 @@ function OfferCard({ offer, status, onEdit, onDelete, onToggled }: OfferCardProp
           </p>
         ) : null}
 
-        <p className="truncate text-[11px] text-[var(--color-ink-400)]">/deals#{offer.slug}</p>
+        <div className="mt-2 rounded bg-[var(--color-canvas)] p-2">
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-ink-400)]">
+              SEO Title
+            </p>
+            {offer.seo?.score !== undefined && (
+              <span
+                className={classNames(
+                  "rounded-full px-1.5 py-0.5 text-[9px] font-bold tabular-nums whitespace-nowrap shrink-0",
+                  seoScoreTone(offer.seo.score) === "success"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : seoScoreTone(offer.seo.score) === "warn"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-rose-100 text-rose-800",
+                )}
+                title="SEO Score"
+              >
+                Score: {offer.seo.score}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--color-ink-900)]">
+            <Sparkles size={11} className="text-[var(--color-accent-600)] shrink-0" />
+            <span className="truncate">{offer.seo?.title || offer.title}</span>
+          </div>
+          {offer.seo?.focusKeyword && (
+            <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-[var(--color-ink-500)]">
+              <span className="font-semibold text-[var(--color-ink-600)]">Keyword:</span>
+              <span className="truncate">{offer.seo.focusKeyword}</span>
+            </div>
+          )}
+        </div>
 
-        <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--color-ink-100)] pt-2.5">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--color-ink-600)]">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--color-ink-100)] pt-3">
+          <div className="flex items-center gap-1.5">
             <OfferVisibilityToggle
               offerId={offer.id}
               offerTitle={offer.title}
               isActive={offer.isActive}
               onUpdated={onToggled}
             />
-            Live
-          </span>
-          <div className="flex items-center gap-1">
-            <WorkspaceRowIconButton
-              label="Edit offer"
-              iconElement={<Pencil size={13} />}
-              onClick={onEdit}
-            />
-            <WorkspaceRowIconButton
-              label="Delete offer"
-              iconElement={<Trash2 size={13} />}
-              tone="danger"
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            <button
+              onClick={() => onEdit(1)}
+              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-surface)]"
+            >
+              <Pencil size={13} aria-hidden />
+              Banner
+            </button>
+            <button
+              onClick={() => onEdit(2)}
+              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-surface)]"
+            >
+              <Layers size={13} aria-hidden />
+              Rules
+            </button>
+            <button
+              onClick={() => onEdit(3)}
+              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-surface)]"
+            >
+              <Sparkles size={13} aria-hidden />
+              SEO
+            </button>
+            <button
               onClick={onDelete}
-            />
+              title="Delete offer"
+              className="inline-flex items-center gap-1 rounded-[var(--radius-md)] border border-[var(--color-rose-200)] px-2 py-1 text-[11px] font-semibold text-[var(--color-rose-700)] transition-colors hover:bg-[var(--color-rose-50)]"
+            >
+              <Trash2 size={13} aria-hidden />
+              Delete
+            </button>
           </div>
         </div>
       </div>
@@ -408,7 +462,7 @@ function OfferCard({ offer, status, onEdit, onDelete, onToggled }: OfferCardProp
 }
 
 interface OfferDrawerProps {
-  state: { mode: "new" } | { mode: "edit"; offer: AdminOffer };
+  state: { mode: "new" } | { mode: "edit"; offer: AdminOffer; step?: number };
   onClose: () => void;
   onSaved: () => void;
 }
@@ -433,6 +487,7 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
   const [bannerImage, setBannerImage] = useState<GalleryImage | null>(
     initial?.bannerImage ?? null,
   );
+  const [bannerType, setBannerType] = useState<"image" | "color">(initial?.bannerImage ? "image" : "color");
   const [seo, setSeo] = useState<SeoMeta>(initial?.seo ?? {});
   const [offerId, setOfferId] = useState<string | null>(initial?.id ?? null);
   
@@ -442,13 +497,28 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
   const [constraints, setConstraints] = useState<OfferConstraints>(initial?.constraints ?? { allowLoyaltyPoints: false, isStackable: false, usageCount: 0 });
 
   const [isSaving, setIsSaving] = useState(false);
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(() => {
+    if (state.mode === "edit" && state.step) {
+      return state.step;
+    }
+    return 1;
+  });
+  const isStandaloneEdit = isEdit && Boolean(state.step);
   const totalSteps = 3;
   const steps = [
     { id: 1, label: "Basics" },
     { id: 2, label: "Rules" },
     { id: 3, label: "SEO & Publish" },
   ];
+  const drawerTitle = isStandaloneEdit
+    ? step === 1
+      ? "Edit banner"
+      : step === 2
+        ? "Edit rules"
+        : "Edit SEO"
+    : isEdit
+      ? "Edit offer"
+      : "Create offer";
 
   const deferredContent = useDeferredValue(content);
   const previewOffer = useMemo(
@@ -526,62 +596,85 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
     <Drawer
       isOpen
       onClose={onClose}
-      title={isEdit ? "Edit offer" : "Create offer"}
+      title={drawerTitle}
       width="xl"
       topBar={
-        <div className="flex justify-center py-2">
-          <Stepper steps={steps} currentStep={step} className="max-w-md" />
-        </div>
+        isStandaloneEdit ? undefined : (
+          <div className="flex justify-center py-2">
+            <Stepper steps={steps} currentStep={step} className="max-w-md" />
+          </div>
+        )
       }
       footer={
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-sm font-medium text-[var(--color-ink-500)]">
-            Step {step} of {totalSteps}
+        isStandaloneEdit ? (
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="ghost" size="md" type="button" onClick={onClose}>
+              Close
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              type="submit"
+              form="offer-form"
+              isLoading={isSaving}
+            >
+              Save
+            </Button>
           </div>
-          <div className="flex items-center gap-2">
-            {step === 1 ? (
-              <Button variant="ghost" size="md" type="button" onClick={onClose}>
-                Cancel
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="md"
-                type="button"
-                onClick={() => setStep((s) => Math.max(1, s - 1))}
-              >
-                Back
-              </Button>
-            )}
-            {step < totalSteps ? (
-              <Button
-                variant="primary"
-                size="md"
-                type="submit"
-                form="offer-form"
-                isLoading={isSaving}
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                variant="primary"
-                size="md"
-                type="submit"
-                form="offer-form"
-                isLoading={isSaving}
-              >
-                {isEdit ? "Save changes" : "Publish offer"}
-              </Button>
-            )}
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-medium text-[var(--color-ink-500)]">
+              Step {step} of {totalSteps}
+            </div>
+            <div className="flex items-center gap-2">
+              {step === 1 ? (
+                <Button variant="ghost" size="md" type="button" onClick={onClose}>
+                  Cancel
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="md"
+                  type="button"
+                  onClick={() => setStep((currentStep) => Math.max(1, currentStep - 1))}
+                >
+                  Back
+                </Button>
+              )}
+              {step < totalSteps ? (
+                <Button
+                  variant="primary"
+                  size="md"
+                  type="submit"
+                  form="offer-form"
+                  isLoading={isSaving}
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="md"
+                  type="submit"
+                  form="offer-form"
+                  isLoading={isSaving}
+                >
+                  {isEdit ? "Save changes" : "Publish offer"}
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        )
       }
     >
       <div className={step === 3 ? "grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]" : ""}>
-      <form id="offer-form" onSubmit={(e) => {
-        handleSubmit(e, step < totalSteps);
-      }} className="space-y-4">
+      <form
+        id="offer-form"
+        onSubmit={(event) => {
+          handleSubmit(event, !isStandaloneEdit && step < totalSteps);
+        }}
+        className="space-y-4"
+      >
         {step === 1 && (
           <div className="space-y-4">
             <TextField
@@ -610,28 +703,77 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
                 placeholder="Limited"
               />
             </div>
-            <StructuredContentEditor
-              value={content}
-              onChange={setContent}
-              summaryLabel="Description"
-              summaryPlaceholder="Buy any item from this category and get…"
-              summaryRows={4}
-              maxSummaryLength={OFFER_FIELD_LIMITS.description}
-              bulletsHint="Optional bullets surfaced on the deals page below the offer headline."
-            />
-            <ImageUpload
-              label="Offer banner"
-              value={bannerImage}
-              onChange={setBannerImage}
-              aspect="wide"
-              hint="Used on the deals page and homepage feature cards when present."
-            />
-            <ColorChips
-              label="Accent color"
-              value={color}
-              onChange={(value) => setColor(value)}
-              options={ACCENT_OPTIONS}
-            />
+            <div className="grid gap-4 lg:grid-cols-2">
+              <StructuredContentEditor
+                value={content}
+                onChange={setContent}
+                summaryLabel="Description"
+                summaryPlaceholder="Buy any item from this category and get…"
+                summaryRows={4}
+                maxSummaryLength={OFFER_FIELD_LIMITS.description}
+                bulletsHint="Optional bullets surfaced on the deals page below the offer headline."
+              />
+              <div className="space-y-4">
+                <SelectionToggleCards
+                  label="Banner style"
+                  value={bannerType}
+                  onChange={(nextType) => {
+                    setBannerType(nextType);
+                    if (nextType === "color") {
+                      setBannerImage(null);
+                    }
+                  }}
+                  options={[
+                    {
+                      value: "image",
+                      title: "Banner image",
+                      description: "Upload a wide image for deals and homepage cards.",
+                    },
+                    {
+                      value: "color",
+                      title: "Solid color",
+                      description: "Use an accent color as the card background.",
+                    },
+                  ]}
+                />
+
+                {bannerType === "image" ? (
+                  <ImageUpload
+                    label="Offer banner"
+                    value={bannerImage}
+                    onChange={setBannerImage}
+                    aspect="wide"
+                    hint="Used on the deals page and homepage feature cards when present."
+                  />
+                ) : (
+                  <div>
+                    <label className="mb-2 block text-[13px] font-medium text-[var(--color-ink-900)]">
+                      Accent Color
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {ACCENT_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setColor(opt.value)}
+                          className={classNames(
+                            "h-8 w-8 rounded-full border-2 transition-all",
+                            color === opt.value
+                              ? "border-[var(--color-ink-900)] scale-110 shadow-sm"
+                              : "border-transparent hover:border-[var(--color-ink-300)] hover:scale-105",
+                          )}
+                          style={{ backgroundColor: opt.value }}
+                          title={opt.label}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-2 text-[13px] text-[var(--color-ink-500)]">
+                      Used as the background for the offer card if no banner image is provided.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 

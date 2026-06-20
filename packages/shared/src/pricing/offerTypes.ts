@@ -1,6 +1,16 @@
 export interface OfferCondition {
-  type: "products" | "categories" | "brands" | "grades" | "attributes" | "price_range" | "cart_total";
-  operator: "in" | "not_in" | "between" | "gte" | "lte";
+  type:
+    | "products"
+    | "categories"
+    | "brands"
+    | "grades"
+    | "attributes"
+    | "price_range"
+    | "cart_total"
+    | "min_quantity"
+    | "payment_method"
+    | "group";
+  operator: "in" | "not_in" | "between" | "gte" | "lte" | "and" | "or";
   value: any;
 }
 

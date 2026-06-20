@@ -40,19 +40,9 @@ export interface AttributeFacet {
 function filtersToVisibilityContext(
   filters: ProductFilters,
 ): VisibilityContext {
-  const attributes: Record<string, string> = {};
-  if (filters.attributes) {
-    for (const [slug, values] of Object.entries(filters.attributes)) {
-      const first = values.find((value) => value.trim().length > 0);
-      if (first) {
-        attributes[slug] = first;
-      }
-    }
-  }
   return {
     brandSlugs: filters.brandSlugs,
     gradeSlugs: filters.gradeSlugs,
-    attributes,
   };
 }
 

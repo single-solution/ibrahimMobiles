@@ -86,6 +86,8 @@ export interface Variant {
   priceRupees: number;
   /** Current in-stock count. `>0` is "available". */
   quantity: number;
+  /** When true, storefront treats variant as sold out; `quantity` is unchanged. */
+  forceOutOfStock: boolean;
   /** Warranty length in whole days (authoring + storefront). */
   warrantyDays?: number;
   /** @deprecated Read via {@link resolveWarrantyDays}; new data uses `warrantyDays`. */
@@ -112,6 +114,17 @@ export interface Product {
    *  (PDP, cards, search, OG, JSON-LD). Always populated by the serializer. */
   images: StoredImage[];
   variants: Variant[];
+  /**
+   * Category attribute slugs this product uses. Absent on legacy rows → all
+   * category attributes apply (same as pre-config behavior).
+   */
+  attributeSlugs?: string[];
+  /** Allowed global option values per attribute slug (subset of category options). */
+  attributeOptionPool?: Record<string, string[]>;
+  /** Product-only custom options per attribute slug. */
+  attributeCustomOptions?: Record<string, Array<{ value: string; label: string }>>;
+  /** Pre-fill for new variants — values must be in the matching option pool. */
+  attributeDefaults?: Record<string, string>;
   /** Optional admin SEO overrides (auto-filled when absent). */
   seo?: SeoMeta;
 }

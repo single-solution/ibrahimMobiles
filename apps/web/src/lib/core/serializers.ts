@@ -44,6 +44,7 @@ import {
   isStoredImage,
   normalizeStructuredContent,
   objectIdString,
+  parseAttributeVisibility,
   sortAttributeOptions,
   toIsoDate,
 } from "@store/shared";
@@ -104,23 +105,7 @@ export function toAttribute(
       ),
       asString(attribute.unit) || undefined,
     ),
-    visibility: attribute.visibility
-      ? {
-          type: attribute.visibility.type,
-          ...(attribute.visibility.brandSlugs
-            ? { brandSlugs: attribute.visibility.brandSlugs }
-            : {}),
-          ...(attribute.visibility.gradeSlugs
-            ? { gradeSlugs: attribute.visibility.gradeSlugs }
-            : {}),
-          ...(attribute.visibility.attributeSlug
-            ? { attributeSlug: attribute.visibility.attributeSlug }
-            : {}),
-          ...(attribute.visibility.optionValues
-            ? { optionValues: attribute.visibility.optionValues }
-            : {}),
-        }
-      : undefined,
+    visibility: parseAttributeVisibility(attribute.visibility),
     cardPosition: attribute.cardPosition ?? "title-chips",
   };
 }
@@ -153,12 +138,25 @@ function asStoredImageArray(raw: unknown): StoredImage[] {
     .filter((image): image is StoredImage => image !== null);
 }
 
-function toVariant(variant: VariantAttributes): Variant {
+function readVariantForceOutOfStock(
+	variant: VariantAttributes & { isActive?: boolean },
+): boolean {
+	if (variant.forceOutOfStock === true) {
+		return true;
+	}
+	if (variant.isActive === false) {
+		return true;
+	}
+	return false;
+}
+
+function toVariant(variant: VariantAttributes & { isActive?: boolean }): Variant {
   return {
     id: objectIdString(variant._id),
     gradeSlug: asString(variant.gradeSlug),
     priceRupees: asNumber(variant.priceRupees),
     quantity: variant.quantity ?? 0,
+    forceOutOfStock: readVariantForceOutOfStock(variant),
     warrantyDays: resolveWarrantyDays(variant),
     attributes: variant.attributes ?? {},
     attributeDisplay: variant.attributeDisplay,
@@ -197,6 +195,33 @@ export function toProduct(
     isFeatured: product.isFeatured ?? false,
     images,
     variants: asArray<VariantAttributes>(product.variants).map(toVariant),
+    ...(Array.isArray(product.attributeSlugs)
+      ? {
+          attributeSlugs: product.attributeSlugs.filter(
+            (slug): slug is string => typeof slug === "string" && slug.length > 0,
+          ),
+        }
+      : {}),
+    ...(product.attributeOptionPool &&
+    typeof product.attributeOptionPool === "object" &&
+    !Array.isArray(product.attributeOptionPool)
+      ? { attributeOptionPool: product.attributeOptionPool as Record<string, string[]> }
+      : {}),
+    ...(product.attributeCustomOptions &&
+    typeof product.attributeCustomOptions === "object" &&
+    !Array.isArray(product.attributeCustomOptions)
+      ? {
+          attributeCustomOptions: product.attributeCustomOptions as Record<
+            string,
+            Array<{ value: string; label: string }>
+          >,
+        }
+      : {}),
+    ...(product.attributeDefaults &&
+    typeof product.attributeDefaults === "object" &&
+    !Array.isArray(product.attributeDefaults)
+      ? { attributeDefaults: product.attributeDefaults as Record<string, string> }
+      : {}),
     seo: product.seo,
   };
 }

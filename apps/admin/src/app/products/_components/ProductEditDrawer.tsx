@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@store/ui";
 import { Drawer } from "@/components/ui/Drawer";
 import { CatalogSeoPanel } from "@/app/settings/_components/CatalogSeoPanel";
-import { ImageGallery } from "@/components/shared/uploads";
 import {
   uploadGalleryImages,
   type GalleryImage,
@@ -19,13 +18,33 @@ import type { SeoMeta } from "@store/shared";
 import type { AdminProduct } from "@/types/models";
 
 import { collectProductImageErrors } from "./productFormState";
-import { Stepper } from "@/components/ui/Stepper";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { CategoryOptionButton, WizardFieldError, WizardSection } from "./productWizardUi";
 import { ProductWizardStep2 } from "./ProductWizardStep2";
+import { ProductDetailsForm, ProductDetailsFormSkeleton } from "./ProductDetailsForm";
+import {
+	attributeConfigForCategory,
+	attributeConfigForEditor,
+	analyzeAttributeConfigImpact,
+	buildAttributeConfigForSave,
+	countVariantsUsingAttribute,
+	formatAttributeConfigImpactLines,
+	hasAttributeConfigImpact,
+	type AttributeConfigImpactSummary,
+} from "./productAttributeConfigState";
+import type { ProductAttributeConfig } from "@store/shared";
+import type { AdminAttribute } from "@/types/models";
+
+export type ProductEditStep = 1 | 2 | 3;
+
+const STEP_TITLES: Record<ProductEditStep, string> = {
+  1: "Edit details",
+  2: "Edit variants",
+  3: "Edit SEO",
+};
 
 interface ProductEditDrawerProps {
   productId: string | null;
+  step: ProductEditStep;
   catalog: ProductWizardCatalog;
   isOpen: boolean;
   onClose: () => void;
@@ -34,6 +53,7 @@ interface ProductEditDrawerProps {
 
 export function ProductEditDrawer({
   productId,
+  step,
   catalog,
   isOpen,
   onClose,
@@ -52,8 +72,36 @@ export function ProductEditDrawer({
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [imagesError, setImagesError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [step, setStep] = useState(1);
-  const totalSteps = 3;
+  const [attributeConfig, setAttributeConfig] = useState<ProductAttributeConfig>({
+    attributeSlugs: [],
+    attributeOptionPool: {},
+  });
+  const [pendingAttributeSaveImpact, setPendingAttributeSaveImpact] =
+    useState<AttributeConfigImpactSummary | null>(null);
+  const [pendingAttributeDisable, setPendingAttributeDisable] = useState<{
+    attribute: AdminAttribute;
+    variantCount: number;
+    proceed: () => void;
+  } | null>(null);
+
+  const skipAttributeSaveConfirmRef = useRef(false);
+  const attributeConfigRef = useRef(attributeConfig);
+  attributeConfigRef.current = attributeConfig;
+
+  const catalogRef = useRef(catalog);
+  catalogRef.current = catalog;
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const loadedProductIdRef = useRef<string | null>(null);
+
+  const categoryAttributes = categorySlug
+    ? (catalog.attributesByCategory[categorySlug] ?? [])
+    : [];
+
+  const categoryAttributesRef = useRef(categoryAttributes);
+  categoryAttributesRef.current = categoryAttributes;
 
   const category = useMemo(
     () =>
@@ -69,8 +117,13 @@ export function ProductEditDrawer({
 
   useEffect(() => {
     if (!isOpen || !productId) {
+      loadedProductIdRef.current = null;
       return;
     }
+    if (loadedProductIdRef.current === productId) {
+      return;
+    }
+
     let cancelled = false;
     scheduleStateUpdate(() => {
       setLoading(true);
@@ -78,6 +131,7 @@ export function ProductEditDrawer({
     apiFetch<AdminProduct>(`/api/products/${productId}`)
       .then((loaded) => {
         if (cancelled) return;
+        loadedProductIdRef.current = productId;
         setProduct(loaded);
         setName(loaded.name);
         setCategorySlug(loaded.categorySlug);
@@ -85,15 +139,17 @@ export function ProductEditDrawer({
         setSeo(loaded.seo ?? {});
         setImages((loaded.images ?? []) as GalleryImage[]);
         setImagesError(null);
+        const attrs = catalogRef.current.attributesByCategory[loaded.categorySlug] ?? [];
+        setAttributeConfig(attributeConfigForEditor(loaded, attrs));
       })
       .catch((error) => {
         if (cancelled) return;
-        toast.danger(
+        toastRef.current.danger(
           error instanceof ApiError
             ? error.message
             : "Failed to load product.",
         );
-        onClose();
+        onCloseRef.current();
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -101,51 +157,62 @@ export function ProductEditDrawer({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, productId, onClose, toast]);
+  }, [isOpen, productId]);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>, isNext = false) {
-    event.preventDefault();
-    const form = event.currentTarget;
-    if (!form.reportValidity()) return;
+  async function performStep1Save() {
     if (!product || saving) return;
-    const trimmed = name.trim();
-    if (trimmed.length < 2) {
-      toast.danger("Product name is required.");
-      return;
-    }
-    const imageProblems = collectProductImageErrors(images);
-    if (imageProblems.length > 0) {
-      const message = imageProblems[0].message;
-      setImagesError(message);
-      toast.danger(message);
-      return;
-    }
-    setImagesError(null);
+
     setSaving(true);
     try {
+      const trimmed = name.trim();
+      if (trimmed.length < 2) {
+        toast.danger("Product name is required.");
+        return;
+      }
+      const imageProblems = collectProductImageErrors(images);
+      if (imageProblems.length > 0) {
+        const message = imageProblems[0].message;
+        setImagesError(message);
+        toast.danger(message);
+        return;
+      }
+      setImagesError(null);
+
+      const attributePayload = buildAttributeConfigForSave(
+        attributeConfigRef.current,
+        categoryAttributesRef.current,
+      );
+
       const uploaded = await uploadGalleryImages(images, {
         subjectKind: "products",
         subjectId: product.id,
       });
-      // Shell + photos live behind two endpoints; save them in sequence so a
-      // shell failure (e.g. duplicate name) doesn't leave the gallery in a
-      // mismatched state.
-      await apiFetch<AdminProduct>(`/api/products/${product.id}`, {
+
+      const saved = await apiFetch<AdminProduct>(`/api/products/${product.id}`, {
         method: "PUT",
-        json: { name: trimmed, categorySlug, brandSlug, seo },
+        json: {
+          name: trimmed,
+          categorySlug,
+          brandSlug,
+          ...attributePayload,
+        },
       });
+
+      const attrs = categoryAttributesRef.current;
+      const nextConfig = attributeConfigForEditor(saved, attrs);
+      attributeConfigRef.current = nextConfig;
+      setAttributeConfig(nextConfig);
+      setProduct(saved);
+
       await apiFetch<AdminProduct>(`/api/products/${product.id}/images`, {
         method: "PUT",
         json: { images: uploaded },
       });
-      if (!isNext) {
-        toast.success("Product updated.");
-        onSaved();
-        onClose();
-      } else {
-        router.refresh();
-        setStep((s) => Math.min(totalSteps, s + 1));
-      }
+      loadedProductIdRef.current = null;
+      toast.success("Product updated.");
+      router.refresh();
+      onSaved();
+      onClose();
     } catch (error) {
       toast.danger(
         error instanceof ApiError
@@ -157,234 +224,176 @@ export function ProductEditDrawer({
     }
   }
 
-  const steps = [
-    { id: 1, label: "Details & Photos" },
-    { id: 2, label: "Variants" },
-    { id: 3, label: "SEO & Entity" },
-  ];
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    if (!form.reportValidity()) return;
+    if (!product || saving) return;
 
-  const renderFooter = () => (
-    <div className="safe-bottom shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-3 md:px-5 md:py-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-sm font-medium text-[var(--color-ink-500)]">
-          Step {step} of {totalSteps}
-        </div>
-        <div className="flex items-center gap-2">
-          {step === 1 ? (
-            <Button variant="ghost" size="sm" type="button" onClick={onClose} disabled={saving}>
-              Cancel
-            </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              type="button"
-              onClick={() => setStep((s) => Math.max(1, s - 1))}
-            >
-              Back
-            </Button>
-          )}
-          {step < totalSteps ? (
-            <Button
-              variant="primary"
-              size="sm"
-              type="submit"
-              form="product-edit-drawer"
-              isLoading={saving}
-              disabled={loading || !product}
-            >
-              Next
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              size="sm"
-              type="submit"
-              form="product-edit-drawer"
-              isLoading={saving}
-              disabled={loading || !product}
-            >
-              Save
-            </Button>
-          )}
-        </div>
+    if (step === 1) {
+      if (!skipAttributeSaveConfirmRef.current) {
+        const impact = analyzeAttributeConfigImpact(
+          attributeConfig,
+          product.variants,
+          categoryAttributes,
+        );
+        if (hasAttributeConfigImpact(impact)) {
+          setPendingAttributeSaveImpact(impact);
+          return;
+        }
+      }
+      skipAttributeSaveConfirmRef.current = false;
+      await performStep1Save();
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await apiFetch<AdminProduct>(`/api/products/${product.id}`, {
+        method: "PUT",
+        json: { seo },
+      });
+      toast.success("Product updated.");
+      router.refresh();
+      onSaved();
+      onClose();
+    } catch (error) {
+      toast.danger(
+        error instanceof ApiError
+          ? error.message
+          : "Failed to save product.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const shellFooter =
+    step === 1 || step === 3 ? (
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="ghost" size="md" type="button" onClick={onClose} disabled={saving}>
+          Close
+        </Button>
+        <Button
+          variant="primary"
+          size="md"
+          type="submit"
+          form="product-edit-drawer"
+          isLoading={saving}
+          disabled={loading || !product}
+        >
+          Save
+        </Button>
       </div>
-    </div>
-  );
+    ) : undefined;
 
   return (
     <Drawer
       isOpen={isOpen}
       onClose={onClose}
-      title="Edit product"
+      title={STEP_TITLES[step]}
       description={product?.name ?? (loading ? "Loading…" : undefined)}
       width="2xl"
       bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden !p-0"
-      topBar={
-        <div className="flex justify-center py-2">
-          <Stepper steps={steps} currentStep={step} className="max-w-md" />
-        </div>
-      }
+      footer={shellFooter}
     >
       {loading ? (
-        <div className="flex flex-col gap-5 animate-pulse p-4 md:p-6">
-          <WizardSection title="Details">
-            <div className="flex flex-col gap-1">
-              <div className="h-3 w-12 bg-[var(--color-ink-200)] rounded" />
-              <div className="h-10 w-full bg-[var(--color-ink-100)] rounded-md" />
-            </div>
-            <div className="mt-2 h-3 w-32 bg-[var(--color-ink-200)] rounded" />
-          </WizardSection>
-          <WizardSection title="Brand">
-            <div className="flex flex-wrap gap-1.5">
-              <div className="h-7 w-16 bg-[var(--color-ink-100)] rounded-full" />
-              <div className="h-7 w-20 bg-[var(--color-ink-100)] rounded-full" />
-              <div className="h-7 w-14 bg-[var(--color-ink-100)] rounded-full" />
-            </div>
-          </WizardSection>
-          <WizardSection title="Photos">
-            <div className="mb-2 h-3 w-64 bg-[var(--color-ink-200)] rounded" />
-            <div className="flex gap-2">
-              <div className="size-20 bg-[var(--color-ink-100)] rounded-md" />
-              <div className="size-20 bg-[var(--color-ink-100)] rounded-md border border-dashed" />
-            </div>
-          </WizardSection>
-        </div>
+        <ProductDetailsFormSkeleton />
       ) : product ? (
         <>
           {(step === 1 || step === 3) && (
-            <form id="product-edit-drawer" onSubmit={(e) => {
-              handleSubmit(e, step < totalSteps);
-            }} className="flex min-h-0 flex-1 flex-col">
-              <div className="flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
-                <div className="flex flex-col gap-5">
-                  {step === 1 && (
-                    <>
-                      <WizardSection title="Category">
-                        <div className="flex flex-wrap gap-1.5">
-                          {catalog.categories.map((cat) => (
-                            <CategoryOptionButton
-                              key={cat.id}
-                              category={cat}
-                              isSelected={categorySlug === cat.slug}
-                              onSelect={() => {
-                                if (categorySlug !== cat.slug) {
-                                  if (categorySlug && product.categorySlug === categorySlug) {
-                                    setPendingCategorySlug(cat.slug);
-                                  } else {
-                                    setCategorySlug(cat.slug);
-                                    if (!catalog.brandsByCategory[cat.slug]?.some(brandItem => brandItem.slug === brandSlug)) {
-                                      setBrandSlug("");
-                                    }
-                                  }
-                                }
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </WizardSection>
-
-                      <WizardSection title="Details">
-                <label className="flex flex-col gap-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">
-                    Name
-                  </span>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    maxLength={120}
-                    placeholder="e.g. Product name"
-                    autoComplete="off"
-                    className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[15px] placeholder:text-[var(--color-ink-400)] focus:border-[var(--color-accent-500)] focus:outline-none"
+            <form
+              id="product-edit-drawer"
+              onSubmit={handleSubmit}
+              className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            >
+              {step === 1 ? (
+                <ProductDetailsForm
+                    name={name}
+                    onNameChange={setName}
+                    categories={catalog.categories}
+                    categorySlug={categorySlug}
+                    onCategorySelect={(slug) => {
+                      if (categorySlug === slug) return;
+                      if (categorySlug && product.categorySlug === categorySlug) {
+                        setPendingCategorySlug(slug);
+                        return;
+                      }
+                      setCategorySlug(slug);
+                      if (
+                        !catalog.brandsByCategory[slug]?.some(
+                          (brandItem) => brandItem.slug === brandSlug,
+                        )
+                      ) {
+                        setBrandSlug("");
+                      }
+                    }}
+                    brands={brands}
+                    brandSlug={brandSlug}
+                    onBrandSelect={(slug) => {
+                      if (brandSlug === slug) return;
+                      if (brandSlug && product.brand.slug === brandSlug) {
+                        setPendingBrandSlug(slug);
+                        return;
+                      }
+                      setBrandSlug(slug);
+                    }}
+                    showBrandPicker={Boolean(categorySlug)}
+                    images={images}
+                    onImagesChange={(next) => {
+                      setImages(next);
+                      setImagesError(null);
+                    }}
+                    imagesAltBase={name || product.name}
+                    imagesError={imagesError}
+                    showPhotos={Boolean(categorySlug)}
+                    categoryAttributes={categoryAttributes}
+                    attributeConfig={attributeConfig}
+                    onAttributeConfigChange={setAttributeConfig}
+                    onConfirmDisableAttribute={(attribute, proceed) => {
+                      const variantCount = countVariantsUsingAttribute(
+                        product.variants,
+                        attribute.slug,
+                      );
+                      if (variantCount === 0) {
+                        proceed();
+                        return;
+                      }
+                      setPendingAttributeDisable({ attribute, variantCount, proceed });
+                    }}
+                    showAttributes={Boolean(categorySlug)}
                   />
-                </label>
-              </WizardSection>
-
-              <WizardSection title="Brand">
-                <div className="flex flex-wrap gap-1.5">
-                  {brands.map((brand) => (
-                    <button
-                      key={brand.id}
-                      type="button"
-                      onClick={() => {
-                        if (brandSlug !== brand.slug) {
-                          if (brandSlug && product.brand.slug === brandSlug) {
-                            setPendingBrandSlug(brand.slug);
-                          } else {
-                            setBrandSlug(brand.slug);
-                          }
-                        }
-                      }}
-                      className={
-                        "rounded-full border px-2.5 py-1 text-[13px] font-semibold transition " +
-                        (brandSlug === brand.slug
-                          ? "border-[var(--color-accent-500)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
-                          : "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)]")
-                      }
-                    >
-                      {brand.name}
-                    </button>
-                  ))}
+              ) : (
+                <div className="flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
+                  <CatalogSeoPanel
+                    value={seo}
+                    onChange={setSeo}
+                    contextLabel={`Product · ${product.brand.name} ${name}`}
+                    entity={{
+                      type: "product",
+                      entity: {
+                        slug: product.slug,
+                        name,
+                        brandName: product.brand.name,
+                        categorySlug: product.categorySlug,
+                        brand: { slug: product.brand.slug, name: product.brand.name },
+                        category: category
+                          ? {
+                              slug: category.slug,
+                              label: category.label,
+                              description: category.description,
+                            }
+                          : undefined,
+                        images: product.images,
+                        variants: product.variants.map((variantItem) => ({
+                          id: variantItem.id,
+                          gradeSlug: variantItem.gradeSlug,
+                        })),
+                      },
+                    }}
+                  />
                 </div>
-                {!brandSlug && (
-                  <WizardFieldError message="Pick a brand." />
-                )}
-              </WizardSection>
-
-              <WizardSection title="Photos">
-                <p className="mb-2 text-[11.5px] text-[var(--color-ink-500)]">
-                  One gallery for the whole product — shared by every variant.
-                </p>
-                <ImageGallery
-                  value={images}
-                  onChange={(next) => {
-                    setImages(next);
-                    setImagesError(null);
-                  }}
-                  altTextBase={name || product.name}
-                  maxImages={8}
-                  compact
-                  dense
-                />
-                <WizardFieldError message={imagesError ?? undefined} />
-              </WizardSection>
-            </>
-          )}
-
-          {step === 3 && (
-            <CatalogSeoPanel
-              value={seo}
-              onChange={setSeo}
-              contextLabel={`Product · ${product.brand.name} ${name}`}
-              entity={{
-                type: "product",
-                entity: {
-                  slug: product.slug,
-                  name,
-                  brandName: product.brand.name,
-                  categorySlug: product.categorySlug,
-                  brand: { slug: product.brand.slug, name: product.brand.name },
-                  category: category
-                    ? {
-                        slug: category.slug,
-                        label: category.label,
-                        description: category.description,
-                      }
-                    : undefined,
-                  images: product.images,
-                  variants: product.variants.map((variantItem) => ({
-                    id: variantItem.id,
-                    gradeSlug: variantItem.gradeSlug,
-                  })),
-                },
-              }}
-            />
-          )}
-                </div>
-              </div>
-              {renderFooter()}
+              )}
             </form>
           )}
 
@@ -393,16 +402,17 @@ export function ProductEditDrawer({
               product={product}
               catalog={catalog}
               onClose={onClose}
-              onSkip={() => { setStep(3); router.refresh(); }}
+              onSkip={onClose}
               onSaved={(latest) => {
-                if (latest) setProduct(latest);
-                setStep(3);
+                if (latest) {
+                  setProduct(latest);
+                }
                 router.refresh();
+                onSaved();
+                onClose();
               }}
               purpose="manage"
-              stepLabel={`Step 2 of ${totalSteps}`}
-              onBack={() => setStep(1)}
-              nextLabel="Next"
+              standalone
             />
           )}
         </>
@@ -417,6 +427,8 @@ export function ProductEditDrawer({
         onConfirm={() => {
           if (pendingCategorySlug) {
             setCategorySlug(pendingCategorySlug);
+            const attrs = catalog.attributesByCategory[pendingCategorySlug] ?? [];
+            setAttributeConfig(attributeConfigForCategory(attrs));
             if (!catalog.brandsByCategory[pendingCategorySlug]?.some(b => b.slug === brandSlug)) {
               setBrandSlug("");
             }
@@ -439,6 +451,59 @@ export function ProductEditDrawer({
           setPendingBrandSlug(null);
         }}
         onCancel={() => setPendingBrandSlug(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={pendingAttributeDisable !== null}
+        title="Disable attribute"
+        message={
+          pendingAttributeDisable ? (
+            <div className="space-y-2 text-[13px] leading-snug text-[var(--color-ink-700)]">
+              <p>
+                {pendingAttributeDisable.variantCount} variant
+                {pendingAttributeDisable.variantCount === 1 ? "" : "s"} currently use{" "}
+                <strong>{pendingAttributeDisable.attribute.label}</strong>. Disabling it will leave
+                those values on existing variants, but they will no longer match this product&apos;s
+                allowed attributes.
+              </p>
+            </div>
+          ) : null
+        }
+        confirmLabel="Disable attribute"
+        tone="danger"
+        onConfirm={() => {
+          pendingAttributeDisable?.proceed();
+          setPendingAttributeDisable(null);
+        }}
+        onCancel={() => setPendingAttributeDisable(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={pendingAttributeSaveImpact !== null}
+        title="Save attribute changes"
+        message={
+          pendingAttributeSaveImpact ? (
+            <div className="space-y-2 text-[13px] leading-snug text-[var(--color-ink-700)]">
+              <p>
+                Saving will change which attributes and options variants can use. Existing variants
+                may keep values that no longer match:
+              </p>
+              <ul className="list-disc space-y-1 pl-4">
+                {formatAttributeConfigImpactLines(pendingAttributeSaveImpact).map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null
+        }
+        confirmLabel="Save anyway"
+        tone="danger"
+        onConfirm={() => {
+          setPendingAttributeSaveImpact(null);
+          skipAttributeSaveConfirmRef.current = true;
+          void performStep1Save();
+        }}
+        onCancel={() => setPendingAttributeSaveImpact(null)}
       />
     </Drawer>
   );

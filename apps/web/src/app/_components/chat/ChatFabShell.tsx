@@ -2,10 +2,12 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { MessageSquare, X } from "lucide-react";
 import { classNames } from "@store/shared";
 
+import { usePresence } from "@/components/shared/motion/usePresence";
 import { useChatSettings } from "@/lib/chat/chatSettingsContext";
 import { fetchChatUnreadSummary } from "@/lib/chat/transport";
 import { OPEN_CHAT_EVENT, CLOSE_CHAT_EVENT, dispatchChatOpenState, type OpenChatDetail } from "@/lib/chat/openChat";
@@ -16,6 +18,7 @@ import {
   subscribeChatPageContext,
   type ChatPageContext,
 } from "@/lib/chat/pageChatContext";
+import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
 const LiveChatWidget = dynamic(
   () =>
@@ -25,6 +28,7 @@ const LiveChatWidget = dynamic(
 
 const LABEL_AUTO_HIDE_MS = 4500;
 const HIDDEN_PREFIXES = ["/checkout", "/account/sign-in"];
+const CHAT_EXIT_MS = 180;
 
 const NUDGE_OFF_KEY = "chat.nudge.off";
 const NUDGE_SHOWN_KEY = "chat.nudge.shown";
@@ -84,10 +88,29 @@ export function ChatFabShell() {
   const [openDetail, setOpenDetail] = useState<OpenChatDetail | null>(null);
   const [pageContext, setPageContext] = useState<ChatPageContext>(getChatPageContext());
   const [nudge, setNudge] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const { isMounted: isPanelMounted, status: panelStatus } = usePresence(isOpen, CHAT_EXIT_MS);
+  const isClosing = panelStatus === "closing";
 
   const hidden =
     !chatSettings.enabled ||
     HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+
+  const refreshUnread = useCallback(async () => {
+    if (!chatSettings.enabled) return;
+    try {
+      const count = await fetchChatUnreadSummary();
+      setUnread(count);
+    } catch {
+      // badge is best-effort
+    }
+  }, [chatSettings.enabled]);
+
+  const closeChat = useCallback(() => {
+    setIsOpen(false);
+    setOpenDetail(null);
+    void refreshUnread();
+  }, [refreshUnread]);
 
   const openChat = useCallback(
     (detail?: OpenChatDetail | null) => {
@@ -103,30 +126,27 @@ export function ChatFabShell() {
     dispatchChatOpenState(isOpen);
   }, [isOpen]);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot hydration detection
+    setIsHydrated(true);
+  }, []);
+
   // Mobile tab bar owns chat entry — dismiss the overlay when navigating away.
   useEffect(() => {
     const mobileQuery = window.matchMedia("(max-width: 767px)");
     if (!mobileQuery.matches) {
       return;
     }
-    setIsOpen(false);
-    setOpenDetail(null);
+    scheduleStateUpdate(() => {
+      setIsOpen(false);
+      setOpenDetail(null);
+    });
   }, [pathname]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setIsLabelVisible(false), LABEL_AUTO_HIDE_MS);
     return () => window.clearTimeout(timer);
   }, []);
-
-  const refreshUnread = useCallback(async () => {
-    if (!chatSettings.enabled) return;
-    try {
-      const count = await fetchChatUnreadSummary();
-      setUnread(count);
-    } catch {
-      // badge is best-effort
-    }
-  }, [chatSettings.enabled]);
 
   useEffect(() => {
     if (hidden) return;
@@ -188,9 +208,7 @@ export function ChatFabShell() {
       markNudgeOff();
     }
     function onClose() {
-      setIsOpen(false);
-      setOpenDetail(null);
-      void refreshUnread();
+      closeChat();
     }
     window.addEventListener(OPEN_CHAT_EVENT, onOpen);
     window.addEventListener(CLOSE_CHAT_EVENT, onClose);
@@ -198,7 +216,25 @@ export function ChatFabShell() {
       window.removeEventListener(OPEN_CHAT_EVENT, onOpen);
       window.removeEventListener(CLOSE_CHAT_EVENT, onClose);
     };
-  }, [refreshUnread]);
+  }, [closeChat]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeChat();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [closeChat, isOpen]);
 
   // Track what the visitor is looking at (product / category / deals / …).
   useEffect(() => subscribeChatPageContext(setPageContext), []);
@@ -244,81 +280,101 @@ export function ChatFabShell() {
 
   if (hidden) return null;
 
+  const chatOverlay =
+    isPanelMounted && isHydrated
+      ? createPortal(
+          <>
+            <button
+              type="button"
+              aria-label="Close chat"
+              onClick={closeChat}
+              className={classNames(
+                "fixed inset-0 z-[var(--z-overlay)] cursor-default bg-[var(--color-ink-900)]/15",
+                isClosing ? "animate-sheet-fade-out" : "animate-sheet-fade",
+              )}
+            />
+            <div
+              className={classNames(
+                "fixed z-[var(--z-modal)] flex min-h-0 flex-col",
+                "inset-x-3 top-[var(--mobile-chat-sheet-top)] bottom-[var(--mobile-chat-sheet-bottom)]",
+                "md:inset-x-auto md:right-7 md:top-auto md:bottom-[calc(28px+3.25rem+10px)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[440px]",
+                isClosing ? "animate-popover-out" : "animate-popover-in",
+              )}
+            >
+              <LiveChatWidget onCollapse={closeChat} initialOpenDetail={openDetail} />
+            </div>
+          </>,
+          document.body,
+        )
+      : null;
+
   return (
-    <div
-      className={classNames(
-        "floating-dock fixed z-40 flex flex-col gap-2.5",
-        isOpen ? "floating-dock--mobile-sheet max-md:items-stretch" : "md:items-end",
-        "md:right-7",
-      )}
-    >
-      {isOpen && (
-        <LiveChatWidget
-          onCollapse={() => {
-            setIsOpen(false);
-            setOpenDetail(null);
-            void refreshUnread();
-          }}
-          initialOpenDetail={openDetail}
-        />
-      )}
-
-      {Boolean(nudge) && !isOpen && unread === 0 && (
-        <div className="reveal-rise max-md:hidden flex max-w-[260px] items-start gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-2.5 pl-3 pr-2 shadow-[var(--shadow-md)]">
-          <button
-            type="button"
-            onClick={() => openChat()}
-            className="tap text-left text-[12.5px] leading-snug text-[var(--color-ink-700)] hover:text-[var(--color-ink-900)]"
-          >
-            {nudge}
-          </button>
-          <button
-            type="button"
-            aria-label="Dismiss"
-            onClick={() => {
-              setNudge(null);
-              markNudgeOff();
-            }}
-            className="tap -mr-0.5 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[var(--color-ink-400)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-700)]"
-          >
-            <X size={12} strokeWidth={2.4} />
-          </button>
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={() => (isOpen ? setIsOpen(false) : openChat())}
-        aria-label={isOpen ? "Close chat" : "Ask us a question"}
-        aria-expanded={isOpen}
+    <>
+      {chatOverlay}
+      <div
         className={classNames(
-          "tap group relative flex cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-ink-900)] py-2.5 text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink-800)] hover:shadow-[var(--shadow-lg)] max-md:hidden",
-          isLabelVisible && !isOpen ? "gap-2 pl-3 pr-4" : "gap-0 px-2.5",
-          "md:gap-2 md:pl-3 md:pr-4",
+          "floating-dock fixed flex flex-col gap-2.5 md:items-end",
+          isOpen ? "z-[calc(var(--z-modal)+1)]" : "z-40",
+          "md:right-7",
         )}
       >
-        <span className="grid size-7 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-500)] text-[var(--color-ink-900)] transition-transform group-hover:scale-110">
-          {isOpen ? (
-            <X size={14} strokeWidth={2.4} />
-          ) : (
-            <MessageSquare size={14} strokeWidth={2.4} />
-          )}
-        </span>
-        <span
+        {Boolean(nudge) && !isOpen && unread === 0 && (
+          <div className="reveal-rise max-md:hidden flex max-w-[260px] items-start gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] py-2.5 pl-3 pr-2 shadow-[var(--shadow-md)]">
+            <button
+              type="button"
+              onClick={() => openChat()}
+              className="tap text-left text-[12.5px] leading-snug text-[var(--color-ink-700)] hover:text-[var(--color-ink-900)]"
+            >
+              {nudge}
+            </button>
+            <button
+              type="button"
+              aria-label="Dismiss"
+              onClick={() => {
+                setNudge(null);
+                markNudgeOff();
+              }}
+              className="tap -mr-0.5 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[var(--color-ink-400)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-700)]"
+            >
+              <X size={12} strokeWidth={2.4} />
+            </button>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => (isOpen ? closeChat() : openChat())}
+          aria-label={isOpen ? "Close chat" : "Ask us a question"}
+          aria-expanded={isOpen}
           className={classNames(
-            "overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-300",
-            isLabelVisible && !isOpen ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0",
-            "md:max-w-[160px] md:opacity-100",
+            "tap group relative flex cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-ink-900)] py-2.5 text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink-800)] hover:shadow-[var(--shadow-lg)] max-md:hidden",
+            isLabelVisible && !isOpen ? "gap-2 pl-3 pr-4" : "gap-0 px-2.5",
+            "md:gap-2 md:pl-3 md:pr-4",
           )}
         >
-          {isOpen ? "Close" : "Ask us!"}
-        </span>
-        {!isOpen && unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex min-w-[18px] items-center justify-center rounded-full bg-[var(--color-danger-500)] px-1 text-[10px] font-bold text-[var(--color-on-dark)]">
-            {unread > 9 ? "9+" : unread}
+          <span className="grid size-7 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-500)] text-[var(--color-ink-900)] transition-transform group-hover:scale-110">
+            {isOpen ? (
+              <X size={14} strokeWidth={2.4} />
+            ) : (
+              <MessageSquare size={14} strokeWidth={2.4} />
+            )}
           </span>
-        )}
-      </button>
-    </div>
+          <span
+            className={classNames(
+              "overflow-hidden whitespace-nowrap text-sm font-medium transition-all duration-300",
+              isLabelVisible && !isOpen ? "max-w-[160px] opacity-100" : "max-w-0 opacity-0",
+              "md:max-w-[160px] md:opacity-100",
+            )}
+          >
+            {isOpen ? "Close" : "Ask us!"}
+          </span>
+          {!isOpen && unread > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex min-w-[18px] items-center justify-center rounded-full bg-[var(--color-danger-500)] px-1 text-[10px] font-bold text-[var(--color-on-dark)]">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </button>
+      </div>
+    </>
   );
 }

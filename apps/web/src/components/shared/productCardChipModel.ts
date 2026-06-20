@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  getProductOptionPool,
+  resolveScopedProductAttributes,
   resolveVariantAttributeLabel,
   type Product,
 } from "@store/shared";
@@ -47,12 +49,18 @@ export function getAttributeChipGroups(
   attributes: ReturnType<typeof useAttributesForCategory>,
   cardPosition: "image-overlay" | "title-chips",
 ): AttributeChipGroup[] {
+  const { config, attributes: scopedAttributes } = resolveScopedProductAttributes(product, attributes);
   const groups: AttributeChipGroup[] = [];
-  const positioned = attributes.filter(
+  const positioned = scopedAttributes.filter(
     (attribute) => attribute.cardPosition === cardPosition,
   );
 
   for (const attribute of positioned) {
+    const allowedValues = new Set(
+      getProductOptionPool(config, attribute.slug, attribute).map((value) =>
+        value.toLowerCase(),
+      ),
+    );
     const valueMeta = new Map<
       string,
       { label: string; backgroundColor?: string }
@@ -68,6 +76,9 @@ export function getAttributeChipGroups(
       const source = toAttributeLabelSource(attribute);
 
       for (const value of optionValues) {
+        if (!allowedValues.has(value.toLowerCase())) {
+          continue;
+        }
         if (valueMeta.has(value)) {
           continue;
         }

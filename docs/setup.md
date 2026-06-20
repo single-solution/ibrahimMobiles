@@ -42,7 +42,7 @@ Fill in `.env.local` based on the table below.
 | `AUTH_SECRET` | **Yes** | Encrypts session cookies. | Run `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `AUTH_URL` | **Yes** | Base URL for Auth.js callbacks. | Use `http://localhost:3000` for local dev. |
 | `AUTH_TRUST_HOST` | **Yes** | Trusts the host header (needed for proxies). | Set to `true`. |
-| `STOREFRONT_BASE_URL` | No | Used for SEO/sitemap canonical links. | Production URL (e.g., `https://your-domain.com`). |
+| `STOREFRONT_BASE_URL` | No | Env fallback for storefront canonical/SEO URLs when admin URL is unset. | Production URL (e.g., `https://your-domain.com`). **Prefer Settings → Site URLs** once the admin panel is reachable. |
 | `MONGODB_URI` | **Yes** | Database connection string. | MongoDB Atlas or local instance. *Must include DB name.* |
 | `ATLAS_SEARCH_ENABLED` | No | Enables Atlas Search for the catalog. | Set `true` if using Atlas, `false` for local regex fallback. |
 | `MONGODB_SEARCH_INDEX` | No | Name of the Atlas Search index. | Must match the created index (e.g., `products_search`). |

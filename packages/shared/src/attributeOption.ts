@@ -69,7 +69,9 @@ export function resolveVariantAttributeLabel(
   value: string,
   attributeDisplay?: Record<string, string>,
 ): string {
-  const global = attribute?.options?.find((option) => option.value === value);
+  const global = attribute?.options?.find(
+    (option) => option.value.toLowerCase() === value.toLowerCase(),
+  );
   if (global) {
     return formatAttributeOptionLabel(global.label, attribute.unit);
   }

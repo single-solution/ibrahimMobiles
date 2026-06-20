@@ -14,6 +14,7 @@ import type { AttributeFacet } from "@/lib/core/facets";
 
 import { Button } from "@store/ui";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { FilterCheckboxList } from "@/components/shared/FilterCheckboxList";
 import { Input } from "@/components/ui/Input";
 import { FILTER_PARAM_KEYS } from "@/lib/core/filterParams";
 import { useFilterParams } from "@/lib/core/useFilterParams";
@@ -408,18 +409,16 @@ export function FilterPanel({
                 No grades configured yet.
               </p>
             ) : (
-              <div className="space-y-0.5">
-                {visibleGrades.map((descriptor) => (
-                  <FilterCheckRow
-                    key={`${descriptor.categorySlug}:${descriptor.slug}`}
-                    label={descriptor.label}
-                    count={gradeCounts[descriptor.slug]}
-                    checked={grades.includes(descriptor.slug)}
-                    onToggle={() => toggleGrade(descriptor.slug)}
-                    compact={isCompactPanel}
-                  />
-                ))}
-              </div>
+              <FilterCheckboxList
+                options={visibleGrades.map((descriptor) => ({
+                  value: descriptor.slug,
+                  label: descriptor.label,
+                  count: gradeCounts[descriptor.slug],
+                }))}
+                selected={grades}
+                onToggle={toggleGrade}
+                compact={isCompactPanel}
+              />
             )}
           </FilterGroup>
           {(includeBrand || includeAttributes) && layout === "sidebar" ? <FilterDivider /> : null}
@@ -434,18 +433,16 @@ export function FilterPanel({
                 No brands available yet.
               </p>
             ) : (
-              <div className="space-y-0.5">
-                {sortedBrands.map((brand) => (
-                  <FilterCheckRow
-                    key={brand.slug}
-                    label={brand.name}
-                    count={brand.productCount}
-                    checked={brandSlugs.includes(brand.slug)}
-                    onToggle={() => toggleBrand(brand.slug)}
-                    compact={isCompactPanel}
-                  />
-                ))}
-              </div>
+              <FilterCheckboxList
+                options={sortedBrands.map((brand) => ({
+                  value: brand.slug,
+                  label: brand.name,
+                  count: brand.productCount,
+                }))}
+                selected={brandSlugs}
+                onToggle={toggleBrand}
+                compact={isCompactPanel}
+              />
             )}
           </FilterGroup>
           {includeAttributes && layout === "sidebar" ? <FilterDivider /> : null}
@@ -493,8 +490,8 @@ export function FilterPanel({
   const priceFooter = includePrice ? (
     <div className={isMobile ? "mt-6 border-t border-[var(--color-ink-100)] pt-4" : layout === "sidebar" ? "border-t border-[var(--color-ink-100)] p-2.5" : "pt-1"}>
       <FilterGroup title={layout === "plain" && !isMobile ? undefined : "Price"}>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
+        <div className="min-w-0 space-y-2">
+          <div className="flex min-w-0 w-full items-center gap-2">
             <PriceInput
               value={minPrice}
               onChange={setMinPrice}
@@ -654,18 +651,16 @@ function AttributeFacetGroups({
             No values in current results.
           </p>
         ) : (
-          <div className="space-y-0.5">
-            {facet.options.map((option) => (
-              <FilterCheckRow
-                key={option.value}
-                label={option.label}
-                count={option.count}
-                checked={selectedValues.includes(option.value)}
-                onToggle={() => onToggleAttribute(facet.slug, option.value)}
-                compact={compact}
-              />
-            ))}
-          </div>
+          <FilterCheckboxList
+            options={facet.options.map((option) => ({
+              value: option.value,
+              label: option.label,
+              count: option.count,
+            }))}
+            selected={selectedValues}
+            onToggle={(value) => onToggleAttribute(facet.slug, value)}
+            compact={compact}
+          />
         )}
       </FilterGroup>
     );
@@ -861,7 +856,7 @@ interface PriceInputProps {
 
 function PriceInput({ value, onChange, placeholder, ariaLabel }: PriceInputProps) {
   return (
-    <div className="flex-1">
+    <div className="min-w-0 flex-1">
       <Input
         type="number"
         inputMode="numeric"
@@ -873,63 +868,5 @@ function PriceInput({ value, onChange, placeholder, ariaLabel }: PriceInputProps
         inputSize="sm"
       />
     </div>
-  );
-}
-
-
-interface FilterCheckRowProps {
-  label: string;
-  count?: number;
-  checked: boolean;
-  onToggle: () => void;
-  compact?: boolean;
-}
-
-function FilterCheckRow({ label, count, checked, onToggle, compact = false }: FilterCheckRowProps) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-pressed={checked}
-      className={classNames(
-        "tap flex w-full cursor-pointer items-center justify-between gap-2 rounded-[var(--radius-md)] transition-all duration-300 ease-out-quart",
-        compact ? "px-2 py-1 text-[13px]" : "gap-3 px-2.5 py-1.5 text-[14.5px]",
-        checked
-          ? "bg-[var(--color-accent-100)] font-medium text-[var(--color-accent-800)]"
-          : "font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-canvas-deep)] hover:text-[var(--color-ink-900)]",
-      )}
-    >
-      <span className={classNames("flex items-center", compact ? "gap-2" : "gap-3")}>
-        <span
-          aria-hidden
-          className={classNames(
-            "grid shrink-0 place-items-center rounded-[6px] border transition-colors",
-            compact ? "size-[16px]" : "size-[20px]",
-            checked
-              ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)]"
-              : "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
-          )}
-        >
-          {checked && (
-            <Check
-              size={compact ? 11 : 14}
-              strokeWidth={3}
-              className="animate-badge-pop"
-            />
-          )}
-        </span>
-        <span>{label}</span>
-      </span>
-      {count !== undefined && (
-        <span
-          className={classNames(
-            compact ? "text-[11px]" : "text-[12px]",
-            checked ? "text-[var(--color-accent-700)]" : "text-[var(--color-ink-400)]",
-          )}
-        >
-          {count}
-        </span>
-      )}
-    </button>
   );
 }

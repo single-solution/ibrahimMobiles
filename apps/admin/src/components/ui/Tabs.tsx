@@ -7,6 +7,8 @@ export interface TabListItem {
   id: string;
   label: string;
   count?: number;
+  /** Validation issues in this tab's scope (e.g. grade). */
+  errorCount?: number;
 }
 
 interface TabItem extends TabListItem {
@@ -83,6 +85,14 @@ export function TabList({
                 )}
               >
                 {tab.count}
+              </span>
+            )}
+            {typeof tab.errorCount === "number" && tab.errorCount > 0 && (
+              <span
+                className="rounded-full bg-[var(--color-rose-600)] px-1.5 py-0.5 text-[10px] font-bold text-white"
+                title={`${tab.errorCount} field${tab.errorCount === 1 ? "" : "s"} need attention`}
+              >
+                {tab.errorCount > 9 ? "9+" : tab.errorCount}
               </span>
             )}
             {isActive && (
