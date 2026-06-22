@@ -38,11 +38,7 @@ export function parseYouTubeId(input: string | null | undefined): string | null 
 		return YOUTUBE_ID_REGEX.test(id) ? id : null;
 	}
 
-	if (
-		host !== "youtube.com" &&
-		host !== "m.youtube.com" &&
-		host !== "youtube-nocookie.com"
-	) {
+	if (host !== "youtube.com" && host !== "m.youtube.com" && host !== "youtube-nocookie.com") {
 		return null;
 	}
 

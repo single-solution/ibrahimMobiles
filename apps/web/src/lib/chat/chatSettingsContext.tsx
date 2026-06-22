@@ -9,20 +9,10 @@ const DEFAULTS: ChatSettings = CHAT_SETTING_DEFAULTS;
 
 const ChatSettingsContext = createContext<ChatSettings>(DEFAULTS);
 
-export function ChatSettingsProvider({
-  value,
-  children,
-}: {
-  value: ChatSettings;
-  children: ReactNode;
-}) {
-  return (
-    <ChatSettingsContext.Provider value={value}>
-      {children}
-    </ChatSettingsContext.Provider>
-  );
+export function ChatSettingsProvider({ value, children }: { value: ChatSettings; children: ReactNode }) {
+	return <ChatSettingsContext.Provider value={value}>{children}</ChatSettingsContext.Provider>;
 }
 
 export function useChatSettings(): ChatSettings {
-  return useContext(ChatSettingsContext);
+	return useContext(ChatSettingsContext);
 }

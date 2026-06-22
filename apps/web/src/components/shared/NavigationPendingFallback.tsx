@@ -4,10 +4,10 @@ import type { ReactNode } from "react";
 import { useNavigationProgressCount } from "@/lib/navigation/navigationProgress";
 
 interface NavigationPendingFallbackProps {
-  /** Skeleton (or any placeholder) to render while a nav transition is in flight. */
-  fallback: ReactNode;
-  /** Live server-rendered children — passed as a child slot so RSC streams through. */
-  children: ReactNode;
+	/** Skeleton (or any placeholder) to render while a nav transition is in flight. */
+	fallback: ReactNode;
+	/** Live server-rendered children — passed as a child slot so RSC streams through. */
+	children: ReactNode;
 }
 
 /**
@@ -22,10 +22,7 @@ interface NavigationPendingFallbackProps {
  * remain visible while the URL is settling — typically product grids,
  * lists, or paginated tables that read `searchParams` server-side.
  */
-export function NavigationPendingFallback({
-  fallback,
-  children,
-}: NavigationPendingFallbackProps) {
-  const isPending = useNavigationProgressCount() > 0;
-  return isPending ? <>{fallback}</> : <>{children}</>;
+export function NavigationPendingFallback({ fallback, children }: NavigationPendingFallbackProps) {
+	const isPending = useNavigationProgressCount() > 0;
+	return isPending ? <>{fallback}</> : <>{children}</>;
 }

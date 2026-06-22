@@ -18,12 +18,7 @@ interface FilterCheckboxListProps {
 }
 
 /** Checkbox filter list with search on every select panel. */
-export function FilterCheckboxList({
-	options,
-	selected,
-	onToggle,
-	compact = false,
-}: FilterCheckboxListProps) {
+export function FilterCheckboxList({ options, selected, onToggle, compact = false }: FilterCheckboxListProps) {
 	const { query, setQuery, filteredOptions } = useSelectSearch({
 		options,
 		isOpen: true,

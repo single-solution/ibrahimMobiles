@@ -1,15 +1,6 @@
 "use client";
 
-import {
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useRef,
-	useState,
-	type CSSProperties,
-	type ReactNode,
-	type RefObject,
-} from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { classNames, computeFloatingPosition, type FloatingAlign } from "@store/shared";
 
@@ -28,16 +19,7 @@ export interface PopoverProps {
 /**
  * Portaled popover anchored to a trigger — flips and clamps within the viewport.
  */
-export function Popover({
-	isOpen,
-	anchorRef,
-	children,
-	className,
-	role,
-	"aria-label": ariaLabel,
-	align = "right",
-	onRequestClose,
-}: PopoverProps) {
+export function Popover({ isOpen, anchorRef, children, className, role, "aria-label": ariaLabel, align = "right", onRequestClose }: PopoverProps) {
 	const panelRef = useRef<HTMLDivElement>(null);
 	const [panelStyle, setPanelStyle] = useState<CSSProperties | null>(null);
 
@@ -133,13 +115,7 @@ export function Popover({
 	};
 
 	return createPortal(
-		<div
-			ref={panelRef}
-			role={role}
-			aria-label={ariaLabel}
-			style={panelStyle ?? fallbackStyle}
-			className={classNames("z-[60]", className)}
-		>
+		<div ref={panelRef} role={role} aria-label={ariaLabel} style={panelStyle ?? fallbackStyle} className={classNames("z-[60]", className)}>
 			{children}
 		</div>,
 		document.body,

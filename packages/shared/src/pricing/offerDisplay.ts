@@ -15,25 +15,22 @@ export function resolveStorefrontOfferBadgeLabel(matchedOffers: ActiveOffer[]): 
 	return primary.title?.trim() || null;
 }
 
-export function resolveItemOfferBadgeLabel(
-	item: EvaluatableItem,
-	offers: ActiveOffer[],
-): string | null {
+export function resolveItemOfferBadgeLabel(item: EvaluatableItem, offers: ActiveOffer[]): string | null {
 	return resolveStorefrontOfferBadgeLabel(getStorefrontItemOffers(item, offers));
 }
 
-/** Info-only copy for card / PDP — never shows a computed discount amount. */
-export function formatOfferActionHint(action: OfferAction): string {
+/** Short discount copy for PDP — no checkout wording. */
+export function formatOfferDiscountLabel(action: OfferAction): string {
 	switch (action.type) {
 		case "free_shipping":
-			return "Free delivery applied at checkout";
+			return "Free delivery";
 		case "percentage_discount":
-			return `${action.value}% off at checkout`;
+			return `${action.value}% off`;
 		case "fixed_amount_discount":
-			return `Rs ${action.value.toLocaleString("en-PK")} off at checkout`;
+			return `Rs ${action.value.toLocaleString("en-PK")} off`;
 		case "buy_x_get_y":
-			return "Special offer at checkout";
+			return "Special offer";
 		default:
-			return "Offer applied at checkout";
+			return "Offer";
 	}
 }

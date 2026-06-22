@@ -1,106 +1,193 @@
 # Setup & Onboarding
 
-This is a Turborepo monorepo containing the Ibrahim Mobiles platform. This guide covers everything needed to get the project running locally.
+Zero-to-running guide for the Ibrahim Mobiles Turborepo monorepo.
+
+---
 
 ## Prerequisites
 
-Ensure you have the following installed on your machine:
-- **Node.js**: Check `.node-version` or `.nvmrc` for the exact version (e.g., v20+).
-- **npm**: Comes with Node.js.
-- **Git**: For cloning the repository.
-- **MongoDB**: A local instance or an Atlas cluster URL.
+| Tool | Version |
+| ---- | ------- |
+| **Node.js** | **22+** (see `.node-version`) |
+| **npm** | **10+** (bundled with Node; repo pins `npm@10.9.0`) |
+| **Git** | Any recent version |
+| **MongoDB** | Atlas cluster or local instance |
 
-## Getting Started
+Optional for full production parity:
 
-### 1. Clone the Repository
+- Vercel Blob token (images and uploads)
+- Twilio (customer OTP over WhatsApp/SMS)
+- OpenAI or Google AI key (storefront chat assistant)
+
+---
+
+## 1. Clone and install
 
 ```bash
 git clone <repository-url>
 cd ibrahimMobiles
-```
-
-### 2. Install Dependencies
-
-Install all monorepo dependencies from the root:
-
-```bash
 npm install
 ```
 
-### 3. Environment Variables
+---
 
-Copy the example environment file to create your local overrides:
+## 2. Environment variables
 
 ```bash
 cp .env.example .env.local
 ```
 
-Fill in `.env.local` based on the table below.
+Edit `.env.local`. Minimum to boot locally:
 
-| Variable Name | Required? | Purpose | Where to get it |
-|---|---|---|---|
-| `AUTH_SECRET` | **Yes** | Encrypts session cookies. | Run `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
-| `AUTH_URL` | **Yes** | Base URL for Auth.js callbacks. | Use `http://localhost:3000` for local dev. |
-| `AUTH_TRUST_HOST` | **Yes** | Trusts the host header (needed for proxies). | Set to `true`. |
-| `STOREFRONT_BASE_URL` | No | Env fallback for storefront canonical/SEO URLs when admin URL is unset. | Production URL (e.g., `https://your-domain.com`). **Prefer Settings → Site URLs** once the admin panel is reachable. |
-| `MONGODB_URI` | **Yes** | Database connection string. | MongoDB Atlas or local instance. *Must include DB name.* |
-| `ATLAS_SEARCH_ENABLED` | No | Enables Atlas Search for the catalog. | Set `true` if using Atlas, `false` for local regex fallback. |
-| `MONGODB_SEARCH_INDEX` | No | Name of the Atlas Search index. | Must match the created index (e.g., `products_search`). |
-| `STORAGE_PROVIDER` | **Yes** | Where uploads/images are stored. | Set to `vercel-blob` by default. |
-| `BLOB_READ_WRITE_TOKEN` | **Yes** | Token for Vercel Blob storage. | Vercel Dashboard → Storage. |
-| `OTP_PROVIDER` | No | Provider for phone sign-in. | `twilio` (leave unset in dev to print codes to console). |
-| `TWILIO_ACCOUNT_SID` | No | Twilio API credentials. | Twilio Console. |
-| `TWILIO_AUTH_TOKEN` | No | Twilio API credentials. | Twilio Console. |
-| `TWILIO_WHATSAPP_FROM` | No | WhatsApp sender number. | Twilio Console (e.g., `whatsapp:+14155238886`). |
-| `TWILIO_SMS_FROM` | No | SMS sender number (fallback). | Twilio Console. |
-| `OPENAI_API_KEY` | No | Powers the AI chat assistant. | OpenAI Dashboard. |
-| `OPENAI_CHAT_MODEL` | No | Override default OpenAI model. | e.g., `gpt-4o-mini`. |
-| `GOOGLE_AI_API_KEY` | No | Alternative AI provider (Gemini). | Google AI Studio. |
-| `GEMINI_CHAT_MODEL` | No | Override default Gemini model. | e.g., `gemini-2.5-flash-lite`. |
+| Variable | Required? | Purpose |
+| -------- | --------- | ------- |
+| `AUTH_SECRET` | **Yes** | Session encryption — generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
+| `AUTH_URL` | **Yes** | Storefront origin for Auth.js — `http://localhost:3000` in dev |
+| `AUTH_TRUST_HOST` | **Yes** | `true` (proxy / Vercel) |
+| `MONGODB_URI` | **Yes** | Connection string **including database name** in the path |
+| `STORAGE_PROVIDER` | **Yes** | `vercel-blob` |
+| `BLOB_READ_WRITE_TOKEN` | **Yes** for uploads | Vercel Dashboard → Storage |
 
-### 4. Database Setup (Optional: Search Index)
+Common optional variables:
 
-If you are using MongoDB Atlas and want the AI chat assistant to use ranked/typo-tolerant search, create the search index:
+| Variable | Purpose |
+| -------- | ------- |
+| `STOREFRONT_BASE_URL` | SEO/canonical fallback when Admin → Site URLs is empty |
+| `ATLAS_SEARCH_ENABLED` | `false` to force regex search (local Mongo) |
+| `MONGODB_SEARCH_INDEX` | Atlas Search index name (default `products_search`) |
+| `OTP_PROVIDER` | `twilio` in production; unset in dev → OTP prints in server log |
+| `TWILIO_*` | WhatsApp/SMS senders — see comments in `.env.example` |
+| `OPENAI_API_KEY` / `GOOGLE_AI_API_KEY` | Chat assistant; omit for human-only chat |
+| `DEV_SKIP_PUBLIC_DNS` | `true` if dev machine blocks `8.8.8.8` / `1.1.1.1` DNS fallback |
 
-```bash
-npm run search-index -w @store/db
-```
-*(Note: If skipping this, ensure `ATLAS_SEARCH_ENABLED=false` so the app falls back to standard regex search).*
+Full list with placeholders: [.env.example](../.env.example).
 
-### 5. Run the Development Server
+---
 
-Start the Turborepo development pipeline (runs all apps and packages in parallel):
+## 3. MongoDB
+
+1. Create a database (e.g. `mobile-store`) in Atlas or locally.
+2. Whitelist your IP (Atlas → Network Access).
+3. Set `MONGODB_URI` to include that database name:
+
+   `mongodb+srv://user:pass@cluster.mongodb.net/mobile-store?retryWrites=true&w=majority`
+
+**Catalog data** is not shipped in the repo. Use Admin (`http://localhost:3001`) to create categories, attributes, grades, brands, and products — or restore from a database backup.
+
+### Optional: Atlas Search
+
+For ranked catalog search (shop overlay + chat assistant):
+
+1. In Atlas → Search Indexes on the `products` collection, create an index named `products_search` (or match `MONGODB_SEARCH_INDEX`).
+2. Leave `ATLAS_SEARCH_ENABLED` unset or `true`.
+
+Without Atlas Search, set `ATLAS_SEARCH_ENABLED=false` — the app uses regex search automatically.
+
+---
+
+## 4. Run development servers
+
+All apps (parallel):
 
 ```bash
 npm run dev
 ```
 
-The storefront will typically be available at `http://localhost:3000`.
+Or individually:
+
+```bash
+npm run dev:web    # storefront → http://localhost:3000
+npm run dev:admin  # admin      → http://localhost:3001
+```
 
 ---
 
-## Repository Structure
+## 5. First-time operator checklist
 
-- `apps/` - Deployable applications (e.g., storefront, admin console).
-- `packages/` - Shared libraries, UI components, and configurations.
-- `docs/` - Operational documentation, architecture, and API docs.
+After `npm run dev`:
+
+1. **Admin sign-in** — use your team account (created directly in MongoDB or via invite flow if configured).
+2. **Settings → Site URLs** — set the public storefront URL (production domain or `http://localhost:3000` for local SEO links).
+3. **Settings → Store / Contact / Payments / Delivery** — fill operational copy used on About and Checkout.
+4. **Catalog** — categories → grades → attributes → brands → products (see [catalog.md](catalog.md)).
+5. **Upload test image** on a product — confirms `BLOB_READ_WRITE_TOKEN`.
+6. **Storefront sign-in** — leave Twilio unset; OTP appears in the terminal running `@store/web`.
 
 ---
 
-## Common Issues / Troubleshooting
+## 6. Quality commands
 
-**1. Auth errors or redirects failing**
-- **Cause:** `AUTH_SECRET` is missing or `AUTH_URL` doesn't match your local port.
-- **Fix:** Ensure `AUTH_SECRET` is a 32-byte base64 string and `AUTH_URL=http://localhost:3000`.
+```bash
+npm run lint       # ESLint across workspaces
+npm run typecheck  # TypeScript --noEmit
+npm run build      # Production build (all apps)
+npm run format     # Prettier write
+```
 
-**2. Database connection fails**
-- **Cause:** IP not whitelisted in MongoDB Atlas, or missing database name in the URI.
-- **Fix:** Check your Atlas Network Access tab. Ensure your `MONGODB_URI` ends with the database name (e.g., `...mongodb.net/mobile-store?...`).
+---
 
-**3. Cannot sign in locally (No OTP received)**
-- **Cause:** Twilio credentials are not set.
-- **Fix:** This is expected in dev. Leave `OTP_PROVIDER` unset, and the 6-digit OTP will print directly in your terminal/server logs.
+## Repository structure
 
-**4. AI Chat Assistant isn't responding**
-- **Cause:** Missing `OPENAI_API_KEY` or `GOOGLE_AI_API_KEY`.
-- **Fix:** The chat will gracefully fall back to human-only mode without these keys. Add a key to test the AI locally.
+```
+ibrahimMobiles/
+├── apps/
+│   ├── web/          # Storefront (@store/web) — port 3000
+│   └── admin/        # Admin console (@store/admin) — port 3001
+├── packages/
+│   ├── db/           # Mongoose models + connection
+│   ├── shared/       # Domain logic, types, pricing, chat
+│   └── ui/           # Shared React components
+├── docs/             # This folder
+├── README.md         # Business rules and domain specification
+└── .env.example      # Environment template
+```
+
+There is **no** `tools/` seed or migration folder — catalog changes go through Admin.
+
+Further reading:
+
+- [Architecture](architecture.md)
+- [Catalog operations](catalog.md)
+- [README](../README.md) — storefront, checkout, orders, chat, loyalty
+
+---
+
+## Common issues / troubleshooting
+
+### Auth errors or redirect loops
+
+- **Cause:** Missing `AUTH_SECRET` or `AUTH_URL` does not match the storefront port.
+- **Fix:** `AUTH_URL=http://localhost:3000`, valid 32-byte base64 `AUTH_SECRET`.
+
+### Database connection fails
+
+- **Cause:** Atlas IP block or missing database name in URI.
+- **Fix:** Network Access in Atlas; URI path must end with `/your-db-name`.
+
+### Admin shows `queryTxt EREFUSED` (SRV DNS)
+
+- **Cause:** `mongodb+srv://` needs SRV lookups; flaky local DNS.
+- **Fix:** Restart dev after pulling `packages/db` DNS fallback. Try macOS DNS `8.8.8.8` / `1.1.1.1`, Atlas **standard** connection string, or `DEV_SKIP_PUBLIC_DNS=true` when public DNS is blocked.
+
+### `/_next/image` 500 / `ENOTFOUND …blob.vercel-storage.com`
+
+- **Cause:** Server-side image optimizer cannot resolve Blob host.
+- **Fix:** Fix DNS as above; admin dev serves Blob URLs directly for thumbnails.
+
+### No OTP in dev
+
+- **Expected** when `OTP_PROVIDER` and Twilio are unset.
+- **Fix:** Read the `@store/web` terminal — the 6-digit code is logged there.
+
+### Chat assistant silent
+
+- **Cause:** No `OPENAI_API_KEY` or `GOOGLE_AI_API_KEY`.
+- **Fix:** Add a key, or use human-only chat (team replies from Admin → Inquiries).
+
+### Product not on storefront
+
+- Walk the [visibility cascade](../README.md#visibility-cascade): active product, not archived, has variants, active category, active brand, in-stock variant (or force-out-of-stock handling).
+
+### Search always feels “dumb” locally
+
+- Set `ATLAS_SEARCH_ENABLED=false` explicitly, or create the Atlas Search index on a dev cluster.

@@ -44,121 +44,119 @@ const REVEAL_CANDIDATE = ".reveal:not([data-reveal='visible']), .reveal-fade:not
 const REVEAL_WATCHDOG_MS = 2500;
 
 export function RevealRoot() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const routeKey = `${pathname}?${searchParams?.toString() ?? ""}`;
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
+	const routeKey = `${pathname}?${searchParams?.toString() ?? ""}`;
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
+	useEffect(() => {
+		if (typeof window === "undefined") {
+			return;
+		}
 
-    // The component is mounted ⇒ the animation driver is alive ⇒ it is
-    // safe to remove the CSS fallback that kept content visible for
-    // no-JS / pre-hydration users.
-    document.documentElement.classList.remove("no-js");
+		// The component is mounted ⇒ the animation driver is alive ⇒ it is
+		// safe to remove the CSS fallback that kept content visible for
+		// no-JS / pre-hydration users.
+		document.documentElement.classList.remove("no-js");
 
-    const reveal = (target: Element) => {
-      target.setAttribute("data-reveal", "visible");
-    };
+		const reveal = (target: Element) => {
+			target.setAttribute("data-reveal", "visible");
+		};
 
-    const isInViewport = (element: HTMLElement): boolean => {
-      const rect = element.getBoundingClientRect();
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-      return rect.top < viewportHeight * 0.94 && rect.bottom > 0;
-    };
+		const isInViewport = (element: HTMLElement): boolean => {
+			const rect = element.getBoundingClientRect();
+			const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+			return rect.top < viewportHeight * 0.94 && rect.bottom > 0;
+		};
 
-    const supportsIO = "IntersectionObserver" in window;
-    if (!supportsIO) {
-      document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach(reveal);
-      return;
-    }
+		const supportsIO = "IntersectionObserver" in window;
+		if (!supportsIO) {
+			document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach(reveal);
+			return;
+		}
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            reveal(entry.target);
-            observer.unobserve(entry.target);
-          }
-        }
-      },
-      {
-        rootMargin: "0px 0px -6% 0px",
-        threshold: 0.04,
-      },
-    );
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (entry.isIntersecting) {
+						reveal(entry.target);
+						observer.unobserve(entry.target);
+					}
+				}
+			},
+			{
+				rootMargin: "0px 0px -6% 0px",
+				threshold: 0.04,
+			},
+		);
 
-    const observeAll = () => {
-      document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach((element) => {
-        if (isInViewport(element)) {
-          reveal(element);
-          return;
-        }
-        observer.observe(element);
-      });
-    };
+		const observeAll = () => {
+			document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach((element) => {
+				if (isInViewport(element)) {
+					reveal(element);
+					return;
+				}
+				observer.observe(element);
+			});
+		};
 
-    const visitAddedNode = (node: HTMLElement) => {
-      if (node.matches?.(REVEAL_CANDIDATE)) {
-        if (isInViewport(node)) {
-          reveal(node);
-        } else {
-          observer.observe(node);
-        }
-      }
-      // Cheap pre-check — if the subtree has no reveal targets, skip
-      // the expensive `querySelectorAll` walk. Big win on chat-widget
-      // / image-fade churn where most added nodes are irrelevant.
-      const querySelector = node.querySelector?.bind(node);
-      if (!querySelector || !querySelector(".reveal, .reveal-fade")) {
-        return;
-      }
-      node
-        .querySelectorAll<HTMLElement>(REVEAL_CANDIDATE)
-        .forEach((element) => {
-          if (isInViewport(element)) {
-            reveal(element);
-          } else {
-            observer.observe(element);
-          }
-        });
-    };
+		const visitAddedNode = (node: HTMLElement) => {
+			if (node.matches?.(REVEAL_CANDIDATE)) {
+				if (isInViewport(node)) {
+					reveal(node);
+				} else {
+					observer.observe(node);
+				}
+			}
+			// Cheap pre-check — if the subtree has no reveal targets, skip
+			// the expensive `querySelectorAll` walk. Big win on chat-widget
+			// / image-fade churn where most added nodes are irrelevant.
+			const querySelector = node.querySelector?.bind(node);
+			if (!querySelector || !querySelector(".reveal, .reveal-fade")) {
+				return;
+			}
+			node.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach((element) => {
+				if (isInViewport(element)) {
+					reveal(element);
+				} else {
+					observer.observe(element);
+				}
+			});
+		};
 
-    const mutation = new MutationObserver((records) => {
-      for (const record of records) {
-        record.addedNodes.forEach((node) => {
-          if (node instanceof HTMLElement) {
-            visitAddedNode(node);
-          }
-        });
-      }
-    });
+		const mutation = new MutationObserver((records) => {
+			for (const record of records) {
+				record.addedNodes.forEach((node) => {
+					if (node instanceof HTMLElement) {
+						visitAddedNode(node);
+					}
+				});
+			}
+		});
 
-    // Run on the next frame so layout is settled, but don't defer to
-    // idle — that left above-the-fold `.reveal` nodes at opacity 0 and
-    // made the storefront feel like it was still loading.
-    const frame = window.requestAnimationFrame(() => {
-      observeAll();
-      const mutationRoot = document.querySelector("main") ?? document.body;
-      mutation.observe(mutationRoot, { childList: true, subtree: true });
-    });
+		// Run on the next frame so layout is settled, but don't defer to
+		// idle — that left above-the-fold `.reveal` nodes at opacity 0 and
+		// made the storefront feel like it was still loading.
+		const frame = window.requestAnimationFrame(() => {
+			observeAll();
+			const mutationRoot = document.querySelector("main") ?? document.body;
+			mutation.observe(mutationRoot, { childList: true, subtree: true });
+		});
 
-    // Watchdog — force-reveal anything still hidden after the budget.
-    // This is the JS layer of the guarantee; the CSS keyframe in
-    // `globals.css` is the independent backup if the JS never reaches
-    // this point at all.
-    const watchdog = window.setTimeout(() => {
-      document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach(reveal);
-    }, REVEAL_WATCHDOG_MS);
+		// Watchdog — force-reveal anything still hidden after the budget.
+		// This is the JS layer of the guarantee; the CSS keyframe in
+		// `globals.css` is the independent backup if the JS never reaches
+		// this point at all.
+		const watchdog = window.setTimeout(() => {
+			document.querySelectorAll<HTMLElement>(REVEAL_CANDIDATE).forEach(reveal);
+		}, REVEAL_WATCHDOG_MS);
 
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(watchdog);
-      observer.disconnect();
-      mutation.disconnect();
-    };
-  }, [routeKey]);
+		return () => {
+			window.cancelAnimationFrame(frame);
+			window.clearTimeout(watchdog);
+			observer.disconnect();
+			mutation.disconnect();
+		};
+	}, [routeKey]);
 
-  return null;
+	return null;
 }

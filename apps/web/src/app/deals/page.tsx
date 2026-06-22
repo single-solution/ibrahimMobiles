@@ -24,9 +24,7 @@ async function loadDealsContentSafe(): Promise<DealsPageContent> {
 export async function generateMetadata(): Promise<Metadata> {
 	const seo = await getSeoSettings();
 	const title = `Today's deals · ${seo.seoStoreName || seo.siteName}`;
-	const description =
-		seo.defaultDescription ||
-		"Live offers, weekly drops and bank-transfer discounts.";
+	const description = seo.defaultDescription || "Live offers, weekly drops and bank-transfer discounts.";
 	return {
 		title,
 		description,
@@ -62,12 +60,8 @@ function DealsHero({ subtitle }: { subtitle: string }) {
 						<Sparkles size={11} />
 						Live offers
 					</span>
-					<h1 className="mt-3 text-[26px] font-semibold leading-[1.05] tracking-tight text-[var(--color-ink-900)]">
-						Today&apos;s deals
-					</h1>
-					<p className="mt-2.5 max-w-prose text-[13.5px] leading-snug text-[var(--color-ink-600)]">
-						{subtitle}
-					</p>
+					<h1 className="mt-3 text-[26px] font-semibold leading-[1.05] tracking-tight text-[var(--color-ink-900)]">Today&apos;s deals</h1>
+					<p className="mt-2.5 max-w-prose text-[13.5px] leading-snug text-[var(--color-ink-600)]">{subtitle}</p>
 				</section>
 			</div>
 
@@ -77,9 +71,7 @@ function DealsHero({ subtitle }: { subtitle: string }) {
 						<Sparkles size={12} />
 						Live offers
 					</p>
-					<h1 className="text-5xl font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)]">
-						Today&apos;s deals
-					</h1>
+					<h1 className="text-5xl font-semibold leading-[1] tracking-tight text-[var(--color-ink-900)]">Today&apos;s deals</h1>
 					<p className="max-w-prose text-base text-[var(--color-ink-600)]">{subtitle}</p>
 				</header>
 			</div>
@@ -96,16 +88,10 @@ async function DealsBody() {
 			{content.spotlight ? (
 				<>
 					<div className="md:hidden">
-						<DealSpotlight
-							product={content.spotlight}
-							offerBadgeLabel={content.spotlightOfferBadgeLabel}
-						/>
+						<DealSpotlight product={content.spotlight} offerBadgeLabel={content.spotlightOfferBadgeLabel} />
 					</div>
 					<div className="mx-auto hidden max-w-[1440px] px-4 sm:px-6 lg:px-8 md:block">
-						<DealSpotlight
-							product={content.spotlight}
-							offerBadgeLabel={content.spotlightOfferBadgeLabel}
-						/>
+						<DealSpotlight product={content.spotlight} offerBadgeLabel={content.spotlightOfferBadgeLabel} />
 					</div>
 				</>
 			) : null}
@@ -130,10 +116,7 @@ async function DealsBody() {
 
 export default async function DealsPage() {
 	const settings = await getStoreSettingsCached();
-	const bankHint =
-		settings.bankTransferDiscountPercent > 0
-			? `${settings.bankTransferDiscountPercent}% off on full bank transfer at checkout`
-			: "Weekly drops on graded devices";
+	const bankHint = settings.bankTransferDiscountPercent > 0 ? `${settings.bankTransferDiscountPercent}% off on full bank transfer at checkout` : "Weekly drops on graded devices";
 	const subtitle = `Offer-led picks plus ${bankHint.toLowerCase()}.`;
 
 	return (

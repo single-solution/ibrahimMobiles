@@ -18,18 +18,7 @@ interface SelectFieldProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>,
 }
 
 /** Searchable single-select — drop-in replacement for native `<select>` across admin forms. */
-export function SelectField({
-	label,
-	options,
-	hint,
-	id,
-	className,
-	value,
-	onChange,
-	disabled,
-	required,
-	name,
-}: SelectFieldProps) {
+export function SelectField({ label, options, hint, id, className, value, onChange, disabled, required, name }: SelectFieldProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const fieldId = id ?? (label ? `select-${label.toLowerCase().replace(/\s+/g, "-")}` : undefined);
@@ -46,10 +35,7 @@ export function SelectField({
 	return (
 		<div ref={containerRef} className={classNames("reveal animate-in flex flex-col gap-1.5", className)}>
 			{label ? (
-				<label
-					htmlFor={fieldId}
-					className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-700)]"
-				>
+				<label htmlFor={fieldId} className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-700)]">
 					{label}
 				</label>
 			) : null}
@@ -78,13 +64,7 @@ export function SelectField({
 					)}
 				>
 					<span className="truncate">{triggerText}</span>
-					<ChevronDown
-						size={14}
-						className={classNames(
-							"shrink-0 text-[var(--color-ink-400)] transition-transform",
-							isOpen && "rotate-180",
-						)}
-					/>
+					<ChevronDown size={14} className={classNames("shrink-0 text-[var(--color-ink-400)] transition-transform", isOpen && "rotate-180")} />
 				</button>
 			</div>
 			{Boolean(hint) ? <p className="text-[11px] text-[var(--color-ink-500)]">{hint}</p> : null}
@@ -96,13 +76,7 @@ export function SelectField({
 				role="listbox"
 				className="animate-popover-in min-w-[var(--select-panel-width,12rem)] max-w-[min(90vw,24rem)] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]"
 			>
-				<SearchableSelectPanel
-					options={options}
-					value={selectedValue}
-					onSelect={pick}
-					isOpen={isOpen}
-					singleSelectStyle="radio"
-				/>
+				<SearchableSelectPanel options={options} value={selectedValue} onSelect={pick} isOpen={isOpen} singleSelectStyle="radio" />
 			</Popover>
 		</div>
 	);

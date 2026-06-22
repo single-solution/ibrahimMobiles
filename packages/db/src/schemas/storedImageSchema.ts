@@ -20,22 +20,22 @@ const MIN_IMAGE_DIMENSION = 1;
 const ALT_TEXT_MAX_LENGTH = 240;
 
 const storedImageVariantsSchema = new Schema<StoredImageVariants>(
-  {
-    thumb: { type: String, required: true, trim: true },
-    card: { type: String, required: true, trim: true },
-    detail: { type: String, required: true, trim: true },
-    full: { type: String, required: true, trim: true },
-  },
-  { _id: false },
+	{
+		thumb: { type: String, required: true, trim: true },
+		card: { type: String, required: true, trim: true },
+		detail: { type: String, required: true, trim: true },
+		full: { type: String, required: true, trim: true },
+	},
+	{ _id: false },
 );
 
 export const storedImageSchema = new Schema<StoredImage>(
-  {
-    variants: { type: storedImageVariantsSchema, required: true },
-    blurDataURL: { type: String, required: true, trim: true },
-    width: { type: Number, required: true, min: MIN_IMAGE_DIMENSION },
-    height: { type: Number, required: true, min: MIN_IMAGE_DIMENSION },
-    alt: { type: String, required: true, trim: true, maxlength: ALT_TEXT_MAX_LENGTH },
-  },
-  { _id: false },
+	{
+		variants: { type: storedImageVariantsSchema, required: true },
+		blurDataURL: { type: String, required: true, trim: true },
+		width: { type: Number, required: true, min: MIN_IMAGE_DIMENSION },
+		height: { type: Number, required: true, min: MIN_IMAGE_DIMENSION },
+		alt: { type: String, required: true, trim: true, maxlength: ALT_TEXT_MAX_LENGTH },
+	},
+	{ _id: false },
 );

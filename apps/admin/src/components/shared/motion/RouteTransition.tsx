@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 interface RouteTransitionProps {
-  children: ReactNode;
+	children: ReactNode;
 }
 
 /**
@@ -20,5 +20,5 @@ interface RouteTransitionProps {
  * the page root.
  */
 export function RouteTransition({ children }: RouteTransitionProps) {
-  return <div className="flex min-h-0 flex-1 flex-col">{children}</div>;
+	return <div className="flex min-h-0 flex-1 flex-col">{children}</div>;
 }

@@ -2,6 +2,8 @@ import type { OfferAction, OfferSchedule } from "./offerTypes";
 import {
 	cartMatchesOffer,
 	getMatchedCartItems,
+	isCatalogWideStorefrontOffer,
+	itemMatchesStorefrontScope,
 	type EvaluateOffersOptions,
 	type OfferMatchContext,
 } from "./offerMatching";
@@ -53,15 +55,123 @@ export interface OfferEvaluationResult {
 	appliedOfferIds: string[];
 }
 
+export type EvaluateCartOffersOptions = EvaluateOffersOptions & {
+	/** Per line id → offer chosen on the PDP (stored on cart lines). */
+	lineOfferIds?: Record<string, string | undefined>;
+};
+
 export { isOfferActiveSchedule, isOfferEligible, isOfferUsageExhausted } from "./offerSchedule";
 
 const PERCENTAGE_DIVISOR = 100;
 
-export function evaluateOffers(
-	items: EvaluatableItem[],
-	offers: ActiveOffer[],
-	options: EvaluateOffersOptions = {},
-): OfferEvaluationResult {
+/** Minimum line quantity required by offer rules — defaults to 1. */
+export function resolveOfferMinQuantity(offer: ActiveOffer): number {
+	for (const condition of offer.conditions) {
+		if (condition.type !== "min_quantity" || condition.operator !== "gte") {
+			continue;
+		}
+		const value = Number(condition.value);
+		if (Number.isFinite(value) && value > 0) {
+			return Math.floor(value);
+		}
+	}
+	return 1;
+}
+
+/** PDP / cart-locked item offer — storefront item scope + quantity rules. */
+export function itemMatchesLockedItemOffer(item: EvaluatableItem, offer: ActiveOffer, context: OfferMatchContext): boolean {
+	if (!isOfferEligible(offer) || isCatalogWideStorefrontOffer(offer)) {
+		return false;
+	}
+	if (!itemMatchesStorefrontScope(item, offer, context)) {
+		return false;
+	}
+	return item.quantity >= resolveOfferMinQuantity(offer);
+}
+
+/** Discount for a PDP-locked item offer — line-level % or fixed amount. */
+export function computeLockedItemOfferDiscount(item: EvaluatableItem, offer: ActiveOffer, context: OfferMatchContext): number {
+	if (!itemMatchesLockedItemOffer(item, offer, context)) {
+		return 0;
+	}
+	if (offer.action.type === "buy_x_get_y" || offer.action.type === "free_shipping") {
+		return 0;
+	}
+
+	const lineTotal = item.price * item.quantity;
+	if (offer.action.type === "percentage_discount") {
+		return lineTotal * (offer.action.value / PERCENTAGE_DIVISOR);
+	}
+	if (offer.action.type === "fixed_amount_discount") {
+		return Math.min(offer.action.value * item.quantity, lineTotal);
+	}
+	return 0;
+}
+
+/** Discount amount for one line when a specific item-scoped offer applies. */
+export function computeItemOfferDiscount(item: EvaluatableItem, offer: ActiveOffer): number {
+	if (offer.action.type === "buy_x_get_y") {
+		return 0;
+	}
+	if (offer.action.type === "free_shipping") {
+		return 0;
+	}
+	if (offer.action.target !== "matched_items") {
+		return 0;
+	}
+
+	const lineTotal = item.price * item.quantity;
+	if (offer.action.type === "percentage_discount") {
+		return lineTotal * (offer.action.value / PERCENTAGE_DIVISOR);
+	}
+	if (offer.action.type === "fixed_amount_discount") {
+		return Math.min(offer.action.value * item.quantity, lineTotal);
+	}
+	return 0;
+}
+
+function applyCartWideOffer(
+	offer: ActiveOffer,
+	cartTotal: number,
+	context: OfferMatchContext,
+	cartDiscounts: DiscountApplication[],
+): { cartTotal: number; totalDiscount: number; applied: boolean; freeShipping: boolean } {
+	if (offer.action.type === "free_shipping") {
+		return { cartTotal, totalDiscount: 0, applied: true, freeShipping: true };
+	}
+	if (offer.action.type === "buy_x_get_y") {
+		return { cartTotal, totalDiscount: 0, applied: false, freeShipping: false };
+	}
+	if (offer.action.target !== "cart_total") {
+		return { cartTotal, totalDiscount: 0, applied: false, freeShipping: false };
+	}
+
+	let offerDiscount = 0;
+	if (offer.action.type === "percentage_discount") {
+		offerDiscount = cartTotal * (offer.action.value / PERCENTAGE_DIVISOR);
+	} else if (offer.action.type === "fixed_amount_discount") {
+		offerDiscount = Math.min(offer.action.value, cartTotal);
+	}
+
+	if (offerDiscount <= 0) {
+		return { cartTotal, totalDiscount: 0, applied: false, freeShipping: false };
+	}
+
+	cartDiscounts.push({
+		offerId: offer.id,
+		offerTitle: offer.title,
+		discountAmount: offerDiscount,
+	});
+	return {
+		cartTotal: cartTotal - offerDiscount,
+		totalDiscount: offerDiscount,
+		applied: true,
+		freeShipping: false,
+	};
+}
+
+/** Cart pricing — PDP-locked item offers first, then cart/checkout-wide offers. */
+export function evaluateCartOffers(items: EvaluatableItem[], offers: ActiveOffer[], options: EvaluateCartOffersOptions = {}): OfferEvaluationResult {
 	let cartTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 	let totalDiscount = 0;
 
@@ -71,6 +181,7 @@ export function evaluateOffers(
 	};
 
 	const validOffers = offers.filter((offer) => isOfferEligible(offer));
+	const offerById = new Map(validOffers.map((offer) => [offer.id, offer]));
 
 	const itemDiscounts = new Map<string, DiscountApplication[]>();
 	const cartDiscounts: DiscountApplication[] = [];
@@ -79,85 +190,83 @@ export function evaluateOffers(
 	let isLoyaltyPointsAllowed = true;
 	let freeShipping = false;
 
-	// First matching offer wins (admin `sortOrder`). Bank-transfer % stays in settings.
-	for (const offer of validOffers) {
-		const matchedItems = getMatchedCartItems(items, offer, context);
-		const hasItemConditions = offer.conditions.some(
-			(condition) => condition.type !== "cart_total" && condition.type !== "payment_method",
-		);
-
-		if (hasItemConditions && matchedItems.length === 0) {
+	for (const item of items) {
+		const lockedOfferId = options.lineOfferIds?.[item.id];
+		if (!lockedOfferId) {
 			continue;
 		}
-
-		if (!hasItemConditions && !cartMatchesOffer(offer, context)) {
+		const offer = offerById.get(lockedOfferId);
+		if (!offer || isCatalogWideStorefrontOffer(offer)) {
 			continue;
 		}
-
-		let applied = false;
 
 		if (offer.action.type === "free_shipping") {
-			freeShipping = true;
-			applied = true;
-		} else if (offer.action.type === "buy_x_get_y") {
-			continue;
-		} else {
-			switch (offer.action.target) {
-				case "cart_total": {
-					let offerDiscount = 0;
-					if (offer.action.type === "percentage_discount") {
-						offerDiscount = cartTotal * (offer.action.value / PERCENTAGE_DIVISOR);
-					} else if (offer.action.type === "fixed_amount_discount") {
-						offerDiscount = Math.min(offer.action.value, cartTotal);
-					}
-					if (offerDiscount > 0) {
-						cartDiscounts.push({
-							offerId: offer.id,
-							offerTitle: offer.title,
-							discountAmount: offerDiscount,
-						});
-						cartTotal -= offerDiscount;
-						totalDiscount += offerDiscount;
-						applied = true;
-					}
-					break;
-				}
-				case "matched_items": {
-					const itemsToDiscount = matchedItems.length > 0 ? matchedItems : items;
-					for (const item of itemsToDiscount) {
-						let itemDiscount = 0;
-						const itemLineTotal = item.price * item.quantity;
-						if (offer.action.type === "percentage_discount") {
-							itemDiscount = itemLineTotal * (offer.action.value / PERCENTAGE_DIVISOR);
-						} else if (offer.action.type === "fixed_amount_discount") {
-							itemDiscount = Math.min(offer.action.value * item.quantity, itemLineTotal);
-						}
-
-						if (itemDiscount > 0) {
-							const currentItemDiscounts = itemDiscounts.get(item.id) ?? [];
-							currentItemDiscounts.push({
-								offerId: offer.id,
-								offerTitle: offer.title,
-								discountAmount: itemDiscount,
-							});
-							itemDiscounts.set(item.id, currentItemDiscounts);
-							totalDiscount += itemDiscount;
-							cartTotal -= itemDiscount;
-							applied = true;
-						}
-					}
-					break;
-				}
+			if (!itemMatchesLockedItemOffer(item, offer, context)) {
+				continue;
 			}
-		}
-
-		if (applied) {
+			freeShipping = true;
 			appliedOfferIds.push(offer.id);
 			if (!offer.allowLoyaltyPoints) {
 				isLoyaltyPointsAllowed = false;
 			}
-			break;
+			continue;
 		}
+
+		const itemDiscount = computeLockedItemOfferDiscount(item, offer, context);
+		if (itemDiscount <= 0) {
+			continue;
+		}
+
+		itemDiscounts.set(item.id, [
+			{
+				offerId: offer.id,
+				offerTitle: offer.title,
+				discountAmount: itemDiscount,
+			},
+		]);
+		totalDiscount += itemDiscount;
+		cartTotal -= itemDiscount;
+		appliedOfferIds.push(offer.id);
+		if (!offer.allowLoyaltyPoints) {
+			isLoyaltyPointsAllowed = false;
+		}
+	}
+
+	context.cartTotal = cartTotal;
+
+	for (const offer of validOffers) {
+		if (!isCatalogWideStorefrontOffer(offer)) {
+			continue;
+		}
+		if (appliedOfferIds.includes(offer.id)) {
+			continue;
+		}
+
+		const hasItemConditions = offer.conditions.some((condition) => condition.type !== "cart_total" && condition.type !== "payment_method");
+		if (hasItemConditions) {
+			const matchedItems = getMatchedCartItems(items, offer, context);
+			if (matchedItems.length === 0) {
+				continue;
+			}
+		} else if (!cartMatchesOffer(offer, context)) {
+			continue;
+		}
+
+		const cartResult = applyCartWideOffer(offer, cartTotal, context, cartDiscounts);
+		if (!cartResult.applied) {
+			continue;
+		}
+
+		cartTotal = cartResult.cartTotal;
+		totalDiscount += cartResult.totalDiscount;
+		if (cartResult.freeShipping) {
+			freeShipping = true;
+		}
+		appliedOfferIds.push(offer.id);
+		if (!offer.allowLoyaltyPoints) {
+			isLoyaltyPointsAllowed = false;
+		}
+		break;
 	}
 
 	return {
@@ -169,4 +278,8 @@ export function evaluateOffers(
 		freeShipping,
 		appliedOfferIds,
 	};
+}
+
+export function evaluateOffers(items: EvaluatableItem[], offers: ActiveOffer[], options: EvaluateOffersOptions = {}): OfferEvaluationResult {
+	return evaluateCartOffers(items, offers, options);
 }

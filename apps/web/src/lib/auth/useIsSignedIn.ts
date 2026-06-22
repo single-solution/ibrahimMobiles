@@ -7,29 +7,29 @@ let cachedSignedIn: boolean | null = null;
 const subscribers = new Set<(value: boolean | null) => void>();
 
 function emit(value: boolean | null): void {
-  cachedSignedIn = value;
-  subscribers.forEach((notify) => notify(value));
+	cachedSignedIn = value;
+	subscribers.forEach((notify) => notify(value));
 }
 
 async function fetchSignedIn(): Promise<boolean> {
-  try {
-    const response = await fetch("/api/auth/session", {
-      headers: { accept: "application/json" },
-      cache: "no-store",
-    });
-    if (!response.ok) {
-      return false;
-    }
-    const data = (await response.json()) as { user?: unknown } | null;
-    return Boolean(data?.user);
-  } catch {
-    return false;
-  }
+	try {
+		const response = await fetch("/api/auth/session", {
+			headers: { accept: "application/json" },
+			cache: "no-store",
+		});
+		if (!response.ok) {
+			return false;
+		}
+		const data = (await response.json()) as { user?: unknown } | null;
+		return Boolean(data?.user);
+	} catch {
+		return false;
+	}
 }
 
 /** Re-check the session and broadcast the result to every mounted hook. */
 export function refreshSignedIn(): void {
-  void fetchSignedIn().then(emit);
+	void fetchSignedIn().then(emit);
 }
 
 /**
@@ -38,7 +38,7 @@ export function refreshSignedIn(): void {
  * instead of waiting for the next focus event or full reload.
  */
 export function setSignedIn(value: boolean): void {
-  emit(value);
+	emit(value);
 }
 
 /**
@@ -48,22 +48,22 @@ export function setSignedIn(value: boolean): void {
  * pick up sign-in / sign-out that happened elsewhere.
  */
 export function useIsSignedIn(): boolean | null {
-  const [signedIn, setSignedInState] = useState<boolean | null>(cachedSignedIn);
+	const [signedIn, setSignedInState] = useState<boolean | null>(cachedSignedIn);
 
-  useEffect(() => {
-    subscribers.add(setSignedInState);
+	useEffect(() => {
+		subscribers.add(setSignedInState);
 
-    if (cachedSignedIn === null) {
-      refreshSignedIn();
-    }
+		if (cachedSignedIn === null) {
+			refreshSignedIn();
+		}
 
-    const refresh = () => refreshSignedIn();
-    window.addEventListener("focus", refresh);
-    return () => {
-      subscribers.delete(setSignedInState);
-      window.removeEventListener("focus", refresh);
-    };
-  }, []);
+		const refresh = () => refreshSignedIn();
+		window.addEventListener("focus", refresh);
+		return () => {
+			subscribers.delete(setSignedInState);
+			window.removeEventListener("focus", refresh);
+		};
+	}, []);
 
-  return signedIn;
+	return signedIn;
 }

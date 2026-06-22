@@ -12,17 +12,16 @@
  */
 
 export async function register(): Promise<void> {
-  if (process.env.NEXT_RUNTIME !== "nodejs") {
-    return;
-  }
-  const [{ assertServerEnv }, db] = await Promise.all([
-    import("@store/shared"),
-    import("@store/db"),
-  ]);
-  assertServerEnv({ appName: "admin" });
+	if (process.env.NEXT_RUNTIME !== "nodejs") {
+		return;
+	}
+	const [shared, db] = await Promise.all([import("@store/shared"), import("@store/db")]);
+	const { configureDevDnsResolvers } = await import("@store/shared/devDns");
+	configureDevDnsResolvers();
+	shared.assertServerEnv({ appName: "admin" });
 
-  void db.connectDB().catch(() => {
-    // Logged inside connectDB itself; swallow here so a transient boot blip
-    // doesn't unhandled-reject the worker.
-  });
+	void db.connectDB().catch(() => {
+		// Logged inside connectDB itself; swallow here so a transient boot blip
+		// doesn't unhandled-reject the worker.
+	});
 }

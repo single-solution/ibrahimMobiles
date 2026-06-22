@@ -34,16 +34,11 @@ const ACTION_TYPES = [
 	{ value: "free_shipping", label: "Free Shipping" },
 ];
 
-export function OfferRulesEditor({
-	conditions,
-	onChangeConditions,
-	action,
-	onChangeAction,
-	schedule,
-	onChangeSchedule,
-	constraints,
-	onChangeConstraints,
-}: OfferRulesEditorProps) {
+function numericConditionValue(value: unknown): number | "" {
+	return typeof value === "number" && !Number.isNaN(value) ? value : "";
+}
+
+export function OfferRulesEditor({ conditions, onChangeConditions, action, onChangeAction, schedule, onChangeSchedule, constraints, onChangeConstraints }: OfferRulesEditorProps) {
 	const [categories, setCategories] = useState<AdminCategory[]>([]);
 	const [brands, setBrands] = useState<AdminBrand[]>([]);
 	const [grades, setGrades] = useState<AdminGrade[]>([]);
@@ -110,7 +105,7 @@ export function OfferRulesEditor({
 	function addScenario() {
 		const nextConditions = [...conditions];
 		let orGroupIdx = nextConditions.findIndex((c) => c.type === "group" && c.operator === "or");
-		
+
 		if (orGroupIdx === -1) {
 			nextConditions.push({ type: "group", operator: "or", value: [{ type: "group", operator: "and", value: [] }] });
 		} else {
@@ -134,38 +129,38 @@ export function OfferRulesEditor({
 		}
 	}
 
-	function updateScenario(index: number, type: OfferCondition["type"], values: any, operator: OfferCondition["operator"] = "in") {
+	function updateScenario(index: number, type: OfferCondition["type"], values: unknown, operator: OfferCondition["operator"] = "in") {
 		const nextConditions = [...conditions];
 		let orGroupIdx = nextConditions.findIndex((c) => c.type === "group" && c.operator === "or");
-		
+
 		if (orGroupIdx === -1) {
 			nextConditions.push({ type: "group", operator: "or", value: [] });
 			orGroupIdx = nextConditions.length - 1;
 		}
-		
+
 		const orGroup = { ...nextConditions[orGroupIdx] };
 		const newScenarios = Array.isArray(orGroup.value) ? [...orGroup.value] : [];
-		
+
 		if (!newScenarios[index]) {
 			newScenarios[index] = { type: "group", operator: "and", value: [] };
 		}
-		
+
 		const scenario = { ...newScenarios[index] };
 		const subConditions = Array.isArray(scenario.value) ? [...scenario.value] : [];
-		
+
 		const subIdx = subConditions.findIndex((c: OfferCondition) => c.type === type);
-		
+
 		let isEmpty = false;
 		if (Array.isArray(values)) {
 			isEmpty = values.length === 0;
 		} else if (type === "min_quantity") {
 			isEmpty = isNaN(values as number);
-		} else if (typeof values === "object" && values !== null) {
-			isEmpty = !values.slug;
+		} else if (typeof values === "object" && values !== null && "slug" in values) {
+			isEmpty = !(values as { slug?: string }).slug;
 		} else {
 			isEmpty = !values;
 		}
-		
+
 		if (isEmpty) {
 			if (subIdx > -1) subConditions.splice(subIdx, 1);
 		} else {
@@ -190,12 +185,12 @@ export function OfferRulesEditor({
 				}
 			}
 		}
-		
+
 		scenario.value = subConditions;
 		newScenarios[index] = scenario;
 		orGroup.value = newScenarios;
 		nextConditions[orGroupIdx] = orGroup;
-		
+
 		onChangeConditions(nextConditions);
 	}
 
@@ -205,9 +200,7 @@ export function OfferRulesEditor({
 		<div className="space-y-8">
 			{/* 1. SCOPE */}
 			<section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
-				<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">
-					1. What triggers this offer?
-				</h3>
+				<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">1. What triggers this offer?</h3>
 				<SelectionToggleCards
 					value={scope}
 					onChange={setScope}
@@ -241,12 +234,8 @@ export function OfferRulesEditor({
 				<section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
 					<div className="flex items-center justify-between">
 						<div>
-							<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">
-								Specific Item Rules
-							</h3>
-							<p className="text-[13px] text-[var(--color-ink-500)] mt-1">
-								Items matching ANY of the scenarios below will get the offer.
-							</p>
+							<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">Specific Item Rules</h3>
+							<p className="text-[13px] text-[var(--color-ink-500)] mt-1">Items matching ANY of the scenarios below will get the offer.</p>
 						</div>
 						<Button type="button" variant="outline" size="sm" onClick={addScenario} className="h-7 px-2.5 text-[12px]">
 							<Plus size={12} className="mr-1" />
@@ -264,12 +253,12 @@ export function OfferRulesEditor({
 						{scenarios.map((scenario: OfferCondition, i: number) => {
 							const subConditions = Array.isArray(scenario.value) ? scenario.value : [];
 							const getVals = (t: string) => subConditions.find((c: OfferCondition) => c.type === t)?.value || [];
-							
+
 							const selectedCategorySlugs = getVals("categories") as string[];
 							const selectedGradeSlugs = getVals("grades") as string[];
 							const selectedBrandSlugs = getVals("brands") as string[];
 							const selectedProductIds = getVals("products") as string[];
-							const selectedAttribute = subConditions.find((c: OfferCondition) => c.type === "attributes")?.value as { slug: string, value: string } | undefined;
+							const selectedAttribute = subConditions.find((c: OfferCondition) => c.type === "attributes")?.value as { slug: string; value: string } | undefined;
 
 							const showBrandGrade = selectedCategorySlugs.length > 0;
 							const showProduct = showBrandGrade;
@@ -279,12 +268,7 @@ export function OfferRulesEditor({
 								<div key={i} className="relative space-y-4 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4">
 									<div className="flex items-center justify-between border-b border-[var(--color-ink-200)] pb-3">
 										<h4 className="text-[13px] font-bold text-[var(--color-ink-900)]">Scenario {i + 1}</h4>
-										<button
-											type="button"
-											onClick={() => removeScenario(i)}
-											className="text-[var(--color-ink-400)] hover:text-rose-600"
-											aria-label="Remove scenario"
-										>
+										<button type="button" onClick={() => removeScenario(i)} className="text-[var(--color-ink-400)] hover:text-rose-600" aria-label="Remove scenario">
 											<Trash2 size={16} />
 										</button>
 									</div>
@@ -297,46 +281,34 @@ export function OfferRulesEditor({
 												value: category.slug,
 											}))}
 											value={selectedCategorySlugs[0] || ""}
-											onChange={(nextValue) =>
-												updateScenario(i, "categories", nextValue ? [nextValue] : [])
-											}
+											onChange={(nextValue) => updateScenario(i, "categories", nextValue ? [nextValue] : [])}
 											placeholder="Select category…"
 										/>
 
 										{showBrandGrade ? (
 											<>
-												<ChevronRight
-													size={16}
-													aria-hidden
-													className="mb-2 shrink-0 text-[var(--color-ink-300)]"
-												/>
+												<ChevronRight size={16} aria-hidden className="mb-2 shrink-0 text-[var(--color-ink-300)]" />
 												<div className="flex shrink-0 flex-col gap-2">
 													<ScenarioStepPicker
 														label="Grade"
 														optional
-														options={(selectedCategorySlugs.length > 0
-															? grades.filter((grade) => selectedCategorySlugs.includes(grade.categorySlug))
-															: grades
-														).map((grade) => ({ label: grade.label, value: grade.slug }))}
+														options={(selectedCategorySlugs.length > 0 ? grades.filter((grade) => selectedCategorySlugs.includes(grade.categorySlug)) : grades).map((grade) => ({
+															label: grade.label,
+															value: grade.slug,
+														}))}
 														value={selectedGradeSlugs[0] || ""}
-														onChange={(nextValue) =>
-															updateScenario(i, "grades", nextValue ? [nextValue] : [])
-														}
+														onChange={(nextValue) => updateScenario(i, "grades", nextValue ? [nextValue] : [])}
 														placeholder="Any grade"
 													/>
 													<ScenarioStepPicker
 														label="Brand"
 														optional
 														options={(selectedCategorySlugs.length > 0
-															? brands.filter((brand) =>
-																	brand.categorySlugs.some((slug) => selectedCategorySlugs.includes(slug)),
-																)
+															? brands.filter((brand) => brand.categorySlugs.some((slug) => selectedCategorySlugs.includes(slug)))
 															: brands
 														).map((brand) => ({ label: brand.name, value: brand.slug }))}
 														value={selectedBrandSlugs[0] || ""}
-														onChange={(nextValue) =>
-															updateScenario(i, "brands", nextValue ? [nextValue] : [])
-														}
+														onChange={(nextValue) => updateScenario(i, "brands", nextValue ? [nextValue] : [])}
 														placeholder="Any brand"
 													/>
 												</div>
@@ -345,35 +317,23 @@ export function OfferRulesEditor({
 
 										{showProduct ? (
 											<>
-												<ChevronRight
-													size={16}
-													aria-hidden
-													className="mb-2 shrink-0 text-[var(--color-ink-300)]"
-												/>
+												<ChevronRight size={16} aria-hidden className="mb-2 shrink-0 text-[var(--color-ink-300)]" />
 												<ScenarioStepPicker
 													label="Product"
 													optional
 													options={products
 														.filter((product) => {
-															if (
-																selectedCategorySlugs.length > 0 &&
-																!selectedCategorySlugs.includes(product.categorySlug)
-															) {
+															if (selectedCategorySlugs.length > 0 && !selectedCategorySlugs.includes(product.categorySlug)) {
 																return false;
 															}
-															if (
-																selectedBrandSlugs.length > 0 &&
-																!selectedBrandSlugs.includes(product.brand.slug)
-															) {
+															if (selectedBrandSlugs.length > 0 && !selectedBrandSlugs.includes(product.brand.slug)) {
 																return false;
 															}
 															return true;
 														})
 														.map((product) => ({ label: product.name, value: product.id }))}
 													value={selectedProductIds[0] || ""}
-													onChange={(nextValue) =>
-														updateScenario(i, "products", nextValue ? [nextValue] : [])
-													}
+													onChange={(nextValue) => updateScenario(i, "products", nextValue ? [nextValue] : [])}
 													placeholder="Any product"
 												/>
 											</>
@@ -381,25 +341,16 @@ export function OfferRulesEditor({
 
 										{showAttribute ? (
 											<>
-												<ChevronRight
-													size={16}
-													aria-hidden
-													className="mb-2 shrink-0 text-[var(--color-ink-300)]"
-												/>
+												<ChevronRight size={16} aria-hidden className="mb-2 shrink-0 text-[var(--color-ink-300)]" />
 												<div className="flex shrink-0 flex-col gap-2">
 													<ScenarioStepPicker
 														label="Variant"
 														optional
-														options={(selectedCategorySlugs.length > 0
-															? attributes.filter((attribute) =>
-																	selectedCategorySlugs.includes(attribute.categorySlug),
-																)
-															: attributes
-														).map((attribute) => ({ label: attribute.label, value: attribute.slug }))}
+														options={(selectedCategorySlugs.length > 0 ? attributes.filter((attribute) => selectedCategorySlugs.includes(attribute.categorySlug)) : attributes).map(
+															(attribute) => ({ label: attribute.label, value: attribute.slug }),
+														)}
 														value={selectedAttribute?.slug ?? ""}
-														onChange={(slug) =>
-															updateScenario(i, "attributes", slug ? { slug, value: "" } : null)
-														}
+														onChange={(slug) => updateScenario(i, "attributes", slug ? { slug, value: "" } : null)}
 														placeholder="Any variant"
 													/>
 													{selectedAttribute?.slug ? (
@@ -431,22 +382,19 @@ export function OfferRulesEditor({
 								</div>
 							);
 						})}
-
 					</div>
 				</section>
 			)}
 
 			{scope === "cart_total" && (
 				<section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
-					<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">
-						Cart Requirements
-					</h3>
+					<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">Cart Requirements</h3>
 					<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas)] p-4">
 						<TextField
 							label="Minimum Cart Total (Rs)"
 							type="number"
 							min="0"
-							value={cartTotalCondition?.value ?? ""}
+							value={numericConditionValue(cartTotalCondition?.value)}
 							onChange={(e) => {
 								const val = parseFloat(e.target.value);
 								const next = [...conditions];
@@ -462,13 +410,11 @@ export function OfferRulesEditor({
 						/>
 					</div>
 				</section>
-				)}
+			)}
 
-				{scope === "checkout_method" && (
+			{scope === "checkout_method" && (
 				<section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
-					<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">
-						Checkout Requirements
-					</h3>
+					<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">Checkout Requirements</h3>
 					<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas)] p-4">
 						<SelectField
 							label="Required Payment Method"
@@ -488,19 +434,17 @@ export function OfferRulesEditor({
 						/>
 					</div>
 				</section>
-				)}
+			)}
 
 			{/* 2. DISCOUNT ACTION */}
 			<section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
-				<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">
-					2. Discount Action
-				</h3>
+				<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">2. Discount Action</h3>
 				<div className="flex w-full flex-wrap items-end gap-3">
 					<div className="min-w-0 flex-1 basis-48">
 						<SelectField
 							label="Type"
 							value={action.type}
-							onChange={(e) => onChangeAction({ ...action, type: e.target.value as any })}
+							onChange={(event) => onChangeAction({ ...action, type: event.target.value as OfferAction["type"] })}
 							options={ACTION_TYPES}
 						/>
 					</div>
@@ -512,9 +456,7 @@ export function OfferRulesEditor({
 								min="0"
 								step="0.01"
 								value={action.value}
-								onChange={(e) =>
-									onChangeAction({ ...action, value: parseFloat(e.target.value) || 0 })
-								}
+								onChange={(e) => onChangeAction({ ...action, value: parseFloat(e.target.value) || 0 })}
 								trailingAddon={action.type === "percentage_discount" ? "%" : "Rs"}
 							/>
 						</div>
@@ -524,7 +466,7 @@ export function OfferRulesEditor({
 							label="Min. Qty (Optional)"
 							type="number"
 							min="1"
-							value={minQuantityCondition?.value ?? ""}
+							value={numericConditionValue(minQuantityCondition?.value)}
 							onChange={(e) => {
 								const val = parseInt(e.target.value, 10);
 								const next = [...conditions];
@@ -548,9 +490,7 @@ export function OfferRulesEditor({
 
 			{/* 3. SCHEDULE */}
 			<section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
-				<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">
-					3. Schedule
-				</h3>
+				<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">3. Schedule</h3>
 				<div className="space-y-4">
 					<SelectionToggleCards
 						label="Schedule type"
@@ -586,9 +526,7 @@ export function OfferRulesEditor({
 							<TextField
 								label="Start Date & Time"
 								type="datetime-local"
-								value={
-									schedule.startDate ? new Date(schedule.startDate).toISOString().slice(0, 16) : ""
-								}
+								value={schedule.startDate ? new Date(schedule.startDate).toISOString().slice(0, 16) : ""}
 								onChange={(e) =>
 									onChangeSchedule({
 										...schedule,
@@ -599,9 +537,7 @@ export function OfferRulesEditor({
 							<TextField
 								label="End Date & Time"
 								type="datetime-local"
-								value={
-									schedule.endDate ? new Date(schedule.endDate).toISOString().slice(0, 16) : ""
-								}
+								value={schedule.endDate ? new Date(schedule.endDate).toISOString().slice(0, 16) : ""}
 								onChange={(e) =>
 									onChangeSchedule({
 										...schedule,
@@ -632,26 +568,20 @@ export function OfferRulesEditor({
 									label="Daily Start Time"
 									type="time"
 									value={schedule.startTime || ""}
-									onChange={(e) =>
-										onChangeSchedule({ ...schedule, startTime: e.target.value || undefined })
-									}
+									onChange={(e) => onChangeSchedule({ ...schedule, startTime: e.target.value || undefined })}
 								/>
 								<TextField
 									label="Daily End Time"
 									type="time"
 									value={schedule.endTime || ""}
-									onChange={(e) =>
-										onChangeSchedule({ ...schedule, endTime: e.target.value || undefined })
-									}
+									onChange={(e) => onChangeSchedule({ ...schedule, endTime: e.target.value || undefined })}
 								/>
 							</div>
 							<div className="grid gap-4 sm:grid-cols-2">
 								<TextField
 									label="Active From Date (Optional)"
 									type="datetime-local"
-									value={
-										schedule.startDate ? new Date(schedule.startDate).toISOString().slice(0, 16) : ""
-									}
+									value={schedule.startDate ? new Date(schedule.startDate).toISOString().slice(0, 16) : ""}
 									onChange={(e) =>
 										onChangeSchedule({
 											...schedule,
@@ -662,9 +592,7 @@ export function OfferRulesEditor({
 								<TextField
 									label="Active Until Date (Optional)"
 									type="datetime-local"
-									value={
-										schedule.endDate ? new Date(schedule.endDate).toISOString().slice(0, 16) : ""
-									}
+									value={schedule.endDate ? new Date(schedule.endDate).toISOString().slice(0, 16) : ""}
 									onChange={(e) =>
 										onChangeSchedule({
 											...schedule,
@@ -680,16 +608,12 @@ export function OfferRulesEditor({
 
 			{/* 4. CONSTRAINTS */}
 			<section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
-				<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">
-					4. Constraints
-				</h3>
+				<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">4. Constraints</h3>
 				<Switch
 					label="Allow Loyalty Points"
 					description="Can customers redeem loyalty points while this offer is active on their cart?"
 					checked={constraints.allowLoyaltyPoints}
-					onCheckedChange={(checked) =>
-						onChangeConstraints({ ...constraints, allowLoyaltyPoints: checked })
-					}
+					onCheckedChange={(checked) => onChangeConstraints({ ...constraints, allowLoyaltyPoints: checked })}
 				/>
 			</section>
 		</div>

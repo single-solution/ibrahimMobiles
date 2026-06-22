@@ -9,30 +9,30 @@
  * editor is exactly what the storefront renderer reads back.
  */
 export interface SeoMeta {
-  /** Override for `<title>` (post-template). */
-  title?: string;
-  /** Override for `<meta name="description">`. */
-  description?: string;
-  /** Absolute or relative URL for `<link rel="canonical">`. */
-  canonicalUrl?: string;
-  /** Override for `og:image` / `twitter:image`. */
-  ogImageUrl?: string;
-  /** SEO checklist + Rank Math-style hint computations. */
-  focusKeyword?: string;
-  /** Cached SEO score out of 100 to avoid expensive runtime calculations on list views. */
-  score?: number;
-  /** Adds `noindex` to the robots meta. */
-  noindex?: boolean;
-  /** Adds `nofollow` to the robots meta. */
-  nofollow?: boolean;
+	/** Override for `<title>` (post-template). */
+	title?: string;
+	/** Override for `<meta name="description">`. */
+	description?: string;
+	/** Absolute or relative URL for `<link rel="canonical">`. */
+	canonicalUrl?: string;
+	/** Override for `og:image` / `twitter:image`. */
+	ogImageUrl?: string;
+	/** SEO checklist + Rank Math-style hint computations. */
+	focusKeyword?: string;
+	/** Cached SEO score out of 100 to avoid expensive runtime calculations on list views. */
+	score?: number;
+	/** Adds `noindex` to the robots meta. */
+	noindex?: boolean;
+	/** Adds `nofollow` to the robots meta. */
+	nofollow?: boolean;
 }
 
 export const SEO_META_FIELD_LIMITS = {
-  title: 200,
-  description: 320,
-  canonicalUrl: 600,
-  ogImageUrl: 600,
-  focusKeyword: 80,
+	title: 200,
+	description: 320,
+	canonicalUrl: 600,
+	ogImageUrl: 600,
+	focusKeyword: 80,
 } as const;
 
 /**
@@ -41,7 +41,7 @@ export const SEO_META_FIELD_LIMITS = {
  * renderer and the admin preview component.
  */
 export function buildRobotsDirective(meta: SeoMeta | undefined): string {
-  const index = meta?.noindex ? "noindex" : "index";
-  const follow = meta?.nofollow ? "nofollow" : "follow";
-  return `${index},${follow}`;
+	const index = meta?.noindex ? "noindex" : "index";
+	const follow = meta?.nofollow ? "nofollow" : "follow";
+	return `${index},${follow}`;
 }

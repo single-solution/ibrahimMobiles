@@ -8,11 +8,7 @@ export type OfferUsageFields = {
 };
 
 export function isOfferUsageExhausted(offer: OfferUsageFields): boolean {
-	return (
-		typeof offer.usageLimit === "number" &&
-		offer.usageLimit > 0 &&
-		(offer.usageCount ?? 0) >= offer.usageLimit
-	);
+	return typeof offer.usageLimit === "number" && offer.usageLimit > 0 && (offer.usageCount ?? 0) >= offer.usageLimit;
 }
 
 export function isOfferActiveSchedule(schedule: OfferSchedule, now = new Date()): boolean {
@@ -52,9 +48,6 @@ export function isOfferActiveSchedule(schedule: OfferSchedule, now = new Date())
 	return true;
 }
 
-export function isOfferEligible(
-	offer: OfferUsageFields & { schedule: OfferSchedule },
-	now = new Date(),
-): boolean {
+export function isOfferEligible(offer: OfferUsageFields & { schedule: OfferSchedule }, now = new Date()): boolean {
 	return isOfferActiveSchedule(offer.schedule, now) && !isOfferUsageExhausted(offer);
 }

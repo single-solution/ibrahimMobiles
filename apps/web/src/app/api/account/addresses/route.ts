@@ -11,16 +11,7 @@
  */
 
 import { Customer, connectDB } from "@store/db";
-import {
-  badRequest,
-  logger,
-  notFound,
-  ok,
-  parseBody,
-  serverError,
-  unauthorized,
-  validateCustomerAddresses,
-} from "@store/shared";
+import { badRequest, logger, notFound, ok, parseBody, serverError, unauthorized, validateCustomerAddresses } from "@store/shared";
 
 import { enforceSameOrigin } from "@/lib/api/sameOrigin";
 import { getVerifiedCustomer } from "@/lib/server/customerSession";
@@ -28,42 +19,38 @@ import { getVerifiedCustomer } from "@/lib/server/customerSession";
 export const dynamic = "force-dynamic";
 
 interface UpdateAddressesBody {
-  addresses?: unknown;
+	addresses?: unknown;
 }
 
 export async function PUT(request: Request) {
-  const csrf = enforceSameOrigin(request);
-  if (csrf) {
-    return csrf;
-  }
-  const actor = await getVerifiedCustomer();
-  if (!actor) {
-    return unauthorized();
-  }
+	const csrf = enforceSameOrigin(request);
+	if (csrf) {
+		return csrf;
+	}
+	const actor = await getVerifiedCustomer();
+	if (!actor) {
+		return unauthorized();
+	}
 
-  const parsed = await parseBody<UpdateAddressesBody>(request);
-  if (parsed instanceof Response) {
-    return parsed;
-  }
+	const parsed = await parseBody<UpdateAddressesBody>(request);
+	if (parsed instanceof Response) {
+		return parsed;
+	}
 
-  const validated = validateCustomerAddresses(parsed.addresses);
-  if ("error" in validated) {
-    return badRequest(validated.error);
-  }
+	const validated = validateCustomerAddresses(parsed.addresses);
+	if ("error" in validated) {
+		return badRequest(validated.error);
+	}
 
-  try {
-    await connectDB();
-    const updated = await Customer.findByIdAndUpdate(
-      actor.id,
-      { addresses: validated.addresses },
-      { new: true, runValidators: true },
-    );
-    if (!updated) {
-      return notFound("Customer not found.");
-    }
-    return ok({ addresses: validated.addresses });
-  } catch (error) {
-    logger.error({ error }, "address update failed");
-    return serverError("Update failed");
-  }
+	try {
+		await connectDB();
+		const updated = await Customer.findByIdAndUpdate(actor.id, { addresses: validated.addresses }, { new: true, runValidators: true });
+		if (!updated) {
+			return notFound("Customer not found.");
+		}
+		return ok({ addresses: validated.addresses });
+	} catch (error) {
+		logger.error({ error }, "address update failed");
+		return serverError("Update failed");
+	}
 }

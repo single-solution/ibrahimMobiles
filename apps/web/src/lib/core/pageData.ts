@@ -20,15 +20,8 @@
 import { logger } from "@store/shared";
 
 import type { CategoryMeta } from "@/lib/core";
-import {
-  getHomeHeroProductsCached,
-  getShopHeroProductsCached,
-  getCategoriesCached,
-} from "@/lib/core/cached";
-import type {
-  Product,
-  StructuredContent,
-} from "@store/shared";
+import { getHomeHeroProductsCached, getShopHeroProductsCached, getCategoriesCached } from "@/lib/core/cached";
+import type { Product, StructuredContent } from "@store/shared";
 
 /**
  * Number of products fed to the hero name band. Fixed (not admin-configurable)
@@ -38,21 +31,21 @@ import type {
 const HERO_PRODUCTS_LIMIT = 12;
 
 export interface HomeHeroData {
-  /** Latest in-stock products feeding the hero name band. */
-  heroProducts: Product[];
+	/** Latest in-stock products feeding the hero name band. */
+	heroProducts: Product[];
 }
 
 export interface HomePageCategory {
-  /** Stable URL slug. */
-  slug: string;
-  label: string;
-  description: string;
-  icon: CategoryMeta["icon"];
-  iconNode: CategoryMeta["iconNode"];
-  isActive: boolean;
-  sortOrder: number;
-  /** Optional admin-authored structured copy (summary + bullet rows). */
-  content?: StructuredContent;
+	/** Stable URL slug. */
+	slug: string;
+	label: string;
+	description: string;
+	icon: CategoryMeta["icon"];
+	iconNode: CategoryMeta["iconNode"];
+	isActive: boolean;
+	sortOrder: number;
+	/** Optional admin-authored structured copy (summary + bullet rows). */
+	content?: StructuredContent;
 }
 
 /**
@@ -67,16 +60,13 @@ export interface HomePageCategory {
  * the degradation lasts at most one render cycle.
  */
 export async function getHomeHeroData(): Promise<HomeHeroData> {
-  try {
-    const heroProducts = await getHomeHeroProductsCached(HERO_PRODUCTS_LIMIT);
-    return { heroProducts };
-  } catch (error) {
-    logger.error(
-      { error },
-      "home: hero data load failed, falling back to empty hero this render",
-    );
-    return { heroProducts: [] };
-  }
+	try {
+		const heroProducts = await getHomeHeroProductsCached(HERO_PRODUCTS_LIMIT);
+		return { heroProducts };
+	} catch (error) {
+		logger.error({ error }, "home: hero data load failed, falling back to empty hero this render");
+		return { heroProducts: [] };
+	}
 }
 
 /**
@@ -84,19 +74,13 @@ export async function getHomeHeroData(): Promise<HomeHeroData> {
  * so the active listing is not repeated in the hero band.
  */
 export async function getShopHeroData(excludeCategorySlug: string): Promise<HomeHeroData> {
-  try {
-    const heroProducts = await getShopHeroProductsCached(
-      HERO_PRODUCTS_LIMIT,
-      excludeCategorySlug,
-    );
-    return { heroProducts };
-  } catch (error) {
-    logger.error(
-      { error, excludeCategorySlug },
-      "shop: hero data load failed, falling back to empty hero this render",
-    );
-    return { heroProducts: [] };
-  }
+	try {
+		const heroProducts = await getShopHeroProductsCached(HERO_PRODUCTS_LIMIT, excludeCategorySlug);
+		return { heroProducts };
+	} catch (error) {
+		logger.error({ error, excludeCategorySlug }, "shop: hero data load failed, falling back to empty hero this render");
+		return { heroProducts: [] };
+	}
 }
 
 /**
@@ -106,25 +90,22 @@ export async function getShopHeroData(excludeCategorySlug: string): Promise<Home
  * array on read failure so the page still prerenders.
  */
 export async function loadHomeCategoryTiles(): Promise<HomePageCategory[]> {
-  try {
-    const liveCategories = await getCategoriesCached();
-    return liveCategories
-      .filter((category) => category.isActive)
-      .map((category) => ({
-        slug: category.slug,
-        label: category.label,
-        description: category.description,
-        icon: category.icon,
-        iconNode: category.iconNode,
-        isActive: category.isActive,
-        sortOrder: category.sortOrder,
-        content: category.content,
-      }));
-  } catch (error) {
-    logger.error(
-      { error },
-      "home: category tiles load failed, falling back to empty list this render",
-    );
-    return [];
-  }
+	try {
+		const liveCategories = await getCategoriesCached();
+		return liveCategories
+			.filter((category) => category.isActive)
+			.map((category) => ({
+				slug: category.slug,
+				label: category.label,
+				description: category.description,
+				icon: category.icon,
+				iconNode: category.iconNode,
+				isActive: category.isActive,
+				sortOrder: category.sortOrder,
+				content: category.content,
+			}));
+	} catch (error) {
+		logger.error({ error }, "home: category tiles load failed, falling back to empty list this render");
+		return [];
+	}
 }

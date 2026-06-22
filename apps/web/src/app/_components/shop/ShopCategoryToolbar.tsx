@@ -4,11 +4,7 @@ import { ShopCategoryRail } from "@/app/_components/shop/ShopCategoryRail";
 import { ShopFilterRow } from "@/app/_components/shop/ShopFilterRow";
 import { FilterSidebar } from "@/components/shared/FilterSidebar";
 import { getFacets } from "@/lib/core/facets";
-import {
-	getBrandsCached,
-	getGradeCountsCached,
-	getCategoriesCached,
-} from "@/lib/core/cached";
+import { getBrandsCached, getGradeCountsCached, getCategoriesCached } from "@/lib/core/cached";
 import type { ProductFilters } from "@/lib/core";
 
 interface ShopCategoryToolbarProps {

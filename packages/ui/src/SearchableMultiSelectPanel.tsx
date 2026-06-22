@@ -44,14 +44,7 @@ export function SearchableMultiSelectPanel({
 
 	return (
 		<div className={className}>
-			{showSearch ? (
-				<SelectSearchInput
-					value={query}
-					onChange={setQuery}
-					placeholder={searchPlaceholder}
-					autoFocus
-				/>
-			) : null}
+			{showSearch ? <SelectSearchInput value={query} onChange={setQuery} placeholder={searchPlaceholder} autoFocus /> : null}
 			<div className={classNames("max-h-64 overflow-y-auto", listClassName)}>
 				{options.length === 0 ? (
 					<p className="px-3 py-2 text-[11px] text-[var(--color-ink-400)]">{emptyMessage}</p>
@@ -78,21 +71,13 @@ export function SearchableMultiSelectPanel({
 									aria-hidden
 									className={classNames(
 										"grid size-3.5 shrink-0 place-items-center rounded-[var(--radius-sm)] border transition-colors",
-										isSelected
-											? "border-[var(--color-accent-700)] bg-[var(--color-accent-700)] text-white"
-											: "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
+										isSelected ? "border-[var(--color-accent-700)] bg-[var(--color-accent-700)] text-white" : "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
 									)}
 								>
 									{isSelected ? <Check size={8} strokeWidth={3} /> : null}
 								</span>
-								<span className="min-w-0 flex-1 truncate">
-									{renderOptionLabel ? renderOptionLabel(option) : option.label}
-								</span>
-								{typeof option.count === "number" ? (
-									<span className="shrink-0 tabular-nums text-[10px] text-[var(--color-ink-400)]">
-										{option.count}
-									</span>
-								) : null}
+								<span className="min-w-0 flex-1 truncate">{renderOptionLabel ? renderOptionLabel(option) : option.label}</span>
+								{typeof option.count === "number" ? <span className="shrink-0 tabular-nums text-[10px] text-[var(--color-ink-400)]">{option.count}</span> : null}
 							</button>
 						);
 					})

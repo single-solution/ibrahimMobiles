@@ -16,37 +16,29 @@ import type { CSSProperties, HTMLAttributes } from "react";
 type SkeletonShape = "default" | "text" | "pill" | "circle";
 
 interface SkeletonProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
-  shape?: SkeletonShape;
+	shape?: SkeletonShape;
 }
 
 const SHAPE_CLASS: Record<SkeletonShape, string> = {
-  default: "rounded-[10px]",
-  text: "rounded-[6px]",
-  pill: "rounded-full",
-  circle: "rounded-full aspect-square",
+	default: "rounded-[10px]",
+	text: "rounded-[6px]",
+	pill: "rounded-full",
+	circle: "rounded-full aspect-square",
 };
 
 export function Skeleton({ shape = "default", className, style, ...rest }: SkeletonProps) {
-  const composed = `${SHAPE_CLASS[shape]} ${className ?? ""}`.trim();
-  const composedStyle: CSSProperties = {
-    backgroundColor: "var(--color-canvas-deep, rgba(0,0,0,0.06))",
-    ...style,
-  };
-  return (
-    <div
-      aria-hidden
-      data-skeleton
-      className={`animate-pulse ${composed}`}
-      style={composedStyle}
-      {...rest}
-    />
-  );
+	const composed = `${SHAPE_CLASS[shape]} ${className ?? ""}`.trim();
+	const composedStyle: CSSProperties = {
+		backgroundColor: "var(--color-canvas-deep, rgba(0,0,0,0.06))",
+		...style,
+	};
+	return <div aria-hidden data-skeleton className={`animate-pulse ${composed}`} style={composedStyle} {...rest} />;
 }
 
 interface SkeletonScreenProps {
-  /** Accessible status label announced to screen readers. */
-  label: string;
-  children: React.ReactNode;
+	/** Accessible status label announced to screen readers. */
+	label: string;
+	children: React.ReactNode;
 }
 
 /**
@@ -55,10 +47,10 @@ interface SkeletonScreenProps {
  * without spamming on every pulse tick.
  */
 export function SkeletonScreen({ label, children }: SkeletonScreenProps) {
-  return (
-    <div role="status" aria-live="polite" aria-busy="true">
-      <span className="sr-only">{label}</span>
-      {children}
-    </div>
-  );
+	return (
+		<div role="status" aria-live="polite" aria-busy="true">
+			<span className="sr-only">{label}</span>
+			{children}
+		</div>
+	);
 }

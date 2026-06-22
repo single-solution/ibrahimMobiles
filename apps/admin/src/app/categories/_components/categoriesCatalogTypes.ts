@@ -9,25 +9,25 @@ export const CATALOG_TABS: CatalogTab[] = ["brands", "grades", "attributes"];
 export type DrawerKind = CatalogDrawerState;
 
 export interface DeleteIntent {
-  kind: "category" | "brand" | "grade" | "attribute";
-  id: string;
-  label: string;
-  unlinkFromCategorySlug?: string;
+	kind: "category" | "brand" | "grade" | "attribute";
+	id: string;
+	label: string;
+	unlinkFromCategorySlug?: string;
 }
 
 export interface CategoryNavItem {
-  category: AdminCategory;
-  brandCount: number;
-  gradeCount: number;
-  attributeCount: number;
+	category: AdminCategory;
+	brandCount: number;
+	gradeCount: number;
+	attributeCount: number;
 }
 
 export function matchesQuery(haystack: string, query: string): boolean {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return true;
-  return haystack.toLowerCase().includes(needle);
+	const needle = query.trim().toLowerCase();
+	if (!needle) return true;
+	return haystack.toLowerCase().includes(needle);
 }
 
 export function isCatalogTab(value: string | null): value is CatalogTab {
-  return value !== null && CATALOG_TABS.includes(value as CatalogTab);
+	return value !== null && CATALOG_TABS.includes(value as CatalogTab);
 }

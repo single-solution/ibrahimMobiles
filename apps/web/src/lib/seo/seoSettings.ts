@@ -27,75 +27,58 @@ import type { SeoSettings } from "./composeSeoMeta";
 const SEO_KEY_PREFIXES = ["seo.", "store.logo", "store.favicon"] as const;
 
 interface RawSettingDoc {
-  key: string;
-  value: unknown;
+	key: string;
+	value: unknown;
 }
 
 function asString(value: unknown, fallback = ""): string {
-  if (typeof value === "string") return value;
-  return fallback;
+	if (typeof value === "string") return value;
+	return fallback;
 }
 
 function isStoredImage(value: unknown): value is StoredImage {
-  if (!value || typeof value !== "object") return false;
-  const imageValue = value as Record<string, unknown>;
-  return (
-    typeof imageValue.blurDataURL === "string" &&
-    typeof imageValue.alt === "string" &&
-    !!imageValue.variants &&
-    typeof (imageValue.variants as Record<string, unknown>).detail === "string"
-  );
+	if (!value || typeof value !== "object") return false;
+	const imageValue = value as Record<string, unknown>;
+	return (
+		typeof imageValue.blurDataURL === "string" &&
+		typeof imageValue.alt === "string" &&
+		!!imageValue.variants &&
+		typeof (imageValue.variants as Record<string, unknown>).detail === "string"
+	);
 }
 
 const TIMEZONE_INVARIANT_TTL_SECONDS = 30;
 
 const loadSeoSettings = unstable_cache(
-  async (): Promise<SeoSettings> => {
-    await connectDB();
-    const [store, docs] = await Promise.all([
-      getStoreSettings(),
-      Setting.find({
-        key: {
-          $in: [
-            "seo.storeName",
-            "seo.titleTemplate",
-            "seo.defaultDescription",
-            "seo.ogImageDefault",
-            "store.logo",
-          ],
-        },
-      })
-        .select({ key: 1, value: 1 })
-        .lean<RawSettingDoc[]>(),
-    ]);
-    const map = new Map(docs.map((doc) => [doc.key, doc.value]));
-    const ogImageDefault = map.get("seo.ogImageDefault");
-    const storeLogo = map.get("store.logo");
-    const fallbackOgUrl =
-      (isStoredImage(ogImageDefault)
-        ? ogImageDefault.variants.detail
-        : isStoredImage(storeLogo)
-          ? storeLogo.variants.detail
-          : "") ?? "";
+	async (): Promise<SeoSettings> => {
+		await connectDB();
+		const [store, docs] = await Promise.all([
+			getStoreSettings(),
+			Setting.find({
+				key: {
+					$in: ["seo.storeName", "seo.titleTemplate", "seo.defaultDescription", "seo.ogImageDefault", "store.logo"],
+				},
+			})
+				.select({ key: 1, value: 1 })
+				.lean<RawSettingDoc[]>(),
+		]);
+		const map = new Map(docs.map((doc) => [doc.key, doc.value]));
+		const ogImageDefault = map.get("seo.ogImageDefault");
+		const storeLogo = map.get("store.logo");
+		const fallbackOgUrl = (isStoredImage(ogImageDefault) ? ogImageDefault.variants.detail : isStoredImage(storeLogo) ? storeLogo.variants.detail : "") ?? "";
 
-    return {
-      siteName: store.siteName,
-      siteTagline: store.siteTagline,
-      siteUrl: resolvePublicSiteUrl(store.publicSiteUrl),
-      seoStoreName: asString(map.get("seo.storeName"), ""),
-      titleTemplate: asString(
-        map.get("seo.titleTemplate"),
-        "{title} | {storeName}",
-      ),
-      defaultDescription: asString(
-        map.get("seo.defaultDescription"),
-        store.siteTagline,
-      ),
-      defaultOgImageUrl: fallbackOgUrl,
-    };
-  },
-  ["seo-settings"],
-  { revalidate: TIMEZONE_INVARIANT_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+		return {
+			siteName: store.siteName,
+			siteTagline: store.siteTagline,
+			siteUrl: resolvePublicSiteUrl(store.publicSiteUrl),
+			seoStoreName: asString(map.get("seo.storeName"), ""),
+			titleTemplate: asString(map.get("seo.titleTemplate"), "{title} | {storeName}"),
+			defaultDescription: asString(map.get("seo.defaultDescription"), store.siteTagline),
+			defaultOgImageUrl: fallbackOgUrl,
+		};
+	},
+	["seo-settings"],
+	{ revalidate: TIMEZONE_INVARIANT_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
 export const getSeoSettings = cache(() => loadSeoSettings());

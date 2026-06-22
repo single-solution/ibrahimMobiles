@@ -21,11 +21,7 @@ import { cache } from "react";
 import { connectDB, Product as ProductModel } from "@store/db";
 import type { Product } from "@store/shared";
 
-import {
-	applyCatalogVisibility,
-	PUBLIC_PRODUCT_FILTER,
-	resolveCatalogVisibility,
-} from "@/lib/core/queries";
+import { applyCatalogVisibility, PUBLIC_PRODUCT_FILTER, resolveCatalogVisibility } from "@/lib/core/queries";
 
 export interface LiveVariantCommerce {
 	id: string;
@@ -43,9 +39,7 @@ interface ProductLiveLean {
 	variants?: LiveVariantLean[];
 }
 
-async function fetchProductLiveCommerce(
-	slug: string,
-): Promise<LiveVariantCommerce[] | null> {
+async function fetchProductLiveCommerce(slug: string): Promise<LiveVariantCommerce[] | null> {
 	await connectDB();
 	const filter: Record<string, unknown> = {
 		slug: slug.toLowerCase(),
@@ -74,19 +68,14 @@ async function fetchProductLiveCommerce(
  * boundaries on the same PDP share one Mongo hit; cross-request is
  * always fresh.
  */
-export const getProductLiveCommerce = cache(
-	fetchProductLiveCommerce,
-);
+export const getProductLiveCommerce = cache(fetchProductLiveCommerce);
 
 /**
  * Overlay live `priceRupees` + `quantity` onto a cached product shell.
  * Returns a shallow clone with new `variants[]`; unchanged variants keep
  * their reference identity from the shell.
  */
-export function mergeProductWithLiveCommerce(
-	product: Product,
-	live: LiveVariantCommerce[] | null,
-): Product {
+export function mergeProductWithLiveCommerce(product: Product, live: LiveVariantCommerce[] | null): Product {
 	if (!live || live.length === 0) {
 		return product;
 	}
@@ -97,10 +86,7 @@ export function mergeProductWithLiveCommerce(
 		if (!liveVariant) {
 			return variant;
 		}
-		if (
-			liveVariant.priceRupees === variant.priceRupees &&
-			liveVariant.quantity === variant.quantity
-		) {
+		if (liveVariant.priceRupees === variant.priceRupees && liveVariant.quantity === variant.quantity) {
 			return variant;
 		}
 		touched = true;

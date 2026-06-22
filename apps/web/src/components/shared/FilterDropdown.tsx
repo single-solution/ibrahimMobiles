@@ -22,30 +22,15 @@ interface FilterDropdownProps {
 }
 
 /** Pill trigger + portaled panel — used by shop filter row variants. */
-export function FilterDropdown({
-	label,
-	activeCount = 0,
-	children,
-	className,
-	panelClassName,
-	align = "left",
-}: FilterDropdownProps) {
+export function FilterDropdown({ label, activeCount = 0, children, className, panelClassName, align = "left" }: FilterDropdownProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const panelId = useId();
 	const isActive = activeCount > 0;
-	const { isMounted: isPanelMounted, status: panelStatus } = usePresence(
-		isOpen,
-		FILTER_PANEL_EXIT_MS,
-	);
+	const { isMounted: isPanelMounted, status: panelStatus } = usePresence(isOpen, FILTER_PANEL_EXIT_MS);
 	const isPanelClosing = panelStatus === "closing";
 
-	const panelOriginClass =
-		align === "center"
-			? "origin-top"
-			: align === "right"
-				? "origin-top-right"
-				: "origin-top-left";
+	const panelOriginClass = align === "center" ? "origin-top" : align === "right" ? "origin-top-right" : "origin-top-left";
 
 	return (
 		<div ref={rootRef} className={classNames("relative min-w-0 max-w-full shrink-0", className)}>
@@ -65,10 +50,7 @@ export function FilterDropdown({
 				<ChevronDown
 					size={12}
 					aria-hidden
-					className={classNames(
-						"shrink-0 text-[var(--color-ink-500)] transition-transform duration-[var(--motion-slow)] ease-[var(--ease-out-quart)]",
-						isOpen && "rotate-180",
-					)}
+					className={classNames("shrink-0 text-[var(--color-ink-500)] transition-transform duration-[var(--motion-slow)] ease-[var(--ease-out-quart)]", isOpen && "rotate-180")}
 				/>
 			</button>
 
@@ -81,8 +63,7 @@ export function FilterDropdown({
 					"z-50 overflow-y-auto overscroll-contain rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2.5 shadow-[var(--shadow-lg)]",
 					panelOriginClass,
 					isPanelClosing ? "animate-filter-panel-out" : "animate-filter-panel-in",
-					panelClassName ??
-						"max-h-[min(360px,52vh)] min-w-[240px] max-w-[min(320px,calc(100vw-2rem))]",
+					panelClassName ?? "max-h-[min(360px,52vh)] min-w-[240px] max-w-[min(320px,calc(100vw-2rem))]",
 				)}
 			>
 				<div id={panelId}>{children}</div>

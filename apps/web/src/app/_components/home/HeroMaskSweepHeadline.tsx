@@ -18,21 +18,20 @@
 
 import type { CSSProperties } from "react";
 
-const HEADLINE_FONT_STACK =
-  '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Inter", Roboto, system-ui, sans-serif';
+const HEADLINE_FONT_STACK = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", "Inter", Roboto, system-ui, sans-serif';
 
 type HeroMaskVariant = "mobile" | "desktop";
 type HeroHeadlineDensity = "default" | "compact";
 
 interface HeroMaskSweepHeadlineProps {
-  variant: HeroMaskVariant;
-  align?: "center" | "left";
-  density?: HeroHeadlineDensity;
+	variant: HeroMaskVariant;
+	align?: "center" | "left";
+	density?: HeroHeadlineDensity;
 }
 
 interface WordSpec {
-  fontSize: number;
-  letterSpacing: string;
+	fontSize: number;
+	letterSpacing: string;
 }
 
 /** Vertical stretch — default stays modest; compact (catalog banner) reads taller. */
@@ -57,7 +56,7 @@ function resolveScale(density: HeroHeadlineDensity) {
  * headline claims its true visual footprint.
  */
 function scaleOverflow(fontSize: number, scaleY: number): number {
-  return Math.ceil(fontSize * LINE_HEIGHT * (scaleY - 1));
+	return Math.ceil(fontSize * LINE_HEIGHT * (scaleY - 1));
 }
 
 /**
@@ -68,155 +67,117 @@ function scaleOverflow(fontSize: number, scaleY: number): number {
  */
 /** Neutral-to-slightly-tight tracking — avoids the old cramped -0.07em but not loose either. */
 const INSPECTED_SPEC: Record<HeroMaskVariant, WordSpec> = {
-  mobile: { fontSize: 54, letterSpacing: "-0.01em" },
-  desktop: { fontSize: 104, letterSpacing: "-0.015em" },
+	mobile: { fontSize: 54, letterSpacing: "-0.01em" },
+	desktop: { fontSize: 104, letterSpacing: "-0.015em" },
 };
 
 const TRUSTED_SPEC: Record<HeroMaskVariant, WordSpec> = {
-  mobile: { fontSize: 80, letterSpacing: "-0.025em" },
-  desktop: { fontSize: 166, letterSpacing: "-0.02em" },
+	mobile: { fontSize: 80, letterSpacing: "-0.025em" },
+	desktop: { fontSize: 166, letterSpacing: "-0.02em" },
 };
 
 const INSPECTED_SPEC_COMPACT: Record<HeroMaskVariant, WordSpec> = {
-  mobile: { fontSize: 50, letterSpacing: "0em" },
-  desktop: { fontSize: 92, letterSpacing: "-0.01em" },
+	mobile: { fontSize: 50, letterSpacing: "0em" },
+	desktop: { fontSize: 92, letterSpacing: "-0.01em" },
 };
 
 const TRUSTED_SPEC_COMPACT: Record<HeroMaskVariant, WordSpec> = {
-  mobile: { fontSize: 72, letterSpacing: "-0.02em" },
-  desktop: { fontSize: 144, letterSpacing: "-0.015em" },
+	mobile: { fontSize: 72, letterSpacing: "-0.02em" },
+	desktop: { fontSize: 144, letterSpacing: "-0.015em" },
 };
 
 function baseStyle(spec: WordSpec, fontWeight = 900): CSSProperties {
-  return {
-    fontFamily: HEADLINE_FONT_STACK,
-    fontWeight,
-    textTransform: "uppercase",
-    lineHeight: LINE_HEIGHT,
-    whiteSpace: "nowrap",
-    display: "block",
-    fontSize: spec.fontSize,
-    letterSpacing: spec.letterSpacing,
-  };
+	return {
+		fontFamily: HEADLINE_FONT_STACK,
+		fontWeight,
+		textTransform: "uppercase",
+		lineHeight: LINE_HEIGHT,
+		whiteSpace: "nowrap",
+		display: "block",
+		fontSize: spec.fontSize,
+		letterSpacing: spec.letterSpacing,
+	};
 }
 
-function outlineStyle(
-  spec: WordSpec,
-  strokeWidth: number,
-  opacity = 1,
-  fontWeight = 900,
-): CSSProperties {
-  return {
-    ...baseStyle(spec, fontWeight),
-    color: "transparent",
-    WebkitTextStroke: `${strokeWidth}px var(--color-ink-900)`,
-    paintOrder: "stroke fill",
-    opacity,
-  };
+function outlineStyle(spec: WordSpec, strokeWidth: number, opacity = 1, fontWeight = 900): CSSProperties {
+	return {
+		...baseStyle(spec, fontWeight),
+		color: "transparent",
+		WebkitTextStroke: `${strokeWidth}px var(--color-ink-900)`,
+		paintOrder: "stroke fill",
+		opacity,
+	};
 }
 
 function fillStyle(spec: WordSpec, fontWeight = 900): CSSProperties {
-  return {
-    ...baseStyle(spec, fontWeight),
-    color: "var(--color-accent-deep)",
-  };
+	return {
+		...baseStyle(spec, fontWeight),
+		color: "var(--color-accent-deep)",
+	};
 }
 
-function MaskSweepLine({
-  mode,
-  ghostStyle,
-  fullStyle,
-  children,
-}: {
-  mode: "paint" | "erase";
-  ghostStyle: CSSProperties;
-  fullStyle: CSSProperties;
-  children: string;
-}) {
-  const fullAnim =
-    mode === "paint" ? "hero-mask-sweep__full--paint" : "hero-mask-sweep__full--erase";
+function MaskSweepLine({ mode, ghostStyle, fullStyle, children }: { mode: "paint" | "erase"; ghostStyle: CSSProperties; fullStyle: CSSProperties; children: string }) {
+	const fullAnim = mode === "paint" ? "hero-mask-sweep__full--paint" : "hero-mask-sweep__full--erase";
 
-  return (
-    <span className="hero-mask-sweep-line relative inline-block" aria-hidden>
-      <span style={ghostStyle}>{children}</span>
-      <span
-        className={`hero-mask-sweep__full absolute inset-0 ${fullAnim}`}
-        style={fullStyle}
-      >
-        {children}
-      </span>
-      <span className="hero-mask-sweep__bar" />
-    </span>
-  );
+	return (
+		<span className="hero-mask-sweep-line relative inline-block" aria-hidden>
+			<span style={ghostStyle}>{children}</span>
+			<span className={`hero-mask-sweep__full absolute inset-0 ${fullAnim}`} style={fullStyle}>
+				{children}
+			</span>
+			<span className="hero-mask-sweep__bar" />
+		</span>
+	);
 }
 
-export function HeroMaskSweepHeadline({
-  variant,
-  align = "center",
-  density = "default",
-}: HeroMaskSweepHeadlineProps) {
-  const isCompact = density === "compact";
-  const inspectedSpec = isCompact ? INSPECTED_SPEC_COMPACT[variant] : INSPECTED_SPEC[variant];
-  const trustedSpec = isCompact ? TRUSTED_SPEC_COMPACT[variant] : TRUSTED_SPEC[variant];
-  const { x: scaleX, y: scaleY } = resolveScale(density);
-  const headlineWeight = 900;
-  const alignClass = align === "left" ? "items-start" : "items-center";
-  const xOrigin = align === "left" ? "0%" : "50%";
-  const mobileInspectedStroke = isCompact ? 0.9 : 0.8;
-  const mobileTrustedStroke = isCompact ? 1.1 : 1;
-  const desktopInspectedStroke = isCompact ? 1.15 : 1;
-  const desktopTrustedStroke = isCompact ? 1.55 : 1.4;
+export function HeroMaskSweepHeadline({ variant, align = "center", density = "default" }: HeroMaskSweepHeadlineProps) {
+	const isCompact = density === "compact";
+	const inspectedSpec = isCompact ? INSPECTED_SPEC_COMPACT[variant] : INSPECTED_SPEC[variant];
+	const trustedSpec = isCompact ? TRUSTED_SPEC_COMPACT[variant] : TRUSTED_SPEC[variant];
+	const { x: scaleX, y: scaleY } = resolveScale(density);
+	const headlineWeight = 900;
+	const alignClass = align === "left" ? "items-start" : "items-center";
+	const xOrigin = align === "left" ? "0%" : "50%";
+	const mobileInspectedStroke = isCompact ? 0.9 : 0.8;
+	const mobileTrustedStroke = isCompact ? 1.1 : 1;
+	const desktopInspectedStroke = isCompact ? 1.15 : 1;
+	const desktopTrustedStroke = isCompact ? 1.55 : 1.4;
 
-  return (
-    <h1 className={`flex flex-col ${alignClass}`}>
-      <span className="sr-only">Inspected Trusted</span>
-      <span
-        className="inline-block"
-        style={{
-          transform: `scale(${scaleX}, ${scaleY})`,
-          transformOrigin: `${xOrigin} 100%`,
-          marginTop: scaleOverflow(inspectedSpec.fontSize, scaleY),
-        }}
-      >
-        <MaskSweepLine
-          mode="erase"
-          ghostStyle={outlineStyle(
-            inspectedSpec,
-            variant === "mobile" ? mobileInspectedStroke : desktopInspectedStroke,
-            0.35,
-            headlineWeight,
-          )}
-          fullStyle={outlineStyle(
-            inspectedSpec,
-            variant === "mobile" ? (isCompact ? 1.05 : 1) : desktopInspectedStroke,
-            1,
-            headlineWeight,
-          )}
-        >
-          Inspected
-        </MaskSweepLine>
-      </span>
-      <span
-        className="inline-block"
-        style={{
-          transform: `scale(${scaleX}, ${scaleY})`,
-          transformOrigin: `${xOrigin} 0%`,
-          marginBottom: scaleOverflow(trustedSpec.fontSize, scaleY),
-        }}
-      >
-        <MaskSweepLine
-          mode="paint"
-          ghostStyle={outlineStyle(
-            trustedSpec,
-            variant === "mobile" ? mobileTrustedStroke : desktopTrustedStroke,
-            0.35,
-            headlineWeight,
-          )}
-          fullStyle={fillStyle(trustedSpec, headlineWeight)}
-        >
-          Trusted
-        </MaskSweepLine>
-      </span>
-    </h1>
-  );
+	return (
+		<h1 className={`flex flex-col ${alignClass}`}>
+			<span className="sr-only">Inspected Trusted</span>
+			<span
+				className="inline-block"
+				style={{
+					transform: `scale(${scaleX}, ${scaleY})`,
+					transformOrigin: `${xOrigin} 100%`,
+					marginTop: scaleOverflow(inspectedSpec.fontSize, scaleY),
+				}}
+			>
+				<MaskSweepLine
+					mode="erase"
+					ghostStyle={outlineStyle(inspectedSpec, variant === "mobile" ? mobileInspectedStroke : desktopInspectedStroke, 0.35, headlineWeight)}
+					fullStyle={outlineStyle(inspectedSpec, variant === "mobile" ? (isCompact ? 1.05 : 1) : desktopInspectedStroke, 1, headlineWeight)}
+				>
+					Inspected
+				</MaskSweepLine>
+			</span>
+			<span
+				className="inline-block"
+				style={{
+					transform: `scale(${scaleX}, ${scaleY})`,
+					transformOrigin: `${xOrigin} 0%`,
+					marginBottom: scaleOverflow(trustedSpec.fontSize, scaleY),
+				}}
+			>
+				<MaskSweepLine
+					mode="paint"
+					ghostStyle={outlineStyle(trustedSpec, variant === "mobile" ? mobileTrustedStroke : desktopTrustedStroke, 0.35, headlineWeight)}
+					fullStyle={fillStyle(trustedSpec, headlineWeight)}
+				>
+					Trusted
+				</MaskSweepLine>
+			</span>
+		</h1>
+	);
 }

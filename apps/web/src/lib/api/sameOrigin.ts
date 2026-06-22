@@ -16,27 +16,24 @@ import { forbidden, logger } from "@store/shared";
  * legitimate users. SameSite=Lax remains the primary protection there.
  */
 export function enforceSameOrigin(request: Request): Response | null {
-  const url = new URL(request.url);
-  const expectedHost = url.host.toLowerCase();
+	const url = new URL(request.url);
+	const expectedHost = url.host.toLowerCase();
 
-  const origin = request.headers.get("origin");
-  const referer = request.headers.get("referer");
-  const candidate = origin ?? referer;
-  if (!candidate || candidate === "null") {
-    return null;
-  }
+	const origin = request.headers.get("origin");
+	const referer = request.headers.get("referer");
+	const candidate = origin ?? referer;
+	if (!candidate || candidate === "null") {
+		return null;
+	}
 
-  try {
-    const parsed = new URL(candidate);
-    if (parsed.host.toLowerCase() === expectedHost) {
-      return null;
-    }
-    logger.warn(
-      { expectedHost, actualHost: parsed.host },
-      "Cross-origin storefront API request rejected",
-    );
-    return forbidden("Cross-origin request rejected.");
-  } catch {
-    return forbidden("Cross-origin request rejected.");
-  }
+	try {
+		const parsed = new URL(candidate);
+		if (parsed.host.toLowerCase() === expectedHost) {
+			return null;
+		}
+		logger.warn({ expectedHost, actualHost: parsed.host }, "Cross-origin storefront API request rejected");
+		return forbidden("Cross-origin request rejected.");
+	} catch {
+		return forbidden("Cross-origin request rejected.");
+	}
 }

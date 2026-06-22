@@ -1,8 +1,4 @@
-import mongoose, {
-  Schema,
-  type HydratedDocument,
-  type Model,
-} from "mongoose";
+import mongoose, { Schema, type HydratedDocument, type Model } from "mongoose";
 import { slugify } from "@store/shared";
 import type { SeoMeta, StoredImage, StructuredContent } from "@store/shared";
 import { seoSchema } from "../schemas/seoSchema";
@@ -13,44 +9,28 @@ import type { OfferCondition, OfferAction, OfferSchedule, OfferConstraints } fro
 
 /**
  * Promotional offer surfaced on the home offers strip and (optionally)
- * on category landing pages. Phase 1 brings the model in line with the
- * rest of the catalogue:
- *
- *   - `accentColor` enum (`emerald` | `amber` | `rose` | `sky`) → free-form
- *     hex `color`. The badge swatch derives its background directly so
- *     admins can match a brand palette without a code change. Same
- *     treatment Grade got in T1.4.
- *   - `slug` is auto-generated from `title` via a pre-validate hook; the
- *     admin UI no longer prompts for it.
- *   - `bannerImage?: StoredImage` (added in T1.1.5) stays as the optional
- *     home-banner artwork — shared `StoredImage` shape, see
- *     `@store/shared/storage/types`.
- *
- * The accentColor → color migration runs in T1.22 (Offer reshape pass).
- * Order constraint: deploying this schema before T1.22 runs would
- * reject every legacy offer (their `color` field is unset). The Phase 1
- * migration commit ships them together.
+ * on category landing pages. Badge color is a free-form hex `color`.
  */
 export interface OfferAttributes {
-  slug: string;
-  title: string;
-  description: string;
-  discountLabel: string;
-  badgeLabel: string;
-  color: string;
-  isActive: boolean;
-  sortOrder: number;
-  bannerImage?: StoredImage;
-  /** Optional structured copy (summary + icon-tagged bullets). */
-  content?: StructuredContent;
-  /** Optional per-offer SEO overrides (auto-filled when absent). */
-  seo?: SeoMeta;
-  
-  // Rules Engine
-  conditions: OfferCondition[];
-  action: OfferAction;
-  schedule: OfferSchedule;
-  constraints: OfferConstraints;
+	slug: string;
+	title: string;
+	description: string;
+	discountLabel: string;
+	badgeLabel: string;
+	color: string;
+	isActive: boolean;
+	sortOrder: number;
+	bannerImage?: StoredImage;
+	/** Optional structured copy (summary + icon-tagged bullets). */
+	content?: StructuredContent;
+	/** Optional per-offer SEO overrides (auto-filled when absent). */
+	seo?: SeoMeta;
+
+	// Rules Engine
+	conditions: OfferCondition[];
+	action: OfferAction;
+	schedule: OfferSchedule;
+	constraints: OfferConstraints;
 }
 
 const OFFER_SLUG_MAX_LENGTH = 96;
@@ -61,56 +41,57 @@ const BADGE_LABEL_MAX_LENGTH = 60;
 const HEX_COLOR_LENGTH = 7;
 
 const offerSchema = new Schema<OfferAttributes>(
-  {
-    slug: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-      maxlength: OFFER_SLUG_MAX_LENGTH,
-      index: true,
-    },
-    title: { type: String, required: true, trim: true, maxlength: OFFER_TITLE_MAX_LENGTH },
-    description: { type: String, required: true, trim: true, maxlength: OFFER_DESC_MAX_LENGTH },
-    discountLabel: { type: String, required: true, trim: true, maxlength: DISCOUNT_LABEL_MAX_LENGTH },
-    badgeLabel: { type: String, required: true, trim: true, maxlength: BADGE_LABEL_MAX_LENGTH },
-    color: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: HEX_COLOR_LENGTH,
-      match: /^#[0-9a-f]{6}$/i,
-      default: "#e1ff51",
-    },
-    isActive: { type: Boolean, required: true, default: true },
-    sortOrder: { type: Number, required: true, default: 0 },
-    bannerImage: { type: storedImageSchema, required: false },
-    content: { type: structuredContentSchema, required: false, default: undefined },
-    seo: { type: seoSchema, default: () => ({}) },
-    conditions: { type: [offerConditionSchema], required: true, default: [] },
-    action: { type: offerActionSchema, required: true },
-    schedule: { type: offerScheduleSchema, required: true, default: () => ({}) },
-    constraints: { type: offerConstraintsSchema, required: true, default: () => ({ allowLoyaltyPoints: false, isStackable: false, usageCount: 0 }) },
-  },
-  { timestamps: true },
+	{
+		slug: {
+			type: String,
+			required: true,
+			unique: true,
+			lowercase: true,
+			trim: true,
+			maxlength: OFFER_SLUG_MAX_LENGTH,
+			index: true,
+		},
+		title: { type: String, required: true, trim: true, maxlength: OFFER_TITLE_MAX_LENGTH },
+		description: { type: String, required: true, trim: true, maxlength: OFFER_DESC_MAX_LENGTH },
+		discountLabel: { type: String, required: true, trim: true, maxlength: DISCOUNT_LABEL_MAX_LENGTH },
+		badgeLabel: { type: String, required: true, trim: true, maxlength: BADGE_LABEL_MAX_LENGTH },
+		color: {
+			type: String,
+			required: true,
+			trim: true,
+			maxlength: HEX_COLOR_LENGTH,
+			match: /^#[0-9a-f]{6}$/i,
+			default: "#e1ff51",
+		},
+		isActive: { type: Boolean, required: true, default: true },
+		sortOrder: { type: Number, required: true, default: 0 },
+		bannerImage: { type: storedImageSchema, required: false },
+		content: { type: structuredContentSchema, required: false, default: undefined },
+		seo: { type: seoSchema, default: () => ({}) },
+		conditions: { type: [offerConditionSchema], required: true, default: [] },
+		action: { type: offerActionSchema, required: true },
+		schedule: { type: offerScheduleSchema, required: true, default: () => ({}) },
+		constraints: { type: offerConstraintsSchema, required: true, default: () => ({ allowLoyaltyPoints: false, isStackable: false, usageCount: 0 }) },
+	},
+	{ timestamps: true },
 );
 
-offerSchema.pre<HydratedDocument<OfferAttributes>>(
-  "validate",
-  async function offerSlugAutogen() {
-    if (this?.slug && this.slug.length > 0) {
-      return;
-    }
-    if (!this?.title) {
-      return;
-    }
-    this.slug = slugify(this.title, OFFER_SLUG_MAX_LENGTH);
-  },
-);
+offerSchema.pre<HydratedDocument<OfferAttributes>>("validate", async function offerSlugAutogen() {
+	if (this?.slug && this.slug.length > 0) {
+		return;
+	}
+	if (!this?.title) {
+		return;
+	}
+	this.slug = slugify(this.title, OFFER_SLUG_MAX_LENGTH);
+});
+
+offerSchema.pre<HydratedDocument<OfferAttributes>>("validate", function enforceSingleOfferPolicy() {
+	if (this?.constraints) {
+		this.constraints.isStackable = false;
+	}
+});
 
 offerSchema.index({ sortOrder: 1, createdAt: -1 });
 
-export const Offer: Model<OfferAttributes> =
-  (mongoose.models.Offer as Model<OfferAttributes>) ??
-  mongoose.model<OfferAttributes>("Offer", offerSchema);
+export const Offer: Model<OfferAttributes> = (mongoose.models.Offer as Model<OfferAttributes>) ?? mongoose.model<OfferAttributes>("Offer", offerSchema);

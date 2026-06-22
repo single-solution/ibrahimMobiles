@@ -11,11 +11,11 @@ import { loadAdminOrdersCounts } from "@/lib/cached";
  * `loadAdminOrdersCounts` is itself 15s-cached and tag-busted on mutation.
  */
 export async function GET() {
-  const { response } = await requireSession("order_view");
-  if (response) {
-    return response;
-  }
+	const { response } = await requireSession("order_view");
+	if (response) {
+		return response;
+	}
 
-  const counts = await loadAdminOrdersCounts();
-  return ok(counts);
+	const counts = await loadAdminOrdersCounts();
+	return ok(counts);
 }

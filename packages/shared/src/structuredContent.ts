@@ -1,21 +1,13 @@
 /**
- * Structured content payload used for customer-facing long text on
- * categories, grades, and offers. The legacy single-paragraph
- * `description`/`notes` strings become the `summary` here, plus an
- * optional list of icon-tagged bullet rows the admin authors.
+ * Structured content for customer-facing long text on categories, grades, and offers.
  *
  * Why structured, not raw HTML?
- *   - We render the same content in multiple surfaces with different
- *     density (cards vs landing headers vs admin previews) and need
- *     to clamp/strip safely without an HTML sanitizer.
+ *   - Multiple surfaces need different density without an HTML sanitizer.
  *   - SEO meta description must come from a plain string, not markup.
- *   - Icons are first-class data — every bullet is "icon + text" so the
- *     UI never falls back to a bare bullet circle when copy is short.
+ *   - Icons are first-class data on every bullet row.
  *
- * Backward compatibility: every consumer reads `summary` first. If
- * structured content is missing, callers fall back to the legacy
- * string field on the same document (`Category.description`,
- * `Grade.notes`, `Offer.description`).
+ * When `content` is absent, serializers pass the plain `description` or `notes` field
+ * as the summary fallback.
  */
 
 import { DEFAULT_ICON, normalizeIconName, type IconName, type IconNode } from "./icons";
@@ -33,43 +25,34 @@ export const STRUCTURED_CONTENT_BULLET_MAX_LENGTH = 140;
 export const STRUCTURED_CONTENT_SUMMARY_MAX_LENGTH = 400;
 
 export interface StructuredContentBullet {
-  text: string;
-  icon: IconName;
-  /**
-   * Render-only lucide geometry for `icon`, resolved server-side by the
-   * storefront serializers so clients draw the bullet icon with no
-   * registry. Never persisted; admin/storage code leaves it unset.
-   */
-  iconNode?: IconNode;
+	text: string;
+	icon: IconName;
+	/**
+	 * Render-only lucide geometry for `icon`, resolved server-side by the
+	 * storefront serializers so clients draw the bullet icon with no
+	 * registry. Never persisted; admin/storage code leaves it unset.
+	 */
+	iconNode?: IconNode;
 }
 
 export interface StructuredContent {
-  summary: string;
-  bullets: StructuredContentBullet[];
+	summary: string;
+	bullets: StructuredContentBullet[];
 }
 
 export function emptyStructuredContent(): StructuredContent {
-  return { summary: "", bullets: [] };
-}
-
-/**
- * Build a structured payload from an existing summary string. Used as a
- * fallback when an admin record was authored before structured content
- * shipped.
- */
-export function structuredContentFromSummary(summary: string): StructuredContent {
-  return { summary: summary ?? "", bullets: [] };
+	return { summary: "", bullets: [] };
 }
 
 function clampString(value: unknown, max: number): string {
-  if (typeof value !== "string") {
-    return "";
-  }
-  const trimmed = value.trim();
-  if (trimmed.length <= max) {
-    return trimmed;
-  }
-  return trimmed.slice(0, max);
+	if (typeof value !== "string") {
+		return "";
+	}
+	const trimmed = value.trim();
+	if (trimmed.length <= max) {
+		return trimmed;
+	}
+	return trimmed.slice(0, max);
 }
 
 /**
@@ -77,36 +60,30 @@ function clampString(value: unknown, max: number): string {
  * boundaries (admin POST/PUT) and at read time when serializing legacy
  * documents that may store partial data.
  */
-export function normalizeStructuredContent(
-  value: unknown,
-  fallbackSummary = "",
-): StructuredContent {
-  const fallback = clampString(fallbackSummary, STRUCTURED_CONTENT_SUMMARY_MAX_LENGTH);
-  if (!value || typeof value !== "object") {
-    return { summary: fallback, bullets: [] };
-  }
-  const candidate = value as { summary?: unknown; bullets?: unknown };
-  const summary = clampString(candidate.summary, STRUCTURED_CONTENT_SUMMARY_MAX_LENGTH) || fallback;
-  const rawBullets = Array.isArray(candidate.bullets) ? candidate.bullets : [];
-  const bullets: StructuredContentBullet[] = [];
-  for (const entry of rawBullets) {
-    if (bullets.length >= STRUCTURED_CONTENT_MAX_BULLETS) {
-      break;
-    }
-    if (!entry || typeof entry !== "object") {
-      continue;
-    }
-    const text = clampString((entry as { text?: unknown }).text, STRUCTURED_CONTENT_BULLET_MAX_LENGTH);
-    if (!text) {
-      continue;
-    }
-    const icon = normalizeIconName(
-      (entry as { icon?: unknown }).icon,
-      STRUCTURED_CONTENT_DEFAULT_BULLET_ICON,
-    );
-    bullets.push({ text, icon });
-  }
-  return { summary, bullets };
+export function normalizeStructuredContent(value: unknown, fallbackSummary = ""): StructuredContent {
+	const fallback = clampString(fallbackSummary, STRUCTURED_CONTENT_SUMMARY_MAX_LENGTH);
+	if (!value || typeof value !== "object") {
+		return { summary: fallback, bullets: [] };
+	}
+	const candidate = value as { summary?: unknown; bullets?: unknown };
+	const summary = clampString(candidate.summary, STRUCTURED_CONTENT_SUMMARY_MAX_LENGTH) || fallback;
+	const rawBullets = Array.isArray(candidate.bullets) ? candidate.bullets : [];
+	const bullets: StructuredContentBullet[] = [];
+	for (const entry of rawBullets) {
+		if (bullets.length >= STRUCTURED_CONTENT_MAX_BULLETS) {
+			break;
+		}
+		if (!entry || typeof entry !== "object") {
+			continue;
+		}
+		const text = clampString((entry as { text?: unknown }).text, STRUCTURED_CONTENT_BULLET_MAX_LENGTH);
+		if (!text) {
+			continue;
+		}
+		const icon = normalizeIconName((entry as { icon?: unknown }).icon, STRUCTURED_CONTENT_DEFAULT_BULLET_ICON);
+		bullets.push({ text, icon });
+	}
+	return { summary, bullets };
 }
 
 /**
@@ -115,6 +92,6 @@ export function normalizeStructuredContent(
  * show the wrapper at all.
  */
 export function hasStructuredContent(value: StructuredContent | null | undefined): boolean {
-  if (!value) return false;
-  return Boolean(value.summary) || value.bullets.length > 0;
+	if (!value) return false;
+	return Boolean(value.summary) || value.bullets.length > 0;
 }

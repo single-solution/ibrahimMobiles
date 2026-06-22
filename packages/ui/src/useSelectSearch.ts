@@ -9,11 +9,7 @@ interface UseSelectSearchOptions<T extends SelectSearchOption> {
 	isOpen?: boolean;
 }
 
-export function useSelectSearch<T extends SelectSearchOption>({
-	options,
-	minOptions = SELECT_SEARCH_MIN_OPTIONS,
-	isOpen = true,
-}: UseSelectSearchOptions<T>) {
+export function useSelectSearch<T extends SelectSearchOption>({ options, minOptions = SELECT_SEARCH_MIN_OPTIONS, isOpen = true }: UseSelectSearchOptions<T>) {
 	const [query, setQuery] = useState("");
 
 	useEffect(() => {
@@ -23,10 +19,7 @@ export function useSelectSearch<T extends SelectSearchOption>({
 	}, [isOpen]);
 
 	const showSearch = minOptions <= 0 ? true : options.length >= minOptions;
-	const filteredOptions = useMemo(
-		() => filterSelectOptions(options, query),
-		[options, query],
-	);
+	const filteredOptions = useMemo(() => filterSelectOptions(options, query), [options, query]);
 
 	return {
 		query,

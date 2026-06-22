@@ -1,21 +1,12 @@
 import { Brand, connectDB, handleMongoError, Product } from "@store/db";
-import {
-	badRequest,
-	isValidId,
-	notFound,
-	ok,
-	parseBody,
-} from "@store/shared";
+import { badRequest, isValidId, notFound, ok, parseBody } from "@store/shared";
 
 import { requireSession } from "@/lib/api/requireSession";
 import { validateProductAttributeConfig } from "@/lib/api/productAttributeConfigValidation";
 import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
 import { type BrandLean } from "@/lib/serializers/brand";
-import {
-	toProductResponse,
-	type ProductLean,
-} from "@/lib/serializers/product";
+import { toProductResponse, type ProductLean } from "@/lib/serializers/product";
 
 interface RouteContext {
 	params: Promise<{ id: string }>;
@@ -45,9 +36,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 	}
 
 	await connectDB();
-	const current = await Product.findById(id)
-		.select("name categorySlug")
-		.lean<{ name: string; categorySlug: string }>();
+	const current = await Product.findById(id).select("name categorySlug").lean<{ name: string; categorySlug: string }>();
 	if (!current) {
 		return notFound("Product not found");
 	}
@@ -67,11 +56,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 	};
 
 	try {
-		const doc = await Product.findByIdAndUpdate(
-			id,
-			{ $set: update },
-			{ returnDocument: "after", runValidators: true },
-		).lean<ProductLean>();
+		const doc = await Product.findByIdAndUpdate(id, { $set: update }, { returnDocument: "after", runValidators: true }).lean<ProductLean>();
 		if (!doc) {
 			return notFound("Product not found");
 		}

@@ -32,14 +32,7 @@ function toCategoryAttributeRefs(attributes: AdminAttribute[]) {
 }
 
 export function attributeConfigFromProduct(
-	product: Pick<
-		AdminProduct,
-		| "attributeSlugs"
-		| "attributeOptionPool"
-		| "attributeCustomOptions"
-		| "attributeDefaults"
-		| "variants"
-	>,
+	product: Pick<AdminProduct, "attributeSlugs" | "attributeOptionPool" | "attributeCustomOptions" | "attributeDefaults" | "variants">,
 	categoryAttributes: AdminAttribute[],
 ): ProductAttributeConfig {
 	return resolveProductAttributeConfig(
@@ -59,10 +52,7 @@ export function attributeConfigFromProduct(
  * missing pool keys via resolve — that made saves look like they did nothing.
  */
 export function attributeConfigForEditor(
-	product: Pick<
-		AdminProduct,
-		"attributeSlugs" | "attributeOptionPool" | "attributeCustomOptions" | "attributeDefaults"
-	>,
+	product: Pick<AdminProduct, "attributeSlugs" | "attributeOptionPool" | "attributeCustomOptions" | "attributeDefaults">,
 	categoryAttributes: AdminAttribute[],
 ): ProductAttributeConfig {
 	if (!hasExplicitProductAttributeConfig(product)) {
@@ -70,9 +60,7 @@ export function attributeConfigForEditor(
 	}
 
 	const categorySlugSet = new Set(categoryAttributes.map((attribute) => attribute.slug));
-	const attributeSlugs = (product.attributeSlugs ?? [])
-		.map((slug) => slug.trim().toLowerCase())
-		.filter((slug) => categorySlugSet.has(slug));
+	const attributeSlugs = (product.attributeSlugs ?? []).map((slug) => slug.trim().toLowerCase()).filter((slug) => categorySlugSet.has(slug));
 
 	const attributeOptionPool: Record<string, string[]> = {};
 	for (const slug of attributeSlugs) {
@@ -118,17 +106,12 @@ export function attributeConfigForEditor(
 }
 
 /** Default config for a category before the product is saved (all attributes + options). */
-export function attributeConfigForCategory(
-	categoryAttributes: AdminAttribute[],
-): ProductAttributeConfig {
+export function attributeConfigForCategory(categoryAttributes: AdminAttribute[]): ProductAttributeConfig {
 	return resolveProductAttributeConfig({}, toCategoryAttributeRefs(categoryAttributes));
 }
 
 /** Effective enabled values for one attribute (undefined pool key = all global options). */
-export function effectiveProductOptionPool(
-	config: ProductAttributeConfig,
-	attribute: AdminAttribute,
-): string[] {
+export function effectiveProductOptionPool(config: ProductAttributeConfig, attribute: AdminAttribute): string[] {
 	return getProductOptionPool(config, attribute.slug, {
 		slug: attribute.slug,
 		options: attribute.options,
@@ -136,10 +119,7 @@ export function effectiveProductOptionPool(
 }
 
 /** Exact payload for PUT /api/products/:id/attribute-config — no implicit pool expansion. */
-export function buildAttributeConfigForSave(
-	config: ProductAttributeConfig,
-	categoryAttributes: AdminAttribute[],
-) {
+export function buildAttributeConfigForSave(config: ProductAttributeConfig, categoryAttributes: AdminAttribute[]) {
 	const attributeSlugs = config.attributeSlugs.map((slug) => slug.trim().toLowerCase());
 	const attributeOptionPool: Record<string, string[]> = {};
 
@@ -163,14 +143,6 @@ export function buildAttributeConfigForSave(
 	};
 }
 
-/** @deprecated Use buildAttributeConfigForSave — kept for callers not yet migrated. */
-export function productAttributeConfigPayload(
-	config: ProductAttributeConfig,
-	categoryAttributes: AdminAttribute[] = [],
-) {
-	return buildAttributeConfigForSave(config, categoryAttributes);
-}
-
 export type AddProductCustomOptionResult =
 	| { ok: true; config: ProductAttributeConfig; value: string }
 	| {
@@ -186,11 +158,7 @@ export function previewProductCustomOptionSlug(attribute: AdminAttribute, label:
 	return compactAttributeOptionValue(trimmed, attribute.unit?.trim() ?? "");
 }
 
-export function addProductCustomOption(
-	config: ProductAttributeConfig,
-	attribute: AdminAttribute,
-	label: string,
-): AddProductCustomOptionResult {
+export function addProductCustomOption(config: ProductAttributeConfig, attribute: AdminAttribute, label: string): AddProductCustomOptionResult {
 	const trimmed = label.trim();
 	if (!trimmed) {
 		return { ok: false, reason: "empty" };
@@ -209,9 +177,7 @@ export function addProductCustomOption(
 		return { ok: false, reason: "duplicate_global" };
 	}
 
-	const globalLabels = new Set(
-		attribute.options.map((option) => option.label.trim().toLowerCase()),
-	);
+	const globalLabels = new Set(attribute.options.map((option) => option.label.trim().toLowerCase()));
 	if (globalLabels.has(normalizedLabel)) {
 		return { ok: false, reason: "duplicate_global" };
 	}
@@ -229,12 +195,8 @@ export function addProductCustomOption(
 		[attribute.slug]: [...existingCustom, { value: normalizedValue, label: trimmed }],
 	};
 	const currentPool = normalizePoolValues(effectiveProductOptionPool(config, attribute));
-	const nextPool = currentPool.includes(normalizedValue)
-		? currentPool
-		: [...currentPool, normalizedValue];
-	const nextSlugs = config.attributeSlugs.includes(attribute.slug)
-		? config.attributeSlugs
-		: [...config.attributeSlugs, attribute.slug];
+	const nextPool = currentPool.includes(normalizedValue) ? currentPool : [...currentPool, normalizedValue];
+	const nextSlugs = config.attributeSlugs.includes(attribute.slug) ? config.attributeSlugs : [...config.attributeSlugs, attribute.slug];
 
 	return {
 		ok: true,
@@ -251,16 +213,10 @@ export function addProductCustomOption(
 	};
 }
 
-export function removeProductCustomOption(
-	config: ProductAttributeConfig,
-	attributeSlug: string,
-	value: string,
-): ProductAttributeConfig {
+export function removeProductCustomOption(config: ProductAttributeConfig, attributeSlug: string, value: string): ProductAttributeConfig {
 	const normalizedValue = value.toLowerCase();
 	const existingCustom = config.attributeCustomOptions?.[attributeSlug] ?? [];
-	const nextCustom = existingCustom.filter(
-		(option) => option.value.toLowerCase() !== normalizedValue,
-	);
+	const nextCustom = existingCustom.filter((option) => option.value.toLowerCase() !== normalizedValue);
 	const nextCustomOptions = { ...(config.attributeCustomOptions ?? {}) };
 	if (nextCustom.length === 0) {
 		delete nextCustomOptions[attributeSlug];
@@ -269,15 +225,11 @@ export function removeProductCustomOption(
 	}
 
 	const storedPool = config.attributeOptionPool[attributeSlug];
-	const nextPool =
-		storedPool === undefined
-			? undefined
-			: normalizePoolValues(storedPool).filter((entry) => entry !== normalizedValue);
+	const nextPool = storedPool === undefined ? undefined : normalizePoolValues(storedPool).filter((entry) => entry !== normalizedValue);
 
 	return {
 		...config,
-		attributeCustomOptions:
-			Object.keys(nextCustomOptions).length > 0 ? nextCustomOptions : undefined,
+		attributeCustomOptions: Object.keys(nextCustomOptions).length > 0 ? nextCustomOptions : undefined,
 		attributeOptionPool: {
 			...config.attributeOptionPool,
 			...(nextPool === undefined ? {} : { [attributeSlug]: nextPool }),
@@ -295,10 +247,7 @@ export interface AttributeConfigImpactSummary {
 	}>;
 }
 
-export function countVariantsUsingAttribute(
-	variants: Pick<AdminVariant, "attributes">[],
-	attributeSlug: string,
-): number {
+export function countVariantsUsingAttribute(variants: Pick<AdminVariant, "attributes">[], attributeSlug: string): number {
 	let count = 0;
 	for (const variant of variants) {
 		const raw = variant.attributes?.[attributeSlug];
@@ -324,10 +273,7 @@ function resolveImpactOptionLabel(
 	for (const variant of variants) {
 		const raw = variant.attributes?.[attributeSlug];
 		const values = Array.isArray(raw) ? raw : raw ? [raw] : [];
-		if (
-			values.some((entry) => typeof entry === "string" && entry.toLowerCase() === normalized) &&
-			variant.attributeDisplay?.[attributeSlug]
-		) {
+		if (values.some((entry) => typeof entry === "string" && entry.toLowerCase() === normalized) && variant.attributeDisplay?.[attributeSlug]) {
 			return variant.attributeDisplay[attributeSlug];
 		}
 	}
@@ -336,9 +282,7 @@ function resolveImpactOptionLabel(
 	if (globalOption) {
 		return formatAttributeOptionLabel(globalOption.label, attribute?.unit);
 	}
-	const customOption = config.attributeCustomOptions?.[attributeSlug]?.find(
-		(option) => option.value.toLowerCase() === normalized,
-	);
+	const customOption = config.attributeCustomOptions?.[attributeSlug]?.find((option) => option.value.toLowerCase() === normalized);
 	if (customOption) {
 		return customOption.label;
 	}
@@ -370,11 +314,7 @@ export function analyzeAttributeConfigImpact(
 					continue;
 				}
 				const attribute = categoryAttributes.find((row) => row.slug === slug);
-				const pool = normalizePoolValues(
-					getProductOptionPool(nextConfig, slug, attribute
-						? { slug: attribute.slug, options: attribute.options }
-						: undefined),
-				);
+				const pool = normalizePoolValues(getProductOptionPool(nextConfig, slug, attribute ? { slug: attribute.slug, options: attribute.options } : undefined));
 				if (!pool.includes(normalized)) {
 					const key = `${slug}:${normalized}`;
 					const existing = removedCounts.get(key);
@@ -399,16 +339,8 @@ export function analyzeAttributeConfigImpact(
 	const removedOptions = [...removedCounts.values()]
 		.map((entry) => ({
 			attributeSlug: entry.attributeSlug,
-			attributeLabel:
-				categoryAttributes.find((row) => row.slug === entry.attributeSlug)?.label ??
-				entry.attributeSlug,
-			optionLabel: resolveImpactOptionLabel(
-				entry.attributeSlug,
-				entry.value,
-				categoryAttributes,
-				nextConfig,
-				variants,
-			),
+			attributeLabel: categoryAttributes.find((row) => row.slug === entry.attributeSlug)?.label ?? entry.attributeSlug,
+			optionLabel: resolveImpactOptionLabel(entry.attributeSlug, entry.value, categoryAttributes, nextConfig, variants),
 			variantCount: entry.count,
 		}))
 		.sort((left, right) => {
@@ -423,26 +355,18 @@ export function hasAttributeConfigImpact(summary: AttributeConfigImpactSummary):
 	return summary.disabledAttributes.length > 0 || summary.removedOptions.length > 0;
 }
 
-export function formatAttributeConfigImpactLines(
-	summary: AttributeConfigImpactSummary,
-): string[] {
+export function formatAttributeConfigImpactLines(summary: AttributeConfigImpactSummary): string[] {
 	const lines: string[] = [];
 	for (const entry of summary.disabledAttributes) {
-		lines.push(
-			`${entry.variantCount} variant${entry.variantCount === 1 ? "" : "s"} use ${entry.label}, which will be disabled on this product.`,
-		);
+		lines.push(`${entry.variantCount} variant${entry.variantCount === 1 ? "" : "s"} use ${entry.label}, which will be disabled on this product.`);
 	}
 	for (const entry of summary.removedOptions) {
-		lines.push(
-			`${entry.variantCount} variant${entry.variantCount === 1 ? "" : "s"} use ${entry.attributeLabel}: ${entry.optionLabel}, which will no longer be allowed.`,
-		);
+		lines.push(`${entry.variantCount} variant${entry.variantCount === 1 ? "" : "s"} use ${entry.attributeLabel}: ${entry.optionLabel}, which will no longer be allowed.`);
 	}
 	return lines;
 }
 
-export function customOptionErrorMessage(
-	reason: Exclude<AddProductCustomOptionResult, { ok: true }>["reason"],
-): string {
+export function customOptionErrorMessage(reason: Exclude<AddProductCustomOptionResult, { ok: true }>["reason"]): string {
 	switch (reason) {
 		case "empty":
 			return "Enter a value first.";

@@ -15,19 +15,14 @@ import { handlers } from "@/lib/auth";
  * — belt + suspenders.
  */
 
-const COOKIE_NAME_PREFIXES = [
-  "admin.session-token",
-  "__Secure-admin.session-token",
-];
+const COOKIE_NAME_PREFIXES = ["admin.session-token", "__Secure-admin.session-token"];
 
 function stripExpiry(cookie: string): string {
-  return cookie
-    .replace(/;\s*Expires=[^;]+/gi, "")
-    .replace(/;\s*Max-Age=[^;]+/gi, "");
+	return cookie.replace(/;\s*Expires=[^;]+/gi, "").replace(/;\s*Max-Age=[^;]+/gi, "");
 }
 
 function shouldStrip(cookie: string): boolean {
-  return COOKIE_NAME_PREFIXES.some((name) => cookie.startsWith(`${name}=`));
+	return COOKIE_NAME_PREFIXES.some((name) => cookie.startsWith(`${name}=`));
 }
 
 /**
@@ -37,30 +32,28 @@ function shouldStrip(cookie: string): boolean {
  * /providers and similar endpoints).
  */
 function stripCookiePersistence(response: Response): Response {
-  const all = response.headers.getSetCookie?.() ?? [];
-  if (all.length === 0) {
-    return response;
-  }
+	const all = response.headers.getSetCookie?.() ?? [];
+	if (all.length === 0) {
+		return response;
+	}
 
-  const matched = all.some(shouldStrip);
-  if (!matched) {
-    return response;
-  }
+	const matched = all.some(shouldStrip);
+	if (!matched) {
+		return response;
+	}
 
-  const headers = new Headers(response.headers);
-  headers.delete("set-cookie");
-  for (const cookie of all) {
-    headers.append("set-cookie", shouldStrip(cookie) ? stripExpiry(cookie) : cookie);
-  }
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
+	const headers = new Headers(response.headers);
+	headers.delete("set-cookie");
+	for (const cookie of all) {
+		headers.append("set-cookie", shouldStrip(cookie) ? stripExpiry(cookie) : cookie);
+	}
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers,
+	});
 }
 
-export const GET = async (request: NextRequest) =>
-  stripCookiePersistence(await handlers.GET(request));
+export const GET = async (request: NextRequest) => stripCookiePersistence(await handlers.GET(request));
 
-export const POST = async (request: NextRequest) =>
-  stripCookiePersistence(await handlers.POST(request));
+export const POST = async (request: NextRequest) => stripCookiePersistence(await handlers.POST(request));

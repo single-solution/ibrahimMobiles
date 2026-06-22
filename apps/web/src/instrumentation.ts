@@ -15,23 +15,22 @@
  */
 
 export async function register(): Promise<void> {
-  // Edge runtime doesn't expose `process.env` the same way and doesn't need
-  // these checks (it runs the proxy bundle, not server code). Guard so the
-  // import never lands in an edge worker.
-  if (process.env.NEXT_RUNTIME !== "nodejs") {
-    return;
-  }
-  const [{ assertServerEnv }, db] = await Promise.all([
-    import("@store/shared"),
-    import("@store/db"),
-  ]);
-  assertServerEnv({ appName: "web" });
+	// Edge runtime doesn't expose `process.env` the same way and doesn't need
+	// these checks (it runs the proxy bundle, not server code). Guard so the
+	// import never lands in an edge worker.
+	if (process.env.NEXT_RUNTIME !== "nodejs") {
+		return;
+	}
+	const [shared, db] = await Promise.all([import("@store/shared"), import("@store/db")]);
+	const { configureDevDnsResolvers } = await import("@store/shared/devDns");
+	configureDevDnsResolvers();
+	shared.assertServerEnv({ appName: "web" });
 
-  // Kick off the Mongo connection in the background — don't await; we don't
-  // want a slow DB to block server boot. The first query that lands will
-  // hit the already-warm pool and skip the TLS handshake cost.
-  void db.connectDB().catch(() => {
-    // The connection helper logs its own errors; swallow here so an
-    // intermittent boot-time blip doesn't unhandled-reject the worker.
-  });
+	// Kick off the Mongo connection in the background — don't await; we don't
+	// want a slow DB to block server boot. The first query that lands will
+	// hit the already-warm pool and skip the TLS handshake cost.
+	void db.connectDB().catch(() => {
+		// The connection helper logs its own errors; swallow here so an
+		// intermittent boot-time blip doesn't unhandled-reject the worker.
+	});
 }

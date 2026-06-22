@@ -13,47 +13,45 @@ import { enforceChatPollRateLimit } from "@/lib/api/chatRateLimit";
 import { resolveChatAccess } from "@/lib/chat/access";
 
 interface RouteContext {
-  params: Promise<{ id: string }>;
+	params: Promise<{ id: string }>;
 }
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request, { params }: RouteContext) {
-  const rateLimited = enforceChatPollRateLimit(request);
-  if (rateLimited) {
-    return rateLimited;
-  }
+	const rateLimited = enforceChatPollRateLimit(request);
+	if (rateLimited) {
+		return rateLimited;
+	}
 
-  const { id } = await params;
-  const access = await resolveChatAccess(id);
-  if (access instanceof Response) return access;
+	const { id } = await params;
+	const access = await resolveChatAccess(id);
+	if (access instanceof Response) return access;
 
-  const inquiry = access.inquiry;
-  if (inquiry.unreadByCustomer <= 0) {
-    return noContent();
-  }
+	const inquiry = access.inquiry;
+	if (inquiry.unreadByCustomer <= 0) {
+		return noContent();
+	}
 
-  try {
-    await connectDB();
-    const now = new Date();
-    await InquiryModel.updateOne(
-      { _id: inquiry._id },
-      {
-        $set: {
-          unreadByCustomer: 0,
-          "messages.$[unread].readByCustomerAt": now,
-        },
-      },
-      {
-        arrayFilters: [
-          { "unread.author": "agent", "unread.readByCustomerAt": { $exists: false } },
-        ],
-      },
-    );
+	try {
+		await connectDB();
+		const now = new Date();
+		await InquiryModel.updateOne(
+			{ _id: inquiry._id },
+			{
+				$set: {
+					unreadByCustomer: 0,
+					"messages.$[unread].readByCustomerAt": now,
+				},
+			},
+			{
+				arrayFilters: [{ "unread.author": "agent", "unread.readByCustomerAt": { $exists: false } }],
+			},
+		);
 
-    return noContent();
-  } catch (error) {
-    logger.error({ error, inquiryId: id }, "Failed to mark chat as read");
-    return serverError("Failed to mark chat as read.");
-  }
+		return noContent();
+	} catch (error) {
+		logger.error({ error, inquiryId: id }, "Failed to mark chat as read");
+		return serverError("Failed to mark chat as read.");
+	}
 }

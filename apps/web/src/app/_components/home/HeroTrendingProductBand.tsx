@@ -45,12 +45,7 @@ const MOBILE_SIZE_CLASS_COMPACT: Record<FlankSlot["size"], string> = {
 const DESKTOP_COLUMN_HEIGHT = "self-stretch";
 const MOBILE_COLUMN_HEIGHT = "self-stretch";
 
-function generateFlankSlots(
-	count: number,
-	products: string[],
-	side: FlankSide,
-	wideSpread = false,
-): FlankSlot[] {
+function generateFlankSlots(count: number, products: string[], side: FlankSide, wideSpread = false): FlankSlot[] {
 	if (products.length === 0) {
 		return [];
 	}
@@ -84,12 +79,7 @@ interface HeroTrendingProductBandProps {
 	density?: HeadlineDensity;
 }
 
-export function HeroTrendingProductBand({
-	productNames,
-	variant,
-	side,
-	density = "default",
-}: HeroTrendingProductBandProps) {
+export function HeroTrendingProductBand({ productNames, variant, side, density = "default" }: HeroTrendingProductBandProps) {
 	const [labels, setLabels] = useState<FlankSlot[]>([]);
 
 	const isCompact = density === "compact";
@@ -104,14 +94,7 @@ export function HeroTrendingProductBand({
 
 		return () => window.clearTimeout(timer);
 	}, [productNames, count, side, wideSpread]);
-	const sizeClass =
-		variant === "desktop"
-			? isCompact
-				? DESKTOP_SIZE_CLASS_COMPACT
-				: DESKTOP_SIZE_CLASS
-			: isCompact
-				? MOBILE_SIZE_CLASS_COMPACT
-				: MOBILE_SIZE_CLASS;
+	const sizeClass = variant === "desktop" ? (isCompact ? DESKTOP_SIZE_CLASS_COMPACT : DESKTOP_SIZE_CLASS) : isCompact ? MOBILE_SIZE_CLASS_COMPACT : MOBILE_SIZE_CLASS;
 	const columnHeight = variant === "desktop" ? DESKTOP_COLUMN_HEIGHT : MOBILE_COLUMN_HEIGHT;
 	const columnWidth = wideSpread
 		? side === "left"
@@ -120,40 +103,23 @@ export function HeroTrendingProductBand({
 		: variant === "desktop"
 			? "min-w-[96px] flex-1"
 			: "min-w-[44px] max-w-[96px] flex-1 sm:max-w-[120px]";
-	const anchorClass = wideSpread
-		? side === "left"
-			? "text-right"
-			: "text-left"
-		: side === "left"
-			? "right-0 text-right"
-			: "left-0 text-left";
+	const anchorClass = wideSpread ? (side === "left" ? "text-right" : "text-left") : side === "left" ? "right-0 text-right" : "left-0 text-left";
 
 	if (productNames.length === 0) {
 		return <div className={classNames("shrink-0", columnWidth, columnHeight)} aria-hidden />;
 	}
 
 	return (
-		<div
-			className={classNames("relative", columnWidth, columnHeight)}
-			aria-hidden
-		>
+		<div className={classNames("relative", columnWidth, columnHeight)} aria-hidden>
 			{labels.map((item, index) => {
 				const delay = (popCycle / Math.max(labels.length, 1)) * index;
 				return (
 					<span
 						key={`${side}-${item.name}-${index}`}
-						className={classNames(
-							"hero-product-pop-flank pointer-events-none absolute whitespace-nowrap font-medium tracking-tight",
-							sizeClass[item.size],
-							anchorClass,
-						)}
+						className={classNames("hero-product-pop-flank pointer-events-none absolute whitespace-nowrap font-medium tracking-tight", sizeClass[item.size], anchorClass)}
 						style={{
 							top: `${item.top}%`,
-							...(wideSpread
-								? side === "left"
-									? { right: `${item.offset}%` }
-									: { left: `${item.offset}%` }
-								: {}),
+							...(wideSpread ? (side === "left" ? { right: `${item.offset}%` } : { left: `${item.offset}%` }) : {}),
 							animationDuration: `${popCycle}s`,
 							animationDelay: `${delay}s`,
 							animationIterationCount: "infinite",
@@ -174,42 +140,21 @@ interface HeroHeadlineWithTrendingProductsProps {
 }
 
 /** Inspected / Trusted lockup with cycling product names flanking each side. */
-export function HeroHeadlineWithTrendingProducts({
-	productNames,
-	variant,
-	density = "default",
-}: HeroHeadlineWithTrendingProductsProps) {
+export function HeroHeadlineWithTrendingProducts({ productNames, variant, density = "default" }: HeroHeadlineWithTrendingProductsProps) {
 	const wideSpread = density === "compact";
 
 	return (
 		<div
 			className={classNames(
 				"w-full min-w-0 items-stretch",
-				wideSpread
-					? "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-3 sm:gap-x-5 md:gap-x-8 lg:gap-x-10"
-					: "flex justify-between gap-2 sm:gap-3 md:gap-5 lg:gap-6",
+				wideSpread ? "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-3 sm:gap-x-5 md:gap-x-8 lg:gap-x-10" : "flex justify-between gap-2 sm:gap-3 md:gap-5 lg:gap-6",
 			)}
 		>
-			<HeroTrendingProductBand
-				productNames={productNames}
-				variant={variant}
-				side="left"
-				density={density}
-			/>
-			<div
-				className={classNames(
-					"shrink-0 self-center justify-self-center px-0.5",
-					density === "compact" ? "py-1.5 md:py-2" : "py-1",
-				)}
-			>
+			<HeroTrendingProductBand productNames={productNames} variant={variant} side="left" density={density} />
+			<div className={classNames("shrink-0 self-center justify-self-center px-0.5", density === "compact" ? "py-1.5 md:py-2" : "py-1")}>
 				<HeroMaskSweepHeadline variant={variant} density={density} />
 			</div>
-			<HeroTrendingProductBand
-				productNames={productNames}
-				variant={variant}
-				side="right"
-				density={density}
-			/>
+			<HeroTrendingProductBand productNames={productNames} variant={variant} side="right" density={density} />
 		</div>
 	);
 }

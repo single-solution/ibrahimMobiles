@@ -3,13 +3,13 @@ import { adminCatalogPageClass } from "@/components/shared/workspaceUi";
 import { SkeletonScreen } from "@/components/ui/Skeleton";
 
 export default function CategoriesLoading() {
-  return (
-    <SkeletonScreen label="Loading categories">
-      <div className={adminCatalogPageClass}>
-        <section className="flex min-h-0 flex-1 flex-col">
-          <CatalogWorkspaceSkeleton />
-        </section>
-      </div>
-    </SkeletonScreen>
-  );
+	return (
+		<SkeletonScreen label="Loading categories">
+			<div className={adminCatalogPageClass}>
+				<section className="flex min-h-0 flex-1 flex-col">
+					<CatalogWorkspaceSkeleton />
+				</section>
+			</div>
+		</SkeletonScreen>
+	);
 }

@@ -5,12 +5,7 @@ import { X } from "lucide-react";
 
 import { classNames, formatPrice } from "@store/shared";
 
-import {
-	isPriceFilterActive,
-	useAttributeFacets,
-	useListingFilterMutations,
-	type ShopFilterDataProps,
-} from "@/components/shared/FilterSidebar";
+import { isPriceFilterActive, useAttributeFacets, useListingFilterMutations, type ShopFilterDataProps } from "@/components/shared/FilterSidebar";
 import { FILTER_PARAM_KEYS } from "@/lib/core/filterParams";
 import { useFilterParams } from "@/lib/core/useFilterParams";
 import { useGrades } from "@/lib/core/storefrontReferenceContext";
@@ -26,17 +21,10 @@ interface ShopActiveFilterChipsProps extends ShopFilterDataProps {
 }
 
 /** Removable chips for every active listing filter — visible without opening dropdowns. */
-export function ShopActiveFilterChips({
-	categorySlug,
-	brands = [],
-	initialFacets = [],
-	className,
-}: ShopActiveFilterChipsProps) {
+export function ShopActiveFilterChips({ categorySlug, brands = [], initialFacets = [], className }: ShopActiveFilterChipsProps) {
 	const filterApi = useFilterParams();
 	const allGrades = useGrades();
-	const { removeFromMulti, clearPrice, clearAll, params } = useListingFilterMutations(
-		categorySlug,
-	);
+	const { removeFromMulti, clearPrice, clearAll, params } = useListingFilterMutations(categorySlug);
 	const { facets } = useAttributeFacets(categorySlug ?? "", params, initialFacets);
 
 	const gradeSlugs = filterApi.getMulti(FILTER_PARAM_KEYS.grades);
@@ -52,9 +40,7 @@ export function ShopActiveFilterChips({
 		const next: ActiveFilterChip[] = [];
 
 		for (const gradeSlug of gradeSlugs) {
-			const descriptor = allGrades.find(
-				(entry) => entry.categorySlug === categorySlug && entry.slug === gradeSlug,
-			);
+			const descriptor = allGrades.find((entry) => entry.categorySlug === categorySlug && entry.slug === gradeSlug);
 			next.push({
 				key: `grade:${gradeSlug}`,
 				label: descriptor?.label ?? gradeSlug,
@@ -99,33 +85,14 @@ export function ShopActiveFilterChips({
 		}
 
 		return next;
-	}, [
-		allGrades,
-		brandSlugs,
-		brands,
-		categorySlug,
-		clearPrice,
-		facets,
-		filterApi,
-		gradeSlugs,
-		maxPrice,
-		minPrice,
-		params,
-		removeFromMulti,
-	]);
+	}, [allGrades, brandSlugs, brands, categorySlug, clearPrice, facets, filterApi, gradeSlugs, maxPrice, minPrice, params, removeFromMulti]);
 
 	if (chips.length === 0) {
 		return null;
 	}
 
 	return (
-		<div
-			className={classNames(
-				"reveal flex flex-wrap items-center gap-2",
-				className,
-			)}
-			aria-label="Active filters"
-		>
+		<div className={classNames("reveal flex flex-wrap items-center gap-2", className)} aria-label="Active filters">
 			{chips.map((chip) => (
 				<button
 					key={chip.key}

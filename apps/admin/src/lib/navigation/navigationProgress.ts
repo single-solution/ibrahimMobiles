@@ -24,32 +24,32 @@ let pendingCount = 0;
 const listeners = new Set<() => void>();
 
 function notify() {
-  for (const listener of listeners) listener();
+	for (const listener of listeners) listener();
 }
 
 function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
+	listeners.add(listener);
+	return () => {
+		listeners.delete(listener);
+	};
 }
 
 function getSnapshot(): number {
-  return pendingCount;
+	return pendingCount;
 }
 
 function getServerSnapshot(): number {
-  return 0;
+	return 0;
 }
 
 function beginPing(): void {
-  pendingCount += 1;
-  notify();
+	pendingCount += 1;
+	notify();
 }
 
 function endPing(): void {
-  pendingCount = Math.max(0, pendingCount - 1);
-  notify();
+	pendingCount = Math.max(0, pendingCount - 1);
+	notify();
 }
 
 /** Minimum duration the bar stays visible per ping — long enough for the
@@ -57,7 +57,7 @@ function endPing(): void {
 const NAV_PROGRESS_HOLD_MS = 360;
 
 export function useNavigationProgressCount(): number {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+	return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 /**
@@ -66,8 +66,8 @@ export function useNavigationProgressCount(): number {
  * just need the bar to flash.
  */
 export function pingNavigationProgress(durationMs: number = NAV_PROGRESS_HOLD_MS): void {
-  beginPing();
-  window.setTimeout(endPing, durationMs);
+	beginPing();
+	window.setTimeout(endPing, durationMs);
 }
 
 /**
@@ -86,60 +86,60 @@ export function pingNavigationProgress(durationMs: number = NAV_PROGRESS_HOLD_MS
  * call sites that want to dim their own control briefly.
  */
 export function useNavigationTransition(): {
-  isPending: boolean;
-  startNavigation: (run: () => void) => void;
+	isPending: boolean;
+	startNavigation: (run: () => void) => void;
 } {
-  const timeoutRef = useRef<number | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const isPingedRef = useRef(false);
-  const [isPending, setIsPending] = useState(false);
+	const timeoutRef = useRef<number | null>(null);
+	const rafRef = useRef<number | null>(null);
+	const isPingedRef = useRef(false);
+	const [isPending, setIsPending] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      if (isPingedRef.current) {
-        endPing();
-        isPingedRef.current = false;
-      }
-    };
-  }, []);
+	useEffect(() => {
+		return () => {
+			if (timeoutRef.current !== null) {
+				window.clearTimeout(timeoutRef.current);
+				timeoutRef.current = null;
+			}
+			if (rafRef.current !== null) {
+				window.cancelAnimationFrame(rafRef.current);
+				rafRef.current = null;
+			}
+			if (isPingedRef.current) {
+				endPing();
+				isPingedRef.current = false;
+			}
+		};
+	}, []);
 
-  const startNavigation = useCallback((run: () => void) => {
-    if (timeoutRef.current !== null) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    if (rafRef.current !== null) {
-      window.cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-    if (!isPingedRef.current) {
-      beginPing();
-      isPingedRef.current = true;
-      setIsPending(true);
-    }
-    // Defer the actual navigation by one animation frame so any optimistic
-    // setState the caller queued in the same event handler paints first.
-    rafRef.current = window.requestAnimationFrame(() => {
-      rafRef.current = null;
-      run();
-      timeoutRef.current = window.setTimeout(() => {
-        if (isPingedRef.current) {
-          endPing();
-          isPingedRef.current = false;
-        }
-        setIsPending(false);
-        timeoutRef.current = null;
-      }, NAV_PROGRESS_HOLD_MS);
-    });
-  }, []);
+	const startNavigation = useCallback((run: () => void) => {
+		if (timeoutRef.current !== null) {
+			window.clearTimeout(timeoutRef.current);
+			timeoutRef.current = null;
+		}
+		if (rafRef.current !== null) {
+			window.cancelAnimationFrame(rafRef.current);
+			rafRef.current = null;
+		}
+		if (!isPingedRef.current) {
+			beginPing();
+			isPingedRef.current = true;
+			setIsPending(true);
+		}
+		// Defer the actual navigation by one animation frame so any optimistic
+		// setState the caller queued in the same event handler paints first.
+		rafRef.current = window.requestAnimationFrame(() => {
+			rafRef.current = null;
+			run();
+			timeoutRef.current = window.setTimeout(() => {
+				if (isPingedRef.current) {
+					endPing();
+					isPingedRef.current = false;
+				}
+				setIsPending(false);
+				timeoutRef.current = null;
+			}, NAV_PROGRESS_HOLD_MS);
+		});
+	}, []);
 
-  return { isPending, startNavigation };
+	return { isPending, startNavigation };
 }

@@ -1,16 +1,7 @@
 import { headers } from "next/headers";
 import type { NextResponse } from "next/server";
 import { getVerifiedSession, hasPermission, type VerifiedUser } from "@/lib/permissions";
-import {
-  API_RATE_LIMIT_REQUESTS,
-  API_RATE_LIMIT_WINDOW_MS,
-  checkRateLimit,
-  forbidden,
-  getClientIp,
-  logger,
-  tooManyRequests,
-  unauthorized,
-} from "@store/shared";
+import { API_RATE_LIMIT_REQUESTS, API_RATE_LIMIT_WINDOW_MS, checkRateLimit, forbidden, getClientIp, logger, tooManyRequests, unauthorized } from "@store/shared";
 
 import type { PermissionKey } from "@/lib/permissionsCatalog";
 
@@ -28,25 +19,25 @@ const API_RATE_LIMIT_SCOPE = "api:admin";
  * different host than ours.
  */
 function isSameOriginRequest(headersList: Headers): boolean {
-  const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
-  if (!host) {
-    return true;
-  }
+	const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
+	if (!host) {
+		return true;
+	}
 
-  const origin = headersList.get("origin");
-  const referer = headersList.get("referer");
-  const candidate = origin ?? referer;
-  if (!candidate || candidate === "null") {
-    return true;
-  }
+	const origin = headersList.get("origin");
+	const referer = headersList.get("referer");
+	const candidate = origin ?? referer;
+	if (!candidate || candidate === "null") {
+		return true;
+	}
 
-  try {
-    const parsed = new URL(candidate);
-    const expected = host.split(",")[0]?.trim() ?? host;
-    return parsed.host.toLowerCase() === expected.toLowerCase();
-  } catch {
-    return false;
-  }
+	try {
+		const parsed = new URL(candidate);
+		const expected = host.split(",")[0]?.trim() ?? host;
+		return parsed.host.toLowerCase() === expected.toLowerCase();
+	} catch {
+		return false;
+	}
 }
 
 /**
@@ -63,47 +54,37 @@ function isSameOriginRequest(headersList: Headers): boolean {
  *   if (response) return response;
  *   // ...actor is guaranteed VerifiedUser here
  */
-type RequireSessionResult =
-  | { actor: VerifiedUser; response: null }
-  | { actor: null; response: NextResponse };
+type RequireSessionResult = { actor: VerifiedUser; response: null } | { actor: null; response: NextResponse };
 
-export async function requireSession(
-  permission?: PermissionKey,
-): Promise<RequireSessionResult> {
-  const actor = await getVerifiedSession();
-  if (!actor) {
-    return { actor: null, response: unauthorized() };
-  }
+export async function requireSession(permission?: PermissionKey): Promise<RequireSessionResult> {
+	const actor = await getVerifiedSession();
+	if (!actor) {
+		return { actor: null, response: unauthorized() };
+	}
 
-  if (permission && !hasPermission(actor, permission)) {
-    logger.warn(
-      { userId: actor.id, permission },
-      "Permission denied",
-    );
-    return { actor: null, response: forbidden() };
-  }
+	if (permission && !hasPermission(actor, permission)) {
+		logger.warn({ userId: actor.id, permission }, "Permission denied");
+		return { actor: null, response: forbidden() };
+	}
 
-  // Rate-limit by user ID first, with IP as a secondary scope so a single
-  // compromised IP can't burn a user's whole budget.
-  const headersList = await headers();
-  if (!isSameOriginRequest(headersList)) {
-    logger.warn({ userId: actor.id }, "Cross-origin admin API request rejected");
-    return { actor: null, response: forbidden("Cross-origin request rejected.") };
-  }
-  const ip = getClientIp(headersList);
-  const rateLimit = checkRateLimit({
-    scope: API_RATE_LIMIT_SCOPE,
-    key: `${actor.id}:${ip}`,
-    max: API_RATE_LIMIT_REQUESTS,
-    windowMs: API_RATE_LIMIT_WINDOW_MS,
-  });
-  if (!rateLimit.isAllowed) {
-    logger.warn(
-      { userId: actor.id, ip, retryAfterMs: rateLimit.retryAfterMs },
-      "API rate limit exceeded",
-    );
-    return { actor: null, response: tooManyRequests(rateLimit.retryAfterMs) };
-  }
+	// Rate-limit by user ID first, with IP as a secondary scope so a single
+	// compromised IP can't burn a user's whole budget.
+	const headersList = await headers();
+	if (!isSameOriginRequest(headersList)) {
+		logger.warn({ userId: actor.id }, "Cross-origin admin API request rejected");
+		return { actor: null, response: forbidden("Cross-origin request rejected.") };
+	}
+	const ip = getClientIp(headersList);
+	const rateLimit = checkRateLimit({
+		scope: API_RATE_LIMIT_SCOPE,
+		key: `${actor.id}:${ip}`,
+		max: API_RATE_LIMIT_REQUESTS,
+		windowMs: API_RATE_LIMIT_WINDOW_MS,
+	});
+	if (!rateLimit.isAllowed) {
+		logger.warn({ userId: actor.id, ip, retryAfterMs: rateLimit.retryAfterMs }, "API rate limit exceeded");
+		return { actor: null, response: tooManyRequests(rateLimit.retryAfterMs) };
+	}
 
-  return { actor, response: null };
+	return { actor, response: null };
 }

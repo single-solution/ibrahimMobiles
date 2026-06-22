@@ -14,14 +14,14 @@
  */
 
 import {
-  coerceStoreSettingValue,
-  escapeRegex,
-  fromStoreSettingKey,
-  logger,
-  MS_PER_MINUTE,
-  STORE_SETTING_DEFAULTS,
-  STORE_SETTING_KEY_PREFIX,
-  type StoreSettings,
+	coerceStoreSettingValue,
+	escapeRegex,
+	fromStoreSettingKey,
+	logger,
+	MS_PER_MINUTE,
+	STORE_SETTING_DEFAULTS,
+	STORE_SETTING_KEY_PREFIX,
+	type StoreSettings,
 } from "@store/shared";
 
 import { connectDB } from "./connection";
@@ -31,46 +31,43 @@ import { Setting } from "./models/Setting";
 const CACHE_TTL_MS = MS_PER_MINUTE;
 
 interface CacheEntry {
-  value: StoreSettings;
-  expiresAt: number;
+	value: StoreSettings;
+	expiresAt: number;
 }
 
 let cache: CacheEntry | null = null;
 let inflight: Promise<StoreSettings> | null = null;
 
 interface SettingDocLean {
-  key: string;
-  value: unknown;
+	key: string;
+	value: unknown;
 }
 
 async function loadFromDb(): Promise<StoreSettings> {
-  await connectDB();
-  const docs = await Setting.find({
-    key: { $regex: `^${escapeRegex(STORE_SETTING_KEY_PREFIX)}` },
-  })
-    .select({ key: 1, value: 1 })
-    .lean<SettingDocLean[]>();
+	await connectDB();
+	const docs = await Setting.find({
+		key: { $regex: `^${escapeRegex(STORE_SETTING_KEY_PREFIX)}` },
+	})
+		.select({ key: 1, value: 1 })
+		.lean<SettingDocLean[]>();
 
-  const merged: StoreSettings = { ...STORE_SETTING_DEFAULTS };
-  for (const doc of docs) {
-    const field = fromStoreSettingKey(doc?.key ?? "");
-    if (!field) {
-      continue;
-    }
-    const coerced = coerceStoreSettingValue(field, doc?.value);
-    if (coerced === null) {
-      logger.warn(
-        { key: doc?.key, value: doc?.value },
-        "store-settings: dropping invalid value, falling back to default",
-      );
-      continue;
-    }
-    // Each field's coerced value is typed against `StoreSettings[K]`, so the
-    // assignment is sound — TypeScript does not preserve `K`
-    // through the `for…of` iteration.
-    (merged[field] as StoreSettings[typeof field]) = coerced;
-  }
-  return merged;
+	const merged: StoreSettings = { ...STORE_SETTING_DEFAULTS };
+	for (const doc of docs) {
+		const field = fromStoreSettingKey(doc?.key ?? "");
+		if (!field) {
+			continue;
+		}
+		const coerced = coerceStoreSettingValue(field, doc?.value);
+		if (coerced === null) {
+			logger.warn({ key: doc?.key, value: doc?.value }, "store-settings: dropping invalid value, falling back to default");
+			continue;
+		}
+		// Each field's coerced value is typed against `StoreSettings[K]`, so the
+		// assignment is sound — TypeScript does not preserve `K`
+		// through the `for…of` iteration.
+		(merged[field] as StoreSettings[typeof field]) = coerced;
+	}
+	return merged;
 }
 
 /**
@@ -79,30 +76,27 @@ async function loadFromDb(): Promise<StoreSettings> {
  * burst of requests doesn't trigger a thundering-herd of Mongo queries.
  */
 export async function getStoreSettings(): Promise<StoreSettings> {
-  if (cache && cache.expiresAt > Date.now()) {
-    return cache.value;
-  }
+	if (cache && cache.expiresAt > Date.now()) {
+		return cache.value;
+	}
 
-  if (inflight) {
-    return inflight;
-  }
+	if (inflight) {
+		return inflight;
+	}
 
-  inflight = (async () => {
-    try {
-      const value = await loadFromDb();
-      cache = { value, expiresAt: Date.now() + CACHE_TTL_MS };
-      return value;
-    } catch (error) {
-      logger.error(
-        { error },
-        "store-settings: load failed, returning factory defaults this request",
-      );
-      return STORE_SETTING_DEFAULTS;
-    } finally {
-      inflight = null;
-    }
-  })();
-  return inflight;
+	inflight = (async () => {
+		try {
+			const value = await loadFromDb();
+			cache = { value, expiresAt: Date.now() + CACHE_TTL_MS };
+			return value;
+		} catch (error) {
+			logger.error({ error }, "store-settings: load failed, returning factory defaults this request");
+			return STORE_SETTING_DEFAULTS;
+		} finally {
+			inflight = null;
+		}
+	})();
+	return inflight;
 }
 
 /**
@@ -111,5 +105,5 @@ export async function getStoreSettings(): Promise<StoreSettings> {
  * change immediately.
  */
 export function invalidateStoreSettingsCache(): void {
-  cache = null;
+	cache = null;
 }

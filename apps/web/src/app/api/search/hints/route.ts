@@ -27,20 +27,20 @@ export const dynamic = "force-dynamic";
 const HINTS_PER_MINUTE = 60;
 
 export async function GET(request: Request) {
-  const limited = enforcePublicRateLimit(request, {
-    scope: "storefront-search-hints",
-    max: HINTS_PER_MINUTE,
-    windowMs: PER_MINUTE_WINDOW_MS,
-  });
-  if (limited) {
-    return limited;
-  }
+	const limited = enforcePublicRateLimit(request, {
+		scope: "storefront-search-hints",
+		max: HINTS_PER_MINUTE,
+		windowMs: PER_MINUTE_WINDOW_MS,
+	});
+	if (limited) {
+		return limited;
+	}
 
-  try {
-    const hints = await getSearchHints();
-    return ok({ hints });
-  } catch (error) {
-    logger.error({ error }, "storefront search hints failed");
-    return serverError("Failed to load search hints.");
-  }
+	try {
+		const hints = await getSearchHints();
+		return ok({ hints });
+	} catch (error) {
+		logger.error({ error }, "storefront search hints failed");
+		return serverError("Failed to load search hints.");
+	}
 }

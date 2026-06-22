@@ -12,7 +12,5 @@ const { auth } = NextAuth(authConfig);
 export default auth;
 
 export const config = {
-  matcher: [
-    "/((?!api|_next/static|_next/image|favicon\\.ico|manifest\\.json|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|woff2?|ttf)).*)",
-  ],
+	matcher: ["/((?!api|_next/static|_next/image|favicon\\.ico|manifest\\.json|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|woff2?|ttf)).*)"],
 };

@@ -42,22 +42,12 @@ export function MobileCategoryPicker({ activeSlug, categories }: MobileCategoryP
 					aria-haspopup="dialog"
 					aria-expanded={isOpen}
 				>
-					{activeCategory ? (
-						<Icon
-							node={activeCategory.iconNode}
-							size={13}
-							strokeWidth={2}
-							className="shrink-0 text-[var(--color-ink-800)]"
-						/>
-					) : null}
+					{activeCategory ? <Icon node={activeCategory.iconNode} size={13} strokeWidth={2} className="shrink-0 text-[var(--color-ink-800)]" /> : null}
 					<span className="min-w-0 truncate">{activeCategory?.label ?? "Category"}</span>
 					<ChevronDown
 						size={12}
 						aria-hidden
-						className={classNames(
-							"shrink-0 text-[var(--color-ink-500)] transition-transform duration-[var(--motion-slow)] ease-[var(--ease-out-quart)]",
-							isOpen && "rotate-180",
-						)}
+						className={classNames("shrink-0 text-[var(--color-ink-500)] transition-transform duration-[var(--motion-slow)] ease-[var(--ease-out-quart)]", isOpen && "rotate-180")}
 					/>
 				</button>
 			</div>
@@ -96,22 +86,14 @@ export function MobileCategoryPicker({ activeSlug, categories }: MobileCategoryP
 									<span
 										className={classNames(
 											"grid size-9 shrink-0 place-items-center rounded-[var(--radius-md)]",
-											isActive
-												? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)]"
-												: "bg-[var(--color-accent-50)] text-[var(--color-accent-700)]",
+											isActive ? "bg-[var(--color-accent-100)] text-[var(--color-accent-800)]" : "bg-[var(--color-accent-50)] text-[var(--color-accent-700)]",
 										)}
 									>
 										<Icon node={category.iconNode} size={16} strokeWidth={2.2} />
 									</span>
 									<span className="min-w-0 flex-1">
-										<span className="block truncate text-[13.5px] font-semibold leading-tight">
-											{category.label}
-										</span>
-										{!isAvailable ? (
-											<span className="mt-0.5 block text-[10.5px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-500)]">
-												Coming soon
-											</span>
-										) : null}
+										<span className="block truncate text-[13.5px] font-semibold leading-tight">{category.label}</span>
+										{!isAvailable ? <span className="mt-0.5 block text-[10.5px] font-bold uppercase tracking-[0.1em] text-[var(--color-ink-500)]">Coming soon</span> : null}
 									</span>
 								</span>
 							);

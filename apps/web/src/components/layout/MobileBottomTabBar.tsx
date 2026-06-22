@@ -17,239 +17,222 @@ import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 const CHAT_HIDDEN_PREFIXES = ["/checkout", "/account/sign-in"];
 
 interface Tab {
-  id: string;
-  matchBase: string;
-  href?: string;
-  label: string;
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
-  matchPaths: string[];
-  showCartBadge?: boolean;
-  kind?: "link" | "message";
+	id: string;
+	matchBase: string;
+	href?: string;
+	label: string;
+	icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+	matchPaths: string[];
+	showCartBadge?: boolean;
+	kind?: "link" | "message";
 }
 
 const TABS: Tab[] = [
-  { id: "home", matchBase: "/", label: "Home", icon: Home, matchPaths: ["/"] },
-  { id: "deals", matchBase: "/deals", label: "Deals", icon: Tag, matchPaths: ["/deals"] },
-  {
-    id: "message",
-    matchBase: "message",
-    label: "Support",
-    icon: MessageSquare,
-    matchPaths: [],
-    kind: "message",
-  },
-  { id: "cart", matchBase: "/cart", label: "Cart", icon: ShoppingCart, matchPaths: ["/cart"], showCartBadge: true },
-  { id: "account", matchBase: "/account", label: "Account", icon: User, matchPaths: ["/account"] },
+	{ id: "home", matchBase: "/", label: "Home", icon: Home, matchPaths: ["/"] },
+	{ id: "deals", matchBase: "/deals", label: "Deals", icon: Tag, matchPaths: ["/deals"] },
+	{
+		id: "message",
+		matchBase: "message",
+		label: "Support",
+		icon: MessageSquare,
+		matchPaths: [],
+		kind: "message",
+	},
+	{ id: "cart", matchBase: "/cart", label: "Cart", icon: ShoppingCart, matchPaths: ["/cart"], showCartBadge: true },
+	{ id: "account", matchBase: "/account", label: "Account", icon: User, matchPaths: ["/account"] },
 ];
 
 export function MobileBottomTabBar() {
-  const pathname = usePathname() ?? "/";
-  const catalogHomeHref = useShopHref();
-  const { itemCount } = useCart();
-  const showSignIn = useIsSignedIn() === false;
+	const pathname = usePathname() ?? "/";
+	const catalogHomeHref = useShopHref();
+	const { itemCount } = useCart();
+	const showSignIn = useIsSignedIn() === false;
 
-  function resolveTab(tab: Tab): { href: string; label: string } {
-    if (tab.matchBase === "/account" && showSignIn) {
-      return { href: "/account/sign-in", label: "Sign in" };
-    }
-    return { href: tab.href ?? tab.matchBase, label: tab.label };
-  }
+	function resolveTab(tab: Tab): { href: string; label: string } {
+		if (tab.matchBase === "/account" && showSignIn) {
+			return { href: "/account/sign-in", label: "Sign in" };
+		}
+		return { href: tab.href ?? tab.matchBase, label: tab.label };
+	}
 
-  return (
-    <nav
-      aria-label="Primary"
-      className="fixed inset-x-3 z-30 overflow-visible rounded-full border border-[var(--color-ink-100)] bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] md:hidden"
-      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4px)" }}
-    >
-      <ul
-        className="grid grid-cols-5"
-        style={{ height: "var(--mobile-tabbar-h)" }}
-      >
-        {TABS.map((tab) => {
-          const resolved = resolveTab(tab);
-          if (tab.kind === "message") {
-            return (
-              <li key={tab.id} className="relative flex items-center justify-center p-1.5">
-                <TabMessageItem />
-              </li>
-            );
-          }
-          const href = tab.matchBase === "/" ? catalogHomeHref : resolved.href;
-          return (
-            <li key={tab.id} className="flex p-1.5">
-              <TabLinkItem
-                tab={tab}
-                href={href}
-                label={resolved.label}
-                pathname={pathname}
-                catalogHomeHref={catalogHomeHref}
-                badgeCount={tab.showCartBadge ? itemCount : 0}
-              />
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
-  );
+	return (
+		<nav
+			aria-label="Primary"
+			className="fixed inset-x-3 z-30 overflow-visible rounded-full border border-[var(--color-ink-100)] bg-[var(--color-canvas)] shadow-[var(--shadow-lg)] md:hidden"
+			style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 4px)" }}
+		>
+			<ul className="grid grid-cols-5" style={{ height: "var(--mobile-tabbar-h)" }}>
+				{TABS.map((tab) => {
+					const resolved = resolveTab(tab);
+					if (tab.kind === "message") {
+						return (
+							<li key={tab.id} className="relative flex items-center justify-center p-1.5">
+								<TabMessageItem />
+							</li>
+						);
+					}
+					const href = tab.matchBase === "/" ? catalogHomeHref : resolved.href;
+					return (
+						<li key={tab.id} className="flex p-1.5">
+							<TabLinkItem tab={tab} href={href} label={resolved.label} pathname={pathname} catalogHomeHref={catalogHomeHref} badgeCount={tab.showCartBadge ? itemCount : 0} />
+						</li>
+					);
+				})}
+			</ul>
+		</nav>
+	);
 }
 
-function isLinkActive(
-  matchBase: string,
-  matchPaths: string[],
-  pathname: string,
-  catalogHomeHref: string,
-): boolean {
-  if (matchBase === "/") {
-    return pathname === "/" || pathname === catalogHomeHref;
-  }
-  if (matchPaths.includes(pathname)) {
-    return true;
-  }
-  if (pathname.startsWith(matchBase)) {
-    return true;
-  }
-  return false;
+function isLinkActive(matchBase: string, matchPaths: string[], pathname: string, catalogHomeHref: string): boolean {
+	if (matchBase === "/") {
+		return pathname === "/" || pathname === catalogHomeHref;
+	}
+	if (matchPaths.includes(pathname)) {
+		return true;
+	}
+	if (pathname.startsWith(matchBase)) {
+		return true;
+	}
+	return false;
 }
 
 interface TabLinkItemProps {
-  tab: Tab;
-  href: string;
-  label: string;
-  pathname: string;
-  catalogHomeHref: string;
-  badgeCount: number;
+	tab: Tab;
+	href: string;
+	label: string;
+	pathname: string;
+	catalogHomeHref: string;
+	badgeCount: number;
 }
 
 function TabLinkItem({ tab, href, label, pathname, catalogHomeHref, badgeCount }: TabLinkItemProps) {
-  const isActive = isLinkActive(tab.matchBase, tab.matchPaths, pathname, catalogHomeHref);
-  const Icon = tab.icon;
-  const prefetchHandlers = usePrefetchOnIntent(isActive ? null : href);
-  return (
-    <Link
-      href={href}
-      className={classNames(
-        "tap focus-ring-inset flex w-full flex-col items-center justify-center gap-0.5 rounded-full text-[11px] transition-colors",
-        isActive
-          ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]"
-          : "font-medium text-[var(--color-ink-500)] active:text-[var(--color-ink-800)]",
-      )}
-      aria-current={isActive ? "page" : undefined}
-      onPointerDown={prefetchHandlers.onPointerDown}
-      onTouchStart={prefetchHandlers.onTouchStart}
-      onFocus={prefetchHandlers.onFocus}
-    >
-      <span className="relative">
-        <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
-        {badgeCount > 0 && (
-          <span
-            key={badgeCount}
-            className="animate-badge-pop absolute -right-2 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--color-accent-500)] px-1 text-[10px] font-bold text-[var(--color-ink-900)]"
-          >
-            {badgeCount > 9 ? "9+" : badgeCount}
-          </span>
-        )}
-      </span>
-      <span className="leading-none">{label}</span>
-    </Link>
-  );
+	const isActive = isLinkActive(tab.matchBase, tab.matchPaths, pathname, catalogHomeHref);
+	const Icon = tab.icon;
+	const prefetchHandlers = usePrefetchOnIntent(isActive ? null : href);
+	return (
+		<Link
+			href={href}
+			className={classNames(
+				"tap focus-ring-inset flex w-full flex-col items-center justify-center gap-0.5 rounded-full text-[11px] transition-colors",
+				isActive ? "bg-[var(--color-accent-100)] font-semibold text-[var(--color-accent-800)]" : "font-medium text-[var(--color-ink-500)] active:text-[var(--color-ink-800)]",
+			)}
+			aria-current={isActive ? "page" : undefined}
+			onPointerDown={prefetchHandlers.onPointerDown}
+			onTouchStart={prefetchHandlers.onTouchStart}
+			onFocus={prefetchHandlers.onFocus}
+		>
+			<span className="relative">
+				<Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
+				{badgeCount > 0 && (
+					<span
+						key={badgeCount}
+						className="animate-badge-pop absolute -right-2 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--color-accent-500)] px-1 text-[10px] font-bold text-[var(--color-ink-900)]"
+					>
+						{badgeCount > 9 ? "9+" : badgeCount}
+					</span>
+				)}
+			</span>
+			<span className="leading-none">{label}</span>
+		</Link>
+	);
 }
 
 function TabMessageItem() {
-  const pathname = usePathname() ?? "";
-  const chatSettings = useChatSettings();
-  const { whatsappNumber } = useStoreSettings();
-  const chatHidden = CHAT_HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-  const [unread, setUnread] = useState(0);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+	const pathname = usePathname() ?? "";
+	const chatSettings = useChatSettings();
+	const { whatsappNumber } = useStoreSettings();
+	const chatHidden = CHAT_HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+	const [unread, setUnread] = useState(0);
+	const [isChatOpen, setIsChatOpen] = useState(false);
 
-  useEffect(() => {
-    function onChatOpenState(event: Event) {
-      const detail = (event as CustomEvent<ChatOpenStateDetail>).detail;
-      setIsChatOpen(detail?.isOpen ?? false);
-    }
-    window.addEventListener(CHAT_OPEN_STATE_EVENT, onChatOpenState);
-    return () => window.removeEventListener(CHAT_OPEN_STATE_EVENT, onChatOpenState);
-  }, []);
+	useEffect(() => {
+		function onChatOpenState(event: Event) {
+			const detail = (event as CustomEvent<ChatOpenStateDetail>).detail;
+			setIsChatOpen(detail?.isOpen ?? false);
+		}
+		window.addEventListener(CHAT_OPEN_STATE_EVENT, onChatOpenState);
+		return () => window.removeEventListener(CHAT_OPEN_STATE_EVENT, onChatOpenState);
+	}, []);
 
-  useEffect(() => {
-    if (!chatSettings.enabled || chatHidden) {
-      return;
-    }
+	useEffect(() => {
+		if (!chatSettings.enabled || chatHidden) {
+			return;
+		}
 
-    let cancelled = false;
+		let cancelled = false;
 
-    async function refreshUnread() {
-      try {
-        const count = await fetchChatUnreadSummary();
-        if (!cancelled) {
-          setUnread(count);
-        }
-      } catch {
-        // badge is best-effort
-      }
-    }
+		async function refreshUnread() {
+			try {
+				const count = await fetchChatUnreadSummary();
+				if (!cancelled) {
+					setUnread(count);
+				}
+			} catch {
+				// badge is best-effort
+			}
+		}
 
-    void refreshUnread();
+		void refreshUnread();
 
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        void refreshUnread();
-      }
-    };
+		const onVisibilityChange = () => {
+			if (document.visibilityState === "visible") {
+				void refreshUnread();
+			}
+		};
 
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    const pollTimer = window.setInterval(refreshUnread, 60_000);
+		document.addEventListener("visibilitychange", onVisibilityChange);
+		const pollTimer = window.setInterval(refreshUnread, 60_000);
 
-    return () => {
-      cancelled = true;
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.clearInterval(pollTimer);
-    };
-  }, [chatHidden, chatSettings.enabled]);
+		return () => {
+			cancelled = true;
+			document.removeEventListener("visibilitychange", onVisibilityChange);
+			window.clearInterval(pollTimer);
+		};
+	}, [chatHidden, chatSettings.enabled]);
 
-  function handleClick() {
-    if (chatSettings.enabled && !chatHidden) {
-      if (isChatOpen) {
-        closeChatWidget();
-      } else {
-        openChatWidget();
-      }
-      return;
-    }
-    const whatsappUrl = buildWhatsAppLink("Salam!", whatsappNumber);
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
-  }
+	function handleClick() {
+		if (chatSettings.enabled && !chatHidden) {
+			if (isChatOpen) {
+				closeChatWidget();
+			} else {
+				openChatWidget();
+			}
+			return;
+		}
+		const whatsappUrl = buildWhatsAppLink("Salam!", whatsappNumber);
+		window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+	}
 
-  const isActive = isChatOpen && chatSettings.enabled && !chatHidden;
-  const TabIcon = isActive ? X : MessageSquare;
+	const isActive = isChatOpen && chatSettings.enabled && !chatHidden;
+	const TabIcon = isActive ? X : MessageSquare;
 
-  return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className="tap focus-ring group relative flex items-center justify-center"
-      aria-label={isActive ? "Close chat support" : "Chat support"}
-      aria-pressed={isActive}
-    >
-      <span
-        className={classNames(
-          "relative grid size-12 place-items-center rounded-[var(--radius-full)] text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-[transform,box-shadow] duration-300 active:scale-[0.97]",
-          "bg-[var(--color-ink-900)]",
-          isActive ? "shadow-[var(--shadow-lg)]" : "",
-        )}
-      >
-        <span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-500)] text-[var(--color-ink-900)] transition-transform group-active:scale-105">
-          <TabIcon size={18} strokeWidth={2.4} />
-        </span>
-        {!isActive && unread > 0 && (
-          <span
-            key={unread}
-            className="animate-badge-pop absolute -right-0.5 -top-0.5 flex min-w-[18px] items-center justify-center rounded-full bg-[var(--color-danger-500)] px-1 text-[10px] font-bold text-[var(--color-on-dark)]"
-          >
-            {unread > 9 ? "9+" : unread}
-          </span>
-        )}
-      </span>
-    </button>
-  );
+	return (
+		<button
+			type="button"
+			onClick={handleClick}
+			className="tap focus-ring group relative flex items-center justify-center"
+			aria-label={isActive ? "Close chat support" : "Chat support"}
+			aria-pressed={isActive}
+		>
+			<span
+				className={classNames(
+					"relative grid size-12 place-items-center rounded-[var(--radius-full)] text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-[transform,box-shadow] duration-300 active:scale-[0.97]",
+					"bg-[var(--color-ink-900)]",
+					isActive ? "shadow-[var(--shadow-lg)]" : "",
+				)}
+			>
+				<span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-500)] text-[var(--color-ink-900)] transition-transform group-active:scale-105">
+					<TabIcon size={18} strokeWidth={2.4} />
+				</span>
+				{!isActive && unread > 0 && (
+					<span
+						key={unread}
+						className="animate-badge-pop absolute -right-0.5 -top-0.5 flex min-w-[18px] items-center justify-center rounded-full bg-[var(--color-danger-500)] px-1 text-[10px] font-bold text-[var(--color-on-dark)]"
+					>
+						{unread > 9 ? "9+" : unread}
+					</span>
+				)}
+			</span>
+		</button>
+	);
 }

@@ -21,62 +21,28 @@
  */
 import { unstable_cache } from "next/cache";
 
-import {
-  ActivityEntry,
-  Brand,
-  connectDB,
-  getStoreSettings,
-  Inquiry,
-  Offer,
-  Order,
-  ORDER_STATUSES,
-  Product,
-  SIGNED_IN_INQUIRY_FILTER,
-  User,
-} from "@store/db";
+import { ActivityEntry, Brand, connectDB, getStoreSettings, Inquiry, Offer, Order, ORDER_STATUSES, Product, SIGNED_IN_INQUIRY_FILTER, User } from "@store/db";
 import { escapeRegex, LOYALTY_POINT_TO_RUPEE, MAX_INPUT_LENGTH } from "@store/shared";
 
 import {
-  loadDashboardDailyRevenue as loadDashboardDailyRevenueRaw,
-  loadDashboardKpis as loadDashboardKpisRaw,
-  loadDashboardRecentInquiries as loadDashboardRecentInquiriesRaw,
-  loadPerformanceSummary as loadPerformanceSummaryRaw,
+	loadDashboardDailyRevenue as loadDashboardDailyRevenueRaw,
+	loadDashboardKpis as loadDashboardKpisRaw,
+	loadDashboardRecentInquiries as loadDashboardRecentInquiriesRaw,
+	loadPerformanceSummary as loadPerformanceSummaryRaw,
 } from "@/lib/server/dashboardStats";
-import type {
-  PerformanceCompare,
-  PerformanceRange,
-} from "@/lib/dashboard/performancePeriod";
+import type { PerformanceCompare, PerformanceRange } from "@/lib/dashboard/performancePeriod";
 import { loadShopHealth as loadShopHealthRaw } from "@/lib/server/shopHealth";
-import {
-  loadProductWizardCatalog as loadProductWizardCatalogRaw,
-  type ProductWizardCatalog,
-} from "@/lib/products/loadProductWizardCatalog";
+import { loadProductWizardCatalog as loadProductWizardCatalogRaw, type ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 import { toActivityResponse, type ActivityEntryLean } from "@/lib/serializers/activity";
 import { type BrandLean } from "@/lib/serializers/brand";
 import { summariseInquiry, type InquiryLean } from "@/lib/serializers/inquiry";
 import { toOfferResponse, type OfferLean } from "@/lib/serializers/offer";
 import { summariseOrder, type OrderLean } from "@/lib/serializers/order";
-import {
-  loadCustomerListCounts,
-  loadCustomerListPage,
-  type CustomerListParams,
-} from "@/lib/server/customerListQuery";
+import { loadCustomerListCounts, loadCustomerListPage, type CustomerListParams } from "@/lib/server/customerListQuery";
 import type { ListResponse } from "@/lib/api/listOptions";
-import {
-  brandLookupKey,
-  summariseProduct,
-  type ProductLean,
-} from "@/lib/serializers/product";
+import { brandLookupKey, summariseProduct, type ProductLean } from "@/lib/serializers/product";
 import { toUserResponse, type UserLean } from "@/lib/serializers/user";
-import type {
-  AdminActivityEntry,
-  AdminCustomerSummary,
-  AdminInquirySummary,
-  AdminOffer,
-  AdminOrderSummary,
-  AdminProductSummary,
-  AdminUser,
-} from "@/types/models";
+import type { AdminActivityEntry, AdminCustomerSummary, AdminInquirySummary, AdminOffer, AdminOrderSummary, AdminProductSummary, AdminUser } from "@/types/models";
 
 /** Tag for admin reads. Any admin mutation that should reflect
  *  immediately should call `revalidateTag(ADMIN_CACHE_TAG)`. */
@@ -91,37 +57,21 @@ const ADMIN_CACHE_TTL_SECONDS = 15;
 /**
  * Three independent cached loaders behind the dashboard.
  *
- * Splitting was deliberate: previously the page awaited one bundled
- * read with 18 parallel aggregations, which meant every Suspense
- * boundary on the dashboard had to wait for the slowest aggregation
- * before it could light up — even sections that only consumed a
- * 1-query slice. By exposing three independently-cached loaders the
- * recent-inquiries list (1 lightweight find) lights up first, the
- * daily-revenue sparklines (1 aggregation) light up next, and the
- * KPI grids (15 aggregations) light up when their pieces land. Total
- * Mongo work is unchanged — perceived load time isn't.
- *
- * Any admin mutation that should reflect immediately calls
- * `bustAdminCaches()` which flushes every tag at once.
+ * Split loaders so each dashboard section can suspend on only the aggregations it needs.
+ * Any admin mutation that should reflect immediately calls `bustAdminCaches()`.
  */
 
-export const loadDashboardKpisCached = unstable_cache(
-  () => loadDashboardKpisRaw(),
-  ["admin-dashboard-kpis"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
-);
+export const loadDashboardKpisCached = unstable_cache(() => loadDashboardKpisRaw(), ["admin-dashboard-kpis"], { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] });
 
-export const loadDashboardDailyRevenueCached = unstable_cache(
-  () => loadDashboardDailyRevenueRaw(),
-  ["admin-dashboard-daily-revenue"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
-);
+export const loadDashboardDailyRevenueCached = unstable_cache(() => loadDashboardDailyRevenueRaw(), ["admin-dashboard-daily-revenue"], {
+	revalidate: ADMIN_CACHE_TTL_SECONDS,
+	tags: [ADMIN_CACHE_TAG],
+});
 
-export const loadDashboardRecentInquiriesCached = unstable_cache(
-  () => loadDashboardRecentInquiriesRaw(),
-  ["admin-dashboard-recent-inquiries"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
-);
+export const loadDashboardRecentInquiriesCached = unstable_cache(() => loadDashboardRecentInquiriesRaw(), ["admin-dashboard-recent-inquiries"], {
+	revalidate: ADMIN_CACHE_TTL_SECONDS,
+	tags: [ADMIN_CACHE_TAG],
+});
 
 /**
  * Period-aware performance summary cache. The cache key includes the
@@ -129,18 +79,13 @@ export const loadDashboardRecentInquiriesCached = unstable_cache(
  * own slot. Same 15s TTL as the rest of the dashboard.
  */
 export const loadPerformanceSummaryCached = unstable_cache(
-  async (range: PerformanceRange, compare: PerformanceCompare) =>
-    loadPerformanceSummaryRaw({ range, compare }),
-  ["admin-dashboard-performance-summary"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+	async (range: PerformanceRange, compare: PerformanceCompare) => loadPerformanceSummaryRaw({ range, compare }),
+	["admin-dashboard-performance-summary"],
+	{ revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
 );
 
 /** Shop health card — settings + catalog hygiene + stock readiness. */
-export const loadShopHealthCached = unstable_cache(
-  () => loadShopHealthRaw(),
-  ["admin-dashboard-shop-health"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
-);
+export const loadShopHealthCached = unstable_cache(() => loadShopHealthRaw(), ["admin-dashboard-shop-health"], { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] });
 
 import { revalidateTag } from "next/cache";
 
@@ -170,8 +115,8 @@ const REVALIDATE_PROFILE = "max";
  * mutation feel instant to whoever just clicked "Save".
  */
 export function bustAdminCaches(): void {
-  revalidateTag(ADMIN_CACHE_TAG, REVALIDATE_PROFILE);
-  revalidateTag(STOREFRONT_CACHE_TAG, REVALIDATE_PROFILE);
+	revalidateTag(ADMIN_CACHE_TAG, REVALIDATE_PROFILE);
+	revalidateTag(STOREFRONT_CACHE_TAG, REVALIDATE_PROFILE);
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -198,51 +143,38 @@ const ADMIN_LIST_PAGE_SIZE = 24;
 const ORDER_STATUS_SET = new Set<string>(ORDER_STATUSES);
 
 export const loadAdminProductsCached = unstable_cache(
-  async (): Promise<{
-    products: AdminProductSummary[];
-    catalog: ProductWizardCatalog;
-  }> => {
-    await connectDB();
-    const productsQuery = Product.find({ isArchived: { $ne: true } })
-      .sort({ createdAt: -1 });
-    if (ADMIN_PRODUCTS_LIST_LIMIT_DEFAULT > 0) {
-      productsQuery.limit(ADMIN_PRODUCTS_LIST_LIMIT_DEFAULT);
-    }
-    const [productDocs, brandDocs, catalog, storeSettings] = await Promise.all([
-      productsQuery.lean<ProductLean[]>(),
-      Brand.find().lean<BrandLean[]>(),
-      loadProductWizardCatalogRaw(),
-      getStoreSettings(),
-    ]);
-    const brandsByCategoryAndSlug = new Map(
-      brandDocs.flatMap((brand) =>
-        brand.categorySlugs.map(
-          (categorySlug) =>
-            [brandLookupKey(categorySlug, brand.slug), brand] as const,
-        ),
-      ),
-    );
-    const storeName = storeSettings.siteName?.trim() || "Ibrahim Mobiles";
-    const products = productDocs.map((doc) =>
-      summariseProduct(doc, brandsByCategoryAndSlug, storeName),
-    );
-    return { products, catalog };
-  },
-  ["admin-products-list"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+	async (): Promise<{
+		products: AdminProductSummary[];
+		catalog: ProductWizardCatalog;
+	}> => {
+		await connectDB();
+		const productsQuery = Product.find({ isArchived: { $ne: true } }).sort({ createdAt: -1 });
+		if (ADMIN_PRODUCTS_LIST_LIMIT_DEFAULT > 0) {
+			productsQuery.limit(ADMIN_PRODUCTS_LIST_LIMIT_DEFAULT);
+		}
+		const [productDocs, brandDocs, catalog, storeSettings] = await Promise.all([
+			productsQuery.lean<ProductLean[]>(),
+			Brand.find().lean<BrandLean[]>(),
+			loadProductWizardCatalogRaw(),
+			getStoreSettings(),
+		]);
+		const brandsByCategoryAndSlug = new Map(brandDocs.flatMap((brand) => brand.categorySlugs.map((categorySlug) => [brandLookupKey(categorySlug, brand.slug), brand] as const)));
+		const storeName = storeSettings.siteName?.trim() || "Ibrahim Mobiles";
+		const products = productDocs.map((doc) => summariseProduct(doc, brandsByCategoryAndSlug, storeName));
+		return { products, catalog };
+	},
+	["admin-products-list"],
+	{ revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
 );
 
 export const loadAdminOrdersCached = unstable_cache(
-  async (): Promise<AdminOrderSummary[]> => {
-    await connectDB();
-    const docs = await Order.find()
-      .sort({ placedAt: -1 })
-      .limit(ADMIN_ORDERS_LIST_LIMIT)
-      .lean<OrderLean[]>();
-    return docs.map(summariseOrder);
-  },
-  ["admin-orders-list"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+	async (): Promise<AdminOrderSummary[]> => {
+		await connectDB();
+		const docs = await Order.find().sort({ placedAt: -1 }).limit(ADMIN_ORDERS_LIST_LIMIT).lean<OrderLean[]>();
+		return docs.map(summariseOrder);
+	},
+	["admin-orders-list"],
+	{ revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
 );
 
 /** Exposed so callers can format the customers page consistently. */
@@ -259,138 +191,124 @@ export const ADMIN_LOYALTY_POINT_TO_RUPEE = LOYALTY_POINT_TO_RUPEE;
 // seeded total, so deeper pages never re-count.
 
 export interface AdminOrdersCounts {
-  byStatus: Record<string, number>;
-  total: number;
-  pending: number;
-  netRevenueRupees: number;
+	byStatus: Record<string, number>;
+	total: number;
+	pending: number;
+	netRevenueRupees: number;
 }
 
 export const loadAdminOrdersCounts = unstable_cache(
-  async (): Promise<AdminOrdersCounts> => {
-    await connectDB();
-    const rows = await Order.aggregate<{ _id: string; count: number; revenue: number }>([
-      { $group: { _id: "$status", count: { $sum: 1 }, revenue: { $sum: "$totals.totalRupees" } } },
-    ]);
-    const byStatus: Record<string, number> = {};
-    let total = 0;
-    let netRevenueRupees = 0;
-    for (const row of rows) {
-      byStatus[row._id] = row.count;
-      total += row.count;
-      // Net revenue mirrors the workspace: exclude cancelled + refunded.
-      if (row._id !== "cancelled" && row._id !== "refunded") {
-        netRevenueRupees += row.revenue;
-      }
-    }
-    return { byStatus, total, pending: byStatus["pending-payment"] ?? 0, netRevenueRupees };
-  },
-  ["admin-orders-counts"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+	async (): Promise<AdminOrdersCounts> => {
+		await connectDB();
+		const rows = await Order.aggregate<{ _id: string; count: number; revenue: number }>([
+			{ $group: { _id: "$status", count: { $sum: 1 }, revenue: { $sum: "$totals.totalRupees" } } },
+		]);
+		const byStatus: Record<string, number> = {};
+		let total = 0;
+		let netRevenueRupees = 0;
+		for (const row of rows) {
+			byStatus[row._id] = row.count;
+			total += row.count;
+			// Net revenue mirrors the workspace: exclude cancelled + refunded.
+			if (row._id !== "cancelled" && row._id !== "refunded") {
+				netRevenueRupees += row.revenue;
+			}
+		}
+		return { byStatus, total, pending: byStatus["pending-payment"] ?? 0, netRevenueRupees };
+	},
+	["admin-orders-counts"],
+	{ revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
 );
 
 export const loadAdminOrdersPage = unstable_cache(
-  async (params: { search?: string; status?: string }): Promise<ListResponse<AdminOrderSummary>> => {
-    await connectDB();
-    const filter: Record<string, unknown> = {};
-    const search = (params.search ?? "").trim().slice(0, MAX_INPUT_LENGTH);
-    if (search) {
-      const pattern = escapeRegex(search);
-      filter.$or = [
-        { orderNumber: { $regex: pattern, $options: "i" } },
-        { "customerSnapshot.name": { $regex: pattern, $options: "i" } },
-        { "customerSnapshot.phoneNumber": { $regex: pattern, $options: "i" } },
-        { "customerSnapshot.city": { $regex: pattern, $options: "i" } },
-      ];
-    }
-    if (params.status && ORDER_STATUS_SET.has(params.status)) {
-      filter.status = params.status;
-    }
-    const [docs, total] = await Promise.all([
-      Order.find(filter).sort({ placedAt: -1 }).limit(ADMIN_LIST_PAGE_SIZE).lean<OrderLean[]>(),
-      Order.countDocuments(filter),
-    ]);
-    return { items: docs.map(summariseOrder), total, page: 1, limit: ADMIN_LIST_PAGE_SIZE };
-  },
-  ["admin-orders-page"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+	async (params: { search?: string; status?: string }): Promise<ListResponse<AdminOrderSummary>> => {
+		await connectDB();
+		const filter: Record<string, unknown> = {};
+		const search = (params.search ?? "").trim().slice(0, MAX_INPUT_LENGTH);
+		if (search) {
+			const pattern = escapeRegex(search);
+			filter.$or = [
+				{ orderNumber: { $regex: pattern, $options: "i" } },
+				{ "customerSnapshot.name": { $regex: pattern, $options: "i" } },
+				{ "customerSnapshot.phoneNumber": { $regex: pattern, $options: "i" } },
+				{ "customerSnapshot.city": { $regex: pattern, $options: "i" } },
+			];
+		}
+		if (params.status && ORDER_STATUS_SET.has(params.status)) {
+			filter.status = params.status;
+		}
+		const [docs, total] = await Promise.all([Order.find(filter).sort({ placedAt: -1 }).limit(ADMIN_LIST_PAGE_SIZE).lean<OrderLean[]>(), Order.countDocuments(filter)]);
+		return { items: docs.map(summariseOrder), total, page: 1, limit: ADMIN_LIST_PAGE_SIZE };
+	},
+	["admin-orders-page"],
+	{ revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
 );
 
 export const loadAdminCustomersPage = unstable_cache(
-  (params: CustomerListParams): Promise<ListResponse<AdminCustomerSummary>> =>
-    loadCustomerListPage({ ...params, limit: ADMIN_LIST_PAGE_SIZE }),
-  ["admin-customers-page"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+	(params: CustomerListParams): Promise<ListResponse<AdminCustomerSummary>> => loadCustomerListPage({ ...params, limit: ADMIN_LIST_PAGE_SIZE }),
+	["admin-customers-page"],
+	{ revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
 );
 
-export const loadAdminCustomersCounts = unstable_cache(
-  () => loadCustomerListCounts(),
-  ["admin-customers-counts"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
-);
+export const loadAdminCustomersCounts = unstable_cache(() => loadCustomerListCounts(), ["admin-customers-counts"], {
+	revalidate: ADMIN_CACHE_TTL_SECONDS,
+	tags: [ADMIN_CACHE_TAG],
+});
 
 export const loadAdminInquiriesPage = unstable_cache(
-  async (params: { search?: string }): Promise<ListResponse<AdminInquirySummary>> => {
-    await connectDB();
-    const search = (params.search ?? "").trim().slice(0, MAX_INPUT_LENGTH);
-    let filter: Record<string, unknown> = SIGNED_IN_INQUIRY_FILTER;
-    if (search) {
-      const pattern = escapeRegex(search);
-      filter = {
-        $and: [
-          SIGNED_IN_INQUIRY_FILTER,
-          {
-            $or: [
-              { customerName: { $regex: pattern, $options: "i" } },
-              { phoneNumber: { $regex: pattern, $options: "i" } },
-              { subjectProductName: { $regex: pattern, $options: "i" } },
-              { lastMessagePreview: { $regex: pattern, $options: "i" } },
-            ],
-          },
-        ],
-      };
-    }
-    const [docs, total] = await Promise.all([
-      Inquiry.find(filter).sort({ lastMessageAt: -1 }).limit(ADMIN_LIST_PAGE_SIZE).lean<InquiryLean[]>(),
-      Inquiry.countDocuments(filter),
-    ]);
-    return { items: docs.map(summariseInquiry), total, page: 1, limit: ADMIN_LIST_PAGE_SIZE };
-  },
-  ["admin-inquiries-page"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+	async (params: { search?: string }): Promise<ListResponse<AdminInquirySummary>> => {
+		await connectDB();
+		const search = (params.search ?? "").trim().slice(0, MAX_INPUT_LENGTH);
+		let filter: Record<string, unknown> = SIGNED_IN_INQUIRY_FILTER;
+		if (search) {
+			const pattern = escapeRegex(search);
+			filter = {
+				$and: [
+					SIGNED_IN_INQUIRY_FILTER,
+					{
+						$or: [
+							{ customerName: { $regex: pattern, $options: "i" } },
+							{ phoneNumber: { $regex: pattern, $options: "i" } },
+							{ subjectProductName: { $regex: pattern, $options: "i" } },
+							{ lastMessagePreview: { $regex: pattern, $options: "i" } },
+						],
+					},
+				],
+			};
+		}
+		const [docs, total] = await Promise.all([Inquiry.find(filter).sort({ lastMessageAt: -1 }).limit(ADMIN_LIST_PAGE_SIZE).lean<InquiryLean[]>(), Inquiry.countDocuments(filter)]);
+		return { items: docs.map(summariseInquiry), total, page: 1, limit: ADMIN_LIST_PAGE_SIZE };
+	},
+	["admin-inquiries-page"],
+	{ revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
 );
 
 export const loadAdminTeamCached = unstable_cache(
-  async (): Promise<AdminUser[]> => {
-    await connectDB();
-    const docs = await User.find().sort({ name: 1 }).lean<UserLean[]>();
-    return docs.map(toUserResponse);
-  },
-  ["admin-team-list"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+	async (): Promise<AdminUser[]> => {
+		await connectDB();
+		const docs = await User.find().sort({ name: 1 }).lean<UserLean[]>();
+		return docs.map(toUserResponse);
+	},
+	["admin-team-list"],
+	{ revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
 );
 
 export const loadAdminOffersCached = unstable_cache(
-  async (): Promise<AdminOffer[]> => {
-    await connectDB();
-    const docs = await Offer.find()
-      .sort({ sortOrder: 1, createdAt: -1 })
-      .limit(ADMIN_OFFERS_LIST_LIMIT)
-      .lean<OfferLean[]>();
-    return docs.map(toOfferResponse);
-  },
-  ["admin-offers-list"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+	async (): Promise<AdminOffer[]> => {
+		await connectDB();
+		const docs = await Offer.find().sort({ sortOrder: 1, createdAt: -1 }).limit(ADMIN_OFFERS_LIST_LIMIT).lean<OfferLean[]>();
+		return docs.map(toOfferResponse);
+	},
+	["admin-offers-list"],
+	{ revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
 );
 
 export const loadAdminActivityCached = unstable_cache(
-  async (): Promise<AdminActivityEntry[]> => {
-    await connectDB();
-    const docs = await ActivityEntry.find()
-      .sort({ createdAt: -1 })
-      .limit(ADMIN_ACTIVITY_LIST_LIMIT)
-      .lean<ActivityEntryLean[]>();
-    return docs.map(toActivityResponse);
-  },
-  ["admin-activity-list"],
-  { revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+	async (): Promise<AdminActivityEntry[]> => {
+		await connectDB();
+		const docs = await ActivityEntry.find().sort({ createdAt: -1 }).limit(ADMIN_ACTIVITY_LIST_LIMIT).lean<ActivityEntryLean[]>();
+		return docs.map(toActivityResponse);
+	},
+	["admin-activity-list"],
+	{ revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
 );

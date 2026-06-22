@@ -15,20 +15,20 @@ import { categoryHref, productAbsoluteUrl } from "@/lib/catalog/productPaths";
 import { getDefaultVariant } from "@/lib/productSummary";
 
 interface SeoSettings {
-  siteName: string;
-  siteTagline: string;
-  /** Absolute storefront origin (e.g. `https://ibrahimmobiles.com`). */
-  siteUrl: string;
+	siteName: string;
+	siteTagline: string;
+	/** Absolute storefront origin (e.g. `https://ibrahimmobiles.com`). */
+	siteUrl: string;
 }
 
 interface CategoryRef {
-  slug: string;
-  label: string;
+	slug: string;
+	label: string;
 }
 
 interface BrandRef {
-  slug: string;
-  name: string;
+	slug: string;
+	name: string;
 }
 
 /* --------------------------------------------------------------------------
@@ -36,111 +36,94 @@ interface BrandRef {
  * ------------------------------------------------------------------------ */
 
 export function productJsonLd({
-  product,
-  variant,
-  brand,
-  category,
-  settings,
+	product,
+	variant,
+	brand,
+	category,
+	settings,
 }: {
-  product: Product;
-  variant: Variant;
-  brand: BrandRef | null;
-  category: CategoryRef | null;
-  settings: SeoSettings;
+	product: Product;
+	variant: Variant;
+	brand: BrandRef | null;
+	category: CategoryRef | null;
+	settings: SeoSettings;
 }): Record<string, unknown> {
-  const url = productAbsoluteUrl(settings.siteUrl, product, { variant });
-  const heroImage = product.images?.[0];
-  const images = product.images
-    .map((image) => image?.variants?.detail || image?.variants?.full)
-    .filter((url): url is string => typeof url === "string");
+	const url = productAbsoluteUrl(settings.siteUrl, product, { variant });
+	const heroImage = product.images?.[0];
+	const images = product.images.map((image) => image?.variants?.detail || image?.variants?.full).filter((url): url is string => typeof url === "string");
 
-  const offer: Record<string, unknown> = {
-    "@type": "Offer",
-    url,
-    priceCurrency: "PKR",
-    price: variant.priceRupees,
-    availability: isVariantInStock(variant)
-        ? "https://schema.org/InStock"
-        : "https://schema.org/OutOfStock",
-  };
-  if (brand?.name) {
-    offer.seller = {
-      "@type": "Organization",
-      name: settings.siteName,
-    };
-  }
+	const offer: Record<string, unknown> = {
+		"@type": "Offer",
+		url,
+		priceCurrency: "PKR",
+		price: variant.priceRupees,
+		availability: isVariantInStock(variant) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+	};
+	if (brand?.name) {
+		offer.seller = {
+			"@type": "Organization",
+			name: settings.siteName,
+		};
+	}
 
-  const jsonLd: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: `${brand?.name ?? product.brandName} ${product.name}`.trim(),
-    sku: variant.id,
-    url,
-    image: images.length > 0 ? images : heroImage ? [heroImage.variants.detail] : undefined,
-    description:
-      `${brand?.name ?? product.brandName} ${product.name} — available at ${settings.siteName}.`,
-    brand: brand?.name
-      ? { "@type": "Brand", name: brand.name }
-      : undefined,
-    category: category?.label,
-    offers: offer,
-  };
+	const jsonLd: Record<string, unknown> = {
+		"@context": "https://schema.org",
+		"@type": "Product",
+		name: `${brand?.name ?? product.brandName} ${product.name}`.trim(),
+		sku: variant.id,
+		url,
+		image: images.length > 0 ? images : heroImage ? [heroImage.variants.detail] : undefined,
+		description: `${brand?.name ?? product.brandName} ${product.name} — available at ${settings.siteName}.`,
+		brand: brand?.name ? { "@type": "Brand", name: brand.name } : undefined,
+		category: category?.label,
+		offers: offer,
+	};
 
-  return jsonLd;
+	return jsonLd;
 }
 
 /* --------------------------------------------------------------------------
  * BreadcrumbList JSON-LD
  * ------------------------------------------------------------------------ */
 
-export function breadcrumbJsonLd(
-  crumbs: { name: string; url: string }[],
-): Record<string, unknown> {
-  return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: crumbs.map((crumb, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      name: crumb.name,
-      item: crumb.url,
-    })),
-  };
+export function breadcrumbJsonLd(crumbs: { name: string; url: string }[]): Record<string, unknown> {
+	return {
+		"@context": "https://schema.org",
+		"@type": "BreadcrumbList",
+		itemListElement: crumbs.map((crumb, index) => ({
+			"@type": "ListItem",
+			position: index + 1,
+			name: crumb.name,
+			item: crumb.url,
+		})),
+	};
 }
 
 /* --------------------------------------------------------------------------
  * CollectionPage JSON-LD (category landings)
  * ------------------------------------------------------------------------ */
 
-export function collectionPageJsonLd({
-  category,
-  products,
-  settings,
-}: {
-  category: CategoryRef;
-  products: Product[];
-  settings: SeoSettings;
-}): Record<string, unknown> {
-  const url = `${settings.siteUrl}${categoryHref(category.slug)}`;
-  const items = products.slice(0, 24).map((product, index) => ({
-    "@type": "ListItem",
-    position: index + 1,
-    url: productAbsoluteUrl(settings.siteUrl, product, {
-      variant: getDefaultVariant(product),
-    }),
-    name: `${product.brandName} ${product.name}`,
-  }));
+export function collectionPageJsonLd({ category, products, settings }: { category: CategoryRef; products: Product[]; settings: SeoSettings }): Record<string, unknown> {
+	const url = `${settings.siteUrl}${categoryHref(category.slug)}`;
+	const items = products.slice(0, 24).map((product, index) => ({
+		"@type": "ListItem",
+		position: index + 1,
+		url: productAbsoluteUrl(settings.siteUrl, product, {
+			variant: getDefaultVariant(product),
+		}),
+		name: `${product.brandName} ${product.name}`,
+	}));
 
-  return {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: `${category.label} — ${settings.siteName}`,
-    url,
-    mainEntity: {
-      "@type": "ItemList",
-      itemListElement: items,
-    },
-  };
+	return {
+		"@context": "https://schema.org",
+		"@type": "CollectionPage",
+		name: `${category.label} — ${settings.siteName}`,
+		url,
+		mainEntity: {
+			"@type": "ItemList",
+			itemListElement: items,
+		},
+	};
 }
 
 /* --------------------------------------------------------------------------
@@ -148,51 +131,51 @@ export function collectionPageJsonLd({
  * ------------------------------------------------------------------------ */
 
 export function organizationJsonLd(
-  settings: SeoSettings & {
-    contactPhone?: string;
-    contactEmail?: string;
-    logoUrl?: string;
-    sameAs?: string[];
-  },
+	settings: SeoSettings & {
+		contactPhone?: string;
+		contactEmail?: string;
+		logoUrl?: string;
+		sameAs?: string[];
+	},
 ): Record<string, unknown> {
-  const jsonLd: Record<string, unknown> = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    name: settings.siteName,
-    url: settings.siteUrl,
-    description: settings.siteTagline,
-  };
-  if (settings.logoUrl) {
-    jsonLd.logo = settings.logoUrl;
-  }
-  if (settings.sameAs && settings.sameAs.length > 0) {
-    jsonLd.sameAs = settings.sameAs;
-  }
-  if (settings.contactPhone || settings.contactEmail) {
-    jsonLd.contactPoint = [
-      {
-        "@type": "ContactPoint",
-        contactType: "customer service",
-        telephone: settings.contactPhone,
-        email: settings.contactEmail,
-      },
-    ];
-  }
-  return jsonLd;
+	const jsonLd: Record<string, unknown> = {
+		"@context": "https://schema.org",
+		"@type": "Organization",
+		name: settings.siteName,
+		url: settings.siteUrl,
+		description: settings.siteTagline,
+	};
+	if (settings.logoUrl) {
+		jsonLd.logo = settings.logoUrl;
+	}
+	if (settings.sameAs && settings.sameAs.length > 0) {
+		jsonLd.sameAs = settings.sameAs;
+	}
+	if (settings.contactPhone || settings.contactEmail) {
+		jsonLd.contactPoint = [
+			{
+				"@type": "ContactPoint",
+				contactType: "customer service",
+				telephone: settings.contactPhone,
+				email: settings.contactEmail,
+			},
+		];
+	}
+	return jsonLd;
 }
 
 export function websiteJsonLd(settings: SeoSettings): Record<string, unknown> {
-  return {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: settings.siteName,
-    url: settings.siteUrl,
-    potentialAction: {
-      "@type": "SearchAction",
-      target: `${settings.siteUrl}/?q={search_term_string}`,
-      "query-input": "required name=search_term_string",
-    },
-  };
+	return {
+		"@context": "https://schema.org",
+		"@type": "WebSite",
+		name: settings.siteName,
+		url: settings.siteUrl,
+		potentialAction: {
+			"@type": "SearchAction",
+			target: `${settings.siteUrl}/?q={search_term_string}`,
+			"query-input": "required name=search_term_string",
+		},
+	};
 }
 
 /* --------------------------------------------------------------------------
@@ -200,8 +183,6 @@ export function websiteJsonLd(settings: SeoSettings): Record<string, unknown> {
  * ------------------------------------------------------------------------ */
 
 export function jsonLdScriptContent(obj: Record<string, unknown>): string {
-  // Strip out undefined keys so the rendered script stays compact.
-  return JSON.stringify(obj, (_key, value) =>
-    value === undefined ? undefined : value,
-  );
+	// Strip out undefined keys so the rendered script stays compact.
+	return JSON.stringify(obj, (_key, value) => (value === undefined ? undefined : value));
 }

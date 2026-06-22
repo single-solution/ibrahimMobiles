@@ -31,29 +31,15 @@ export function FilterCheckRow({ label, count, checked, onToggle, compact = fals
 					className={classNames(
 						"grid shrink-0 place-items-center rounded-[6px] border transition-colors",
 						compact ? "size-[16px]" : "size-[20px]",
-						checked
-							? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)]"
-							: "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
+						checked ? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)]" : "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
 					)}
 				>
-					{checked ? (
-						<Check
-							size={compact ? 11 : 14}
-							strokeWidth={3}
-							className="animate-badge-pop"
-						/>
-					) : null}
+					{checked ? <Check size={compact ? 11 : 14} strokeWidth={3} className="animate-badge-pop" /> : null}
 				</span>
 				<span className="truncate">{label}</span>
 			</span>
 			{count !== undefined ? (
-				<span
-					className={classNames(
-						"shrink-0 tabular-nums",
-						compact ? "text-[11px]" : "text-[12px]",
-						checked ? "text-[var(--color-accent-700)]" : "text-[var(--color-ink-400)]",
-					)}
-				>
+				<span className={classNames("shrink-0 tabular-nums", compact ? "text-[11px]" : "text-[12px]", checked ? "text-[var(--color-accent-700)]" : "text-[var(--color-ink-400)]")}>
 					{count}
 				</span>
 			) : null}

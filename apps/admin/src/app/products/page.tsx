@@ -17,19 +17,19 @@ export const dynamic = "force-dynamic";
  * Cache is busted by `bustAdminCaches()` on any product mutation.
  */
 export default async function AdminProductsPage() {
-  await requirePagePermission("product_view", "/products");
-  return (
-    <div className={adminCatalogPageClass}>
-      <section className="flex min-h-0 flex-1 flex-col">
-        <Suspense fallback={<CatalogWorkspaceSkeleton />}>
-          <ProductsCatalogData />
-        </Suspense>
-      </section>
-    </div>
-  );
+	await requirePagePermission("product_view", "/products");
+	return (
+		<div className={adminCatalogPageClass}>
+			<section className="flex min-h-0 flex-1 flex-col">
+				<Suspense fallback={<CatalogWorkspaceSkeleton />}>
+					<ProductsCatalogData />
+				</Suspense>
+			</section>
+		</div>
+	);
 }
 
 async function ProductsCatalogData() {
-  const { products, catalog } = await loadAdminProductsCached();
-  return <ProductsCatalog products={products} catalog={catalog} />;
+	const { products, catalog } = await loadAdminProductsCached();
+	return <ProductsCatalog products={products} catalog={catalog} />;
 }

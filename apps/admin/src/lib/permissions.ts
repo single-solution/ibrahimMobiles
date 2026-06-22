@@ -12,17 +12,17 @@ import { ROLE_PERMISSIONS, PERMISSION_KEYS, type PermissionKey } from "@/lib/per
  * — never read claims off the JWT directly.
  */
 export interface VerifiedUser {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  isSuperAdmin: boolean;
-  isActive: boolean;
+	id: string;
+	email: string;
+	name: string;
+	role: UserRole;
+	isSuperAdmin: boolean;
+	isActive: boolean;
 }
 
 interface CacheEntry {
-  user: VerifiedUser;
-  cachedAt: number;
+	user: VerifiedUser;
+	cachedAt: number;
 }
 
 /**
@@ -38,7 +38,7 @@ const sessionCache = new Map<string, CacheEntry>();
 
 /** Drop a single user's cached session — call after role/active changes. */
 export function invalidateSessionCache(userId: string): void {
-  sessionCache.delete(userId);
+	sessionCache.delete(userId);
 }
 
 /**
@@ -58,63 +58,62 @@ export function invalidateSessionCache(userId: string): void {
 export const getVerifiedSession = cache(getVerifiedSessionUncached);
 
 async function getVerifiedSessionUncached(): Promise<VerifiedUser | null> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return null;
-  }
+	const session = await auth();
+	if (!session?.user?.id) {
+		return null;
+	}
 
-  const userId = session.user.id;
-  const cached = sessionCache.get(userId);
-  if (cached && Date.now() - cached.cachedAt < SESSION_CACHE_TTL_MS) {
-    return cached.user;
-  }
+	const userId = session.user.id;
+	const cached = sessionCache.get(userId);
+	if (cached && Date.now() - cached.cachedAt < SESSION_CACHE_TTL_MS) {
+		return cached.user;
+	}
 
-  await connectDB();
-  const user = await User.findById(userId).lean();
-  if (!user || user.isActive === false) {
-    sessionCache.delete(userId);
-    logger.info({ userId }, "Session rejected: user not found or inactive");
-    return null;
-  }
+	await connectDB();
+	const user = await User.findById(userId).lean();
+	if (!user || user.isActive === false) {
+		sessionCache.delete(userId);
+		logger.info({ userId }, "Session rejected: user not found or inactive");
+		return null;
+	}
 
-  const verified: VerifiedUser = {
-    id: String(user._id),
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    isSuperAdmin: user.isSuperAdmin === true,
-    isActive: user.isActive,
-  };
-  sessionCache.set(userId, { user: verified, cachedAt: Date.now() });
-  return verified;
+	const verified: VerifiedUser = {
+		id: String(user._id),
+		email: user.email,
+		name: user.name,
+		role: user.role,
+		isSuperAdmin: user.isSuperAdmin === true,
+		isActive: user.isActive,
+	};
+	sessionCache.set(userId, { user: verified, cachedAt: Date.now() });
+	return verified;
 }
 
 /** Whether `actor` holds `permission`. Super-admins implicitly hold every key. */
 export function hasPermission(actor: VerifiedUser, permission: PermissionKey): boolean {
-  if (actor.isSuperAdmin) {
-    return true;
-  }
-  const allowed = expandRolePermissions(ROLE_PERMISSIONS[actor.role] ?? []);
-  return allowed.has(permission);
+	if (actor.isSuperAdmin) {
+		return true;
+	}
+	const allowed = expandRolePermissions(ROLE_PERMISSIONS[actor.role] ?? []);
+	return allowed.has(permission);
 }
 
 /** All permission keys granted to an actor (including implied keys). */
 export function getActorPermissions(actor: VerifiedUser): PermissionKey[] {
-  if (actor.isSuperAdmin) {
-    return [...PERMISSION_KEYS];
-  }
-  return [...expandRolePermissions(ROLE_PERMISSIONS[actor.role] ?? [])];
+	if (actor.isSuperAdmin) {
+		return [...PERMISSION_KEYS];
+	}
+	return [...expandRolePermissions(ROLE_PERMISSIONS[actor.role] ?? [])];
 }
 
 function expandRolePermissions(keys: ReadonlyArray<PermissionKey>): Set<PermissionKey> {
-  const allowed = new Set<PermissionKey>(keys);
-  if (allowed.has("inquiry_manage")) {
-    allowed.add("inquiry_reply");
-    allowed.add("inquiry_view");
-  }
-  if (allowed.has("inquiry_reply")) {
-    allowed.add("inquiry_view");
-  }
-  return allowed;
+	const allowed = new Set<PermissionKey>(keys);
+	if (allowed.has("inquiry_manage")) {
+		allowed.add("inquiry_reply");
+		allowed.add("inquiry_view");
+	}
+	if (allowed.has("inquiry_reply")) {
+		allowed.add("inquiry_view");
+	}
+	return allowed;
 }
-

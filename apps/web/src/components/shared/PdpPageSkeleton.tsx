@@ -89,7 +89,9 @@ export function PdpPageSkeleton() {
 	return (
 		<SkeletonScreen label="Loading product">
 			<div className="pdp-shell pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-2 md:hidden">
-				<div className={`${STOREFRONT_SHELL_CLASS} overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]`}>
+				<div
+					className={`${STOREFRONT_SHELL_CLASS} overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]`}
+				>
 					<PdpGallerySkeleton />
 				</div>
 

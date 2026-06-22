@@ -10,15 +10,15 @@ import { loadAlertSummary } from "@/lib/server/alertSummary";
  * shop's operational state — the same audience as the activity feed.
  */
 export async function GET() {
-  const { response } = await requireSession("activity_view");
-  if (response) {
-    return response;
-  }
+	const { response } = await requireSession("activity_view");
+	if (response) {
+		return response;
+	}
 
-  try {
-    const summary = await loadAlertSummary();
-    return ok(summary);
-  } catch (error) {
-    return handleMongoError(error);
-  }
+	try {
+		const summary = await loadAlertSummary();
+		return ok(summary);
+	} catch (error) {
+		return handleMongoError(error);
+	}
 }

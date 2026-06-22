@@ -12,10 +12,7 @@ export function DealsOfferSections({ sections, layout }: DealsOfferSectionsProps
 		return null;
 	}
 
-	const gridClassName =
-		layout === "mobile"
-			? "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3.5"
-			: "grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5";
+	const gridClassName = layout === "mobile" ? "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-3.5" : "grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5";
 
 	return (
 		<div className={layout === "desktop" ? "mt-16 space-y-16" : "app-section cv-auto-lg space-y-8"}>

@@ -25,7 +25,7 @@ import type { IconNode } from "@/lib/icons/types";
  * `props.iconNode` is the geometry we want — no dynamic import needed.
  */
 type LucideForwardRef = {
-  render: (props: object, ref: unknown) => { props?: { iconNode?: IconNode } } | null;
+	render: (props: object, ref: unknown) => { props?: { iconNode?: IconNode } } | null;
 };
 
 const registry = icons as unknown as Record<string, LucideForwardRef | undefined>;
@@ -38,14 +38,14 @@ const nodeCache = new Map<string, IconNode>();
  * empty node so a single bad name never breaks a render.
  */
 export function resolveIconNode(name?: string): IconNode {
-  const normalized = normalizeIconName(name, DEFAULT_ICON);
-  const cached = nodeCache.get(normalized);
-  if (cached) {
-    return cached;
-  }
+	const normalized = normalizeIconName(name, DEFAULT_ICON);
+	const cached = nodeCache.get(normalized);
+	if (cached) {
+		return cached;
+	}
 
-  const component = registry[normalized] ?? registry[DEFAULT_ICON];
-  const node = component?.render({}, null)?.props?.iconNode ?? [];
-  nodeCache.set(normalized, node);
-  return node;
+	const component = registry[normalized] ?? registry[DEFAULT_ICON];
+	const node = component?.render({}, null)?.props?.iconNode ?? [];
+	nodeCache.set(normalized, node);
+	return node;
 }

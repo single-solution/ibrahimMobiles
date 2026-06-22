@@ -12,29 +12,18 @@ import { classNames } from "@store/shared";
 type SkeletonShape = "block" | "circle" | "pill" | "text";
 
 interface SkeletonProps extends HTMLAttributes<HTMLSpanElement> {
-  shape?: SkeletonShape;
+	shape?: SkeletonShape;
 }
 
 const SHAPE_CLASS: Record<SkeletonShape, string> = {
-  block: "rounded-[var(--radius-md)]",
-  circle: "rounded-full",
-  pill: "rounded-[var(--radius-full)]",
-  text: "rounded-[var(--radius-sm)]",
+	block: "rounded-[var(--radius-md)]",
+	circle: "rounded-full",
+	pill: "rounded-[var(--radius-full)]",
+	text: "rounded-[var(--radius-sm)]",
 };
 
-export function Skeleton({
-  shape = "block",
-  className,
-  "aria-hidden": ariaHidden = true,
-  ...rest
-}: SkeletonProps) {
-  return (
-    <span
-      {...rest}
-      aria-hidden={ariaHidden}
-      className={classNames("skeleton block", SHAPE_CLASS[shape], className)}
-    />
-  );
+export function Skeleton({ shape = "block", className, "aria-hidden": ariaHidden = true, ...rest }: SkeletonProps) {
+	return <span {...rest} aria-hidden={ariaHidden} className={classNames("skeleton block", SHAPE_CLASS[shape], className)} />;
 }
 
 /**
@@ -42,19 +31,14 @@ export function Skeleton({
  * each skeleton screen — individual `Skeleton` blocks inside stay aria-hidden.
  */
 interface SkeletonScreenProps extends HTMLAttributes<HTMLDivElement> {
-  label?: string;
+	label?: string;
 }
 
-export function SkeletonScreen({
-  label = "Loading",
-  className,
-  children,
-  ...rest
-}: SkeletonScreenProps) {
-  return (
-    <div {...rest} role="status" aria-live="polite" aria-busy className={className}>
-      <span className="sr-only">{label}…</span>
-      {children}
-    </div>
-  );
+export function SkeletonScreen({ label = "Loading", className, children, ...rest }: SkeletonScreenProps) {
+	return (
+		<div {...rest} role="status" aria-live="polite" aria-busy className={className}>
+			<span className="sr-only">{label}…</span>
+			{children}
+		</div>
+	);
 }

@@ -9,68 +9,64 @@
 
 import type { StoredImage } from "../storage/types";
 
-export const CHAT_STATUSES = [
-  "open",
-  "awaiting-customer",
-  "resolved",
-] as const;
+export const CHAT_STATUSES = ["open", "awaiting-customer", "resolved"] as const;
 export type ChatStatus = (typeof CHAT_STATUSES)[number];
 
 export const CHAT_MESSAGE_AUTHORS = ["customer", "agent", "assistant"] as const;
 export type ChatMessageAuthor = (typeof CHAT_MESSAGE_AUTHORS)[number];
 
 export interface ChatImageAttachment {
-  kind: "image";
-  image: StoredImage;
+	kind: "image";
+	image: StoredImage;
 }
 
 export interface ChatFileAttachment {
-  kind: "file";
-  url: string;
-  mime: string;
-  sizeBytes: number;
-  filename: string;
+	kind: "file";
+	url: string;
+	mime: string;
+	sizeBytes: number;
+	filename: string;
 }
 
 export type ChatAttachment = ChatImageAttachment | ChatFileAttachment;
 
 export interface ChatMessage {
-  id: string;
-  author: ChatMessageAuthor;
-  authorName?: string;
-  /** Set when `author === "agent"` — the replying admin user. */
-  authorUserId?: string;
-  body: string;
-  attachments?: ChatAttachment[];
-  /** ISO 8601 timestamp. */
-  createdAt: string;
-  /** ISO timestamp — set when the customer side has loaded this message. */
-  readByCustomerAt?: string;
+	id: string;
+	author: ChatMessageAuthor;
+	authorName?: string;
+	/** Set when `author === "agent"` — the replying admin user. */
+	authorUserId?: string;
+	body: string;
+	attachments?: ChatAttachment[];
+	/** ISO 8601 timestamp. */
+	createdAt: string;
+	/** ISO timestamp — set when the customer side has loaded this message. */
+	readByCustomerAt?: string;
 }
 
 export interface ChatThreadSummary {
-  id: string;
-  customerId?: string;
-  customerName: string;
-  phoneNumber: string;
-  subjectProductId?: string;
-  subjectProductName?: string;
-  status: ChatStatus;
-  assignedToUserId?: string;
-  /** ISO 8601 — drives sort order on the inbox + customer account list. */
-  lastMessageAt: string;
-  lastMessagePreview: string;
-  lastMessageAuthor: ChatMessageAuthor;
-  unreadByCustomer: number;
-  unreadByTeam: number;
-  createdAt: string;
-  updatedAt: string;
+	id: string;
+	customerId?: string;
+	customerName: string;
+	phoneNumber: string;
+	subjectProductId?: string;
+	subjectProductName?: string;
+	status: ChatStatus;
+	assignedToUserId?: string;
+	/** ISO 8601 — drives sort order on the inbox + customer account list. */
+	lastMessageAt: string;
+	lastMessagePreview: string;
+	lastMessageAuthor: ChatMessageAuthor;
+	unreadByCustomer: number;
+	unreadByTeam: number;
+	createdAt: string;
+	updatedAt: string;
 }
 
 export interface ChatThread extends ChatThreadSummary {
-  messages: ChatMessage[];
-  /** True when older messages exist before the loaded page (drives "load more"). */
-  hasMoreOlder?: boolean;
+	messages: ChatMessage[];
+	/** True when older messages exist before the loaded page (drives "load more"). */
+	hasMoreOlder?: boolean;
 }
 
 /** Validation regex shared by client + server for the customer's full name. */

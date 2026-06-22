@@ -12,13 +12,7 @@ interface SelectSearchInputProps {
 }
 
 /** Compact search field for select / filter dropdown panels. */
-export function SelectSearchInput({
-	value,
-	onChange,
-	placeholder = "Search…",
-	className,
-	autoFocus = false,
-}: SelectSearchInputProps) {
+export function SelectSearchInput({ value, onChange, placeholder = "Search…", className, autoFocus = false }: SelectSearchInputProps) {
 	return (
 		<div className={classNames("border-b border-[var(--color-ink-100)] px-2 py-1.5", className)}>
 			<label className="relative flex items-center">

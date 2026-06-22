@@ -11,20 +11,9 @@ import type { GalleryImage } from "@/components/shared/uploads/imageStaging";
 import type { AdminProduct } from "@/types/models";
 import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatalog";
 
-import {
-	collectProductImageErrors,
-	emptyDraft,
-	errorsByPath,
-	validateShellDraft,
-	type CategorySurface,
-	type ProductDraft,
-	type ProductValidationError,
-} from "./productFormState";
+import { collectProductImageErrors, emptyDraft, errorsByPath, validateShellDraft, type CategorySurface, type ProductDraft, type ProductValidationError } from "./productFormState";
 import { ProductDetailsForm } from "./ProductDetailsForm";
-import {
-	attributeConfigForCategory,
-	buildAttributeConfigForSave,
-} from "./productAttributeConfigState";
+import { attributeConfigForCategory, buildAttributeConfigForSave } from "./productAttributeConfigState";
 
 interface ProductWizardStep1Props {
 	onClose: () => void;
@@ -32,11 +21,7 @@ interface ProductWizardStep1Props {
 	onCreated: (product: AdminProduct) => void;
 }
 
-export function ProductWizardStep1({
-	onClose,
-	catalog,
-	onCreated,
-}: ProductWizardStep1Props) {
+export function ProductWizardStep1({ onClose, catalog, onCreated }: ProductWizardStep1Props) {
 	const toast = useToast();
 	const [draft, setDraft] = useState<ProductDraft>(emptyDraft);
 	const [errors, setErrors] = useState<ProductValidationError[]>([]);
@@ -59,10 +44,7 @@ export function ProductWizardStep1({
 	}, [draft.categorySlug, catalog]);
 
 	const errorMap = useMemo(() => errorsByPath(errors), [errors]);
-	const slugHint = useMemo(
-		() => (draft.name ? slugify(draft.name) : ""),
-		[draft.name],
-	);
+	const slugHint = useMemo(() => (draft.name ? slugify(draft.name) : ""), [draft.name]);
 
 	function setCategory(categorySlug: string) {
 		if (categorySlug === draft.categorySlug) return;
@@ -94,11 +76,7 @@ export function ProductWizardStep1({
 		if (!shell.ok || imageErrors.length > 0) {
 			const merged = [...(shell.ok ? [] : shell.errors), ...imageErrors];
 			setErrors(merged);
-			toast.danger(
-				merged.length === 1
-					? merged[0].message
-					: `${merged.length} fields need attention.`,
-			);
+			toast.danger(merged.length === 1 ? merged[0].message : `${merged.length} fields need attention.`);
 			return;
 		}
 		setErrors([]);
@@ -106,9 +84,7 @@ export function ProductWizardStep1({
 		try {
 			const uploadedImages = await uploadGalleryImages(draft.images, {
 				subjectKind: "products/new",
-				subjectId: shell.payload.brandSlug
-					? `${shell.payload.categorySlug}-${shell.payload.brandSlug}-${slugHint || "draft"}`
-					: "draft",
+				subjectId: shell.payload.brandSlug ? `${shell.payload.categorySlug}-${shell.payload.brandSlug}-${slugHint || "draft"}` : "draft",
 			});
 			const product = await apiFetch<AdminProduct>("/api/products", {
 				method: "POST",
@@ -123,12 +99,7 @@ export function ProductWizardStep1({
 			setErrors([]);
 			onCreated(configured);
 		} catch (error) {
-			const message =
-				error instanceof ApiError
-					? error.message
-					: error instanceof Error
-						? error.message
-						: "Failed to create product.";
+			const message = error instanceof ApiError ? error.message : error instanceof Error ? error.message : "Failed to create product.";
 			toast.danger(message);
 		} finally {
 			setSubmitting(false);
@@ -137,52 +108,38 @@ export function ProductWizardStep1({
 
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-			<form
-				id="product-wizard-step1"
-				onSubmit={handleSubmit}
-				className="flex min-h-0 flex-1 flex-col overflow-hidden"
-			>
+			<form id="product-wizard-step1" onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
 				<ProductDetailsForm
-						name={draft.name}
-						onNameChange={(value) => setDraft((prev) => ({ ...prev, name: value }))}
-						slugHint={slugHint}
-						categories={catalog.categories}
-						categorySlug={draft.categorySlug}
-						onCategorySelect={setCategory}
-						brands={surface?.brands ?? []}
-						brandSlug={draft.brandSlug}
-						onBrandSelect={(slug) =>
-							setDraft((prev) => ({ ...prev, brandSlug: slug }))
-						}
-						showBrandPicker={Boolean(surface)}
-						images={draft.images}
-						onImagesChange={updateImages}
-						imagesAltBase={draft.name || "Product"}
-						showPhotos={Boolean(surface)}
-						categoryAttributes={surface?.attributes ?? []}
-						attributeConfig={attributeConfig}
-						onAttributeConfigChange={setAttributeConfig}
-						showAttributes={Boolean(surface)}
-						errorMap={errorMap}
-					/>
+					name={draft.name}
+					onNameChange={(value) => setDraft((prev) => ({ ...prev, name: value }))}
+					slugHint={slugHint}
+					categories={catalog.categories}
+					categorySlug={draft.categorySlug}
+					onCategorySelect={setCategory}
+					brands={surface?.brands ?? []}
+					brandSlug={draft.brandSlug}
+					onBrandSelect={(slug) => setDraft((prev) => ({ ...prev, brandSlug: slug }))}
+					showBrandPicker={Boolean(surface)}
+					images={draft.images}
+					onImagesChange={updateImages}
+					imagesAltBase={draft.name || "Product"}
+					showPhotos={Boolean(surface)}
+					categoryAttributes={surface?.attributes ?? []}
+					attributeConfig={attributeConfig}
+					onAttributeConfigChange={setAttributeConfig}
+					showAttributes={Boolean(surface)}
+					errorMap={errorMap}
+				/>
 			</form>
 
 			<div className="safe-bottom shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3 md:px-5 md:py-4">
 				<div className="flex items-center justify-between gap-2">
-					<div className="text-sm font-medium text-[var(--color-ink-500)]">
-						Step 1 of 2
-					</div>
+					<div className="text-sm font-medium text-[var(--color-ink-500)]">Step 1 of 2</div>
 					<div className="flex items-center gap-2">
 						<Button variant="ghost" size="sm" type="button" onClick={handleClose} disabled={submitting}>
 							Cancel
 						</Button>
-						<Button
-							variant="primary"
-							size="sm"
-							type="submit"
-							form="product-wizard-step1"
-							isLoading={submitting}
-						>
+						<Button variant="primary" size="sm" type="submit" form="product-wizard-step1" isLoading={submitting}>
 							Save &amp; continue
 						</Button>
 					</div>

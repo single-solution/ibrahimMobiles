@@ -28,14 +28,7 @@ interface MobileHubRowLinkProps {
  * stays an async server component — only the navigation primitive needs
  * to be on the client to get intent prefetch.
  */
-export function MobileHubRowLink({
-	href,
-	label,
-	iconElement,
-	trailing,
-	badgeType,
-	isLast,
-}: MobileHubRowLinkProps): ReactNode {
+export function MobileHubRowLink({ href, label, iconElement, trailing, badgeType, isLast }: MobileHubRowLinkProps): ReactNode {
 	const prefetchHandlers = usePrefetchOnIntent(href);
 	return (
 		<Link
@@ -53,9 +46,7 @@ export function MobileHubRowLink({
 				{badgeType ? <SidebarBadge type={badgeType} isCollapsed={true} /> : null}
 			</span>
 			<span className="flex-1 text-[0.875rem]">{label}</span>
-			{trailing ? (
-				<span className="text-[0.6875rem] text-[var(--color-ink-500)]">{trailing}</span>
-			) : null}
+			{trailing ? <span className="text-[0.6875rem] text-[var(--color-ink-500)]">{trailing}</span> : null}
 			<ChevronRight size={16} className="text-[var(--color-ink-300)]" />
 		</Link>
 	);

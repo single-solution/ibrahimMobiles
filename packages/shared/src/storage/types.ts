@@ -1,18 +1,6 @@
 /**
- * `@store/shared/storage/types`
- *
- * Shared types for the storage / image pipeline. Phase 1 forward-declares
- * the **`StoredImage`** shape so every Mongoose model can reference it from
- * day one (Category icon, Offer banner, Setting logo/favicon/OG, Variant
- * images, future Inquiry attachments). The runtime upload pipeline that
- * actually produces these objects — `sharp` resize, `StorageProvider`
- * abstraction (Vercel Blob today, S3-ready), single `POST /api/uploads`
- * route — is wired up in Phase 2 (TASKS.md T2.x).
- *
- * Rule of thumb (PLAN.md §10): if a field on any model carries an *image*,
- * it MUST be typed as `StoredImage` (or `StoredImage[]` / `StoredImage?`).
- * Raw `imageUrl: string` is forbidden and is enforced by the lint sweep at
- * the root `npm run lint:no-raw-image-urls`.
+ * Shared types for the storage / image pipeline. Image fields on models use
+ * `StoredImage` (or arrays) — raw `imageUrl: string` is forbidden.
  */
 
 /**
@@ -26,10 +14,10 @@
  *   - `full`   : ≤ 2400w — lightbox / zoom view; ALSO the source if upload ≤ 2400w.
  */
 export interface StoredImageVariants {
-  thumb: string;
-  card: string;
-  detail: string;
-  full: string;
+	thumb: string;
+	card: string;
+	detail: string;
+	full: string;
 }
 
 /**
@@ -44,11 +32,11 @@ export interface StoredImageVariants {
  * blur that inlines into the HTML for instant placeholders.
  */
 export interface StoredImage {
-  variants: StoredImageVariants;
-  blurDataURL: string;
-  width: number;
-  height: number;
-  alt: string;
+	variants: StoredImageVariants;
+	blurDataURL: string;
+	width: number;
+	height: number;
+	alt: string;
 }
 
 /**
@@ -58,14 +46,14 @@ export interface StoredImage {
 export type StoredImageVariantKey = keyof StoredImageVariants;
 
 function readFiniteDimension(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return null;
-  }
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
+	if (typeof value === "number" && Number.isFinite(value)) {
+		return value;
+	}
+	if (typeof value !== "string" || value.trim().length === 0) {
+		return null;
+	}
+	const parsed = Number(value);
+	return Number.isFinite(parsed) ? parsed : null;
 }
 
 /**
@@ -76,40 +64,32 @@ function readFiniteDimension(value: unknown): number | null {
 const MIN_IMAGE_DIMENSION = 1;
 
 export function coerceStoredImage(value: unknown): StoredImage | null {
-  if (value === null || typeof value !== "object") return null;
-  const raw = value as Record<string, unknown>;
-  const rawVariants = raw.variants;
-  if (rawVariants === null || typeof rawVariants !== "object") return null;
-  const variants = rawVariants as Record<string, unknown>;
-  const thumb = typeof variants.thumb === "string" ? variants.thumb.trim() : "";
-  const card = typeof variants.card === "string" ? variants.card.trim() : "";
-  const detail = typeof variants.detail === "string" ? variants.detail.trim() : "";
-  const full = typeof variants.full === "string" ? variants.full.trim() : "";
-  if (!thumb || !card || !detail || !full) return null;
+	if (value === null || typeof value !== "object") return null;
+	const raw = value as Record<string, unknown>;
+	const rawVariants = raw.variants;
+	if (rawVariants === null || typeof rawVariants !== "object") return null;
+	const variants = rawVariants as Record<string, unknown>;
+	const thumb = typeof variants.thumb === "string" ? variants.thumb.trim() : "";
+	const card = typeof variants.card === "string" ? variants.card.trim() : "";
+	const detail = typeof variants.detail === "string" ? variants.detail.trim() : "";
+	const full = typeof variants.full === "string" ? variants.full.trim() : "";
+	if (!thumb || !card || !detail || !full) return null;
 
-  const blurDataURL =
-    typeof raw.blurDataURL === "string" ? raw.blurDataURL.trim() : "";
-  const alt = typeof raw.alt === "string" ? raw.alt.trim() : "";
-  const width = readFiniteDimension(raw.width);
-  const height = readFiniteDimension(raw.height);
-  if (
-    !blurDataURL ||
-    !alt ||
-    width === null ||
-    height === null ||
-    width < MIN_IMAGE_DIMENSION ||
-    height < MIN_IMAGE_DIMENSION
-  ) {
-    return null;
-  }
+	const blurDataURL = typeof raw.blurDataURL === "string" ? raw.blurDataURL.trim() : "";
+	const alt = typeof raw.alt === "string" ? raw.alt.trim() : "";
+	const width = readFiniteDimension(raw.width);
+	const height = readFiniteDimension(raw.height);
+	if (!blurDataURL || !alt || width === null || height === null || width < MIN_IMAGE_DIMENSION || height < MIN_IMAGE_DIMENSION) {
+		return null;
+	}
 
-  return {
-    variants: { thumb, card, detail, full },
-    blurDataURL,
-    width: Math.trunc(width),
-    height: Math.trunc(height),
-    alt,
-  };
+	return {
+		variants: { thumb, card, detail, full },
+		blurDataURL,
+		width: Math.trunc(width),
+		height: Math.trunc(height),
+		alt,
+	};
 }
 
 /**
@@ -117,5 +97,5 @@ export function coerceStoredImage(value: unknown): StoredImage | null {
  * a `Setting.value` blob whose shape is `unknown` until we know its `key`.
  */
 export function isStoredImage(value: unknown): value is StoredImage {
-  return coerceStoredImage(value) !== null;
+	return coerceStoredImage(value) !== null;
 }

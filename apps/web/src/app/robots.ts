@@ -19,37 +19,33 @@ const FALLBACK_DISALLOW = ["/admin", "/account", "/cart", "/checkout"];
 export const revalidate = 3600;
 
 interface RawSettingDoc {
-  key: string;
-  value: unknown;
+	key: string;
+	value: unknown;
 }
 
 async function loadDisallowList(): Promise<string[]> {
-  try {
-    await connectDB();
-    const doc = await Setting.findOne({ key: "seo.robotsDisallow" })
-      .select({ value: 1 })
-      .lean<RawSettingDoc | null>();
-    if (!doc?.value || !Array.isArray(doc.value)) return FALLBACK_DISALLOW;
-    return doc.value.filter(
-      (entry): entry is string => typeof entry === "string" && entry.length > 0,
-    );
-  } catch {
-    return FALLBACK_DISALLOW;
-  }
+	try {
+		await connectDB();
+		const doc = await Setting.findOne({ key: "seo.robotsDisallow" }).select({ value: 1 }).lean<RawSettingDoc | null>();
+		if (!doc?.value || !Array.isArray(doc.value)) return FALLBACK_DISALLOW;
+		return doc.value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
+	} catch {
+		return FALLBACK_DISALLOW;
+	}
 }
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
-  const base = await getStorefrontBaseUrl();
-  const adminDisallow = await loadDisallowList();
-  const disallow = Array.from(new Set([...adminDisallow, ...HARD_DISALLOW]));
-  return {
-    rules: [
-      {
-        userAgent: "*",
-        allow: "/",
-        disallow,
-      },
-    ],
-    sitemap: `${base}/sitemap.xml`,
-  };
+	const base = await getStorefrontBaseUrl();
+	const adminDisallow = await loadDisallowList();
+	const disallow = Array.from(new Set([...adminDisallow, ...HARD_DISALLOW]));
+	return {
+		rules: [
+			{
+				userAgent: "*",
+				allow: "/",
+				disallow,
+			},
+		],
+		sitemap: `${base}/sitemap.xml`,
+	};
 }

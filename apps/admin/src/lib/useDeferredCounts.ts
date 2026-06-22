@@ -17,42 +17,39 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 
 interface DeferredCounts<TCounts> {
-  /** Resolved counts, or `null` until the first successful load (or on error). */
-  counts: TCounts | null;
-  /** True while the request is in flight — drive the shimmer off this. */
-  isLoading: boolean;
+	/** Resolved counts, or `null` until the first successful load (or on error). */
+	counts: TCounts | null;
+	/** True while the request is in flight — drive the shimmer off this. */
+	isLoading: boolean;
 }
 
-export function useDeferredCounts<TCounts>(
-  endpoint: string,
-  refreshKey: unknown,
-): DeferredCounts<TCounts> {
-  const [counts, setCounts] = useState<TCounts | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function useDeferredCounts<TCounts>(endpoint: string, refreshKey: unknown): DeferredCounts<TCounts> {
+	const [counts, setCounts] = useState<TCounts | null>(null);
+	const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate loading state start
-    setIsLoading(true);
-    void (async () => {
-      try {
-        const data = await apiFetch<TCounts>(endpoint);
-        if (!cancelled) {
-          setCounts(data);
-        }
-      } catch {
-        // Leave the last good counts in place; stop the shimmer so the slots
-        // don't pulse forever on a transient failure.
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [endpoint, refreshKey]);
+	useEffect(() => {
+		let cancelled = false;
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- deliberate loading state start
+		setIsLoading(true);
+		void (async () => {
+			try {
+				const data = await apiFetch<TCounts>(endpoint);
+				if (!cancelled) {
+					setCounts(data);
+				}
+			} catch {
+				// Leave the last good counts in place; stop the shimmer so the slots
+				// don't pulse forever on a transient failure.
+			} finally {
+				if (!cancelled) {
+					setIsLoading(false);
+				}
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [endpoint, refreshKey]);
 
-  return { counts, isLoading };
+	return { counts, isLoading };
 }

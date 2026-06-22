@@ -12,31 +12,31 @@ import { SEO_META_FIELD_LIMITS, type SeoMeta } from "@store/shared";
  * document and we don't need to address it by id.
  */
 export const seoSchema = new Schema<SeoMeta>(
-  {
-    title: { type: String, trim: true, maxlength: SEO_META_FIELD_LIMITS.title },
-    description: {
-      type: String,
-      trim: true,
-      maxlength: SEO_META_FIELD_LIMITS.description,
-    },
-    canonicalUrl: {
-      type: String,
-      trim: true,
-      maxlength: SEO_META_FIELD_LIMITS.canonicalUrl,
-    },
-    ogImageUrl: {
-      type: String,
-      trim: true,
-      maxlength: SEO_META_FIELD_LIMITS.ogImageUrl,
-    },
-    focusKeyword: {
-      type: String,
-      trim: true,
-      maxlength: SEO_META_FIELD_LIMITS.focusKeyword,
-    },
-    score: { type: Number },
-    noindex: { type: Boolean },
-    nofollow: { type: Boolean },
-  },
-  { _id: false },
+	{
+		title: { type: String, trim: true, maxlength: SEO_META_FIELD_LIMITS.title },
+		description: {
+			type: String,
+			trim: true,
+			maxlength: SEO_META_FIELD_LIMITS.description,
+		},
+		canonicalUrl: {
+			type: String,
+			trim: true,
+			maxlength: SEO_META_FIELD_LIMITS.canonicalUrl,
+		},
+		ogImageUrl: {
+			type: String,
+			trim: true,
+			maxlength: SEO_META_FIELD_LIMITS.ogImageUrl,
+		},
+		focusKeyword: {
+			type: String,
+			trim: true,
+			maxlength: SEO_META_FIELD_LIMITS.focusKeyword,
+		},
+		score: { type: Number },
+		noindex: { type: Boolean },
+		nofollow: { type: Boolean },
+	},
+	{ _id: false },
 );

@@ -10,18 +10,18 @@ import { requirePagePermission } from "@/lib/server/requirePageSession";
 export const dynamic = "force-dynamic";
 
 export default async function AdminActivityPage() {
-  await requirePagePermission("activity_view", "/activity");
+	await requirePagePermission("activity_view", "/activity");
 
-  return (
-    <ListPageShell>
-      <Suspense fallback={<ListWorkspaceSkeleton />}>
-        <ActivityData />
-      </Suspense>
-    </ListPageShell>
-  );
+	return (
+		<ListPageShell>
+			<Suspense fallback={<ListWorkspaceSkeleton />}>
+				<ActivityData />
+			</Suspense>
+		</ListPageShell>
+	);
 }
 
 async function ActivityData() {
-  const entries = await loadAdminActivityCached();
-  return <ActivityFeed entries={entries} />;
+	const entries = await loadAdminActivityCached();
+	return <ActivityFeed entries={entries} />;
 }

@@ -2,14 +2,7 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
-import {
-  compareAlphabetically,
-  sortAttributeOptions,
-  type AttributeDescriptor,
-  type GradeDescriptor,
-  type Product,
-  type Variant,
-} from "@store/shared";
+import { compareAlphabetically, sortAttributeOptions, type AttributeDescriptor, type GradeDescriptor, type Product, type Variant } from "@store/shared";
 
 import { catalogRootHref, firstCategoryHref, productHref } from "@/lib/catalog/productPaths";
 import type { CategoryMeta } from "@/lib/core";
@@ -34,9 +27,9 @@ import type { CategoryMeta } from "@/lib/core";
  * instead of crashing.
  */
 export interface ReferenceData {
-  grades: GradeDescriptor[];
-  attributes: AttributeDescriptor[];
-  categories: CategoryReference[];
+	grades: GradeDescriptor[];
+	attributes: AttributeDescriptor[];
+	categories: CategoryReference[];
 }
 
 /**
@@ -45,41 +38,36 @@ export interface ReferenceData {
  * schema don't accidentally leak through the SSR boundary.
  */
 export interface CategoryReference {
-  slug: string;
-  label: string;
-  description: string;
-  icon: CategoryMeta["icon"];
-  iconNode: CategoryMeta["iconNode"];
-  isActive: boolean;
-  sortOrder: number;
+	slug: string;
+	label: string;
+	description: string;
+	icon: CategoryMeta["icon"];
+	iconNode: CategoryMeta["iconNode"];
+	isActive: boolean;
+	sortOrder: number;
 }
 
 const EMPTY_REFERENCE: ReferenceData = {
-  grades: [],
-  attributes: [],
-  categories: [],
+	grades: [],
+	attributes: [],
+	categories: [],
 };
 
-const ReferenceContext =
-  createContext<ReferenceData>(EMPTY_REFERENCE);
+const ReferenceContext = createContext<ReferenceData>(EMPTY_REFERENCE);
 
 interface ProviderProps {
-  value: ReferenceData;
-  children: ReactNode;
+	value: ReferenceData;
+	children: ReactNode;
 }
 
 export function ReferenceProvider({ value, children }: ProviderProps) {
-  return (
-    <ReferenceContext.Provider value={value}>
-      {children}
-    </ReferenceContext.Provider>
-  );
+	return <ReferenceContext.Provider value={value}>{children}</ReferenceContext.Provider>;
 }
 
 /* ─────────── grades ─────────── */
 
 export function useGrades(): GradeDescriptor[] {
-  return useContext(ReferenceContext).grades;
+	return useContext(ReferenceContext).grades;
 }
 
 /**
@@ -89,71 +77,48 @@ export function useGrades(): GradeDescriptor[] {
  * this returns nothing — the catalog can outpace admin edits in edge
  * cases.
  */
-export function useGrade(
-  categorySlug: string,
-  gradeSlug: string,
-): GradeDescriptor | undefined {
-  const grades = useGrades();
-  return useMemo(
-    () =>
-      grades.find(
-        (descriptor) =>
-          descriptor.categorySlug === categorySlug &&
-          descriptor.slug === gradeSlug,
-      ),
-    [grades, categorySlug, gradeSlug],
-  );
+export function useGrade(categorySlug: string, gradeSlug: string): GradeDescriptor | undefined {
+	const grades = useGrades();
+	return useMemo(() => grades.find((descriptor) => descriptor.categorySlug === categorySlug && descriptor.slug === gradeSlug), [grades, categorySlug, gradeSlug]);
 }
 
 /** All grades that apply to a given category, in storefront display order. */
-export function useGradesForCategory(
-  categorySlug: string,
-): GradeDescriptor[] {
-  const grades = useGrades();
-  return useMemo(
-    () =>
-      grades
-        .filter((descriptor) => descriptor.categorySlug === categorySlug)
-        .sort((left, right) => compareAlphabetically(left.label, right.label)),
-    [grades, categorySlug],
-  );
+export function useGradesForCategory(categorySlug: string): GradeDescriptor[] {
+	const grades = useGrades();
+	return useMemo(
+		() => grades.filter((descriptor) => descriptor.categorySlug === categorySlug).sort((left, right) => compareAlphabetically(left.label, right.label)),
+		[grades, categorySlug],
+	);
 }
 
 export function useAttributes(): AttributeDescriptor[] {
-  return useContext(ReferenceContext).attributes;
+	return useContext(ReferenceContext).attributes;
 }
 
-export function useAttributesForCategory(
-  categorySlug: string,
-): AttributeDescriptor[] {
-  const attributes = useAttributes();
-  return useMemo(
-    () =>
-      attributes
-        .filter((attribute) => attribute.categorySlug === categorySlug)
-        .map((attribute) => ({
-          ...attribute,
-          options: sortAttributeOptions(attribute.options, attribute.unit),
-        }))
-        .sort((left, right) => compareAlphabetically(left.label, right.label)),
-    [attributes, categorySlug],
-  );
+export function useAttributesForCategory(categorySlug: string): AttributeDescriptor[] {
+	const attributes = useAttributes();
+	return useMemo(
+		() =>
+			attributes
+				.filter((attribute) => attribute.categorySlug === categorySlug)
+				.map((attribute) => ({
+					...attribute,
+					options: sortAttributeOptions(attribute.options, attribute.unit),
+				}))
+				.sort((left, right) => compareAlphabetically(left.label, right.label)),
+		[attributes, categorySlug],
+	);
 }
 
 /* ─────────── categories ─────────── */
 
 export function useCategories(): CategoryReference[] {
-  return useContext(ReferenceContext).categories;
+	return useContext(ReferenceContext).categories;
 }
 
-export function useCategory(
-  slug: string,
-): CategoryReference | undefined {
-  const categories = useCategories();
-  return useMemo(
-    () => categories.find((category) => category.slug === slug),
-    [categories, slug],
-  );
+export function useCategory(slug: string): CategoryReference | undefined {
+	const categories = useCategories();
+	return useMemo(() => categories.find((category) => category.slug === slug), [categories, slug]);
 }
 
 /**
@@ -161,10 +126,7 @@ export function useCategory(
  */
 export function useShopHref(): string {
 	const categories = useCategories();
-	return useMemo(
-		() => firstCategoryHref(categories) ?? catalogRootHref(),
-		[categories],
-	);
+	return useMemo(() => firstCategoryHref(categories) ?? catalogRootHref(), [categories]);
 }
 
 /** True when `pathname` is the catalog home (`/` or the default category route). */
@@ -173,22 +135,15 @@ export function useIsCatalogHome(pathname: string): boolean {
 	return pathname === "/" || pathname === homeHref;
 }
 
-/**
- * Resolve a category slug to its URL segment. With the Phase 1 schema
- * `pathSegment` is gone — the slug *is* the URL segment, so this is now
- * a thin identity wrapper kept for API stability across the storefront.
- */
+/** Category slug is the URL segment — identity wrapper for storefront path helpers. */
 export function useCategorySegment(categorySlug: string): string {
-  return categorySlug;
+	return categorySlug;
 }
 
 /** Build a `/shop/<category>/<slug>` link for a product, from context. */
-export function useProductHref(
-  product: Pick<Product, "categorySlug" | "slug">,
-  variant?: Variant,
-): string {
-  if (!product.categorySlug || !product.slug) {
-    return catalogRootHref();
-  }
-  return productHref(product, variant ? { variant } : undefined);
+export function useProductHref(product: Pick<Product, "categorySlug" | "slug">, variant?: Variant): string {
+	if (!product.categorySlug || !product.slug) {
+		return catalogRootHref();
+	}
+	return productHref(product, variant ? { variant } : undefined);
 }

@@ -8,10 +8,10 @@
 import nextConfig from "eslint-config-next";
 
 const webEslintConfig = [
-  ...nextConfig,
-  {
-    ignores: [".next/**", "node_modules/**", "next-env.d.ts"],
-  },
+	...nextConfig,
+	{
+		ignores: [".next/**", "node_modules/**", "next-env.d.ts"],
+	},
 ];
 
 export default webEslintConfig;

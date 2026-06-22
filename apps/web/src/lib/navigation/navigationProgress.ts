@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useSyncExternalStore,
-  useTransition,
-} from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore, useTransition } from "react";
 
 /**
  * In-app navigation progress signal.
@@ -30,32 +24,32 @@ let pendingCount = 0;
 const listeners = new Set<() => void>();
 
 function notify() {
-  for (const listener of listeners) listener();
+	for (const listener of listeners) listener();
 }
 
 function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
+	listeners.add(listener);
+	return () => {
+		listeners.delete(listener);
+	};
 }
 
 function getSnapshot(): number {
-  return pendingCount;
+	return pendingCount;
 }
 
 function getServerSnapshot(): number {
-  return 0;
+	return 0;
 }
 
 function beginPing(): void {
-  pendingCount += 1;
-  notify();
+	pendingCount += 1;
+	notify();
 }
 
 function endPing(): void {
-  pendingCount = Math.max(0, pendingCount - 1);
-  notify();
+	pendingCount = Math.max(0, pendingCount - 1);
+	notify();
 }
 
 /** Minimum hold so single-frame transitions still light up the bar (and
@@ -63,7 +57,7 @@ function endPing(): void {
 const NAV_PROGRESS_MIN_HOLD_MS = 220;
 
 export function useNavigationProgressCount(): number {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+	return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 /**
@@ -83,73 +77,73 @@ export function useNavigationProgressCount(): number {
  * commits — callers can use it to gate UI (dim controls, show skeleton).
  */
 export function useNavigationTransition(): {
-  isPending: boolean;
-  startNavigation: (run: () => void) => void;
+	isPending: boolean;
+	startNavigation: (run: () => void) => void;
 } {
-  const rafRef = useRef<number | null>(null);
-  const endTimeoutRef = useRef<number | null>(null);
-  const isPingedRef = useRef(false);
-  const minHoldUntilRef = useRef(0);
-  const [isPending, startTransition] = useTransition();
+	const rafRef = useRef<number | null>(null);
+	const endTimeoutRef = useRef<number | null>(null);
+	const isPingedRef = useRef(false);
+	const minHoldUntilRef = useRef(0);
+	const [isPending, startTransition] = useTransition();
 
-  // Mirror React's transition pending state into the global counter so the
-  // progress bar and the products-area skeleton overlay light up. We also
-  // enforce a brief min-hold so fast transitions still register visually.
-  useEffect(() => {
-    if (isPending) {
-      if (endTimeoutRef.current !== null) {
-        window.clearTimeout(endTimeoutRef.current);
-        endTimeoutRef.current = null;
-      }
-      if (!isPingedRef.current) {
-        beginPing();
-        isPingedRef.current = true;
-      }
-      minHoldUntilRef.current = Date.now() + NAV_PROGRESS_MIN_HOLD_MS;
-    } else if (isPingedRef.current) {
-      const remaining = Math.max(0, minHoldUntilRef.current - Date.now());
-      endTimeoutRef.current = window.setTimeout(() => {
-        endPing();
-        isPingedRef.current = false;
-        endTimeoutRef.current = null;
-      }, remaining);
-    }
-  }, [isPending]);
+	// Mirror React's transition pending state into the global counter so the
+	// progress bar and the products-area skeleton overlay light up. We also
+	// enforce a brief min-hold so fast transitions still register visually.
+	useEffect(() => {
+		if (isPending) {
+			if (endTimeoutRef.current !== null) {
+				window.clearTimeout(endTimeoutRef.current);
+				endTimeoutRef.current = null;
+			}
+			if (!isPingedRef.current) {
+				beginPing();
+				isPingedRef.current = true;
+			}
+			minHoldUntilRef.current = Date.now() + NAV_PROGRESS_MIN_HOLD_MS;
+		} else if (isPingedRef.current) {
+			const remaining = Math.max(0, minHoldUntilRef.current - Date.now());
+			endTimeoutRef.current = window.setTimeout(() => {
+				endPing();
+				isPingedRef.current = false;
+				endTimeoutRef.current = null;
+			}, remaining);
+		}
+	}, [isPending]);
 
-  useEffect(() => {
-    return () => {
-      if (endTimeoutRef.current !== null) {
-        window.clearTimeout(endTimeoutRef.current);
-        endTimeoutRef.current = null;
-      }
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      if (isPingedRef.current) {
-        endPing();
-        isPingedRef.current = false;
-      }
-    };
-  }, []);
+	useEffect(() => {
+		return () => {
+			if (endTimeoutRef.current !== null) {
+				window.clearTimeout(endTimeoutRef.current);
+				endTimeoutRef.current = null;
+			}
+			if (rafRef.current !== null) {
+				window.cancelAnimationFrame(rafRef.current);
+				rafRef.current = null;
+			}
+			if (isPingedRef.current) {
+				endPing();
+				isPingedRef.current = false;
+			}
+		};
+	}, []);
 
-  const startNavigation = useCallback(
-    (run: () => void) => {
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      // Defer the actual navigation by one animation frame so any optimistic
-      // setState the caller queued in the same event handler paints first.
-      rafRef.current = window.requestAnimationFrame(() => {
-        rafRef.current = null;
-        startTransition(() => {
-          run();
-        });
-      });
-    },
-    [startTransition],
-  );
+	const startNavigation = useCallback(
+		(run: () => void) => {
+			if (rafRef.current !== null) {
+				window.cancelAnimationFrame(rafRef.current);
+				rafRef.current = null;
+			}
+			// Defer the actual navigation by one animation frame so any optimistic
+			// setState the caller queued in the same event handler paints first.
+			rafRef.current = window.requestAnimationFrame(() => {
+				rafRef.current = null;
+				startTransition(() => {
+					run();
+				});
+			});
+		},
+		[startTransition],
+	);
 
-  return { isPending, startNavigation };
+	return { isPending, startNavigation };
 }

@@ -9,13 +9,7 @@ import type { ProductAttributeConfig } from "@store/shared";
 import type { AdminAttribute, AdminBrand, AdminCategory } from "@/types/models";
 
 import { ProductAttributeSetup } from "./ProductAttributeSetup";
-import {
-	CategoriesEmptyHint,
-	CategoryOptionButton,
-	WizardEmptyHint,
-	WizardFieldError,
-	WizardSection,
-} from "./productWizardUi";
+import { CategoriesEmptyHint, CategoryOptionButton, WizardEmptyHint, WizardFieldError, WizardSection } from "./productWizardUi";
 
 interface ProductDetailsFormProps {
 	name: string;
@@ -104,12 +98,7 @@ export function ProductDetailsForm({
 						) : (
 							<div className="flex flex-wrap gap-1.5">
 								{categories.map((category) => (
-									<CategoryOptionButton
-										key={category.id}
-										category={category}
-										isSelected={categorySlug === category.slug}
-										onSelect={() => onCategorySelect(category.slug)}
-									/>
+									<CategoryOptionButton key={category.id} category={category} isSelected={categorySlug === category.slug} onSelect={() => onCategorySelect(category.slug)} />
 								))}
 							</div>
 						)}
@@ -122,10 +111,7 @@ export function ProductDetailsForm({
 						) : brands.length === 0 ? (
 							<WizardEmptyHint>
 								This category has no brands yet. Add one from{" "}
-								<Link
-									href="/categories"
-									className="font-semibold text-[var(--color-accent-700)] underline"
-								>
+								<Link href="/categories" className="font-semibold text-[var(--color-accent-700)] underline">
 									Categories
 								</Link>
 								.
@@ -157,17 +143,8 @@ export function ProductDetailsForm({
 							<WizardEmptyHint>Select a category first.</WizardEmptyHint>
 						) : (
 							<>
-								<p className="mb-2 text-[11.5px] text-[var(--color-ink-500)]">
-									One gallery for the whole product — shared by every variant.
-								</p>
-								<ImageGallery
-									value={images}
-									onChange={onImagesChange}
-									altTextBase={imagesAltBase}
-									maxImages={8}
-									compact
-									dense
-								/>
+								<p className="mb-2 text-[11.5px] text-[var(--color-ink-500)]">One gallery for the whole product — shared by every variant.</p>
+								<ImageGallery value={images} onChange={onImagesChange} altTextBase={imagesAltBase} maxImages={8} compact dense />
 							</>
 						)}
 						<WizardFieldError message={imagesError ?? errorMap?.get("images")} />

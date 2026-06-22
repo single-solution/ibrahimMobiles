@@ -33,15 +33,9 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 
 	return (
 		<div className={`storefront-page-center ${STOREFRONT_SHELL_CLASS} w-full text-center`}>
-			<p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--color-accent-700)] sm:text-xs">
-				{copy.eyebrow}
-			</p>
-			<h1 className="font-semibold mt-2 text-3xl leading-[0.95] tracking-tight text-[var(--color-ink-900)] sm:mt-3 sm:text-5xl lg:text-6xl">
-				{copy.title}
-			</h1>
-			<p className="mt-2.5 max-w-md text-[13px] text-[var(--color-ink-600)] sm:mt-3 sm:text-base">
-				{copy.detail}
-			</p>
+			<p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-[var(--color-accent-700)] sm:text-xs">{copy.eyebrow}</p>
+			<h1 className="font-semibold mt-2 text-3xl leading-[0.95] tracking-tight text-[var(--color-ink-900)] sm:mt-3 sm:text-5xl lg:text-6xl">{copy.title}</h1>
+			<p className="mt-2.5 max-w-md text-[13px] text-[var(--color-ink-600)] sm:mt-3 sm:text-base">{copy.detail}</p>
 			{error.digest ? (
 				<p className="mt-3 text-[11px] text-[var(--color-ink-500)]">
 					Reference code: <span className="font-mono">{error.digest}</span>

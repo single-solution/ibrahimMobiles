@@ -20,10 +20,7 @@ export type OfferDocLike = {
 /** Map a stored offer document to the evaluator's `ActiveOffer` shape. */
 export function toActiveOffer(doc: OfferDocLike): ActiveOffer {
 	const rawId = doc._id ?? doc.id;
-	const id =
-		typeof rawId === "object" && rawId !== null && "toString" in rawId
-			? rawId.toString()
-			: String(rawId ?? "");
+	const id = typeof rawId === "object" && rawId !== null && "toString" in rawId ? rawId.toString() : String(rawId ?? "");
 
 	return {
 		id,

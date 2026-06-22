@@ -1,10 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import {
-  classNames,
-  coloredPillStyle,
-  softColoredPillStyleOnDark,
-  softColoredPillStyleOnLight,
-} from "@store/shared";
+import { classNames, coloredPillStyle, softColoredPillStyleOnDark, softColoredPillStyleOnLight } from "@store/shared";
 
 /**
  * `solid`      — full-saturation chip (original behaviour). Use when there's
@@ -19,36 +14,21 @@ import {
 export type ColoredPillTone = "solid" | "soft-light" | "soft-dark";
 
 interface ColoredPillProps {
-  backgroundColor: string;
-  tone?: ColoredPillTone;
-  children: ReactNode;
-  className?: string;
-  style?: CSSProperties;
-  "aria-label"?: string;
+	backgroundColor: string;
+	tone?: ColoredPillTone;
+	children: ReactNode;
+	className?: string;
+	style?: CSSProperties;
+	"aria-label"?: string;
 }
 
-export function ColoredPill({
-  backgroundColor,
-  tone = "soft-light",
-  children,
-  className,
-  style,
-  "aria-label": ariaLabel,
-}: ColoredPillProps) {
-  const toneStyle =
-    tone === "solid"
-      ? coloredPillStyle(backgroundColor)
-      : tone === "soft-dark"
-        ? softColoredPillStyleOnDark(backgroundColor)
-        : softColoredPillStyleOnLight(backgroundColor);
+export function ColoredPill({ backgroundColor, tone = "soft-light", children, className, style, "aria-label": ariaLabel }: ColoredPillProps) {
+	const toneStyle =
+		tone === "solid" ? coloredPillStyle(backgroundColor) : tone === "soft-dark" ? softColoredPillStyleOnDark(backgroundColor) : softColoredPillStyleOnLight(backgroundColor);
 
-  return (
-    <span
-      className={classNames("inline-flex items-center whitespace-nowrap", className)}
-      style={{ ...toneStyle, ...style }}
-      aria-label={ariaLabel}
-    >
-      {children}
-    </span>
-  );
+	return (
+		<span className={classNames("inline-flex items-center whitespace-nowrap", className)} style={{ ...toneStyle, ...style }} aria-label={ariaLabel}>
+			{children}
+		</span>
+	);
 }

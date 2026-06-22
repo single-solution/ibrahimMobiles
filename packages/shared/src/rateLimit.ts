@@ -8,29 +8,29 @@
  */
 
 interface Bucket {
-  /** Number of attempts recorded in the current window. */
-  count: number;
-  /** Wall-clock millis when the current window started. */
-  windowStartedAt: number;
+	/** Number of attempts recorded in the current window. */
+	count: number;
+	/** Wall-clock millis when the current window started. */
+	windowStartedAt: number;
 }
 
 interface RateLimitResult {
-  isAllowed: boolean;
-  /** Milliseconds the caller should wait before retrying (only when denied). */
-  retryAfterMs: number;
-  /** Remaining attempts inside the current window (informational). */
-  remaining: number;
+	isAllowed: boolean;
+	/** Milliseconds the caller should wait before retrying (only when denied). */
+	retryAfterMs: number;
+	/** Remaining attempts inside the current window (informational). */
+	remaining: number;
 }
 
 interface RateLimitOptions {
-  /** Logical bucket name — keeps separate counters for separate flows. */
-  scope: string;
-  /** Stable identifier (e.g. `${ip}:${email}`) — what we count attempts against. */
-  key: string;
-  /** Max attempts allowed inside `windowMs`. */
-  max: number;
-  /** Window length in milliseconds. */
-  windowMs: number;
+	/** Logical bucket name — keeps separate counters for separate flows. */
+	scope: string;
+	/** Stable identifier (e.g. `${ip}:${email}`) — what we count attempts against. */
+	key: string;
+	/** Max attempts allowed inside `windowMs`. */
+	max: number;
+	/** Window length in milliseconds. */
+	windowMs: number;
 }
 
 import { MS_PER_MINUTE } from "./constants";
@@ -44,15 +44,15 @@ const SWEEP_INTERVAL_MS = 5 * MS_PER_MINUTE;
 const STALE_WINDOW_MULTIPLIER = 4;
 
 function sweep(now: number, windowMs: number) {
-  if (now - lastSweepAt < SWEEP_INTERVAL_MS) {
-    return;
-  }
-  lastSweepAt = now;
-  for (const [bucketKey, bucket] of buckets) {
-    if (now - bucket.windowStartedAt > windowMs * STALE_WINDOW_MULTIPLIER) {
-      buckets.delete(bucketKey);
-    }
-  }
+	if (now - lastSweepAt < SWEEP_INTERVAL_MS) {
+		return;
+	}
+	lastSweepAt = now;
+	for (const [bucketKey, bucket] of buckets) {
+		if (now - bucket.windowStartedAt > windowMs * STALE_WINDOW_MULTIPLIER) {
+			buckets.delete(bucketKey);
+		}
+	}
 }
 
 /**
@@ -64,38 +64,38 @@ function sweep(now: number, windowMs: number) {
  *   header.
  */
 export function checkRateLimit(options: RateLimitOptions): RateLimitResult {
-  if (!options.key) {
-    // No identifier → allow (caller should always pass an IP fallback).
-    return { isAllowed: true, retryAfterMs: 0, remaining: options.max };
-  }
+	if (!options.key) {
+		// No identifier → allow (caller should always pass an IP fallback).
+		return { isAllowed: true, retryAfterMs: 0, remaining: options.max };
+	}
 
-  const now = Date.now();
-  sweep(now, options.windowMs);
+	const now = Date.now();
+	sweep(now, options.windowMs);
 
-  const bucketKey = `${options.scope}::${options.key}`;
-  const existing = buckets.get(bucketKey);
+	const bucketKey = `${options.scope}::${options.key}`;
+	const existing = buckets.get(bucketKey);
 
-  if (!existing || now - existing.windowStartedAt > options.windowMs) {
-    buckets.set(bucketKey, { count: 1, windowStartedAt: now });
-    return { isAllowed: true, retryAfterMs: 0, remaining: options.max - 1 };
-  }
+	if (!existing || now - existing.windowStartedAt > options.windowMs) {
+		buckets.set(bucketKey, { count: 1, windowStartedAt: now });
+		return { isAllowed: true, retryAfterMs: 0, remaining: options.max - 1 };
+	}
 
-  if (existing.count >= options.max) {
-    const retryAfterMs = options.windowMs - (now - existing.windowStartedAt);
-    return { isAllowed: false, retryAfterMs, remaining: 0 };
-  }
+	if (existing.count >= options.max) {
+		const retryAfterMs = options.windowMs - (now - existing.windowStartedAt);
+		return { isAllowed: false, retryAfterMs, remaining: 0 };
+	}
 
-  existing.count += 1;
-  return {
-    isAllowed: true,
-    retryAfterMs: 0,
-    remaining: Math.max(0, options.max - existing.count),
-  };
+	existing.count += 1;
+	return {
+		isAllowed: true,
+		retryAfterMs: 0,
+		remaining: Math.max(0, options.max - existing.count),
+	};
 }
 
 /** Reset a bucket — call after successful login so the user can keep working. */
 export function clearRateLimit(scope: string, key: string) {
-  buckets.delete(`${scope}::${key}`);
+	buckets.delete(`${scope}::${key}`);
 }
 
 /**
@@ -104,17 +104,17 @@ export function clearRateLimit(scope: string, key: string) {
  * synthetic value so keying never produces an empty string.
  */
 export function getClientIp(source: Request | Headers): string {
-  const headers = source instanceof Request ? source.headers : source;
-  const forwardedFor = headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    const first = forwardedFor.split(",")[0]?.trim();
-    if (first) {
-      return first;
-    }
-  }
-  const realIp = headers.get("x-real-ip");
-  if (realIp) {
-    return realIp;
-  }
-  return "unknown";
+	const headers = source instanceof Request ? source.headers : source;
+	const forwardedFor = headers.get("x-forwarded-for");
+	if (forwardedFor) {
+		const first = forwardedFor.split(",")[0]?.trim();
+		if (first) {
+			return first;
+		}
+	}
+	const realIp = headers.get("x-real-ip");
+	if (realIp) {
+		return realIp;
+	}
+	return "unknown";
 }

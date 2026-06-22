@@ -24,7 +24,7 @@ const PK_COUNTRY_CODE = "+92";
 
 /** Strip every non-digit character from `input` and return the remainder. */
 function digitsOnly(input: string): string {
-  return input.replace(/\D+/g, "");
+	return input.replace(/\D+/g, "");
 }
 
 /**
@@ -32,14 +32,14 @@ function digitsOnly(input: string): string {
  * aren't 10 digits available. Use this as the canonical phone identity.
  */
 export function phoneFingerprint(input: string | null | undefined): string | null {
-  if (!input) {
-    return null;
-  }
-  const digits = digitsOnly(input);
-  if (digits.length < PK_MOBILE_DIGITS) {
-    return null;
-  }
-  return digits.slice(-PK_MOBILE_DIGITS);
+	if (!input) {
+		return null;
+	}
+	const digits = digitsOnly(input);
+	if (digits.length < PK_MOBILE_DIGITS) {
+		return null;
+	}
+	return digits.slice(-PK_MOBILE_DIGITS);
 }
 
 /**
@@ -54,24 +54,19 @@ export function phoneFingerprint(input: string | null | undefined): string | nul
  * record no matter how they type their number.
  */
 export function normalizePhoneNumber(input: string | null | undefined): string | null {
-  const fingerprint = phoneFingerprint(input);
-  if (!fingerprint) {
-    return null;
-  }
-  return `${PK_COUNTRY_CODE}${fingerprint}`;
+	const fingerprint = phoneFingerprint(input);
+	if (!fingerprint) {
+		return null;
+	}
+	return `${PK_COUNTRY_CODE}${fingerprint}`;
 }
 
 /**
  * True if two raw phone strings reference the same number, even when one
  * is "+92 320 4862403" and the other is "0320-4862403".
  */
-export function sameNumber(
-	first: string | null | undefined,
-	second: string | null | undefined,
-): boolean {
+export function sameNumber(first: string | null | undefined, second: string | null | undefined): boolean {
 	const firstFingerprint = phoneFingerprint(first);
 	const secondFingerprint = phoneFingerprint(second);
-	return Boolean(
-		firstFingerprint && secondFingerprint && firstFingerprint === secondFingerprint,
-	);
+	return Boolean(firstFingerprint && secondFingerprint && firstFingerprint === secondFingerprint);
 }

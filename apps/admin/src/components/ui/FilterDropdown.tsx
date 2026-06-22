@@ -29,15 +29,7 @@ interface FilterDropdownProps {
  * Compact admin list-filter dropdown used in list views and tables.
  * Search appears automatically when six or more options are available.
  */
-export function FilterDropdown({
-	label,
-	options,
-	selected,
-	onChange,
-	single,
-	disabled,
-	className,
-}: FilterDropdownProps) {
+export function FilterDropdown({ label, options, selected, onChange, single, disabled, className }: FilterDropdownProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const containerRef = useRef<HTMLDivElement>(null);
 
@@ -64,16 +56,9 @@ export function FilterDropdown({
 		setIsOpen(false);
 	}
 
-	const singleSelectedLabel =
-		single && activeCount === 1
-			? options.find((option) => option.value === selected[0])?.label
-			: undefined;
+	const singleSelectedLabel = single && activeCount === 1 ? options.find((option) => option.value === selected[0])?.label : undefined;
 
-	const triggerLabel = singleSelectedLabel
-		? `${label}: ${singleSelectedLabel}`
-		: isActive
-			? `${label} · ${activeCount}`
-			: label;
+	const triggerLabel = singleSelectedLabel ? `${label}: ${singleSelectedLabel}` : isActive ? `${label} · ${activeCount}` : label;
 
 	return (
 		<div className={classNames("relative", className)} ref={containerRef}>
@@ -110,13 +95,7 @@ export function FilterDropdown({
 						<X size={10} />
 					</span>
 				) : (
-					<ChevronDown
-						size={11}
-						className={classNames(
-							"shrink-0 transition-transform",
-							isOpen && "rotate-180",
-						)}
-					/>
+					<ChevronDown size={11} className={classNames("shrink-0 transition-transform", isOpen && "rotate-180")} />
 				)}
 			</button>
 			<Popover
@@ -128,34 +107,17 @@ export function FilterDropdown({
 				className="animate-popover-in min-w-[12rem] max-w-[18rem] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]"
 			>
 				{single ? (
-						<SearchableSelectPanel
-							options={options}
-							value={selected[0] ?? ""}
-							onSelect={toggle}
-							isOpen={isOpen}
-							emptyMessage="Nothing to filter."
-							singleSelectStyle="radio"
-						/>
-					) : (
-						<SearchableMultiSelectPanel
-							options={options}
-							selectedValues={selected}
-							onToggle={toggle}
-							isOpen={isOpen}
-							emptyMessage="Nothing to filter."
-						/>
-					)}
-					{!single && activeCount > 0 ? (
-						<div className="border-t border-[var(--color-ink-100)] px-3 py-1.5 text-right">
-							<button
-								type="button"
-								onClick={clear}
-								className="text-[10px] font-semibold text-[var(--color-accent-700)] hover:underline"
-							>
-								Clear ({activeCount})
-							</button>
-						</div>
-					) : null}
+					<SearchableSelectPanel options={options} value={selected[0] ?? ""} onSelect={toggle} isOpen={isOpen} emptyMessage="Nothing to filter." singleSelectStyle="radio" />
+				) : (
+					<SearchableMultiSelectPanel options={options} selectedValues={selected} onToggle={toggle} isOpen={isOpen} emptyMessage="Nothing to filter." />
+				)}
+				{!single && activeCount > 0 ? (
+					<div className="border-t border-[var(--color-ink-100)] px-3 py-1.5 text-right">
+						<button type="button" onClick={clear} className="text-[10px] font-semibold text-[var(--color-accent-700)] hover:underline">
+							Clear ({activeCount})
+						</button>
+					</div>
+				) : null}
 			</Popover>
 		</div>
 	);

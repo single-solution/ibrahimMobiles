@@ -14,113 +14,99 @@
  *   - When the thread was `open`, flip to `awaiting-customer` so the
  *     inbox surface dimensions reflect "we're waiting on them now".
  *   - Auto-assign to the replying admin if `assignedToUserId` is unset
- *     (T8.10 hybrid claim — first-reply ownership).
+ *     (first-reply ownership).
  */
 
 import { Inquiry, connectDB, handleMongoError } from "@store/db";
-import {
-  badRequest,
-  CHAT_MESSAGE_BODY_MAX,
-  created,
-  isFieldError,
-  isValidId,
-  notFound,
-  parseBody,
-  validateMessageBody,
-} from "@store/shared";
+import { badRequest, CHAT_MESSAGE_BODY_MAX, created, isFieldError, isValidId, notFound, parseBody, validateMessageBody } from "@store/shared";
 
 import { inquiryStatusPatchAfterMessage } from "@store/shared";
 
 import { requireSession } from "@/lib/api/requireSession";
 import { notifyOnNewMessage } from "@/lib/notifications/chatNotifications";
 import { recordActivity } from "@/lib/services/activityLog";
-import {
-  toInquiryLatestPage,
-  type InquiryLean,
-} from "@/lib/serializers/inquiry";
+import { toInquiryLatestPage, type InquiryLean } from "@/lib/serializers/inquiry";
 
 interface RouteContext {
-  params: Promise<{ id: string }>;
+	params: Promise<{ id: string }>;
 }
 
 interface PostBody {
-  body?: unknown;
+	body?: unknown;
 }
 
 export async function POST(request: Request, { params }: RouteContext) {
-  const { actor, response } = await requireSession("inquiry_reply");
-  if (response) return response;
+	const { actor, response } = await requireSession("inquiry_reply");
+	if (response) return response;
 
-  const { id } = await params;
-  if (!isValidId(id)) return badRequest("Invalid ID.");
+	const { id } = await params;
+	if (!isValidId(id)) return badRequest("Invalid ID.");
 
-  const parsed = await parseBody<PostBody>(request);
-  if (parsed instanceof Response) return parsed;
+	const parsed = await parseBody<PostBody>(request);
+	if (parsed instanceof Response) return parsed;
 
-  const bodyResult = validateMessageBody(parsed.body);
-  if (isFieldError(bodyResult)) {
-    return badRequest(bodyResult.error);
-  }
-  if (bodyResult.length > CHAT_MESSAGE_BODY_MAX) {
-    return badRequest("Message too long.");
-  }
+	const bodyResult = validateMessageBody(parsed.body);
+	if (isFieldError(bodyResult)) {
+		return badRequest(bodyResult.error);
+	}
+	if (bodyResult.length > CHAT_MESSAGE_BODY_MAX) {
+		return badRequest("Message too long.");
+	}
 
-  await connectDB();
-  try {
-    const inquiry = await Inquiry.findById(id).lean<InquiryLean>();
-    if (!inquiry) return notFound("Inquiry not found");
+	await connectDB();
+	try {
+		const inquiry = await Inquiry.findById(id).lean<InquiryLean>();
+		if (!inquiry) return notFound("Inquiry not found");
 
-    const MSG_PREVIEW_MAX_LENGTH = 280;
-    const now = new Date();
-    const update: Record<string, unknown> = {
-      $push: {
-        messages: {
-          author: "agent",
-          authorName: actor.name,
-          authorUserId: actor.id,
-          body: bodyResult,
-          createdAt: now,
-        },
-      },
-      $set: {
-        lastMessageAt: now,
-        lastMessagePreview: bodyResult.slice(0, MSG_PREVIEW_MAX_LENGTH),
-        lastMessageAuthor: "agent",
-        unreadByTeam: 0,
-        // A human just replied — let the assistant resume on future messages
-        // and clear the escalation clock.
-        assistantMuted: false,
-        escalatedAt: null,
-        ...inquiryStatusPatchAfterMessage(inquiry?.status, "team"),
-        ...(inquiry?.assignedToUserId ? {} : { assignedToUserId: actor.id }),
-      },
-      $inc: { unreadByCustomer: 1 },
-    };
+		const MSG_PREVIEW_MAX_LENGTH = 280;
+		const now = new Date();
+		const update: Record<string, unknown> = {
+			$push: {
+				messages: {
+					author: "agent",
+					authorName: actor.name,
+					authorUserId: actor.id,
+					body: bodyResult,
+					createdAt: now,
+				},
+			},
+			$set: {
+				lastMessageAt: now,
+				lastMessagePreview: bodyResult.slice(0, MSG_PREVIEW_MAX_LENGTH),
+				lastMessageAuthor: "agent",
+				unreadByTeam: 0,
+				// A human just replied — let the assistant resume on future messages
+				// and clear the escalation clock.
+				assistantMuted: false,
+				escalatedAt: null,
+				...inquiryStatusPatchAfterMessage(inquiry?.status, "team"),
+				...(inquiry?.assignedToUserId ? {} : { assignedToUserId: actor.id }),
+			},
+			$inc: { unreadByCustomer: 1 },
+		};
 
-    await Inquiry.updateOne({ _id: id }, update);
-    const refreshed = await Inquiry.findById(id).lean<InquiryLean>();
-    if (!refreshed) return notFound("Inquiry not found");
+		await Inquiry.updateOne({ _id: id }, update);
+		const refreshed = await Inquiry.findById(id).lean<InquiryLean>();
+		if (!refreshed) return notFound("Inquiry not found");
 
-    const label = refreshed.subjectProductName
-      ? `${refreshed.customerName} · ${refreshed.subjectProductName}`
-      : refreshed.customerName;
-    await recordActivity({
-      actor,
-      action: "updated",
-      resourceType: "inquiry",
-      resourceId: id,
-      resourceLabel: label,
-      detail: "Replied",
-    });
-    const lastMessage = refreshed.messages[refreshed.messages.length - 1];
-    if (lastMessage) {
-      await notifyOnNewMessage(refreshed, {
-        body: lastMessage.body,
-        author: lastMessage.author,
-      });
-    }
-    return created(toInquiryLatestPage(refreshed));
-  } catch (error) {
-    return handleMongoError(error);
-  }
+		const label = refreshed.subjectProductName ? `${refreshed.customerName} · ${refreshed.subjectProductName}` : refreshed.customerName;
+		await recordActivity({
+			actor,
+			action: "updated",
+			resourceType: "inquiry",
+			resourceId: id,
+			resourceLabel: label,
+			detail: "Replied",
+		});
+		const lastMessage = refreshed.messages[refreshed.messages.length - 1];
+		if (lastMessage) {
+			await notifyOnNewMessage(refreshed, {
+				body: lastMessage.body,
+				author: lastMessage.author,
+			});
+		}
+		return created(toInquiryLatestPage(refreshed));
+	} catch (error) {
+		return handleMongoError(error);
+	}
 }

@@ -16,25 +16,23 @@ import { connectDB, Setting } from "@store/db";
 import { STOREFRONT_CACHE_TAG } from "@/lib/core/cached";
 
 interface RawSettingDoc {
-  key: string;
-  value: unknown;
+	key: string;
+	value: unknown;
 }
 
 const TTL_SECONDS = 60;
 
 const loadVerification = unstable_cache(
-  async (): Promise<string> => {
-    await connectDB();
-    const doc = await Setting.findOne({ key: "seo.googleSiteVerification" })
-      .select({ value: 1 })
-      .lean<RawSettingDoc | null>();
-    return typeof doc?.value === "string" ? doc.value : "";
-  },
-  ["seo-google-verification"],
-  { revalidate: TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+	async (): Promise<string> => {
+		await connectDB();
+		const doc = await Setting.findOne({ key: "seo.googleSiteVerification" }).select({ value: 1 }).lean<RawSettingDoc | null>();
+		return typeof doc?.value === "string" ? doc.value : "";
+	},
+	["seo-google-verification"],
+	{ revalidate: TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
 );
 
 export async function getGoogleSiteVerification(): Promise<string | null> {
-  const value = await loadVerification();
-  return value.trim().length > 0 ? value.trim() : null;
+	const value = await loadVerification();
+	return value.trim().length > 0 ? value.trim() : null;
 }

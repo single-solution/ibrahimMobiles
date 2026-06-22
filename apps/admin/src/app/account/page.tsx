@@ -6,11 +6,11 @@ import { requirePageSession } from "@/lib/server/requirePageSession";
 export const dynamic = "force-dynamic";
 
 export default async function AdminAccountPage() {
-  await requirePageSession("/account");
+	await requirePageSession("/account");
 
-  return (
-    <ListPageShell>
-      <AccountSettings />
-    </ListPageShell>
-  );
+	return (
+		<ListPageShell>
+			<AccountSettings />
+		</ListPageShell>
+	);
 }

@@ -1,8 +1,4 @@
-import {
-	HOURS_PER_DAY,
-	MINUTES_PER_HOUR,
-	MS_PER_MINUTE,
-} from "./constants";
+import { HOURS_PER_DAY, MINUTES_PER_HOUR, MS_PER_MINUTE } from "./constants";
 
 const DAYS_PER_WEEK = 7;
 /** Approximate days/months used for "Xmo ago" / "Xy ago" rendering only. */

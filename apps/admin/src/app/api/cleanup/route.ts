@@ -18,25 +18,8 @@
  */
 import { NextResponse } from "next/server";
 
-import {
-  badRequest,
-  forbidden,
-  ok,
-  parseBody,
-} from "@store/shared";
-import {
-  connectDB,
-  Customer,
-  Attribute,
-  Brand,
-  Category,
-  Grade,
-  handleMongoError,
-  Inquiry,
-  LoyaltyAccount,
-  Order,
-  Product,
-} from "@store/db";
+import { badRequest, forbidden, ok, parseBody } from "@store/shared";
+import { connectDB, Customer, Attribute, Brand, Category, Grade, handleMongoError, Inquiry, LoyaltyAccount, Order, Product } from "@store/db";
 
 import { bustAdminCaches } from "@/lib/cached";
 import { requireSession } from "@/lib/api/requireSession";
@@ -51,116 +34,104 @@ type CleanupTarget = (typeof CLEANUP_TARGETS)[number];
  * "type 'yes' to confirm" muscle memory from causing real damage.
  */
 const CONFIRMATION_PHRASES: Record<CleanupTarget, string> = {
-  catalog: "DELETE ALL CATALOG",
-  orders: "DELETE ALL ORDERS",
-  inquiries: "DELETE ALL INQUIRIES",
-  customers: "DELETE ALL CUSTOMERS",
+	catalog: "DELETE ALL CATALOG",
+	orders: "DELETE ALL ORDERS",
+	inquiries: "DELETE ALL INQUIRIES",
+	customers: "DELETE ALL CUSTOMERS",
 };
 
 interface CleanupBody {
-  target?: unknown;
-  confirmation?: unknown;
+	target?: unknown;
+	confirmation?: unknown;
 }
 
 function isCleanupTarget(value: unknown): value is CleanupTarget {
-  return typeof value === "string" && (CLEANUP_TARGETS as readonly string[]).includes(value);
+	return typeof value === "string" && (CLEANUP_TARGETS as readonly string[]).includes(value);
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const { actor, response } = await requireSession("data_cleanup");
-  if (response) {
-    return response;
-  }
+	const { actor, response } = await requireSession("data_cleanup");
+	if (response) {
+		return response;
+	}
 
-  const body = await parseBody<CleanupBody>(request);
-  if (body instanceof Response) {
-    return body as NextResponse;
-  }
+	const body = await parseBody<CleanupBody>(request);
+	if (body instanceof Response) {
+		return body as NextResponse;
+	}
 
-  if (!isCleanupTarget(body.target)) {
-    return badRequest(
-      `Target must be one of: ${CLEANUP_TARGETS.join(", ")}.`,
-    );
-  }
-  const target = body.target;
-  const expected = CONFIRMATION_PHRASES[target];
-  if (typeof body.confirmation !== "string" || body.confirmation.trim() !== expected) {
-    // Use `forbidden` rather than `badRequest` to make it crystal clear in
-    // logs that a confirmation challenge was failed.
-    return forbidden(
-      `Confirmation phrase must be exactly "${expected}".`,
-    );
-  }
+	if (!isCleanupTarget(body.target)) {
+		return badRequest(`Target must be one of: ${CLEANUP_TARGETS.join(", ")}.`);
+	}
+	const target = body.target;
+	const expected = CONFIRMATION_PHRASES[target];
+	if (typeof body.confirmation !== "string" || body.confirmation.trim() !== expected) {
+		// Use `forbidden` rather than `badRequest` to make it crystal clear in
+		// logs that a confirmation challenge was failed.
+		return forbidden(`Confirmation phrase must be exactly "${expected}".`);
+	}
 
-  await connectDB();
-  try {
-    const deletedCount = await runCleanup(target);
+	await connectDB();
+	try {
+		const deletedCount = await runCleanup(target);
 
-    await recordActivity({
-      actor,
-      action: "deleted",
-      resourceType: targetActivityResource(target),
-      resourceLabel: `Bulk cleanup · ${target}`,
-      detail: `Deleted ${deletedCount} record${deletedCount === 1 ? "" : "s"}`,
-    });
-    bustAdminCaches();
+		await recordActivity({
+			actor,
+			action: "deleted",
+			resourceType: targetActivityResource(target),
+			resourceLabel: `Bulk cleanup · ${target}`,
+			detail: `Deleted ${deletedCount} record${deletedCount === 1 ? "" : "s"}`,
+		});
+		bustAdminCaches();
 
-    return ok({ target, deletedCount });
-  } catch (error) {
-    return handleMongoError(error) as NextResponse;
-  }
+		return ok({ target, deletedCount });
+	} catch (error) {
+		return handleMongoError(error) as NextResponse;
+	}
 }
 
 async function runCleanup(target: CleanupTarget): Promise<number> {
-  switch (target) {
-    case "catalog": {
-      const [products, brands, grades, attributes, categories] = await Promise.all([
-        Product.deleteMany({}),
-        Brand.deleteMany({}),
-        Grade.deleteMany({}),
-        Attribute.deleteMany({}),
-        Category.deleteMany({}),
-      ]);
-      return (
-        (products.deletedCount ?? 0) +
-        (brands.deletedCount ?? 0) +
-        (grades.deletedCount ?? 0) +
-        (attributes.deletedCount ?? 0) +
-        (categories.deletedCount ?? 0)
-      );
-    }
-    case "orders": {
-      const result = await Order.deleteMany({});
-      return result.deletedCount ?? 0;
-    }
-    case "inquiries": {
-      const result = await Inquiry.deleteMany({});
-      return result.deletedCount ?? 0;
-    }
-    case "customers": {
-      // Cascade — orphan orders + loyalty would leave dangling `customerId`
-      // foreign keys and broken lifetime stats. Delete dependents first so
-      // an interrupted cleanup never leaves an inconsistent customer doc.
-      await Order.deleteMany({});
-      await LoyaltyAccount.deleteMany({});
-      const result = await Customer.deleteMany({});
-      return result.deletedCount ?? 0;
-    }
-  }
+	switch (target) {
+		case "catalog": {
+			const [products, brands, grades, attributes, categories] = await Promise.all([
+				Product.deleteMany({}),
+				Brand.deleteMany({}),
+				Grade.deleteMany({}),
+				Attribute.deleteMany({}),
+				Category.deleteMany({}),
+			]);
+			return (products.deletedCount ?? 0) + (brands.deletedCount ?? 0) + (grades.deletedCount ?? 0) + (attributes.deletedCount ?? 0) + (categories.deletedCount ?? 0);
+		}
+		case "orders": {
+			const result = await Order.deleteMany({});
+			return result.deletedCount ?? 0;
+		}
+		case "inquiries": {
+			const result = await Inquiry.deleteMany({});
+			return result.deletedCount ?? 0;
+		}
+		case "customers": {
+			// Cascade — orphan orders + loyalty would leave dangling `customerId`
+			// foreign keys and broken lifetime stats. Delete dependents first so
+			// an interrupted cleanup never leaves an inconsistent customer doc.
+			await Order.deleteMany({});
+			await LoyaltyAccount.deleteMany({});
+			const result = await Customer.deleteMany({});
+			return result.deletedCount ?? 0;
+		}
+	}
 }
 
 /** Map a cleanup target to the closest `ActivityResourceType` value. */
-function targetActivityResource(
-  target: CleanupTarget,
-): "order" | "inquiry" | "customer" | "product" {
-  switch (target) {
-    case "catalog":
-      return "product";
-    case "orders":
-      return "order";
-    case "inquiries":
-      return "inquiry";
-    case "customers":
-      return "customer";
-  }
+function targetActivityResource(target: CleanupTarget): "order" | "inquiry" | "customer" | "product" {
+	switch (target) {
+		case "catalog":
+			return "product";
+		case "orders":
+			return "order";
+		case "inquiries":
+			return "inquiry";
+		case "customers":
+			return "customer";
+	}
 }

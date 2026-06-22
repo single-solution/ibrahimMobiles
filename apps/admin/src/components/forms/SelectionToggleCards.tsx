@@ -21,28 +21,12 @@ interface SelectionToggleCardsProps<T extends string> {
 }
 
 /** Single-select toggle cards — no native radios; matches admin pill/card selection patterns. */
-export function SelectionToggleCards<T extends string>({
-	label,
-	hint,
-	value,
-	options,
-	onChange,
-	columns = 2,
-}: SelectionToggleCardsProps<T>) {
-	const columnClass =
-		columns === 4
-			? "sm:grid-cols-2 lg:grid-cols-4"
-			: columns === 3
-				? "sm:grid-cols-3"
-				: "sm:grid-cols-2";
+export function SelectionToggleCards<T extends string>({ label, hint, value, options, onChange, columns = 2 }: SelectionToggleCardsProps<T>) {
+	const columnClass = columns === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : columns === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2";
 
 	return (
 		<div className="flex flex-col gap-2">
-			{label ? (
-				<p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-700)]">
-					{label}
-				</p>
-			) : null}
+			{label ? <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-700)]">{label}</p> : null}
 			<div className={classNames("grid gap-3", columnClass)} role="group" aria-label={label}>
 				{options.map((option) => {
 					const isSelected = option.value === value;
@@ -61,17 +45,8 @@ export function SelectionToggleCards<T extends string>({
 						>
 							<div className="flex items-start justify-between gap-2">
 								<div className="flex min-w-0 items-center gap-2">
-									{option.icon ? (
-										<span className="shrink-0 text-[var(--color-ink-500)]">{option.icon}</span>
-									) : null}
-									<span
-										className={classNames(
-											"text-[13px] tracking-tight text-[var(--color-ink-900)]",
-											isSelected ? "font-bold" : "font-semibold",
-										)}
-									>
-										{option.title}
-									</span>
+									{option.icon ? <span className="shrink-0 text-[var(--color-ink-500)]">{option.icon}</span> : null}
+									<span className={classNames("text-[13px] tracking-tight text-[var(--color-ink-900)]", isSelected ? "font-bold" : "font-semibold")}>{option.title}</span>
 								</div>
 								{isSelected ? (
 									<span className="grid size-4 shrink-0 place-items-center rounded-full bg-[var(--color-accent-600)] text-white">
@@ -79,9 +54,7 @@ export function SelectionToggleCards<T extends string>({
 									</span>
 								) : null}
 							</div>
-							{option.description ? (
-								<p className="text-[11px] leading-snug text-[var(--color-ink-500)]">{option.description}</p>
-							) : null}
+							{option.description ? <p className="text-[11px] leading-snug text-[var(--color-ink-500)]">{option.description}</p> : null}
 						</button>
 					);
 				})}

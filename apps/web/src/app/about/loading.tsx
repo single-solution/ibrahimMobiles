@@ -1,10 +1,4 @@
-import {
-	DesktopProcessFallback,
-	DesktopShopTypesFallback,
-	MobileGradesFallback,
-	MobileProcessFallback,
-	MobileShopTypesFallback,
-} from "@/app/_components/home/homePageFallbacks";
+import { DesktopProcessFallback, DesktopShopTypesFallback, MobileGradesFallback, MobileProcessFallback, MobileShopTypesFallback } from "@/app/_components/home/homePageFallbacks";
 import { SkeletonScreen } from "@/components/ui/Skeleton";
 
 export default function AboutLoading() {

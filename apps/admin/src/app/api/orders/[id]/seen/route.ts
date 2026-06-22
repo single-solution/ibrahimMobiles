@@ -3,28 +3,25 @@ import { connectDB, handleMongoError, Order } from "@store/db";
 import { badRequest, isValidId, noContent } from "@store/shared";
 
 interface RouteContext {
-  params: Promise<{ id: string }>;
+	params: Promise<{ id: string }>;
 }
 
 export async function POST(_request: Request, { params }: RouteContext) {
-  const { actor, response } = await requireSession("order_view");
-  if (response) {
-    return response;
-  }
+	const { actor, response } = await requireSession("order_view");
+	if (response) {
+		return response;
+	}
 
-  const { id } = await params;
-  if (!isValidId(id)) {
-    return badRequest("Invalid ID.");
-  }
+	const { id } = await params;
+	if (!isValidId(id)) {
+		return badRequest("Invalid ID.");
+	}
 
-  await connectDB();
-  try {
-    await Order.updateOne(
-      { _id: id },
-      { $addToSet: { seenByAdminIds: actor.id } },
-    );
-    return noContent();
-  } catch (error) {
-    return handleMongoError(error);
-  }
+	await connectDB();
+	try {
+		await Order.updateOne({ _id: id }, { $addToSet: { seenByAdminIds: actor.id } });
+		return noContent();
+	} catch (error) {
+		return handleMongoError(error);
+	}
 }

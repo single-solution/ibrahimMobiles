@@ -1,21 +1,10 @@
-import {
-	type ActiveOffer,
-	type Offer,
-	type Product,
-	toActiveOffer,
-	hasItemScopeConditions,
-} from "@store/shared";
+import { type ActiveOffer, type Offer, type Product, toActiveOffer, hasItemScopeConditions, isCatalogWideStorefrontOffer } from "@store/shared";
 
 import { getProductsPage, getOffers } from "@/lib/core/queries";
 import type { OfferLean } from "@/lib/core/serializers";
 import { connectDB, Offer as OfferModel } from "@store/db";
 
-import {
-	filterProductsForOffer,
-	productHasAnyStorefrontOffer,
-	resolveSpotlightVariant,
-	resolveVariantOfferBadgeLabel,
-} from "./productOfferMatch";
+import { filterProductsForOffer, productHasAnyStorefrontOffer, resolveSpotlightVariant, resolveVariantOfferBadgeLabel } from "./productOfferMatch";
 
 export type DealsOfferSection = {
 	offer: Offer;
@@ -40,18 +29,10 @@ async function getActiveOfferDocs(): Promise<ActiveOffer[]> {
 		isActive: true,
 		$and: [
 			{
-				$or: [
-					{ "schedule.startDate": { $exists: false } },
-					{ "schedule.startDate": null },
-					{ "schedule.startDate": { $lte: now } },
-				],
+				$or: [{ "schedule.startDate": { $exists: false } }, { "schedule.startDate": null }, { "schedule.startDate": { $lte: now } }],
 			},
 			{
-				$or: [
-					{ "schedule.endDate": { $exists: false } },
-					{ "schedule.endDate": null },
-					{ "schedule.endDate": { $gt: now } },
-				],
+				$or: [{ "schedule.endDate": { $exists: false } }, { "schedule.endDate": null }, { "schedule.endDate": { $gt: now } }],
 			},
 		],
 	})
@@ -61,10 +42,7 @@ async function getActiveOfferDocs(): Promise<ActiveOffer[]> {
 	return docs.map(toActiveOffer);
 }
 
-function resolveSpotlightProduct(
-	featuredCandidates: Product[],
-	activeOffers: ActiveOffer[],
-): Product | null {
+function resolveSpotlightProduct(featuredCandidates: Product[], activeOffers: ActiveOffer[]): Product | null {
 	for (const product of featuredCandidates) {
 		if (productHasAnyStorefrontOffer(product, activeOffers)) {
 			return product;
@@ -95,10 +73,7 @@ export async function loadDealsPageContent(): Promise<DealsPageContent> {
 
 	const spotlight = resolveSpotlightProduct(featuredPage.products, activeOffers);
 	const spotlightVariant = spotlight ? resolveSpotlightVariant(spotlight) : null;
-	const spotlightOfferBadgeLabel =
-		spotlight && spotlightVariant
-			? resolveVariantOfferBadgeLabel(spotlight, spotlightVariant, activeOffers)
-			: null;
+	const spotlightOfferBadgeLabel = spotlight && spotlightVariant ? resolveVariantOfferBadgeLabel(spotlight, spotlightVariant, activeOffers) : null;
 
 	const usedProductIds = new Set<string>(spotlight ? [spotlight.id] : []);
 
@@ -106,7 +81,12 @@ export async function loadDealsPageContent(): Promise<DealsPageContent> {
 
 	const sections: DealsOfferSection[] = displayOffers.flatMap((offer) => {
 		const activeOffer = activeById.get(offer.id);
-		if (!activeOffer || !hasItemScopeConditions(activeOffer)) {
+		if (!activeOffer) {
+			return [];
+		}
+
+		const isCatalogWide = isCatalogWideStorefrontOffer(activeOffer);
+		if (!isCatalogWide && !hasItemScopeConditions(activeOffer)) {
 			return [];
 		}
 

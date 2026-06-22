@@ -15,14 +15,7 @@ interface ProductRowEditMenuProps {
 	onDelete: () => void;
 }
 
-export function ProductRowEditMenu({
-	canUpdate,
-	canDelete,
-	onEditProduct,
-	onManageVariants,
-	onEditSeo,
-	onDelete,
-}: ProductRowEditMenuProps) {
+export function ProductRowEditMenu({ canUpdate, canDelete, onEditProduct, onManageVariants, onEditSeo, onDelete }: ProductRowEditMenuProps) {
 	const [open, setOpen] = useState(false);
 	const rootRef = useRef<HTMLDivElement>(null);
 
@@ -64,34 +57,15 @@ export function ProductRowEditMenu({
 				<ul className="flex flex-col gap-0.5">
 					{canUpdate ? (
 						<>
-							<MenuItem
-								icon={<Pencil size={13} aria-hidden />}
-								label="Edit product"
-								onClick={() => runAction(onEditProduct)}
-							/>
-							<MenuItem
-								icon={<Layers size={13} aria-hidden />}
-								label="Manage variants"
-								onClick={() => runAction(onManageVariants)}
-							/>
-							<MenuItem
-								icon={<Sparkles size={13} aria-hidden />}
-								label="Edit SEO"
-								onClick={() => runAction(onEditSeo)}
-							/>
+							<MenuItem icon={<Pencil size={13} aria-hidden />} label="Edit product" onClick={() => runAction(onEditProduct)} />
+							<MenuItem icon={<Layers size={13} aria-hidden />} label="Manage variants" onClick={() => runAction(onManageVariants)} />
+							<MenuItem icon={<Sparkles size={13} aria-hidden />} label="Edit SEO" onClick={() => runAction(onEditSeo)} />
 						</>
 					) : null}
 					{canDelete ? (
 						<>
-							{canUpdate ? (
-								<li className="my-0.5 border-t border-[var(--color-ink-100)]" aria-hidden />
-							) : null}
-							<MenuItem
-								icon={<Trash2 size={13} aria-hidden />}
-								label="Delete product"
-								tone="danger"
-								onClick={() => runAction(onDelete)}
-							/>
+							{canUpdate ? <li className="my-0.5 border-t border-[var(--color-ink-100)]" aria-hidden /> : null}
+							<MenuItem icon={<Trash2 size={13} aria-hidden />} label="Delete product" tone="danger" onClick={() => runAction(onDelete)} />
 						</>
 					) : null}
 				</ul>
@@ -100,17 +74,7 @@ export function ProductRowEditMenu({
 	);
 }
 
-function MenuItem({
-	icon,
-	label,
-	onClick,
-	tone = "default",
-}: {
-	icon: ReactNode;
-	label: string;
-	onClick: () => void;
-	tone?: "default" | "danger";
-}) {
+function MenuItem({ icon, label, onClick, tone = "default" }: { icon: ReactNode; label: string; onClick: () => void; tone?: "default" | "danger" }) {
 	return (
 		<li>
 			<button
@@ -119,9 +83,7 @@ function MenuItem({
 				onClick={onClick}
 				className={classNames(
 					"flex w-full items-center gap-2 rounded-[var(--radius-md)] px-2 py-1.5 text-left text-[12px] font-semibold transition-colors",
-					tone === "danger"
-						? "text-[var(--color-rose-700)] hover:bg-[var(--color-rose-50)]"
-						: "text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)]",
+					tone === "danger" ? "text-[var(--color-rose-700)] hover:bg-[var(--color-rose-50)]" : "text-[var(--color-ink-800)] hover:bg-[var(--color-canvas-deep)]",
 				)}
 			>
 				{icon}

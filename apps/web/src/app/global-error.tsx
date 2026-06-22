@@ -30,8 +30,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
 			<body
 				style={{
 					margin: 0,
-					fontFamily:
-						"system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif",
+					fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif",
 					background: "#f8fbf8",
 					color: "#00272c",
 				}}

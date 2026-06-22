@@ -1,12 +1,7 @@
 import { Suspense } from "react";
 
 import { buildProcessFlows } from "@/app/_components/home/homeProcessFlows";
-import {
-	DesktopGrades,
-	DesktopProcessSection,
-	DesktopShopTypesSection,
-	DesktopVisitStore,
-} from "@/app/_components/home/homePageDesktopSections";
+import { DesktopGrades, DesktopProcessSection, DesktopShopTypesSection, DesktopVisitStore } from "@/app/_components/home/homePageDesktopSections";
 import {
 	DesktopGradesFallback,
 	DesktopProcessFallback,
@@ -17,12 +12,7 @@ import {
 	MobileShopTypesFallback,
 	MobileVisitStoreFallback,
 } from "@/app/_components/home/homePageFallbacks";
-import {
-	MobileGradesSection,
-	MobileProcessSection,
-	MobileShopTypesSection,
-	MobileVisitStoreSection,
-} from "@/app/_components/home/homePageMobileSections";
+import { MobileGradesSection, MobileProcessSection, MobileShopTypesSection, MobileVisitStoreSection } from "@/app/_components/home/homePageMobileSections";
 import { getStoreSettingsCached } from "@/lib/core/cached";
 import { loadHomeCategoryTiles } from "@/lib/core/pageData";
 

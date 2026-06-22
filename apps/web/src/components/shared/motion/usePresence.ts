@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 export type PresenceStatus = "open" | "closing";
 
 interface PresenceState {
-  /** Whether the overlay should be in the DOM (true while open AND while
-   *  the exit animation is still playing). */
-  isMounted: boolean;
-  /** "open" while entering/idle, "closing" while the exit animation runs. */
-  status: PresenceStatus;
+	/** Whether the overlay should be in the DOM (true while open AND while
+	 *  the exit animation is still playing). */
+	isMounted: boolean;
+	/** "open" while entering/idle, "closing" while the exit animation runs. */
+	status: PresenceStatus;
 }
 
 /**
@@ -24,43 +24,33 @@ interface PresenceState {
  * is removed exactly as the animation lands.
  */
 export function usePresence(isOpen: boolean, exitDurationMs: number): PresenceState {
-  const [isMounted, setIsMounted] = useState(isOpen);
-  const [status, setStatus] = useState<PresenceStatus>(isOpen ? "open" : "closing");
-  const timeoutRef = useRef<number | null>(null);
+	const [isMounted, setIsMounted] = useState(isOpen);
+	const [status, setStatus] = useState<PresenceStatus>(isOpen ? "open" : "closing");
 
-  useEffect(() => {
-    if (timeoutRef.current !== null) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
+	if (isOpen) {
+		if (!isMounted) {
+			setIsMounted(true);
+		}
+		if (status !== "open") {
+			setStatus("open");
+		}
+	} else if (status === "open") {
+		setStatus("closing");
+	}
 
-    if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsMounted(true);
-      setStatus("open");
-      return;
-    }
+	useEffect(() => {
+		if (isOpen) {
+			return;
+		}
 
-    // Closing: only schedule an unmount if something is currently mounted.
-    if (!isMounted) {
-      return;
-    }
-    setStatus("closing");
-    timeoutRef.current = window.setTimeout(() => {
-      setIsMounted(false);
-      timeoutRef.current = null;
-    }, exitDurationMs);
+		const timeoutId = window.setTimeout(() => {
+			setIsMounted(false);
+		}, exitDurationMs);
 
-    return () => {
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-    // `isMounted` intentionally omitted: we react to open/close edges, not
-    // to our own mount flips (which would reschedule the unmount timer).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, exitDurationMs]);
+		return () => {
+			window.clearTimeout(timeoutId);
+		};
+	}, [isOpen, exitDurationMs]);
 
-  return { isMounted, status };
+	return { isMounted, status };
 }

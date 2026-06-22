@@ -27,55 +27,52 @@ const MAX_RATING_LENGTH = 16;
 const MAX_NAV_TYPE_LENGTH = 32;
 
 interface VitalsBody {
-  name?: string;
-  value?: number;
-  id?: string;
-  rating?: string;
-  navigationType?: string;
+	name?: string;
+	value?: number;
+	id?: string;
+	rating?: string;
+	navigationType?: string;
 }
 
 export async function POST(request: Request) {
-  const limited = enforcePublicRateLimit(request, {
-    scope: "storefront-vitals",
-    max: VITALS_PER_MINUTE,
-    windowMs: PER_MINUTE_WINDOW_MS,
-  });
-  if (limited) {
-    return limited;
-  }
+	const limited = enforcePublicRateLimit(request, {
+		scope: "storefront-vitals",
+		max: VITALS_PER_MINUTE,
+		windowMs: PER_MINUTE_WINDOW_MS,
+	});
+	if (limited) {
+		return limited;
+	}
 
-  let body: VitalsBody;
-  try {
-    body = (await request.json()) as VitalsBody;
-  } catch {
-    return badRequest("Invalid JSON body.");
-  }
+	let body: VitalsBody;
+	try {
+		body = (await request.json()) as VitalsBody;
+	} catch {
+		return badRequest("Invalid JSON body.");
+	}
 
-  const name = typeof body.name === "string" ? body.name.trim().toUpperCase() : "";
-  if (!ALLOWED_METRICS.has(name)) {
-    return badRequest("Unknown metric.");
-  }
+	const name = typeof body.name === "string" ? body.name.trim().toUpperCase() : "";
+	if (!ALLOWED_METRICS.has(name)) {
+		return badRequest("Unknown metric.");
+	}
 
-  const rawValue = body.value;
-  if (typeof rawValue !== "number" || !Number.isFinite(rawValue)) {
-    return badRequest("Metric value must be a finite number.");
-  }
+	const rawValue = body.value;
+	if (typeof rawValue !== "number" || !Number.isFinite(rawValue)) {
+		return badRequest("Metric value must be a finite number.");
+	}
 
-  const value = Math.min(Math.max(rawValue, 0), MAX_VALUE);
+	const value = Math.min(Math.max(rawValue, 0), MAX_VALUE);
 
-  logger.info(
-    {
-      metric: name,
-      value,
-      id: typeof body.id === "string" ? body.id.slice(0, MAX_ID_LENGTH) : undefined,
-      rating: typeof body.rating === "string" ? body.rating.slice(0, MAX_RATING_LENGTH) : undefined,
-      navigationType:
-        typeof body.navigationType === "string"
-          ? body.navigationType.slice(0, MAX_NAV_TYPE_LENGTH)
-          : undefined,
-    },
-    "storefront: web vital",
-  );
+	logger.info(
+		{
+			metric: name,
+			value,
+			id: typeof body.id === "string" ? body.id.slice(0, MAX_ID_LENGTH) : undefined,
+			rating: typeof body.rating === "string" ? body.rating.slice(0, MAX_RATING_LENGTH) : undefined,
+			navigationType: typeof body.navigationType === "string" ? body.navigationType.slice(0, MAX_NAV_TYPE_LENGTH) : undefined,
+		},
+		"storefront: web vital",
+	);
 
-  return ok({ accepted: true });
+	return ok({ accepted: true });
 }

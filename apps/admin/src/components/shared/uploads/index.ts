@@ -9,9 +9,4 @@ export { ImageGallery } from "./ImageGallery";
 export { ImageUpload } from "./ImageUpload";
 export { Lightbox } from "./Lightbox";
 export { VideoUpload } from "./VideoUpload";
-export {
-  uploadImage,
-  uploadVideo,
-  removeStoredUrls,
-  collectStoredImageUrls,
-} from "./uploadClient";
+export { uploadImage, uploadVideo, removeStoredUrls, collectStoredImageUrls } from "./uploadClient";

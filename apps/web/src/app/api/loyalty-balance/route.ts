@@ -15,17 +15,7 @@
  */
 
 import { Customer, LoyaltyAccount, connectDB } from "@store/db";
-import {
-  FIELD_LIMITS,
-  PER_MINUTE_WINDOW_MS,
-  badRequest,
-  isValidationError,
-  logger,
-  ok,
-  parseBody,
-  serverError,
-  validateString,
-} from "@store/shared";
+import { FIELD_LIMITS, PER_MINUTE_WINDOW_MS, badRequest, isValidationError, logger, ok, parseBody, serverError, validateString } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 
@@ -34,69 +24,67 @@ import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 const LOYALTY_LOOKUPS_PER_MINUTE = 10;
 
 interface LookupBody {
-  phoneNumber?: unknown;
+	phoneNumber?: unknown;
 }
 
 interface LookupResponse {
-  isMember: boolean;
-  balance: number;
-  lifetimeEarned: number;
+	isMember: boolean;
+	balance: number;
+	lifetimeEarned: number;
 }
 
 const NOT_A_MEMBER: LookupResponse = {
-  isMember: false,
-  balance: 0,
-  lifetimeEarned: 0,
+	isMember: false,
+	balance: 0,
+	lifetimeEarned: 0,
 };
 
 export async function POST(request: Request) {
-  const limited = enforcePublicRateLimit(request, {
-    scope: "storefront-loyalty-lookup",
-    max: LOYALTY_LOOKUPS_PER_MINUTE,
-    windowMs: PER_MINUTE_WINDOW_MS,
-  });
-  if (limited) {
-    return limited;
-  }
+	const limited = enforcePublicRateLimit(request, {
+		scope: "storefront-loyalty-lookup",
+		max: LOYALTY_LOOKUPS_PER_MINUTE,
+		windowMs: PER_MINUTE_WINDOW_MS,
+	});
+	if (limited) {
+		return limited;
+	}
 
-  const parsed = await parseBody<LookupBody>(request);
-  if (parsed instanceof Response) {
-    return parsed;
-  }
-  const body = parsed;
+	const parsed = await parseBody<LookupBody>(request);
+	if (parsed instanceof Response) {
+		return parsed;
+	}
+	const body = parsed;
 
-  const phoneResult = validateString(body.phoneNumber, {
-    label: "Phone",
-    min: 7,
-    max: FIELD_LIMITS.phoneNumber,
-  });
-  if (isValidationError(phoneResult)) {
-    return badRequest(phoneResult.error);
-  }
+	const phoneResult = validateString(body.phoneNumber, {
+		label: "Phone",
+		min: 7,
+		max: FIELD_LIMITS.phoneNumber,
+	});
+	if (isValidationError(phoneResult)) {
+		return badRequest(phoneResult.error);
+	}
 
-  try {
-    await connectDB();
-    const customer = await Customer.findOne({ phoneNumber: phoneResult })
-      .select("_id isLoyaltyMember")
-      .lean<{ _id: import("mongoose").Types.ObjectId; isLoyaltyMember: boolean }>();
-    if (!customer || !customer.isLoyaltyMember) {
-      return ok(NOT_A_MEMBER);
-    }
+	try {
+		await connectDB();
+		const customer = await Customer.findOne({ phoneNumber: phoneResult })
+			.select("_id isLoyaltyMember")
+			.lean<{ _id: import("mongoose").Types.ObjectId; isLoyaltyMember: boolean }>();
+		if (!customer || !customer.isLoyaltyMember) {
+			return ok(NOT_A_MEMBER);
+		}
 
-    const account = await LoyaltyAccount.findOne({ customerId: customer._id })
-      .select("balance lifetimeEarned")
-      .lean<{ balance: number; lifetimeEarned: number }>();
-    if (!account) {
-      return ok(NOT_A_MEMBER);
-    }
+		const account = await LoyaltyAccount.findOne({ customerId: customer._id }).select("balance lifetimeEarned").lean<{ balance: number; lifetimeEarned: number }>();
+		if (!account) {
+			return ok(NOT_A_MEMBER);
+		}
 
-    return ok<LookupResponse>({
-      isMember: true,
-      balance: account.balance,
-      lifetimeEarned: account.lifetimeEarned,
-    });
-  } catch (error) {
-    logger.error({ error, phoneNumber: phoneResult }, "loyalty-balance check failed");
-    return serverError("Failed to look up balance.");
-  }
+		return ok<LookupResponse>({
+			isMember: true,
+			balance: account.balance,
+			lifetimeEarned: account.lifetimeEarned,
+		});
+	} catch (error) {
+		logger.error({ error, phoneNumber: phoneResult }, "loyalty-balance check failed");
+		return serverError("Failed to look up balance.");
+	}
 }

@@ -26,75 +26,49 @@ import Link from "next/link";
 import { classNames } from "@store/shared";
 
 interface BrandLockupProps {
-  /** Where the brand mark links to. Always `/` in practice. */
-  href: string;
-  /** Visible wordmark, also used as the link's accessible label. */
-  siteName: string;
-  /** Optional uploaded logo URL. Empty string ⇒ text-only mode. */
-  logoUrl?: string;
-  /** Surface tone — controls wordmark colour. */
-  tone: "light" | "dark";
-  /** Size preset; larger = bigger badge box + heavier wordmark scale. */
-  size?: "sm" | "md";
-  className?: string;
+	/** Where the brand mark links to. Always `/` in practice. */
+	href: string;
+	/** Visible wordmark, also used as the link's accessible label. */
+	siteName: string;
+	/** Optional uploaded logo URL. Empty string ⇒ text-only mode. */
+	logoUrl?: string;
+	/** Surface tone — controls wordmark colour. */
+	tone: "light" | "dark";
+	/** Size preset; larger = bigger badge box + heavier wordmark scale. */
+	size?: "sm" | "md";
+	className?: string;
 }
 
 const BADGE_BOX: Record<NonNullable<BrandLockupProps["size"]>, string> = {
-  sm: "h-8 w-auto max-w-[3rem]",
-  md: "h-9 w-auto max-w-[3.5rem]",
+	sm: "h-8 w-auto max-w-[3rem]",
+	md: "h-9 w-auto max-w-[3.5rem]",
 };
 
 const WORDMARK: Record<NonNullable<BrandLockupProps["size"]>, string> = {
-  sm: "text-lg",
-  md: "text-2xl",
+	sm: "text-lg",
+	md: "text-2xl",
 };
 
 const TONE_TEXT: Record<BrandLockupProps["tone"], string> = {
-  light: "text-[var(--color-ink-900)]",
-  dark: "text-[var(--color-on-dark)]",
+	light: "text-[var(--color-ink-900)]",
+	dark: "text-[var(--color-on-dark)]",
 };
 
-export function BrandLockup({
-  href,
-  siteName,
-  logoUrl,
-  tone,
-  size = "md",
-  className,
-}: BrandLockupProps) {
-  const hasLogo = Boolean(logoUrl && logoUrl.trim().length > 0);
+export function BrandLockup({ href, siteName, logoUrl, tone, size = "md", className }: BrandLockupProps) {
+	const hasLogo = Boolean(logoUrl && logoUrl.trim().length > 0);
 
-  return (
-    <Link
-      href={href}
-      aria-label={siteName}
-      className={classNames(
-        "brand-lockup flex items-center gap-2.5",
-        TONE_TEXT[tone],
-        className,
-      )}
-    >
-      {hasLogo ? (
-        /* Plain <img>: the source is admin-uploaded so the dimensions
+	return (
+		<Link href={href} aria-label={siteName} className={classNames("brand-lockup flex items-center gap-2.5", TONE_TEXT[tone], className)}>
+			{hasLogo ? (
+				/* Plain <img>: the source is admin-uploaded so the dimensions
            are unknown at build time, and `next/image` would also need
            the storage host in the `images.remotePatterns` allowlist —
            an extra config step the admin shouldn't have to think about
            for an uploaded brand mark. */
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={logoUrl}
-          alt=""
-          className={classNames("object-contain", BADGE_BOX[size])}
-        />
-      ) : null}
-      <span
-        className={classNames(
-          "font-semibold leading-none tracking-tight",
-          WORDMARK[size],
-        )}
-      >
-        {siteName}
-      </span>
-    </Link>
-  );
+				// eslint-disable-next-line @next/next/no-img-element
+				<img src={logoUrl} alt="" className={classNames("object-contain", BADGE_BOX[size])} />
+			) : null}
+			<span className={classNames("font-semibold leading-none tracking-tight", WORDMARK[size])}>{siteName}</span>
+		</Link>
+	);
 }

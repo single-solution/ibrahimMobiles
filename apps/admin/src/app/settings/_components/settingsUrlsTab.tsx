@@ -12,14 +12,7 @@ interface SiteUrlsSettingsProps extends SectionProps {
 	envFallbackStorefrontUrl: string;
 }
 
-export function SiteUrlsSettings({
-	draft,
-	saved,
-	setField,
-	onSaved,
-	canUpdate,
-	envFallbackStorefrontUrl,
-}: SiteUrlsSettingsProps) {
+export function SiteUrlsSettings({ draft, saved, setField, onSaved, canUpdate, envFallbackStorefrontUrl }: SiteUrlsSettingsProps) {
 	const effectiveUrl = resolvePublicSiteUrl(draft.publicSiteUrl);
 	const usesEnvFallback = draft.publicSiteUrl.trim().length === 0;
 	const heroMetrics: SettingsHeroMetric[] = [
@@ -28,9 +21,7 @@ export function SiteUrlsSettings({
 			value: effectiveUrl,
 			tone: usesEnvFallback ? "warn" : "good",
 			icon: Globe2,
-			hint: usesEnvFallback
-				? `Using deploy env (${envFallbackStorefrontUrl}) until you save a URL here`
-				: "Used for SEO, sitemap, product links, and admin “open storefront”",
+			hint: usesEnvFallback ? `Using deploy env (${envFallbackStorefrontUrl}) until you save a URL here` : "Used for SEO, sitemap, product links, and admin “open storefront”",
 		},
 	];
 
@@ -68,9 +59,8 @@ export function SiteUrlsSettings({
 					<div className="mb-3 flex gap-2 rounded-[var(--radius-md)] border border-amber-200/80 bg-amber-50/80 px-3 py-2.5 text-[12px] leading-relaxed text-amber-950">
 						<AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden />
 						<p>
-							No URL saved yet — the site currently resolves to{" "}
-							<strong className="font-semibold">{envFallbackStorefrontUrl}</strong> from deploy
-							environment variables. Save your production domain here to override that everywhere.
+							No URL saved yet — the site currently resolves to <strong className="font-semibold">{envFallbackStorefrontUrl}</strong> from deploy environment variables. Save your
+							production domain here to override that everywhere.
 						</p>
 					</div>
 				) : null}
@@ -88,8 +78,7 @@ export function SiteUrlsSettings({
 				<div className="mt-3 flex items-start gap-2 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-3 py-2.5 text-[11.5px] text-[var(--color-ink-600)]">
 					<Link2 size={13} className="mt-0.5 shrink-0 text-[var(--color-ink-400)]" aria-hidden />
 					<p>
-						<strong className="font-semibold text-[var(--color-ink-800)]">Effective URL now:</strong>{" "}
-						{effectiveUrl}
+						<strong className="font-semibold text-[var(--color-ink-800)]">Effective URL now:</strong> {effectiveUrl}
 						{usesEnvFallback ? " (from env until saved)" : ""}
 					</p>
 				</div>

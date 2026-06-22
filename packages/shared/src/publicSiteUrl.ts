@@ -14,9 +14,7 @@ export function resolvePublicSiteUrl(override?: string | null): string {
 		process.env.STOREFRONT_BASE_URL,
 		process.env.NEXT_PUBLIC_STOREFRONT_URL,
 		process.env.NEXT_PUBLIC_SITE_URL,
-		process.env.VERCEL_PROJECT_PRODUCTION_URL
-			? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-			: undefined,
+		process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined,
 		process.env.AUTH_URL,
 	];
 	for (const candidate of candidates) {
@@ -28,4 +26,3 @@ export function resolvePublicSiteUrl(override?: string | null): string {
 }
 
 /** Alias kept for admin SEO helpers that predate the shared export. */
-export const getPublicSiteUrl = resolvePublicSiteUrl;

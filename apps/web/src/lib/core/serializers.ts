@@ -15,99 +15,76 @@
 
 import type { Types } from "mongoose";
 
-import type {
-  AttributeAttributes,
-  BrandAttributes,
-  GradeAttributes,
-  OfferAttributes,
-  ProductAttributes,
-  VariantAttributes,
-  WithTimestamps,
-} from "@store/db";
-import type {
-  AttributeDescriptor,
-  Brand,
-  GradeDescriptor,
-  Offer,
-  Product,
-  Variant,
-  StoredImage,
-} from "@store/shared";
+import type { AttributeAttributes, BrandAttributes, GradeAttributes, OfferAttributes, ProductAttributes, VariantAttributes, WithTimestamps } from "@store/db";
+import type { AttributeDescriptor, Brand, GradeDescriptor, Offer, Product, Variant, StoredImage } from "@store/shared";
 import type { StructuredContent } from "@store/shared";
 import { resolveWarrantyDays } from "@store/shared";
 import {
-  asArray,
-  asNumber,
-  asString,
-  coerceStoredImage,
-  hasStructuredContent,
-  isStoredImage,
-  normalizeStructuredContent,
-  objectIdString,
-  parseAttributeVisibility,
-  sortAttributeOptions,
-  toIsoDate,
+	asArray,
+	asNumber,
+	asString,
+	coerceStoredImage,
+	hasStructuredContent,
+	isStoredImage,
+	normalizeStructuredContent,
+	normalizeAttributeCardPosition,
+	objectIdString,
+	parseAttributeVisibility,
+	sortAttributeOptions,
+	toIsoDate,
 } from "@store/shared";
 
 import { resolveIconNode } from "@/lib/icons/iconNode";
 
 /** Mongoose lean shape for a brand. */
 export type BrandLean = WithTimestamps<BrandAttributes> & {
-  _id: Types.ObjectId;
+	_id: Types.ObjectId;
 };
 /** Mongoose lean shape for a product. */
 export type ProductLean = WithTimestamps<ProductAttributes> & {
-  _id: Types.ObjectId;
+	_id: Types.ObjectId;
 };
 /** Mongoose lean shape for an offer. */
 export type OfferLean = WithTimestamps<OfferAttributes> & {
-  _id: Types.ObjectId;
+	_id: Types.ObjectId;
 };
 /** Mongoose lean shape for a grade. */
 export type GradeLean = WithTimestamps<GradeAttributes> & {
-  _id: Types.ObjectId;
+	_id: Types.ObjectId;
 };
 export type AttributeLean = WithTimestamps<AttributeAttributes> & {
-  _id: Types.ObjectId;
+	_id: Types.ObjectId;
 };
 
 /**
  * Brand → public Brand. `productCount` is supplied by the caller (we
  * compute it via a single aggregation per page render, not per-brand).
  */
-export function toBrand(
-  brand: BrandLean,
-  productCount: number,
-): Brand {
-  return {
-    slug: asString(brand.slug),
-    name: asString(brand.name),
-    productCount: asNumber(productCount),
-    seo: brand.seo,
-  };
+export function toBrand(brand: BrandLean, productCount: number): Brand {
+	return {
+		slug: asString(brand.slug),
+		name: asString(brand.name),
+		productCount: asNumber(productCount),
+		seo: brand.seo,
+	};
 }
 
-export function toAttribute(
-  attribute: AttributeLean,
-): AttributeDescriptor {
-  return {
-    categorySlug: asString(attribute.categorySlug),
-    slug: asString(attribute.slug),
-    label: asString(attribute.label),
-    unit: asString(attribute.unit) || undefined,
-    options: sortAttributeOptions(
-      asArray<AttributeAttributes["options"][number]>(attribute.options).map(
-        (option) => ({
-          value: asString(option?.value),
-          label: asString(option?.label),
-          backgroundColor: option?.backgroundColor,
-        }),
-      ),
-      asString(attribute.unit) || undefined,
-    ),
-    visibility: parseAttributeVisibility(attribute.visibility),
-    cardPosition: attribute.cardPosition ?? "title-chips",
-  };
+export function toAttribute(attribute: AttributeLean): AttributeDescriptor {
+	return {
+		categorySlug: asString(attribute.categorySlug),
+		slug: asString(attribute.slug),
+		label: asString(attribute.label),
+		unit: asString(attribute.unit) || undefined,
+		options: sortAttributeOptions(
+			asArray<AttributeAttributes["options"][number]>(attribute.options).map((option) => ({
+				value: asString(option?.value),
+				label: asString(option?.label),
+			})),
+			asString(attribute.unit) || undefined,
+		),
+		visibility: parseAttributeVisibility(attribute.visibility),
+		cardPosition: normalizeAttributeCardPosition(attribute.cardPosition),
+	};
 }
 
 /**
@@ -115,52 +92,38 @@ export function toAttribute(
  * renders structured-content icons with no client-side registry. Returns
  * `undefined` when there is nothing to render.
  */
-export function attachBulletIconNodes(
-  content: StructuredContent,
-): StructuredContent | undefined {
-  if (!hasStructuredContent(content)) {
-    return undefined;
-  }
-  return {
-    ...content,
-    bullets: content.bullets.map((bullet) => ({
-      ...bullet,
-      iconNode: resolveIconNode(bullet.icon),
-    })),
-  };
+export function attachBulletIconNodes(content: StructuredContent): StructuredContent | undefined {
+	if (!hasStructuredContent(content)) {
+		return undefined;
+	}
+	return {
+		...content,
+		bullets: content.bullets.map((bullet) => ({
+			...bullet,
+			iconNode: resolveIconNode(bullet.icon),
+		})),
+	};
 }
 
 /** Coerce a raw stored-image array off a lean document into a clean
  *  `StoredImage[]`, dropping anything that doesn't pass `coerceStoredImage`. */
 function asStoredImageArray(raw: unknown): StoredImage[] {
-  return asArray<unknown>(raw)
-    .map(coerceStoredImage)
-    .filter((image): image is StoredImage => image !== null);
+	return asArray<unknown>(raw)
+		.map(coerceStoredImage)
+		.filter((image): image is StoredImage => image !== null);
 }
 
-function readVariantForceOutOfStock(
-	variant: VariantAttributes & { isActive?: boolean },
-): boolean {
-	if (variant.forceOutOfStock === true) {
-		return true;
-	}
-	if (variant.isActive === false) {
-		return true;
-	}
-	return false;
-}
-
-function toVariant(variant: VariantAttributes & { isActive?: boolean }): Variant {
-  return {
-    id: objectIdString(variant._id),
-    gradeSlug: asString(variant.gradeSlug),
-    priceRupees: asNumber(variant.priceRupees),
-    quantity: variant.quantity ?? 0,
-    forceOutOfStock: readVariantForceOutOfStock(variant),
-    warrantyDays: resolveWarrantyDays(variant),
-    attributes: variant.attributes ?? {},
-    attributeDisplay: variant.attributeDisplay,
-  };
+function toVariant(variant: VariantAttributes): Variant {
+	return {
+		id: objectIdString(variant._id),
+		gradeSlug: asString(variant.gradeSlug),
+		priceRupees: asNumber(variant.priceRupees),
+		quantity: variant.quantity ?? 0,
+		forceOutOfStock: variant.forceOutOfStock === true,
+		warrantyDays: resolveWarrantyDays(variant),
+		attributes: variant.attributes ?? {},
+		attributeDisplay: variant.attributeDisplay,
+	};
 }
 
 /**
@@ -171,93 +134,75 @@ function toVariant(variant: VariantAttributes & { isActive?: boolean }): Variant
  * silently drops such rows rather than ship a card with an empty brand
  * line. Admin tooling surfaces these dangling rows separately.
  */
-export function toProduct(
-  product: ProductLean,
-  brandsByCategoryAndSlug: Map<string, { slug: string; name: string }>,
-): Product | null {
-  const categorySlug = asString(product.categorySlug);
-  const brand = brandsByCategoryAndSlug.get(
-    `${categorySlug}:${asString(product.brandSlug)}`,
-  );
-  if (!brand) {
-    return null;
-  }
+export function toProduct(product: ProductLean, brandsByCategoryAndSlug: Map<string, { slug: string; name: string }>): Product | null {
+	const categorySlug = asString(product.categorySlug);
+	const brand = brandsByCategoryAndSlug.get(`${categorySlug}:${asString(product.brandSlug)}`);
+	if (!brand) {
+		return null;
+	}
 
-  const images = asStoredImageArray(product.images);
+	const images = asStoredImageArray(product.images);
 
-  return {
-    id: objectIdString(product._id),
-    slug: asString(product.slug),
-    name: asString(product.name),
-    brandSlug: brand.slug,
-    brandName: brand.name,
-    categorySlug,
-    isFeatured: product.isFeatured ?? false,
-    images,
-    variants: asArray<VariantAttributes>(product.variants).map(toVariant),
-    ...(Array.isArray(product.attributeSlugs)
-      ? {
-          attributeSlugs: product.attributeSlugs.filter(
-            (slug): slug is string => typeof slug === "string" && slug.length > 0,
-          ),
-        }
-      : {}),
-    ...(product.attributeOptionPool &&
-    typeof product.attributeOptionPool === "object" &&
-    !Array.isArray(product.attributeOptionPool)
-      ? { attributeOptionPool: product.attributeOptionPool as Record<string, string[]> }
-      : {}),
-    ...(product.attributeCustomOptions &&
-    typeof product.attributeCustomOptions === "object" &&
-    !Array.isArray(product.attributeCustomOptions)
-      ? {
-          attributeCustomOptions: product.attributeCustomOptions as Record<
-            string,
-            Array<{ value: string; label: string }>
-          >,
-        }
-      : {}),
-    ...(product.attributeDefaults &&
-    typeof product.attributeDefaults === "object" &&
-    !Array.isArray(product.attributeDefaults)
-      ? { attributeDefaults: product.attributeDefaults as Record<string, string> }
-      : {}),
-    seo: product.seo,
-  };
+	return {
+		id: objectIdString(product._id),
+		slug: asString(product.slug),
+		name: asString(product.name),
+		brandSlug: brand.slug,
+		brandName: brand.name,
+		categorySlug,
+		isFeatured: product.isFeatured ?? false,
+		images,
+		variants: asArray<VariantAttributes>(product.variants).map(toVariant),
+		...(Array.isArray(product.attributeSlugs)
+			? {
+					attributeSlugs: product.attributeSlugs.filter((slug): slug is string => typeof slug === "string" && slug.length > 0),
+				}
+			: {}),
+		...(product.attributeOptionPool && typeof product.attributeOptionPool === "object" && !Array.isArray(product.attributeOptionPool)
+			? { attributeOptionPool: product.attributeOptionPool as Record<string, string[]> }
+			: {}),
+		...(product.attributeCustomOptions && typeof product.attributeCustomOptions === "object" && !Array.isArray(product.attributeCustomOptions)
+			? {
+					attributeCustomOptions: product.attributeCustomOptions as Record<string, Array<{ value: string; label: string }>>,
+				}
+			: {}),
+		...(product.attributeDefaults && typeof product.attributeDefaults === "object" && !Array.isArray(product.attributeDefaults)
+			? { attributeDefaults: product.attributeDefaults as Record<string, string> }
+			: {}),
+		seo: product.seo,
+	};
 }
 
 export function toOffer(offer: OfferLean): Offer {
-  const description = asString(offer.description);
-  const content = normalizeStructuredContent(offer.content, description);
-  return {
-    id: objectIdString(offer._id),
-    slug: asString(offer.slug),
-    title: asString(offer.title),
-    description,
-    discountLabel: asString(offer.discountLabel),
-    expiresAt: offer.schedule?.endDate
-      ? toIsoDate(offer.schedule.endDate)
-      : undefined,
-    /* `#e1ff51` is the literal value of `--color-accent-500` (chartreuse).
+	const description = asString(offer.description);
+	const content = normalizeStructuredContent(offer.content, description);
+	return {
+		id: objectIdString(offer._id),
+		slug: asString(offer.slug),
+		title: asString(offer.title),
+		description,
+		discountLabel: asString(offer.discountLabel),
+		expiresAt: offer.schedule?.endDate ? toIsoDate(offer.schedule.endDate) : undefined,
+		/* `#e1ff51` is the literal value of `--color-accent-500` (chartreuse).
        Offers without an admin-chosen colour fall back to the brand accent. */
-    color: asString(offer.color, "#e1ff51"),
-    badgeLabel: asString(offer.badgeLabel),
-    bannerImage: isStoredImage(offer.bannerImage) ? offer.bannerImage : undefined,
-    content: attachBulletIconNodes(content),
-    seo: offer.seo,
-  };
+		color: asString(offer.color, "#e1ff51"),
+		badgeLabel: asString(offer.badgeLabel),
+		bannerImage: isStoredImage(offer.bannerImage) ? offer.bannerImage : undefined,
+		content: attachBulletIconNodes(content),
+		seo: offer.seo,
+	};
 }
 
 export function toGrade(grade: GradeLean): GradeDescriptor {
-  const notes = asString(grade.notes);
-  const content = normalizeStructuredContent(grade.content, notes);
-  return {
-    categorySlug: asString(grade.categorySlug),
-    slug: asString(grade.slug),
-    label: asString(grade.label),
-    notes,
-    color: asString(grade.color),
-    video: grade.video || undefined,
-    content: attachBulletIconNodes(content),
-  };
+	const notes = asString(grade.notes);
+	const content = normalizeStructuredContent(grade.content, notes);
+	return {
+		categorySlug: asString(grade.categorySlug),
+		slug: asString(grade.slug),
+		label: asString(grade.label),
+		notes,
+		color: asString(grade.color),
+		video: grade.video || undefined,
+		content: attachBulletIconNodes(content),
+	};
 }

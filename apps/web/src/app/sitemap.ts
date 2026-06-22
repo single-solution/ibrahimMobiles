@@ -23,105 +23,92 @@ import type { MetadataRoute } from "next";
 import { logger } from "@store/shared";
 
 import { getStorefrontBaseUrl } from "@/lib/core/baseUrl";
-import {
-  getCategoriesCached,
-  getSitemapBrandsCached,
-  getSitemapProductsCached,
-} from "@/lib/core/cached";
+import { getCategoriesCached, getSitemapBrandsCached, getSitemapProductsCached } from "@/lib/core/cached";
 
 export const revalidate = 3600;
 
 const STATIC_PATHS: ReadonlyArray<{
-  path: string;
-  changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
-  priority: number;
+	path: string;
+	changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
+	priority: number;
 }> = [
-  { path: "/", changeFrequency: "daily", priority: 1.0 },
-  { path: "/deals", changeFrequency: "daily", priority: 0.9 },
-  { path: "/account/sign-in", changeFrequency: "yearly", priority: 0.3 },
+	{ path: "/", changeFrequency: "daily", priority: 1.0 },
+	{ path: "/deals", changeFrequency: "daily", priority: 0.9 },
+	{ path: "/account/sign-in", changeFrequency: "yearly", priority: 0.3 },
 ];
 
 interface DynamicSitemapData {
-  categories: Awaited<ReturnType<typeof getCategoriesCached>>;
-  brands: Array<{ slug: string }>;
-  products: Array<{ slug: string; categorySlug: string; updatedAt?: Date }>;
+	categories: Awaited<ReturnType<typeof getCategoriesCached>>;
+	brands: Array<{ slug: string }>;
+	products: Array<{ slug: string; categorySlug: string; updatedAt?: Date }>;
 }
 
 async function loadDynamicData(): Promise<DynamicSitemapData | null> {
-  try {
-    const [categories, brands, products] = await Promise.all([
-      getCategoriesCached(),
-      getSitemapBrandsCached(),
-      getSitemapProductsCached(),
-    ]);
-    return { categories, brands, products };
-  } catch (error) {
-    logger.error(
-      { error },
-      "sitemap: dynamic load failed, emitting static-only sitemap this generation",
-    );
-    return null;
-  }
+	try {
+		const [categories, brands, products] = await Promise.all([getCategoriesCached(), getSitemapBrandsCached(), getSitemapProductsCached()]);
+		return { categories, brands, products };
+	} catch (error) {
+		logger.error({ error }, "sitemap: dynamic load failed, emitting static-only sitemap this generation");
+		return null;
+	}
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = await getStorefrontBaseUrl();
-  const now = new Date();
+	const base = await getStorefrontBaseUrl();
+	const now = new Date();
 
-  const entries: MetadataRoute.Sitemap = STATIC_PATHS.map((staticPath) => ({
-    url: `${base}${staticPath.path}`,
-    lastModified: now,
-    changeFrequency: staticPath.changeFrequency,
-    priority: staticPath.priority,
-  }));
+	const entries: MetadataRoute.Sitemap = STATIC_PATHS.map((staticPath) => ({
+		url: `${base}${staticPath.path}`,
+		lastModified: now,
+		changeFrequency: staticPath.changeFrequency,
+		priority: staticPath.priority,
+	}));
 
-  const data = await loadDynamicData();
-  if (!data) {
-    return entries;
-  }
+	const data = await loadDynamicData();
+	if (!data) {
+		return entries;
+	}
 
-  const { categories, brands, products } = data;
-  const activeCategorySlugs = new Set(
-    categories.filter((c) => c.isActive).map((c) => c.slug),
-  );
+	const { categories, brands, products } = data;
+	const activeCategorySlugs = new Set(categories.filter((c) => c.isActive).map((c) => c.slug));
 
-  for (const category of categories) {
-    if (!category.isActive) {
-      continue;
-    }
-    entries.push({
-      url: `${base}/${category.slug}`,
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 0.8,
-    });
-  }
+	for (const category of categories) {
+		if (!category.isActive) {
+			continue;
+		}
+		entries.push({
+			url: `${base}/${category.slug}`,
+			lastModified: now,
+			changeFrequency: "daily",
+			priority: 0.8,
+		});
+	}
 
-  for (const brand of brands) {
-    for (const category of categories) {
-      if (!category.isActive) {
-        continue;
-      }
-      entries.push({
-        url: `${base}/${category.slug}?brand=${encodeURIComponent(brand.slug)}`,
-        lastModified: now,
-        changeFrequency: "weekly",
-        priority: 0.6,
-      });
-    }
-  }
+	for (const brand of brands) {
+		for (const category of categories) {
+			if (!category.isActive) {
+				continue;
+			}
+			entries.push({
+				url: `${base}/${category.slug}?brand=${encodeURIComponent(brand.slug)}`,
+				lastModified: now,
+				changeFrequency: "weekly",
+				priority: 0.6,
+			});
+		}
+	}
 
-  for (const product of products) {
-    if (!activeCategorySlugs.has(product.categorySlug)) {
-      continue;
-    }
-    entries.push({
-      url: `${base}/${product.categorySlug}/${product.slug}`,
-      lastModified: product.updatedAt ?? now,
-      changeFrequency: "weekly",
-      priority: 0.7,
-    });
-  }
+	for (const product of products) {
+		if (!activeCategorySlugs.has(product.categorySlug)) {
+			continue;
+		}
+		entries.push({
+			url: `${base}/${product.categorySlug}/${product.slug}`,
+			lastModified: product.updatedAt ?? now,
+			changeFrequency: "weekly",
+			priority: 0.7,
+		});
+	}
 
-  return entries;
+	return entries;
 }

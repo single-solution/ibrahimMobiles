@@ -10,25 +10,20 @@ import { requirePagePermission } from "@/lib/server/requirePageSession";
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
-  await requirePagePermission("settings_view", "/settings");
+	await requirePagePermission("settings_view", "/settings");
 
-  return (
-    <div className={adminWorkspacePageClass}>
-      <section className="flex min-h-0 flex-1 flex-col">
-        <Suspense fallback={<SettingsWorkspaceSkeleton />}>
-          <SettingsData />
-        </Suspense>
-      </section>
-    </div>
-  );
+	return (
+		<div className={adminWorkspacePageClass}>
+			<section className="flex min-h-0 flex-1 flex-col">
+				<Suspense fallback={<SettingsWorkspaceSkeleton />}>
+					<SettingsData />
+				</Suspense>
+			</section>
+		</div>
+	);
 }
 
 async function SettingsData() {
-  const settings = await getStoreSettings();
-  return (
-    <Settings
-      initialSettings={settings}
-      envFallbackStorefrontUrl={resolvePublicSiteUrl("")}
-    />
-  );
+	const settings = await getStoreSettings();
+	return <Settings initialSettings={settings} envFallbackStorefrontUrl={resolvePublicSiteUrl("")} />;
 }

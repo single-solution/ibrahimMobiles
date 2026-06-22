@@ -15,13 +15,7 @@
 import { Buffer } from "node:buffer";
 
 /** Supported sniffable content types. */
-export type SniffableMime =
-	| "image/jpeg"
-	| "image/png"
-	| "image/webp"
-	| "video/mp4"
-	| "video/webm"
-	| "application/pdf";
+export type SniffableMime = "image/jpeg" | "image/png" | "image/webp" | "video/mp4" | "video/webm" | "application/pdf";
 
 interface Signature {
 	mime: SniffableMime;
@@ -39,21 +33,11 @@ const SIGNATURES: Signature[] = [
 	{
 		mime: "image/png",
 		test: (bytes) =>
-			bytes[0] === 0x89 &&
-			bytes[1] === 0x50 &&
-			bytes[2] === 0x4e &&
-			bytes[3] === 0x47 &&
-			bytes[4] === 0x0d &&
-			bytes[5] === 0x0a &&
-			bytes[6] === 0x1a &&
-			bytes[7] === 0x0a,
+			bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 && bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a,
 	},
 	{
 		mime: "image/webp",
-		test: (bytes) =>
-			bytes.length >= 12 &&
-			bytes.slice(0, 4).toString("ascii") === "RIFF" &&
-			bytes.slice(8, 12).toString("ascii") === "WEBP",
+		test: (bytes) => bytes.length >= 12 && bytes.slice(0, 4).toString("ascii") === "RIFF" && bytes.slice(8, 12).toString("ascii") === "WEBP",
 	},
 	{
 		mime: "video/mp4",
@@ -65,8 +49,7 @@ const SIGNATURES: Signature[] = [
 	{
 		mime: "video/webm",
 		// EBML header — Matroska / WebM. 0x1A45DFA3.
-		test: (bytes) =>
-			bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3,
+		test: (bytes) => bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3,
 	},
 	{
 		mime: "application/pdf",
@@ -103,10 +86,7 @@ export function sniffContentType(bytes: Buffer): SniffableMime | null {
  * accepts a no-match when `claimedMime` is outside the sniffable set and
  * returns `null` — callers must enforce the MIME allowlist separately.
  */
-export function assertContentTypeMatches(
-	bytes: Buffer,
-	claimedMime: string,
-): string | null {
+export function assertContentTypeMatches(bytes: Buffer, claimedMime: string): string | null {
 	const sniffed = sniffContentType(bytes);
 	if (!sniffed) {
 		return `File content does not match any supported type.`;

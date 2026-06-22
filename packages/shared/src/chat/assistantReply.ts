@@ -16,7 +16,7 @@ const EXTERNAL_URL_TEST = /https?:\/\/[^\s<>"')\]]+/i;
  * than sending it — the bot must always present as store support.
  */
 const BOT_DISCLOSURE_PATTERN =
-  /\b(?:as an ai|i(?:'m| am) (?:an? )?(?:ai|bot|chat ?bot|computer|program|language model|virtual assistant|automated|artificial)|language model|artificial intelligence|i (?:am|'m) not (?:a )?(?:human|real|a person)|i cannot.{0,20}as an ai)\b/i;
+	/\b(?:as an ai|i(?:'m| am) (?:an? )?(?:ai|bot|chat ?bot|computer|program|language model|virtual assistant|automated|artificial)|language model|artificial intelligence|i (?:am|'m) not (?:a )?(?:human|real|a person)|i cannot.{0,20}as an ai)\b/i;
 
 /**
  * Secrets / infrastructure the bot must NEVER emit, even if it hallucinates one
@@ -24,41 +24,40 @@ const BOT_DISCLOSURE_PATTERN =
  * connection strings, and `process.env` access. A hit forces the safe fallback.
  */
 const SECRET_LEAK_PATTERN =
-  /(?:mongodb(?:\+srv)?:\/\/|process\.env|\b[A-Z][A-Z0-9_]*(?:API_KEY|_SECRET|SECRET_|ACCESS_TOKEN|PRIVATE_KEY|_URI|_TOKEN)\b|\bsk-(?:ant-)?[A-Za-z0-9_-]{16,}|\bAIza[0-9A-Za-z_-]{20,}|\bBearer\s+[A-Za-z0-9._-]{16,})/;
+	/(?:mongodb(?:\+srv)?:\/\/|process\.env|\b[A-Z][A-Z0-9_]*(?:API_KEY|_SECRET|SECRET_|ACCESS_TOKEN|PRIVATE_KEY|_URI|_TOKEN)\b|\bsk-(?:ant-)?[A-Za-z0-9_-]{16,}|\bAIza[0-9A-Za-z_-]{20,}|\bBearer\s+[A-Za-z0-9._-]{16,})/;
 
 /**
  * System-prompt / internals leakage. If the model starts quoting its own rules,
  * context headers, or "system prompt", swap in the fallback rather than exposing
  * how it works.
  */
-const PROMPT_LEAK_PATTERN =
-  /\b(?:core rules?|store context|order context|system (?:prompt|instructions)|my (?:system )?prompt)\b/i;
+const PROMPT_LEAK_PATTERN = /\b(?:core rules?|store context|order context|system (?:prompt|instructions)|my (?:system )?prompt)\b/i;
 
 /** Relative storefront paths the assistant may mention. */
 const INTERNAL_PATH_PATTERN = /^\/(?:shop|deals|search|checkout|account)(?:\/[\w-]+)*(?:\?[\w%&=.-]*)?$/i;
 
 export function sanitizeAssistantReply(raw: string): string {
-  let text = raw.trim();
+	let text = raw.trim();
 
-  // Keep internal links as markdown so the UI renders a tappable, labelled
-  // link; drop the URL from external links, keeping only their label text.
-  text = text.replace(MARKDOWN_LINK_PATTERN, (_match, label: string, url: string) => {
-    const trimmed = url.trim();
-    return INTERNAL_PATH_PATTERN.test(trimmed) ? `[${label}](${trimmed})` : label;
-  });
+	// Keep internal links as markdown so the UI renders a tappable, labelled
+	// link; drop the URL from external links, keeping only their label text.
+	text = text.replace(MARKDOWN_LINK_PATTERN, (_match, label: string, url: string) => {
+		const trimmed = url.trim();
+		return INTERNAL_PATH_PATTERN.test(trimmed) ? `[${label}](${trimmed})` : label;
+	});
 
-  // Strip any remaining bare external URLs (internal markdown links are safe).
-  text = text.replace(EXTERNAL_URL_REPLACE, "");
+	// Strip any remaining bare external URLs (internal markdown links are safe).
+	text = text.replace(EXTERNAL_URL_REPLACE, "");
 
-  // Tidy horizontal whitespace and runaway blank lines, but PRESERVE single
-  // newlines so lists and short line breaks render instead of collapsing.
-  text = text
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+	// Tidy horizontal whitespace and runaway blank lines, but PRESERVE single
+	// newlines so lists and short line breaks render instead of collapsing.
+	text = text
+		.replace(/[ \t]{2,}/g, " ")
+		.replace(/[ \t]+\n/g, "\n")
+		.replace(/\n{3,}/g, "\n\n")
+		.trim();
 
-  return text.slice(0, 3_500);
+	return text.slice(0, 3_500);
 }
 
 /**
@@ -69,21 +68,16 @@ export function sanitizeAssistantReply(raw: string): string {
  * sanitised independently. Returns [] when nothing usable.
  */
 export function splitAssistantReply(raw: string, maxBubbles = 4): string[] {
-  return raw
-    .split(/(?:^|\n)[ \t]*---[ \t]*(?=\n|$)/)
-    .map((segment) => sanitizeAssistantReply(segment))
-    .filter((segment) => segment.length > 0)
-    .slice(0, maxBubbles);
+	return raw
+		.split(/(?:^|\n)[ \t]*---[ \t]*(?=\n|$)/)
+		.map((segment) => sanitizeAssistantReply(segment))
+		.filter((segment) => segment.length > 0)
+		.slice(0, maxBubbles);
 }
 
 export function assistantReplyLooksUnsafe(text: string): boolean {
-  if (!text || text.length < 8) {
-    return true;
-  }
-  return (
-    EXTERNAL_URL_TEST.test(text) ||
-    BOT_DISCLOSURE_PATTERN.test(text) ||
-    SECRET_LEAK_PATTERN.test(text) ||
-    PROMPT_LEAK_PATTERN.test(text)
-  );
+	if (!text || text.length < 8) {
+		return true;
+	}
+	return EXTERNAL_URL_TEST.test(text) || BOT_DISCLOSURE_PATTERN.test(text) || SECRET_LEAK_PATTERN.test(text) || PROMPT_LEAK_PATTERN.test(text);
 }

@@ -12,14 +12,7 @@
  * targets up to `MAX_URLS_PER_CALL` object URLs.
  */
 
-import {
-  badRequest,
-  isAllowedStorageObjectUrl,
-  logger,
-  ok,
-  parseBody,
-  resolveStorageProvider,
-} from "@store/shared";
+import { badRequest, isAllowedStorageObjectUrl, logger, ok, parseBody, resolveStorageProvider } from "@store/shared";
 
 import { requireSession } from "@/lib/api/requireSession";
 
@@ -27,45 +20,45 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 interface DeletionRequest {
-  urls?: unknown;
+	urls?: unknown;
 }
 
 const MAX_URLS_PER_CALL = 16;
 
 export async function POST(request: Request) {
-  const { actor, response } = await requireSession("media_delete");
-  if (response) return response;
-  const userId = actor.id;
+	const { actor, response } = await requireSession("media_delete");
+	if (response) return response;
+	const userId = actor.id;
 
-  const payload = await parseBody<DeletionRequest>(request);
-  if (payload instanceof Response) {
-    return payload;
-  }
-  if (!Array.isArray(payload.urls) || payload.urls.length === 0) {
-    return badRequest("`urls` must be a non-empty array.");
-  }
-  if (payload.urls.length > MAX_URLS_PER_CALL) {
-    return badRequest(`Up to ${MAX_URLS_PER_CALL} URLs per request.`);
-  }
+	const payload = await parseBody<DeletionRequest>(request);
+	if (payload instanceof Response) {
+		return payload;
+	}
+	if (!Array.isArray(payload.urls) || payload.urls.length === 0) {
+		return badRequest("`urls` must be a non-empty array.");
+	}
+	if (payload.urls.length > MAX_URLS_PER_CALL) {
+		return badRequest(`Up to ${MAX_URLS_PER_CALL} URLs per request.`);
+	}
 
-  const storage = resolveStorageProvider();
-  const errors: string[] = [];
-  for (const raw of payload.urls) {
-    if (typeof raw !== "string") {
-      errors.push("non-string url skipped");
-      continue;
-    }
-    if (!isAllowedStorageObjectUrl(raw)) {
-      errors.push(raw);
-      continue;
-    }
-    try {
-      await storage.remove(raw);
-    } catch (error) {
-      logger.warn({ error, userId, url: raw }, "uploads/deletions: best-effort delete failed");
-      errors.push(raw);
-    }
-  }
+	const storage = resolveStorageProvider();
+	const errors: string[] = [];
+	for (const raw of payload.urls) {
+		if (typeof raw !== "string") {
+			errors.push("non-string url skipped");
+			continue;
+		}
+		if (!isAllowedStorageObjectUrl(raw)) {
+			errors.push(raw);
+			continue;
+		}
+		try {
+			await storage.remove(raw);
+		} catch (error) {
+			logger.warn({ error, userId, url: raw }, "uploads/deletions: best-effort delete failed");
+			errors.push(raw);
+		}
+	}
 
-  return ok({ removed: payload.urls.length - errors.length, errors });
+	return ok({ removed: payload.urls.length - errors.length, errors });
 }

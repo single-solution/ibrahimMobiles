@@ -29,87 +29,80 @@ const COOKIE_NAME = "inquiry_thread_token";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const rateLimited = enforceChatPollRateLimit(request);
-  if (rateLimited) {
-    return rateLimited;
-  }
+	const rateLimited = enforceChatPollRateLimit(request);
+	if (rateLimited) {
+		return rateLimited;
+	}
 
-  const settings = await getChatSettings();
-  const clientSettings = toClientChatSettings(settings);
-  const session = await auth();
-  const isSignedInCustomer =
-    session?.user?.role === "customer" &&
-    Boolean(session?.user?.customerId) &&
-    Types.ObjectId.isValid(session?.user?.customerId ?? "");
+	const settings = await getChatSettings();
+	const clientSettings = toClientChatSettings(settings);
+	const session = await auth();
+	const isSignedInCustomer = session?.user?.role === "customer" && Boolean(session?.user?.customerId) && Types.ObjectId.isValid(session?.user?.customerId ?? "");
 
-  if (!settings.enabled) {
-    return ok({ enabled: false, threads: [], settings: clientSettings, isSignedInCustomer });
-  }
+	if (!settings.enabled) {
+		return ok({ enabled: false, threads: [], settings: clientSettings, isSignedInCustomer });
+	}
 
-  const url = new URL(request.url);
-  if (url.searchParams.get("summary") === "1") {
-    await connectDB();
-    const filters: Record<string, unknown>[] = [];
-    if (isSignedInCustomer && session?.user?.customerId) {
-      filters.push({ customerId: new Types.ObjectId(session.user.customerId) });
-    }
-    const cookieJar = await cookies();
-    const token = cookieJar.get(COOKIE_NAME)?.value;
-    const payload = await verifyGuestToken(token);
-    if (payload && payload.inquiryIds.length > 0) {
-      const ids = payload.inquiryIds
-        .filter((id) => Types.ObjectId.isValid(id))
-        .map((id) => new Types.ObjectId(id));
-      if (ids.length > 0) {
-        filters.push({ _id: { $in: ids }, phoneNumber: payload.phoneNumber });
-      }
-    }
-    if (filters.length === 0) {
-      return ok({ unreadByCustomer: 0 });
-    }
-    const agg = await InquiryModel.aggregate<{ total: number }>([
-      { $match: filters.length === 1 ? filters[0] : { $or: filters } },
-      { $group: { _id: null, total: { $sum: "$unreadByCustomer" } } },
-    ]);
-    return ok({ unreadByCustomer: agg[0]?.total ?? 0 });
-  }
+	const url = new URL(request.url);
+	if (url.searchParams.get("summary") === "1") {
+		await connectDB();
+		const filters: Record<string, unknown>[] = [];
+		if (isSignedInCustomer && session?.user?.customerId) {
+			filters.push({ customerId: new Types.ObjectId(session.user.customerId) });
+		}
+		const cookieJar = await cookies();
+		const token = cookieJar.get(COOKIE_NAME)?.value;
+		const payload = await verifyGuestToken(token);
+		if (payload && payload.inquiryIds.length > 0) {
+			const ids = payload.inquiryIds.filter((id) => Types.ObjectId.isValid(id)).map((id) => new Types.ObjectId(id));
+			if (ids.length > 0) {
+				filters.push({ _id: { $in: ids }, phoneNumber: payload.phoneNumber });
+			}
+		}
+		if (filters.length === 0) {
+			return ok({ unreadByCustomer: 0 });
+		}
+		const agg = await InquiryModel.aggregate<{ total: number }>([
+			{ $match: filters.length === 1 ? filters[0] : { $or: filters } },
+			{ $group: { _id: null, total: { $sum: "$unreadByCustomer" } } },
+		]);
+		return ok({ unreadByCustomer: agg[0]?.total ?? 0 });
+	}
 
-  await connectDB();
+	await connectDB();
 
-  const filters: Record<string, unknown>[] = [];
+	const filters: Record<string, unknown>[] = [];
 
-  if (isSignedInCustomer && session?.user?.customerId) {
-    filters.push({ customerId: new Types.ObjectId(session.user.customerId) });
-  }
+	if (isSignedInCustomer && session?.user?.customerId) {
+		filters.push({ customerId: new Types.ObjectId(session.user.customerId) });
+	}
 
-  const cookieJar = await cookies();
-  const token = cookieJar.get(COOKIE_NAME)?.value;
-  const payload = await verifyGuestToken(token);
-  if (payload && payload.inquiryIds.length > 0) {
-    const ids = payload.inquiryIds
-      .filter((id) => Types.ObjectId.isValid(id))
-      .map((id) => new Types.ObjectId(id));
-    if (ids.length > 0) {
-      filters.push({
-        _id: { $in: ids },
-        phoneNumber: payload.phoneNumber,
-      });
-    }
-  }
+	const cookieJar = await cookies();
+	const token = cookieJar.get(COOKIE_NAME)?.value;
+	const payload = await verifyGuestToken(token);
+	if (payload && payload.inquiryIds.length > 0) {
+		const ids = payload.inquiryIds.filter((id) => Types.ObjectId.isValid(id)).map((id) => new Types.ObjectId(id));
+		if (ids.length > 0) {
+			filters.push({
+				_id: { $in: ids },
+				phoneNumber: payload.phoneNumber,
+			});
+		}
+	}
 
-  if (filters.length === 0) {
-    return ok({ enabled: true, threads: [], settings: clientSettings, isSignedInCustomer });
-  }
+	if (filters.length === 0) {
+		return ok({ enabled: true, threads: [], settings: clientSettings, isSignedInCustomer });
+	}
 
-  const docs = await InquiryModel.find(filters.length === 1 ? filters[0] : { $or: filters })
-    .sort({ lastMessageAt: -1 })
-    .limit(30)
-    .lean<InquiryLean[]>();
+	const docs = await InquiryModel.find(filters.length === 1 ? filters[0] : { $or: filters })
+		.sort({ lastMessageAt: -1 })
+		.limit(30)
+		.lean<InquiryLean[]>();
 
-  return ok({
-    enabled: true,
-    threads: docs.map(summariseThread),
-    settings: clientSettings,
-    isSignedInCustomer,
-  });
+	return ok({
+		enabled: true,
+		threads: docs.map(summariseThread),
+		settings: clientSettings,
+		isSignedInCustomer,
+	});
 }

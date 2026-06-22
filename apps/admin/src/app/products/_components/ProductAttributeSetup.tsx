@@ -1,14 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
-import {
-	classNames,
-	compareAlphabetically,
-	formatAttributeOptionLabel,
-	type ProductAttributeConfig,
-	sortAttributeOptions,
-} from "@store/shared";
+import { classNames, compareAlphabetically, formatAttributeOptionLabel, type ProductAttributeConfig, sortAttributeOptions } from "@store/shared";
 
 import { Toggle } from "@/components/ui/Toggle";
 import type { AdminAttribute } from "@/types/models";
@@ -88,50 +82,59 @@ function OptionPoolPill({ label, isSelected, onToggle, onRemove }: OptionPoolPil
 	);
 }
 
-function enabledAttributeSlugs(
-	sortedAttributes: AdminAttribute[],
-	config: ProductAttributeConfig,
-): string[] {
-	return sortedAttributes
-		.filter((attribute) => config.attributeSlugs.includes(attribute.slug))
-		.map((attribute) => attribute.slug);
+function enabledAttributeSlugs(sortedAttributes: AdminAttribute[], config: ProductAttributeConfig): string[] {
+	return sortedAttributes.filter((attribute) => config.attributeSlugs.includes(attribute.slug)).map((attribute) => attribute.slug);
 }
 
-export function ProductAttributeSetup({
-	attributes,
-	config,
-	onChange,
-	errorByPath,
-	compact = false,
-	onConfirmDisableAttribute,
-}: ProductAttributeSetupProps) {
-	const didAutoExpandRef = useRef(false);
-	const [expandedSlugs, setExpandedSlugs] = useState<Set<string>>(() => new Set());
-	const [customDrafts, setCustomDrafts] = useState<Record<string, string>>({});
-	const [customErrors, setCustomErrors] = useState<Record<string, string>>({});
+interface AttributeSetupUiState {
+	attributesKey: string;
+	expandedSlugs: Set<string>;
+	customDrafts: Record<string, string>;
+	customErrors: Record<string, string>;
+}
 
-	const sortedAttributes = useMemo(
-		() => [...attributes].sort((left, right) => compareAlphabetically(left.label, right.label)),
-		[attributes],
-	);
+function createAttributeSetupUiState(sortedAttributes: AdminAttribute[], config: ProductAttributeConfig, attributesKey: string): AttributeSetupUiState {
+	const enabled = enabledAttributeSlugs(sortedAttributes, config);
+	return {
+		attributesKey,
+		expandedSlugs: enabled.length > 0 ? new Set(enabled) : new Set(),
+		customDrafts: {},
+		customErrors: {},
+	};
+}
 
-	useEffect(() => {
-		didAutoExpandRef.current = false;
-		setExpandedSlugs(new Set());
-		setCustomDrafts({});
-		setCustomErrors({});
-	}, [attributes]);
+export function ProductAttributeSetup({ attributes, config, onChange, errorByPath, compact = false, onConfirmDisableAttribute }: ProductAttributeSetupProps) {
+	const sortedAttributes = useMemo(() => [...attributes].sort((left, right) => compareAlphabetically(left.label, right.label)), [attributes]);
+	const attributesKey = useMemo(() => sortedAttributes.map((attribute) => attribute.slug).join("\0"), [sortedAttributes]);
 
-	useEffect(() => {
-		if (didAutoExpandRef.current || sortedAttributes.length === 0) {
-			return;
-		}
-		const enabled = enabledAttributeSlugs(sortedAttributes, config);
-		if (enabled.length > 0) {
-			setExpandedSlugs(new Set(enabled));
-			didAutoExpandRef.current = true;
-		}
-	}, [sortedAttributes, config.attributeSlugs]);
+	const [uiState, setUiState] = useState<AttributeSetupUiState>(() => createAttributeSetupUiState(sortedAttributes, config, attributesKey));
+
+	if (uiState.attributesKey !== attributesKey) {
+		setUiState(createAttributeSetupUiState(sortedAttributes, config, attributesKey));
+	}
+
+	const { expandedSlugs, customDrafts, customErrors } = uiState;
+
+	function setExpandedSlugs(update: Set<string> | ((current: Set<string>) => Set<string>)) {
+		setUiState((current) => ({
+			...current,
+			expandedSlugs: typeof update === "function" ? update(current.expandedSlugs) : update,
+		}));
+	}
+
+	function setCustomDrafts(update: Record<string, string> | ((current: Record<string, string>) => Record<string, string>)) {
+		setUiState((current) => ({
+			...current,
+			customDrafts: typeof update === "function" ? update(current.customDrafts) : update,
+		}));
+	}
+
+	function setCustomErrors(update: Record<string, string> | ((current: Record<string, string>) => Record<string, string>)) {
+		setUiState((current) => ({
+			...current,
+			customErrors: typeof update === "function" ? update(current.customErrors) : update,
+		}));
+	}
 
 	function toggleAttribute(slug: string, enabled: boolean) {
 		const attribute = attributes.find((row) => row.slug === slug);
@@ -219,9 +222,7 @@ export function ProductAttributeSetup({
 		const normalizedValue = value.toLowerCase();
 		const current = effectiveProductOptionPool(config, attribute);
 		const currentSet = poolValueSet(current);
-		const next = currentSet.has(normalizedValue)
-			? current.filter((entry) => entry.toLowerCase() !== normalizedValue)
-			: [...current, normalizedValue];
+		const next = currentSet.has(normalizedValue) ? current.filter((entry) => entry.toLowerCase() !== normalizedValue) : [...current, normalizedValue];
 		setPool(attribute.slug, next);
 	}
 
@@ -252,17 +253,11 @@ export function ProductAttributeSetup({
 	return (
 		<div className={compact ? "flex flex-col gap-2" : "flex flex-col gap-3"}>
 			{!compact ? (
-				<p className="text-[11.5px] leading-snug text-[var(--color-ink-500)]">
-					Enable attributes for this product, then choose which options variants can use.
-				</p>
+				<p className="text-[11.5px] leading-snug text-[var(--color-ink-500)]">Enable attributes for this product, then choose which options variants can use.</p>
 			) : (
 				<header className="mb-2 px-0.5">
-					<h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-500)]">
-						Attributes
-					</h3>
-					<p className="mt-1 text-[10.5px] leading-snug text-[var(--color-ink-400)]">
-						Toggle on, pick options, or add product-only options below.
-					</p>
+					<h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-500)]">Attributes</h3>
+					<p className="mt-1 text-[10.5px] leading-snug text-[var(--color-ink-400)]">Toggle on, pick options, or add product-only options below.</p>
 				</header>
 			)}
 
@@ -301,9 +296,7 @@ export function ProductAttributeSetup({
 										onClick={() => handleAccordionToggle(attribute.slug, isEnabled)}
 										className={classNames(
 											"flex min-w-0 flex-1 items-center gap-2 text-left transition-opacity",
-											isEnabled
-												? "cursor-pointer hover:opacity-80"
-												: "cursor-default opacity-70",
+											isEnabled ? "cursor-pointer hover:opacity-80" : "cursor-default opacity-70",
 										)}
 									>
 										<ChevronDown
@@ -319,9 +312,7 @@ export function ProductAttributeSetup({
 										<span
 											className={classNames(
 												"truncate text-[13px] tracking-tight",
-												isEnabled
-													? "font-semibold text-[var(--color-ink-900)]"
-													: "font-medium text-[var(--color-ink-600)]",
+												isEnabled ? "font-semibold text-[var(--color-ink-900)]" : "font-medium text-[var(--color-ink-600)]",
 											)}
 										>
 											{attribute.label}
@@ -332,21 +323,13 @@ export function ProductAttributeSetup({
 											</span>
 										) : null}
 									</button>
-									<Toggle
-										checked={isEnabled}
-										onCheckedChange={(checked) => toggleAttribute(attribute.slug, checked)}
-										aria-label={`Enable ${attribute.label}`}
-									/>
+									<Toggle checked={isEnabled} onCheckedChange={(checked) => toggleAttribute(attribute.slug, checked)} aria-label={`Enable ${attribute.label}`} />
 								</div>
 
 								{isExpanded ? (
 									<div className="space-y-3 border-t border-[var(--color-ink-100)] bg-gradient-to-b from-[var(--color-surface)] to-[var(--color-canvas)] px-2.5 py-3">
 										{sortedOptions.length > 0 ? (
-											<div
-												className="flex flex-wrap gap-1.5"
-												role="group"
-												aria-label={`${attribute.label} catalog options`}
-											>
+											<div className="flex flex-wrap gap-1.5" role="group" aria-label={`${attribute.label} catalog options`}>
 												{sortedOptions.map((option) => {
 													const isSelected = selectedPool.has(option.value.toLowerCase());
 													return (
@@ -368,15 +351,9 @@ export function ProductAttributeSetup({
 										) : null}
 
 										<div className="space-y-1.5 border-t border-[var(--color-ink-100)] pt-2.5">
-											<p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">
-												Customized
-											</p>
+											<p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">Customized</p>
 											{customOptions.length > 0 ? (
-												<div
-													className="flex flex-wrap gap-1.5"
-													role="group"
-													aria-label={`${attribute.label} customized options`}
-												>
+												<div className="flex flex-wrap gap-1.5" role="group" aria-label={`${attribute.label} customized options`}>
 													{[...customOptions]
 														.sort((left, right) => compareAlphabetically(left.label, right.label))
 														.map((option) => {
@@ -434,17 +411,10 @@ export function ProductAttributeSetup({
 											</div>
 											{slugPreview ? (
 												<p className="text-[10px] text-[var(--color-ink-500)]">
-													Slug:{" "}
-													<code className="rounded bg-[var(--color-canvas-deep)] px-1 py-0.5 text-[10px] text-[var(--color-ink-700)]">
-														{slugPreview}
-													</code>
+													Slug: <code className="rounded bg-[var(--color-canvas-deep)] px-1 py-0.5 text-[10px] text-[var(--color-ink-700)]">{slugPreview}</code>
 												</p>
 											) : null}
-											{customError ? (
-												<p className="text-[11px] font-medium text-[var(--color-rose-700)]">
-													{customError}
-												</p>
-											) : null}
+											{customError ? <p className="text-[11px] font-medium text-[var(--color-rose-700)]">{customError}</p> : null}
 										</div>
 									</div>
 								) : null}
@@ -453,11 +423,7 @@ export function ProductAttributeSetup({
 					})}
 				</ul>
 			)}
-			{errorByPath?.get("attributeConfig") ? (
-				<p className="text-[12px] text-[var(--color-rose-700)]">
-					{errorByPath.get("attributeConfig")}
-				</p>
-			) : null}
+			{errorByPath?.get("attributeConfig") ? <p className="text-[12px] text-[var(--color-rose-700)]">{errorByPath.get("attributeConfig")}</p> : null}
 		</div>
 	);
 }

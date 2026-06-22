@@ -24,51 +24,48 @@ const REQUIRED_VARS = ["AUTH_SECRET", "MONGODB_URI"] as const;
 type RequiredVar = (typeof REQUIRED_VARS)[number];
 
 export interface AssertServerEnvOptions {
-  /** Human-readable app label included in any thrown error (e.g. "web"). */
-  appName: string;
+	/** Human-readable app label included in any thrown error (e.g. "web"). */
+	appName: string;
 }
 
 class ServerEnvError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ServerEnvError";
-  }
+	constructor(message: string) {
+		super(message);
+		this.name = "ServerEnvError";
+	}
 }
 
 function validateAuthSecret(secret: string): string | null {
-  // Auth.js will tolerate any non-empty string, but anything below a real
-  // 32-byte secret is brittle to brute-force on the JWT signature. Reject
-  // it at boot so a typo / placeholder can never reach production.
-  const byteLength = Buffer.byteLength(secret, "utf8");
-  if (byteLength < AUTH_SECRET_MIN_BYTES) {
-    return `AUTH_SECRET is ${byteLength} bytes; needs at least ${AUTH_SECRET_MIN_BYTES} bytes of entropy. Generate one with: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`;
-  }
-  return null;
+	// Auth.js will tolerate any non-empty string, but anything below a real
+	// 32-byte secret is brittle to brute-force on the JWT signature. Reject
+	// it at boot so a typo / placeholder can never reach production.
+	const byteLength = Buffer.byteLength(secret, "utf8");
+	if (byteLength < AUTH_SECRET_MIN_BYTES) {
+		return `AUTH_SECRET is ${byteLength} bytes; needs at least ${AUTH_SECRET_MIN_BYTES} bytes of entropy. Generate one with: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`;
+	}
+	return null;
 }
 
 function validateMongoUri(uri: string): string | null {
-  // Loose pattern — covers both standard and SRV connection strings — but
-  // strict enough to catch a copy-pasted localhost URL or empty placeholder.
-  if (!/^mongodb(\+srv)?:\/\/.+/.test(uri)) {
-    return "MONGODB_URI must start with mongodb:// or mongodb+srv://";
-  }
-  return null;
+	// Loose pattern — covers both standard and SRV connection strings — but
+	// strict enough to catch a copy-pasted localhost URL or empty placeholder.
+	if (!/^mongodb(\+srv)?:\/\/.+/.test(uri)) {
+		return "MONGODB_URI must start with mongodb:// or mongodb+srv://";
+	}
+	return null;
 }
 
-function validateOne(
-  name: RequiredVar,
-  value: string | undefined,
-): string | null {
-  if (!value || value.trim() === "") {
-    return `${name} is not set`;
-  }
-  if (name === "AUTH_SECRET") {
-    return validateAuthSecret(value);
-  }
-  if (name === "MONGODB_URI") {
-    return validateMongoUri(value);
-  }
-  return null;
+function validateOne(name: RequiredVar, value: string | undefined): string | null {
+	if (!value || value.trim() === "") {
+		return `${name} is not set`;
+	}
+	if (name === "AUTH_SECRET") {
+		return validateAuthSecret(value);
+	}
+	if (name === "MONGODB_URI") {
+		return validateMongoUri(value);
+	}
+	return null;
 }
 
 /**
@@ -77,21 +74,21 @@ function validateOne(
  * starting, failing, fixing, restarting, repeat.
  */
 export function assertServerEnv(options: AssertServerEnvOptions): void {
-  const failures: string[] = [];
-  for (const name of REQUIRED_VARS) {
-    const failure = validateOne(name, process.env[name]);
-    if (failure) {
-      failures.push(failure);
-    }
-  }
-  if (failures.length === 0) {
-    logger.info({ app: options.appName }, "server-env: all required variables present");
-    return;
-  }
-  const summary = failures.map((line) => `  • ${line}`).join("\n");
-  const message = `[${options.appName}] server environment is not configured:\n${summary}\nSee .env.example for the full list.`;
-  // Log structured first so the operator gets a redacted, machine-readable
-  // signal too — then throw so the process exits non-zero on boot.
-  logger.fatal({ app: options.appName, failures }, "server-env: refusing to start");
-  throw new ServerEnvError(message);
+	const failures: string[] = [];
+	for (const name of REQUIRED_VARS) {
+		const failure = validateOne(name, process.env[name]);
+		if (failure) {
+			failures.push(failure);
+		}
+	}
+	if (failures.length === 0) {
+		logger.info({ app: options.appName }, "server-env: all required variables present");
+		return;
+	}
+	const summary = failures.map((line) => `  • ${line}`).join("\n");
+	const message = `[${options.appName}] server environment is not configured:\n${summary}\nSee .env.example for the full list.`;
+	// Log structured first so the operator gets a redacted, machine-readable
+	// signal too — then throw so the process exits non-zero on boot.
+	logger.fatal({ app: options.appName, failures }, "server-env: refusing to start");
+	throw new ServerEnvError(message);
 }

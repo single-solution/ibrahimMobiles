@@ -24,7 +24,7 @@ const SEQUENCE_PAD_WIDTH = 4;
 const INITIAL_SEQUENCE = 1;
 
 function buildOrderNumber(year: number, sequence: number): string {
-  return `IM-${year}-${sequence.toString().padStart(SEQUENCE_PAD_WIDTH, "0")}`;
+	return `IM-${year}-${sequence.toString().padStart(SEQUENCE_PAD_WIDTH, "0")}`;
 }
 
 const MIN_VALID_YEAR = 2000;
@@ -36,27 +36,27 @@ const MAX_VALID_YEAR = 2100;
  * with the helper above (see `createWithUniqueOrderNumber`).
  */
 export async function nextOrderNumberForYear(year = new Date().getFullYear()): Promise<string> {
-  if (!Number.isInteger(year) || year < MIN_VALID_YEAR || year > MAX_VALID_YEAR) {
-    throw new Error(`Invalid year for order number generation: ${String(year)}`);
-  }
+	if (!Number.isInteger(year) || year < MIN_VALID_YEAR || year > MAX_VALID_YEAR) {
+		throw new Error(`Invalid year for order number generation: ${String(year)}`);
+	}
 
-  const prefix = `IM-${year}-`;
-  const last = await Order.findOne({
-    orderNumber: { $regex: `^${prefix}` },
-  })
-    .sort({ orderNumber: -1 })
-    .select("orderNumber")
-    .lean<{ orderNumber: string }>();
+	const prefix = `IM-${year}-`;
+	const last = await Order.findOne({
+		orderNumber: { $regex: `^${prefix}` },
+	})
+		.sort({ orderNumber: -1 })
+		.select("orderNumber")
+		.lean<{ orderNumber: string }>();
 
-  let sequence = INITIAL_SEQUENCE;
-  if (last?.orderNumber) {
-    const tail = last.orderNumber.slice(prefix.length);
-    const parsed = Number.parseInt(tail, DECIMAL_RADIX);
-    if (Number.isFinite(parsed) && parsed >= INITIAL_SEQUENCE) {
-      sequence = parsed + 1;
-    }
-  }
-  return buildOrderNumber(year, sequence);
+	let sequence = INITIAL_SEQUENCE;
+	if (last?.orderNumber) {
+		const tail = last.orderNumber.slice(prefix.length);
+		const parsed = Number.parseInt(tail, DECIMAL_RADIX);
+		if (Number.isFinite(parsed) && parsed >= INITIAL_SEQUENCE) {
+			sequence = parsed + 1;
+		}
+	}
+	return buildOrderNumber(year, sequence);
 }
 
 /**
@@ -65,24 +65,19 @@ export async function nextOrderNumberForYear(year = new Date().getFullYear()): P
  * checkouts both succeed even if the read-then-write race picks the same
  * sequence number.
  */
-export async function createWithUniqueOrderNumber<T>(
-  attempt: (orderNumber: string) => Promise<T>,
-): Promise<T> {
-  let lastError: unknown;
-  for (let i = 0; i < MAX_GENERATION_ATTEMPTS; i += 1) {
-    const orderNumber = await nextOrderNumberForYear();
-    try {
-      return await attempt(orderNumber);
-    } catch (error) {
-      if (!isMongoDuplicateKeyError(error)) {
-        throw error;
-      }
-      lastError = error;
-      logger.warn(
-        { orderNumber },
-        "Order number collision — retrying with next sequence value",
-      );
-    }
-  }
-  throw lastError ?? new Error("Failed to allocate a unique order number.");
+export async function createWithUniqueOrderNumber<T>(attempt: (orderNumber: string) => Promise<T>): Promise<T> {
+	let lastError: unknown;
+	for (let i = 0; i < MAX_GENERATION_ATTEMPTS; i += 1) {
+		const orderNumber = await nextOrderNumberForYear();
+		try {
+			return await attempt(orderNumber);
+		} catch (error) {
+			if (!isMongoDuplicateKeyError(error)) {
+				throw error;
+			}
+			lastError = error;
+			logger.warn({ orderNumber }, "Order number collision — retrying with next sequence value");
+		}
+	}
+	throw lastError ?? new Error("Failed to allocate a unique order number.");
 }

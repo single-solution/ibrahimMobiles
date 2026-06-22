@@ -2,26 +2,14 @@
 export const WARRANTY_DAYS_PER_MONTH = 30;
 
 export interface WarrantyCarrier {
-  warrantyDays?: number;
-  /** @deprecated Legacy field; interpreted as months × {@link WARRANTY_DAYS_PER_MONTH}. */
-  warrantyMonths?: number;
+	warrantyDays?: number;
 }
 
-/** Normalize legacy month-based records to whole days. */
 export function resolveWarrantyDays(carrier: WarrantyCarrier): number {
-  if (
-    typeof carrier.warrantyDays === "number" &&
-    Number.isFinite(carrier.warrantyDays)
-  ) {
-    return Math.max(0, Math.floor(carrier.warrantyDays));
-  }
-  if (
-    typeof carrier.warrantyMonths === "number" &&
-    Number.isFinite(carrier.warrantyMonths)
-  ) {
-    return Math.max(0, Math.floor(carrier.warrantyMonths)) * WARRANTY_DAYS_PER_MONTH;
-  }
-  return 0;
+	if (typeof carrier.warrantyDays === "number" && Number.isFinite(carrier.warrantyDays)) {
+		return Math.max(0, Math.floor(carrier.warrantyDays));
+	}
+	return 0;
 }
 
 /**
@@ -29,19 +17,19 @@ export function resolveWarrantyDays(carrier: WarrantyCarrier): number {
  * Under one month: days only. Otherwise: months + optional remainder days.
  */
 export function formatWarrantyPeriod(totalDays: number): string {
-  const days = Math.max(0, Math.floor(totalDays));
-  if (days === 0) {
-    return "No warranty";
-  }
-  if (days < WARRANTY_DAYS_PER_MONTH) {
-    return days === 1 ? "1 day" : `${days} days`;
-  }
-  const months = Math.floor(days / WARRANTY_DAYS_PER_MONTH);
-  const remainder = days % WARRANTY_DAYS_PER_MONTH;
-  const monthLabel = months === 1 ? "1 month" : `${months} months`;
-  if (remainder === 0) {
-    return monthLabel;
-  }
-  const dayLabel = remainder === 1 ? "1 day" : `${remainder} days`;
-  return `${monthLabel} ${dayLabel}`;
+	const days = Math.max(0, Math.floor(totalDays));
+	if (days === 0) {
+		return "No warranty";
+	}
+	if (days < WARRANTY_DAYS_PER_MONTH) {
+		return days === 1 ? "1 day" : `${days} days`;
+	}
+	const months = Math.floor(days / WARRANTY_DAYS_PER_MONTH);
+	const remainder = days % WARRANTY_DAYS_PER_MONTH;
+	const monthLabel = months === 1 ? "1 month" : `${months} months`;
+	if (remainder === 0) {
+		return monthLabel;
+	}
+	const dayLabel = remainder === 1 ? "1 day" : `${remainder} days`;
+	return `${monthLabel} ${dayLabel}`;
 }

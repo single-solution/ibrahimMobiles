@@ -13,14 +13,14 @@ import { STORE_SETTING_DEFAULTS, type StoreSettings } from "@store/shared";
 const StoreSettingsContext = createContext<StoreSettings>(STORE_SETTING_DEFAULTS);
 
 interface StoreSettingsProviderProps {
-  value: StoreSettings;
-  children: ReactNode;
+	value: StoreSettings;
+	children: ReactNode;
 }
 
 export function StoreSettingsProvider({ value, children }: StoreSettingsProviderProps) {
-  return <StoreSettingsContext.Provider value={value}>{children}</StoreSettingsContext.Provider>;
+	return <StoreSettingsContext.Provider value={value}>{children}</StoreSettingsContext.Provider>;
 }
 
 export function useStoreSettings(): StoreSettings {
-  return useContext(StoreSettingsContext);
+	return useContext(StoreSettingsContext);
 }

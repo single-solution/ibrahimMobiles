@@ -6,10 +6,7 @@ export interface SelectSearchOption {
 }
 
 /** Case-insensitive label filter for select / dropdown option lists. */
-export function filterSelectOptions<T extends SelectSearchOption>(
-	options: readonly T[],
-	query: string,
-): T[] {
+export function filterSelectOptions<T extends SelectSearchOption>(options: readonly T[], query: string): T[] {
 	const normalizedQuery = query.trim().toLowerCase();
 	if (!normalizedQuery) {
 		return [...options];

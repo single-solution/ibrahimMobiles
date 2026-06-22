@@ -10,7 +10,7 @@
 
 /** Build a WhatsApp deep-link for a given message + WhatsApp number. */
 export function buildWhatsAppLink(message: string, whatsappNumber: string): string {
-  return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+	return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 }
 
 // ─── Storefront UI options ──────────────────────────────────────────────────
@@ -23,9 +23,9 @@ export const PAYMENT_METHOD_IDS = ["bank", "easypaisa", "jazzcash", "cod"] as co
 export type PaymentMethodId = (typeof PAYMENT_METHOD_IDS)[number];
 
 export interface PaymentMethodOption {
-  id: PaymentMethodId;
-  label: string;
-  note: string;
+	id: PaymentMethodId;
+	label: string;
+	note: string;
 }
 
 /**
@@ -38,53 +38,46 @@ export interface PaymentMethodOption {
  * weekend can swap "Local only" for "Pickup only".
  */
 export interface PaymentMethodSettings {
-  bankTransferDiscountPercent: number;
-  paymentBankEnabled?: boolean;
-  paymentEasypaisaEnabled?: boolean;
-  paymentJazzcashEnabled?: boolean;
-  paymentCodEnabled?: boolean;
-  paymentCodNote?: string;
+	bankTransferDiscountPercent: number;
+	paymentBankEnabled?: boolean;
+	paymentEasypaisaEnabled?: boolean;
+	paymentJazzcashEnabled?: boolean;
+	paymentCodEnabled?: boolean;
+	paymentCodNote?: string;
 }
 
-export function getPaymentMethods(
-  settings: PaymentMethodSettings,
-): readonly PaymentMethodOption[] {
-  const discount = Math.max(0, settings.bankTransferDiscountPercent);
-  // `?? true` keeps the historical behaviour for stores that haven't saved
-  // settings yet — every method shows by default until an admin toggles
-  // one off, so an upgrade can't silently break checkout.
-  const all: Array<PaymentMethodOption & { enabled: boolean }> = [
-    {
-      id: "bank",
-      label: "Bank Transfer",
-      note:
-        discount > 0
-          ? `Pay full → ${discount}% off`
-          : "Bank transfer pre-payment",
-      enabled: settings.paymentBankEnabled ?? true,
-    },
-    {
-      id: "easypaisa",
-      label: "Easypaisa",
-      note: "Advance to confirm order",
-      enabled: settings.paymentEasypaisaEnabled ?? true,
-    },
-    {
-      id: "jazzcash",
-      label: "JazzCash",
-      note: "Advance to confirm order",
-      enabled: settings.paymentJazzcashEnabled ?? true,
-    },
-    {
-      id: "cod",
-      label: "Cash on Delivery",
-      note: settings.paymentCodNote?.trim() || "Local only · in-person verify",
-      enabled: settings.paymentCodEnabled ?? true,
-    },
-  ];
-  return all
-    .filter((method) => method.enabled)
-    .map(({ enabled: _enabled, ...rest }) => rest);
+export function getPaymentMethods(settings: PaymentMethodSettings): readonly PaymentMethodOption[] {
+	const discount = Math.max(0, settings.bankTransferDiscountPercent);
+	// `?? true` keeps the historical behaviour for stores that haven't saved
+	// settings yet — every method shows by default until an admin toggles
+	// one off, so an upgrade can't silently break checkout.
+	const all: Array<PaymentMethodOption & { enabled: boolean }> = [
+		{
+			id: "bank",
+			label: "Bank Transfer",
+			note: discount > 0 ? `Pay full → ${discount}% off` : "Bank transfer pre-payment",
+			enabled: settings.paymentBankEnabled ?? true,
+		},
+		{
+			id: "easypaisa",
+			label: "Easypaisa",
+			note: "Advance to confirm order",
+			enabled: settings.paymentEasypaisaEnabled ?? true,
+		},
+		{
+			id: "jazzcash",
+			label: "JazzCash",
+			note: "Advance to confirm order",
+			enabled: settings.paymentJazzcashEnabled ?? true,
+		},
+		{
+			id: "cod",
+			label: "Cash on Delivery",
+			note: settings.paymentCodNote?.trim() || "Local only · in-person verify",
+			enabled: settings.paymentCodEnabled ?? true,
+		},
+	];
+	return all.filter((method) => method.enabled).map(({ enabled: _enabled, ...rest }) => rest);
 }
 
 /**
@@ -94,14 +87,14 @@ export function getPaymentMethods(
  * temporarily disables that method on checkout.
  */
 const PAYMENT_METHOD_FALLBACK_LABELS: Record<PaymentMethodId, string> = {
-  bank: "Bank Transfer",
-  easypaisa: "Easypaisa",
-  jazzcash: "JazzCash",
-  cod: "Cash on Delivery",
+	bank: "Bank Transfer",
+	easypaisa: "Easypaisa",
+	jazzcash: "JazzCash",
+	cod: "Cash on Delivery",
 };
 
 export function getPaymentMethodLabel(id: PaymentMethodId): string {
-  return PAYMENT_METHOD_FALLBACK_LABELS[id];
+	return PAYMENT_METHOD_FALLBACK_LABELS[id];
 }
 
 export const STORAGE_OPTIONS = [64, 128, 256, 512, 1024] as const;
@@ -151,51 +144,51 @@ export const MAX_LONG_TEXT_LENGTH = 5_000;
  * client-side hints can reference one source of truth.
  */
 export const FIELD_LIMITS = {
-  /** Person's full or display name (Customer, Inquiry contact, addressee). */
-  personName: 160,
-  /** Phone number (raw, with formatting) — matches Customer/Order schemas. */
-  phoneNumber: 32,
-  /** City name (Customer, address, inquiry). */
-  city: 80,
-  /** Address area/sector (free-text neighbourhood). */
-  addressArea: 120,
-  /** Street + house line. */
-  addressStreet: 200,
-  /** Postal/ZIP code. */
-  postalCode: 16,
-  /** Address label ("Home", "Office", …). */
-  addressLabel: 60,
-  /** Address recipient name (delivery card). */
-  recipientName: 120,
-  /** Single-line free-text fields (search query, summary, topic, slug-ish). */
-  shortText: 200,
-  /** Medium-length identifier-style strings: titles, setting keys, customer
-   *  display names, conversation handles. */
-  mediumText: 160,
-  /** CRM-style notes attached to a customer or inquiry. */
-  crmNotes: 2_000,
-  /** Long message body (inquiry/conversation thread message). */
-  messageBody: 4_000,
-  /** Operator/admin notes attached to a variant or order step. */
-  operatorNote: 500,
-  /** Free-text gadget category, color name (short label-like fields). */
-  shortLabel: 60,
-  /** Conversation author name shown next to a message. */
-  authorName: 120,
-  /** Conversation customer handle. */
-  customerHandle: 160,
-  /** Provider error message preview captured in our error envelope. */
-  providerErrorPreview: 240,
-  /** Setting description / metadata copy. */
-  settingDescription: 600,
-  /** Setting group name. */
-  settingGroup: 80,
-  /** External URL captured in MediaAsset / image fields. RFC 7230 places no
-   *  hard limit; 2048 is the practical browser ceiling and matches our
-   *  MediaAsset Mongoose schema. */
-  mediaUrl: 2_048,
-  /** Alt-text on a single image — long enough for full accessibility copy. */
-  imageAlt: 240,
+	/** Person's full or display name (Customer, Inquiry contact, addressee). */
+	personName: 160,
+	/** Phone number (raw, with formatting) — matches Customer/Order schemas. */
+	phoneNumber: 32,
+	/** City name (Customer, address, inquiry). */
+	city: 80,
+	/** Address area/sector (free-text neighbourhood). */
+	addressArea: 120,
+	/** Street + house line. */
+	addressStreet: 200,
+	/** Postal/ZIP code. */
+	postalCode: 16,
+	/** Address label ("Home", "Office", …). */
+	addressLabel: 60,
+	/** Address recipient name (delivery card). */
+	recipientName: 120,
+	/** Single-line free-text fields (search query, summary, topic, slug-ish). */
+	shortText: 200,
+	/** Medium-length identifier-style strings: titles, setting keys, customer
+	 *  display names, conversation handles. */
+	mediumText: 160,
+	/** CRM-style notes attached to a customer or inquiry. */
+	crmNotes: 2_000,
+	/** Long message body (inquiry/conversation thread message). */
+	messageBody: 4_000,
+	/** Operator/admin notes attached to a variant or order step. */
+	operatorNote: 500,
+	/** Free-text gadget category, color name (short label-like fields). */
+	shortLabel: 60,
+	/** Conversation author name shown next to a message. */
+	authorName: 120,
+	/** Conversation customer handle. */
+	customerHandle: 160,
+	/** Provider error message preview captured in our error envelope. */
+	providerErrorPreview: 240,
+	/** Setting description / metadata copy. */
+	settingDescription: 600,
+	/** Setting group name. */
+	settingGroup: 80,
+	/** External URL captured in MediaAsset / image fields. RFC 7230 places no
+	 *  hard limit; 2048 is the practical browser ceiling and matches our
+	 *  MediaAsset Mongoose schema. */
+	mediaUrl: 2_048,
+	/** Alt-text on a single image — long enough for full accessibility copy. */
+	imageAlt: 240,
 } as const;
 
 /**

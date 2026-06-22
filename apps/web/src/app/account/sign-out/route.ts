@@ -18,16 +18,13 @@ const INQUIRY_THREAD_TOKEN_COOKIE = "inquiry_thread_token";
  * shared device can't resume the previous visitor's guest conversation.
  */
 export async function GET(request: Request) {
-  const cookieStore = await cookies();
-  cookieStore.delete(CHAT_ANON_ID_COOKIE);
-  cookieStore.delete(INQUIRY_THREAD_TOKEN_COOKIE);
+	const cookieStore = await cookies();
+	cookieStore.delete(CHAT_ANON_ID_COOKIE);
+	cookieStore.delete(INQUIRY_THREAD_TOKEN_COOKIE);
 
-  const requested = new URL(request.url).searchParams.get("to");
-  // `to` is user-controlled — only honour same-origin paths.
-  const redirectTo =
-    requested && requested.startsWith("/") && !requested.startsWith("//")
-      ? requested
-      : "/account/sign-in";
+	const requested = new URL(request.url).searchParams.get("to");
+	// `to` is user-controlled — only honour same-origin paths.
+	const redirectTo = requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : "/account/sign-in";
 
-  await signOut({ redirectTo });
+	await signOut({ redirectTo });
 }

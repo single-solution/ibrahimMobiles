@@ -10,18 +10,18 @@ import { requirePagePermission } from "@/lib/server/requirePageSession";
 export const dynamic = "force-dynamic";
 
 export default async function AdminOffersPage() {
-  await requirePagePermission("offer_manage", "/offers");
+	await requirePagePermission("offer_manage", "/offers");
 
-  return (
-    <ListPageShell>
-      <Suspense fallback={<ListWorkspaceSkeleton />}>
-        <OffersData />
-      </Suspense>
-    </ListPageShell>
-  );
+	return (
+		<ListPageShell>
+			<Suspense fallback={<ListWorkspaceSkeleton />}>
+				<OffersData />
+			</Suspense>
+		</ListPageShell>
+	);
 }
 
 async function OffersData() {
-  const offers = await loadAdminOffersCached();
-  return <Offers offers={offers} />;
+	const offers = await loadAdminOffersCached();
+	return <Offers offers={offers} />;
 }

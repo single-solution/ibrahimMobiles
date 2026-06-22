@@ -1,19 +1,9 @@
 import type { Product, Variant } from "@store/shared";
 
-import {
-	GRADE_DIMENSION_KEY,
-	selectionFromVariant,
-} from "@/lib/catalog/pdpSelection";
+import { GRADE_DIMENSION_KEY, selectionFromVariant } from "@/lib/catalog/pdpSelection";
 
 /** App-router segments that must not be treated as catalog category slugs. */
-export const STOREFRONT_RESERVED_SEGMENTS = new Set([
-	"about",
-	"account",
-	"api",
-	"cart",
-	"checkout",
-	"deals",
-]);
+export const STOREFRONT_RESERVED_SEGMENTS = new Set(["about", "account", "api", "cart", "checkout", "deals"]);
 
 export function catalogRootHref(): string {
 	return "/";
@@ -35,9 +25,7 @@ export function productHref(
 	},
 ): string {
 	const base = categoryHref(product.categorySlug) + `/${product.slug}`;
-	const selection =
-		options?.selection ??
-		(options?.variant ? selectionFromVariant(options.variant) : undefined);
+	const selection = options?.selection ?? (options?.variant ? selectionFromVariant(options.variant) : undefined);
 	if (!selection || !hasSelectionValues(selection)) {
 		return base;
 	}
@@ -64,16 +52,12 @@ function hasSelectionValues(selection: Record<string, string>): boolean {
  * Storefront entry URL — same as catalog root. Category rail links use
  * `categoryHref` directly.
  */
-export function shopHrefFromCategories(
-	categories: ReadonlyArray<{ slug: string; isActive: boolean }>,
-): string {
+export function shopHrefFromCategories(categories: ReadonlyArray<{ slug: string; isActive: boolean }>): string {
 	return firstCategoryHref(categories) ?? catalogRootHref();
 }
 
 /** First active category in catalog order (matches `/` redirect). */
-export function firstCategoryHref(
-	categories: ReadonlyArray<{ slug: string; isActive: boolean }>,
-): string | null {
+export function firstCategoryHref(categories: ReadonlyArray<{ slug: string; isActive: boolean }>): string | null {
 	const firstActive = categories.find((category) => category.isActive);
 	return firstActive ? categoryHref(firstActive.slug) : null;
 }

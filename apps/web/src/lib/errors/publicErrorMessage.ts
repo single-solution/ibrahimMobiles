@@ -139,10 +139,7 @@ export function resolvePublicErrorDisplay(error: unknown): PublicErrorDisplay {
 }
 
 /** Single-line message for inline form and widget errors. */
-export function resolvePublicErrorMessage(
-	error: unknown,
-	fallback = "Something went wrong. Please try again.",
-): string {
+export function resolvePublicErrorMessage(error: unknown, fallback = "Something went wrong. Please try again."): string {
 	const message = extractErrorMessage(error);
 
 	if (isOffline()) {

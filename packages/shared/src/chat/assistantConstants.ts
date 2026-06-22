@@ -8,9 +8,9 @@ export const CHAT_ASSISTANT_DEFAULT_NAME = CHAT_SUPPORT_DISPLAY_NAME;
 export const CHAT_ASSISTANT_AI_LABEL = "AI";
 
 export function customerChatSupportLabel(configuredName?: string | null): string {
-  const trimmed = configuredName?.trim();
-  if (!trimmed || trimmed.toLowerCase() === "sara" || trimmed.toLowerCase() === "store assistant") {
-    return CHAT_SUPPORT_DISPLAY_NAME;
-  }
-  return trimmed;
+	const trimmed = configuredName?.trim();
+	if (!trimmed || trimmed.toLowerCase() === "sara" || trimmed.toLowerCase() === "store assistant") {
+		return CHAT_SUPPORT_DISPLAY_NAME;
+	}
+	return trimmed;
 }

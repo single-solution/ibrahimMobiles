@@ -7,11 +7,7 @@ import { logger } from "@store/shared";
 import { ShopIntroHero } from "@/app/_components/shop/ShopIntroHero";
 import { ShopProductFeed } from "@/components/shared/ShopProductFeed";
 import { catalogRootHref, categoryHref } from "@/lib/catalog/productPaths";
-import {
-	getCategoriesCached,
-	getProductsPageCached,
-	getStoreSettingsCached,
-} from "@/lib/core/cached";
+import { getCategoriesCached, getProductsPageCached, getStoreSettingsCached } from "@/lib/core/cached";
 
 /**
  * `/`
@@ -28,9 +24,7 @@ interface CatalogIndexPageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export async function generateMetadata({
-	searchParams,
-}: CatalogIndexPageProps): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: CatalogIndexPageProps): Promise<Metadata> {
 	const { siteName } = await getStoreSettingsCached();
 	const query = normaliseQuery((await searchParams).q ?? (await searchParams).query);
 	if (query) {
@@ -70,13 +64,7 @@ export default async function CatalogIndexPage({ searchParams }: CatalogIndexPag
 	redirect(categoryHref(firstActive.slug));
 }
 
-async function CatalogSearchResults({
-	query,
-	requestedPage,
-}: {
-	query: string;
-	requestedPage: number;
-}) {
+async function CatalogSearchResults({ query, requestedPage }: { query: string; requestedPage: number }) {
 	let page: Awaited<ReturnType<typeof getProductsPageCached>>;
 	try {
 		page = await getProductsPageCached({
@@ -86,10 +74,7 @@ async function CatalogSearchResults({
 			sort: "newest",
 		});
 	} catch (error) {
-		logger.error(
-			{ error, query },
-			"catalog: search results load failed, rendering empty state this render",
-		);
+		logger.error({ error, query }, "catalog: search results load failed, rendering empty state this render");
 		page = { products: [], total: 0, page: 1, pageSize: SEARCH_PAGE_SIZE, pageCount: 1 };
 	}
 
@@ -118,9 +103,7 @@ async function CatalogSearchResults({
 function EmptySearchState() {
 	return (
 		<div className="reveal mt-8 rounded-[var(--radius-lg)] border border-dashed border-[var(--color-ink-200)] bg-[var(--color-surface-muted)] px-5 py-12 text-center">
-			<p className="text-sm font-semibold text-[var(--color-ink-900)]">
-				No matching products found.
-			</p>
+			<p className="text-sm font-semibold text-[var(--color-ink-900)]">No matching products found.</p>
 			<Link
 				href={catalogRootHref()}
 				className="tap mt-4 inline-flex rounded-[var(--radius-full)] bg-[var(--color-accent-500)] px-4 py-2 text-sm font-semibold text-[var(--color-ink-900)] hover:bg-[var(--color-accent-600)]"

@@ -28,43 +28,41 @@ const PHONE_RAW_MAX_CHARS = 64;
 const PHONE_FINGERPRINT_MAX_CHARS = 32;
 
 interface OtpCodeAttributes {
-  /** 10-digit national fingerprint, e.g. `3204862403`. */
-  phoneFingerprint: string;
-  /** Raw phone string the customer entered, kept verbatim for support. */
-  phoneRaw: string;
-  /** bcrypt hash of the 6-digit code. */
-  codeHash: string;
-  purpose: OtpPurpose;
-  attempts: number;
-  expiresAt: Date;
-  consumedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+	/** 10-digit national fingerprint, e.g. `3204862403`. */
+	phoneFingerprint: string;
+	/** Raw phone string the customer entered, kept verbatim for support. */
+	phoneRaw: string;
+	/** bcrypt hash of the 6-digit code. */
+	codeHash: string;
+	purpose: OtpPurpose;
+	attempts: number;
+	expiresAt: Date;
+	consumedAt?: Date;
+	createdAt: Date;
+	updatedAt: Date;
 }
 
 const otpSchema = new Schema<OtpCodeAttributes>(
-  {
-    phoneFingerprint: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: PHONE_FINGERPRINT_MAX_CHARS,
-      index: true,
-    },
-    phoneRaw: { type: String, required: true, trim: true, maxlength: PHONE_RAW_MAX_CHARS },
-    codeHash: { type: String, required: true, select: false },
-    purpose: { type: String, enum: OTP_PURPOSES, required: true },
-    attempts: { type: Number, required: true, default: 0, min: 0 },
-    expiresAt: { type: Date, required: true },
-    consumedAt: { type: Date },
-  },
-  { timestamps: true },
+	{
+		phoneFingerprint: {
+			type: String,
+			required: true,
+			trim: true,
+			maxlength: PHONE_FINGERPRINT_MAX_CHARS,
+			index: true,
+		},
+		phoneRaw: { type: String, required: true, trim: true, maxlength: PHONE_RAW_MAX_CHARS },
+		codeHash: { type: String, required: true, select: false },
+		purpose: { type: String, enum: OTP_PURPOSES, required: true },
+		attempts: { type: Number, required: true, default: 0, min: 0 },
+		expiresAt: { type: Date, required: true },
+		consumedAt: { type: Date },
+	},
+	{ timestamps: true },
 );
 
 // Auto-purge after 1h regardless of expiry — keeps the collection bounded.
 otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: OTP_AUTO_PURGE_SECONDS });
 otpSchema.index({ phoneFingerprint: 1, purpose: 1, createdAt: -1 });
 
-export const OtpCode: Model<OtpCodeAttributes> =
-  (mongoose.models.OtpCode as Model<OtpCodeAttributes>) ??
-  mongoose.model<OtpCodeAttributes>("OtpCode", otpSchema);
+export const OtpCode: Model<OtpCodeAttributes> = (mongoose.models.OtpCode as Model<OtpCodeAttributes>) ?? mongoose.model<OtpCodeAttributes>("OtpCode", otpSchema);

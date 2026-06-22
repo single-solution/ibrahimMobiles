@@ -46,14 +46,7 @@ export function SearchableSelectPanel({
 
 	return (
 		<div className={className}>
-			{showSearch ? (
-				<SelectSearchInput
-					value={query}
-					onChange={setQuery}
-					placeholder={searchPlaceholder}
-					autoFocus
-				/>
-			) : null}
+			{showSearch ? <SelectSearchInput value={query} onChange={setQuery} placeholder={searchPlaceholder} autoFocus /> : null}
 			<div className={classNames("max-h-64 overflow-y-auto", listClassName)}>
 				{options.length === 0 ? (
 					<p className="px-3 py-2 text-[11px] text-[var(--color-ink-400)]">{emptyMessage}</p>
@@ -82,30 +75,16 @@ export function SearchableSelectPanel({
 									className={classNames(
 										"grid size-3.5 shrink-0 place-items-center border transition-colors",
 										singleSelectStyle === "radio" ? "rounded-full" : "rounded-[var(--radius-sm)]",
-										isSelected
-											? "border-[var(--color-accent-700)] bg-[var(--color-accent-700)] text-white"
-											: "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
+										isSelected ? "border-[var(--color-accent-700)] bg-[var(--color-accent-700)] text-white" : "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
 									)}
 								>
-									{isSelected ? (
-										singleSelectStyle === "radio" ? (
-											<span className="size-1.5 rounded-full bg-white" />
-										) : (
-											<Check size={8} strokeWidth={3} />
-										)
-									) : null}
+									{isSelected ? singleSelectStyle === "radio" ? <span className="size-1.5 rounded-full bg-white" /> : <Check size={8} strokeWidth={3} /> : null}
 								</span>
 								<span className={singleSelectStyle === "radio" ? "whitespace-nowrap" : "min-w-0 flex-1 truncate"}>
 									{renderOptionLabel ? renderOptionLabel(option) : option.label}
 								</span>
-								{typeof option.count === "number" ? (
-									<span className="ml-auto shrink-0 tabular-nums text-[10px] text-[var(--color-ink-400)]">
-										{option.count}
-									</span>
-								) : null}
-								{isSelected && singleSelectStyle === "radio" ? (
-									<Check size={12} className="ml-auto shrink-0 text-[var(--color-accent-700)]" />
-								) : null}
+								{typeof option.count === "number" ? <span className="ml-auto shrink-0 tabular-nums text-[10px] text-[var(--color-ink-400)]">{option.count}</span> : null}
+								{isSelected && singleSelectStyle === "radio" ? <Check size={12} className="ml-auto shrink-0 text-[var(--color-accent-700)]" /> : null}
 							</button>
 						);
 					})

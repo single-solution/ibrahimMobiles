@@ -3,26 +3,21 @@
 import { Suspense } from "react";
 
 import { TableSkeleton } from "@/components/loading/TableSkeleton";
-import type {
-  AdminAttribute,
-  AdminBrand,
-  AdminCategory,
-  AdminGrade,
-} from "@/types/models";
+import type { AdminAttribute, AdminBrand, AdminCategory, AdminGrade } from "@/types/models";
 
 import { CategoriesCatalogInner } from "./CategoriesCatalogInner";
 
 export interface CategoriesCatalogProps {
-  initialCategories: AdminCategory[];
-  initialBrands: AdminBrand[];
-  initialGrades: AdminGrade[];
-  initialAttributes: AdminAttribute[];
+	initialCategories: AdminCategory[];
+	initialBrands: AdminBrand[];
+	initialGrades: AdminGrade[];
+	initialAttributes: AdminAttribute[];
 }
 
 export function CategoriesCatalog(props: CategoriesCatalogProps) {
-  return (
-    <Suspense fallback={<TableSkeleton columnCount={4} rowCount={8} />}>
-      <CategoriesCatalogInner {...props} />
-    </Suspense>
-  );
+	return (
+		<Suspense fallback={<TableSkeleton columnCount={4} rowCount={8} />}>
+			<CategoriesCatalogInner {...props} />
+		</Suspense>
+	);
 }

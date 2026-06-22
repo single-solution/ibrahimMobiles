@@ -23,236 +23,188 @@ const TRICKLE_INTERVAL_MS = 260;
 const COMPLETION_FADE_MS = 340;
 const SAME_ROUTE_AUTO_CANCEL_MS = 15000;
 
-function NavigationProgressClickListener({
-  onStart,
-}: {
-  onStart: () => void;
-}) {
-  useEffect(() => {
-    const handleClick = (event: MouseEvent) => {
-      if (
-        event.defaultPrevented ||
-        event.button !== 0 ||
-        event.metaKey ||
-        event.ctrlKey ||
-        event.shiftKey ||
-        event.altKey
-      ) {
-        return;
-      }
-      const anchor = (event.target as HTMLElement | null)?.closest("a");
-      if (!anchor) {
-        return;
-      }
-      if (anchor.target && anchor.target !== "_self") {
-        return;
-      }
-      if (anchor.hasAttribute("download")) {
-        return;
-      }
-      const href = anchor.getAttribute("href");
-      if (
-        !href ||
-        href.startsWith("#") ||
-        href.startsWith("mailto:") ||
-        href.startsWith("tel:") ||
-        href.startsWith("javascript:")
-      ) {
-        return;
-      }
-      try {
-        const targetUrl = new URL(href, window.location.href);
-        if (targetUrl.origin !== window.location.origin) {
-          return;
-        }
-        const nextKey = `${targetUrl.pathname}?${targetUrl.searchParams.toString()}`;
-        const currentKey = `${window.location.pathname}?${window.location.search.slice(1)}`;
-        if (nextKey === currentKey) {
-          return;
-        }
-      } catch {
-        return;
-      }
+function NavigationProgressClickListener({ onStart }: { onStart: () => void }) {
+	useEffect(() => {
+		const handleClick = (event: MouseEvent) => {
+			if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+				return;
+			}
+			const anchor = (event.target as HTMLElement | null)?.closest("a");
+			if (!anchor) {
+				return;
+			}
+			if (anchor.target && anchor.target !== "_self") {
+				return;
+			}
+			if (anchor.hasAttribute("download")) {
+				return;
+			}
+			const href = anchor.getAttribute("href");
+			if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:") || href.startsWith("javascript:")) {
+				return;
+			}
+			try {
+				const targetUrl = new URL(href, window.location.href);
+				if (targetUrl.origin !== window.location.origin) {
+					return;
+				}
+				const nextKey = `${targetUrl.pathname}?${targetUrl.searchParams.toString()}`;
+				const currentKey = `${window.location.pathname}?${window.location.search.slice(1)}`;
+				if (nextKey === currentKey) {
+					return;
+				}
+			} catch {
+				return;
+			}
 
-      if (SHOW_AFTER_CLICK_MS === 0) {
-        onStart();
-      } else {
-        window.setTimeout(onStart, SHOW_AFTER_CLICK_MS);
-      }
-    };
+			if (SHOW_AFTER_CLICK_MS === 0) {
+				onStart();
+			} else {
+				window.setTimeout(onStart, SHOW_AFTER_CLICK_MS);
+			}
+		};
 
-    document.addEventListener("click", handleClick, { capture: true });
-    window.addEventListener("popstate", onStart);
+		document.addEventListener("click", handleClick, { capture: true });
+		window.addEventListener("popstate", onStart);
 
-    return () => {
-      document.removeEventListener("click", handleClick, { capture: true });
-      window.removeEventListener("popstate", onStart);
-    };
-  }, [onStart]);
+		return () => {
+			document.removeEventListener("click", handleClick, { capture: true });
+			window.removeEventListener("popstate", onStart);
+		};
+	}, [onStart]);
 
-  return null;
+	return null;
 }
 
-function NavigationProgressRouteSync({
-  onRouteCommit,
-}: {
-  onRouteCommit: () => void;
-}) {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const lastRouteKeyRef = useRef<string>(
-    `${pathname}?${searchParams?.toString() ?? ""}`,
-  );
+function NavigationProgressRouteSync({ onRouteCommit }: { onRouteCommit: () => void }) {
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
+	const lastRouteKeyRef = useRef<string>(`${pathname}?${searchParams?.toString() ?? ""}`);
 
-  useEffect(() => {
-    const routeKey = `${pathname}?${searchParams?.toString() ?? ""}`;
-    if (routeKey === lastRouteKeyRef.current) {
-      return;
-    }
-    lastRouteKeyRef.current = routeKey;
-    onRouteCommit();
-  }, [pathname, searchParams, onRouteCommit]);
+	useEffect(() => {
+		const routeKey = `${pathname}?${searchParams?.toString() ?? ""}`;
+		if (routeKey === lastRouteKeyRef.current) {
+			return;
+		}
+		lastRouteKeyRef.current = routeKey;
+		onRouteCommit();
+	}, [pathname, searchParams, onRouteCommit]);
 
-  return null;
+	return null;
 }
 
-function NavigationProgressBar({
-  isVisible,
-  percent,
-}: {
-  isVisible: boolean;
-  percent: number;
-}) {
-  return (
-    <div
-      aria-hidden
-      data-visible={isVisible ? "true" : "false"}
-      className="nav-progress pointer-events-none fixed inset-x-0 top-0 z-[var(--z-max)] h-[2px]"
-    >
-      <div
-        className="nav-progress-bar h-full w-full bg-[var(--color-accent-500)]"
-        style={{ transform: `scaleX(${percent / 100})` }}
-      />
-    </div>
-  );
+function NavigationProgressBar({ isVisible, percent }: { isVisible: boolean; percent: number }) {
+	return (
+		<div aria-hidden data-visible={isVisible ? "true" : "false"} className="nav-progress pointer-events-none fixed inset-x-0 top-0 z-[var(--z-max)] h-[2px]">
+			<div className="nav-progress-bar h-full w-full bg-[var(--color-accent-500)]" style={{ transform: `scaleX(${percent / 100})` }} />
+		</div>
+	);
 }
 
 export function NavigationProgress() {
-  const programmaticCount = useNavigationProgressCount();
-  const [isVisible, setIsVisible] = useState(false);
-  const [percent, setPercent] = useState(0);
-  const trickleIntervalRef = useRef<number | null>(null);
-  const fadeTimeoutRef = useRef<number | null>(null);
-  const autoCancelTimeoutRef = useRef<number | null>(null);
-  const programmaticActiveRef = useRef(false);
+	const programmaticCount = useNavigationProgressCount();
+	const [isVisible, setIsVisible] = useState(false);
+	const [percent, setPercent] = useState(0);
+	const trickleIntervalRef = useRef<number | null>(null);
+	const fadeTimeoutRef = useRef<number | null>(null);
+	const autoCancelTimeoutRef = useRef<number | null>(null);
+	const programmaticActiveRef = useRef(false);
 
-  const clearTrickle = useCallback(() => {
-    if (trickleIntervalRef.current !== null) {
-      window.clearInterval(trickleIntervalRef.current);
-      trickleIntervalRef.current = null;
-    }
-  }, []);
+	const clearTrickle = useCallback(() => {
+		if (trickleIntervalRef.current !== null) {
+			window.clearInterval(trickleIntervalRef.current);
+			trickleIntervalRef.current = null;
+		}
+	}, []);
 
-  const clearFade = useCallback(() => {
-    if (fadeTimeoutRef.current !== null) {
-      window.clearTimeout(fadeTimeoutRef.current);
-      fadeTimeoutRef.current = null;
-    }
-  }, []);
+	const clearFade = useCallback(() => {
+		if (fadeTimeoutRef.current !== null) {
+			window.clearTimeout(fadeTimeoutRef.current);
+			fadeTimeoutRef.current = null;
+		}
+	}, []);
 
-  const clearAutoCancel = useCallback(() => {
-    if (autoCancelTimeoutRef.current !== null) {
-      window.clearTimeout(autoCancelTimeoutRef.current);
-      autoCancelTimeoutRef.current = null;
-    }
-  }, []);
+	const clearAutoCancel = useCallback(() => {
+		if (autoCancelTimeoutRef.current !== null) {
+			window.clearTimeout(autoCancelTimeoutRef.current);
+			autoCancelTimeoutRef.current = null;
+		}
+	}, []);
 
-  const completeNavigation = useCallback(() => {
-    clearTrickle();
-    clearAutoCancel();
-    programmaticActiveRef.current = false;
-    setPercent(100);
-    clearFade();
-    dispatchRouteReveal();
-    fadeTimeoutRef.current = window.setTimeout(() => {
-      setIsVisible(false);
-      setPercent(0);
-    }, COMPLETION_FADE_MS);
-  }, [clearAutoCancel, clearFade, clearTrickle]);
+	const completeNavigation = useCallback(() => {
+		clearTrickle();
+		clearAutoCancel();
+		programmaticActiveRef.current = false;
+		setPercent(100);
+		clearFade();
+		dispatchRouteReveal();
+		fadeTimeoutRef.current = window.setTimeout(() => {
+			setIsVisible(false);
+			setPercent(0);
+		}, COMPLETION_FADE_MS);
+	}, [clearAutoCancel, clearFade, clearTrickle]);
 
-  const startNavigation = useCallback(() => {
-    clearFade();
-    clearAutoCancel();
-    setIsVisible(true);
-    setPercent(TRICKLE_START_PERCENT);
-    clearTrickle();
-    trickleIntervalRef.current = window.setInterval(() => {
-      setPercent((current) => {
-        if (current >= TRICKLE_CEILING_PERCENT) {
-          return current;
-        }
-        return Math.min(current + TRICKLE_STEP_PERCENT, TRICKLE_CEILING_PERCENT);
-      });
-    }, TRICKLE_INTERVAL_MS);
-    autoCancelTimeoutRef.current = window.setTimeout(() => {
-      completeNavigation();
-    }, SAME_ROUTE_AUTO_CANCEL_MS);
-  }, [clearAutoCancel, clearFade, clearTrickle, completeNavigation]);
+	const startNavigation = useCallback(() => {
+		clearFade();
+		clearAutoCancel();
+		setIsVisible(true);
+		setPercent(TRICKLE_START_PERCENT);
+		clearTrickle();
+		trickleIntervalRef.current = window.setInterval(() => {
+			setPercent((current) => {
+				if (current >= TRICKLE_CEILING_PERCENT) {
+					return current;
+				}
+				return Math.min(current + TRICKLE_STEP_PERCENT, TRICKLE_CEILING_PERCENT);
+			});
+		}, TRICKLE_INTERVAL_MS);
+		autoCancelTimeoutRef.current = window.setTimeout(() => {
+			completeNavigation();
+		}, SAME_ROUTE_AUTO_CANCEL_MS);
+	}, [clearAutoCancel, clearFade, clearTrickle, completeNavigation]);
 
-  useEffect(() => {
-    if (programmaticCount > 0) {
-      programmaticActiveRef.current = true;
-      scheduleStateUpdate(startNavigation);
-      return;
-    }
-    if (programmaticActiveRef.current) {
-      programmaticActiveRef.current = false;
-      scheduleStateUpdate(completeNavigation);
-    }
-  }, [programmaticCount, startNavigation, completeNavigation]);
+	useEffect(() => {
+		if (programmaticCount > 0) {
+			programmaticActiveRef.current = true;
+			scheduleStateUpdate(startNavigation);
+			return;
+		}
+		if (programmaticActiveRef.current) {
+			programmaticActiveRef.current = false;
+			scheduleStateUpdate(completeNavigation);
+		}
+	}, [programmaticCount, startNavigation, completeNavigation]);
 
-  useEffect(
-    () => () => {
-      clearTrickle();
-      clearFade();
-      clearAutoCancel();
-    },
-    [clearAutoCancel, clearFade, clearTrickle],
-  );
+	useEffect(
+		() => () => {
+			clearTrickle();
+			clearFade();
+			clearAutoCancel();
+		},
+		[clearAutoCancel, clearFade, clearTrickle],
+	);
 
-  return (
-    <>
-      <NavigationProgressClickListener onStart={startNavigation} />
-      <NavigationProgressBar isVisible={isVisible} percent={percent} />
-      {isVisible ? (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed inset-0 z-[90] flex items-center justify-center bg-[var(--color-ink-900)]/15 backdrop-blur-[2px]"
-          style={{ animation: "nav-overlay-in 0.25s ease-out 0.45s both" }}
-        >
-          <div className="nav-preloader-origami grid size-[34px] grid-cols-2 gap-[3px]" aria-hidden>
-            <div
-              className="origin-bottom-right rounded-[2px] bg-[var(--color-accent-500)]"
-              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0s" }}
-            />
-            <div
-              className="origin-bottom-left rounded-[2px] bg-[var(--color-ink-900)]"
-              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.3s" }}
-            />
-            <div
-              className="origin-top-right rounded-[2px] bg-[var(--color-ink-900)]"
-              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.9s" }}
-            />
-            <div
-              className="origin-top-left rounded-[2px] bg-[var(--color-accent-500)]"
-              style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.6s" }}
-            />
-          </div>
-        </div>
-      ) : null}
-      <Suspense fallback={null}>
-        <NavigationProgressRouteSync onRouteCommit={completeNavigation} />
-      </Suspense>
-    </>
-  );
+	return (
+		<>
+			<NavigationProgressClickListener onStart={startNavigation} />
+			<NavigationProgressBar isVisible={isVisible} percent={percent} />
+			{isVisible ? (
+				<div
+					aria-hidden
+					className="pointer-events-none fixed inset-0 z-[90] flex items-center justify-center bg-[var(--color-ink-900)]/15 backdrop-blur-[2px]"
+					style={{ animation: "nav-overlay-in 0.25s ease-out 0.45s both" }}
+				>
+					<div className="nav-preloader-origami grid size-[34px] grid-cols-2 gap-[3px]" aria-hidden>
+						<div className="origin-bottom-right rounded-[2px] bg-[var(--color-accent-500)]" style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0s" }} />
+						<div className="origin-bottom-left rounded-[2px] bg-[var(--color-ink-900)]" style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.3s" }} />
+						<div className="origin-top-right rounded-[2px] bg-[var(--color-ink-900)]" style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.9s" }} />
+						<div className="origin-top-left rounded-[2px] bg-[var(--color-accent-500)]" style={{ animation: "cvs-fold 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1) 0.6s" }} />
+					</div>
+				</div>
+			) : null}
+			<Suspense fallback={null}>
+				<NavigationProgressRouteSync onRouteCommit={completeNavigation} />
+			</Suspense>
+		</>
+	);
 }

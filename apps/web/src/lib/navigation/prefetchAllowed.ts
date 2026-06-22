@@ -39,18 +39,14 @@ export function prefetchAllowed(): boolean {
 	if (typeof navigator === "undefined") {
 		return false;
 	}
-	const connection = (navigator as Navigator & NavigatorWithConnection)
-		.connection;
+	const connection = (navigator as Navigator & NavigatorWithConnection).connection;
 	if (!connection) {
 		return true;
 	}
 	if (connection.saveData === true) {
 		return false;
 	}
-	if (
-		connection.effectiveType === "2g" ||
-		connection.effectiveType === "slow-2g"
-	) {
+	if (connection.effectiveType === "2g" || connection.effectiveType === "slow-2g") {
 		return false;
 	}
 	return true;

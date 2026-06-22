@@ -16,30 +16,30 @@ export const dynamic = "force-dynamic";
 const FACETS_PER_MINUTE = 120;
 
 export async function GET(request: Request) {
-  const limited = enforcePublicRateLimit(request, {
-    scope: "storefront-facets",
-    max: FACETS_PER_MINUTE,
-    windowMs: 60_000,
-  });
-  if (limited) {
-    return limited;
-  }
+	const limited = enforcePublicRateLimit(request, {
+		scope: "storefront-facets",
+		max: FACETS_PER_MINUTE,
+		windowMs: 60_000,
+	});
+	if (limited) {
+		return limited;
+	}
 
-  const url = new URL(request.url);
-  const categorySlug = url.searchParams.get("category")?.trim();
-  if (!categorySlug) {
-    return ok({ facets: [] });
-  }
+	const url = new URL(request.url);
+	const categorySlug = url.searchParams.get("category")?.trim();
+	if (!categorySlug) {
+		return ok({ facets: [] });
+	}
 
-  const filters = parseFiltersFromSearchParams(url.searchParams, {
-    categorySlug,
-  });
+	const filters = parseFiltersFromSearchParams(url.searchParams, {
+		categorySlug,
+	});
 
-  try {
-    const facets = await getFacetsCached(filters);
-    return ok({ facets });
-  } catch (error) {
-    logger.error({ error, categorySlug }, "storefront facets failed");
-    return serverError("Facets failed. Please try again.");
-  }
+	try {
+		const facets = await getFacetsCached(filters);
+		return ok({ facets });
+	} catch (error) {
+		logger.error({ error, categorySlug }, "storefront facets failed");
+		return serverError("Facets failed. Please try again.");
+	}
 }

@@ -1,35 +1,18 @@
 import { NextResponse } from "next/server";
 import { Offer as OfferModel, connectDB } from "@store/db";
-import { isOfferActiveSchedule } from "@store/shared";
+import { isOfferActiveSchedule, toActiveOffer } from "@store/shared";
 
 export async function GET() {
-  try {
-    await connectDB();
-    
-    // We fetch all active offers from the database.
-    // The actual evaluation against cart items will happen client-side using OfferEvaluator.
-    const docs = await OfferModel.find({ isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean();
-    
-    const offers = docs.map((doc) => ({
-      id: doc._id.toString(),
-      title: doc?.title,
-      badgeLabel: doc?.badgeLabel,
-      conditions: doc?.conditions || [],
-      action: doc?.action || { type: "percentage_discount", value: 0, target: "cart_total" },
-      schedule: doc?.schedule || {},
-      constraints: doc?.constraints || { allowLoyaltyPoints: false, isStackable: false, usageCount: 0 },
-      // Derived property from constraints for evaluator compatibility
-      allowLoyaltyPoints: doc?.constraints?.allowLoyaltyPoints ?? false,
-      isStackable: doc?.constraints?.isStackable ?? false,
-      usageLimit: doc?.constraints?.usageLimit,
-      usageCount: doc?.constraints?.usageCount ?? 0,
-    }));
+	try {
+		await connectDB();
 
-    const now = new Date();
-    const activeOffers = offers.filter(offer => isOfferActiveSchedule(offer.schedule, now));
+		const docs = await OfferModel.find({ isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean();
+		const offers = docs.map((doc) => toActiveOffer(doc));
+		const now = new Date();
+		const activeOffers = offers.filter((offer) => isOfferActiveSchedule(offer.schedule, now));
 
-    return NextResponse.json(activeOffers);
-  } catch (error) {
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
-  }
+		return NextResponse.json(activeOffers);
+	} catch {
+		return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+	}
 }

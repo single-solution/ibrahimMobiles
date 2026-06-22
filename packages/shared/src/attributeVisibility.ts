@@ -36,10 +36,7 @@ function normalizeSlugs(values: string[] | undefined): string[] {
 }
 
 /** Whether an attribute row should render for the given filter context. */
-export function isVisibilitySatisfied(
-	visibility: AttributeVisibility | undefined,
-	context: VisibilityContext,
-): boolean {
+export function isVisibilitySatisfied(visibility: AttributeVisibility | undefined, context: VisibilityContext): boolean {
 	const rule = visibility ?? ATTRIBUTE_VISIBILITY_ALWAYS;
 
 	switch (rule.type) {
@@ -73,19 +70,12 @@ export function isVisibilitySatisfied(
 }
 
 /** Stable display order for filter / facet attribute rows. */
-export function sortAttributesByVisibility<T extends AttributeVisibilityNode>(
-	attributes: T[],
-): T[] {
-	return [...attributes].sort((left, right) =>
-		compareAlphabetically(left.label, right.label),
-	);
+export function sortAttributesByVisibility<T extends AttributeVisibilityNode>(attributes: T[]): T[] {
+	return [...attributes].sort((left, right) => compareAlphabetically(left.label, right.label));
 }
 
 /** Slugs to remove from URL when brand or grade filters change. */
-export function attributeSlugsToClearOnFilterChange(
-	attributes: AttributeVisibilityNode[],
-	changedSlug: "brand" | "grade" | string,
-): string[] {
+export function attributeSlugsToClearOnFilterChange(attributes: AttributeVisibilityNode[], changedSlug: "brand" | "grade" | string): string[] {
 	if (changedSlug !== "brand" && changedSlug !== "grade") {
 		return [];
 	}

@@ -5,161 +5,125 @@
 
 import mongoose from "mongoose";
 import { slugify } from "@store/shared";
-import {
-  Attribute,
-  Brand,
-  Category,
-  Grade,
-  Product,
-} from "@store/db";
+import { Attribute, Brand, Category, Grade, Product } from "@store/db";
 
-export function slugFromCatalogLabel(
-  label: string,
-  maxLength: number,
-  explicitSlug?: unknown,
-): string {
-  if (typeof explicitSlug === "string" && explicitSlug.trim().length > 0) {
-    return slugify(explicitSlug, maxLength);
-  }
-  return slugify(label, maxLength);
+export function slugFromCatalogLabel(label: string, maxLength: number, explicitSlug?: unknown): string {
+	if (typeof explicitSlug === "string" && explicitSlug.trim().length > 0) {
+		return slugify(explicitSlug, maxLength);
+	}
+	return slugify(label, maxLength);
 }
 
-export async function cascadeCategorySlugChange(
-  oldSlug: string,
-  newSlug: string,
-): Promise<void> {
-  if (oldSlug === newSlug) {
-    return;
-  }
+export async function cascadeCategorySlugChange(oldSlug: string, newSlug: string): Promise<void> {
+	if (oldSlug === newSlug) {
+		return;
+	}
 
-  await Promise.all([
-    Product.updateMany({ categorySlug: oldSlug }, { $set: { categorySlug: newSlug } }),
-    Grade.updateMany({ categorySlug: oldSlug }, { $set: { categorySlug: newSlug } }),
-    Attribute.updateMany({ categorySlug: oldSlug }, { $set: { categorySlug: newSlug } }),
-  ]);
+	await Promise.all([
+		Product.updateMany({ categorySlug: oldSlug }, { $set: { categorySlug: newSlug } }),
+		Grade.updateMany({ categorySlug: oldSlug }, { $set: { categorySlug: newSlug } }),
+		Attribute.updateMany({ categorySlug: oldSlug }, { $set: { categorySlug: newSlug } }),
+	]);
 
-  const brands = await Brand.find({ categorySlugs: oldSlug }).select("categorySlugs");
-  for (const brand of brands) {
-    brand.categorySlugs = brand.categorySlugs.map((slug) =>
-      slug === oldSlug ? newSlug : slug,
-    );
-    await brand.save();
-  }
+	const brands = await Brand.find({ categorySlugs: oldSlug }).select("categorySlugs");
+	for (const brand of brands) {
+		brand.categorySlugs = brand.categorySlugs.map((slug) => (slug === oldSlug ? newSlug : slug));
+		await brand.save();
+	}
 }
 
-export async function cascadeBrandSlugChange(
-  oldSlug: string,
-  newSlug: string,
-): Promise<void> {
-  if (oldSlug === newSlug) {
-    return;
-  }
-  await Product.updateMany({ brandSlug: oldSlug }, { $set: { brandSlug: newSlug } });
+export async function cascadeBrandSlugChange(oldSlug: string, newSlug: string): Promise<void> {
+	if (oldSlug === newSlug) {
+		return;
+	}
+	await Product.updateMany({ brandSlug: oldSlug }, { $set: { brandSlug: newSlug } });
 
-  const brandGated = await Attribute.find({
-    "visibility.type": "brand",
-    "visibility.brandSlugs": oldSlug,
-  }).select("visibility");
+	const brandGated = await Attribute.find({
+		"visibility.type": "brand",
+		"visibility.brandSlugs": oldSlug,
+	}).select("visibility");
 
-  for (const attribute of brandGated) {
-    const visibility = attribute.visibility;
-    if (!visibility?.brandSlugs) continue;
-    visibility.brandSlugs = visibility.brandSlugs.map((slug) =>
-      slug === oldSlug ? newSlug : slug,
-    );
-    attribute.visibility = visibility;
-    attribute.markModified("visibility");
-    await attribute.save();
-  }
+	for (const attribute of brandGated) {
+		const visibility = attribute.visibility;
+		if (!visibility?.brandSlugs) continue;
+		visibility.brandSlugs = visibility.brandSlugs.map((slug) => (slug === oldSlug ? newSlug : slug));
+		attribute.visibility = visibility;
+		attribute.markModified("visibility");
+		await attribute.save();
+	}
 }
 
-export async function cascadeGradeSlugChange(
-  categorySlug: string,
-  oldSlug: string,
-  newSlug: string,
-): Promise<void> {
-  if (oldSlug === newSlug) {
-    return;
-  }
+export async function cascadeGradeSlugChange(categorySlug: string, oldSlug: string, newSlug: string): Promise<void> {
+	if (oldSlug === newSlug) {
+		return;
+	}
 
-  const products = await Product.find({
-    categorySlug,
-    "variants.gradeSlug": oldSlug,
-  }).select("variants");
+	const products = await Product.find({
+		categorySlug,
+		"variants.gradeSlug": oldSlug,
+	}).select("variants");
 
-  for (const product of products) {
-    let touched = false;
-    for (const variant of product.variants) {
-      if (variant.gradeSlug === oldSlug) {
-        variant.gradeSlug = newSlug;
-        touched = true;
-      }
-    }
-    if (touched) {
-      product.markModified("variants");
-      await product.save();
-    }
-  }
+	for (const product of products) {
+		let touched = false;
+		for (const variant of product.variants) {
+			if (variant.gradeSlug === oldSlug) {
+				variant.gradeSlug = newSlug;
+				touched = true;
+			}
+		}
+		if (touched) {
+			product.markModified("variants");
+			await product.save();
+		}
+	}
 
-  const gradeGated = await Attribute.find({
-    categorySlug,
-    "visibility.type": "grade",
-    "visibility.gradeSlugs": oldSlug,
-  }).select("visibility");
+	const gradeGated = await Attribute.find({
+		categorySlug,
+		"visibility.type": "grade",
+		"visibility.gradeSlugs": oldSlug,
+	}).select("visibility");
 
-  for (const attribute of gradeGated) {
-    const visibility = attribute.visibility;
-    if (!visibility?.gradeSlugs) continue;
-    visibility.gradeSlugs = visibility.gradeSlugs.map((slug) =>
-      slug === oldSlug ? newSlug : slug,
-    );
-    attribute.visibility = visibility;
-    attribute.markModified("visibility");
-    await attribute.save();
-  }
+	for (const attribute of gradeGated) {
+		const visibility = attribute.visibility;
+		if (!visibility?.gradeSlugs) continue;
+		visibility.gradeSlugs = visibility.gradeSlugs.map((slug) => (slug === oldSlug ? newSlug : slug));
+		attribute.visibility = visibility;
+		attribute.markModified("visibility");
+		await attribute.save();
+	}
 }
 
-export async function cascadeAttributeSlugChange(
-  categorySlug: string,
-  oldSlug: string,
-  newSlug: string,
-): Promise<void> {
-  if (oldSlug === newSlug) {
-    return;
-  }
+export async function cascadeAttributeSlugChange(categorySlug: string, oldSlug: string, newSlug: string): Promise<void> {
+	if (oldSlug === newSlug) {
+		return;
+	}
 
-  const products = await Product.find({ categorySlug }).select("variants");
-  for (const product of products) {
-    let touched = false;
-    for (const variant of product.variants) {
-      if (variant.attributes && Object.prototype.hasOwnProperty.call(variant.attributes, oldSlug)) {
-        variant.attributes[newSlug] = variant.attributes[oldSlug];
-        delete variant.attributes[oldSlug];
-        touched = true;
-      }
-      if (
-        variant.attributeDisplay &&
-        Object.prototype.hasOwnProperty.call(variant.attributeDisplay, oldSlug)
-      ) {
-        variant.attributeDisplay[newSlug] = variant.attributeDisplay[oldSlug];
-        delete variant.attributeDisplay[oldSlug];
-        touched = true;
-      }
-    }
-    if (touched) {
-      product.markModified("variants");
-      await product.save();
-    }
-  }
+	const products = await Product.find({ categorySlug }).select("variants");
+	for (const product of products) {
+		let touched = false;
+		for (const variant of product.variants) {
+			if (variant.attributes && Object.prototype.hasOwnProperty.call(variant.attributes, oldSlug)) {
+				variant.attributes[newSlug] = variant.attributes[oldSlug];
+				delete variant.attributes[oldSlug];
+				touched = true;
+			}
+			if (variant.attributeDisplay && Object.prototype.hasOwnProperty.call(variant.attributeDisplay, oldSlug)) {
+				variant.attributeDisplay[newSlug] = variant.attributeDisplay[oldSlug];
+				delete variant.attributeDisplay[oldSlug];
+				touched = true;
+			}
+		}
+		if (touched) {
+			product.markModified("variants");
+			await product.save();
+		}
+	}
 }
 
-export async function categorySlugTaken(
-  slug: string,
-  excludeId?: string,
-): Promise<boolean> {
-  const filter: Record<string, unknown> = { slug };
-  if (excludeId && mongoose.Types.ObjectId.isValid(excludeId)) {
-    filter._id = { $ne: excludeId };
-  }
-  return Boolean(await Category.exists(filter));
+export async function categorySlugTaken(slug: string, excludeId?: string): Promise<boolean> {
+	const filter: Record<string, unknown> = { slug };
+	if (excludeId && mongoose.Types.ObjectId.isValid(excludeId)) {
+		filter._id = { $ne: excludeId };
+	}
+	return Boolean(await Category.exists(filter));
 }
