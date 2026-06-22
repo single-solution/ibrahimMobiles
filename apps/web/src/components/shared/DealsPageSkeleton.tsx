@@ -1,67 +1,35 @@
-import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
+import { ProductGridSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { Skeleton, SkeletonScreen } from "@/components/ui/Skeleton";
+import { SHOP_CATEGORY_GRID_CLASS, SHOP_CATEGORY_PAGE_CLASS, SHOP_CATEGORY_SKELETON_CARDS } from "@/lib/catalog/shopListingGrid";
 
-const MOBILE_PRODUCT_COUNT = 4;
-const DESKTOP_PRODUCT_COUNT = 4;
-const SECTION_COUNT = 2;
+const DEALS_HEADER_GRADIENT =
+	"linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 58%, var(--color-canvas)) 0%, var(--color-canvas) 62%, var(--color-canvas) 100%)";
 
-function DealsHeroSkeleton({ layout }: { layout: "mobile" | "desktop" }) {
-	if (layout === "mobile") {
-		return (
-			<section className="reveal app-section flex flex-col items-center text-center">
-				<Skeleton shape="pill" className="h-6 w-28" />
-				<Skeleton shape="text" className="mt-3 h-8 w-48" />
-				<Skeleton shape="text" className="mt-2.5 h-4 w-64 max-w-full" />
-			</section>
-		);
-	}
-
-	return (
-		<header className="reveal space-y-3">
-			<Skeleton shape="text" className="h-3 w-28" />
-			<Skeleton shape="text" className="h-12 w-80 max-w-full" />
-			<Skeleton shape="text" className="h-4 w-96 max-w-full" />
-		</header>
-	);
-}
-
-/** Deals route placeholder — hero + spotlight + offer sections. */
+/** Deals route placeholder — header, offer pills, product grid. */
 export function DealsPageSkeleton() {
 	return (
 		<SkeletonScreen label="Loading deals">
-			<div className="app-page pb-6 pt-3 md:hidden">
-				<DealsHeroSkeleton layout="mobile" />
-				<section className="app-section">
-					<Skeleton shape="text" className="mb-3 h-3 w-32" />
-					<Skeleton shape="block" className="h-[120px] w-full rounded-[var(--radius-lg)]" />
-				</section>
-				{Array.from({ length: SECTION_COUNT }).map((_, index) => (
-					<section key={index} className="app-section space-y-3">
-						<Skeleton shape="block" className="h-28 w-full rounded-[var(--radius-lg)]" />
-						<div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-							{Array.from({ length: MOBILE_PRODUCT_COUNT }).map((__, productIndex) => (
-								<ProductCardSkeleton key={productIndex} />
-							))}
-						</div>
-					</section>
-				))}
-			</div>
-
-			<div className="mx-auto hidden w-full max-w-[1440px] px-4 pb-24 pt-6 sm:px-6 md:block md:pb-16 md:pt-10 lg:px-8">
-				<DealsHeroSkeleton layout="desktop" />
-				<Skeleton shape="block" className="mt-10 h-[220px] w-full max-w-3xl rounded-[var(--radius-xl)]" />
-				<div className="mt-16 space-y-16">
-					{Array.from({ length: SECTION_COUNT }).map((_, index) => (
-						<section key={index} className="space-y-5">
-							<Skeleton shape="block" className="h-72 max-w-xl rounded-[var(--radius-xl)]" />
-							<div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5">
-								{Array.from({ length: DESKTOP_PRODUCT_COUNT }).map((__, productIndex) => (
-									<ProductCardSkeleton key={productIndex} />
-								))}
-							</div>
-						</section>
-					))}
+			<section
+				className="-mt-[var(--mobile-header-h)] pb-6 pt-[calc(var(--mobile-header-h)+1.75rem)] text-center md:-mt-[var(--desktop-header-h)] md:pb-8 md:pt-[calc(var(--desktop-header-h)+2.5rem)]"
+				style={{ background: DEALS_HEADER_GRADIENT }}
+			>
+				<div className={`mx-auto flex w-full flex-col items-center px-4 md:px-0 ${SHOP_CATEGORY_PAGE_CLASS}`}>
+					<Skeleton shape="pill" className="h-5 w-24" />
+					<Skeleton shape="text" className="mt-4 h-10 w-56 md:h-14 md:w-72" />
+					<Skeleton shape="text" className="mt-4 h-9 w-full max-w-md rounded-[var(--radius-md)] md:mt-5" />
 				</div>
+			</section>
+
+			<div className="app-page mx-auto w-full max-w-[1440px] pb-24 pt-4 md:px-6 md:pb-16 md:pt-4 lg:px-8">
+				<section className="flex w-full flex-col gap-3 py-6 md:flex-row md:flex-wrap md:justify-center md:gap-2.5 md:py-8">
+					{Array.from({ length: 4 }).map((_, index) => (
+						<Skeleton key={index} shape="block" className="h-[4.25rem] w-full rounded-[var(--radius-lg)] md:h-10 md:w-44 md:rounded-full" />
+					))}
+				</section>
+				<section className="space-y-4 border-t border-[var(--color-ink-100)] pt-6 md:mt-4 md:border-t-0 md:pt-0">
+					<Skeleton shape="text" className="h-5 w-28 md:h-8 md:w-36" />
+					<ProductGridSkeleton count={SHOP_CATEGORY_SKELETON_CARDS} className={SHOP_CATEGORY_GRID_CLASS} />
+				</section>
 			</div>
 		</SkeletonScreen>
 	);

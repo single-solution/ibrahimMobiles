@@ -34,6 +34,7 @@ import {
 	getCategoryMetaBySlug as getCategoryMetaBySlugRaw,
 	getGrades as getGradesRaw,
 	getOffers as getOffersRaw,
+	getCatalogDeals as getCatalogDealsRaw,
 	getPopularProducts as getPopularProductsRaw,
 	getProductBySlug as getProductBySlugRaw,
 	getProducts as getProductsRaw,
@@ -124,6 +125,11 @@ export const getGradeCountsCached = unstable_cache((categorySlug: string) => get
 });
 
 export const getOffersCached = unstable_cache(() => getOffersRaw(), ["storefront-offers"], { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] });
+
+export const getCatalogDealsCached = unstable_cache(() => getCatalogDealsRaw(), ["storefront-catalog-deals"], {
+	revalidate: STOREFRONT_CACHE_TTL_SECONDS,
+	tags: [STOREFRONT_CACHE_TAG],
+});
 
 /**
  * Homepage hero — the most recently updated in-stock products across

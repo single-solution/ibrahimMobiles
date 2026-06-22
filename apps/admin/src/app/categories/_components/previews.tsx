@@ -229,29 +229,16 @@ export function OfferCardCompactPreview({ offer }: { offer: OfferDraft }) {
 	);
 }
 
-/** Mirrors `OfferCard` full (`lg`) — deals page grid. */
+/** Mirrors deals page `DealOfferToggleButton` (collapsed). */
 export function OfferCardFullPreview({ offer }: { offer: OfferDraft }) {
-	const background = `linear-gradient(135deg, ${offer.color}, ${darkenHex(offer.color, 0.22)})`;
 	return (
-		<div className="relative flex min-h-52 flex-col justify-between overflow-hidden rounded-[var(--radius-lg)] p-6 text-white md:min-h-72" style={{ background }}>
-			<div className="relative flex items-center justify-between">
-				<span className="inline-flex rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white">{offer.badgeLabel || "Limited"}</span>
-				<span className="inline-flex items-center gap-1 text-xs text-white/85">{offer.expiresAt ? formatRelativeDate(offer.expiresAt) : "No expiry"}</span>
-			</div>
-			<div className="relative space-y-2">
-				<p className="text-xs uppercase tracking-[0.18em] text-white/85">{offer.discountLabel || "Up to 22% off"}</p>
-				<h3 className="text-xl font-semibold leading-tight tracking-tight md:text-3xl">{offer.title || "Offer title"}</h3>
-				<StructuredContentCompactPreview content={offer.content} fallback={offer.content.summary} clampLines={3} className="max-w-md text-sm leading-snug text-white/85" />
-				{offer.content.bullets.length > 0 && (
-					<StructuredContentFullPreview
-						content={{ summary: "", bullets: offer.content.bullets }}
-						maxBullets={3}
-						iconColor="rgba(255,255,255,0.95)"
-						bulletItemClassName="text-[12.5px] text-white/90"
-						className="max-w-md pt-1"
-					/>
-				)}
-			</div>
+		<div className="inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-full border border-[var(--color-accent-400)] bg-[var(--color-accent-500)] px-3 py-2 text-[var(--color-ink-900)] shadow-[0_8px_24px_-14px_color-mix(in_srgb,var(--color-accent-500)_65%,transparent)]">
+			<span className="inline-flex items-center gap-1 rounded-sm bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--color-accent-800)]">
+				{offer.badgeLabel || "Limited"}
+			</span>
+			<span className="text-sm font-extrabold text-[var(--color-accent-700)]">{offer.discountLabel || "Up to 22% off"}</span>
+			<span className="text-[13px] font-medium leading-snug text-[var(--color-ink-800)]">{offer.title || "Offer title"}</span>
+			<span className="text-xs font-semibold text-[var(--color-ink-700)]">Details</span>
 		</div>
 	);
 }

@@ -26,7 +26,7 @@ export const FILTER_PARAM_KEYS = {
 	search: "q",
 } as const;
 
-const VALID_SORTS: readonly SortOption[] = ["newest", "price-asc", "price-desc", "name-asc"];
+const VALID_SORTS: readonly SortOption[] = ["newest", "recently-updated", "price-asc", "price-desc", "name-asc"];
 
 const isSortOption = (value: string): value is SortOption => (VALID_SORTS as readonly string[]).includes(value);
 

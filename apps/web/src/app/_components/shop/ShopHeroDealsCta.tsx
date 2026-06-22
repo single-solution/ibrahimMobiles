@@ -4,68 +4,39 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { DealOfferButtonLink } from "@/app/_components/shop/DealOfferButton";
+import { DEAL_BUTTONS_LAYOUT_CLASS, HeroDealBadge, PRIMARY_DEAL_BUTTON_CLASS, SECONDARY_DEAL_BUTTON_CLASS } from "@/app/_components/shop/dealOfferButtonStyles";
 import { classNames, type Offer } from "@store/shared";
-
-function HeroDealBadge({ label }: { label: string }) {
-	return (
-		<span className="inline-flex items-center gap-1 rounded-sm bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--color-accent-800)]">
-			{label}
-		</span>
-	);
-}
 
 interface ShopHeroDealsCtaProps {
 	offers: Offer[];
 }
 
-const DEAL_BUTTON_CLASS =
-	"tap inline-flex w-fit max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-full border px-3 py-2 text-[var(--color-ink-900)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2";
-
-const PRIMARY_DEAL_BUTTON_CLASS = classNames(
-	DEAL_BUTTON_CLASS,
-	"border-[var(--color-accent-400)] bg-[var(--color-accent-500)] shadow-[0_8px_24px_-14px_color-mix(in_srgb,var(--color-accent-500)_65%,transparent)] hover:bg-[var(--color-accent-400)] focus-visible:ring-[var(--color-accent-400)]",
-);
-
-const SECONDARY_DEAL_BUTTON_CLASS = classNames(
-	DEAL_BUTTON_CLASS,
-	"border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[13px] font-semibold text-[var(--color-ink-800)] hover:border-[var(--color-ink-300)] hover:text-[var(--color-ink-900)] focus-visible:ring-[var(--color-ink-200)]",
-);
-
-function DealCtaLink({ offer }: { offer: Offer }) {
-	return (
-		<Link href={`/deals#${offer.slug}`} className={PRIMARY_DEAL_BUTTON_CLASS}>
-			<HeroDealBadge label={offer.badgeLabel} />
-			<span className="text-sm font-extrabold text-[var(--color-accent-700)]">{offer.discountLabel}</span>
-			<span className="text-[13px] font-medium leading-snug text-[var(--color-ink-800)]">{offer.title}</span>
-			<span className="inline-flex items-center gap-1 text-xs font-semibold">
-				View
-				<ArrowUpRight size={15} strokeWidth={2.4} aria-hidden />
-			</span>
-		</Link>
-	);
-}
-
 function MoreDealsLink({ count }: { count: number }) {
-	const label = count === 1 ? "+ 1 more deal" : `+ ${count} more deals`;
+	const label = count === 1 ? "+ 1 more" : `+ ${count} more`;
 
 	return (
-		<Link href="/deals" className={SECONDARY_DEAL_BUTTON_CLASS}>
-			{label}
-			<ArrowUpRight size={15} strokeWidth={2.4} aria-hidden />
+		<Link href="/deals" className={classNames(SECONDARY_DEAL_BUTTON_CLASS, "items-center justify-center gap-1 md:inline-flex")}>
+			<span className="text-[12px] font-bold leading-tight md:text-[13px]">{label}</span>
+			<ArrowUpRight size={14} strokeWidth={2.4} aria-hidden className="shrink-0 md:h-[15px] md:w-[15px]" />
 		</Link>
 	);
 }
 
 function SingleDealLink({ offer }: { offer: Offer }) {
 	return (
-		<Link href={`/deals#${offer.slug}`} className={PRIMARY_DEAL_BUTTON_CLASS}>
-			<span className="text-[14px] font-bold">Today&apos;s deals</span>
+		<Link href={`/deals#${offer.slug}`} className={classNames(PRIMARY_DEAL_BUTTON_CLASS, "col-span-2 md:col-span-1")}>
+			<span className="flex min-w-0 items-center justify-between gap-1 md:contents">
+				<span className="text-[12px] font-bold leading-tight md:text-[14px]">Today&apos;s deals</span>
+				<span className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-semibold md:order-last md:gap-1 md:text-xs">
+					View
+					<ArrowUpRight size={14} strokeWidth={2.4} aria-hidden className="md:h-[15px] md:w-[15px]" />
+				</span>
+			</span>
 			<HeroDealBadge label={offer.badgeLabel} />
-			<span className="text-sm font-extrabold text-[var(--color-accent-700)]">{offer.discountLabel}</span>
-			<span className="text-[13px] font-medium leading-snug text-[var(--color-ink-800)]">{offer.title}</span>
-			<span className="inline-flex items-center gap-1 text-xs font-semibold">
-				View deals
-				<ArrowUpRight size={15} strokeWidth={2.4} aria-hidden />
+			<span className="text-[13px] font-extrabold leading-none text-[var(--color-accent-700)] md:text-sm">{offer.discountLabel}</span>
+			<span className="line-clamp-2 text-[11px] font-medium leading-snug text-[var(--color-ink-800)] md:line-clamp-none md:text-[13px] md:text-center">
+				{offer.title}
 			</span>
 		</Link>
 	);
@@ -95,10 +66,10 @@ export function ShopHeroDealsCta({ offers }: ShopHeroDealsCtaProps) {
 			)}
 		>
 			<div className="overflow-hidden">
-				<div className="flex flex-wrap items-center justify-center gap-2.5">
+				<div className={classNames(DEAL_BUTTONS_LAYOUT_CLASS, "overflow-hidden px-0.5")}>
 					{isMultiple && latestOffer ? (
 						<>
-							<DealCtaLink offer={latestOffer} />
+							<DealOfferButtonLink offer={latestOffer} href={`/deals#${latestOffer.slug}`} />
 							<MoreDealsLink count={offers.length - 1} />
 						</>
 					) : latestOffer ? (

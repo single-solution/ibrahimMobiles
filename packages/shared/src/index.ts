@@ -61,4 +61,5 @@ export * from "./pricing/offerDisplay";
 export * from "./pricing/offerTypes";
 export * from "./pricing/offerEvaluator";
 export * from "./pricing/offerMatching";
+export * from "./pricing/offerScope";
 export * from "./pricing/toActiveOffer";

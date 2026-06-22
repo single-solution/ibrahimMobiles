@@ -1,11 +1,12 @@
 import { requireSession } from "@/lib/api/requireSession";
 import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { OFFER_FIELD_LIMITS } from "@/lib/api/fieldLimits";
-import { badRequest, created, isValidationError, normalizeStructuredContent, ok, parseBody, validateString } from "@store/shared";
+import { badRequest, conflict, created, isValidationError, normalizeStructuredContent, ok, parseBody, validateString, type OfferCondition } from "@store/shared";
 
 import { connectDB, handleMongoError, Offer } from "@store/db";
 
 import { bustAdminCaches } from "@/lib/cached";
+import { validateOfferCatalogScopeConflict } from "@/lib/api/offerScopeValidation";
 import { recordActivity } from "@/lib/services/activityLog";
 import { slugify } from "@store/shared";
 
@@ -134,7 +135,15 @@ export async function POST(request: Request) {
 
 	const content = normalizeStructuredContent(body.content, descriptionResult);
 
+	const candidateConditions: OfferCondition[] = Array.isArray(body.conditions) ? body.conditions : [];
+
 	await connectDB();
+
+	const scopeConflict = await validateOfferCatalogScopeConflict(candidateConditions);
+	if (scopeConflict) {
+		return conflict(scopeConflict);
+	}
+
 	try {
 		const doc = await Offer.create({
 			slug,
@@ -147,7 +156,7 @@ export async function POST(request: Request) {
 			isActive: body.isActive !== false,
 			sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : 0,
 			content,
-			conditions: Array.isArray(body.conditions) ? body.conditions : [],
+			conditions: candidateConditions,
 			action: typeof body.action === "object" && body.action !== null ? body.action : { type: "percentage_discount", value: 10, target: "matched_items" },
 			schedule: typeof body.schedule === "object" && body.schedule !== null ? body.schedule : {},
 			constraints: normalizeOfferConstraints(body.constraints),

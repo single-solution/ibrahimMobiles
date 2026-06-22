@@ -31,6 +31,9 @@ import {
 	normalizeIconName,
 	normalizeStructuredContent,
 	slugify,
+	isCatalogDealOffer,
+	isCheckoutNoticeOffer,
+	toActiveOffer,
 	type Brand,
 	type AttributeDescriptor,
 	type IconName,
@@ -204,6 +207,8 @@ export interface ProductFilters {
 	page?: number;
 	/** Sort mode. */
 	sort?: SortOption;
+	/** Live offer slug — limits listing to products in that promotion's catalog scope. */
+	offerSlug?: string;
 }
 
 /** Result type for paginated product lists. */
@@ -397,6 +402,12 @@ export async function getProducts(options: ProductFilters = {}): Promise<Product
 }
 
 export async function getProductsPage(options: ProductFilters = {}): Promise<ProductPage> {
+	const offerSlug = options.offerSlug?.trim();
+	if (offerSlug) {
+		const { resolveProductsPageForOfferSlug } = await import("@/lib/pricing/offerProductListing");
+		return resolveProductsPageForOfferSlug(offerSlug, options);
+	}
+
 	await connectDB();
 	const pageSize = clampInt(options.limit, MIN_PAGE_NUMBER, MAX_PRODUCT_PAGE_SIZE, DEFAULT_PRODUCT_PAGE_SIZE);
 	const page = clampInt(options.page, MIN_PAGE_NUMBER, MAX_PAGE_NUMBER, MIN_PAGE_NUMBER);
@@ -650,10 +661,10 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
  * started and disappears the moment it ends. Recurring day/time rules
  * are evaluated at checkout, not for storefront visibility.
  */
-export async function getOffers(): Promise<Offer[]> {
+async function loadScheduledActiveOfferDocs(): Promise<OfferLean[]> {
 	await connectDB();
 	const now = new Date();
-	const offers = await OfferModel.find({
+	return OfferModel.find({
 		isActive: true,
 		$and: [
 			{
@@ -667,7 +678,27 @@ export async function getOffers(): Promise<Offer[]> {
 		.sort({ sortOrder: 1, createdAt: -1 })
 		.limit(DEFAULT_OFFER_LIMIT)
 		.lean<OfferLean[]>();
+}
+
+export async function getOffers(): Promise<Offer[]> {
+	const offers = await loadScheduledActiveOfferDocs();
 	return offers.map(toOffer);
+}
+
+/** Item-scoped + storewide live offers — `/deals` buttons and shop hero CTAs. */
+export async function getCatalogDeals(): Promise<Offer[]> {
+	const offers = await loadScheduledActiveOfferDocs();
+	return offers
+		.filter((offer) => isCatalogDealOffer(toActiveOffer(offer)))
+		.map(toOffer);
+}
+
+/** Cart-total / payment-method live offers — notice chips on `/deals` header, cart, and checkout. */
+export async function getCheckoutNoticeOffers(): Promise<Offer[]> {
+	const offers = await loadScheduledActiveOfferDocs();
+	return offers
+		.filter((offer) => isCheckoutNoticeOffer(toActiveOffer(offer)))
+		.map(toOffer);
 }
 
 /**

@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { ChevronRight, Plus, Trash2 } from "lucide-react";
 import { ScenarioStepPicker } from "./ScenarioStepPicker";
 import type { OfferCondition, OfferAction, OfferSchedule, OfferConstraints } from "@store/shared";
-import type { AdminCategory, AdminBrand, AdminGrade, AdminAttribute, AdminProductSummary } from "@/types/models";
+import { formatOfferScopeConflictMessage, wouldProductSelectionConflict } from "@store/shared";
+import type { AdminCategory, AdminBrand, AdminGrade, AdminAttribute, AdminProductSummary, AdminOffer } from "@/types/models";
 import { TextField } from "@/components/forms/TextField";
 import { SelectField } from "@/components/forms/SelectField";
 import { SelectionToggleCards } from "@/components/forms/SelectionToggleCards";
@@ -19,6 +20,9 @@ interface OfferRulesEditorProps {
 	onChangeSchedule: (schedule: OfferSchedule) => void;
 	constraints: OfferConstraints;
 	onChangeConstraints: (constraints: OfferConstraints) => void;
+	peerOffers?: AdminOffer[];
+	editingOfferId?: string | null;
+	onScopeConflict?: (message: string) => void;
 }
 
 const PAYMENT_METHOD_OPTIONS = [
@@ -38,7 +42,19 @@ function numericConditionValue(value: unknown): number | "" {
 	return typeof value === "number" && !Number.isNaN(value) ? value : "";
 }
 
-export function OfferRulesEditor({ conditions, onChangeConditions, action, onChangeAction, schedule, onChangeSchedule, constraints, onChangeConstraints }: OfferRulesEditorProps) {
+export function OfferRulesEditor({
+	conditions,
+	onChangeConditions,
+	action,
+	onChangeAction,
+	schedule,
+	onChangeSchedule,
+	constraints,
+	onChangeConstraints,
+	peerOffers = [],
+	editingOfferId = null,
+	onScopeConflict,
+}: OfferRulesEditorProps) {
 	const [categories, setCategories] = useState<AdminCategory[]>([]);
 	const [brands, setBrands] = useState<AdminBrand[]>([]);
 	const [grades, setGrades] = useState<AdminGrade[]>([]);
@@ -76,6 +92,50 @@ export function OfferRulesEditor({ conditions, onChangeConditions, action, onCha
 		if (!specificItemsGroup || !Array.isArray(specificItemsGroup.value)) return [];
 		return specificItemsGroup.value.filter((c: OfferCondition) => c.type === "group" && c.operator === "and");
 	}, [specificItemsGroup]);
+
+	const peerOfferRows = useMemo(
+		() =>
+			peerOffers.map((offer) => ({
+				id: offer.id,
+				title: offer.title,
+				conditions: offer.conditions ?? [],
+			})),
+		[peerOffers],
+	);
+
+	function trySelectProduct(scenarioIndex: number, product: AdminProductSummary, nextValue: string) {
+		if (!nextValue) {
+			updateScenario(scenarioIndex, "products", []);
+			return;
+		}
+
+		const catalogProduct = {
+			id: product.id,
+			name: product.name,
+			categorySlug: product.categorySlug,
+			brandSlug: product.brand.slug,
+			variants: [{ gradeSlug: product.gradeSlugs[0] ?? "", attributes: {} }],
+		};
+		const conflict = wouldProductSelectionConflict(conditions, scenarioIndex, catalogProduct, peerOfferRows, editingOfferId ?? undefined);
+		if (conflict) {
+			const message = formatOfferScopeConflictMessage(conflict);
+			onScopeConflict?.(message);
+			return;
+		}
+
+		updateScenario(scenarioIndex, "products", [nextValue]);
+	}
+
+	function isProductOptionBlocked(scenarioIndex: number, product: AdminProductSummary): boolean {
+		const catalogProduct = {
+			id: product.id,
+			name: product.name,
+			categorySlug: product.categorySlug,
+			brandSlug: product.brand.slug,
+			variants: product.gradeSlugs.map((gradeSlug) => ({ gradeSlug, attributes: {} })),
+		};
+		return wouldProductSelectionConflict(conditions, scenarioIndex, catalogProduct, peerOfferRows, editingOfferId ?? undefined) !== null;
+	}
 
 	type OfferScope = "storewide" | "specific_items" | "cart_total" | "checkout_method";
 
@@ -331,9 +391,22 @@ export function OfferRulesEditor({ conditions, onChangeConditions, action, onCha
 															}
 															return true;
 														})
-														.map((product) => ({ label: product.name, value: product.id }))}
+														.map((product) => {
+															const blocked = isProductOptionBlocked(i, product);
+															return {
+																label: blocked ? `${product.name} (in another offer)` : product.name,
+																value: product.id,
+															};
+														})}
 													value={selectedProductIds[0] || ""}
-													onChange={(nextValue) => updateScenario(i, "products", nextValue ? [nextValue] : [])}
+													onChange={(nextValue) => {
+														const product = products.find((row) => row.id === nextValue);
+														if (!nextValue || !product) {
+															updateScenario(i, "products", []);
+															return;
+														}
+														trySelectProduct(i, product, nextValue);
+													}}
 													placeholder="Any product"
 												/>
 											</>

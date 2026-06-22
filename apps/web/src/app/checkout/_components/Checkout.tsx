@@ -7,6 +7,7 @@ import { useCart } from "@/lib/cart/useCart";
 import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
 import { evaluateCartOffers } from "@store/shared";
 import { buildCartLineOfferIds } from "@/lib/pricing/cartOfferPricing";
+import { CheckoutOfferNotices } from "@/components/shared/CheckoutOfferNotices";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import type { AccountAddress, AccountCustomer } from "@/lib/core/account";
@@ -246,6 +247,9 @@ export function Checkout({ customer }: CheckoutProps) {
 		return (
 			<div className={`${STOREFRONT_SHELL_CLASS} pb-24 pt-4 md:pb-16 md:pt-10`}>
 				<CheckoutHeader />
+				<div className="reveal mt-4 md:mt-5">
+					<CheckoutOfferNotices offers={offers} />
+				</div>
 				<div className="mt-5 grid gap-6 md:mt-8 md:grid-cols-[minmax(0,1fr)_360px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
 					<div className="reveal">
 						<CheckoutSignInPanel />
@@ -269,6 +273,10 @@ export function Checkout({ customer }: CheckoutProps) {
 			className={`${STOREFRONT_SHELL_CLASS} pb-24 pt-4 md:pb-16 md:pt-10`}
 		>
 			<CheckoutHeader />
+
+			<div className="reveal mt-4 md:mt-5">
+				<CheckoutOfferNotices offers={offers} />
+			</div>
 
 			<div className="mt-5 grid gap-6 md:mt-8 md:grid-cols-[1fr_360px] lg:grid-cols-[1fr_400px] lg:gap-8">
 				<div className="reveal-stagger space-y-3 md:space-y-4">

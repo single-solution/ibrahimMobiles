@@ -3,7 +3,7 @@ import { MobileHero } from "@/app/_components/home/homePageMobileSections";
 import { shopHrefFromCategories } from "@/lib/catalog/productPaths";
 import { getStoreSettingsCached } from "@/lib/core/cached";
 import { getHomeHeroData, getShopHeroData, loadHomeCategoryTiles } from "@/lib/core/pageData";
-import { getOffersCached } from "@/lib/core/cached";
+import { getCatalogDealsCached } from "@/lib/core/cached";
 
 interface ShopIntroHeroProps {
 	/** When set, flank product names come from every other active category. */
@@ -16,7 +16,7 @@ export async function ShopIntroHero({ excludeCategorySlug }: ShopIntroHeroProps 
 		excludeCategorySlug ? getShopHeroData(excludeCategorySlug) : getHomeHeroData(),
 		getStoreSettingsCached(),
 		loadHomeCategoryTiles(),
-		getOffersCached(),
+		getCatalogDealsCached(),
 	]);
 	const shopHref = shopHrefFromCategories(categories);
 

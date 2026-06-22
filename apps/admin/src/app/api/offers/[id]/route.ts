@@ -1,10 +1,11 @@
 import { connectDB, handleMongoError, Offer } from "@store/db";
 
 const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/i;
-import { badRequest, isValidId, isValidationError, noContent, normalizeStructuredContent, notFound, ok, parseBody, validateString } from "@store/shared";
+import { badRequest, conflict, isValidId, isValidationError, noContent, normalizeStructuredContent, notFound, ok, parseBody, validateString, type OfferCondition } from "@store/shared";
 
 import { requireSession } from "@/lib/api/requireSession";
 import { bustAdminCaches } from "@/lib/cached";
+import { validateOfferCatalogScopeConflict } from "@/lib/api/offerScopeValidation";
 import { toOfferResponse, type OfferLean } from "@/lib/serializers/offer";
 import { recordActivity } from "@/lib/services/activityLog";
 import { slugify } from "@store/shared";
@@ -154,6 +155,10 @@ export async function PUT(request: Request, { params }: RouteContext) {
 
 	if (body.conditions !== undefined) {
 		if (Array.isArray(body.conditions)) {
+			const scopeConflict = await validateOfferCatalogScopeConflict(body.conditions as OfferCondition[], id);
+			if (scopeConflict) {
+				return conflict(scopeConflict);
+			}
 			update.conditions = body.conditions;
 		}
 	}

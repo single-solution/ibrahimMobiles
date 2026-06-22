@@ -58,6 +58,17 @@ export function isCatalogWideStorefrontOffer(offer: ActiveOffer): boolean {
 	return isStorewideOffer(offer) || isCheckoutOnlyOffer(offer);
 }
 
+/** Item-scoped + storewide promos — selectable deal buttons on `/deals` and the shop hero. */
+export function isCatalogDealOffer(offer: ActiveOffer): boolean {
+	return isOfferEligible(offer) && (hasItemScopeConditions(offer) || isStorewideOffer(offer));
+}
+
+/** Cart-total / payment-method promos — informational notices on cart and checkout (and `/deals` header). */
+export function isCheckoutNoticeOffer(offer: ActiveOffer): boolean {
+	return isOfferEligible(offer) && isCheckoutOnlyOffer(offer);
+}
+
+/** Exported for admin catalog overlap checks (`offerScope.ts`). */
 export function matchesCondition(item: EvaluatableItem, condition: OfferCondition, context: OfferMatchContext): boolean {
 	if (condition.type === "group") {
 		const subConditions = condition.value as OfferCondition[];

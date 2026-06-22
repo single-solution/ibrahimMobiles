@@ -132,7 +132,7 @@ flowchart LR
 ### Product Cards & Deals Page
 
 - **Product Cards:** Show brand, name, hero image, grade badge, attribute chips. _Conditional:_ Multiple grades = cycles grade slides on hover. _Conditional:_ Out of stock = "Sold out" overlay. _Conditional:_ Item-scoped active offer = **offer `badgeLabel`** pill on the image (top-right, above grade badge; crossfades per slide when cycling grades/variants; no price cut on card).
-- **Deals Page:** Hero + **Deal of the week** spotlight (first featured in-stock product with a live item offer, else first featured). **Offer-led sections** — each active item-scoped offer card anchors a product rail matched by offer rules (not the old flat Featured grid). Bank-transfer % remains checkout-only via settings. Empty state when no offers and no spotlight.
+- **Deals Page:** Centered gradient header (`Today's deals`). **Checkout-only** offers (cart-total, payment-method) show as **notice chips** under the title. **Item-scoped + storewide** offers: intro line, then selectable pill buttons (first deal selected by default; tap another to switch). Storewide selection shows the full in-stock catalog. Product grid title is `{deal title} products` directly under the deal row. Terms panel when the selected deal has structured copy.
 
 ---
 
@@ -151,7 +151,7 @@ flowchart LR
 - **Complete Selection:** Price, stock, quantity stepper, and "Add to cart" appear.
 - **Closest Match:** _Conditional:_ If exact combo doesn't exist, auto-selects closest stocked variant and shows a pre-filled WhatsApp inquiry button.
 - **Stock & Qty:** Max qty is variant stock minus current cart qty. _Conditional:_ "Buy all" shortcut appears if stock > 1 and qty < max. _Conditional:_ Sold Out = Button disabled, mobile sticky bar drops WhatsApp button.
-- **Pricing:** List price only in sticky CTA and purchase summary. _Conditional:_ Item-scoped offers show **`badgeLabel` on the gallery** plus an **info panel** (title + checkout hint — no computed discount). Cart/checkout run full offer math.
+- **Pricing:** List price only in sticky CTA and purchase summary. _Conditional:_ Item-scoped offers show **`badgeLabel` on the gallery** plus a **home-style info pill** above the configurator (soft accent notice colors, discount, title, inline requirements). Matching configuration **auto-applies** the offer. Cart/checkout run full offer math.
 - **Grade Showcase:** Updates with selected variant's grade (notes, warranty, video). _Conditional:_ Omitted if grade data missing.
 - **Related Products:** Same category + brand. _Conditional:_ "No more products" if none.
 
@@ -277,7 +277,8 @@ sequenceDiagram
 ### Offers Engine
 
 - **Evaluation:** Sequential by admin `sortOrder`. **One offer per order** — first eligible offer applies, then evaluation stops.
-- **Display vs checkout:** Cards and PDP show item-scoped offer **hints only** (ignore cart-total and payment-method conditions). Cart and checkout (and order placement API) evaluate full rules including cart total, line quantity, and payment method.
+- **Catalog exclusivity:** Item-specific offers (specific items or storewide) cannot overlap — the same product cannot match two offers. A category- or brand-wide offer blocks child products in another offer, and vice versa. Cart-total and payment-method offers are exempt.
+- **Display vs checkout:** Cards and PDP show item-scoped offer **hints only** (ignore cart-total and payment-method conditions). **Deal buttons** (`/deals`, shop hero) list item-scoped and **storewide** offers. **Notice chips** on `/deals` header, cart, and checkout surface cart-total and payment-method promos only. Cart and checkout (and order placement API) evaluate full rules including cart total, line quantity, and payment method.
 - **Bank transfer %:** Separate from offers — `settings.bankTransferDiscountPercent` at checkout; not an offer condition.
 - **Conditions:** Product, Category, Brand, Grade, Attribute, Price Range, Cart Total, **Min line quantity**, **Payment method**. Operators: in, not_in, between, gte, lte.
 - **Actions:** % off, Fixed Rs off, Free Shipping. Target: Matched items or Cart. (`buy_x_get_y` schema only — not evaluated yet.)

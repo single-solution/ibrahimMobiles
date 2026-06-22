@@ -23,17 +23,17 @@ import { useToast } from "@/components/ui/Toast";
 import { useVariantSelection } from "@/components/shared/VariantContext";
 import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
 import { buildEvaluatableItemWithQuantity, resolveOfferMinQuantity, resolvePdpOfferUnitPrice } from "@/lib/pricing/cartOfferPricing";
-import { resolveVariantItemScopedOffers } from "@/lib/pricing/productOfferMatch";
+import { resolveProductItemScopedOffers, resolveVariantItemScopedOffers } from "@/lib/pricing/productOfferMatch";
 
 import { attributeValuesOnVariant, findVariantBySelection, getRequiredAttributeSlugsForProduct, isPdpSelectionComplete } from "@/lib/catalog/pdpSelection";
 import { CART_MAX_LINES } from "@/lib/cart/store";
 import { useCart } from "@/lib/cart/useCart";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { useProductAttributeScope } from "@/lib/catalog/productAttributeScope";
-import { useGradesForCategory } from "@/lib/core/storefrontReferenceContext";
+import { useGradesForCategory, useCategories } from "@/lib/core/storefrontReferenceContext";
 
 import { Configurator, ClosestMatchNotice } from "./variantSelectorConfigurator";
-import { ProductApplicableOffers } from "./ProductApplicableOffers";
+import { PdpOfferGuidance } from "./PdpOfferGuidance";
 import { buildDimensions, describePickRealignment, describeSelection, EMPTY_VARIANT } from "./variantSelectorDimensions";
 import { MobileStickyCta, MobileStickyPlaceholder, PurchaseSummary, SelectToSeePrice } from "./variantSelectorPurchase";
 
@@ -62,6 +62,11 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 	const [realignmentDimensionKey, setRealignmentDimensionKey] = useState<string | null>(null);
 	const { config: productAttributeConfig, attributes: categoryAttributes } = useProductAttributeScope(product);
 	const grades = useGradesForCategory(product.categorySlug);
+	const categories = useCategories();
+	const categoryLabelsBySlug = useMemo(
+		() => Object.fromEntries(categories.map((category) => [category.slug, category.label])),
+		[categories],
+	);
 	const attributeSlugs = useMemo(() => categoryAttributes.map((row) => row.slug), [categoryAttributes]);
 	const requiredAttributeSlugs = useMemo(() => getRequiredAttributeSlugsForProduct(product, attributeSlugs), [product, attributeSlugs]);
 	const requiredAttributeLabels = useMemo(
@@ -118,6 +123,7 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 	const heroImage = product.images?.[0];
 
 	const { offers } = useActiveOffers();
+	const productOffers = useMemo(() => resolveProductItemScopedOffers(product, offers), [offers, product]);
 	const variantOffers = useMemo(() => {
 		if (!selected.id) {
 			return [];
@@ -125,27 +131,8 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 		return resolveVariantItemScopedOffers(product, selected, offers);
 	}, [offers, product, selected]);
 
-	const [manualOfferPick, setManualOfferPick] = useState<{
-		variantId: string;
-		offerId: string | null;
-	} | null>(null);
-
-	const selectedOfferId = useMemo(() => {
-		if (variantOffers.length === 0) {
-			return null;
-		}
-		if (manualOfferPick?.variantId === selectedVariantId) {
-			if (manualOfferPick.offerId === null) {
-				return null;
-			}
-			if (variantOffers.some((offer) => offer.id === manualOfferPick.offerId)) {
-				return manualOfferPick.offerId;
-			}
-		}
-		return variantOffers[0]?.id ?? null;
-	}, [variantOffers, manualOfferPick, selectedVariantId]);
-
-	const selectedOffer = useMemo(() => variantOffers.find((offer) => offer.id === selectedOfferId) ?? null, [selectedOfferId, variantOffers]);
+	const selectedOfferId = variantOffers[0]?.id ?? null;
+	const selectedOffer = variantOffers[0] ?? null;
 
 	const offerMinQuantity = useMemo(() => {
 		if (!selectedOffer || !inStock) {
@@ -231,6 +218,18 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 					</h1>
 				</header>
 
+				{productOffers.length > 0 ? (
+					<PdpOfferGuidance
+						offers={productOffers}
+						appliedOfferId={selectedOfferId}
+						product={product}
+						brandName={brandName}
+						grades={grades}
+						categoryAttributes={categoryAttributes}
+						categoryLabelsBySlug={categoryLabelsBySlug}
+					/>
+				) : null}
+
 				<Configurator
 					dimensions={dimensions}
 					variants={product.variants}
@@ -239,22 +238,6 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 					realignmentNotice={realignmentNotice}
 					realignmentDimensionKey={realignmentDimensionKey}
 				/>
-
-				{variantOffers.length > 0 ? (
-					<ProductApplicableOffers
-						offers={variantOffers}
-						selectedOfferId={selectedOfferId}
-						onSelectOffer={(offerId) =>
-							setManualOfferPick((current) => {
-								const isSame = current?.variantId === selectedVariantId && current.offerId === offerId;
-								return {
-									variantId: selectedVariantId,
-									offerId: isSame ? null : offerId,
-								};
-							})
-						}
-					/>
-				) : null}
 
 				{!isExactMatch && isComplete && <ClosestMatchNotice brandName={brandName} productName={product.name} summary={attributeSummary} whatsappMessage={whatsappMessage} />}
 			</div>

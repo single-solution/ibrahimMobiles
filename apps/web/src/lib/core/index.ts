@@ -9,6 +9,8 @@ export {
 	getProductsPage,
 	getProductBySlug,
 	getOffers,
+	getCatalogDeals,
+	getCheckoutNoticeOffers,
 	getCategories,
 	getCategoryMetaBySlug,
 	getGrades,

@@ -252,6 +252,7 @@ export function Offers({ offers }: OffersProps) {
 			{drawer ? (
 				<OfferDrawer
 					state={drawer}
+					allOffers={offers}
 					onClose={() => setDrawer(null)}
 					onSaved={() => {
 						setDrawer(null);
@@ -405,11 +406,12 @@ function OfferCard({ offer, status, onEdit, onDelete, onToggled }: OfferCardProp
 
 interface OfferDrawerProps {
 	state: { mode: "new" } | { mode: "edit"; offer: AdminOffer; step?: number };
+	allOffers: AdminOffer[];
 	onClose: () => void;
 	onSaved: () => void;
 }
 
-function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
+function OfferDrawer({ state, allOffers, onClose, onSaved }: OfferDrawerProps) {
 	const router = useRouter();
 	const toast = useToast();
 	const isEdit = state.mode === "edit";
@@ -681,6 +683,9 @@ function OfferDrawer({ state, onClose, onSaved }: OfferDrawerProps) {
 								onChangeSchedule={setSchedule}
 								constraints={constraints}
 								onChangeConstraints={setConstraints}
+								peerOffers={allOffers}
+								editingOfferId={offerId}
+								onScopeConflict={(message) => toast.danger(message)}
 							/>
 						</div>
 					)}

@@ -43,6 +43,11 @@ export async function GET(request: Request) {
 		filters.isFeatured = true;
 	}
 
+	const offerSlug = searchParams.get("offer")?.trim();
+	if (offerSlug) {
+		filters.offerSlug = offerSlug;
+	}
+
 	const limit = readLimit(searchParams.get("limit"));
 	if (limit !== undefined) {
 		filters.limit = limit;

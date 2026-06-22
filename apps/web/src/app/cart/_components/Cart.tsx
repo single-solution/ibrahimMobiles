@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ShoppingBag, Trash2 } from "lucide-react";
 import { QuantityStepper } from "@store/ui";
+import { CheckoutOfferNotices } from "@/components/shared/CheckoutOfferNotices";
 import { CartPageSkeletonBody } from "@/components/shared/CartPageSkeleton";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
@@ -85,6 +86,8 @@ export function Cart() {
 					{cart.itemCount} {cart.itemCount === 1 ? "item" : "items"} · prices re-confirmed at checkout.
 				</p>
 			</div>
+
+			<CheckoutOfferNotices offers={offers} />
 
 			<div className="reveal mt-4 flex min-h-0 flex-1 flex-col gap-3 md:mt-6 md:grid md:flex-none md:grid-cols-[1fr_320px] md:gap-6 lg:grid-cols-[1fr_360px]">
 				<ul className="reveal-scroll-list min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] md:flex-none md:overflow-visible">

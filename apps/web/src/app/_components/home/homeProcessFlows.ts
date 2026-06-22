@@ -45,10 +45,7 @@ export function buildProcessFlows(settings: StoreSettings): ProcessFlow[] {
 			icon: ShoppingBag,
 			steps: [
 				{ title: "Pick", detail: "Browse by category, brand, grade or budget." },
-				{
-					title: "Confirm & pay",
-					detail: `Reserve in chat — advance, or full bank for ${settings.bankTransferDiscountPercent}% off.`,
-				},
+				{ title: "Confirm & pay", detail: "Reserve in chat — pick payment and delivery when you checkout." },
 				{ title: "Proof on request", detail: "Ask for photos or a short video of your exact unit before dispatch." },
 				{ title: "Dispatch", detail: "Same-day in-city where possible, 1–3 days nationwide on tracked courier." },
 			],
