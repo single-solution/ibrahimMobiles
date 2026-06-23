@@ -1,6 +1,9 @@
 import {
+	assistantReplyMatchesLanguage,
 	buildAssistantSystemPrompt,
 	callAssistantCompletion,
+	detectCustomerMessageLanguage,
+	buildLanguageRetryInstruction,
 	isAssistantProviderConfigured,
 	normalizeChatAssistantProvider,
 	resolveAssistantModelFromSettings,
@@ -14,7 +17,7 @@ import { buildAssistantStoreContext } from "@/lib/chat/assistant/storeContext";
 import { ASSISTANT_TOOL_SCHEMAS, executeAssistantTool, type AssistantToolContext } from "@/lib/chat/assistant/tools";
 
 /** Max rounds where the model may request tools before it must answer in text. */
-const MAX_TOOL_ROUNDS = 2;
+const MAX_TOOL_ROUNDS = 3;
 
 export interface AssistantChatTurn {
 	role: "user" | "assistant";
@@ -76,9 +79,12 @@ export async function generateAssistantReply(input: GenerateAssistantReplyInput)
 		verifiedCustomerId: input.verifiedCustomerId,
 	});
 
+	const requiredLanguage = detectCustomerMessageLanguage(input.customerMessage);
+
 	const system = buildAssistantSystemPrompt(context, input.settings.assistantName, {
 		instructions: input.settings.assistantInstructions,
 		awaitingHuman: input.awaitingHuman,
+		requiredLanguage,
 	});
 
 	const messages: AssistantChatMessage[] = [
@@ -128,6 +134,34 @@ export async function generateAssistantReply(input: GenerateAssistantReplyInput)
 
 	if (!result) {
 		logger.error({ provider, model }, "chat-assistant: provider request failed");
+		return null;
+	}
+
+	const reply = result.reply.trim();
+	if (reply && !assistantReplyMatchesLanguage(reply, requiredLanguage)) {
+		logger.warn(
+			{ provider, model, requiredLanguage, replyPreview: reply.slice(0, 120) },
+			"chat-assistant: language mismatch — retrying once",
+		);
+		messages.push({ role: "assistant", content: reply });
+		messages.push({ role: "user", content: buildLanguageRetryInstruction(requiredLanguage) });
+		const retry = await callAssistantCompletion({
+			provider,
+			model,
+			apiKey,
+			messages,
+			temperature: input.settings.assistantTemperature,
+			maxTokens: input.settings.assistantMaxTokens,
+		});
+		if (retry?.reply?.trim() && assistantReplyMatchesLanguage(retry.reply.trim(), requiredLanguage)) {
+			return {
+				reply: retry.reply,
+				model: retry.model,
+				provider: retry.provider,
+				escalation: toolContext.escalation.requested ? toolContext.escalation : undefined,
+			};
+		}
+		logger.warn({ provider, model, requiredLanguage }, "chat-assistant: language mismatch after retry");
 		return null;
 	}
 

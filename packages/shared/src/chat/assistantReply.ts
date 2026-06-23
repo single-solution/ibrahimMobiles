@@ -1,6 +1,8 @@
+import { isInternalStorefrontPath } from "./storefrontPaths";
+
 /**
  * Sanitize assistant output before it reaches customers.
- * Strips external URLs and markdown links; keeps internal /shop paths.
+ * Strips external URLs and markdown links; keeps internal storefront paths.
  */
 
 /** Global flag: only for `.replace()`. Never call `.test()` on these (stateful lastIndex). */
@@ -33,9 +35,6 @@ const SECRET_LEAK_PATTERN =
  */
 const PROMPT_LEAK_PATTERN = /\b(?:core rules?|store context|order context|system (?:prompt|instructions)|my (?:system )?prompt)\b/i;
 
-/** Relative storefront paths the assistant may mention. */
-const INTERNAL_PATH_PATTERN = /^\/(?:shop|deals|search|checkout|account)(?:\/[\w-]+)*(?:\?[\w%&=.-]*)?$/i;
-
 export function sanitizeAssistantReply(raw: string): string {
 	let text = raw.trim();
 
@@ -43,7 +42,7 @@ export function sanitizeAssistantReply(raw: string): string {
 	// link; drop the URL from external links, keeping only their label text.
 	text = text.replace(MARKDOWN_LINK_PATTERN, (_match, label: string, url: string) => {
 		const trimmed = url.trim();
-		return INTERNAL_PATH_PATTERN.test(trimmed) ? `[${label}](${trimmed})` : label;
+		return isInternalStorefrontPath(trimmed) ? `[${label}](${trimmed})` : label;
 	});
 
 	// Strip any remaining bare external URLs (internal markdown links are safe).

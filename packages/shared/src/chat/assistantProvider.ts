@@ -109,7 +109,7 @@ interface ProviderCall {
 const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const ANTHROPIC_CHAT_URL = "https://api.anthropic.com/v1/messages";
-const REQUEST_TIMEOUT_MS = 12_000;
+const REQUEST_TIMEOUT_MS = 25_000;
 
 /**
  * Read a failed provider response body (truncated, no secrets) so the real

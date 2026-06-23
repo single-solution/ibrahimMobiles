@@ -11,9 +11,10 @@
 import { formatPrice, formatWarrantyPeriod, isVariantInStock, resolveWarrantyDays, slugify, type AssistantToolCall, type AssistantToolSchema, type Product } from "@store/shared";
 
 import { productHref } from "@/lib/catalog/productPaths";
-import { buildOrderContext, formatCatalogLine, formatDeals } from "@/lib/chat/assistant/storeContext";
+import { formatAssistantActiveDeals, quoteProductSavings } from "@/lib/chat/assistant/offerQuote";
+import { buildOrderContext, formatCatalogLine } from "@/lib/chat/assistant/storeContext";
 import { getAccountChatProfile, type AccountChatProfile } from "@/lib/core/account";
-import { getOffersCached, getPopularProductsCached, getProductBySlugCached, getProductsPageCached, searchAssistantCatalogCached } from "@/lib/core/cached";
+import { getActiveOffersCached, getPopularProductsCached, getProductBySlugCached, getProductsPageCached, searchAssistantCatalogCached } from "@/lib/core/cached";
 import { isProductInStock } from "@/lib/productSummary";
 
 const SEARCH_RESULT_LIMIT = 12;
@@ -70,8 +71,36 @@ export const ASSISTANT_TOOL_SCHEMAS: AssistantToolSchema[] = [
 		},
 	},
 	{
+		name: "quote_product_savings",
+		description:
+			"Quote customer-visible savings for ONE in-stock product variant using the same rules as the website checkout. Use when they ask for the best deal, best payment method, total price with promos, or how to save on a specific phone. Returns list price, catalog deal (if any), and checkout estimates per enabled payment method — never internal offer ids or admin rules.",
+		parameters: {
+			type: "object",
+			properties: {
+				product: {
+					type: "string",
+					description: "Product name, slug, or internal link from catalog search.",
+				},
+				grade: {
+					type: "string",
+					description: "Optional condition grade slug, e.g. brand-new or good-condition.",
+				},
+				quantity: {
+					type: "number",
+					description: "Units to quote (default 1, max 5).",
+				},
+				compare_payment_methods: {
+					type: "boolean",
+					description: "When true (default), compare bank transfer, card, and COD like checkout.",
+				},
+			},
+			required: ["product"],
+		},
+	},
+	{
 		name: "list_active_deals",
-		description: "List the store's currently active promotions and discounts. Use when the customer asks about deals/offers or when a relevant saving is worth mentioning.",
+		description:
+			"List active promotions with customer-visible savings labels and eligibility (min cart, payment method, end date). Use for deal questions or before recommending a combo. Do not invent offers not returned here.",
 		parameters: { type: "object", properties: {} },
 	},
 	{
@@ -97,7 +126,7 @@ export const ASSISTANT_TOOL_SCHEMAS: AssistantToolSchema[] = [
 	{
 		name: "get_my_account",
 		description:
-			"Get the SIGNED-IN customer's own profile: name, loyalty points balance, and saved delivery addresses. Use to greet them by name or answer questions about their points/addresses. Returns a notice if they are not signed in.",
+			"Get the SIGNED-IN customer's own profile summary: name, city, loyalty points, default delivery area. Use to greet them or answer points questions. Do NOT read out full street addresses or phone numbers in chat — send them to /account for that. Returns a notice if they are not signed in.",
 		parameters: { type: "object", properties: {} },
 	},
 	{
@@ -166,14 +195,17 @@ function formatAccountProfile(profile: AccountChatProfile): string {
 		lines.push(`City: ${profile.city}`);
 	}
 	lines.push(profile.loyaltyBalance !== null ? `Loyalty points balance: ${profile.loyaltyBalance}` : "Loyalty: not enrolled yet");
-	if (profile.addresses.length > 0) {
-		const addresses = profile.addresses
-			.map((address) => {
-				const parts = [address.recipientName, address.street, address.area, address.city].filter(Boolean).join(", ");
-				return `- ${parts}${address.isDefault ? " (default)" : ""}`;
-			})
-			.join("\n");
-		lines.push(`Saved delivery addresses:\n${addresses}`);
+	const defaultAddress = profile.addresses.find((address) => address.isDefault) ?? profile.addresses[0];
+	if (defaultAddress) {
+		const area = [defaultAddress.area, defaultAddress.city].filter(Boolean).join(", ");
+		if (area) {
+			lines.push(`Default delivery area: ${area}`);
+		}
+	}
+	if (profile.addresses.length > 1) {
+		lines.push(`${profile.addresses.length} saved addresses — direct them to /account for full delivery details.`);
+	} else if (profile.addresses.length === 1) {
+		lines.push("One saved address — direct them to /account to view or edit full delivery details.");
 	} else {
 		lines.push("No saved delivery addresses.");
 	}
@@ -222,9 +254,22 @@ export async function executeAssistantTool(call: AssistantToolCall, context: Ass
 		return product ? formatProductDetails(product) : `No catalog product matched "${reference}". Don't invent specs — offer to look it up with the team.`;
 	}
 
+	if (call.name === "quote_product_savings") {
+		const product = stringArg(call.arguments, "product").trim();
+		if (!product) {
+			return "No product was specified.";
+		}
+		return quoteProductSavings({
+			productReference: product,
+			gradeSlug: stringArg(call.arguments, "grade").trim() || undefined,
+			quantity: numberArg(call.arguments, "quantity"),
+			comparePaymentMethods: call.arguments.compare_payment_methods !== false,
+		});
+	}
+
 	if (call.name === "list_active_deals") {
-		const offers = await getOffersCached();
-		return formatDeals(offers) ?? "No active promotions are running right now.";
+		const offers = await getActiveOffersCached();
+		return formatAssistantActiveDeals(offers) ?? "No active promotions are running right now.";
 	}
 
 	if (call.name === "get_top_products") {

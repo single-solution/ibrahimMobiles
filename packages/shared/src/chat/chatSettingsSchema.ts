@@ -4,9 +4,9 @@ import { normalizeChatAssistantProvider, resolveAssistantModel, type ChatAssista
 
 /** Default welcome copy for empty inquiry threads (admin-editable via settings). */
 export const CHAT_WELCOME_GUEST_DEFAULT =
-	"Welcome. You may ask about our products, pricing, grades, or orders. Our support team will be pleased to assist you. You may send up to {limit} messages before signing in to continue.";
+	"Hi! Ask about phones, prices, deals, or orders — we will help you find the right pick. You can send up to {limit} messages before signing in to continue.";
 
-export const CHAT_WELCOME_CUSTOMER_DEFAULT = "Welcome. You may contact us regarding products, orders, or any enquiry. Our support team will respond at the earliest convenience.";
+export const CHAT_WELCOME_CUSTOMER_DEFAULT = "Hi! Ask about products, your orders, or anything you need — we are here to help.";
 
 export interface ChatSettingsValues {
 	enabled: boolean;

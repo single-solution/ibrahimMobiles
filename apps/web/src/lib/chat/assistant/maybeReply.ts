@@ -3,19 +3,26 @@ import { Types } from "mongoose";
 import { getStoreSettings, Inquiry as InquiryModel, connectDB, getIntegrationSettings, resolveInquiryStaffNotifyTargets } from "@store/db";
 import {
 	assistantReplyLooksUnsafe,
+	assistantReplyMatchesLanguage,
+	customerAskedAboutDeals,
 	customerChatSupportLabel,
+	customerMessageIsGreetingOnly,
 	customerWantsHumanSupport,
+	detectCustomerMessageLanguage,
 	inquiryStatusPatchAfterMessage,
 	logger,
 	normalizeChatAssistantProvider,
 	splitAssistantReply,
+	type CustomerMessageLanguage,
 	type InquiryThreadStatus,
 } from "@store/shared";
 import { notifyStaffOnInquiryEscalation } from "@store/shared/server";
 
 import type { InquiryLean } from "@/lib/chat/serializer";
 import { generateAssistantReply, isAssistantConfigured, resolveProviderApiKey, type AssistantChatTurn } from "@/lib/chat/assistant/generateReply";
+import { formatDeals } from "@/lib/chat/assistant/storeContext";
 import { getChatSettings } from "@/lib/chat/chatSettings";
+import { getActiveOffersCached } from "@/lib/core/cached";
 
 /** Recent turns kept for context. Short on purpose to save tokens per call. */
 const HISTORY_TURN_LIMIT = 10;
@@ -39,11 +46,59 @@ function historyFromInquiry(inquiry: InquiryLean): AssistantChatTurn[] {
 		}));
 }
 
-function fallbackReply(input: { siteName: string; supportPhone: string; wantsHuman: boolean }): string {
+async function buildFallbackReply(input: {
+	customerMessage: string;
+	siteName: string;
+	supportPhone: string;
+	wantsHuman: boolean;
+	requiredLanguage: CustomerMessageLanguage;
+}): Promise<string> {
+	const { requiredLanguage } = input;
+
 	if (input.wantsHuman) {
-		return `Of course — I've flagged this chat for our team at ${input.siteName}. Someone will follow up here shortly. You can also reach us at ${input.supportPhone} during store hours.`;
+		const contactLine = input.supportPhone.trim()
+			? requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script"
+				? ` Store hours mein ${input.supportPhone} par bhi reach kar sakte hain.`
+				: ` You can also reach us at ${input.supportPhone} during store hours.`
+			: "";
+		if (requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script") {
+			return `Bilkul — main ne ${input.siteName} ki team ko is chat par flag kar diya hai. Koi jald yahan reply karega.${contactLine}`;
+		}
+		return `Of course — I have flagged this chat for our team at ${input.siteName}. Someone will follow up here shortly.${contactLine}`;
 	}
-	return `Thanks for your message. I'm double-checking the latest details for you. If you'd like a teammate to jump in, just say "speak to someone" — we're at ${input.supportPhone} during store hours.`;
+
+	if (customerAskedAboutDeals(input.customerMessage)) {
+		const offers = await getActiveOffersCached();
+		const dealsText = formatDeals(offers);
+		const firstToken = input.customerMessage.trim().split(/\s+/)[0]?.replace(/[!?.]+$/, "") ?? "";
+		const greetingPrefix = /^(hi|hello|hey|salam|aoa|assalam)$/i.test(firstToken)
+			? requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script"
+				? "Assalam o alaikum! "
+				: "Hi! "
+			: "";
+		if (dealsText) {
+			if (requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script") {
+				return `${greetingPrefix}Abhi ye active deals hain:\n${dealsText}\n\nKisi par detail chahiye ya budget bata dein, main match kar dun ga?`;
+			}
+			return `${greetingPrefix}Here are our active deals right now:\n${dealsText}\n\nWant details on any of these, or should I find something in your budget?`;
+		}
+		if (requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script") {
+			return `${greetingPrefix}Abhi store-wide promo nahi chal raha, lekin site par live prices aur grades hain. Budget ya phone bata dein, main best in-stock option dhoond dun ga.`;
+		}
+		return `${greetingPrefix}We do not have a store-wide promotion running right now, but prices and grades are live on the site. Tell me your budget or the phone you want and I will find the best in-stock option.`;
+	}
+
+	if (customerMessageIsGreetingOnly(input.customerMessage)) {
+		if (requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script") {
+			return `Assalam o alaikum! ${input.siteName} mein khush amdeed — budget ya jo phone chahiye bata dein, main best in-stock deal warranty ke sath dhoond dun ga. Promos ke bare mein bhi pooch sakte hain.`;
+		}
+		return `Hi! Welcome to ${input.siteName} — tell me your budget or the phone you have in mind and I will find you the best in-stock deal with warranty details. Ask about current promos anytime.`;
+	}
+
+	if (requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script") {
+		return `Shukriya — jo phone ya budget hai bata dein, main live price aur stock share kar dun ga. Ya "kisi se baat karni hai" likh dein, teammate join kar lega.`;
+	}
+	return `Thanks for your message. Tell me the phone or budget you are looking for and I will share live prices and stock, or say "speak to someone" if you want a teammate on this chat.`;
 }
 
 export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { verifiedCustomerId?: string }): Promise<void> {
@@ -72,6 +127,7 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { 
 	}
 
 	const wantsHuman = customerWantsHumanSupport(lastMessage.body);
+	const requiredLanguage = detectCustomerMessageLanguage(lastMessage.body);
 	const history = historyFromInquiry(inquiry).slice(0, -1);
 
 	const supportLabel = customerChatSupportLabel(settings.assistantName);
@@ -94,15 +150,33 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { 
 	// safe message rather than sending a partial/risky burst.
 	const rawReply = generated?.reply?.trim() ?? "";
 	let bubbles = rawReply ? splitAssistantReply(rawReply) : [];
-	if (bubbles.length === 0 || bubbles.some(assistantReplyLooksUnsafe)) {
+	const languageMismatch = bubbles.some((bubble) => !assistantReplyMatchesLanguage(bubble, requiredLanguage));
+	const fallbackReason = !rawReply
+		? "provider_empty_or_failed"
+		: languageMismatch
+			? "language_mismatch"
+			: bubbles.some(assistantReplyLooksUnsafe)
+				? "unsafe_reply"
+				: "empty_after_split";
+	if (bubbles.length === 0 || bubbles.some(assistantReplyLooksUnsafe) || languageMismatch) {
 		const store = await getStoreSettings();
 		bubbles = [
-			fallbackReply({
+			await buildFallbackReply({
+				customerMessage: lastMessage.body,
 				siteName: store.siteName,
 				supportPhone: store.supportPhone,
 				wantsHuman,
+				requiredLanguage,
 			}),
 		];
+		logger.warn(
+			{
+				inquiryId: inquiry._id.toString(),
+				reason: fallbackReason,
+				customerPreview: lastMessage.body.slice(0, 120),
+			},
+			"chat-assistant: used fallback reply",
+		);
 	}
 
 	// The model decides genuine escalation (restricted ask, complaint, "get me a
@@ -114,7 +188,11 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { 
 	// Skip the extra "notified our team" line while already escalated — the
 	// prompt already reassures the senior is looped in.
 	if (wantsHuman && !needsHumanHandoff && !awaitingHuman && !bubbles.some((bubble) => bubble.toLowerCase().includes("team"))) {
-		bubbles.push("I've also notified our team to follow up with you personally.");
+		bubbles.push(
+			requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script"
+				? "Main ne team ko bhi notify kar diya hai ke wo personally follow up karein."
+				: "I've also notified our team to follow up with you personally.",
+		);
 	}
 
 	await connectDB();

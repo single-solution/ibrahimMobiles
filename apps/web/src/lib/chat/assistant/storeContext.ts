@@ -1,11 +1,12 @@
-import { formatPrice, type AssistantStoreContext, type Offer, type Product } from "@store/shared";
+import { formatPrice, type AssistantStoreContext, type Product } from "@store/shared";
 
 import { productHref } from "@/lib/catalog/productPaths";
+import { formatAssistantActiveDeals } from "@/lib/chat/assistant/offerQuote";
 import { isProductInStock } from "@/lib/productSummary";
 import { getAccountChatProfile, getAccountOrders } from "@/lib/core/account";
 import { getProductById } from "@/lib/core/queries";
 import type { Order } from "@/lib/core/orderSerializer";
-import { getCategoriesCached, getOffersCached, getProductsPageCached, getStoreSettingsCached } from "@/lib/core/cached";
+import { getActiveOffersCached, getCategoriesCached, getProductsPageCached, getStoreSettingsCached } from "@/lib/core/cached";
 
 /**
  * Always-injected catalog snapshot (newest first). Deliberately tiny: it only
@@ -108,21 +109,7 @@ export function formatCatalogLine(product: Product): string {
 	return [`- ${product.brandName} ${product.name}`, priceText, inStock ? "in stock" : "out of stock", `link: ${path}`].filter(Boolean).join(" | ");
 }
 
-export function formatDeals(offers: Offer[]): string | undefined {
-	const lines = offers
-		.filter((offer) => offer.title?.trim())
-		.map((offer) => {
-			const parts = [offer.title.trim()];
-			if (offer.discountLabel?.trim()) {
-				parts.push(offer.discountLabel.trim());
-			}
-			if (offer.expiresAt) {
-				parts.push(`ends ${formatOrderDate(offer.expiresAt)}`);
-			}
-			return `- ${parts.join(" | ")}`;
-		});
-	return lines.length > 0 ? lines.join("\n") : undefined;
-}
+export { formatAssistantActiveDeals as formatDeals } from "@/lib/chat/assistant/offerQuote";
 
 async function loadSubjectProduct(subjectProductId?: string): Promise<Product | null> {
 	if (!subjectProductId) {
@@ -146,7 +133,7 @@ export async function buildAssistantStoreContext(input: {
 			limit: CATALOG_CONTEXT_LIMIT,
 			sort: "newest",
 		}),
-		getOffersCached(),
+		getActiveOffersCached(),
 		loadSubjectProduct(input.subjectProductId),
 		buildCustomerProfileLine(input.verifiedCustomerId),
 	]);
@@ -203,7 +190,7 @@ export async function buildAssistantStoreContext(input: {
 		policies,
 		categories: activeCategories || "See /",
 		catalog: catalogLines.size > 0 ? [...catalogLines.values()].join("\n") : "No matching products in catalog for this query — do not invent models or prices.",
-		deals: formatDeals(offers),
+		deals: formatAssistantActiveDeals(offers),
 		subjectProduct: subjectProductBlock,
 		account: customerProfile,
 		isSignedIn: Boolean(input.verifiedCustomerId),

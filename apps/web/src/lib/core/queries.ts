@@ -33,7 +33,9 @@ import {
 	slugify,
 	isCatalogDealOffer,
 	isCheckoutNoticeOffer,
+	isOfferEligible,
 	toActiveOffer,
+	type ActiveOffer,
 	type Brand,
 	type AttributeDescriptor,
 	type IconName,
@@ -683,6 +685,12 @@ async function loadScheduledActiveOfferDocs(): Promise<OfferLean[]> {
 export async function getOffers(): Promise<Offer[]> {
 	const offers = await loadScheduledActiveOfferDocs();
 	return offers.map(toOffer);
+}
+
+/** Eligible active offers with full pricing rules — same source as checkout. */
+export async function getActiveOffers(): Promise<ActiveOffer[]> {
+	const offers = await loadScheduledActiveOfferDocs();
+	return offers.map(toActiveOffer).filter((offer) => isOfferEligible(offer));
 }
 
 /** Scoped catalog live offers — `/deals` buttons and shop hero CTAs. */

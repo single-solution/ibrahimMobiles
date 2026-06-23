@@ -12,6 +12,8 @@ import { SettingsFormPanel, SettingsLoadingPanel, SettingsSaveFooter, SettingsTa
 import { useToast } from "@/components/ui/Toast";
 import {
 	ASSISTANT_CORE_RULES,
+	ASSISTANT_TOOL_ROUTING,
+	PAKISTAN_SALES_PSYCHOLOGY,
 	STORE_HOW_IT_WORKS,
 	CHAT_ASSISTANT_DEFAULT_MODELS,
 	CHAT_ASSISTANT_DEFAULT_NAME,
@@ -329,6 +331,24 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 									<li key={fact} className="flex gap-2 text-[11.5px] leading-relaxed text-[var(--color-ink-600)]">
 										<span className="mt-1 size-1.5 shrink-0 rounded-full bg-[var(--color-ink-300)]" />
 										<span>{fact}</span>
+									</li>
+								))}
+							</ul>
+							<p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">Sales psychology (built-in — honest dealer voice)</p>
+							<ul className="mt-2 space-y-1.5">
+								{PAKISTAN_SALES_PSYCHOLOGY.map((line) => (
+									<li key={line} className="flex gap-2 text-[11.5px] leading-relaxed text-[var(--color-ink-600)]">
+										<span className="mt-1 size-1.5 shrink-0 rounded-full bg-[var(--color-warn-400)]" />
+										<span>{line}</span>
+									</li>
+								))}
+							</ul>
+							<p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-ink-500)]">Lookup routing (built-in)</p>
+							<ul className="mt-2 space-y-1.5">
+								{ASSISTANT_TOOL_ROUTING.map((step) => (
+									<li key={step} className="flex gap-2 text-[11.5px] leading-relaxed text-[var(--color-ink-600)]">
+										<span className="mt-1 size-1.5 shrink-0 rounded-full bg-[var(--color-accent-300)]" />
+										<span>{step}</span>
 									</li>
 								))}
 							</ul>

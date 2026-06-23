@@ -9,6 +9,7 @@ import {
 	CHAT_GUEST_MESSAGE_LIMIT,
 	CHAT_SUPPORT_DISPLAY_NAME,
 	classNames,
+	isInternalStorefrontPath,
 	resolveChatWelcomeMessage,
 	type ChatAttachment,
 	type ChatMessage,
@@ -28,61 +29,67 @@ export function chatWelcomeMessage(input: { audience: "guest" | "customer"; gues
 	});
 }
 
-/* Internal storefront paths the assistant may share. Only these are turned
-   into clickable links — external URLs are stripped upstream, never linkified. */
-const INTERNAL_PATH_SOURCE = "/(?:shop|deals|account|cart|checkout|search)(?:/[^\\s)]*)?";
-
-/**
- * Inline tokens we render in assistant copy: markdown links to internal paths,
- * `**bold**`, and bare internal paths. External links are stripped upstream, so
- * any link reaching here is safe to make clickable.
- */
-const INLINE_TOKEN_PATTERN = new RegExp(`\\[([^\\]]+)\\]\\((${INTERNAL_PATH_SOURCE})\\)|\\*\\*([^*\\n]+)\\*\\*|(${INTERNAL_PATH_SOURCE})`, "g");
-
 const CHAT_LINK_CLASS = "font-medium text-[var(--color-accent-700)] underline underline-offset-2 hover:text-[var(--color-accent-800)]";
+
+const MARKDOWN_LINK_PATTERN = /\[([^\]]+)\]\(([^)]+)\)/g;
+const BARE_PATH_PATTERN = /(\/(?:[\w-]+(?:\/[\w-]+)?(?:\?[\w%&.=+-]*)?))/g;
+
+function renderInternalLink(href: string, label: string, key: number): ReactNode {
+	return (
+		<Link key={`chat-link-${key}`} href={href} className={CHAT_LINK_CLASS}>
+			{label}
+		</Link>
+	);
+}
 
 /** Splits a message body into text, bold spans, and clickable internal links. */
 function renderMessageBody(body: string): ReactNode {
-	const pattern = new RegExp(INLINE_TOKEN_PATTERN);
 	const segments: ReactNode[] = [];
-	let lastIndex = 0;
 	let tokenKey = 0;
-	let match: RegExpExecArray | null;
+	let cursor = 0;
 
-	while ((match = pattern.exec(body)) !== null) {
-		const [full, linkLabel, linkPath, boldText, barePath] = match;
-		if (match.index > lastIndex) {
-			segments.push(body.slice(lastIndex, match.index));
+	while (cursor < body.length) {
+		MARKDOWN_LINK_PATTERN.lastIndex = cursor;
+		const markdownMatch = MARKDOWN_LINK_PATTERN.exec(body);
+		BARE_PATH_PATTERN.lastIndex = cursor;
+		const bareMatch = BARE_PATH_PATTERN.exec(body);
+
+		const markdownIndex = markdownMatch?.index ?? Number.POSITIVE_INFINITY;
+		const bareIndex = bareMatch?.index ?? Number.POSITIVE_INFINITY;
+
+		if (markdownIndex === Number.POSITIVE_INFINITY && bareIndex === Number.POSITIVE_INFINITY) {
+			segments.push(body.slice(cursor));
+			break;
 		}
 
-		if (linkPath) {
-			segments.push(
-				<Link key={`chat-link-${tokenKey++}`} href={linkPath} className={CHAT_LINK_CLASS}>
-					{linkLabel}
-				</Link>,
-			);
-			lastIndex = match.index + full.length;
-		} else if (boldText) {
-			segments.push(
-				<strong key={`chat-bold-${tokenKey++}`} className="font-semibold text-[var(--color-ink-900)]">
-					{boldText}
-				</strong>,
-			);
-			lastIndex = match.index + full.length;
-		} else {
-			const clean = (barePath ?? "").replace(/[.,;:)]+$/, "");
-			segments.push(
-				<Link key={`chat-link-${tokenKey++}`} href={clean} className={CHAT_LINK_CLASS}>
-					{clean}
-				</Link>,
-			);
-			// Re-emit any trailing punctuation we trimmed off the path.
-			lastIndex = match.index + clean.length;
+		if (markdownIndex <= bareIndex && markdownMatch) {
+			if (markdownIndex > cursor) {
+				segments.push(body.slice(cursor, markdownIndex));
+			}
+			const linkPath = markdownMatch[2]?.trim() ?? "";
+			if (isInternalStorefrontPath(linkPath)) {
+				segments.push(renderInternalLink(linkPath, markdownMatch[1] ?? linkPath, tokenKey++));
+			} else {
+				segments.push(markdownMatch[1] ?? "");
+			}
+			cursor = markdownIndex + markdownMatch[0].length;
+			continue;
 		}
-	}
 
-	if (lastIndex < body.length) {
-		segments.push(body.slice(lastIndex));
+		if (bareMatch) {
+			if (bareIndex > cursor) {
+				segments.push(body.slice(cursor, bareIndex));
+			}
+			const rawPath = bareMatch[1] ?? "";
+			const cleanPath = rawPath.replace(/[.,;:)]+$/, "");
+			if (isInternalStorefrontPath(cleanPath)) {
+				segments.push(renderInternalLink(cleanPath, cleanPath, tokenKey++));
+				cursor = bareIndex + cleanPath.length;
+			} else {
+				segments.push(rawPath);
+				cursor = bareIndex + rawPath.length;
+			}
+		}
 	}
 
 	return segments;
