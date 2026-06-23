@@ -9,6 +9,7 @@ import {
 	CHAT_GUEST_MESSAGE_LIMIT,
 	CHAT_SUPPORT_DISPLAY_NAME,
 	classNames,
+	convertPipeBulletDealsToMarkdownTable,
 	isInternalStorefrontPath,
 	resolveChatWelcomeMessage,
 	type ChatAttachment,
@@ -33,6 +34,9 @@ const CHAT_LINK_CLASS = "font-medium text-[var(--color-accent-700)] underline un
 
 const MARKDOWN_LINK_PATTERN = /\[([^\]]+)\]\(([^)]+)\)/g;
 const BARE_PATH_PATTERN = /(\/(?:[\w-]+(?:\/[\w-]+)?(?:\?[\w%&.=+-]*)?))/g;
+const BOLD_PATTERN = /\*\*([^*]+)\*\*/g;
+const TABLE_ROW_PATTERN = /^\|.+\|$/;
+const BULLET_LINE_PATTERN = /^\s*[-*]\s+(.+)$/;
 
 function renderInternalLink(href: string, label: string, key: number): ReactNode {
 	return (
@@ -42,57 +46,187 @@ function renderInternalLink(href: string, label: string, key: number): ReactNode
 	);
 }
 
-/** Splits a message body into text, bold spans, and clickable internal links. */
-function renderMessageBody(body: string): ReactNode {
+function parseMarkdownTableRow(line: string): string[] {
+	return line
+		.trim()
+		.replace(/^\|/, "")
+		.replace(/\|$/, "")
+		.split("|")
+		.map((cell) => cell.trim());
+}
+
+function isTableSeparatorRow(cells: string[]): boolean {
+	return cells.every((cell) => /^:?-{2,}:?$/.test(cell.replace(/\s/g, "")));
+}
+
+function renderInlineSegments(text: string, keyPrefix: string): ReactNode[] {
 	const segments: ReactNode[] = [];
 	let tokenKey = 0;
 	let cursor = 0;
 
-	while (cursor < body.length) {
+	while (cursor < text.length) {
 		MARKDOWN_LINK_PATTERN.lastIndex = cursor;
-		const markdownMatch = MARKDOWN_LINK_PATTERN.exec(body);
+		BOLD_PATTERN.lastIndex = cursor;
 		BARE_PATH_PATTERN.lastIndex = cursor;
-		const bareMatch = BARE_PATH_PATTERN.exec(body);
+
+		const markdownMatch = MARKDOWN_LINK_PATTERN.exec(text);
+		const boldMatch = BOLD_PATTERN.exec(text);
+		const bareMatch = BARE_PATH_PATTERN.exec(text);
 
 		const markdownIndex = markdownMatch?.index ?? Number.POSITIVE_INFINITY;
+		const boldIndex = boldMatch?.index ?? Number.POSITIVE_INFINITY;
 		const bareIndex = bareMatch?.index ?? Number.POSITIVE_INFINITY;
+		const nextIndex = Math.min(markdownIndex, boldIndex, bareIndex);
 
-		if (markdownIndex === Number.POSITIVE_INFINITY && bareIndex === Number.POSITIVE_INFINITY) {
-			segments.push(body.slice(cursor));
+		if (nextIndex === Number.POSITIVE_INFINITY) {
+			if (cursor < text.length) {
+				segments.push(text.slice(cursor));
+			}
 			break;
 		}
 
-		if (markdownIndex <= bareIndex && markdownMatch) {
-			if (markdownIndex > cursor) {
-				segments.push(body.slice(cursor, markdownIndex));
-			}
+		if (nextIndex > cursor) {
+			segments.push(text.slice(cursor, nextIndex));
+		}
+
+		if (nextIndex === markdownIndex && markdownMatch) {
 			const linkPath = markdownMatch[2]?.trim() ?? "";
 			if (isInternalStorefrontPath(linkPath)) {
 				segments.push(renderInternalLink(linkPath, markdownMatch[1] ?? linkPath, tokenKey++));
 			} else {
 				segments.push(markdownMatch[1] ?? "");
 			}
-			cursor = markdownIndex + markdownMatch[0].length;
+			cursor = nextIndex + markdownMatch[0].length;
+			continue;
+		}
+
+		if (nextIndex === boldIndex && boldMatch) {
+			segments.push(
+				<strong key={`${keyPrefix}-bold-${tokenKey++}`} className="font-semibold text-[var(--color-ink-900)]">
+					{boldMatch[1]}
+				</strong>,
+			);
+			cursor = nextIndex + boldMatch[0].length;
 			continue;
 		}
 
 		if (bareMatch) {
-			if (bareIndex > cursor) {
-				segments.push(body.slice(cursor, bareIndex));
-			}
 			const rawPath = bareMatch[1] ?? "";
 			const cleanPath = rawPath.replace(/[.,;:)]+$/, "");
 			if (isInternalStorefrontPath(cleanPath)) {
 				segments.push(renderInternalLink(cleanPath, cleanPath, tokenKey++));
-				cursor = bareIndex + cleanPath.length;
+				cursor = nextIndex + cleanPath.length;
 			} else {
 				segments.push(rawPath);
-				cursor = bareIndex + rawPath.length;
+				cursor = nextIndex + rawPath.length;
 			}
 		}
 	}
 
 	return segments;
+}
+
+function ChatMarkdownTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+	return (
+		<div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-ink-100)]">
+			<table className="w-full min-w-[280px] border-collapse text-left text-[11px] leading-snug">
+				<thead>
+					<tr className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]">
+						{headers.map((header, index) => (
+							<th key={`header-${index}`} className="px-2 py-1.5 font-semibold text-[var(--color-ink-700)]">
+								{renderInlineSegments(header, `header-${index}`)}
+							</th>
+						))}
+					</tr>
+				</thead>
+				<tbody>
+					{rows.map((row, rowIndex) => (
+						<tr key={`row-${rowIndex}`} className="border-b border-[var(--color-ink-50)] last:border-0 even:bg-[var(--color-canvas-deep)]/40">
+							{row.map((cell, cellIndex) => (
+								<td key={`cell-${rowIndex}-${cellIndex}`} className="px-2 py-1.5 align-top text-[var(--color-ink-800)]">
+									{renderInlineSegments(cell, `cell-${rowIndex}-${cellIndex}`)}
+								</td>
+							))}
+						</tr>
+					))}
+				</tbody>
+			</table>
+		</div>
+	);
+}
+
+/** Parses markdown tables, bullet lists, bold, and internal links into rich chat blocks. */
+function renderRichMessageBody(body: string): ReactNode {
+	const normalized = convertPipeBulletDealsToMarkdownTable(body.trim());
+	const lines = normalized.split("\n");
+	const blocks: ReactNode[] = [];
+	let blockKey = 0;
+	let cursor = 0;
+
+	while (cursor < lines.length) {
+		const line = lines[cursor]?.trim() ?? "";
+		if (!line) {
+			cursor += 1;
+			continue;
+		}
+
+		if (TABLE_ROW_PATTERN.test(line)) {
+			const tableLines: string[] = [];
+			while (cursor < lines.length && TABLE_ROW_PATTERN.test(lines[cursor]?.trim() ?? "")) {
+				tableLines.push(lines[cursor]?.trim() ?? "");
+				cursor += 1;
+			}
+			const parsedRows = tableLines.map(parseMarkdownTableRow);
+			const headerRow = parsedRows[0];
+			const bodyRows = parsedRows.slice(1).filter((row) => !isTableSeparatorRow(row));
+			if (headerRow?.length) {
+				blocks.push(<ChatMarkdownTable key={`table-${blockKey++}`} headers={headerRow} rows={bodyRows} />);
+			}
+			continue;
+		}
+
+		if (BULLET_LINE_PATTERN.test(lines[cursor] ?? "")) {
+			const items: string[] = [];
+			while (cursor < lines.length && BULLET_LINE_PATTERN.test(lines[cursor] ?? "")) {
+				const match = lines[cursor]?.match(BULLET_LINE_PATTERN);
+				if (match?.[1]) {
+					items.push(match[1]);
+				}
+				cursor += 1;
+			}
+			blocks.push(
+				<ul key={`list-${blockKey++}`} className="list-disc space-y-1 pl-4 text-[var(--color-ink-800)]">
+					{items.map((item, index) => (
+						<li key={`item-${index}`}>{renderInlineSegments(item, `item-${index}`)}</li>
+					))}
+				</ul>,
+			);
+			continue;
+		}
+
+		const paragraphLines: string[] = [];
+		while (cursor < lines.length) {
+			const current = lines[cursor]?.trim() ?? "";
+			if (!current || TABLE_ROW_PATTERN.test(current) || BULLET_LINE_PATTERN.test(lines[cursor] ?? "")) {
+				break;
+			}
+			paragraphLines.push(current);
+			cursor += 1;
+		}
+		if (paragraphLines.length > 0) {
+			blocks.push(
+				<p key={`para-${blockKey++}`} className="text-[var(--color-ink-800)]">
+					{renderInlineSegments(paragraphLines.join("\n"), `para-${blockKey}`)}
+				</p>,
+			);
+		}
+	}
+
+	if (blocks.length === 0) {
+		return renderInlineSegments(normalized, "fallback");
+	}
+
+	return <div className="space-y-2">{blocks}</div>;
 }
 
 export interface ChatMessageDayGroup {
@@ -230,7 +364,7 @@ export function ChatMessageBubble({ message, variant = "widget" }: ChatMessageBu
 						))}
 					</div>
 				)}
-				{message.body.trim().length > 0 && <p>{renderMessageBody(message.body)}</p>}
+				{message.body.trim().length > 0 && <div>{renderRichMessageBody(message.body)}</div>}
 				<p className={classNames("mt-1 text-[10px]", isCustomer ? "text-[var(--color-ink-500)]" : "text-[var(--color-ink-500)]")}>
 					{new Date(message.createdAt).toLocaleTimeString(undefined, {
 						hour: "numeric",

@@ -47,6 +47,19 @@ function containsUrduScript(text: string): boolean {
 	return URDU_SCRIPT_PATTERN.test(text);
 }
 
+/** Markdown deal tables use English headers and promo titles — language-neutral data blocks. */
+export function isLanguageNeutralAssistantBlock(text: string): boolean {
+	const trimmed = text.trim();
+	if (!trimmed) {
+		return false;
+	}
+	const lines = trimmed.split("\n").map((line) => line.trim()).filter(Boolean);
+	if (lines.length === 0) {
+		return false;
+	}
+	return lines.every((line) => /^\|.+\|$/.test(line));
+}
+
 /**
  * Returns true when the assistant reply matches the required customer language.
  */
@@ -54,6 +67,9 @@ export function assistantReplyMatchesLanguage(reply: string, required: CustomerM
 	const trimmed = reply.trim();
 	if (!trimmed) {
 		return false;
+	}
+	if (isLanguageNeutralAssistantBlock(trimmed)) {
+		return true;
 	}
 
 	const romanCount = countRomanUrduMarkers(trimmed);

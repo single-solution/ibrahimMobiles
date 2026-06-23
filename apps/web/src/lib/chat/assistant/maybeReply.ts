@@ -4,6 +4,7 @@ import { getStoreSettings, Inquiry as InquiryModel, connectDB, getIntegrationSet
 import {
 	assistantReplyLooksUnsafe,
 	assistantReplyMatchesLanguage,
+	buildDealListMessageChunks,
 	customerAskedAboutDeals,
 	customerChatSupportLabel,
 	customerMessageIsGreetingOnly,
@@ -13,6 +14,7 @@ import {
 	logger,
 	normalizeChatAssistantProvider,
 	splitAssistantReply,
+	splitMessageOnMarkdownTable,
 	type CustomerMessageLanguage,
 	type InquiryThreadStatus,
 } from "@store/shared";
@@ -20,9 +22,15 @@ import { notifyStaffOnInquiryEscalation } from "@store/shared/server";
 
 import type { InquiryLean } from "@/lib/chat/serializer";
 import { generateAssistantReply, isAssistantConfigured, resolveProviderApiKey, type AssistantChatTurn } from "@/lib/chat/assistant/generateReply";
-import { formatDeals } from "@/lib/chat/assistant/storeContext";
 import { getChatSettings } from "@/lib/chat/chatSettings";
 import { getActiveOffersCached } from "@/lib/core/cached";
+
+function expandAssistantBubbles(bubbles: string[]): string[] {
+	return bubbles.flatMap((bubble) => splitMessageOnMarkdownTable(bubble));
+}
+
+/** Max assistant bubbles per turn after table/chunk expansion. */
+const ASSISTANT_BUBBLE_LIMIT = 5;
 
 /** Recent turns kept for context. Short on purpose to save tokens per call. */
 const HISTORY_TURN_LIMIT = 10;
@@ -52,7 +60,7 @@ async function buildFallbackReply(input: {
 	supportPhone: string;
 	wantsHuman: boolean;
 	requiredLanguage: CustomerMessageLanguage;
-}): Promise<string> {
+}): Promise<string[]> {
 	const { requiredLanguage } = input;
 
 	if (input.wantsHuman) {
@@ -62,43 +70,62 @@ async function buildFallbackReply(input: {
 				: ` You can also reach us at ${input.supportPhone} during store hours.`
 			: "";
 		if (requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script") {
-			return `Bilkul — main ne ${input.siteName} ki team ko is chat par flag kar diya hai. Koi jald yahan reply karega.${contactLine}`;
+			return [`Bilkul — main ne ${input.siteName} ki team ko is chat par flag kar diya hai. Koi jald yahan reply karega.${contactLine}`];
 		}
-		return `Of course — I have flagged this chat for our team at ${input.siteName}. Someone will follow up here shortly.${contactLine}`;
+		return [`Of course — I have flagged this chat for our team at ${input.siteName}. Someone will follow up here shortly.${contactLine}`];
 	}
 
 	if (customerAskedAboutDeals(input.customerMessage)) {
 		const offers = await getActiveOffersCached();
-		const dealsText = formatDeals(offers);
 		const firstToken = input.customerMessage.trim().split(/\s+/)[0]?.replace(/[!?.]+$/, "") ?? "";
 		const greetingPrefix = /^(hi|hello|hey|salam|aoa|assalam)$/i.test(firstToken)
 			? requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script"
 				? "Assalam o alaikum! "
 				: "Hi! "
 			: "";
-		if (dealsText) {
+		if (offers.length > 0) {
 			if (requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script") {
-				return `${greetingPrefix}Abhi ye active deals hain:\n${dealsText}\n\nKisi par detail chahiye ya budget bata dein, main match kar dun ga?`;
+				return buildDealListMessageChunks({
+					intro: `${greetingPrefix}Abhi ye active deals hain:`,
+					outro: "Kisi par detail chahiye ya budget bata dein, main match kar dun ga?",
+					offers,
+				});
 			}
-			return `${greetingPrefix}Here are our active deals right now:\n${dealsText}\n\nWant details on any of these, or should I find something in your budget?`;
+			return buildDealListMessageChunks({
+				intro: `${greetingPrefix}Here are our **active deals** right now:`,
+				outro: "Want details on any of these, or should I find something in your budget?",
+				offers,
+			});
 		}
 		if (requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script") {
-			return `${greetingPrefix}Abhi store-wide promo nahi chal raha, lekin site par live prices aur grades hain. Budget ya phone bata dein, main best in-stock option dhoond dun ga.`;
+			return [
+				`${greetingPrefix}Abhi store-wide promo nahi chal raha, lekin site par live prices aur grades hain. Budget ya phone bata dein, main best in-stock option dhoond dun ga.`,
+			];
 		}
-		return `${greetingPrefix}We do not have a store-wide promotion running right now, but prices and grades are live on the site. Tell me your budget or the phone you want and I will find the best in-stock option.`;
+		return [
+			`${greetingPrefix}We do not have a store-wide promotion running right now, but prices and grades are live on the site. Tell me your budget or the phone you want and I will find the best in-stock option.`,
+		];
 	}
 
 	if (customerMessageIsGreetingOnly(input.customerMessage)) {
 		if (requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script") {
-			return `Assalam o alaikum! ${input.siteName} mein khush amdeed — budget ya jo phone chahiye bata dein, main best in-stock deal warranty ke sath dhoond dun ga. Promos ke bare mein bhi pooch sakte hain.`;
+			return [
+				`Assalam o alaikum! ${input.siteName} mein khush amdeed — budget ya jo phone chahiye bata dein, main best in-stock deal warranty ke sath dhoond dun ga. Promos ke bare mein bhi pooch sakte hain.`,
+			];
 		}
-		return `Hi! Welcome to ${input.siteName} — tell me your budget or the phone you have in mind and I will find you the best in-stock deal with warranty details. Ask about current promos anytime.`;
+		return [
+			`Hi! Welcome to ${input.siteName} — tell me your budget or the phone you have in mind and I will find you the best in-stock deal with warranty details. Ask about current promos anytime.`,
+		];
 	}
 
 	if (requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script") {
-		return `Shukriya — jo phone ya budget hai bata dein, main live price aur stock share kar dun ga. Ya "kisi se baat karni hai" likh dein, teammate join kar lega.`;
+		return [
+			`Shukriya — jo phone ya budget hai bata dein, main live price aur stock share kar dun ga. Ya "kisi se baat karni hai" likh dein, teammate join kar lega.`,
+		];
 	}
-	return `Thanks for your message. Tell me the phone or budget you are looking for and I will share live prices and stock, or say "speak to someone" if you want a teammate on this chat.`;
+	return [
+		`Thanks for your message. Tell me the phone or budget you are looking for and I will share live prices and stock, or say "speak to someone" if you want a teammate on this chat.`,
+	];
 }
 
 export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { verifiedCustomerId?: string }): Promise<void> {
@@ -149,7 +176,7 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { 
 	// sanitised on its own; if anything is empty or unsafe, fall back to a single
 	// safe message rather than sending a partial/risky burst.
 	const rawReply = generated?.reply?.trim() ?? "";
-	let bubbles = rawReply ? splitAssistantReply(rawReply) : [];
+	let bubbles = rawReply ? expandAssistantBubbles(splitAssistantReply(rawReply)) : [];
 	const languageMismatch = bubbles.some((bubble) => !assistantReplyMatchesLanguage(bubble, requiredLanguage));
 	const fallbackReason = !rawReply
 		? "provider_empty_or_failed"
@@ -160,15 +187,13 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { 
 				: "empty_after_split";
 	if (bubbles.length === 0 || bubbles.some(assistantReplyLooksUnsafe) || languageMismatch) {
 		const store = await getStoreSettings();
-		bubbles = [
-			await buildFallbackReply({
-				customerMessage: lastMessage.body,
-				siteName: store.siteName,
-				supportPhone: store.supportPhone,
-				wantsHuman,
-				requiredLanguage,
-			}),
-		];
+		bubbles = await buildFallbackReply({
+			customerMessage: lastMessage.body,
+			siteName: store.siteName,
+			supportPhone: store.supportPhone,
+			wantsHuman,
+			requiredLanguage,
+		});
 		logger.warn(
 			{
 				inquiryId: inquiry._id.toString(),
@@ -178,6 +203,8 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { 
 			"chat-assistant: used fallback reply",
 		);
 	}
+
+	bubbles = bubbles.slice(0, ASSISTANT_BUBBLE_LIMIT);
 
 	// The model decides genuine escalation (restricted ask, complaint, "get me a
 	// human"). That flags the thread for the team AND mutes the bot. The keyword

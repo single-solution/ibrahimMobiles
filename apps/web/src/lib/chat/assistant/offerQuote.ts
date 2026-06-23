@@ -6,11 +6,10 @@
 
 import {
 	evaluateCartOffers,
+	formatActiveDealsMarkdownTable,
 	formatOfferDiscountLabel,
 	formatPrice,
 	getPaymentMethodLabel,
-	isCatalogDealOffer,
-	isCheckoutNoticeOffer,
 	isVariantInStock,
 	resolveOfferMinQuantity,
 	slugify,
@@ -28,16 +27,6 @@ import { getActiveOffersCached, getProductBySlugCached, getStoreSettingsCached, 
 
 const MAX_QUOTE_QUANTITY = 5;
 const CHECKOUT_PAYMENT_METHODS: OfferPaymentMethod[] = ["bank-transfer", "card", "cod"];
-
-function formatOfferEndDate(endDate?: Date | string): string | undefined {
-	if (!endDate) {
-		return undefined;
-	}
-	if (endDate instanceof Date) {
-		return endDate.toISOString().slice(0, 10);
-	}
-	return String(endDate).slice(0, 10);
-}
 
 function describeCartTotalCondition(condition: OfferCondition): string | null {
 	if (condition.type !== "cart_total") {
@@ -93,28 +82,9 @@ export function describeAssistantOfferEligibility(offer: ActiveOffer): string | 
 	return hints.join(" · ");
 }
 
-/** Rich deal list for the assistant — public titles, savings labels, eligibility only. */
+/** Rich deal list for the assistant — markdown table for chat UI. */
 export function formatAssistantActiveDeals(offers: ActiveOffer[]): string | undefined {
-	const lines = offers
-		.filter((offer) => offer.title?.trim())
-		.map((offer) => {
-			const parts = [offer.title.trim(), formatOfferDiscountLabel(offer.action)];
-			const eligibility = describeAssistantOfferEligibility(offer);
-			if (eligibility) {
-				parts.push(`when: ${eligibility}`);
-			}
-			const ends = formatOfferEndDate(offer.schedule.endDate);
-			if (ends) {
-				parts.push(`ends ${ends}`);
-			}
-			if (isCheckoutNoticeOffer(offer)) {
-				parts.push("checkout promo");
-			} else if (isCatalogDealOffer(offer)) {
-				parts.push("catalog deal");
-			}
-			return `- ${parts.join(" | ")}`;
-		});
-	return lines.length > 0 ? lines.join("\n") : undefined;
+	return formatActiveDealsMarkdownTable(offers);
 }
 
 async function resolveProductReference(reference: string): Promise<Product | null> {

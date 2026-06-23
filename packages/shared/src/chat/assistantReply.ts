@@ -66,7 +66,7 @@ export function sanitizeAssistantReply(raw: string): string {
  * answer with a short list doesn't fragment into many bubbles. Each bubble is
  * sanitised independently. Returns [] when nothing usable.
  */
-export function splitAssistantReply(raw: string, maxBubbles = 4): string[] {
+export function splitAssistantReply(raw: string, maxBubbles = 5): string[] {
 	return raw
 		.split(/(?:^|\n)[ \t]*---[ \t]*(?=\n|$)/)
 		.map((segment) => sanitizeAssistantReply(segment))
