@@ -1,4 +1,7 @@
+import { configureDevDnsResolvers } from "@store/shared/devDns";
 import type { NextConfig } from "next";
+
+configureDevDnsResolvers();
 
 /**
  * Security headers for the **admin app**.
@@ -13,6 +16,24 @@ import type { NextConfig } from "next";
  * complement.
  */
 const isProduction = process.env.NODE_ENV === "production";
+
+function buildS3ImageHosts(): string[] {
+	const hosts = ["https://*.amazonaws.com", "https://*.s3.amazonaws.com"];
+	const publicBase = process.env.AWS_S3_PUBLIC_URL_BASE?.trim();
+	if (publicBase) {
+		try {
+			const hostname = new URL(publicBase).hostname;
+			if (hostname) {
+				hosts.push(`https://${hostname}`);
+			}
+		} catch {
+			// Ignore invalid public URL at build time.
+		}
+	}
+	return hosts;
+}
+
+const S3_IMAGE_HOSTS = buildS3ImageHosts();
 
 const baseSecurityHeaders = [
 	{ key: "X-XSS-Protection", value: "0" },
@@ -33,7 +54,7 @@ const baseSecurityHeaders = [
 			"object-src 'none'",
 			"script-src 'self' 'unsafe-eval' 'unsafe-inline'",
 			"style-src 'self' 'unsafe-inline'",
-			"img-src 'self' blob: data: https://images.unsplash.com https://cdn.simpleicons.org https://*.public.blob.vercel-storage.com",
+			`img-src 'self' blob: data: https://images.unsplash.com https://cdn.simpleicons.org https://*.public.blob.vercel-storage.com ${S3_IMAGE_HOSTS.join(" ")}`,
 			"font-src 'self' data:",
 			"connect-src 'self'",
 			"media-src 'self'",
@@ -60,12 +81,12 @@ const nextConfig: NextConfig = {
 	// anything sensitive) and makes the sidebar feel instant.
 	experimental: {
 		staleTimes: {
-			dynamic: 10,
-			static: 30,
+			dynamic: 30,
+			static: 60,
 		},
 		// Tree-shake the most-imported icon set so admin's ~110 lucide-react
 		// import sites don't ship the whole icon bundle in dev or per-chunk.
-		optimizePackageImports: ["lucide-react"],
+		optimizePackageImports: ["lucide-react", "@store/shared"],
 	},
 	transpilePackages: ["@store/db", "@store/shared", "@store/ui"],
 	// Keep server-only Node packages OUT of the Webpack bundle so they're
@@ -83,6 +104,17 @@ const nextConfig: NextConfig = {
 			{ protocol: "https", hostname: "images.unsplash.com" },
 			{ protocol: "https", hostname: "cdn.simpleicons.org" },
 			{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+			{ protocol: "https", hostname: "*.amazonaws.com" },
+			...(process.env.AWS_S3_PUBLIC_URL_BASE?.trim()
+				? (() => {
+						try {
+							const hostname = new URL(process.env.AWS_S3_PUBLIC_URL_BASE.trim()).hostname;
+							return hostname ? [{ protocol: "https" as const, hostname }] : [];
+						} catch {
+							return [];
+						}
+					})()
+				: []),
 		],
 	},
 	async headers() {

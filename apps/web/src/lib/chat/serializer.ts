@@ -18,6 +18,7 @@ import {
 	normalizeChatMessageAuthor,
 	normalizeChatStatus,
 	objectIdString,
+	resolveAssistantMuteReason,
 	sliceChatMessages,
 	toIsoDate,
 } from "@store/shared";
@@ -42,6 +43,8 @@ function toMessage(message: InquiryMessageAttributes): ChatMessage {
 }
 
 export function summariseThread(inquiry: InquiryLean): ChatThreadSummary {
+	const pauseReason = resolveAssistantMuteReason(inquiry);
+	const assistantPaused = inquiry.assistantMuted === true;
 	return {
 		id: objectIdString(inquiry._id),
 		customerId: objectIdString(inquiry.customerId) || undefined,
@@ -55,6 +58,9 @@ export function summariseThread(inquiry: InquiryLean): ChatThreadSummary {
 		lastMessageAuthor: normalizeChatMessageAuthor(inquiry.lastMessageAuthor),
 		unreadByCustomer: inquiry.unreadByCustomer ?? 0,
 		unreadByTeam: 0,
+		assistantPaused,
+		assistantPauseReason: pauseReason,
+		assistantPausedAt: inquiry.assistantMutedAt ? toIsoDate(inquiry.assistantMutedAt) : undefined,
 		createdAt: toIsoDate(inquiry.createdAt),
 		updatedAt: toIsoDate(inquiry.updatedAt ?? inquiry.createdAt),
 	};

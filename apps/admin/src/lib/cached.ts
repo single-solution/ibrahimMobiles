@@ -4,7 +4,7 @@
  * Admin pages are far less hot than the storefront (one operator per
  * tenant vs many concurrent visitors), but the dashboard alone fires
  * ~18 parallel Mongo round-trips, and list pages re-fetch the whole
- * catalog on every navigation. A short 15s cross-request cache makes
+ * catalog on every navigation. A short 30s cross-request cache makes
  * navigation between admin pages feel instant without compromising
  * freshness — every mutation route handler calls
  * `revalidateTag(ADMIN_CACHE_TAG)` to bust the layer immediately.
@@ -21,7 +21,7 @@
  */
 import { unstable_cache } from "next/cache";
 
-import { ActivityEntry, Brand, connectDB, getStoreSettings, Inquiry, Offer, Order, ORDER_STATUSES, Product, SIGNED_IN_INQUIRY_FILTER, User } from "@store/db";
+import { ActivityEntry, Brand, connectDB, Customer, getStoreSettings, Inquiry, Offer, Order, ORDER_STATUSES, Product, SIGNED_IN_INQUIRY_FILTER, User } from "@store/db";
 import { escapeRegex, LOYALTY_POINT_TO_RUPEE, MAX_INPUT_LENGTH } from "@store/shared";
 
 import {
@@ -49,10 +49,9 @@ import type { AdminActivityEntry, AdminCustomerSummary, AdminInquirySummary, Adm
 export const ADMIN_CACHE_TAG = "admin";
 
 /** Seconds the cross-request layer holds onto admin reads. Chosen so
- *  the dashboard feels live (numbers age at most by ~quarter-minute)
- *  while still saving ~95% of the underlying Mongo round-trips on a
- *  busy admin session. */
-const ADMIN_CACHE_TTL_SECONDS = 15;
+ *  the dashboard feels live (numbers age at most by ~half-minute)
+ *  while still saving Mongo round-trips on a busy admin session. */
+const ADMIN_CACHE_TTL_SECONDS = 30;
 
 /**
  * Three independent cached loaders behind the dashboard.
@@ -136,6 +135,21 @@ const ADMIN_ORDERS_LIST_LIMIT = 200;
 const ADMIN_OFFERS_LIST_LIMIT = 200;
 const ADMIN_ACTIVITY_LIST_LIMIT = 200;
 
+const ADMIN_PRODUCT_LIST_SELECT = {
+	slug: 1,
+	name: 1,
+	categorySlug: 1,
+	brandSlug: 1,
+	isFeatured: 1,
+	isActive: 1,
+	isArchived: 1,
+	images: 1,
+	variants: 1,
+	seo: 1,
+	createdAt: 1,
+	updatedAt: 1,
+} as const;
+
 /** First-page size for the scroll-to-load-more admin workspaces (orders,
  *  customers, inquiries). Subsequent pages come from the list endpoints. */
 const ADMIN_LIST_PAGE_SIZE = 24;
@@ -148,7 +162,9 @@ export const loadAdminProductsCached = unstable_cache(
 		catalog: ProductWizardCatalog;
 	}> => {
 		await connectDB();
-		const productsQuery = Product.find({ isArchived: { $ne: true } }).sort({ createdAt: -1 });
+		const productsQuery = Product.find({ isArchived: { $ne: true } })
+			.select(ADMIN_PRODUCT_LIST_SELECT)
+			.sort({ createdAt: -1 });
 		if (ADMIN_PRODUCTS_LIST_LIMIT_DEFAULT > 0) {
 			productsQuery.limit(ADMIN_PRODUCTS_LIST_LIMIT_DEFAULT);
 		}
@@ -310,5 +326,28 @@ export const loadAdminActivityCached = unstable_cache(
 		return docs.map(toActivityResponse);
 	},
 	["admin-activity-list"],
+	{ revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
+);
+
+export interface SidebarSummaryCounts {
+	ordersUnread: number;
+	customersUnread: number;
+	inquiriesUnread: number;
+}
+
+export const loadSidebarSummaryCached = unstable_cache(
+	async (actorId: string): Promise<SidebarSummaryCounts> => {
+		await connectDB();
+		const [ordersUnread, customersUnread, inquiriesUnread] = await Promise.all([
+			Order.countDocuments({ seenByAdminIds: { $ne: actorId } }),
+			Customer.countDocuments({ seenByAdminIds: { $ne: actorId } }),
+			Inquiry.countDocuments({
+				...SIGNED_IN_INQUIRY_FILTER,
+				unreadByTeam: { $gt: 0 },
+			}),
+		]);
+		return { ordersUnread, customersUnread, inquiriesUnread };
+	},
+	["admin-sidebar-summary"],
 	{ revalidate: ADMIN_CACHE_TTL_SECONDS, tags: [ADMIN_CACHE_TAG] },
 );

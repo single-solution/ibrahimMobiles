@@ -2,7 +2,7 @@
  * DB → public storefront order shape.
  *
  * The customer never needs admin-only fields like `customerId`, internal
- * stripe references, agent notes, etc. This serializer also maps the raw
+ * gateway references, agent notes, etc. This serializer also maps the raw
  * DB statuses ("pending-payment", "dispatched", …) to friendlier labels
  * the UI uses.
  */
@@ -22,6 +22,7 @@ interface OrderTotals {
 	subtotalRupees: number;
 	shippingRupees: number;
 	discountRupees: number;
+	paymentSurchargeRupees: number;
 	totalRupees: number;
 	itemCount: number;
 }
@@ -64,6 +65,43 @@ export interface Order {
 }
 
 /** Pretty status label shown to customers. */
+function resolveOrderStatusLabel(status: OrderStatus, payment: OrderAttributes["payment"]): string {
+	if (status === "pending-payment" && payment === "bank-transfer") {
+		return "Awaiting bank transfer";
+	}
+	if (status === "pending-payment" && payment === "card") {
+		return "Awaiting card payment";
+	}
+	return ORDER_STATUS_LABEL[status] ?? status;
+}
+
+/** Short description shown next to a timeline entry. */
+function resolveTimelineDescription(status: OrderStatus, payment: OrderAttributes["payment"], note?: string): string {
+	const trimmedNote = note?.trim();
+	if (trimmedNote) {
+		return trimmedNote;
+	}
+	if (status === "pending-payment" && payment === "bank-transfer") {
+		return "Transfer the amount and send your payment screenshot on WhatsApp.";
+	}
+	if (status === "pending-payment" && payment === "card") {
+		return "Complete card payment online to confirm your order.";
+	}
+	if (status === "pending-payment" && payment === "cod") {
+		return "We received your order — pay cash when it arrives.";
+	}
+	if (status === "confirmed" && payment === "cod") {
+		return "We're preparing your order. Pay cash when you receive it.";
+	}
+	if (status === "confirmed" && payment === "bank-transfer") {
+		return "Bank transfer received — we're packing your order.";
+	}
+	if (status === "confirmed" && payment === "card") {
+		return "Card payment received — we're packing your order.";
+	}
+	return TIMELINE_DESCRIPTION[status] || "";
+}
+
 const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
 	"pending-payment": "Awaiting payment",
 	confirmed: "Confirmed",
@@ -96,6 +134,7 @@ export function toOrder(order: OrderAttributes & { _id: { toString(): string } }
 		subtotalRupees: 0,
 		shippingRupees: 0,
 		discountRupees: 0,
+		paymentSurchargeRupees: 0,
 		totalRupees: 0,
 	};
 	const customer = order.customerSnapshot ?? {
@@ -110,8 +149,8 @@ export function toOrder(order: OrderAttributes & { _id: { toString(): string } }
 		.sort((left: OrderTimelineEntryAttributes, right: OrderTimelineEntryAttributes) => toMillis(left?.occurredAt) - toMillis(right?.occurredAt))
 		.map((entry) => ({
 			status: entry.status,
-			label: ORDER_STATUS_LABEL[entry.status] ?? entry.status,
-			description: entry.note?.trim() || TIMELINE_DESCRIPTION[entry.status] || "",
+			label: resolveOrderStatusLabel(entry.status, order.payment),
+			description: resolveTimelineDescription(entry.status, order.payment, entry.note),
 			occurredAt: toIsoDate(entry.occurredAt),
 		}));
 
@@ -120,7 +159,7 @@ export function toOrder(order: OrderAttributes & { _id: { toString(): string } }
 		orderNumber: asString(order.orderNumber),
 		placedAt: toIsoDate(order.placedAt),
 		status: order.status,
-		statusLabel: ORDER_STATUS_LABEL[order.status] ?? order.status,
+		statusLabel: resolveOrderStatusLabel(order.status, order.payment),
 		items: items.map((line) => ({
 			id: objectIdString(line?._id) || `${objectIdString(line?.productId)}:${objectIdString(line?.variantId)}`,
 			productName: asString(line?.productName),
@@ -147,6 +186,7 @@ export function toOrder(order: OrderAttributes & { _id: { toString(): string } }
 			subtotalRupees: asNumber(totals.subtotalRupees),
 			shippingRupees: asNumber(totals.shippingRupees),
 			discountRupees: asNumber(totals.discountRupees),
+			paymentSurchargeRupees: asNumber(totals.paymentSurchargeRupees),
 			totalRupees: asNumber(totals.totalRupees),
 			itemCount,
 		},

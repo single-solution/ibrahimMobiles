@@ -17,13 +17,13 @@
  *     (first-reply ownership).
  */
 
-import { Inquiry, connectDB, handleMongoError } from "@store/db";
+import { Inquiry, connectDB, getIntegrationSettings, getStoreSettings, handleMongoError } from "@store/db";
 import { badRequest, CHAT_MESSAGE_BODY_MAX, created, isFieldError, isValidId, notFound, parseBody, validateMessageBody } from "@store/shared";
+import { notifyCustomerOnAgentReply } from "@store/shared/server";
 
 import { inquiryStatusPatchAfterMessage } from "@store/shared";
 
 import { requireSession } from "@/lib/api/requireSession";
-import { notifyOnNewMessage } from "@/lib/notifications/chatNotifications";
 import { recordActivity } from "@/lib/services/activityLog";
 import { toInquiryLatestPage, type InquiryLean } from "@/lib/serializers/inquiry";
 
@@ -60,6 +60,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 
 		const MSG_PREVIEW_MAX_LENGTH = 280;
 		const now = new Date();
+		const keepManualBotPause = inquiry.assistantMuteReason === "manual";
 		const update: Record<string, unknown> = {
 			$push: {
 				messages: {
@@ -75,12 +76,17 @@ export async function POST(request: Request, { params }: RouteContext) {
 				lastMessagePreview: bodyResult.slice(0, MSG_PREVIEW_MAX_LENGTH),
 				lastMessageAuthor: "agent",
 				unreadByTeam: 0,
-				// A human just replied — let the assistant resume on future messages
-				// and clear the escalation clock.
-				assistantMuted: false,
-				escalatedAt: null,
 				...inquiryStatusPatchAfterMessage(inquiry?.status, "team"),
 				...(inquiry?.assignedToUserId ? {} : { assignedToUserId: actor.id }),
+				...(keepManualBotPause
+					? {}
+					: {
+							assistantMuted: false,
+							assistantMuteReason: null,
+							assistantMutedAt: null,
+							assistantMutedByUserId: null,
+							escalatedAt: null,
+						}),
 			},
 			$inc: { unreadByCustomer: 1 },
 		};
@@ -98,13 +104,17 @@ export async function POST(request: Request, { params }: RouteContext) {
 			resourceLabel: label,
 			detail: "Replied",
 		});
-		const lastMessage = refreshed.messages[refreshed.messages.length - 1];
-		if (lastMessage) {
-			await notifyOnNewMessage(refreshed, {
-				body: lastMessage.body,
-				author: lastMessage.author,
-			});
-		}
+
+		const [integration, settings] = await Promise.all([getIntegrationSettings(), getStoreSettings()]);
+		void notifyCustomerOnAgentReply({
+			customerPhone: refreshed.phoneNumber,
+			customerName: refreshed.customerName ?? "Customer",
+			agentName: actor.name,
+			messagePreview: bodyResult,
+			siteName: settings.siteName,
+			whatsappCustomerOrderTemplate: integration.whatsappCustomerOrderTemplate.trim() || undefined,
+		});
+
 		return created(toInquiryLatestPage(refreshed));
 	} catch (error) {
 		return handleMongoError(error);

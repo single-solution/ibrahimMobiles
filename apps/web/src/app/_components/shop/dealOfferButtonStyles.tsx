@@ -33,6 +33,9 @@ export const DEAL_NOTICES_LAYOUT_CLASS = "flex w-full flex-col gap-2 md:flex-row
 export const DEAL_NOTICE_CHIP_CLASS =
 	"flex min-w-0 w-full flex-row flex-wrap items-center gap-x-2 gap-y-1 rounded-[var(--radius-md)] border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3 py-2 text-left md:w-fit";
 
+export const DEAL_NOTICE_CHIP_APPLIED_CLASS =
+	"border-[var(--color-accent-300)] bg-[var(--color-accent-100)]/80 ring-2 ring-[var(--color-accent-400)] ring-offset-2 ring-offset-[var(--color-canvas)]";
+
 export function DealNoticeChipContent({
 	badgeLabel,
 	discountLabel,

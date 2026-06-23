@@ -17,7 +17,10 @@ import {
 	badRequest,
 	coerceStoreSettingValue,
 	groupForField,
+	isValidWhatsappNumber,
+	normalizeWhatsappNumber,
 	ok,
+	POLICY_HTML_MAX_LENGTH,
 	parseBody,
 	STORE_SETTING_DEFAULTS,
 	STORE_SETTING_KEYS,
@@ -87,6 +90,13 @@ export async function PUT(request: Request) {
 			}
 			value = Math.floor(numeric) as StoreSettings[keyof StoreSettings];
 		}
+		if (field === "courierFlatFeeRupees") {
+			const numeric = typeof coerced === "number" ? coerced : Number(coerced);
+			if (!Number.isFinite(numeric) || numeric < 0 || numeric > 100_000) {
+				return badRequest("Courier flat fee must be between 0 and 100,000.");
+			}
+			value = Math.floor(numeric) as StoreSettings[keyof StoreSettings];
+		}
 		if (field === "metaPixelId") {
 			const trimmed = typeof coerced === "string" ? coerced.trim() : "";
 			if (trimmed.length > 0 && !META_PIXEL_REGEX.test(trimmed)) {
@@ -112,6 +122,20 @@ export async function PUT(request: Request) {
 			const trimmed = typeof coerced === "string" ? coerced.trim().toUpperCase() : "";
 			if (trimmed.length > 0 && !TIKTOK_PIXEL_REGEX.test(trimmed)) {
 				return badRequest("TikTok Pixel ID must be 16–40 alphanumeric characters.");
+			}
+			value = trimmed as StoreSettings[keyof StoreSettings];
+		}
+		if (field === "whatsappNumber") {
+			const digits = normalizeWhatsappNumber(typeof coerced === "string" ? coerced : "");
+			if (digits.length > 0 && !isValidWhatsappNumber(digits)) {
+				return badRequest("WhatsApp number must be 10–15 digits (country code first, no plus or spaces).");
+			}
+			value = digits as StoreSettings[keyof StoreSettings];
+		}
+		if (field === "returnPolicyHtml" || field === "privacyPolicyHtml") {
+			const trimmed = typeof coerced === "string" ? coerced.trim() : "";
+			if (trimmed.length > POLICY_HTML_MAX_LENGTH) {
+				return badRequest(`Policy HTML must be at most ${POLICY_HTML_MAX_LENGTH.toLocaleString("en-PK")} characters.`);
 			}
 			value = trimmed as StoreSettings[keyof StoreSettings];
 		}

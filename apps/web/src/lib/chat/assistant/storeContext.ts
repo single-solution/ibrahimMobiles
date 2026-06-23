@@ -167,20 +167,19 @@ export async function buildAssistantStoreContext(input: {
 	}
 
 	const paymentMethods = [
-		settings.paymentBankEnabled ? "bank transfer" : "",
-		settings.paymentEasypaisaEnabled ? "Easypaisa" : "",
-		settings.paymentJazzcashEnabled ? "JazzCash" : "",
+		settings.paymentBankTransferEnabled ? "bank transfer (screenshot on WhatsApp)" : "",
 		settings.paymentCodEnabled ? "cash on delivery" : "",
+		settings.paymentCardEnabled ? "card payment" : "",
 	].filter(Boolean);
 
 	const policies = [
 		`Warranty: ${settings.defaultWarrantyMonths} months on eligible items.`,
 		`Money-back window: ${settings.moneybackDays} days (store policy).`,
 		`Free delivery above ${formatPrice(settings.freeDeliveryThresholdRupees)}.`,
-		`Bank transfer pre-pay discount: ${settings.bankTransferDiscountPercent}% when applicable.`,
+		settings.codSurchargePercent > 0 ? `Cash on delivery handling: +${settings.codSurchargePercent}% on merchandise subtotal.` : "",
 		`Loyalty: earn ${settings.loyaltyEarnPercent}% back on orders.`,
 		settings.globalDeliveryNote?.trim() ? `Delivery: ${settings.globalDeliveryNote.trim()}.` : "",
-		paymentMethods.length > 0 ? `Payment methods (complete at checkout — never share account numbers): ${paymentMethods.join(", ")}.` : "",
+		paymentMethods.length > 0 ? `Payment methods at checkout: ${paymentMethods.join(", ")}.` : "",
 		settings.paymentCodEnabled && settings.paymentCodNote?.trim() ? `COD: ${settings.paymentCodNote.trim()}.` : "",
 	]
 		.filter(Boolean)

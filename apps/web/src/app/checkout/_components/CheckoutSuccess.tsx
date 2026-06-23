@@ -3,19 +3,28 @@
 import { ArrowUpRight, CheckCircle2, Package, Sparkles } from "lucide-react";
 import { ButtonLink } from "@store/ui";
 import { Card } from "@/components/ui/Card";
-import { CHECKOUT_TO_ORDER_PAYMENT, LOYALTY_PROGRAM_NAME, formatPoints, type PaymentMethodId } from "@store/shared";
+import { CHECKOUT_TO_ORDER_PAYMENT, LOYALTY_PROGRAM_NAME, formatPoints, isLoyaltyEarnCredited, type OrderPaymentMethod, type PaymentMethodId } from "@store/shared";
 import { PaymentInstructionsCard } from "@/app/checkout/_components/PaymentInstructionsCard";
 
 interface CheckoutSuccessProps {
 	orderNumber: string;
-	payment: PaymentMethodId | null;
+	payment: PaymentMethodId | OrderPaymentMethod | null;
 	totalRupees: number;
 	pointsEarned: number;
 	pointsRedeemed: number;
+	orderStatus?: string;
 }
 
-export function CheckoutSuccess({ orderNumber, payment, totalRupees, pointsEarned, pointsRedeemed }: CheckoutSuccessProps) {
-	const orderPayment = payment ? CHECKOUT_TO_ORDER_PAYMENT[payment] : null;
+export function CheckoutSuccess({ orderNumber, payment, totalRupees, pointsEarned, pointsRedeemed, orderStatus }: CheckoutSuccessProps) {
+	const orderPayment =
+		payment === "bank-transfer" || payment === "card" || payment === "cod"
+			? CHECKOUT_TO_ORDER_PAYMENT[payment]
+			: payment;
+	const isCardConfirmed = orderPayment === "card" && orderStatus === "confirmed";
+	const isCardPending = orderPayment === "card" && orderStatus === "pending-payment";
+	const isBankTransferPending = orderPayment === "bank-transfer" && orderStatus === "pending-payment";
+	const isCod = orderPayment === "cod";
+	const isEarnCredited = isLoyaltyEarnCredited(orderStatus);
 
 	return (
 		<div className="storefront-page-center mx-auto max-w-3xl">
@@ -45,7 +54,14 @@ export function CheckoutSuccess({ orderNumber, payment, totalRupees, pointsEarne
 						<li className="flex items-start gap-3">
 							<span className="mt-1 size-1.5 rounded-full bg-[var(--color-accent-600)]" />
 							<p>
-								<strong className="text-[var(--color-ink-900)]">Within 2 hours</strong> — we verify your payment and prep your order for final QC.
+								<strong className="text-[var(--color-ink-900)]">Within 2 hours</strong> —{" "}
+								{isCardConfirmed || isCod
+									? "we prep your order for final QC."
+									: isBankTransferPending
+										? "send your bank transfer screenshot on WhatsApp so we can confirm payment."
+										: isCardPending
+											? "complete card payment online to confirm your order."
+											: "we prep your order for final QC."}
 							</p>
 						</li>
 						<li className="flex items-start gap-3">
@@ -63,11 +79,39 @@ export function CheckoutSuccess({ orderNumber, payment, totalRupees, pointsEarne
 					</ul>
 				</Card>
 
-				{orderPayment && totalRupees > 0 && (
+				{isCardConfirmed ? (
+					<div className="reveal mx-auto mt-4 max-w-xl rounded-[var(--radius-lg)] border border-[var(--color-success-200)] bg-[var(--color-success-50)] p-4 text-[13px] text-[var(--color-success-900)] md:mt-6">
+						Card payment received — your order is confirmed and moving to packing.
+					</div>
+				) : null}
+
+				{isBankTransferPending ? (
+					<div className="reveal mx-auto mt-4 max-w-xl md:mt-6" style={{ ["--reveal-delay" as string]: "280ms" }}>
+						<PaymentInstructionsCard
+							payment="bank-transfer"
+							orderNumber={orderNumber}
+							totalRupees={totalRupees}
+							isPaymentComplete={false}
+						/>
+					</div>
+				) : null}
+
+				{isCardPending ? (
+					<div className="reveal mx-auto mt-4 max-w-xl md:mt-6" style={{ ["--reveal-delay" as string]: "280ms" }}>
+						<PaymentInstructionsCard
+							payment="card"
+							orderNumber={orderNumber}
+							totalRupees={totalRupees}
+							isPaymentComplete={false}
+						/>
+					</div>
+				) : null}
+
+				{isCod && totalRupees > 0 ? (
 					<div className="reveal mx-auto mt-4 max-w-xl md:mt-6" style={{ ["--reveal-delay" as string]: "280ms" }}>
 						<PaymentInstructionsCard payment={orderPayment} orderNumber={orderNumber} totalRupees={totalRupees} />
 					</div>
-				)}
+				) : null}
 
 				{(pointsEarned > 0 || pointsRedeemed > 0) && (
 					<Card className="reveal mx-auto mt-4 max-w-xl overflow-hidden md:mt-6" style={{ ["--reveal-delay" as string]: "320ms" }}>
@@ -79,7 +123,9 @@ export function CheckoutSuccess({ orderNumber, payment, totalRupees, pointsEarne
 								<p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-700)]">{LOYALTY_PROGRAM_NAME}</p>
 								{pointsEarned > 0 && (
 									<p className="text-[14px] font-semibold text-[var(--color-ink-900)] md:text-[15px]">
-										You earned <span className="text-[var(--color-accent-800)]">{formatPoints(pointsEarned)}</span>
+										{isEarnCredited ? "You earned" : "You&rsquo;ll earn"}{" "}
+										<span className="text-[var(--color-accent-800)]">{formatPoints(pointsEarned)}</span>
+										{!isEarnCredited ? " when delivered" : null}
 										{pointsRedeemed > 0 ? (
 											<>
 												{" "}

@@ -13,12 +13,14 @@ declare module "next-auth" {
 			id: string;
 			role: AdminRole;
 			isSuperAdmin: boolean;
+			passwordChangedAtMs: number;
 		} & DefaultSession["user"];
 	}
 
 	interface User {
 		role: AdminRole;
 		isSuperAdmin: boolean;
+		passwordChangedAtMs?: number;
 	}
 }
 
@@ -27,5 +29,6 @@ declare module "next-auth/jwt" {
 		id: string;
 		role: AdminRole;
 		isSuperAdmin: boolean;
+		passwordChangedAtMs?: number;
 	}
 }

@@ -15,11 +15,8 @@ export function buildWhatsAppLink(message: string, whatsappNumber: string): stri
 
 // ─── Storefront UI options ──────────────────────────────────────────────────
 
-/** Stable IDs / labels for every checkout payment chip. The `note` strings
- *  that reference admin-managed values (like the bank-transfer discount)
- *  are computed at runtime by `getPaymentMethods(settings)` below — never
- *  hardcoded so a settings change is reflected in the UI immediately. */
-export const PAYMENT_METHOD_IDS = ["bank", "easypaisa", "jazzcash", "cod"] as const;
+/** Stable IDs / labels for checkout payment chips. */
+export const PAYMENT_METHOD_IDS = ["bank-transfer", "cod", "card"] as const;
 export type PaymentMethodId = (typeof PAYMENT_METHOD_IDS)[number];
 
 export interface PaymentMethodOption {
@@ -28,73 +25,66 @@ export interface PaymentMethodOption {
 	note: string;
 }
 
-/**
- * Build the checkout's payment-method options with admin-managed copy.
- *
- * Each method respects its `paymentXxxEnabled` toggle so an admin can hide
- * (e.g.) Easypaisa when the wallet is offline. The bank-transfer "Pay full →
- * N% off" note tracks the live `bankTransferDiscountPercent` setting, and
- * the COD chip's note is taken straight from `paymentCodNote` so a busy
- * weekend can swap "Local only" for "Pickup only".
- */
 export interface PaymentMethodSettings {
-	bankTransferDiscountPercent: number;
-	paymentBankEnabled?: boolean;
-	paymentEasypaisaEnabled?: boolean;
-	paymentJazzcashEnabled?: boolean;
+	codSurchargePercent: number;
+	paymentBankTransferEnabled?: boolean;
+	paymentBankTransferNote?: string;
+	paymentCardEnabled?: boolean;
 	paymentCodEnabled?: boolean;
+	paymentCardNote?: string;
 	paymentCodNote?: string;
+	/** When false, card chip is hidden (no PK gateway configured). Set server-side only. */
+	cardCheckoutReady?: boolean;
+	bankAccountNumber?: string;
+	bankIban?: string;
+}
+
+/**
+ * Build checkout payment options from admin settings.
+ * COD note can include the live cash surcharge % when configured.
+ */
+function hasBankTransferDetails(settings: PaymentMethodSettings): boolean {
+	return Boolean(settings.bankAccountNumber?.trim() || settings.bankIban?.trim());
 }
 
 export function getPaymentMethods(settings: PaymentMethodSettings): readonly PaymentMethodOption[] {
-	const discount = Math.max(0, settings.bankTransferDiscountPercent);
-	// `?? true` keeps the historical behaviour for stores that haven't saved
-	// settings yet — every method shows by default until an admin toggles
-	// one off, so an upgrade can't silently break checkout.
+	const codSurchargePercent = Math.max(0, settings.codSurchargePercent);
 	const all: Array<PaymentMethodOption & { enabled: boolean }> = [
 		{
-			id: "bank",
-			label: "Bank Transfer",
-			note: discount > 0 ? `Pay full → ${discount}% off` : "Bank transfer pre-payment",
-			enabled: settings.paymentBankEnabled ?? true,
-		},
-		{
-			id: "easypaisa",
-			label: "Easypaisa",
-			note: "Advance to confirm order",
-			enabled: settings.paymentEasypaisaEnabled ?? true,
-		},
-		{
-			id: "jazzcash",
-			label: "JazzCash",
-			note: "Advance to confirm order",
-			enabled: settings.paymentJazzcashEnabled ?? true,
+			id: "bank-transfer",
+			label: "Bank transfer",
+			note: settings.paymentBankTransferNote?.trim() || "Transfer online — send payment screenshot on WhatsApp",
+			enabled: (settings.paymentBankTransferEnabled ?? true) && hasBankTransferDetails(settings),
 		},
 		{
 			id: "cod",
-			label: "Cash on Delivery",
-			note: settings.paymentCodNote?.trim() || "Local only · in-person verify",
+			label: "Cash on delivery",
+			note:
+				settings.paymentCodNote?.trim() ||
+				(codSurchargePercent > 0 ? `+${codSurchargePercent}% handling on cash orders` : "Pay when you receive your order"),
 			enabled: settings.paymentCodEnabled ?? true,
+		},
+		{
+			id: "card",
+			label: "Pay online",
+			note: settings.paymentCardNote?.trim() || "Cards, JazzCash, easypaisa, Raast (when enabled)",
+			enabled: (settings.paymentCardEnabled ?? false) && (settings.cardCheckoutReady ?? false),
 		},
 	];
 	return all.filter((method) => method.enabled).map(({ enabled: _enabled, ...rest }) => rest);
 }
 
-/**
- * Static label lookup that doesn't depend on whether a method is currently
- * enabled — used by the order history / order detail pages so a customer
- * who paid via Easypaisa still sees "Easypaisa" even after the admin
- * temporarily disables that method on checkout.
- */
 const PAYMENT_METHOD_FALLBACK_LABELS: Record<PaymentMethodId, string> = {
-	bank: "Bank Transfer",
-	easypaisa: "Easypaisa",
-	jazzcash: "JazzCash",
-	cod: "Cash on Delivery",
+	"bank-transfer": "Bank transfer",
+	card: "Pay online",
+	cod: "Cash on delivery",
 };
 
-export function getPaymentMethodLabel(id: PaymentMethodId): string {
-	return PAYMENT_METHOD_FALLBACK_LABELS[id];
+export function getPaymentMethodLabel(id: PaymentMethodId | string): string {
+	if ((PAYMENT_METHOD_IDS as readonly string[]).includes(id)) {
+		return PAYMENT_METHOD_FALLBACK_LABELS[id as PaymentMethodId];
+	}
+	return id.replace(/-/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 export const STORAGE_OPTIONS = [64, 128, 256, 512, 1024] as const;

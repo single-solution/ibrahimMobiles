@@ -21,11 +21,11 @@ import {
 	logger,
 	notFound,
 	payloadTooLarge,
-	resolveStorageProvider,
 	serverError,
 	SNIFF_BYTE_COUNT,
 	unsupportedMediaType,
 } from "@store/shared";
+import { resolveStorageProvider } from "@store/shared/server";
 
 import { requireSession } from "@/lib/api/requireSession";
 import { recordActivity } from "@/lib/services/activityLog";
@@ -127,7 +127,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 		} else if (!fileSignatureMatches(buffer, fileType)) {
 			return unsupportedMediaType(`File contents do not match declared type "${fileType}".`);
 		}
-		const storage = resolveStorageProvider();
+		const storage = await resolveStorageProvider();
 		const MAX_SAFE_FILENAME = 200;
 		const MAX_STORED_FILENAME = 240;
 		const MSG_PREVIEW_MAX_LENGTH = 280;

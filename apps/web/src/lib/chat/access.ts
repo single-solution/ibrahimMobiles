@@ -24,6 +24,7 @@ import { badRequest, forbidden, isAnonymousChatPhone, isValidId, notFound, verif
 
 import { auth } from "@/lib/auth";
 import { claimAnonymousThreadIfNeeded } from "@/lib/chat/claimAnonymousThread";
+import { getVerifiedCustomer } from "@/lib/server/customerSession";
 import type { InquiryLean } from "./serializer";
 
 const COOKIE_NAME = "inquiry_thread_token";
@@ -43,9 +44,9 @@ export async function resolveChatAccess(inquiryId: string): Promise<ChatAccess |
 	const doc = await InquiryModel.findById(inquiryId).lean<InquiryLean>();
 	if (!doc) return notFound("Thread not found.");
 
-	// Signed-in customer path.
-	const session = await auth();
-	if (session?.user?.role === "customer" && session.user.customerId && doc.customerId && doc.customerId.toString() === session.user.customerId) {
+	// Signed-in customer path — DB-enriched session, not JWT claims alone.
+	const customer = await getVerifiedCustomer();
+	if (customer && doc.customerId && doc.customerId.toString() === customer.id) {
 		return {
 			inquiry: doc,
 			via: "customer",
@@ -54,6 +55,7 @@ export async function resolveChatAccess(inquiryId: string): Promise<ChatAccess |
 	}
 
 	// Guest cookie path.
+	const session = await auth();
 	const cookieJar = await cookies();
 	const token = cookieJar.get(COOKIE_NAME)?.value;
 	const payload = await verifyGuestToken(token);

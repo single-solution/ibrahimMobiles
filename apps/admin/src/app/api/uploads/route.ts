@@ -19,7 +19,8 @@
  * trusting the browser-supplied MIME (`security.md` § File Upload).
  */
 
-import { assertContentTypeMatches, badRequest, logger, ok, payloadTooLarge, resolveStorageProvider, serverError, SNIFF_BYTE_COUNT, unsupportedMediaType } from "@store/shared";
+import { assertContentTypeMatches, badRequest, logger, ok, payloadTooLarge, serverError, SNIFF_BYTE_COUNT, unsupportedMediaType } from "@store/shared";
+import { resolveStorageProvider } from "@store/shared/server";
 
 import { requireSession } from "@/lib/api/requireSession";
 import {
@@ -104,7 +105,7 @@ export async function POST(request: Request) {
 			if (sniffError) {
 				return unsupportedMediaType(sniffError);
 			}
-			const storage = resolveStorageProvider();
+			const storage = await resolveStorageProvider();
 			const keyPrefix = buildKeyPrefix(subjectKind, subjectId);
 			const stored = await processImage({
 				buffer,
@@ -137,7 +138,7 @@ export async function POST(request: Request) {
 		if (sniffError) {
 			return unsupportedMediaType(sniffError);
 		}
-		const storage = resolveStorageProvider();
+		const storage = await resolveStorageProvider();
 		const keyPrefix = buildKeyPrefix(subjectKind, subjectId);
 		const extension = fileType === "video/webm" ? "webm" : "mp4";
 		const RADIX_BASE36 = 36;

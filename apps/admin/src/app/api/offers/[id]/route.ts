@@ -1,7 +1,7 @@
 import { connectDB, handleMongoError, Offer } from "@store/db";
 
 const HEX_COLOR_REGEX = /^#[0-9a-f]{6}$/i;
-import { badRequest, conflict, isValidId, isValidationError, noContent, normalizeStructuredContent, notFound, ok, parseBody, validateString, type OfferCondition } from "@store/shared";
+import { badRequest, conflict, isValidId, isValidationError, noContent, normalizeOfferConstraintsForScope, normalizeStructuredContent, notFound, ok, parseBody, validateCatalogOfferRules, validateString, type OfferAction, type OfferCondition, type OfferConstraints } from "@store/shared";
 
 import { requireSession } from "@/lib/api/requireSession";
 import { bustAdminCaches } from "@/lib/cached";
@@ -12,14 +12,13 @@ import { slugify } from "@store/shared";
 import { OFFER_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import { parseSeoPayload } from "@/lib/api/seoPayload";
 
-function normalizeOfferConstraints(constraints: unknown) {
+function normalizeOfferConstraints(constraints: unknown, conditions: OfferCondition[]): OfferConstraints {
 	const base = typeof constraints === "object" && constraints !== null ? (constraints as Record<string, unknown>) : { allowLoyaltyPoints: false, usageCount: 0 };
-	return {
-		...base,
+	return normalizeOfferConstraintsForScope(conditions, {
 		allowLoyaltyPoints: Boolean(base.allowLoyaltyPoints),
 		isStackable: false,
 		usageCount: typeof base.usageCount === "number" ? base.usageCount : 0,
-	};
+	});
 }
 
 interface RouteContext {
@@ -169,7 +168,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 		update.schedule = body.schedule;
 	}
 	if (body.constraints !== undefined && typeof body.constraints === "object" && body.constraints !== null) {
-		update.constraints = normalizeOfferConstraints(body.constraints);
+		update.constraints = body.constraints;
 	}
 
 	if (Object.keys(update).length === 0) {
@@ -177,6 +176,32 @@ export async function PUT(request: Request, { params }: RouteContext) {
 	}
 
 	await connectDB();
+
+	const existing = await Offer.findById(id).select("conditions action constraints").lean<{
+		conditions?: OfferCondition[];
+		action?: OfferAction;
+		constraints?: OfferConstraints;
+	}>();
+	if (!existing) {
+		return notFound("Offer not found");
+	}
+
+	const nextConditions = (update.conditions ?? existing.conditions ?? []) as OfferCondition[];
+	const nextAction = (update.action ?? existing.action ?? { type: "percentage_discount", value: 10, target: "matched_items" }) as OfferAction;
+
+	if (update.conditions !== undefined || update.action !== undefined) {
+		const catalogValidationError = validateCatalogOfferRules(nextConditions, nextAction);
+		if (catalogValidationError) {
+			return badRequest(catalogValidationError);
+		}
+	}
+
+	if (update.constraints !== undefined) {
+		update.constraints = normalizeOfferConstraints(update.constraints, nextConditions);
+	} else if (update.conditions !== undefined) {
+		update.constraints = normalizeOfferConstraints(existing.constraints ?? { allowLoyaltyPoints: false, isStackable: false, usageCount: 0 }, nextConditions);
+	}
+
 	try {
 		const doc = await Offer.findByIdAndUpdate(id, { $set: update }, { new: true, runValidators: true }).lean<OfferLean>();
 		if (!doc) {

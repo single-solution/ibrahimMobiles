@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
-import { AlertTriangle, Paperclip, Phone, Send } from "lucide-react";
+import { AlertTriangle, Bot, Paperclip, Phone, Send } from "lucide-react";
 import { Button } from "@store/ui";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { StatusPill } from "@/components/shared/StatusPill";
@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { WorkspaceDetailHeader } from "@/components/shared/workspaceUi";
 import { apiFetch } from "@/lib/api";
 import { getInitials } from "@/lib/initials";
-import { classNames, createChatTransport, mergeChatMessagesById } from "@store/shared";
+import { classNames, createChatTransport, formatTimeAgo, mergeChatMessagesById, type AssistantMuteReason } from "@store/shared";
 import type { AdminInquiry, AdminInquiryAttachment, AdminInquiryMessage, AdminInquiryStatus, AdminInquirySummary } from "@/types/models";
 
 import { STATUS_LABELS, STATUS_OPTIONS, STATUS_TONE } from "./inquiriesStatus";
@@ -61,6 +61,7 @@ export function InquiryConversationPanel({
 	const [isUploading, setIsUploading] = useState(false);
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
+	const [isTogglingBot, setIsTogglingBot] = useState(false);
 	const [isLoadingOlder, setIsLoadingOlder] = useState(false);
 	const messagesContainerRef = useRef<HTMLDivElement>(null);
 	const attachmentInputRef = useRef<HTMLInputElement>(null);
@@ -105,6 +106,10 @@ export function InquiryConversationPanel({
 			unreadByCustomer: detail.unreadByCustomer,
 			unreadByTeam: detail.unreadByTeam,
 			escalated: detail.escalated,
+			assistantPaused: detail.assistantPaused,
+			assistantPauseReason: detail.assistantPauseReason,
+			assistantPausedAt: detail.assistantPausedAt,
+			assistantPausedByUserId: detail.assistantPausedByUserId,
 			createdAt: detail.createdAt,
 			updatedAt: detail.updatedAt,
 		});
@@ -136,6 +141,7 @@ export function InquiryConversationPanel({
 								}
 							: detail,
 					);
+					syncListSummary(detail);
 				}
 				if (detail.unreadByTeam > 0) {
 					void apiFetch(`/api/inquiries/${inquiryId}/read`, { method: "POST" })
@@ -174,6 +180,8 @@ export function InquiryConversationPanel({
 			cancelled = true;
 			transport.stop();
 		};
+		// syncListSummary is defined in render scope and only notifies the parent list.
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- inquiry bootstrap + poll transport
 	}, [inquiryId, onRead, toast]);
 
 	const lastMessageId = inquiry?.messages.at(-1)?.id;
@@ -286,6 +294,25 @@ export function InquiryConversationPanel({
 		}
 	}
 
+	async function handleToggleBot(assistantEnabled: boolean) {
+		if (!canReply || isTogglingBot) {
+			return;
+		}
+		setIsTogglingBot(true);
+		try {
+			const updated = await apiFetch<AdminInquiry>(`/api/inquiries/${inquiryId}/assistant`, {
+				method: "POST",
+				json: { enabled: assistantEnabled },
+			});
+			applyThreadUpdate(updated);
+			toast.success(updated.assistantPaused ? "Assistant paused on this chat" : "Assistant resumed on this chat");
+		} catch (error) {
+			toast.danger(error instanceof Error ? error.message : "Failed to update assistant");
+		} finally {
+			setIsTogglingBot(false);
+		}
+	}
+
 	async function handleDelete() {
 		if (!inquiry) return;
 		setIsDeleting(true);
@@ -339,10 +366,15 @@ export function InquiryConversationPanel({
 				}
 				badge={
 					<span className="flex items-center gap-1.5">
-						{inquiry.escalated ? (
-							<span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-danger-600)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+						{inquiry.assistantPaused ? (
+							<span
+								className={classNames(
+									"inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white",
+									inquiry.assistantPauseReason === "manual" ? "bg-[var(--color-warn-700)]" : "bg-[var(--color-danger-600)]",
+								)}
+							>
 								<AlertTriangle size={11} />
-								Needs senior
+								{inquiry.assistantPauseReason === "manual" ? "Bot paused" : "Escalated"}
 							</span>
 						) : null}
 						<StatusPill tone={STATUS_TONE[inquiry.status]}>{STATUS_LABELS[inquiry.status]}</StatusPill>
@@ -350,6 +382,18 @@ export function InquiryConversationPanel({
 				}
 				actions={
 					<>
+						{canReply ? (
+							<Button
+								variant="outline"
+								size="sm"
+								leadingIcon={<Bot size={12} />}
+								onClick={() => void handleToggleBot(inquiry.assistantPaused)}
+								isLoading={isTogglingBot}
+								disabled={isDeleting || isSaving}
+							>
+								{inquiry.assistantPaused ? "Resume bot" : "Pause bot"}
+							</Button>
+						) : null}
 						<Button variant="outline" size="sm" leadingIcon={<Phone size={12} />} onClick={() => onCallTapped(inquiry.phoneNumber)} disabled={isDeleting}>
 							Call
 						</Button>
@@ -379,13 +423,12 @@ export function InquiryConversationPanel({
 				onCancel={() => setConfirmDelete(false)}
 			/>
 
-			{inquiry.escalated ? (
-				<div className="flex items-center gap-2 border-b border-[var(--color-danger-200)] bg-[var(--color-danger-50)] px-3 py-2 text-xs text-[var(--color-danger-700)] md:px-5">
-					<AlertTriangle size={14} className="shrink-0" />
-					<span>
-						<strong>Escalated to a senior.</strong> The assistant is paused — reply to take over this chat.
-					</span>
-				</div>
+			{inquiry.assistantPaused ? (
+				<AssistantPauseBanner
+					reason={inquiry.assistantPauseReason}
+					pausedAt={inquiry.assistantPausedAt}
+					pausedByLabel={inquiry.assistantPausedByUserId ? assigneeLabel(inquiry.assistantPausedByUserId) : undefined}
+				/>
 			) : null}
 
 			<div ref={messagesContainerRef} onScroll={handleMessagesScroll} className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-4 md:px-5">
@@ -406,7 +449,14 @@ export function InquiryConversationPanel({
 
 			{canReply ? (
 				<div className="shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] p-3 md:p-4">
-					<div className="flex items-end gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-2">
+					{inquiry.assistantPaused ? (
+						<ComposerBotStatus
+							reason={inquiry.assistantPauseReason}
+							pausedAt={inquiry.assistantPausedAt}
+							pausedByLabel={inquiry.assistantPausedByUserId ? assigneeLabel(inquiry.assistantPausedByUserId) : undefined}
+						/>
+					) : null}
+					<div className={classNames("flex items-end gap-2 rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-canvas)] p-2", inquiry.assistantPaused && "mt-2")}>
 						<input ref={attachmentInputRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf,text/plain" hidden onChange={handleAttachmentChange} />
 						<button
 							type="button"
@@ -505,6 +555,80 @@ export function InquiryConversationPanel({
 					)}
 				</form>
 			</details>
+		</div>
+	);
+}
+
+function ComposerBotStatus({
+	reason,
+	pausedAt,
+	pausedByLabel,
+}: {
+	reason?: AssistantMuteReason | null;
+	pausedAt?: string;
+	pausedByLabel?: string;
+}) {
+	const isManual = reason === "manual";
+	const whenLabel = pausedAt ? formatTimeAgo(pausedAt) : null;
+	return (
+		<div
+			role="status"
+			className={classNames(
+				"rounded-[var(--radius-md)] border px-2.5 py-2 text-xs",
+				isManual ? "border-[var(--color-warn-200)] bg-[var(--color-warn-50)] text-[var(--color-warn-900)]" : "border-[var(--color-danger-200)] bg-[var(--color-danger-50)] text-[var(--color-danger-800)]",
+			)}
+		>
+			<div className="flex items-start gap-2">
+				<Bot size={14} className="mt-0.5 shrink-0 opacity-80" aria-hidden />
+				<span className="min-w-0">
+					<span className="font-semibold">Bot status: Paused</span>
+					<span className="mt-0.5 block text-[11px] font-normal leading-relaxed opacity-90">
+						{isManual ? "Paused by your team — automated replies are off until you resume the bot." : "Escalated — the bot flagged this chat for a teammate."}
+						{whenLabel || pausedByLabel ? (
+							<span className="mt-0.5 block opacity-80">
+								{whenLabel ? `Since ${whenLabel}` : null}
+								{whenLabel && pausedByLabel ? " · " : null}
+								{pausedByLabel ? `Paused by ${pausedByLabel}` : null}
+							</span>
+						) : null}
+					</span>
+				</span>
+			</div>
+		</div>
+	);
+}
+
+function AssistantPauseBanner({
+	reason,
+	pausedAt,
+	pausedByLabel,
+}: {
+	reason?: AssistantMuteReason | null;
+	pausedAt?: string;
+	pausedByLabel?: string;
+}) {
+	const isManual = reason === "manual";
+	const whenLabel = pausedAt ? formatTimeAgo(pausedAt) : null;
+	return (
+		<div
+			className={classNames(
+				"flex items-start gap-2 border-b px-3 py-2.5 text-xs md:px-5",
+				isManual ? "border-[var(--color-warn-200)] bg-[var(--color-warn-50)] text-[var(--color-warn-900)]" : "border-[var(--color-danger-200)] bg-[var(--color-danger-50)] text-[var(--color-danger-800)]",
+			)}
+		>
+			<AlertTriangle size={14} className="mt-0.5 shrink-0" />
+			<span className="min-w-0">
+				<strong>{isManual ? "Assistant paused by your team." : "Escalated — needs a teammate."}</strong>{" "}
+				{isManual
+					? "Automated replies are off until you tap Resume bot. Reply here when you are ready."
+					: "The bot flagged this chat for a human. Reply to take over — escalation clears when you respond unless the bot was manually paused."}
+				{whenLabel ? (
+					<span className="mt-1 block text-[11px] opacity-80">
+						Since {whenLabel}
+						{pausedByLabel ? ` · paused by ${pausedByLabel}` : ""}
+					</span>
+				) : null}
+			</span>
 		</div>
 	);
 }

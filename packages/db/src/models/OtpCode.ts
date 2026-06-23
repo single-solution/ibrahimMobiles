@@ -2,7 +2,7 @@
  * One-time passcodes for customer sign-in via phone.
  *
  * Codes are stored as bcrypt hashes — the raw 6-digit value is only ever
- * delivered to the customer (via SMS/WhatsApp) and to the server during
+ * delivered to the customer (via WhatsApp) and to the server during
  * verification. We store the canonical 10-digit phone fingerprint so we
  * can index efficiently and ignore prefix noise.
  *

@@ -12,7 +12,8 @@
  * targets up to `MAX_URLS_PER_CALL` object URLs.
  */
 
-import { badRequest, isAllowedStorageObjectUrl, logger, ok, parseBody, resolveStorageProvider } from "@store/shared";
+import { badRequest, isAllowedStorageObjectUrl, logger, ok, parseBody } from "@store/shared";
+import { resolveStorageProvider } from "@store/shared/server";
 
 import { requireSession } from "@/lib/api/requireSession";
 
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
 		return badRequest(`Up to ${MAX_URLS_PER_CALL} URLs per request.`);
 	}
 
-	const storage = resolveStorageProvider();
+	const storage = await resolveStorageProvider();
 	const errors: string[] = [];
 	for (const raw of payload.urls) {
 		if (typeof raw !== "string") {

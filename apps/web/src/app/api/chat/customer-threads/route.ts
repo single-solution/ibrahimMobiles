@@ -13,8 +13,8 @@ import { Customer, Inquiry as InquiryModel, connectDB, isMongoDuplicateKeyError 
 import { badRequest, created, logger, resolveChatWelcomeMessage, serverError } from "@store/shared";
 
 import { enforceSameOrigin } from "@/lib/api/sameOrigin";
-import { auth } from "@/lib/auth";
 import { getChatSettings } from "@/lib/chat/chatSettings";
+import { getVerifiedCustomer } from "@/lib/server/customerSession";
 import { toThreadLatestPage } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
 
@@ -34,8 +34,8 @@ export async function POST(request: Request) {
 		return badRequest("Chat is currently disabled.");
 	}
 
-	const session = await auth();
-	if (session?.user?.role !== "customer" || !session.user.customerId || !Types.ObjectId.isValid(session.user.customerId)) {
+	const actor = await getVerifiedCustomer();
+	if (!actor) {
 		return badRequest("Sign in to start a conversation.");
 	}
 
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 	}
 
 	await connectDB();
-	const customerId = new Types.ObjectId(session.user.customerId);
+	const customerId = new Types.ObjectId(actor.id);
 
 	// One conversation per customer: reuse the existing thread if there is one.
 	const existing = await InquiryModel.findOne({ customerId }).sort({ lastMessageAt: -1 }).lean<InquiryLean>();
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 		return created(toThreadLatestPage(existing));
 	}
 
-	const customer = await Customer.findById(session.user.customerId).select({ name: 1, phoneNumber: 1 }).lean<{ name: string; phoneNumber: string }>();
+	const customer = await Customer.findById(actor.id).select({ name: 1, phoneNumber: 1 }).lean<{ name: string; phoneNumber: string }>();
 	if (!customer) {
 		return badRequest("Customer account not found.");
 	}

@@ -1,402 +1,601 @@
 # Ibrahim Mobiles
 
-This document maps the exact business rules, state machines, limits, and conditionals of the platform. It uses visual flows, dense tables, and structured lists to provide maximum detail without lengthy paragraphs.
+Domain specification for the storefront, checkout, chat, loyalty, orders, and admin console. Use during development and full-site audits.
 
 ---
 
 ## Documentation
 
-Operational and technical docs live in `docs/`:
+| Document | Purpose |
+| -------- | ------- |
+| [Setup & onboarding](docs/setup.md) | Install, env vars, local dev, troubleshooting |
+| [Go-live runbook](docs/go-live.md) | Production deploy, integrations, smoke test, launch checklist |
+| [Architecture](docs/architecture.md) | Monorepo layout, apps, packages, MongoDB, security boundaries |
+| [Catalog operations](docs/catalog.md) | Products, attributes, pools, variants in Admin |
+| [Website audit guide](docs/website-audit.md) | Checklist for auditing storefront + admin |
+| [Engineering handbook](docs/engineering-handbook.md) | Project standards, optimizations inventory, vibeCodingRules gaps, new-dev rules |
 
-- [Setup & Onboarding](docs/setup.md) — install, env vars, local dev, troubleshooting
-- [Architecture](docs/architecture.md) — monorepo layout, apps, packages, MongoDB collections, boundaries
-- [Catalog operations](docs/catalog.md) — how products, attributes, pools, and variants work in Admin
+```mermaid
+graph LR
+  README[README — rules]
+  SETUP[setup.md]
+  GOLIVE[go-live.md]
+  ARCH[architecture.md]
+  CAT[catalog.md]
+  AUDIT[website-audit.md]
+  HANDBOOK[engineering-handbook.md]
+  README --> AUDIT
+  README --> HANDBOOK
+  SETUP --> GOLIVE
+  GOLIVE --> ARCH
+  CAT --> README
+```
+
+**Apps:** Storefront `@store/web` (port 3000) · Admin `@store/admin` (port 3001) · Packages `@store/db`, `@store/shared`, `@store/ui`.
 
 ---
 
-## 1. Catalog & Domain Rules
+## 1. Catalog & domain rules
 
 ### Data source
 
-- **MongoDB is the catalog source of truth.** Categories, grades, attributes, brands, products, and variants are created and edited in the Admin console.
-- **No repo seed scripts.** There is no JSON import path or one-time migration folder in this repository — catalog changes are normal admin CRUD.
-- **Orders are snapshots.** At checkout each line stores `productName`, `variantSummary`, and `unitPriceRupees`. Changing catalog data does not rewrite past orders. Replacing all variants on a product assigns new `variantId` values — open carts and in-flight checkouts for that product must be refreshed.
+- **MongoDB** is the catalog source of truth — categories, grades, attributes, brands, products, variants.
+- **Admin CRUD** or database restore; no bundled seed data in the repo.
+- **Orders are snapshots** — each line stores `productName`, `variantSummary`, `unitPriceRupees` at placement.
 
-### Attribute model (three layers)
+### Attribute model
+
+```mermaid
+flowchart TB
+  subgraph category [Category layer]
+    A[Global attributes + options]
+    G[Grades]
+    B[Brands]
+  end
+  subgraph product [Product layer]
+    P[attributeSlugs]
+    POOL[attributeOptionPool]
+    CUSTOM[attributeCustomOptions]
+  end
+  subgraph sku [Variant layer]
+    V[gradeSlug + price + qty + attribute picks]
+  end
+  A --> P
+  P --> POOL
+  P --> CUSTOM
+  POOL --> V
+  CUSTOM --> V
+  G --> V
+```
 
 | Layer | Where | Purpose |
 | ----- | ----- | ------- |
-| **Category attribute** | `attributes` collection | Global dimension per category (e.g. Storage, Color, PTA status) with shared `options[]` used as templates for filters and labels. |
-| **Product config** | `products.attributeSlugs`, `attributeOptionPool`, `attributeCustomOptions`, optional `attributeDefaults` | Which dimensions this product uses; which global option **values** are allowed; product-only values with display labels (e.g. iPhone-specific colors). |
-| **Variant row** | `products.variants[]` | One sellable SKU: `gradeSlug`, `priceRupees`, `quantity`, `forceOutOfStock`, optional `warrantyDays`, and chosen attribute values. |
+| **Category attribute** | `attributes` collection | Shared dimensions (Storage, Color, PTA, …) with `options[]` for filters and labels. |
+| **Product config** | `attributeSlugs`, pools, custom options, defaults | Which dimensions apply; whitelisted values; product-only values. |
+| **Variant row** | `products.variants[]` | SKU: `gradeSlug`, `priceRupees`, `quantity`, `forceOutOfStock`, `warrantyDays`, attributes. |
 
-**Rule:** A variant value must exist in the product pool — either a whitelisted global option value or a `attributeCustomOptions` entry. Duplicate attribute combinations within the same grade are rejected in Admin.
+**Rule:** Variant values must sit in the product pool. Duplicate combinations within the same grade are rejected.
 
-### Visibility Cascade
-
-A product must pass every gate in this flow to appear on the storefront. If any node fails, the product is completely hidden.
-
-```mermaid
-flowchart LR
-    A[Product] --> B{Is Active?}
-    B -- Yes --> C{Is Archived?}
-    C -- No --> D{Has Variants?}
-    D -- Yes --> E{Category Active?}
-    E -- Yes --> F{Brand Active?}
-    F -- Yes --> G(((Visible on Storefront)))
-
-    B -- No --> H(((Hidden)))
-    C -- Yes --> H
-    D -- No --> H
-    E -- No --> H
-    F -- No --> H
-
-    style G fill:#10b981,stroke:#047857,color:white
-    style H fill:#ef4444,stroke:#b91c1c,color:white
-```
-
-### Core Entities & Invariants
-
-- **Category**
-  - **Identity:** URL slug (auto-generated from label if absent).
-  - **Content:** Description blurb, icon, sort order, optional rich marketing content (summary + icon-tagged bullets), optional SEO overrides.
-  - **Integrity:** Cannot be deleted if referenced by products, brands, or grades. Deactivate instead.
-  - **Rule:** Inactive categories hide all descendant products from every shopper surface.
-- **Brand**
-  - **Scoping:** Brands are per-category (e.g., Apple in Phones vs Apple in Watches).
-  - **Integrity:** Cannot be deleted if products exist. Deactivate instead.
-  - **Rule:** Admin product form only shows brands whose `categorySlugs` includes the chosen category.
-- **Grade (Condition)**
-  - **Scoping:** Per-category condition tier (e.g., "Like New", "Refurbished").
-  - **Display:** Drives badges, hex colors, notes, and optional inspection videos on the PDP.
-- **Attribute (Custom Dimension)**
-  - **Scoping:** Per-category custom dimension (e.g., Storage, RAM, Color).
-  - **Visibility Rules:** Shop filters may show _Always_, _By Brand_, or _By Grade_. Which attributes appear on a product's variants is configured per product on the product details page (`attributeSlugs`).
-  - **Card Position:** Renders on product cards as image overlay, title chips, or hidden.
-- **Product**
-  - **Media:** Up to 8 photos on the product document only — every variant shares the same gallery. Index `0` is the hero image. There are no per-variant or per-grade images.
-  - **Flags:** `isActive` (master on/off), `isArchived` (soft delete; hidden from default admin lists), `isFeatured` (Deals page and offer rails).
-  - **Attribute setup (admin Step 2):** Pick `attributeSlugs`, tune `attributeOptionPool` per slug, add `attributeCustomOptions` for model-specific values, optional `attributeDefaults` for new variant drafts. See [Catalog operations](docs/catalog.md).
-- **Variant**
-  - **Truth:** Source of truth for price (`priceRupees`), stock (`quantity`), condition (`gradeSlug`), warranty (`warrantyDays`), and attribute combination.
-  - **Attributes:** `attributes` map — one string per slug, or string array when multiple global values apply on one row (e.g. three colors). `attributeDisplay` supplies labels for custom pool values.
-  - **Stock:** In stock when `quantity > 0` and `forceOutOfStock` is false. Reserved atomically at order placement; released on cancel, refund, or return.
-  - **Force sold out:** `forceOutOfStock` hides the variant on the storefront without changing `quantity`.
-
----
-
-## 2. Storefront: Global Shell & Home Page
-
-### Global Layout & Navigation
-
-- **Desktop:** Sticky top header — Home, Deals, About, Account, Search, Cart. No separate Shop link; the catalog lives on Home.
-- **Mobile:** Compact top header + fixed bottom tab bar (Home, Deals, Support, Cart, Account). **Support** opens live chat (highlighted while open; no header close on mobile — switch tabs to dismiss). WhatsApp when chat is off or on checkout/sign-in. About remains in the desktop header only.
-- **Auth State:** "Account" vs "Sign in" label resolves client-side.
-- **Notice Banner:** Shown only if enabled in Admin with text. Dismissible for the session.
-- **404 Page:** Shows message + links to home browse.
-
-### Home Page (`/`)
-
-- **Purpose:** Catalog entry — search only. With no `?q=` param, redirects to the first active category (`/{categorySlug}`).
-- **Search:** `/?q=…` renders global search results (hero + product grid). Search overlay submit uses the same URL.
-- **About Page (`/about`):** Full marketing homepage — hero, browse-by-category tiles, process, grades, and visit-store sections. Category tiles link to `/{categorySlug}`.
-
-### About Page (former homepage content)
-
-- **Hero:** Full-viewport hero with mask-sweep headline, trending product name band, and **Visit store** CTA → `/`.
-- **Browse by category:** Featured category cards. Active cards link to `/{categorySlug}`; inactive show **Soon**.
-- **Process:** 3 flows (Store, Order, Return). Uses admin-configured money-back days and bank-transfer discount %.
-- **Grades (Dark Band):** Headline + category tabs. Per-grade cards with badge, notes, video. _Conditional:_ If data fails, copy shows but grid is empty.
-- **Visit Store:** Address, hours, embedded map, Maps link, accepted payments, delivery blurb. _Layout:_ Mobile puts map above details; Desktop is side-by-side.
-
----
-
-## 3. Storefront: Shop, Search & Filters
-
-### Search Overlay
-
-- **Trigger:** Opens full-screen from header. Body scroll locks. Input auto-focuses.
-- **< 2 chars:** Shows randomized hint chips + up to 5 recent browser searches.
-- **≥ 2 chars:** Debounced live results (max 10) with variant counts and loading skeletons.
-- **Submit:** Routes to `/?q=…`, saves to recent searches, closes overlay. Max 100 chars.
-- **Empty State:** "No results" with option to search all.
-
-### Shop & Category Listings
-
-- **Routing:** Category listings live at `/{categorySlug}` with filter query params on the same URL. Product detail URLs are `/{categorySlug}/{productSlug}`. Reserved segments (`/about`, `/cart`, etc.) are not categories.
-- **Conditionals:** Unknown category slug → 404. Inactive category slug → coming-soon state on `/{categorySlug}` (not a separate route).
-- **Mobile listing:** Category picker + **Filters** dock fixed above the bottom tab bar; infinite-scroll product grid below the hero band.
-- **Desktop listing:** Sticky **filter sidebar** (272px) + filter pill row + infinite-scroll product grid.
-- **Filters (AND Logic) & Infinite Scroll:** Brand, grade, price, attributes, sort, `q` sync to URL. Filters open in a bottom sheet on mobile. 24 items per page, infinite scroll + "Load more" fallback.
-
-### Product Cards & Deals Page
-
-- **Product Cards:** Show brand, name, hero image, grade badge, attribute chips. _Conditional:_ Multiple grades = cycles grade slides on hover. _Conditional:_ Out of stock = "Sold out" overlay. _Conditional:_ Item-scoped active offer = **offer `badgeLabel`** pill on the image (top-right, above grade badge; crossfades per slide when cycling grades/variants; no price cut on card).
-- **Deals Page:** Centered gradient header (`Today's deals`). **Checkout-only** offers (cart-total, payment-method) show as **notice chips** under the title. **Item-scoped + storewide** offers: intro line, then selectable pill buttons (first deal selected by default; tap another to switch). Storewide selection shows the full in-stock catalog. Product grid title is `{deal title} products` directly under the deal row. Terms panel when the selected deal has structured copy.
-
----
-
-## 4. Storefront: Product Detail Page (PDP)
-
-### Layout & Routing
-
-- **URL Sync:** Variant selections sync to URL params (`grade` + attribute slugs). _Conditional:_ Invalid combos silently reset to defaults client-side.
-- **Layout:** Desktop = Breadcrumbs + 2-column (gallery | configurator) + grade showcase + related rail. Mobile = Gallery card + configurator + grade showcase + related rail + sticky bottom purchase bar.
-- **Gallery:** Hero image, thumbnails, lightbox zoom. Mobile supports swipe/cross-fade. Uses the product-level gallery only (not per variant).
-
-### Configurator & Actions
-
-- **Hierarchy hint:** _Conditional:_ Multi-option products show intro copy under “Build your configuration” — e.g. “Pick grade first — the options below update to match.” Single-dimension products omit it.
-- **Incomplete Selection:** Price hidden, missing attributes highlighted.
-- **Complete Selection:** Price, stock, quantity stepper, and "Add to cart" appear.
-- **Closest Match:** _Conditional:_ If exact combo doesn't exist, auto-selects closest stocked variant and shows a pre-filled WhatsApp inquiry button.
-- **Stock & Qty:** Max qty is variant stock minus current cart qty. _Conditional:_ "Buy all" shortcut appears if stock > 1 and qty < max. _Conditional:_ Sold Out = Button disabled, mobile sticky bar drops WhatsApp button.
-- **Pricing:** List price only in sticky CTA and purchase summary. _Conditional:_ Item-scoped offers show **`badgeLabel` on the gallery** plus a **home-style info pill** above the configurator (soft accent notice colors, discount, title, inline requirements). Matching configuration **auto-applies** the offer. Cart/checkout run full offer math.
-- **Grade Showcase:** Updates with selected variant's grade (notes, warranty, video). _Conditional:_ Omitted if grade data missing.
-- **Related Products:** Same category + brand. _Conditional:_ "No more products" if none.
-
----
-
-## 5. Storefront: Cart & Checkout
-
-### Price Calculation Flow
-
-Prices are never trusted from the client. The server re-evaluates the cart at placement using this exact sequence.
+### Visibility cascade
 
 ```mermaid
 flowchart TD
-    A[Sum Variant DB Prices] --> B[Evaluate Offers Engine]
-    B --> C{Bank Transfer?}
-    C -- Yes --> D[Apply Bank Discount %]
-    C -- No --> E[Base Discount]
-    D --> F[Calculate Shipping]
-    E --> F
-    F --> G{Redeeming Points?}
-    G -- Yes --> H[Subtract Loyalty Value]
-    G -- No --> I[Final Total]
-    H --> I
-
-    style I fill:#3b82f6,stroke:#1d4ed8,color:white
+  P[Product] --> A{Active?}
+  A -->|No| X[Hidden]
+  A -->|Yes| AR{Archived?}
+  AR -->|Yes| X
+  AR -->|No| V{Has variants?}
+  V -->|No| X
+  V -->|Yes| C{Category active?}
+  C -->|No| X
+  C -->|Yes| BR{Brand active?}
+  BR -->|No| X
+  BR -->|Yes| OK[Visible on storefront]
 ```
 
-### Cart Behavior
+### Core entities
 
-- **Limits:** Max 20 distinct product+variant pairs. Max 10 qty per line (or variant stock cap).
-- **Persistence:** LocalStorage, syncs across tabs, survives refresh. Hydration gate prevents empty flash.
-- **Layout:** Desktop dropdown shows summary + line items. Full page `/cart` has mobile scrollable list vs desktop sidebar.
-
-### Checkout Steps & Validation
-
-| Step             | Rules & Conditionals                                                                                                                                                                                                                                                                                                                |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0. Auth Gate** | • **Guest:** Blocked. Shows read-only summary and sign-in panel.<br>• **Signed-in:** Allowed to proceed.                                                                                                                                                                                                                            |
-| **1. Contact**   | • Name (editable, min 2 chars). Phone (read-only from verified account).                                                                                                                                                                                                                                                            |
-| **2. Delivery**  | • **Pickup:** Free. Shows store hours.<br>• **Courier:** Flat Rs 1,500 OR Free if subtotal ≥ admin threshold. Address required (min 2 chars). Pre-fills default saved address.                                                                                                                                                      |
-| **3. Payment**   | • Options: Bank Transfer, Easypaisa, JazzCash, COD.<br>• **Discount:** Bank Transfer automatically applies admin-configured % discount.                                                                                                                                                                                             |
-| **4. Loyalty**   | • **Min Redeem:** 100 points. **Max Redeem:** 20% of order subtotal.<br>• **Blocker:** Disabled if an active offer explicitly disallows loyalty redemption.<br>• **Input:** Toggle applies max available automatically (no partial manual entry).                                                                                   |
-| **5. Placement** | • **Validation:** Name > 1 char, Phone ≥ 7 chars, Address valid, Policy checked.<br>• **Security:** Idempotency key prevents double-charges. Max 5 placements / 15 min.<br>• **Server Truth:** Prices re-fetched from DB. Client prices ignored.<br>• **Stock:** Reserved atomically at placement. Insufficient stock throws error. |
-
-### Checkout Success
-
-- **Display:** Order number, timeline, payment instructions (if total > 0), and loyalty summary.
-- **Guards:** Requires valid session and `order` query param.
+| Entity | Key rules |
+| ------ | --------- |
+| **Category** | Slug, marketing content, SEO. Inactive → all products hidden. |
+| **Brand** | Per-category scope. Product form filters brands by category. |
+| **Grade** | Condition tier — badge, color, notes, video on PDP. |
+| **Attribute** | Filter visibility (always / by brand / by grade); card position on listings. |
+| **Product** | Up to **8** shared images; `isActive`, `isArchived`, `isFeatured`. |
+| **Variant** | In stock when `quantity > 0` and not `forceOutOfStock`. Stock reserved at order placement. |
 
 ---
 
-## 6. Storefront: Auth & Account
+## 2. Storefront shell & navigation
 
-### OTP Sign-In Flow
+### Layout map
+
+```mermaid
+flowchart TB
+  subgraph desktop [Desktop]
+    DH[Header: Home · Deals · About · Search · Account · Cart]
+    MAIN[Page content]
+    FAB[Chat FAB — Ask us!]
+    DH --> MAIN
+    MAIN --> FAB
+  end
+  subgraph mobile [Mobile]
+    MH[Compact header]
+    MTAB[Tab bar: Home · Deals · Support · Cart · Account]
+    MH --> MAIN2[Page content]
+    MAIN2 --> MTAB
+  end
+```
+
+| Surface | Behavior |
+| ------- | -------- |
+| **Desktop header** | Home, Deals, About, Search overlay, Account/Sign in, Cart dropdown. |
+| **Mobile tab bar** | Home, Deals, **Support** (chat), Cart, Account. |
+| **Chat** | On **every** storefront page when enabled — desktop FAB + mobile Support tab. Disabled → WhatsApp. |
+| **Notice banner** | Optional; dismissible per session (Settings → Notices). |
+| **Chat / search load** | Deferred after idle (~1.5s) to reduce initial blocking. |
+
+### Route map
+
+| Route | Behavior |
+| ----- | -------- |
+| `/` | No `?q=` → first active category. `/?q=` → global search (24/page, max 100 chars). |
+| `/{category}` | Listing + URL filters. Inactive → coming soon. |
+| `/{category}/{slug}` | PDP; wrong category in URL → canonical redirect. |
+| `/deals` | Catalog deal pills + checkout offer chips + product grid. |
+| `/cart` | Full-page cart (browser storage). |
+| `/checkout` | Guests can view; **place order requires sign-in**. |
+| `/checkout/success?order=` | Confirmation — auth required. |
+| `/about` | Marketing — hero, categories, process, grades, visit store. |
+| `/account/*` | Protected except `/account/sign-in`. |
+
+Reserved segments (not categories): `about`, `account`, `api`, `cart`, `checkout`, `deals`.
+
+---
+
+## 3. Search, shop & deals
+
+### Search overlay flow
 
 ```mermaid
 flowchart LR
-    A[Enter Phone] --> B{Rate Limited?}
-    B -- Yes --> C[Error: Retry-After]
-    B -- No --> D[Generate 6-digit OTP]
-    D --> E[SMS Delivered]
-    E --> F[Enter OTP]
-    F --> G{Valid?}
-    G -- No --> H[Increment Fail Count]
-    H --> |5 Fails| I[Invalidate Code]
-    G -- Yes --> J(((Create Session)))
+  OPEN[Open overlay] --> LEN{Query length}
+  LEN -->|under 2 chars| HINTS[Hints + recent searches]
+  LEN -->|2+ chars| LIVE[Live results max 10]
+  LIVE --> SUBMIT[Submit to /?q=]
 ```
 
-### Account Rules
+| Rule | Value |
+| ---- | ----- |
+| Debounce | ~220ms |
+| Recent searches | 5 in browser storage |
+| API rate | 60/min/IP |
+| Search backend | Atlas Search when index exists; regex fallback otherwise |
 
-- **Identity:** Phone number (normalized to last 10 digits). No passwords.
-- **OTP Limits:** Max 5 issues / 15 min. Resend cooldown 30s. Max 5 wrong guesses per code.
-- **OTP Fallback:** If SMS provider fails (5xx), UI offers manual admin code entry ("I have a code from our team").
-- **Session:** 30-day persistent HTTP-only cookie. Claims any anonymous chat threads matching the phone on creation.
-- **Profile:** Phone is immutable. Name and City required to save. Addresses: Max 6. Cannot delete the last remaining address.
-- **Dashboard:** Shows active orders, total spent, order history filters. Loyalty sidebar shows balance and pending points.
-- **Sign-out:** Clears session, anonymous chat cookies, local cart, and client signed-in flag.
+### Category listing
+
+| Filter (AND) | URL param |
+| ------------ | --------- |
+| Brand | `brand` |
+| Grade | `grade` |
+| Price | `min`, `max` |
+| In stock only | `stock=1` |
+| Sort | `sort` |
+| Text | `q` |
+| Attributes | `attr.{slug}` |
+
+**Pagination:** 24/page (max 60); infinite scroll + load-more fallback.
+
+### Deals surfaces
+
+```mermaid
+flowchart LR
+  CD[Catalog deal] --> DEALS[/deals pills]
+  CD --> CARD[Card badge]
+  CD --> PDP[PDP pill + auto-apply]
+  CO[Checkout offer] --> CHIPS[Deals header chips]
+  CO --> CART[Cart + checkout]
+```
 
 ---
 
-## 7. Chat & AI Assistant
+## 4. Product detail (PDP)
 
-### Escalation Timeline
+```mermaid
+flowchart TD
+  G[Gallery] --> CFG[Configurator]
+  CFG -->|incomplete| WAIT[Price hidden]
+  CFG -->|complete| BUY[Price · qty · Add to cart]
+  CFG --> GS[Grade showcase]
+  CFG --> REL[Related products]
+  PDP_CTX[Chat context] -.->|open from PDP| CHAT[Support chat]
+```
 
-When the AI detects frustration or a direct request for a human, it triggers a strict escalation protocol.
+| Feature | Rule |
+| ------- | ---- |
+| URL sync | `grade` + attribute slugs; invalid combos reset client-side. |
+| Qty cap | min(stock − cart qty, **10**/line). |
+| Catalog deals | Badge on gallery + guidance pill; checkout offers never on PDP. |
+| Closest match | Nearest stocked variant + WhatsApp when exact combo missing. |
+| Related | Same category + brand — show **4** from pool of **8**. |
+
+---
+
+## 5. Cart & checkout
+
+### Checkout journey
+
+```mermaid
+flowchart TD
+  CART[Cart] --> CHK[Checkout page]
+  CHK --> AUTH{Signed in?}
+  AUTH -->|No| GATE[Sign-in panel + read-only summary]
+  AUTH -->|Yes| FORM[Contact · Delivery · Payment · Loyalty]
+  FORM --> POL[Policy notice + modals]
+  POL --> PLACE[Place order — server validates]
+  PLACE --> OK[Success page]
+```
+
+### Price calculation (server only)
+
+```mermaid
+flowchart TD
+  A[Sum DB variant prices] --> B[Apply offers]
+  B --> C{COD selected?}
+  C -->|Yes| D[COD surcharge %]
+  C -->|No| E[No payment surcharge]
+  D --> F[Shipping fee]
+  E --> F
+  F --> G{Redeem points?}
+  G -->|Yes| H[Subtract loyalty]
+  G -->|No| I[Final total]
+  H --> I
+```
+
+### Cart limits
+
+| Rule | Value |
+| ---- | ----- |
+| Max lines | 20 product+variant pairs |
+| Max qty / line | 10 (or stock cap) |
+| Storage | Browser localStorage; cross-tab sync |
+| Catalog offers | Locked on line at add-to-cart |
+
+### Checkout steps
+
+| Step | Rules |
+| ---- | ----- |
+| **Contact** | Name min 2 chars; phone read-only from account. |
+| **Delivery** | **Pickup** — free. **Courier** — flat fee (default **Rs 1,500**, admin-configurable) unless subtotal **after offers** ≥ threshold (default **Rs 50,000**) → free, or a checkout offer grants free shipping. Address min 2 chars for courier. |
+| **Payment** | **Bank transfer**, **cash on delivery**, or **pay online** (optional). Admin toggles each method. **Bank transfer (default):** transfer online → send payment screenshot on WhatsApp → admin confirms. **COD:** order confirms immediately; pay cash on delivery. **Pay online:** PayFast or Rapid Gateway when enabled under Integrations (admin picks one). **COD surcharge:** admin % on merchandise subtotal after offers. Optional chip notes per method. |
+| **Loyalty** | Min **100** pts; max **20%** of subtotal; 1 pt = Rs 1. Blocked when checkout offer disallows points. |
+| **Policies** | Placing order agrees to return + privacy policies. Links open **modals** with admin HTML — no checkbox. |
+| **Placement** | Idempotency key **required**; max **5** orders / **15 min**; atomic stock reservation; server re-prices every line from DB. |
+
+### Checkout security (server authority)
+
+| Rule | Behavior |
+| ---- | -------- |
+| **Pricing** | Totals computed only on server from live variant prices — client cart amounts are never trusted. |
+| **Offers** | Only active + eligible offers apply; discount capped at subtotal; catalog line offer must match server lock; usage reserved atomically before order create (rolled back on failure). |
+| **Idempotency** | `idempotencyKey` required on `POST /api/orders` — duplicate parallel submits return the same order. |
+| **Stock** | Reserved at placement; released on cancel / refund / return paths. |
+| **Payments** | PayFast hash verified with constant-time compare; Rapid webhook signature checked; paid amount required to auto-confirm card orders. |
+| **Rate limits** | Checkout, cancel, OTP, chat, and public catalog APIs rate-limited per IP + identifier. |
+
+### Payment methods (checkout)
+
+| Method | ID | Notes |
+| ------ | -- | ----- |
+| Bank transfer | `bank-transfer` | Toggle: `paymentBankTransferEnabled` (default on). Enter bank name + account number or IBAN in **Settings → Payments** — chip hidden and API blocked until details exist. Order stays **`pending-payment`** until admin confirms after WhatsApp screenshot. |
+| Cash on delivery | `cod` | Toggle: `paymentCodEnabled`; surcharge: `codSurchargePercent`. Order status **`confirmed`** on placement; pay cash when the parcel arrives. |
+| Pay online | `card` | Toggle: `paymentCardEnabled` (default off). **PayFast** or **Rapid Gateway** — admin picks active provider in **Settings → Integrations**. Auto-confirms via webhook or PayFast return callback. |
+
+---
+
+## 6. Authentication & account
 
 ```mermaid
 sequenceDiagram
-    actor Customer
-    participant AI as AI Assistant
-    participant System
-    actor Admin as Human Agent
+  actor User
+  participant UI as Sign-in page
+  participant API as OTP API
+  participant WA as Meta WhatsApp Cloud API
 
-    Customer->>AI: "I want to speak to a manager"
-    AI->>System: call escalate_to_human()
-    System-->>Admin: Flag thread "Needs Senior"
-    System->>AI: Mute AI (3 min grace period)
-
-    alt Admin replies within 3 mins
-        Admin->>Customer: "Hi, I'm the manager..."
-        System->>AI: Unmute AI, clear escalation flag
-    else No admin reply in 3 mins
-        System->>AI: Unmute in "Reassurance-only" mode
-        Customer->>AI: "Hello?"
-        AI->>Customer: "Our senior team is reviewing this..."
-    end
+  User->>UI: Enter phone
+  UI->>API: Request OTP
+  API->>WA: Deliver 6-digit code
+  User->>UI: Enter code
+  UI->>API: Verify
+  API-->>UI: Session cookie 30 days
+  Note over API: Claims guest chat threads
 ```
 
-### Chat Rules & Capabilities
+| Rule | Value |
+| ---- | ----- |
+| Identity | Phone only; no passwords |
+| OTP | 6 digits; **5 min** TTL; **5** max wrong guesses |
+| Rate limits | **5** issues / **15 min**; **10** verifies / **15 min** |
+| Resend | **1 min** throttle; UI cooldown **30s** |
+| Fallback | Dev: codes in server log when Meta WhatsApp env unset |
+| Addresses | Max **6**; cannot delete last |
+| Sign-out | Clears session, guest chat cookies, cart |
 
-- **Guest Limits:** Guests get 5 customer-authored messages max. Composer is then replaced by a sign-in gate. Threads merge to customer account upon sign-in.
-- **AI Auto-Reply:** Triggers after customer messages if enabled and not in escalation grace period.
-- **Pacing:** Bubbles drip with deterministic delays based on character count: 0.1s per character for reading, and 0.04s per character for typing. To prevent ugly blank gaps, a "Just a moment..." indicator shows during the reading phase, switching to the standard typing indicator during the typing phase.
-- **Initial Connection:** Displays "Connecting you with someone..." instead of a typing indicator while the thread is being created.
-- **AI Tools:** Can search catalog, check stock, list deals, check user orders/loyalty (scoped strictly to session ID). Product context is automatically passed if chat is opened from a PDP, and the AI is explicitly instructed to use this context to understand vague references like "this product". When listing product variants, the AI will list all available grades and conditions without omitting any.
-- **UI States:** Unread badge on launcher. Proactive nudge after idle minutes. Reconnecting subtitle. "Speak to someone" footer hint. Optimistic UI prevents message flickering by strictly 1-to-1 deduplicating local messages against background polling, ensuring double-sends are handled gracefully without ghosting.
-- **Polling:** 5s when tab focused / 30s when blurred. 120/min/IP limit.
+### Account pages
 
----
-
-## 8. Loyalty & Offers Engine
-
-### Offers Engine
-
-- **Evaluation:** Sequential by admin `sortOrder`. **One offer per order** — first eligible offer applies, then evaluation stops.
-- **Catalog exclusivity:** Item-specific offers (specific items or storewide) cannot overlap — the same product cannot match two offers. A category- or brand-wide offer blocks child products in another offer, and vice versa. Cart-total and payment-method offers are exempt.
-- **Display vs checkout:** Cards and PDP show item-scoped offer **hints only** (ignore cart-total and payment-method conditions). **Deal buttons** (`/deals`, shop hero) list item-scoped and **storewide** offers. **Notice chips** on `/deals` header, cart, and checkout surface cart-total and payment-method promos only. Cart and checkout (and order placement API) evaluate full rules including cart total, line quantity, and payment method.
-- **Bank transfer %:** Separate from offers — `settings.bankTransferDiscountPercent` at checkout; not an offer condition.
-- **Conditions:** Product, Category, Brand, Grade, Attribute, Price Range, Cart Total, **Min line quantity**, **Payment method**. Operators: in, not_in, between, gte, lte.
-- **Actions:** % off, Fixed Rs off, Free Shipping. Target: Matched items or Cart. (`buy_x_get_y` schema only — not evaluated yet.)
-- **Constraints:** Schedule window, usage limit, allow loyalty points flag.
-
-### Loyalty Rules
-
-- **Earn Rate:** Configurable % of subtotal (e.g., 1%). Earned on subtotal _before_ payment discounts.
-- **Trigger:** Points credited ONLY when order status → `delivered`.
-- **Reversal:** Points reversed if a `delivered` order changes to `cancelled` or `refunded`. (Returns do _not_ reverse loyalty).
-- **Value:** 1 Point = Rs 1.
-- **Bonuses:** Review and Referral bonuses exist in copy but are awarded via manual admin adjustment.
+| Page | Content |
+| ---- | ------- |
+| `/account` | Stats, order filters, loyalty card |
+| `/account/profile` | Name, city, addresses |
+| `/account/orders/[id]` | Timeline, items, payment, loyalty, **cancel** while `pending-payment` or `confirmed` |
 
 ---
 
-## 9. Order Lifecycle & Fulfillment
+## 7. Chat & AI assistant
 
-### Status Timeline & Side Effects
-
-This state machine dictates how an order progresses, when stock is released, and when loyalty points are awarded or reversed.
+### Entry & availability
 
 ```mermaid
-stateDiagram-v2
-    [*] --> PendingPayment : Order Placed (Stock Reserved)
-    PendingPayment --> Confirmed : Payment Verified
-    Confirmed --> Packed : Dispatch Video Uploaded
-    Packed --> Dispatched : Handed to Courier
-    Dispatched --> Delivered : Received
-
-    Delivered --> [*] : + Loyalty Points Earned
-
-    PendingPayment --> Cancelled : Stock Released
-    Confirmed --> Cancelled : Stock Released
-    Packed --> Cancelled : Stock Released
-
-    Delivered --> Returned : Stock Released (No Loyalty Reversal)
-    Delivered --> Refunded : Stock Released & Loyalty Reversed
+flowchart LR
+  subgraph enabled [Chat enabled]
+    D[FAB desktop]
+    M[Support tab mobile]
+    ALL[All storefront routes]
+  end
+  subgraph disabled [Chat disabled]
+    WA[WhatsApp from Support tab]
+  end
 ```
 
-### Order Statuses & Admin Actions
+| Rule | Default |
+| ---- | ------- |
+| Guest messages | **5** → sign-in gate |
+| Polling | **5s** focused / **30s** blurred |
+| Message max | **4,000** chars |
+| Anonymous cookie | **90** days |
+| Nudge delay | **7** min idle (dismissible) |
 
-| Status                   | Allowed Actions & Side Effects                                                                           |
-| ------------------------ | -------------------------------------------------------------------------------------------------------- |
-| `pending-payment`        | **Editable:** Line items, address, payment, delivery. Editing lines swaps stock reservations atomically. |
-| `confirmed`              | **Lock:** Order locked (read-only). Payment acknowledged.                                                |
-| `packed`                 | **Blocker:** Cannot enter this state without uploading/pasting a `dispatchVideoUrl`.                     |
-| `dispatched`             | **Invariant:** Cannot move status backward from here on the happy path.                                  |
-| `delivered`              | **Side Effect:** Credits `pointsEarned` to customer loyalty balance.                                     |
-| `cancelled` / `refunded` | **Side Effect:** Releases reserved stock. Reverses loyalty points _if_ previously delivered.             |
-| `returned`               | **Side Effect:** Releases reserved stock. (Does _not_ reverse loyalty).                                  |
+### Bot pause states
+
+```mermaid
+stateDiagram
+  [*] --> Active: Thread open
+  Active --> Escalated: AI tool or keyword
+  Active --> ManualPause: Admin Pause bot
+  Escalated --> Active: Agent reply
+  ManualPause --> Active: Admin Resume bot
+  Escalated --> ManualPause: Admin Pause bot
+  note right of Escalated: 3 min grace bot silent
+  note right of ManualPause: Agent reply does not resume
+```
+
+| Pause type | Trigger | Cleared by |
+| ---------- | ------- | ---------- |
+| **Escalation** | `escalate_to_human` tool or keywords (`speak to`, `manager`, …) | Agent reply (unless manual pause set) |
+| **Manual** | Admin **Pause bot** | Admin **Resume bot** only |
+
+### Customer UI when paused
+
+| Element | Behavior |
+| ------- | -------- |
+| Banner | Highlighted — team reviewing; can still message |
+| Subtitle | “Team is reviewing — you can still message us” |
+| Footer | Reminder that a teammate will follow up |
+| Typing indicator | Hidden while paused |
+
+### Admin inquiries UI when paused
+
+| Location | Shows |
+| -------- | ----- |
+| Sidebar row | Alert border + icon; **Bot off** or **Escalated** badge |
+| Header | Badge + Pause / Resume bot |
+| Below header | Why / when / who paused |
+| Above composer | **Bot status: Paused** bar |
+
+### Assistant capabilities
+
+- Auto-reply when enabled and thread not paused.
+- Pacing: read phase → typing phase with character-based delays.
+- Tools: catalog search, stock, deals, session-scoped orders/loyalty.
+- PDP context passed when chat opened from product page.
 
 ---
 
-## 10. Admin Console: Workspaces & Flows
+## 8. Loyalty & offers
 
-### Global Admin Patterns
+### Offer types
 
-- **Session:** Distinct cookie from storefront. Drops on browser close, 30-day JWT ceiling. Missing permissions redirect to dashboard with toast.
-- **Layout:** List + detail split on desktop; mobile shows list OR detail.
-- **Infinite Scroll:** Orders, customers, inquiries load more pages on scroll.
-- **Deferred Counts:** Heavy aggregates (total revenue, segment counts) stream in after first paint with shimmer skeletons.
-- **Search:** Debounced text search syncs to the URL and refetches the list.
+```mermaid
+flowchart TB
+  subgraph catalog [Catalog deal]
+    CL[Per cart line]
+    PDP_LOCK[Locked at add-to-cart]
+    ONE[One deal per product max]
+  end
+  subgraph checkout [Checkout offer]
+    CW[One per order by sortOrder]
+    STACK[Stacks with catalog deals]
+    LOY{allowLoyaltyPoints?}
+  end
+```
 
-### Orders Workspace
+| Type | Surfaces | Evaluation |
+| ---- | -------- | ------------ |
+| **Catalog deal** | `/deals`, cards, PDP | Per line; cart-total/payment rules ignored on display |
+| **Checkout offer** | Deals chips, cart, checkout | Cart total / payment method; may block loyalty |
+| **COD surcharge** | Checkout only | Admin % — not an offer |
 
-- **Filters:** Status tabs. Search by order number, name, phone, city.
-- **Stepper:** Clickable forward steps. Can only step backward if < dispatched.
-- **Actions:** Print invoice, WhatsApp customer (normalizes phone), Cancel order (runs cancel side-effects). Hard delete requires `order_delete` permission.
+**Actions:** percentage discount, fixed Rs off, free shipping.
 
-### Customers Workspace
+**Conditions:** product, category, brand, grade, attribute, price range, cart total, min line qty, payment method.
 
-- **Segments:** All, Loyalty, With Orders.
-- **Create:** Phone normalized. Duplicate phone conflicts rejected.
-- **Details:** Profile (phone is read-only), Addresses, Orders, Loyalty transactions, Inquiries.
-- **Actions:** Generate 15-min manual sign-in code. Adjust loyalty balance (requires reason, cannot drive below zero). Delete blocked if `orderCount > 0`.
+### Loyalty
 
-### Inquiries Inbox
-
-- **Filters:** Anonymous threads are excluded from the default view.
-- **Read State:** Opening a thread zeros `unreadByTeam`. Replying increments `unreadByCustomer`.
-- **Assignment:** Replying to an unassigned thread auto-assigns it to the operator.
-- **Actions:** Change status (Open, Awaiting Customer, Resolved), add internal notes, attach files (JPEG, PNG, WebP, PDF, plain text).
-
-### Catalog (Products, Categories, Brands, Grades, Attributes)
-
-- **Products:** Hard delete blocked when referenced by orders — use `isActive` or `isArchived` instead. **Step 1:** category, brand, name, photos. **Step 2:** attribute setup (enabled slugs, option pools, custom options) then variants grouped by grade. Each variant: price, quantity, warranty days, attribute picks, **In stock** toggle (`forceOutOfStock`). Duplicate attribute combinations within a grade are rejected.
-- **Attributes:** Per-category global dimensions and option templates. Visibility can gate shop filters by brand or grade. Product-only values belong on the product (`attributeCustomOptions`), not as new global options.
-- **Grades:** Per-category condition tiers (label, color, notes, video, active flag). Drive PDP badges and variant `gradeSlug`.
-- **Categories:** Label, slug, icon, sort order, structured marketing content, SEO. Inactive category hides all its products.
-- **Brands:** Scoped to one or more categories. Product wizard only lists brands for the selected category.
+| Rule | Default |
+| ---- | ------- |
+| Earn | `loyaltyEarnPercent` of **payable order total** (after offers, COD fee, delivery, minus redemption) |
+| Credit | On status → `delivered` |
+| Reversal (earned) | On `cancelled` / `refunded` after delivered — not on `returned` |
+| Redeem refund | On `cancelled` / `refunded` / `returned` — points debited at checkout are credited back |
+| Redeem | Min **100** pts; max **20%** of subtotal **after offers**; 1 pt = Rs 1 |
+| **Balance at checkout** | `POST /api/loyalty-balance` requires a signed-in customer session; returns only the authenticated customer's balance (no phone lookup) |
 
 ---
 
-## 11. Admin Console: System & Security
+## 9. Order lifecycle
 
-### Admin Authentication
+```mermaid
+stateDiagram
+  [*] --> confirmed: COD placed stock reserved
+  [*] --> pending_payment: Bank transfer or card placed stock reserved
+  pending_payment --> confirmed: Admin confirms transfer OR gateway paid
+  confirmed --> packed: Dispatch video
+  packed --> dispatched
+  dispatched --> delivered: Loyalty earned
+  pending_payment --> cancelled: Stock released
+  confirmed --> cancelled
+  packed --> cancelled
+  delivered --> returned: Stock released
+  delivered --> refunded: Stock released loyalty reversed
+```
 
-- **Limits:** 8 attempts / 15 min per IP+email.
-- **Security:** Generic failure message (no hint whether email exists). Reset password token hashed, 1-hour expiry.
-- **Passwords:** 8–128 chars, at least one letter and one digit.
+| Status | Admin / system behavior |
+| ------ | ----------------------- |
+| `pending-payment` | **Bank transfer or pay online** — awaiting WhatsApp screenshot (bank) or gateway payment; editable lines, address, payment, delivery |
+| `confirmed` | **COD lands here on place**; bank transfer after admin confirms; pay online after PayFast/Rapid confirms. Locked from line edits; fulfillment moves **one step at a time** (no skip to `delivered`) |
+| `packed` | Requires `dispatchVideoUrl` |
+| `dispatched` | No backward step on happy path |
+| `returned` | Only from `delivered` |
+| `delivered` | Credits loyalty |
+| `cancelled` / `refunded` / `returned` | Stock released; earned loyalty reversed on refund after delivered; redeemed points refunded |
+| **Customer cancel** | Account order detail → **Cancel order** while `pending-payment` or `confirmed` (releases stock, refunds redeemed points) |
+| **Admin bank-transfer panel** | Pending bank-transfer orders show store account details on admin order detail for screenshot matching |
 
-### Roles & Permissions
+Staff and customer alerts fire **after** successful writes (non-blocking — failure never blocks the order or chat reply).
 
-_Super-admin flag bypasses all role matrices and grants all keys._
+### Staff recipients
 
-| Role              | Capabilities & Limits                                                                                                |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Owner**         | Full access. Only role with `order_delete` and `data_cleanup`.                                                       |
-| **Business Mgr**  | Catalog, Orders, Customers, Loyalty, Chat, Offers, Settings.<br>_Blocked:_ Team invites, hard deletes, data cleanup. |
-| **Product Mgr**   | Catalog CRUD and Media only.                                                                                         |
-| **Marketing Mgr** | Offers, Categories, Brands, Media. Read-only products.                                                               |
-| **Support Staff** | Read-only Catalog/Orders/Customers. Can view + reply to chats.                                                       |
+| Channel | Recipients |
+| ------- | ---------- |
+| **Email** | Every active admin `users` row with email + `staffNotifyEmail` (Integrations) + store support email |
+| **WhatsApp** | `staffNotifyWhatsApp` (Integrations) + phone on every active admin user (shop events); inquiries also notify assignee phone when set |
 
-### Settings & Activity Log
+### Customer WhatsApp
 
-- **Settings Tabs:** Site URLs, Store details, Contact, Payments, Delivery, Notices, Loyalty, Policies, Inventory, SEO, Chat widget, Integrations, Data cleanup.
-- **Site URLs:** Admin-managed public storefront origin (`Settings → General → Site URLs`). Drives SEO canonicals, sitemap, product “open storefront” links, and admin sidebar links. When unset, falls back to `STOREFRONT_BASE_URL` / deploy env, then localhost in dev.
-- **Live Updates:** Changes to branding, policies, payments, and chat config apply to the storefront immediately.
-- **Data Cleanup:** Owner-only tool to bulk-delete catalog, orders, customers, or inquiries.
-- **Activity Log:** Append-only audit trail of all mutations (actor, action, resource, timestamp). Failures to log do not block business operations. Filters by resource type and action. Tracks: created, updated, deleted, archived, restored, status_changed, login, logout, invited, signin_code_issued.
-- **Shop Health:** Dashboard card checks for missing site name, missing support contacts, invalid pixels, products without images, and out-of-stock variants.
+Requires customer phone on order snapshot or inquiry thread + `whatsappCustomerOrderTemplate` in Integrations.
+
+### Event matrix
+
+| Event | Staff email | Staff WhatsApp | Customer WhatsApp |
+| ----- | :---------: | :------------: | :---------------: |
+| Order placed | Yes | Yes | Yes |
+| Order status changed | Yes | Yes | Yes |
+| Payment confirmed (gateway or admin) | Yes | Yes | Yes |
+| Order cancelled | Yes | Yes | Yes |
+| Customer chat message | Yes | Yes (global + assignee) | — |
+| Inquiry escalated (AI / keywords) | Yes | Yes (global + assignee) | — |
+| Agent reply | — | — | Yes |
+
+**Limit:** Low-stock variants surface in Admin dashboard + bell only — no email/WhatsApp for inventory thresholds today.
+
+**Config:** Admin → Settings → Integrations (Resend, Meta WhatsApp, template names). Shop Health warns when any channel is misconfigured.
+
+---
+
+## 9b. Storefront performance & motion
+
+| Layer | Behavior |
+| ----- | -------- |
+| **ISR** | Hot pages revalidate every **30s**; router stale cache tuned for snappy back/forward. |
+| **Boot warm** | On server start: Mongo connect + storefront read caches (settings, categories, grades, attributes). |
+| **Prefetch** | Idle prefetch of home, deals, about, cart, and top category routes. |
+| **Images** | Next.js optimizer — AVIF/WebP; long cache TTL on product photos. |
+| **Deferred UI** | Chat widget + search overlay load after ~**1.5s** idle to protect first paint. |
+| **Motion** | Scroll reveals (`.reveal`), navigation progress bar, route cross-fade — **not removed** for performance; `prefers-reduced-motion` shortens/disables animation only. |
+| **Build resilience** | Store settings, SEO metadata, chat settings, and layout reference data fall back to defaults when Mongo is unreachable at build or boot — pages still render; ISR refreshes on next request. |
+
+---
+
+## 10. Admin console
+
+### Workspace map
+
+```mermaid
+flowchart LR
+  D[Dashboard]
+  O[Orders]
+  I[Inquiries]
+  CU[Customers]
+  P[Products]
+  CA[Categories]
+  OF[Offers]
+  S[Settings]
+  T[Team]
+  AC[Activity]
+```
+
+| Workspace | Permission (typical) | Key actions |
+| --------- | -------------------- | ----------- |
+| **Orders** | `order_view` / `order_update` | Stepper, edits while pending-payment, cancel, invoice |
+| **Inquiries** | `inquiry_view` / `inquiry_reply` | Reply, attach, **pause/resume bot**, assign |
+| **Customers** | `customer_view` | Profile, loyalty, sign-in code |
+| **Products** | `product_*` | Wizard, variants, SEO |
+| **Categories** | `category_manage` | Categories, brands, grades, attributes |
+| **Offers** | `offer_manage` | Banner, rules, publish |
+| **Settings** | `settings_view` | See §11 |
+| **Team** | `team_view` | Roles, invites |
+| **Activity** | `activity_view` | Audit log |
+
+### Roles
+
+| Role | Access |
+| ---- | ------ |
+| **Owner** | Full; `order_delete` + `data_cleanup` |
+| **Business manager** | Catalog, orders, customers, chat, settings |
+| **Product manager** | Catalog CRUD + media |
+| **Marketing manager** | Offers, categories, brands |
+| **Support staff** | Read ops data; inquiry reply |
+
+Super-admin bypasses all permission checks.
+
+**Sign-in:** Email + password on `/login`. Password fields include show/hide toggle (login, account, team invite/reset, API key fields in chat settings).
+
+---
+
+## 11. Admin settings
+
+| Tab | Configures |
+| --- | ---------- |
+| **Site URLs** | `publicSiteUrl` |
+| **Store details** | Name, tagline, logos, favicons |
+| **Contact** | Phones, email, WhatsApp, address, hours |
+| **Payments** | Card/COD toggles, COD %, chip notes |
+| **Delivery** | Free-delivery threshold + courier flat fee |
+| **Notices** | Global delivery note, site banner |
+| **Policies** | Moneyback days, warranty months, return/privacy HTML → checkout modals |
+| **Loyalty** | Earn % on delivered orders |
+| **Inventory** | Low-stock threshold → dashboard + bell |
+| **SEO** | Global meta, OG, Organization JSON-LD (wired on storefront) |
+| **Chat** | Widget, guest limit, assistant, **all provider API keys**, real-time transport, nudge |
+| **Integrations** | Social links, pixels, **PayFast / Rapid Gateway**, **Meta WhatsApp OTP**, Resend, staff/customer WhatsApp templates, **media storage status** |
+| **Data cleanup** | Owner-only bulk delete |
+
+**Alerts bell:** unread inquiries + pending payments + low-stock (permission-scoped).
+
+---
+
+## 12. Limits reference
+
+| Area | Limit |
+| ---- | ----- |
+| Cart lines | 20 |
+| Cart qty / line | 10 |
+| Courier delivery | Rs 1,500; free above threshold |
+| Payment methods | Bank transfer, pay online, COD (admin toggles) |
+| OTP | 6 digits / 5 min / 5 fails |
+| Guest chat messages | 5 |
+| Loyalty redeem | 100 min; 20% max subtotal |
+| Orders placed | 5 / 15 min per customer |
+| Search query | 100 chars |
+| Products / page | 24 (max 60) |
+| Admin login attempts | 8 / 15 min |

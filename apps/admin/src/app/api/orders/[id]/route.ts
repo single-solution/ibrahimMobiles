@@ -1,13 +1,15 @@
 import { requireSession } from "@/lib/api/requireSession";
-import { badRequest, conflict, FIELD_LIMITS, isValidId, noContent, notFound, ok, parseBody } from "@store/shared";
-import { connectDB, handleMongoError, Order, ORDER_STATUSES, releaseStock, reserveStock, type DeliveryMethod, type OrderStatus, type PaymentMethod } from "@store/db";
+import { hasPermission } from "@/lib/permissions";
+import { badRequest, conflict, FIELD_LIMITS, forbidden, isValidId, noContent, notFound, ok, parseBody } from "@store/shared";
+import { applyOrderTransition, claimOrderStatusTransition, connectDB, fireOrderEventNotifications, getStoreSettings, handleMongoError, Order, ORDER_STATUSES, Product, releaseStock, reserveStock, type DeliveryMethod, type OrderStatus, type PaymentMethod } from "@store/db";
 
 import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
-import { applyOrderTransition } from "@/lib/services/orderTransitions";
 import { toOrderResponse, type OrderLean } from "@/lib/serializers/order";
+import { pointsToRupees } from "@store/shared";
 
 const ALLOWED_STATUSES = new Set<string>(ORDER_STATUSES);
+const FULFILLMENT_PATH: OrderStatus[] = ["pending-payment", "confirmed", "packed", "dispatched", "delivered"];
 
 interface RouteContext {
 	params: Promise<{ id: string }>;
@@ -30,7 +32,21 @@ export async function GET(_request: Request, { params }: RouteContext) {
 		return notFound("Order not found");
 	}
 
-	return ok(toOrderResponse(doc));
+	const order = toOrderResponse(doc);
+	if (doc.payment === "bank-transfer" && doc.status === "pending-payment") {
+		const store = await getStoreSettings();
+		return ok({
+			...order,
+			bankTransferDetails: {
+				bankName: store.bankName,
+				bankAccountTitle: store.bankAccountTitle,
+				bankAccountNumber: store.bankAccountNumber,
+				bankIban: store.bankIban,
+			},
+		});
+	}
+
+	return ok(order);
 }
 
 interface OrderUpdateInput {
@@ -68,7 +84,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 			return notFound("Order not found");
 		}
 
-		const HAPPY_PATH = ["pending-payment", "confirmed", "packed", "dispatched", "delivered"];
+		const HAPPY_PATH = FULFILLMENT_PATH;
 		const DISPATCHED_INDEX = 3;
 
 		const currentStatusIndex = HAPPY_PATH.indexOf(order.status);
@@ -88,6 +104,20 @@ export async function PUT(request: Request, { params }: RouteContext) {
 			}
 			const candidate = body.status as OrderStatus;
 
+			if (FULFILLMENT_PATH.includes(candidate)) {
+				const newStatusIndex = FULFILLMENT_PATH.indexOf(candidate);
+				if (currentStatusIndex === -1) {
+					return badRequest("A closed order cannot re-enter the fulfillment path.");
+				}
+				if (newStatusIndex > currentStatusIndex + 1) {
+					return badRequest("Fulfillment status can only move forward one step at a time.");
+				}
+			}
+
+			if (candidate === "returned" && order.status !== "delivered") {
+				return badRequest("Only delivered orders can be marked returned.");
+			}
+
 			const newStatusIndex = HAPPY_PATH.indexOf(candidate);
 			if (currentStatusIndex >= DISPATCHED_INDEX && newStatusIndex !== -1 && newStatusIndex < currentStatusIndex) {
 				return badRequest("Status cannot be moved backward once dispatched.");
@@ -101,13 +131,13 @@ export async function PUT(request: Request, { params }: RouteContext) {
 			}
 
 			if (order.status !== candidate) {
-				order.status = candidate;
+				if (candidate === "cancelled" && !hasPermission(actor, "order_cancel")) {
+					return forbidden("You do not have permission to cancel orders.");
+				}
+				if (candidate === "refunded" && !hasPermission(actor, "order_refund")) {
+					return forbidden("You do not have permission to refund orders.");
+				}
 				nextStatus = candidate;
-				order.timeline.push({
-					status: candidate,
-					occurredAt: new Date(),
-					note: typeof body.timelineNote === "string" ? body.timelineNote.slice(0, FIELD_LIMITS.operatorNote) : undefined,
-				});
 				detailParts.push(`Status → ${previousStatus} to ${candidate}`);
 			}
 		}
@@ -131,7 +161,17 @@ export async function PUT(request: Request, { params }: RouteContext) {
 		}
 
 		if (Array.isArray(body.items) && body.items.length > 0) {
+			const productIds = [...new Set(body.items.map((item) => item.productId).filter((productId) => isValidId(productId)))];
+			const productDocs =
+				productIds.length > 0
+					? await Product.find({ _id: { $in: productIds } })
+							.select({ variants: 1 })
+							.lean<Array<{ _id: { toString(): string }; variants?: Array<{ _id: { toString(): string } }> }>>()
+					: [];
+			const productById = new Map(productDocs.map((product) => [product._id.toString(), product]));
+
 			const newItems = [];
+			const stockLines: Array<{ productId: string; variantId: string; quantity: number }> = [];
 			for (const item of body.items) {
 				if (!isValidId(item.productId) || !isValidId(item.variantId)) {
 					return badRequest("Each item needs a valid productId and variantId.");
@@ -144,6 +184,20 @@ export async function PUT(request: Request, { params }: RouteContext) {
 				if (!Number.isInteger(quantity) || quantity < 1) {
 					return badRequest("Item quantity must be a whole number of at least 1.");
 				}
+
+				const productDoc = productById.get(item.productId);
+				if (productDoc) {
+					const variantExists = (productDoc.variants ?? []).some((variant) => variant._id.toString() === item.variantId);
+					if (!variantExists) {
+						return badRequest(`Variant not found for "${item.productName}". Choose a valid catalog variant or remove the line.`);
+					}
+					stockLines.push({
+						productId: item.productId,
+						variantId: item.variantId,
+						quantity,
+					});
+				}
+
 				newItems.push({
 					productId: item.productId,
 					variantId: item.variantId,
@@ -154,19 +208,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
 				});
 			}
 
-			// The order is holding stock for its current lines. Swap the reservation
-			// onto the edited lines: reserve the new set first, then release the old —
-			// so a shortfall rejects the edit with the original reservation intact.
 			if (order.inventoryReserved) {
-				const swap = await reserveStock(
-					newItems.map((item) => ({
-						productId: item.productId,
-						variantId: item.variantId,
-						quantity: item.quantity,
-					})),
-				);
-				if (!swap.ok) {
-					return conflict("Not enough stock to apply the edited items.");
+				if (stockLines.length > 0) {
+					const swap = await reserveStock(stockLines);
+					if (!swap.ok) {
+						return conflict("Not enough stock to apply the edited items.");
+					}
 				}
 				await releaseStock(
 					order.items.map((line) => ({
@@ -180,7 +227,14 @@ export async function PUT(request: Request, { params }: RouteContext) {
 			order.set("items", newItems);
 			const subtotal = newItems.reduce((acc, item) => acc + item.unitPriceRupees * item.quantity, 0);
 			order.totals.subtotalRupees = subtotal;
-			order.totals.totalRupees = Math.max(0, subtotal + (order.totals?.shippingRupees ?? 0) - (order.totals?.discountRupees ?? 0));
+			order.totals.totalRupees = Math.max(
+				0,
+				subtotal +
+					(order.totals?.shippingRupees ?? 0) -
+					(order.totals?.discountRupees ?? 0) +
+					(order.totals?.paymentSurchargeRupees ?? 0) -
+					pointsToRupees(order.pointsRedeemed),
+			);
 
 			order.timeline.push({
 				status: order.status,
@@ -208,7 +262,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 			}
 		}
 
-		if (typeof body.payment === "string" && ["bank-transfer", "easypaisa", "jazzcash", "cod"].includes(body.payment)) {
+		if (typeof body.payment === "string" && (["bank-transfer", "card", "cod"] as const).includes(body.payment as "bank-transfer" | "card" | "cod")) {
 			if (order.payment !== body.payment) {
 				const previousPayment = order.payment;
 				order.payment = body.payment as PaymentMethod;
@@ -224,6 +278,21 @@ export async function PUT(request: Request, { params }: RouteContext) {
 			}
 		}
 
+		if (nextStatus) {
+			const claimed = await claimOrderStatusTransition({
+				orderId: order._id,
+				fromStatuses: [previousStatus],
+				toStatus: nextStatus,
+				timelineNote: typeof body.timelineNote === "string" ? body.timelineNote.slice(0, FIELD_LIMITS.operatorNote) : undefined,
+			});
+			if (!claimed) {
+				return conflict("This order was updated by someone else. Refresh and try again.");
+			}
+			order.status = claimed.status;
+			order.timeline = claimed.timeline;
+			order.markModified("timeline");
+		}
+
 		await order.save();
 
 		// Side-effects: stock reservation/release and loyalty credit/reversal.
@@ -236,6 +305,13 @@ export async function PUT(request: Request, { params }: RouteContext) {
 				nextStatus,
 				actor,
 			});
+			const notifyEvent = nextStatus === "cancelled" ? "cancelled" : "status_changed";
+			void fireOrderEventNotifications({
+				event: notifyEvent,
+				order,
+				previousStatus,
+				nextStatus,
+			}).catch(() => undefined);
 		}
 
 		await recordActivity({

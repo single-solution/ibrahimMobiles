@@ -1,8 +1,7 @@
 import type { ActiveOffer, EvaluatableItem, Product } from "@store/shared";
 import {
 	getStorefrontItemOffers,
-	hasItemScopeConditions,
-	isCatalogWideStorefrontOffer,
+	isCatalogDealOffer,
 	isVariantInStock,
 	resolveItemOfferBadgeLabel,
 	resolveStorefrontOfferBadgeLabel,
@@ -27,11 +26,7 @@ function productHasInStockVariant(product: Product): boolean {
 }
 
 export function productMatchesStorefrontOffer(product: Product, offer: ActiveOffer): boolean {
-	if (isCatalogWideStorefrontOffer(offer)) {
-		return productHasInStockVariant(product);
-	}
-
-	if (!hasItemScopeConditions(offer)) {
+	if (!isCatalogDealOffer(offer)) {
 		return false;
 	}
 
@@ -52,10 +47,6 @@ export function productHasAnyStorefrontOffer(product: Product, offers: ActiveOff
 		return false;
 	}
 
-	if (offers.some(isCatalogWideStorefrontOffer)) {
-		return true;
-	}
-
 	for (const variant of product.variants) {
 		if (!isVariantInStock(variant)) {
 			continue;
@@ -68,58 +59,23 @@ export function productHasAnyStorefrontOffer(product: Product, offers: ActiveOff
 	return false;
 }
 
-/** Active offers that apply to any in-stock variant on this product (catalog-wide + item rules). */
-export function resolveProductApplicableOffers(product: Product, offers: ActiveOffer[]): ActiveOffer[] {
+/** Catalog deals that apply to this product. */
+export function resolveProductCatalogDealOffers(product: Product, offers: ActiveOffer[]): ActiveOffer[] {
 	if (!productHasInStockVariant(product)) {
 		return [];
 	}
 
-	const matchedIds = new Set<string>();
-	for (const offer of offers) {
-		if (isCatalogWideStorefrontOffer(offer)) {
-			matchedIds.add(offer.id);
-			continue;
-		}
-		if (productMatchesStorefrontOffer(product, offer)) {
-			matchedIds.add(offer.id);
-		}
-	}
-
-	return offers.filter((offer) => matchedIds.has(offer.id));
+	return offers.filter((offer) => isCatalogDealOffer(offer) && productMatchesStorefrontOffer(product, offer));
 }
 
-/** Item-targeted offers for product cards — excludes storewide and checkout-only rules. */
-export function resolveProductItemScopedOffers(product: Product, offers: ActiveOffer[]): ActiveOffer[] {
-	if (!productHasInStockVariant(product)) {
-		return [];
-	}
-
-	const matchedIds = new Set<string>();
-	for (const offer of offers) {
-		if (isCatalogWideStorefrontOffer(offer)) {
-			continue;
-		}
-		if (productMatchesStorefrontOffer(product, offer)) {
-			matchedIds.add(offer.id);
-		}
-	}
-
-	return offers.filter((offer) => matchedIds.has(offer.id));
-}
-
-/** Item-targeted offers for one variant — excludes storewide and checkout-only rules. */
-export function resolveVariantItemScopedOffers(product: Product, variant: Product["variants"][number], offers: ActiveOffer[]): ActiveOffer[] {
+/** Catalog deals for one variant. */
+export function resolveVariantCatalogDealOffers(product: Product, variant: Product["variants"][number], offers: ActiveOffer[]): ActiveOffer[] {
 	if (!isVariantInStock(variant)) {
 		return [];
 	}
 
 	const item = buildEvaluatableItem(product, variant);
-	return offers.filter((offer) => {
-		if (isCatalogWideStorefrontOffer(offer)) {
-			return false;
-		}
-		return getStorefrontItemOffers(item, [offer]).length > 0;
-	});
+	return offers.filter((offer) => isCatalogDealOffer(offer) && getStorefrontItemOffers(item, [offer]).length > 0);
 }
 
 export function filterProductsForOffer(products: Product[], offer: ActiveOffer, limit: number): Product[] {

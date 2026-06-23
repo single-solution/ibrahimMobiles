@@ -17,14 +17,14 @@
  *   - Catalog hygiene (active products without images, archived featured)
  *   - Inventory (variants out of stock, low-stock variants)
  *   - Storefront config (missing site name, missing storefront URL)
- *   - Payment readiness (no enabled methods, missing wallet/bank details)
+ *   - Payment readiness (no enabled methods)
  *   - Marketing (invalid pixel IDs)
  *
  * Returning an empty array means "all clear" — the card renders a
  * congratulatory state.
  */
-import { connectDB, getStoreSettings, Product } from "@store/db";
-import { STORE_SETTING_DEFAULTS, type StoreSettings } from "@store/shared";
+import { connectDB, getIntegrationSettings, getStoreSettings, Product } from "@store/db";
+import { STORE_SETTING_DEFAULTS, hasBankTransferDetailsConfigured, isOnlineCardCheckoutReady, readOnlinePaymentIntegrationStatus, resolveIntegrationSettings, resolvePublicSiteUrl, resolveWhatsAppCloudConfig, type StoreSettings } from "@store/shared";
 
 import { LOW_STOCK_VARIANT_THRESHOLD } from "@/lib/server/dashboardStats";
 
@@ -184,7 +184,7 @@ function pluralise(count: number, singular: string, plural?: string): string {
 	return count === 1 ? singular : (plural ?? `${singular}s`);
 }
 
-function evaluateSettings(settings: StoreSettings): ShopHealthCheck[] {
+function evaluateSettings(settings: StoreSettings, cardCheckoutReady: boolean): ShopHealthCheck[] {
 	const checks: ShopHealthCheck[] = [];
 	const fallbackName = STORE_SETTING_DEFAULTS.siteName;
 
@@ -198,6 +198,16 @@ function evaluateSettings(settings: StoreSettings): ShopHealthCheck[] {
 		});
 	}
 
+	if (!resolvePublicSiteUrl(settings.publicSiteUrl).trim()) {
+		checks.push({
+			id: "settings-storefront-url",
+			title: "Set your storefront URL",
+			description: "SEO, canonical links, and admin “View storefront” need a public site address.",
+			severity: "warn",
+			href: "/settings?tab=urls",
+		});
+	}
+
 	if (!settings.supportPhone.trim() && !settings.whatsappNumber.trim()) {
 		checks.push({
 			id: "settings-no-contact",
@@ -208,9 +218,8 @@ function evaluateSettings(settings: StoreSettings): ShopHealthCheck[] {
 		});
 	}
 
-	// Payment readiness — at least one method enabled, plus the right details
-	// present for whichever methods are on.
-	const enabledMethods = [settings.paymentBankEnabled, settings.paymentEasypaisaEnabled, settings.paymentJazzcashEnabled, settings.paymentCodEnabled].filter(Boolean).length;
+	// Payment readiness — at least one method enabled.
+	const enabledMethods = [settings.paymentBankTransferEnabled, settings.paymentCardEnabled, settings.paymentCodEnabled].filter(Boolean).length;
 	if (enabledMethods === 0) {
 		checks.push({
 			id: "payments-none-enabled",
@@ -220,29 +229,26 @@ function evaluateSettings(settings: StoreSettings): ShopHealthCheck[] {
 			href: "/settings?tab=payments",
 		});
 	}
-	if (settings.paymentBankEnabled && !(settings.paymentBankName.trim() && (settings.paymentBankAccountNumber.trim() || settings.paymentBankIban.trim()))) {
+	if (
+		settings.paymentBankTransferEnabled &&
+		!hasBankTransferDetailsConfigured(settings)
+	) {
 		checks.push({
-			id: "payments-bank-missing",
-			title: "Bank transfer is on but details are missing",
-			description: "Add a bank name and account number/IBAN so customers see them on order success.",
+			id: "payments-bank-details-missing",
+			title: "Bank transfer is on but account details are empty",
+			description: "Add bank name and account number under Payments so customers know where to pay.",
 			severity: "warn",
 			href: "/settings?tab=payments",
 		});
 	}
-	if (settings.paymentEasypaisaEnabled && !settings.paymentEasypaisaNumber.trim()) {
+
+	if (settings.paymentCardEnabled && !cardCheckoutReady) {
 		checks.push({
-			id: "payments-easypaisa-missing",
-			title: "Easypaisa is on but the wallet number is empty",
+			id: "payments-card-gateway-off",
+			title: "Pay online is on but no gateway is ready",
+			description: "Card won't appear at checkout until PayFast or Rapid Gateway is configured under Integrations — or turn pay online off under Payments.",
 			severity: "warn",
-			href: "/settings?tab=payments",
-		});
-	}
-	if (settings.paymentJazzcashEnabled && !settings.paymentJazzcashNumber.trim()) {
-		checks.push({
-			id: "payments-jazzcash-missing",
-			title: "JazzCash is on but the wallet number is empty",
-			severity: "warn",
-			href: "/settings?tab=payments",
+			href: "/settings?tab=integrations",
 		});
 	}
 
@@ -279,6 +285,79 @@ function evaluateSettings(settings: StoreSettings): ShopHealthCheck[] {
 			severity: "warn",
 			href: "/settings?tab=integrations",
 		});
+	}
+
+	return checks;
+}
+
+function evaluateIntegrations(
+	settings: StoreSettings,
+	integration: Awaited<ReturnType<typeof getIntegrationSettings>>,
+): ShopHealthCheck[] {
+	const checks: ShopHealthCheck[] = [];
+	const resolved = resolveIntegrationSettings(integration);
+
+	if (!resolved.resendApiKey.trim() || !resolved.resendFromEmail.trim()) {
+		checks.push({
+			id: "notify-resend-missing",
+			title: "Staff email alerts are not configured",
+			description: "Add Resend API key and from-address under Integrations so orders and chats email every team member.",
+			severity: "warn",
+			href: "/settings?tab=integrations",
+		});
+	}
+
+	if (!resolved.adminSiteUrl.trim()) {
+		checks.push({
+			id: "notify-admin-url-missing",
+			title: "Admin site URL is missing",
+			description: "Alert emails need your admin panel URL so staff can open orders and chats in one tap.",
+			severity: "warn",
+			href: "/settings?tab=integrations",
+		});
+	}
+
+	const whatsappReady = Boolean(resolveWhatsAppCloudConfig(resolved));
+	if (!whatsappReady) {
+		checks.push({
+			id: "notify-whatsapp-cloud-missing",
+			title: "WhatsApp Cloud API is not configured",
+			description: "Customers won't get order updates on WhatsApp and staff won't get WhatsApp alerts until Cloud API credentials are set.",
+			severity: "warn",
+			href: "/settings?tab=integrations",
+		});
+	} else {
+		if (!resolved.whatsappStaffNotifyTemplate.trim()) {
+			checks.push({
+				id: "notify-staff-whatsapp-template-missing",
+				title: "Staff WhatsApp template is missing",
+				description: "Set the staff utility template under Integrations for order and chat alerts on WhatsApp.",
+				severity: "warn",
+				href: "/settings?tab=integrations",
+			});
+		}
+		if (!resolved.whatsappCustomerOrderTemplate.trim()) {
+			checks.push({
+				id: "notify-customer-order-template-missing",
+				title: "Customer order WhatsApp template is missing",
+				description: "Set the customer utility template so shoppers get order placed, status, and agent reply updates.",
+				severity: "warn",
+				href: "/settings?tab=integrations",
+			});
+		}
+	}
+
+	if (settings.paymentCardEnabled) {
+		const paymentStatus = readOnlinePaymentIntegrationStatus(integration);
+		if (paymentStatus.provider === "rapid-gateway" && paymentStatus.ready && !paymentStatus.webhookConfigured) {
+			checks.push({
+				id: "payments-rapid-webhook-missing",
+				title: "Rapid Gateway webhook secret is missing",
+				description: "Paid card orders won't auto-confirm until the webhook secret is saved under Integrations.",
+				severity: "warn",
+				href: "/settings?tab=integrations",
+			});
+		}
 	}
 
 	return checks;
@@ -369,13 +448,16 @@ export async function loadShopHealth(): Promise<ShopHealthSummary> {
 	// Best-effort settings load — never let a settings hiccup take down
 	// the dashboard. We swap in defaults so the catalog checks still run.
 	const settings = await getStoreSettings().catch(() => null);
+	const integration = await getIntegrationSettings().catch(() => null);
+	const cardCheckoutReady = integration ? isOnlineCardCheckoutReady(integration) : false;
 	const lowStockThreshold = settings?.lowStockThreshold ?? LOW_STOCK_VARIANT_THRESHOLD;
 	const productAgg = await loadProductHealth(lowStockThreshold).catch(() => null);
 
-	const settingsChecks = settings ? evaluateSettings(settings) : [];
+	const settingsChecks = settings ? evaluateSettings(settings, cardCheckoutReady) : [];
+	const integrationChecks = settings && integration ? evaluateIntegrations(settings, integration) : [];
 	const productChecks = evaluateProducts(productAgg, lowStockThreshold);
 
-	const checks = [...settingsChecks, ...productChecks].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+	const checks = [...settingsChecks, ...integrationChecks, ...productChecks].sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
 
 	return {
 		checks,

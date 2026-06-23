@@ -1,22 +1,34 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
-import { useShopHref } from "@/lib/core/storefrontReferenceContext";
+import { categoryHref } from "@/lib/catalog/productPaths";
+import { useCategories, useShopHref } from "@/lib/core/storefrontReferenceContext";
 import { prefetchAllowed } from "@/lib/navigation/prefetchAllowed";
+
+const MAX_CATEGORY_PREFETCH = 5;
 
 /** Warm router cache for routes not covered by in-viewport `<Link prefetch>`. */
 export function IdleRoutePrefetch() {
 	const router = useRouter();
 	const catalogHomeHref = useShopHref();
+	const categories = useCategories();
+
+	const routes = useMemo(() => {
+		const categoryRoutes = categories
+			.filter((category) => category.isActive)
+			.slice(0, MAX_CATEGORY_PREFETCH)
+			.map((category) => categoryHref(category.slug));
+
+		return [...new Set([catalogHomeHref, "/deals", "/about", "/cart", ...categoryRoutes])];
+	}, [catalogHomeHref, categories]);
 
 	useEffect(() => {
 		if (!prefetchAllowed()) {
 			return;
 		}
 
-		const routes = [catalogHomeHref, "/cart", "/deals", "/about"];
 		const run = () => {
 			for (const route of routes) {
 				try {
@@ -35,7 +47,7 @@ export function IdleRoutePrefetch() {
 
 		const handle = window.setTimeout(run, 1500);
 		return () => window.clearTimeout(handle);
-	}, [catalogHomeHref, router]);
+	}, [router, routes]);
 
 	return null;
 }

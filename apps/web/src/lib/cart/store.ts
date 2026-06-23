@@ -35,6 +35,23 @@ function isBrowser(): boolean {
 	return typeof window !== "undefined";
 }
 
+function normalizeCartLine(line: CartItem): CartItem {
+	if (line.appliedOffer?.id) {
+		return line;
+	}
+	if (typeof line.appliedOfferId === "string" && line.appliedOfferId.length > 0) {
+		return {
+			...line,
+			appliedOffer: {
+				id: line.appliedOfferId,
+				title: "Deal",
+				lockedAt: new Date().toISOString(),
+			},
+		};
+	}
+	return line;
+}
+
 function readPersisted(): CartState {
 	if (!isBrowser()) {
 		return EMPTY_STATE;
@@ -58,9 +75,13 @@ function readPersisted(): CartState {
 					typeof (candidate as CartItem).id === "string" &&
 					typeof (candidate as CartItem).productId === "string" &&
 					typeof (candidate as CartItem).variantId === "string" &&
-					typeof (candidate as CartItem).quantity === "number",
+					typeof (candidate as CartItem).gradeSlug === "string" &&
+					typeof (candidate as CartItem).quantity === "number" &&
+					typeof (candidate as CartItem).productName === "string" &&
+					typeof (candidate as CartItem).unitPriceRupees === "number",
 			)
-			.slice(0, MAX_LINES);
+			.slice(0, MAX_LINES)
+			.map((line) => normalizeCartLine(line));
 		return { items };
 	} catch {
 		// Corrupt JSON in localStorage — discard and start fresh.
@@ -151,7 +172,7 @@ export function addCartItem(item: Omit<CartItem, "id" | "quantity"> & { quantity
 				...line,
 				maxQuantity: lineMax,
 				quantity: clampLineQuantity(line.quantity + quantityToAdd, lineMax),
-				...(item.appliedOfferId ? { appliedOfferId: item.appliedOfferId } : {}),
+				...(item.appliedOffer ? { appliedOffer: item.appliedOffer } : {}),
 			};
 		});
 	} else {
@@ -171,6 +192,60 @@ export const CART_MAX_LINES = MAX_LINES;
 export function removeCartItem(id: string) {
 	hydrateOnce();
 	setState({ items: cachedState.items.filter((line) => line.id !== id) });
+}
+
+export interface CartLineRemapPatch {
+	variantId: string;
+	unitPriceRupees: number;
+	maxQuantity?: number;
+}
+
+/**
+ * Point a cart line at a new catalog variant (same product, new `_id`).
+ * Merges into an existing line when the target variant is already in the cart.
+ */
+export function remapCartLine(lineId: string, patch: CartLineRemapPatch) {
+	hydrateOnce();
+	const sourceLine = cachedState.items.find((line) => line.id === lineId);
+	if (!sourceLine) {
+		return;
+	}
+
+	const nextId = `${sourceLine.productId}:${patch.variantId}`;
+	const targetIndex = cachedState.items.findIndex((line) => line.id === nextId);
+	let nextItems: CartItem[];
+
+	if (targetIndex >= 0 && cachedState.items[targetIndex]?.id !== lineId) {
+		const targetLine = cachedState.items[targetIndex];
+		if (!targetLine) {
+			return;
+		}
+		const targetMax = patch.maxQuantity ?? targetLine.maxQuantity;
+		const mergedTarget: CartItem = {
+			...targetLine,
+			unitPriceRupees: patch.unitPriceRupees,
+			maxQuantity: targetMax,
+			quantity: clampLineQuantity(targetLine.quantity + sourceLine.quantity, targetMax),
+		};
+		nextItems = cachedState.items.filter((line) => line.id !== lineId).map((line) => (line.id === targetLine.id ? mergedTarget : line));
+	} else {
+		nextItems = cachedState.items.map((line) => {
+			if (line.id !== lineId) {
+				return line;
+			}
+			const lineMax = patch.maxQuantity ?? line.maxQuantity;
+			return {
+				...line,
+				id: nextId,
+				variantId: patch.variantId,
+				unitPriceRupees: patch.unitPriceRupees,
+				maxQuantity: lineMax,
+				quantity: clampLineQuantity(line.quantity, lineMax),
+			};
+		});
+	}
+
+	setState({ items: nextItems });
 }
 
 /** Set a line's quantity; passing `0` (or any non-finite value) removes the line. */

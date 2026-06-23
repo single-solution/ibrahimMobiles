@@ -2,7 +2,7 @@
  * Wire types shared between admin API routes and admin client components.
  * When the Mongoose schema changes, update this file, serializers, and UI in lockstep.
  */
-import type { AttributeVisibility, IconName, SeoMeta, StoredImage, StructuredContent } from "@store/shared";
+import type { AttributeVisibility, AssistantMuteReason, IconName, SeoMeta, StoredImage, StructuredContent } from "@store/shared";
 
 export interface AdminBrand {
 	id: string;
@@ -202,6 +202,7 @@ export interface AdminOrder extends AdminOrderSummary {
 		subtotalRupees: number;
 		shippingRupees: number;
 		discountRupees: number;
+		paymentSurchargeRupees?: number;
 		totalRupees: number;
 	};
 	address?: {
@@ -218,6 +219,12 @@ export interface AdminOrder extends AdminOrderSummary {
 	estimatedDeliveryAt?: string;
 	pointsEarned: number;
 	pointsRedeemed: number;
+	bankTransferDetails?: {
+		bankName: string;
+		bankAccountTitle: string;
+		bankAccountNumber: string;
+		bankIban: string;
+	};
 	createdAt: string;
 	updatedAt: string;
 }
@@ -274,8 +281,12 @@ export interface AdminInquirySummary {
 	lastMessageAuthor: AdminInquiryMessageAuthor;
 	unreadByCustomer: number;
 	unreadByTeam: number;
-	/** The assistant escalated this chat — a senior teammate needs to take over. */
+	/** The assistant is paused on this thread — review the alert banner for why. */
 	escalated: boolean;
+	assistantPaused: boolean;
+	assistantPauseReason?: AssistantMuteReason | null;
+	assistantPausedAt?: string;
+	assistantPausedByUserId?: string;
 	createdAt: string;
 	updatedAt: string;
 }

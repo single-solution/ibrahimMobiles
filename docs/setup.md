@@ -1,23 +1,43 @@
 # Setup & Onboarding
 
-Zero-to-running guide for the Ibrahim Mobiles Turborepo monorepo.
+Zero-to-running guide for the Ibrahim Mobiles monorepo.
 
 ---
 
 ## Prerequisites
 
-| Tool | Version |
-| ---- | ------- |
-| **Node.js** | **22+** (see `.node-version`) |
-| **npm** | **10+** (bundled with Node; repo pins `npm@10.9.0`) |
-| **Git** | Any recent version |
-| **MongoDB** | Atlas cluster or local instance |
+| Tool | Requirement |
+| ---- | ----------- |
+| **Node.js** | 22+ (see `.node-version`) |
+| **npm** | 10+ |
+| **Git** | Recent stable |
+| **MongoDB** | Atlas cluster or local |
 
-Optional for full production parity:
+Optional for production parity:
 
-- Vercel Blob token (images and uploads)
-- Twilio (customer OTP over WhatsApp/SMS)
-- OpenAI or Google AI key (storefront chat assistant)
+- PayFast or Rapid Gateway (pay online)
+- Vercel Blob or S3 token (images and uploads)
+- Meta WhatsApp Cloud API (customer OTP + order/chat notifications)
+- Resend (admin password reset + staff email alerts)
+- OpenAI or Google AI key (chat assistant)
+
+---
+
+## Boot sequence
+
+```mermaid
+flowchart TD
+  CLONE[Clone + npm install] --> ENV[Copy .env.local]
+  ENV --> MONGO[MongoDB URI + IP allowlist]
+  MONGO --> DEV[npm run dev]
+  DEV --> ADMIN[Admin :3001 sign-in]
+  ADMIN --> SETTINGS[Fill settings tabs]
+  SETTINGS --> CATALOG[Create catalog]
+  CATALOG --> TEST[Storefront :3000 smoke test]
+  TEST --> GOLIVE[go-live.md production checklist]
+```
+
+**Production launch:** follow [go-live.md](go-live.md) after local smoke test passes.
 
 ---
 
@@ -37,92 +57,135 @@ npm install
 cp .env.example .env.local
 ```
 
-Edit `.env.local`. Minimum to boot locally:
+Production (configure in **Admin → Settings → Integrations**):
+
+| Area | Required for |
+| ---- | ------------ |
+| **PayFast / Rapid Gateway** | Pay online — pick one provider; webhooks `/api/webhooks/payfast` or `/api/webhooks/rapid-gateway` |
+| **Meta WhatsApp** | Customer OTP sign-in |
+| **Resend** | Admin password reset + staff email alerts |
+| **Storage** | Vercel Blob or S3 uploads |
+
+Env vars in `.env.example` are bootstrap fallbacks only. `AUTH_*` and `MONGODB_URI` must stay on the host.
+
+Minimum to boot locally:
 
 | Variable | Required? | Purpose |
 | -------- | --------- | ------- |
-| `AUTH_SECRET` | **Yes** | Session encryption — generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
-| `AUTH_URL` | **Yes** | Storefront origin for Auth.js — `http://localhost:3000` in dev |
-| `AUTH_TRUST_HOST` | **Yes** | `true` (proxy / Vercel) |
-| `MONGODB_URI` | **Yes** | Connection string **including database name** in the path |
-| `STORAGE_PROVIDER` | **Yes** | `vercel-blob` |
-| `BLOB_READ_WRITE_TOKEN` | **Yes** for uploads | Vercel Dashboard → Storage |
+| `AUTH_SECRET` | **Yes** | Session encryption — `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
+| `AUTH_URL` | **Yes** | App origin — `http://localhost:3000` (storefront) or `http://localhost:3001` (admin-only dev) |
+| `AUTH_TRUST_HOST` | **Yes** | `true` |
+| `MONGODB_URI` | **Yes** | Connection string **with database name** in path |
+| `STORAGE_PROVIDER` | **Yes** | `vercel-blob` (default) or `s3` |
+| `BLOB_READ_WRITE_TOKEN` | **Yes** for uploads | Vercel Dashboard → Storage (skip only if not testing uploads) |
 
-Common optional variables:
+Production (storefront `@store/web`):
+
+| Variable | Required? | Purpose |
+| -------- | --------- | ------- |
+| `OTP_PROVIDER` | **Yes** | `whatsapp-cloud` |
+| `WHATSAPP_CLOUD_ACCESS_TOKEN` | **Yes** | Meta Business permanent token |
+| `WHATSAPP_PHONE_NUMBER_ID` | **Yes** | Sender phone number ID |
+| `WHATSAPP_OTP_TEMPLATE_NAME` | Recommended | Default `authentication` |
+
+Production (admin `@store/admin`):
+
+| Variable | Required? | Purpose |
+| -------- | --------- | ------- |
+| `RESEND_API_KEY` | **Yes** | Admin password reset + staff email alerts |
+| `RESEND_FROM_EMAIL` | **Yes** | Verified sender in Resend |
+| `ADMIN_SITE_URL` | **Yes** | Reset links and inquiry deep links — e.g. `https://admin.yourdomain.com` |
+| `STAFF_NOTIFY_EMAIL` | Recommended | Extra staff inbox; **all active admin users** also receive email alerts |
+| `STAFF_NOTIFY_WHATSAPP` | Recommended | Global staff WhatsApp line for shop-wide alerts |
+| `WHATSAPP_STAFF_NOTIFY_TEMPLATE` | Recommended | Meta utility template — staff order + chat alerts |
+| `WHATSAPP_CUSTOMER_ORDER_TEMPLATE` | Recommended | Meta utility template — customer order placed, status updates, agent chat replies |
+
+Common optional:
 
 | Variable | Purpose |
 | -------- | ------- |
-| `STOREFRONT_BASE_URL` | SEO/canonical fallback when Admin → Site URLs is empty |
-| `ATLAS_SEARCH_ENABLED` | `false` to force regex search (local Mongo) |
-| `MONGODB_SEARCH_INDEX` | Atlas Search index name (default `products_search`) |
-| `OTP_PROVIDER` | `twilio` in production; unset in dev → OTP prints in server log |
-| `TWILIO_*` | WhatsApp/SMS senders — see comments in `.env.example` |
-| `OPENAI_API_KEY` / `GOOGLE_AI_API_KEY` | Chat assistant; omit for human-only chat |
-| `DEV_SKIP_PUBLIC_DNS` | `true` if dev machine blocks `8.8.8.8` / `1.1.1.1` DNS fallback |
+| `STOREFRONT_BASE_URL` | Canonical URL when Admin → Site URLs empty |
+| `ATLAS_SEARCH_ENABLED` | `false` forces regex search |
+| `MONGODB_SEARCH_INDEX` | Atlas index name (default `products_search`) |
+| `STAFF_NOTIFY_WHATSAPP` + `WHATSAPP_STAFF_NOTIFY_TEMPLATE` | Staff WhatsApp on orders + chat |
+| `WHATSAPP_CUSTOMER_ORDER_TEMPLATE` | Customer WhatsApp on orders + agent replies |
+| `OPENAI_API_KEY` / `GOOGLE_AI_API_KEY` / `ANTHROPIC_API_KEY` | Chat assistant |
+| `AWS_S3_*` | S3 storage when `STORAGE_PROVIDER=s3` |
+| `DEV_SKIP_PUBLIC_DNS` | `true` if local DNS blocks public resolvers |
 
-Full list with placeholders: [.env.example](../.env.example).
+Full list: [.env.example](../.env.example).
 
 ---
 
 ## 3. MongoDB
 
-1. Create a database (e.g. `mobile-store`) in Atlas or locally.
-2. Whitelist your IP (Atlas → Network Access).
-3. Set `MONGODB_URI` to include that database name:
+1. Create database (e.g. `mobile-store`).
+2. Whitelist IP in Atlas → Network Access.
+3. URI includes database name:
 
    `mongodb+srv://user:pass@cluster.mongodb.net/mobile-store?retryWrites=true&w=majority`
 
-**Catalog data** is not shipped in the repo. Use Admin (`http://localhost:3001`) to create categories, attributes, grades, brands, and products — or restore from a database backup.
+**Catalog** is created in Admin or restored from backup — not bundled in the repo.
 
-### Optional: Atlas Search
+### Atlas Search (optional)
 
-For ranked catalog search (shop overlay + chat assistant):
-
-1. In Atlas → Search Indexes on the `products` collection, create an index named `products_search` (or match `MONGODB_SEARCH_INDEX`).
-2. Leave `ATLAS_SEARCH_ENABLED` unset or `true`.
-
-Without Atlas Search, set `ATLAS_SEARCH_ENABLED=false` — the app uses regex search automatically.
+```mermaid
+flowchart LR
+  IDX[Create products_search index] --> ON[ATLAS_SEARCH_ENABLED true]
+  ON --> RANK[Ranked shop + chat search]
+  OFF[ATLAS_SEARCH_ENABLED false] --> REGEX[Regex search]
+```
 
 ---
 
 ## 4. Run development servers
 
-All apps (parallel):
-
 ```bash
-npm run dev
-```
-
-Or individually:
-
-```bash
-npm run dev:web    # storefront → http://localhost:3000
-npm run dev:admin  # admin      → http://localhost:3001
+npm run dev          # both apps
+npm run dev:web      # storefront → http://localhost:3000
+npm run dev:admin    # admin      → http://localhost:3001
 ```
 
 ---
 
 ## 5. First-time operator checklist
 
-After `npm run dev`:
-
-1. **Admin sign-in** — use your team account (created directly in MongoDB or via invite flow if configured).
-2. **Settings → Site URLs** — set the public storefront URL (production domain or `http://localhost:3000` for local SEO links).
-3. **Settings → Store / Contact / Payments / Delivery** — fill operational copy used on About and Checkout.
-4. **Catalog** — categories → grades → attributes → brands → products (see [catalog.md](catalog.md)).
-5. **Upload test image** on a product — confirms `BLOB_READ_WRITE_TOKEN`.
-6. **Storefront sign-in** — leave Twilio unset; OTP appears in the terminal running `@store/web`.
+| # | Task |
+| - | ---- |
+| 1 | Admin sign-in |
+| 2 | **Settings → Site URLs** — public storefront URL |
+| 3 | **Store / Contact / Payments / Delivery / Policies** — card+COD, COD %, policy HTML |
+| 4 | **Catalog** — categories → grades → attributes → brands → products ([catalog.md](catalog.md)) |
+| 5 | Upload test product image — confirms Blob token |
+| 6 | Storefront OTP sign-in — code in `@store/web` terminal when Meta WhatsApp env unset |
 
 ---
 
 ## 6. Quality commands
 
 ```bash
-npm run lint       # ESLint across workspaces
-npm run typecheck  # TypeScript --noEmit
-npm run build      # Production build (all apps)
-npm run format     # Prettier write
+npm run lint
+npm run typecheck
+npm run build
+npm run format
 ```
+
+**Production build:** `npm run build` may connect to MongoDB during static generation. Atlas should be reachable from CI, but SEO/metadata loaders **fall back to factory defaults** when Mongo is down — the build should still complete. Prefer a stable connection so prerendered titles/OG tags use live admin settings.
+
+Per-app builds:
+
+```bash
+npm run build --workspace=@store/web
+npm run build --workspace=@store/admin
+```
+
+---
+
+## 7. Go-live
+
+Full production checklist — env vars, Admin Integrations, Shop Health, webhooks, smoke test:
+
+**[go-live.md](go-live.md)**
 
 ---
 
@@ -131,63 +194,41 @@ npm run format     # Prettier write
 ```
 ibrahimMobiles/
 ├── apps/
-│   ├── web/          # Storefront (@store/web) — port 3000
-│   └── admin/        # Admin console (@store/admin) — port 3001
+│   ├── web/          # Storefront — port 3000
+│   └── admin/        # Admin — port 3001
 ├── packages/
-│   ├── db/           # Mongoose models + connection
-│   ├── shared/       # Domain logic, types, pricing, chat
-│   └── ui/           # Shared React components
-├── docs/             # This folder
-├── README.md         # Business rules and domain specification
-└── .env.example      # Environment template
+│   ├── db/           # Mongoose models
+│   ├── shared/       # Domain logic
+│   └── ui/           # Shared components
+├── docs/
+└── README.md         # Domain specification
 ```
-
-There is **no** `tools/` seed or migration folder — catalog changes go through Admin.
-
-Further reading:
-
-- [Architecture](architecture.md)
-- [Catalog operations](catalog.md)
-- [README](../README.md) — storefront, checkout, orders, chat, loyalty
 
 ---
 
-## Common issues / troubleshooting
+## Further reading
 
-### Auth errors or redirect loops
+- [Go-live runbook](go-live.md)
+- [Architecture](architecture.md)
+- [Catalog operations](catalog.md)
+- [Engineering handbook](engineering-handbook.md) — standards, optimizations, rule gaps (read before new features)
+- [Website audit guide](website-audit.md)
+- [README](../README.md)
 
-- **Cause:** Missing `AUTH_SECRET` or `AUTH_URL` does not match the storefront port.
-- **Fix:** `AUTH_URL=http://localhost:3000`, valid 32-byte base64 `AUTH_SECRET`.
+---
 
-### Database connection fails
+## Troubleshooting
 
-- **Cause:** Atlas IP block or missing database name in URI.
-- **Fix:** Network Access in Atlas; URI path must end with `/your-db-name`.
-
-### Admin shows `queryTxt EREFUSED` (SRV DNS)
-
-- **Cause:** `mongodb+srv://` needs SRV lookups; flaky local DNS.
-- **Fix:** Restart dev after pulling `packages/db` DNS fallback. Try macOS DNS `8.8.8.8` / `1.1.1.1`, Atlas **standard** connection string, or `DEV_SKIP_PUBLIC_DNS=true` when public DNS is blocked.
-
-### `/_next/image` 500 / `ENOTFOUND …blob.vercel-storage.com`
-
-- **Cause:** Server-side image optimizer cannot resolve Blob host.
-- **Fix:** Fix DNS as above; admin dev serves Blob URLs directly for thumbnails.
-
-### No OTP in dev
-
-- **Expected** when `OTP_PROVIDER` and Twilio are unset.
-- **Fix:** Read the `@store/web` terminal — the 6-digit code is logged there.
-
-### Chat assistant silent
-
-- **Cause:** No `OPENAI_API_KEY` or `GOOGLE_AI_API_KEY`.
-- **Fix:** Add a key, or use human-only chat (team replies from Admin → Inquiries).
-
-### Product not on storefront
-
-- Walk the [visibility cascade](../README.md#visibility-cascade): active product, not archived, has variants, active category, active brand, in-stock variant (or force-out-of-stock handling).
-
-### Search always feels “dumb” locally
-
-- Set `ATLAS_SEARCH_ENABLED=false` explicitly, or create the Atlas Search index on a dev cluster.
+| Symptom | Likely cause | Fix |
+| ------- | ------------ | --- |
+| Auth redirect loop | Missing `AUTH_SECRET` or wrong `AUTH_URL` | Match port 3000 |
+| DB connection fail | IP block or missing DB name in URI | Atlas Network Access |
+| SRV DNS `EREFUSED` | Local DNS cannot resolve Atlas SRV | Standard connection string or `DEV_SKIP_PUBLIC_DNS=true` |
+| Image 500 on Blob host (`ENOTFOUND` in terminal) | Browser resolves Blob CDN but Node `/_next/image` could not — local DNS/router issue | Dev loads product images directly (pre-optimized WebP). Production uses the optimizer. Fix DNS or set `DEV_SKIP_PUBLIC_DNS=false` (default). Restart `npm run dev` after `.env` changes. |
+| No OTP in dev | Meta WhatsApp unset | Read `@store/web` terminal log |
+| Chat assistant silent | No AI API key | Add key or use human-only (Admin → Inquiries) |
+| Product missing on shop | Failed visibility cascade | [README § visibility](../README.md#1-catalog--domain-rules) |
+| Weak local search | No Atlas index | Create index or set `ATLAS_SEARCH_ENABLED=false` |
+| Production build fails prerender | Rare after SEO fallbacks; still check Atlas + CI allowlist | [go-live.md](go-live.md) |
+| Card paid, order still pending | Webhook missing amount or bad secret | Gateway dashboard; admin manual confirm |
+| No staff notifications | Resend/WhatsApp/templates unset | Admin Integrations + Shop Health |

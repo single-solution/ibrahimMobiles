@@ -14,8 +14,6 @@ import { openChatWidget, closeChatWidget, CHAT_OPEN_STATE_EVENT, type ChatOpenSt
 import { fetchChatUnreadSummary } from "@/lib/chat/transport";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 
-const CHAT_HIDDEN_PREFIXES = ["/checkout", "/account/sign-in"];
-
 interface Tab {
 	id: string;
 	matchBase: string;
@@ -138,10 +136,8 @@ function TabLinkItem({ tab, href, label, pathname, catalogHomeHref, badgeCount }
 }
 
 function TabMessageItem() {
-	const pathname = usePathname() ?? "";
 	const chatSettings = useChatSettings();
 	const { whatsappNumber } = useStoreSettings();
-	const chatHidden = CHAT_HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 	const [unread, setUnread] = useState(0);
 	const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -155,7 +151,7 @@ function TabMessageItem() {
 	}, []);
 
 	useEffect(() => {
-		if (!chatSettings.enabled || chatHidden) {
+		if (!chatSettings.enabled) {
 			return;
 		}
 
@@ -188,10 +184,10 @@ function TabMessageItem() {
 			document.removeEventListener("visibilitychange", onVisibilityChange);
 			window.clearInterval(pollTimer);
 		};
-	}, [chatHidden, chatSettings.enabled]);
+	}, [chatSettings.enabled]);
 
 	function handleClick() {
-		if (chatSettings.enabled && !chatHidden) {
+		if (chatSettings.enabled) {
 			if (isChatOpen) {
 				closeChatWidget();
 			} else {
@@ -203,7 +199,7 @@ function TabMessageItem() {
 		window.open(whatsappUrl, "_blank", "noopener,noreferrer");
 	}
 
-	const isActive = isChatOpen && chatSettings.enabled && !chatHidden;
+	const isActive = isChatOpen && chatSettings.enabled;
 	const TabIcon = isActive ? X : MessageSquare;
 
 	return (

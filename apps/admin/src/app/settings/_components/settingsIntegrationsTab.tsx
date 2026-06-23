@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
-import { Gauge, MapPin, Share2, Sparkles, Video } from "lucide-react";
-import { STORE_SETTING_GROUPS } from "@store/shared";
+import { useEffect, useMemo, useState } from "react";
+import { CloudUpload, CreditCard, Gauge, MapPin, MessageCircle, Share2, Sparkles, Video } from "lucide-react";
+import { STORE_SETTING_GROUPS, type OtpIntegrationStatus, type OnlinePaymentIntegrationStatus, type StorageIntegrationStatus } from "@store/shared";
+import { apiFetch } from "@/lib/api";
 import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";
 import { FormGrid, SettingsTabHero, type SettingsHeroMetric, type SettingsHeroMetricTone } from "@/app/settings/_components/settingsWorkspaceUi";
 import { SaveableSection } from "@/app/settings/_components/settingsSaveableSection";
+import { IntegrationCredentialsPanel } from "@/app/settings/_components/integrationCredentialsPanel";
 import type { SectionProps } from "@/app/settings/_components/settingsSectionProps";
 
 const META_PIXEL_PATTERN = /^\d{6,20}$/;
@@ -27,6 +29,31 @@ function pixelStatus(value: string, pattern: RegExp): { tone: SettingsHeroMetric
 
 export function IntegrationsSettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
 	const fields = useMemo(() => [...STORE_SETTING_GROUPS.social, ...STORE_SETTING_GROUPS.marketing], []);
+	const [otpStatus, setOtpStatus] = useState<OtpIntegrationStatus | null>(null);
+	const [storageStatus, setStorageStatus] = useState<StorageIntegrationStatus | null>(null);
+	const [onlinePaymentStatus, setOnlinePaymentStatus] = useState<OnlinePaymentIntegrationStatus | null>(null);
+
+	useEffect(() => {
+		let cancelled = false;
+		async function loadStatus() {
+			try {
+				const data = await apiFetch<{ otp: OtpIntegrationStatus; storage: StorageIntegrationStatus; onlinePayment: OnlinePaymentIntegrationStatus }>(
+					"/api/settings/integrations-status",
+				);
+				if (!cancelled) {
+					setOtpStatus(data.otp);
+					setStorageStatus(data.storage);
+					setOnlinePaymentStatus(data.onlinePayment);
+				}
+			} catch {
+				// Status panel is informational — tab still works without it.
+			}
+		}
+		void loadStatus();
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	const socialLinks = [draft.socialFacebook, draft.socialInstagram, draft.socialTiktok, draft.socialYoutube, draft.socialGoogleMaps];
 	const linkedCount = socialLinks.filter((value) => value.trim().length > 0).length;
@@ -48,6 +75,39 @@ export function IntegrationsSettings({ draft, saved, setField, onSaved, canUpdat
 		{ label: "Google Analytics 4", value: ga.label, tone: ga.tone, icon: Gauge },
 		{ label: "Tag Manager", value: gtm.label, tone: gtm.tone, icon: Gauge },
 		{ label: "TikTok Pixel", value: tiktok.label, tone: tiktok.tone, icon: Sparkles },
+		{
+			label: "Online payments",
+			value:
+				onlinePaymentStatus?.ready
+					? onlinePaymentStatus.provider === "payfast"
+						? "PayFast ready"
+						: "Rapid ready"
+					: onlinePaymentStatus?.provider === "none"
+						? "Off"
+						: "Setup",
+			hint: onlinePaymentStatus?.summary,
+			tone: onlinePaymentStatus?.ready ? "good" : onlinePaymentStatus?.provider === "none" ? "off" : "warn",
+			icon: CreditCard,
+		},
+		{
+			label: "Sign-in OTP",
+			value:
+				otpStatus?.readyForProduction && otpStatus.activeProvider === "whatsapp-cloud"
+					? "Meta WhatsApp ready"
+					: otpStatus?.activeProvider === "whatsapp-cloud"
+						? "Meta partial"
+						: "Console (dev)",
+			hint: otpStatus?.summary,
+			tone: otpStatus?.readyForProduction ? "good" : otpStatus?.activeProvider === "console" ? "off" : "warn",
+			icon: MessageCircle,
+		},
+		{
+			label: "Media storage",
+			value: storageStatus?.ready ? "Ready" : storageStatus?.provider === "s3" ? "S3 incomplete" : "Token missing",
+			hint: storageStatus?.summary,
+			tone: storageStatus?.ready ? "good" : "warn",
+			icon: CloudUpload,
+		},
 	];
 
 	return (
@@ -60,11 +120,13 @@ export function IntegrationsSettings({ draft, saved, setField, onSaved, canUpdat
 			canUpdate={canUpdate}
 			hero={
 				<SettingsTabHero
-					description="Social profiles link from the storefront; tracking IDs are injected into every page. Empty fields stay disabled — nothing loads or links until you fill it in."
+					description="Social profiles, tracking pixels, and server credentials (PayFast, Rapid Gateway, WhatsApp OTP, email, storage). Manage secrets below — no developer needed for routine changes."
 					metrics={heroMetrics}
 				/>
 			}
 		>
+			<IntegrationCredentialsPanel canUpdate={canUpdate} />
+
 			<FormSection title="Social profiles" description="Linked from the footer and About page. Leave a row blank to hide that platform.">
 				<FormGrid cols={3}>
 					<TextField

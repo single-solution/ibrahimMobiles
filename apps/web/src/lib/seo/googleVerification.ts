@@ -12,6 +12,7 @@
 import { unstable_cache } from "next/cache";
 
 import { connectDB, Setting } from "@store/db";
+import { logger } from "@store/shared";
 
 import { STOREFRONT_CACHE_TAG } from "@/lib/core/cached";
 
@@ -24,9 +25,14 @@ const TTL_SECONDS = 60;
 
 const loadVerification = unstable_cache(
 	async (): Promise<string> => {
-		await connectDB();
-		const doc = await Setting.findOne({ key: "seo.googleSiteVerification" }).select({ value: 1 }).lean<RawSettingDoc | null>();
-		return typeof doc?.value === "string" ? doc.value : "";
+		try {
+			await connectDB();
+			const doc = await Setting.findOne({ key: "seo.googleSiteVerification" }).select({ value: 1 }).lean<RawSettingDoc | null>();
+			return typeof doc?.value === "string" ? doc.value : "";
+		} catch (error) {
+			logger.error({ error }, "seo-google-verification: load failed, skipping tag");
+			return "";
+		}
 	},
 	["seo-google-verification"],
 	{ revalidate: TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },

@@ -3,7 +3,9 @@
  * without re-fetching every product. Server re-validates pricing and stock on submit.
  */
 
-import type { StoredImage } from "@store/shared";
+import type { CartAppliedOfferLock, StoredImage } from "@store/shared";
+
+export type { CartAppliedOfferLock };
 
 export interface CartItem {
 	/** Stable id used for React keys (`productId:variantId`). */
@@ -17,7 +19,7 @@ export interface CartItem {
 	brandName: string;
 	/** Multi-resolution hero image. */
 	image: StoredImage;
-	/** Price at time of add — re-validated server-side on order placement. */
+	/** List price at time of add — server re-validates on order placement. */
 	unitPriceRupees: number;
 	/** URL category segment (`Product.categorySlug`). */
 	categorySlug: string;
@@ -30,6 +32,8 @@ export interface CartItem {
 	quantity: number;
 	/** Variant stock cap captured when the line was added. */
 	maxQuantity?: number;
-	/** Item-scoped offer locked in on the PDP — re-validated at checkout. */
+	/** Catalog deal locked in when the line was added — honored until checkout completes. */
+	appliedOffer?: CartAppliedOfferLock;
+	/** Legacy cart lines — prefer `appliedOffer`. */
 	appliedOfferId?: string;
 }

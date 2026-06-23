@@ -9,7 +9,7 @@
  *
  *   2. Next.js `unstable_cache` — dedupes across **HTTP requests** for a
  *      given time window. Storefront reads are stable enough that a
- *      30-second window costs ~zero freshness but saves a Mongo round-trip
+ *      60-second window costs ~zero freshness but saves a Mongo round-trip
  *      on every visit. Tag-invalidate via `STOREFRONT_CACHE_TAG` from admin
  *      mutations when we need instant propagation.
  *
@@ -19,7 +19,7 @@
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
-import { Brand as BrandModel, connectDB, getStoreSettings as getStoreSettingsRaw, Product as ProductModel } from "@store/db";
+import { Brand as BrandModel, connectDB, getIntegrationSettings as getIntegrationSettingsRaw, getStoreSettings as getStoreSettingsRaw, Product as ProductModel } from "@store/db";
 import type { Product } from "@store/shared";
 
 import {
@@ -53,14 +53,22 @@ import type { AttributeFacet } from "@/lib/core/facets";
 export const STOREFRONT_CACHE_TAG = "storefront";
 
 /** Seconds the cross-request layer holds onto storefront reads. */
-const STOREFRONT_CACHE_TTL_SECONDS = 30;
+const STOREFRONT_CACHE_TTL_SECONDS = 60;
 
 /* ─────────── two-tier dedupe (unstable_cache + React cache) ─────────── */
 
 const loadStoreSettings = unstable_cache(() => getStoreSettingsRaw(), ["storefront-settings"], { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] });
 
-/** Cross-request (30s) + per-render dedupe — settings power the root layout. */
+const loadIntegrationSettings = unstable_cache(() => getIntegrationSettingsRaw(), ["storefront-integration-settings"], {
+	revalidate: STOREFRONT_CACHE_TTL_SECONDS,
+	tags: [STOREFRONT_CACHE_TAG],
+});
+
+/** Cross-request (60s) + per-render dedupe — settings power the root layout. */
 export const getStoreSettingsCached = cache(loadStoreSettings);
+
+/** Cross-request (60s) + per-render dedupe — card-checkout flag in layout. */
+export const getIntegrationSettingsCached = cache(loadIntegrationSettings);
 
 const loadCategoryMetaBySlug = unstable_cache((slug: string) => getCategoryMetaBySlugRaw(slug), ["storefront-category-by-slug"], {
 	revalidate: STOREFRONT_CACHE_TTL_SECONDS,
@@ -298,4 +306,51 @@ const getPopularProductsInner = unstable_cache(async (limit: number): Promise<Pr
 
 export function getPopularProductsCached(limit: number): Promise<Product[]> {
 	return getPopularProductsInner(limit);
+}
+
+const HOME_HERO_WARM_LIMIT = 12;
+const CATEGORY_WARM_LIMIT = 4;
+const CATEGORY_LISTING_WARM_PAGE_SIZE = 24;
+
+/**
+ * Prime Mongo + `unstable_cache` for the paths every cold visit hits.
+ * Safe to fire-and-forget at server boot — failures are logged, never thrown.
+ */
+export async function warmStorefrontReadCaches(): Promise<void> {
+	const { logger } = await import("@store/shared");
+
+	try {
+		await connectDB();
+
+		const [categories] = await Promise.all([
+			getCategoriesRaw(),
+			getStoreSettingsRaw(),
+			getIntegrationSettingsRaw(),
+			getGradesRaw(),
+			getAttributesRaw(),
+			getOffersRaw(),
+			getCatalogDealsRaw(),
+			hasAnyProductsRaw(),
+			getHomeHeroProductsCached(HOME_HERO_WARM_LIMIT),
+		]);
+
+		const activeCategories = categories.filter((category) => category.isActive).slice(0, CATEGORY_WARM_LIMIT);
+		await Promise.all(
+			activeCategories.map(async (category) => {
+				await getCategoryMetaBySlugRaw(category.slug);
+				await getProductsPageRaw({
+					categorySlug: category.slug,
+					page: 1,
+					limit: CATEGORY_LISTING_WARM_PAGE_SIZE,
+					sort: "recently-updated",
+				});
+			}),
+		);
+	} catch (error) {
+		const errorDetail =
+			error instanceof Error
+				? { name: error.name, message: error.message }
+				: { message: String(error) };
+		logger.warn({ error: errorDetail }, "Storefront cache warm skipped");
+	}
 }

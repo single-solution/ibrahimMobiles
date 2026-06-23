@@ -12,6 +12,7 @@ import { cookies } from "next/headers";
 import { Inquiry as InquiryModel, connectDB } from "@store/db";
 import { appendInquiryToGuestToken, badRequest, created, logger, resolveChatWelcomeMessage, serverError } from "@store/shared";
 
+import { enforceSameOrigin } from "@/lib/api/sameOrigin";
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 import { auth } from "@/lib/auth";
 import { getChatSettings } from "@/lib/chat/chatSettings";
@@ -28,6 +29,11 @@ interface CreateAnonymousThreadBody {
 }
 
 export async function POST(request: Request) {
+	const csrf = enforceSameOrigin(request);
+	if (csrf) {
+		return csrf;
+	}
+
 	const limited = enforcePublicRateLimit(request, {
 		scope: "chat-start-anonymous",
 		max: MAX_ANON_STARTS_PER_WINDOW,

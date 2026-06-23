@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { ExternalLink, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
-import { STORE_SETTING_GROUPS } from "@store/shared";
+import { STORE_SETTING_GROUPS, isValidWhatsappNumber, normalizeWhatsappNumber } from "@store/shared";
 import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";
 import { FormGrid, SettingsTabHero, type SettingsHeroMetric } from "@/app/settings/_components/settingsWorkspaceUi";
@@ -12,7 +12,8 @@ import type { SectionProps } from "@/app/settings/_components/settingsSectionPro
 export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
 	const fields = useMemo(() => [...STORE_SETTING_GROUPS.contact, ...STORE_SETTING_GROUPS.address], []);
 	const phoneClean = draft.supportPhone.replace(/[^\d+]/g, "");
-	const wa = draft.whatsappNumber.replace(/\D/g, "");
+	const wa = normalizeWhatsappNumber(draft.whatsappNumber);
+	const whatsappInvalid = wa.length > 0 && !isValidWhatsappNumber(wa);
 	const heroMetrics: SettingsHeroMetric[] = [
 		{
 			label: "Support phone",
@@ -23,7 +24,7 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
 		{
 			label: "WhatsApp",
 			value: draft.whatsappNumber || "Not set",
-			tone: wa ? "good" : "warn",
+			tone: wa ? (whatsappInvalid ? "warn" : "good") : "warn",
 			icon: MessageCircle,
 		},
 		{
@@ -123,7 +124,8 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
 						onChange={(event) => setField("whatsappNumber", event.target.value)}
 						placeholder="923204862403"
 						inputMode="tel"
-						hint="Digits only — country code first, no plus or spaces."
+						hint="Digits only — country code first, no plus or spaces. Powers Support tab, checkout, and PDP WhatsApp links."
+						errorText={whatsappInvalid ? "Use 10–15 digits (e.g. 923204862403)." : undefined}
 						leadingIcon={<MessageCircle size={14} />}
 						disabled={!canUpdate}
 					/>

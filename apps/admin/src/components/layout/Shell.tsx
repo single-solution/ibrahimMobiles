@@ -13,8 +13,16 @@ import { AdminPermissionsProvider } from "@/lib/permissionsContext";
 import { RevealRoot } from "@/components/shared/motion/RevealRoot";
 import { RouteTransition } from "@/components/shared/motion/RouteTransition";
 
+import type { PermissionKey } from "@/lib/permissionsCatalog";
+import { SidebarSummaryProvider } from "@/lib/sidebarSummaryContext";
+
 interface ShellProps {
 	children: ReactNode;
+	initialSession?: {
+		id: string;
+		name: string;
+		permissions: PermissionKey[];
+	} | null;
 }
 
 /** Routes that render bare (no chrome, no session gate) inside the shell. */
@@ -22,7 +30,7 @@ function isPublicRoute(pathname: string): boolean {
 	return pathname === "/login" || pathname.startsWith("/login/");
 }
 
-export function Shell({ children }: ShellProps) {
+export function Shell({ children, initialSession = null }: ShellProps) {
 	const router = useRouter();
 	const pathname = usePathname() ?? "";
 	const { status } = useSession();
@@ -59,12 +67,13 @@ export function Shell({ children }: ShellProps) {
 	}
 
 	return (
-		<AdminPermissionsProvider>
-			<Suspense fallback={null}>
-				<RevealRoot />
-			</Suspense>
-			<NavigationProgress />
-			<div className="flex min-h-screen flex-col bg-[var(--color-canvas-deep)] md:h-screen md:gap-2 md:overflow-hidden md:p-2">
+		<AdminPermissionsProvider initialSession={initialSession}>
+			<SidebarSummaryProvider>
+				<Suspense fallback={null}>
+					<RevealRoot />
+				</Suspense>
+				<NavigationProgress />
+				<div className="flex min-h-screen flex-col bg-[var(--color-canvas-deep)] md:h-screen md:gap-2 md:overflow-hidden md:p-2">
 				<div className="md:hidden">
 					<MobileTopBar onOpenMenu={() => setIsMobileMenuOpen(true)} />
 				</div>
@@ -86,7 +95,8 @@ export function Shell({ children }: ShellProps) {
 				</div>
 
 				<MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
-			</div>
+				</div>
+			</SidebarSummaryProvider>
 		</AdminPermissionsProvider>
 	);
 }

@@ -19,7 +19,7 @@
 import { NextResponse } from "next/server";
 
 import { badRequest, forbidden, ok, parseBody } from "@store/shared";
-import { connectDB, Customer, Attribute, Brand, Category, Grade, handleMongoError, Inquiry, LoyaltyAccount, Order, Product } from "@store/db";
+import { connectDB, Customer, Attribute, Brand, Category, Grade, handleMongoError, Inquiry, LoyaltyAccount, Order, Product, releaseStock } from "@store/db";
 
 import { bustAdminCaches } from "@/lib/cached";
 import { requireSession } from "@/lib/api/requireSession";
@@ -103,6 +103,7 @@ async function runCleanup(target: CleanupTarget): Promise<number> {
 			return (products.deletedCount ?? 0) + (brands.deletedCount ?? 0) + (grades.deletedCount ?? 0) + (attributes.deletedCount ?? 0) + (categories.deletedCount ?? 0);
 		}
 		case "orders": {
+			await releaseReservedInventoryForAllOrders();
 			const result = await Order.deleteMany({});
 			return result.deletedCount ?? 0;
 		}
@@ -114,10 +115,25 @@ async function runCleanup(target: CleanupTarget): Promise<number> {
 			// Cascade — orphan orders + loyalty would leave dangling `customerId`
 			// foreign keys and broken lifetime stats. Delete dependents first so
 			// an interrupted cleanup never leaves an inconsistent customer doc.
+			await releaseReservedInventoryForAllOrders();
 			await Order.deleteMany({});
 			await LoyaltyAccount.deleteMany({});
 			const result = await Customer.deleteMany({});
 			return result.deletedCount ?? 0;
+		}
+	}
+}
+
+async function releaseReservedInventoryForAllOrders(): Promise<void> {
+	const reservedOrders = await Order.find({ inventoryReserved: true }).select("items").lean();
+	for (const order of reservedOrders) {
+		const lines = (order.items ?? []).map((line) => ({
+			productId: line.productId,
+			variantId: line.variantId,
+			quantity: line.quantity,
+		}));
+		if (lines.length > 0) {
+			await releaseStock(lines);
 		}
 	}
 }

@@ -10,9 +10,23 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function CheckoutPage() {
+export default async function CheckoutPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ cancelled?: string; order?: string }>;
+}) {
 	const session = await auth();
+	const params = await searchParams;
+	const paymentCancelled = params.cancelled === "1";
+	const cancelledOrderNumber = typeof params.order === "string" ? params.order.trim() : "";
 	const customer = session?.user?.role === "customer" && session.user.customerId ? await getAccountCustomer(session.user.customerId) : null;
 
-	return <Checkout key={customer?.id ?? "guest"} customer={customer} />;
+	return (
+		<Checkout
+			key={customer?.id ?? "guest"}
+			customer={customer}
+			paymentCancelled={paymentCancelled}
+			cancelledOrderNumber={cancelledOrderNumber}
+		/>
+	);
 }

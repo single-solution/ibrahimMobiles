@@ -113,7 +113,7 @@ function asStoredImageArray(raw: unknown): StoredImage[] {
 		.filter((image): image is StoredImage => image !== null);
 }
 
-function toVariant(variant: VariantAttributes): Variant {
+export function toStorefrontVariant(variant: VariantAttributes): Variant {
 	return {
 		id: objectIdString(variant._id),
 		gradeSlug: asString(variant.gradeSlug),
@@ -124,6 +124,10 @@ function toVariant(variant: VariantAttributes): Variant {
 		attributes: variant.attributes ?? {},
 		attributeDisplay: variant.attributeDisplay,
 	};
+}
+
+function toVariant(variant: VariantAttributes): Variant {
+	return toStorefrontVariant(variant);
 }
 
 /**

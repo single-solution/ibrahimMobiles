@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MessageSquare, Send, X } from "lucide-react";
+import { ArrowLeft, AlertTriangle, MessageSquare, Send, X } from "lucide-react";
 
 import { CHAT_GUEST_MESSAGE_LIMIT, CHAT_MESSAGE_BODY_MAX, classNames, type ChatMessage, type ChatThread } from "@store/shared";
 
@@ -321,6 +321,7 @@ export function ThreadConversation({
 
 	return (
 		<>
+			{thread.assistantPaused ? <AssistantPausedNotice reason={thread.assistantPauseReason} /> : null}
 			<div ref={messageListRef} onScroll={handleMessageListScroll} className="flex-1 space-y-3 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-3">
 				{(hasMoreOlder || isLoadingOlder) && (
 					<div className="flex justify-center py-1">
@@ -338,7 +339,7 @@ export function ThreadConversation({
 						))}
 					</div>
 				))}
-				{assistantEnabled && botActivity && <ChatTypingIndicator label={botActivity === "reading" ? "Just a moment..." : undefined} />}
+				{assistantEnabled && !thread.assistantPaused && botActivity && <ChatTypingIndicator label={botActivity === "reading" ? "Just a moment..." : undefined} />}
 				{thread.messages.length === 0 && (
 					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3.5 text-xs leading-relaxed text-[var(--color-ink-600)] shadow-[var(--shadow-sm)]">
 						{chatWelcomeMessage({
@@ -474,6 +475,21 @@ export function ComposeConversation({
 
 interface SupportHintFooterProps {
 	assistantEnabled: boolean;
+	assistantPaused?: boolean;
+}
+
+function AssistantPausedNotice(_props: { reason?: ChatThread["assistantPauseReason"] }) {
+	return (
+		<div
+			role="status"
+			className="flex items-start gap-2 border-b border-[var(--color-warn-200)] bg-[var(--color-warn-50)] px-3 py-2.5 text-[11px] leading-relaxed text-[var(--color-warn-900)]"
+		>
+			<AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden />
+			<span>
+				<strong className="font-semibold">Your chat needs personal attention.</strong> Automated help is paused for now — you can still send messages here and our team will follow up as soon as we can.
+			</span>
+		</div>
+	);
 }
 
 function ChatLoginGate({ signInHref }: { signInHref: string }) {
@@ -493,11 +509,15 @@ function ChatLoginGate({ signInHref }: { signInHref: string }) {
 	);
 }
 
-export function SupportHintFooter({ assistantEnabled }: SupportHintFooterProps) {
+export function SupportHintFooter({ assistantEnabled, assistantPaused = false }: SupportHintFooterProps) {
 	return (
 		<p className="mx-auto border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-4 py-2.5 text-center text-[11px] leading-relaxed text-[var(--color-ink-600)]">
 			<span className="mx-auto block max-w-prose">
-				{assistantEnabled ? 'Need to speak with our team? Type "speak to someone" and we will join this chat.' : "A teammate will reply here as soon as possible."}
+				{assistantPaused
+					? "Leave your message below — a teammate will read this chat and reply here."
+					: assistantEnabled
+						? 'Need to speak with our team? Type "speak to someone" and we will join this chat.'
+						: "A teammate will reply here as soon as possible."}
 			</span>
 		</p>
 	);

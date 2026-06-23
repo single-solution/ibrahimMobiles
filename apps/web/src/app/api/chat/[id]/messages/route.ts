@@ -15,7 +15,7 @@
  *     sees it back in the active queue.
  */
 
-import { Inquiry as InquiryModel, connectDB } from "@store/db";
+import { Inquiry as InquiryModel, connectDB, getStoreSettings, getIntegrationSettings, resolveInquiryStaffNotifyTargets } from "@store/db";
 import {
 	badRequest,
 	CHAT_MESSAGE_BODY_MAX,
@@ -28,8 +28,10 @@ import {
 	SHORT_BURST_WINDOW_MS,
 	validateMessageBody,
 } from "@store/shared";
+import { notifyStaffOnCustomerMessage } from "@store/shared/server";
 
 import { auth } from "@/lib/auth";
+import { enforceSameOrigin } from "@/lib/api/sameOrigin";
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 import { inquiryStatusPatchAfterMessage } from "@store/shared";
 import { getChatSettings } from "@/lib/chat/chatSettings";
@@ -55,6 +57,11 @@ const MAX_PER_WINDOW = 30;
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request, { params }: RouteContext) {
+	const csrf = enforceSameOrigin(request);
+	if (csrf) {
+		return csrf;
+	}
+
 	const { id } = await params;
 	const access = await resolveChatAccess(id);
 	if (access instanceof Response) return access;
@@ -148,6 +155,22 @@ export async function POST(request: Request, { params }: RouteContext) {
 		const refreshed = await InquiryModel.findById(inquiryId).lean<InquiryLean>();
 		if (!refreshed) {
 			return serverError("Thread vanished while posting your message.");
+		}
+
+		const [settings, integration] = await Promise.all([getStoreSettings(), getIntegrationSettings()]);
+		const { notifyEmails, notifyWhatsAppPhones } = await resolveInquiryStaffNotifyTargets(refreshed, integration, settings);
+		if (notifyEmails.length || notifyWhatsAppPhones.length) {
+			void notifyStaffOnCustomerMessage({
+				inquiryId: inquiryId.toString(),
+				customerName: refreshed.customerName ?? "Guest",
+				phoneNumber: refreshed.phoneNumber,
+				messagePreview: bodyResult,
+				notifyEmails,
+				notifyWhatsAppPhones,
+				whatsappStaffNotifyTemplate: integration.whatsappStaffNotifyTemplate.trim() || undefined,
+				siteName: settings.siteName,
+				adminSiteUrl: integration.adminSiteUrl.trim() || undefined,
+			});
 		}
 
 		const verifiedCustomerId =

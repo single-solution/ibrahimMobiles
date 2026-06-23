@@ -1,7 +1,7 @@
-import type { OfferCondition } from "./offerTypes";
-import type { EvaluatableItem } from "./offerEvaluator";
+import type { OfferCondition, OfferAction, OfferConstraints } from "./offerTypes";
+import type { EvaluatableItem, ActiveOffer } from "./offerEvaluator";
+import { isOfferEligible } from "./offerSchedule";
 import { isCheckoutOnlyOffer, isStorewideOffer, matchesCondition } from "./offerMatching";
-import type { ActiveOffer } from "./offerEvaluator";
 
 const CATALOG_CONDITION_TYPES = new Set<OfferCondition["type"]>(["categories", "brands", "grades", "products", "attributes"]);
 
@@ -51,14 +51,98 @@ export function extractOfferScenarios(conditions: OfferCondition[]): OfferCondit
 	return [];
 }
 
-export function offerHasCatalogItemScope(conditions: OfferCondition[]): boolean {
+function isCompleteCatalogScenario(scenario: OfferCondition): boolean {
+	const subs = scenarioCatalogConditions(scenario);
+	const categorySlugs = asStringArray(subs.find((condition) => condition.type === "categories")?.value);
+	const productIds = asStringArray(subs.find((condition) => condition.type === "products")?.value);
+	return categorySlugs.length > 0 || productIds.length > 0;
+}
+
+/** Catalog deal with at least one category or product per scenario — storewide (empty rules) excluded. */
+export function hasValidCatalogDealScope(conditions: OfferCondition[]): boolean {
 	if (isStorewideOffer({ conditions } as ActiveOffer)) {
-		return true;
+		return false;
 	}
 	if (isCheckoutOnlyOffer({ conditions } as ActiveOffer)) {
 		return false;
 	}
-	return extractOfferScenarios(conditions).length > 0;
+	const scenarios = extractOfferScenarios(conditions);
+	return scenarios.some((scenario) => isCompleteCatalogScenario(scenario));
+}
+
+/** User-facing validation before save — null when valid or checkout-only. */
+export function validateCatalogOfferConditions(conditions: OfferCondition[]): string | null {
+	if (isCheckoutOnlyOffer({ conditions } as ActiveOffer)) {
+		return null;
+	}
+	if (isStorewideOffer({ conditions } as ActiveOffer)) {
+		return "Pick a category or product — storewide offers are not allowed.";
+	}
+	if (!hasValidCatalogDealScope(conditions)) {
+		return "Each catalog scenario needs at least one category or a specific product.";
+	}
+	return null;
+}
+
+const CATALOG_DEAL_ACTION_TYPES = new Set<OfferAction["type"]>(["percentage_discount", "fixed_amount_discount"]);
+
+/** Catalog deals — percentage or fixed discount on matched line items only. */
+export function isCatalogDealAction(action: Pick<OfferAction, "type">): boolean {
+	return CATALOG_DEAL_ACTION_TYPES.has(action.type);
+}
+
+/** Coerce legacy catalog actions (e.g. free shipping) to a supported catalog discount. */
+export function normalizeCatalogOfferAction(action: OfferAction): OfferAction {
+	if (isCatalogDealAction(action) && action.target === "matched_items") {
+		return action;
+	}
+	if (action.type === "percentage_discount" || action.type === "fixed_amount_discount") {
+		return { ...action, target: "matched_items" };
+	}
+	const fallbackValue = action.value > 0 ? action.value : 10;
+	return { type: "percentage_discount", value: fallbackValue, target: "matched_items" };
+}
+
+/** Validates catalog offer action shape — null when valid or checkout-only. */
+export function validateCatalogOfferAction(conditions: OfferCondition[], action: OfferAction): string | null {
+	if (isCheckoutOnlyOffer({ conditions } as ActiveOffer)) {
+		return null;
+	}
+	if (!hasValidCatalogDealScope(conditions)) {
+		return null;
+	}
+	if (!isCatalogDealAction(action)) {
+		return "Catalog deals support percentage or fixed discounts only. Use checkout offers for free shipping.";
+	}
+	if (action.target !== "matched_items") {
+		return "Catalog deals must apply to matched items.";
+	}
+	return null;
+}
+
+/** Conditions + action validation for catalog offers. */
+export function validateCatalogOfferRules(conditions: OfferCondition[], action: OfferAction): string | null {
+	return validateCatalogOfferConditions(conditions) ?? validateCatalogOfferAction(conditions, action);
+}
+
+/** Catalog deals never control loyalty — checkout offers keep the admin toggle. */
+export function normalizeOfferConstraintsForScope(conditions: OfferCondition[], constraints: OfferConstraints): OfferConstraints {
+	if (isCheckoutOnlyOffer({ conditions } as ActiveOffer)) {
+		return constraints;
+	}
+	if (hasValidCatalogDealScope(conditions)) {
+		return { ...constraints, allowLoyaltyPoints: false };
+	}
+	return constraints;
+}
+
+export function offerHasCatalogItemScope(conditions: OfferCondition[]): boolean {
+	return hasValidCatalogDealScope(conditions);
+}
+
+/** Item-scoped catalog promos — selectable deal buttons on `/deals` and the shop hero. */
+export function isCatalogDealOffer(offer: ActiveOffer): boolean {
+	return isOfferEligible(offer) && !isCheckoutOnlyOffer(offer) && hasValidCatalogDealScope(offer.conditions);
 }
 
 function scenarioCatalogConditions(scenario: OfferCondition): OfferCondition[] {
@@ -96,9 +180,6 @@ function productMatchesScenario(product: OfferCatalogProduct, scenario: OfferCon
 }
 
 function productMatchesOfferCatalogScope(product: OfferCatalogProduct, conditions: OfferCondition[]): boolean {
-	if (isStorewideOffer({ conditions } as ActiveOffer)) {
-		return true;
-	}
 	const scenarios = extractOfferScenarios(conditions);
 	if (scenarios.length === 0) {
 		return false;
@@ -140,7 +221,7 @@ export function findOfferCatalogScopeConflict(
 }
 
 export function formatOfferScopeConflictMessage(conflict: OfferScopeConflict): string {
-	return `"${conflict.productName}" already matches offer "${conflict.conflictingOfferTitle}". A product cannot belong to two item-specific offers — adjust or deactivate the other offer first.`;
+	return `"${conflict.productName}" already matches catalog deal "${conflict.conflictingOfferTitle}". A product cannot belong to two catalog deals — checkout offers are separate.`;
 }
 
 /** Whether picking this product in a scenario would overlap another offer. */

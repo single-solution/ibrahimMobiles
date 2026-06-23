@@ -42,6 +42,9 @@ export interface StoreSettings {
 	brandFaviconLight: string;
 	brandFaviconDark: string;
 
+	/** Injected at request time — not stored in Mongo. Hides pay-online when no PK gateway is configured. */
+	cardCheckoutReady?: boolean;
+
 	/** Mobile/cell number callers reach for sales + support. */
 	supportPhone: string;
 	/** Landline number printed in the footer. */
@@ -66,53 +69,41 @@ export interface StoreSettings {
 
 	/** Order subtotal in rupees above which delivery is free. */
 	freeDeliveryThresholdRupees: number;
+	/** Flat courier fee when delivery is not free. */
+	courierFlatFeeRupees: number;
 	/** Default warranty period (in months) shown on product pages. */
 	defaultWarrantyMonths: number;
-	/** Discount applied (% off) for full bank-transfer pre-payment. */
-	bankTransferDiscountPercent: number;
 	/** Number of days the moneyback window stays open. */
 	moneybackDays: number;
+	/** Return & refund policy shown in checkout and policy modals (sanitized HTML). */
+	returnPolicyHtml: string;
+	/** Privacy policy shown in checkout and policy modals (sanitized HTML). */
+	privacyPolicyHtml: string;
 	/** % of order total returned as loyalty points (e.g. 1 → 1% back). */
 	loyaltyEarnPercent: number;
-	/** Loyalty bonus awarded for posting a post-delivery review. */
-	loyaltyReviewBonusPoints: number;
-	/** Loyalty bonus awarded to each side of a successful referral. */
-	loyaltyReferralBonusPoints: number;
 
 	// ── Payment method availability ─────────────────────────────────────────
-	/** Show the bank-transfer chip on checkout and accept this method. */
-	paymentBankEnabled: boolean;
-	/** Show the Easypaisa chip on checkout and accept this method. */
-	paymentEasypaisaEnabled: boolean;
-	/** Show the JazzCash chip on checkout and accept this method. */
-	paymentJazzcashEnabled: boolean;
-	/** Show the cash-on-delivery / pickup chip on checkout. */
+	/** Show bank transfer at checkout (lowest cost — manual confirmation). */
+	paymentBankTransferEnabled: boolean;
+	/** Show pay-online at checkout (requires PayFast or Rapid Gateway under Integrations). */
+	paymentCardEnabled: boolean;
+	/** Show cash on delivery at checkout. */
 	paymentCodEnabled: boolean;
+	/** Extra % added to subtotal when the customer picks cash on delivery. */
+	codSurchargePercent: number;
 
-	// ── Bank transfer details (shown after the customer picks "bank") ───────
-	/** Bank name, e.g. "Meezan Bank". */
-	paymentBankName: string;
-	/** Account title — the registered name on the bank account. */
-	paymentBankAccountTitle: string;
-	/** Account number printed alongside the IBAN. */
-	paymentBankAccountNumber: string;
-	/** IBAN, e.g. `PK24MEZN0001230012345678`. */
-	paymentBankIban: string;
+	// ── Bank transfer details (shown at checkout + order pages) ─────────────
+	bankName: string;
+	bankAccountTitle: string;
+	bankAccountNumber: string;
+	bankIban: string;
 
-	// ── Easypaisa details ───────────────────────────────────────────────────
-	/** Account title registered on the Easypaisa wallet. */
-	paymentEasypaisaAccountTitle: string;
-	/** Easypaisa wallet number, digits only or formatted (e.g. 0300-1234567). */
-	paymentEasypaisaNumber: string;
-
-	// ── JazzCash details ────────────────────────────────────────────────────
-	/** Account title registered on the JazzCash wallet. */
-	paymentJazzcashAccountTitle: string;
-	/** JazzCash wallet number. */
-	paymentJazzcashNumber: string;
-
-	// ── COD policy copy ─────────────────────────────────────────────────────
-	/** Short note shown under the COD chip and on the order success page. */
+	// ── Checkout copy ───────────────────────────────────────────────────────
+	/** Short note under the bank transfer chip. */
+	paymentBankTransferNote: string;
+	/** Short note under the card payment chip. */
+	paymentCardNote: string;
+	/** Short note under the cash on delivery chip. */
 	paymentCodNote: string;
 
 	// ── Global Notices ────────────────────────────────────────────────────────
@@ -142,6 +133,10 @@ export interface StoreSettings {
 	tiktokPixelId: string;
 }
 
+export function hasBankTransferDetailsConfigured(settings: Pick<StoreSettings, "bankAccountNumber" | "bankIban">): boolean {
+	return Boolean(settings.bankAccountNumber.trim() || settings.bankIban.trim());
+}
+
 export const STORE_SETTING_DEFAULTS: StoreSettings = {
 	siteName: "Ibrahim Mobile Store",
 	siteTagline: "",
@@ -168,29 +163,25 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
 	socialGoogleMaps: "",
 
 	freeDeliveryThresholdRupees: 50_000,
+	courierFlatFeeRupees: 1_500,
 	defaultWarrantyMonths: 6,
-	bankTransferDiscountPercent: 5,
 	moneybackDays: 15,
+	returnPolicyHtml: `<h2>Return &amp; moneyback</h2><p>You may request a full refund within <strong>15 days</strong> of delivery if the item is unused and in the same condition you received it.</p><ul><li>Contact us on WhatsApp with your order number.</li><li>We arrange pickup or in-store drop-off.</li><li>Refunds are processed to your original payment method once the return is verified.</li></ul>`,
+	privacyPolicyHtml: `<h2>Privacy</h2><p>We collect your name, phone number, and delivery address to fulfil orders and send updates on WhatsApp.</p><p>We do not sell your data. Order history is kept for warranty and support. You may ask us to delete your account data by contacting support.</p>`,
 	loyaltyEarnPercent: 1,
-	loyaltyReviewBonusPoints: 200,
-	loyaltyReferralBonusPoints: 1_500,
 
-	paymentBankEnabled: true,
-	paymentEasypaisaEnabled: true,
-	paymentJazzcashEnabled: true,
+	paymentBankTransferEnabled: true,
+	paymentCardEnabled: false,
 	paymentCodEnabled: true,
+	codSurchargePercent: 0,
 
-	paymentBankName: "",
-	paymentBankAccountTitle: "",
-	paymentBankAccountNumber: "",
-	paymentBankIban: "",
+	bankName: "",
+	bankAccountTitle: "",
+	bankAccountNumber: "",
+	bankIban: "",
 
-	paymentEasypaisaAccountTitle: "",
-	paymentEasypaisaNumber: "",
-
-	paymentJazzcashAccountTitle: "",
-	paymentJazzcashNumber: "",
-
+	paymentBankTransferNote: "",
+	paymentCardNote: "",
 	paymentCodNote: "",
 
 	globalDeliveryNote: "3 to 5 working days",
@@ -222,23 +213,21 @@ export const STORE_SETTING_GROUPS = {
 	address: ["storeAddressLine1", "storeAddressLine2", "storeHours"] as const,
 	notices: ["globalDeliveryNote", "storeNoticeText", "storeNoticeEnabled"] as const,
 	social: ["socialFacebook", "socialInstagram", "socialTiktok", "socialYoutube", "socialGoogleMaps"] as const,
-	policy: ["freeDeliveryThresholdRupees", "defaultWarrantyMonths", "moneybackDays"] as const,
-	loyalty: ["loyaltyEarnPercent", "loyaltyReviewBonusPoints", "loyaltyReferralBonusPoints"] as const,
+	policy: ["defaultWarrantyMonths", "moneybackDays", "returnPolicyHtml", "privacyPolicyHtml"] as const,
+	delivery: ["freeDeliveryThresholdRupees", "courierFlatFeeRupees"] as const,
+	loyalty: ["loyaltyEarnPercent"] as const,
 	payments: [
-		"paymentBankEnabled",
-		"paymentEasypaisaEnabled",
-		"paymentJazzcashEnabled",
+		"paymentBankTransferEnabled",
+		"paymentCardEnabled",
 		"paymentCodEnabled",
-		"paymentBankName",
-		"paymentBankAccountTitle",
-		"paymentBankAccountNumber",
-		"paymentBankIban",
-		"paymentEasypaisaAccountTitle",
-		"paymentEasypaisaNumber",
-		"paymentJazzcashAccountTitle",
-		"paymentJazzcashNumber",
+		"codSurchargePercent",
+		"bankName",
+		"bankAccountTitle",
+		"bankAccountNumber",
+		"bankIban",
+		"paymentBankTransferNote",
+		"paymentCardNote",
 		"paymentCodNote",
-		"bankTransferDiscountPercent",
 	] as const,
 	inventory: ["lowStockThreshold"] as const,
 	marketing: ["metaPixelId", "googleAnalyticsId", "googleTagManagerId", "tiktokPixelId"] as const,

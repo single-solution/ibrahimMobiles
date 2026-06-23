@@ -6,7 +6,7 @@ import { Button, QuantityStepper } from "@store/ui";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextField } from "@/components/forms/TextField";
 import { Modal } from "@/components/ui/Modal";
-import { formatPrice } from "@store/shared";
+import { formatPrice, pointsToRupees } from "@store/shared";
 import type { AdminOrder, AdminOrderEditPayload } from "@/types/models";
 
 interface OrderEditModalProps {
@@ -43,7 +43,15 @@ export function OrderEditModal({ isOpen, onClose, order, onSave, isSaving }: Ord
 	}
 
 	const subtotal = editedItems.reduce((acc, item) => acc + item.unitPriceRupees * item.quantity, 0);
-	const total = Math.max(0, subtotal + order.totals.shippingRupees - order.totals.discountRupees);
+	const pointsRedeemedRupees = pointsToRupees(order.pointsRedeemed);
+	const total = Math.max(
+		0,
+		subtotal +
+			order.totals.shippingRupees -
+			order.totals.discountRupees +
+			(order.totals.paymentSurchargeRupees ?? 0) -
+			pointsRedeemedRupees,
+	);
 
 	return (
 		<Modal
@@ -66,10 +74,9 @@ export function OrderEditModal({ isOpen, onClose, order, onSave, isSaving }: Ord
 						value={editedPayment}
 						onChange={(e) => setEditedPayment(e.target.value)}
 						options={[
-							{ value: "bank-transfer", label: "Bank Transfer" },
-							{ value: "easypaisa", label: "Easypaisa" },
-							{ value: "jazzcash", label: "JazzCash" },
-							{ value: "cod", label: "Cash on Delivery" },
+							{ value: "bank-transfer", label: "Bank transfer" },
+							{ value: "card", label: "Card payment" },
+							{ value: "cod", label: "Cash on delivery" },
 						]}
 					/>
 					<SelectField
@@ -224,6 +231,12 @@ export function OrderEditModal({ isOpen, onClose, order, onSave, isSaving }: Ord
 							<div className="flex items-baseline justify-between gap-2">
 								<span className="text-[var(--color-ink-500)]">Discount</span>
 								<span className="font-medium text-[var(--color-ink-800)]">-{formatPrice(order.totals.discountRupees)}</span>
+							</div>
+						) : null}
+						{(order.totals.paymentSurchargeRupees ?? 0) > 0 ? (
+							<div className="flex items-baseline justify-between gap-2">
+								<span className="text-[var(--color-ink-500)]">Cash handling</span>
+								<span className="font-medium text-[var(--color-ink-800)]">+{formatPrice(order.totals.paymentSurchargeRupees!)}</span>
 							</div>
 						) : null}
 						<div className="flex items-baseline justify-between gap-2 mt-2 border-t border-[var(--color-ink-100)] pt-2">

@@ -1,10 +1,14 @@
 import { Types } from "mongoose";
 
+import { cookies } from "next/headers";
+
 import { Customer, Inquiry as InquiryModel, connectDB } from "@store/db";
 import type { InquiryMessageAttributes } from "@store/db";
-import { isAnonymousChatPhone } from "@store/shared";
+import { isAnonymousChatPhone, isValidId, verifyGuestToken } from "@store/shared";
 
 import type { InquiryLean } from "@/lib/chat/serializer";
+
+const GUEST_THREAD_COOKIE = "inquiry_thread_token";
 
 function sortedByCreatedAt(messages: InquiryMessageAttributes[]): InquiryMessageAttributes[] {
 	return [...messages].sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime());
@@ -92,4 +96,34 @@ export async function claimAnonymousThreadIfNeeded(inquiry: InquiryLean, custome
 	).lean<InquiryLean>();
 
 	return updated ?? inquiry;
+}
+
+/**
+ * After OTP sign-in, fold any guest preview threads from the browser cookie into
+ * the customer's canonical conversation so pre-login messages are not orphaned.
+ */
+export async function claimGuestThreadsFromCookie(customerId: string): Promise<void> {
+	const cookieJar = await cookies();
+	const token = cookieJar.get(GUEST_THREAD_COOKIE)?.value;
+	const payload = await verifyGuestToken(token);
+	if (!payload || payload.inquiryIds.length === 0) {
+		return;
+	}
+
+	await connectDB();
+	const inquiryIds = payload.inquiryIds.filter((id) => isValidId(id)).map((id) => new Types.ObjectId(id));
+	if (inquiryIds.length === 0) {
+		return;
+	}
+
+	const guests = await InquiryModel.find({
+		_id: { $in: inquiryIds },
+		phoneNumber: payload.phoneNumber,
+	}).lean<InquiryLean[]>();
+
+	for (const guest of guests) {
+		if (isAnonymousChatPhone(guest.phoneNumber)) {
+			await claimAnonymousThreadIfNeeded(guest, customerId);
+		}
+	}
 }

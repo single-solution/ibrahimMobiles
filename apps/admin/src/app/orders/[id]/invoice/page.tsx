@@ -103,6 +103,12 @@ export default async function InvoicePage(props: { params: Promise<{ id: string 
 							<span>-{formatPrice(order.totals.discountRupees)}</span>
 						</div>
 					)}
+					{(order.totals.paymentSurchargeRupees ?? 0) > 0 && (
+						<div className="flex justify-between">
+							<span className="text-gray-500">Cash handling</span>
+							<span>+{formatPrice(order.totals.paymentSurchargeRupees!)}</span>
+						</div>
+					)}
 					<div className="mt-2 flex justify-between border-t-2 border-gray-900 pt-2 text-lg font-bold text-gray-900">
 						<span>Total</span>
 						<span>{formatPrice(order.totals.totalRupees)}</span>

@@ -318,12 +318,27 @@ function ThreadListItem({
 			onClick={onSelect}
 			className={classNames(
 				"tap flex w-full gap-3 border-b border-l-2 border-[var(--color-ink-100)] px-3 py-3 text-left transition-colors",
-				inquiry.escalated ? "border-l-[var(--color-danger-600)]" : "border-l-transparent",
+				inquiry.assistantPaused
+					? inquiry.assistantPauseReason === "manual"
+						? "border-l-[var(--color-warn-600)]"
+						: "border-l-[var(--color-danger-600)]"
+					: "border-l-transparent",
 				isActive ? "bg-[var(--color-accent-50)]" : "hover:bg-[var(--color-canvas-deep)]",
 			)}
 		>
-			<span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
+			<span className="relative grid size-10 shrink-0 place-items-center rounded-full bg-[var(--color-canvas-deep)] text-[11px] font-semibold text-[var(--color-ink-700)]">
 				{getInitials(inquiry.customerName)}
+				{inquiry.assistantPaused ? (
+					<span
+						className={classNames(
+							"absolute -right-0.5 -top-0.5 grid size-4 place-items-center rounded-full text-white ring-2 ring-[var(--color-surface)]",
+							inquiry.assistantPauseReason === "manual" ? "bg-[var(--color-warn-600)]" : "bg-[var(--color-danger-600)]",
+						)}
+						aria-hidden
+					>
+						<AlertTriangle size={9} />
+					</span>
+				) : null}
 			</span>
 			<span className="min-w-0 flex-1">
 				<span className="flex items-start justify-between gap-2">
@@ -332,10 +347,15 @@ function ThreadListItem({
 				</span>
 				<span className="mt-0.5 block truncate text-xs text-[var(--color-ink-600)]">{inquiry.lastMessagePreview || "No messages yet"}</span>
 				<span className="mt-1.5 flex flex-wrap items-center gap-1.5">
-					{inquiry.escalated ? (
-						<span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-danger-600)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+					{inquiry.assistantPaused ? (
+						<span
+							className={classNames(
+								"inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white",
+								inquiry.assistantPauseReason === "manual" ? "bg-[var(--color-warn-700)]" : "bg-[var(--color-danger-600)]",
+							)}
+						>
 							<AlertTriangle size={10} />
-							Needs senior
+							{inquiry.assistantPauseReason === "manual" ? "Bot off" : "Escalated"}
 						</span>
 					) : null}
 					<StatusPill tone={STATUS_TONE[inquiry.status]}>{STATUS_LABELS[inquiry.status]}</StatusPill>

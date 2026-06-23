@@ -11,7 +11,7 @@ import type { OrderStatus } from "@store/db";
 
 type FilterId = "all" | "active" | "delivered" | "cancelled";
 
-const ACTIVE_STATUSES: OrderStatus[] = ["pending-payment", "confirmed", "dispatched"];
+const ACTIVE_STATUSES: OrderStatus[] = ["pending-payment", "confirmed", "packed", "dispatched"];
 const TONE: Record<OrderStatus, { toneBg: string; toneFg: string; toneDot: string; nextLabel?: string }> = {
 	"pending-payment": { toneBg: "bg-[var(--color-warn-50)]", toneFg: "text-[var(--color-warn-800)]", toneDot: "bg-[var(--color-warn-500)]", nextLabel: "Awaiting payment" },
 	confirmed: { toneBg: "bg-[var(--color-info-50)]", toneFg: "text-[var(--color-info-800)]", toneDot: "bg-[var(--color-info-500)]", nextLabel: "Packing" },
@@ -118,6 +118,12 @@ interface OrderRowProps {
 
 function OrderRow({ order }: OrderRowProps) {
 	const tone = TONE[order.status];
+	const nextLabel =
+		order.status === "pending-payment" && order.payment === "card"
+			? "Complete card payment"
+			: order.status === "pending-payment" && order.payment === "bank-transfer"
+				? "Send payment screenshot"
+				: tone.nextLabel;
 	const firstItem = order.items[0];
 	const extraCount = Math.max(0, order.items.length - 1);
 
@@ -157,7 +163,7 @@ function OrderRow({ order }: OrderRowProps) {
 						{order.address?.street ? `Delivery to ${order.address.street}` : "Store Pickup"}
 					</p>
 					<p className="mt-0.5 line-clamp-1 text-[12px] text-[var(--color-ink-500)]">
-						{tone.nextLabel ?? `${order.totals.itemCount} item${order.totals.itemCount === 1 ? "" : "s"}`}
+						{nextLabel ?? `${order.totals.itemCount} item${order.totals.itemCount === 1 ? "" : "s"}`}
 					</p>
 				</div>
 				<div className="text-right">

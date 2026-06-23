@@ -1,43 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { useSidebarSummary } from "@/lib/sidebarSummaryContext";
 import { classNames } from "@store/shared";
 
-interface SidebarSummary {
-	ordersUnread: number;
-	customersUnread: number;
-	inquiriesUnread: number;
-}
-
-const POLL_INTERVAL_MS = 30_000;
-
 export function SidebarBadge({ type, isCollapsed }: { type: "orders" | "customers" | "inquiries"; isCollapsed: boolean }) {
-	const [count, setCount] = useState(0);
-
-	useEffect(() => {
-		let cancelled = false;
-
-		async function load() {
-			try {
-				const data = await apiFetch<SidebarSummary>("/api/sidebar/summary");
-				if (!cancelled) {
-					if (type === "orders") setCount(data.ordersUnread);
-					else if (type === "customers") setCount(data.customersUnread);
-					else if (type === "inquiries") setCount(data.inquiriesUnread);
-				}
-			} catch {
-				// ignore
-			}
-		}
-
-		void load();
-		const timer = window.setInterval(() => void load(), POLL_INTERVAL_MS);
-		return () => {
-			cancelled = true;
-			window.clearInterval(timer);
-		};
-	}, [type]);
+	const summary = useSidebarSummary();
+	const count =
+		type === "orders"
+			? (summary?.ordersUnread ?? 0)
+			: type === "customers"
+				? (summary?.customersUnread ?? 0)
+				: (summary?.inquiriesUnread ?? 0);
 
 	if (count <= 0) return null;
 

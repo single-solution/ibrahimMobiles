@@ -19,10 +19,11 @@ import { Inquiry as InquiryModel, connectDB } from "@store/db";
 import { ok, toClientChatSettings, verifyGuestToken } from "@store/shared";
 
 import { enforceChatPollRateLimit } from "@/lib/api/chatRateLimit";
-import { auth } from "@/lib/auth";
+import { claimGuestThreadsFromCookie } from "@/lib/chat/claimAnonymousThread";
 import { getChatSettings } from "@/lib/chat/chatSettings";
 import { summariseThread } from "@/lib/chat/serializer";
 import type { InquiryLean } from "@/lib/chat/serializer";
+import { getVerifiedCustomer } from "@/lib/server/customerSession";
 
 const COOKIE_NAME = "inquiry_thread_token";
 
@@ -36,8 +37,8 @@ export async function GET(request: Request) {
 
 	const settings = await getChatSettings();
 	const clientSettings = toClientChatSettings(settings);
-	const session = await auth();
-	const isSignedInCustomer = session?.user?.role === "customer" && Boolean(session?.user?.customerId) && Types.ObjectId.isValid(session?.user?.customerId ?? "");
+	const customer = await getVerifiedCustomer();
+	const isSignedInCustomer = Boolean(customer);
 
 	if (!settings.enabled) {
 		return ok({ enabled: false, threads: [], settings: clientSettings, isSignedInCustomer });
@@ -46,10 +47,15 @@ export async function GET(request: Request) {
 	const url = new URL(request.url);
 	if (url.searchParams.get("summary") === "1") {
 		await connectDB();
-		const filters: Record<string, unknown>[] = [];
-		if (isSignedInCustomer && session?.user?.customerId) {
-			filters.push({ customerId: new Types.ObjectId(session.user.customerId) });
+		if (customer) {
+			await claimGuestThreadsFromCookie(customer.id);
+			const agg = await InquiryModel.aggregate<{ total: number }>([
+				{ $match: { customerId: new Types.ObjectId(customer.id) } },
+				{ $group: { _id: null, total: { $sum: "$unreadByCustomer" } } },
+			]);
+			return ok({ unreadByCustomer: agg[0]?.total ?? 0 });
 		}
+		const filters: Record<string, unknown>[] = [];
 		const cookieJar = await cookies();
 		const token = cookieJar.get(COOKIE_NAME)?.value;
 		const payload = await verifyGuestToken(token);
@@ -71,12 +77,22 @@ export async function GET(request: Request) {
 
 	await connectDB();
 
-	const filters: Record<string, unknown>[] = [];
+	if (customer) {
+		await claimGuestThreadsFromCookie(customer.id);
+		const docs = await InquiryModel.find({ customerId: new Types.ObjectId(customer.id) })
+			.sort({ lastMessageAt: -1 })
+			.limit(30)
+			.lean<InquiryLean[]>();
 
-	if (isSignedInCustomer && session?.user?.customerId) {
-		filters.push({ customerId: new Types.ObjectId(session.user.customerId) });
+		return ok({
+			enabled: true,
+			threads: docs.map(summariseThread),
+			settings: clientSettings,
+			isSignedInCustomer,
+		});
 	}
 
+	const filters: Record<string, unknown>[] = [];
 	const cookieJar = await cookies();
 	const token = cookieJar.get(COOKIE_NAME)?.value;
 	const payload = await verifyGuestToken(token);

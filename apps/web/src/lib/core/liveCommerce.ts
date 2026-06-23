@@ -1,66 +1,40 @@
 /**
- * Fresh per-variant commerce data (price, stock count) for the PDP.
+ * Fresh per-variant commerce data for the PDP.
  *
- * The PDP shell (gallery, name, breadcrumbs, related products, grade
- * showcase) comes from `getProductBySlugCached` — cross-request
- * cached with 30s TTL and bust-on-admin-edit. Pricing and stock on that
- * shell can be slightly stale; this helper is what the page renders
- * inside a Suspense boundary to overlay current values without ever
- * touching the cache layer.
+ * The PDP shell (gallery, name, breadcrumbs) comes from
+ * `getProductBySlugCached` — cross-request cached with admin-tag busting.
+ * Variant rows are always loaded live here so admin edits (delete/recreate
+ * variants) never leave stale `_id`s on the configurator or in the cart.
  *
- * Projection-only Mongo query — fetches just `_id`, `priceRupees`, and
- * `quantity` for every variant. Cheap enough to run on every PDP request
- * and keeps the response payload tiny.
- *
- * Wrapped in React `cache()` so a single render that needs the live data
- * twice (mobile + desktop Suspense boundaries on the same page) shares
- * one Mongo round-trip.
+ * Wrapped in React `cache()` so mobile + desktop Suspense boundaries on the
+ * same PDP share one Mongo round-trip per render.
  */
 import { cache } from "react";
 
-import { connectDB, Product as ProductModel } from "@store/db";
-import type { Product } from "@store/shared";
+import { connectDB, Product as ProductModel, type VariantAttributes } from "@store/db";
+import type { Product, Variant } from "@store/shared";
 
+import { toStorefrontVariant } from "@/lib/core/serializers";
 import { applyCatalogVisibility, PUBLIC_PRODUCT_FILTER, resolveCatalogVisibility } from "@/lib/core/queries";
 
-export interface LiveVariantCommerce {
-	id: string;
-	priceRupees: number;
-	quantity: number;
-}
-
-interface LiveVariantLean {
-	_id: { toString(): string } | string;
-	priceRupees?: number;
-	quantity?: number;
-}
-
 interface ProductLiveLean {
-	variants?: LiveVariantLean[];
+	variants?: VariantAttributes[];
 }
 
-async function fetchProductLiveCommerce(slug: string): Promise<LiveVariantCommerce[] | null> {
+async function fetchProductLiveCommerce(slug: string): Promise<Variant[] | null> {
 	await connectDB();
 	const filter: Record<string, unknown> = {
 		slug: slug.toLowerCase(),
 		...PUBLIC_PRODUCT_FILTER,
 	};
 	applyCatalogVisibility(filter, await resolveCatalogVisibility());
-	const product = await ProductModel.findOne(filter, {
-		"variants._id": 1,
-		"variants.priceRupees": 1,
-		"variants.quantity": 1,
-	}).lean<ProductLiveLean>();
+	const product = await ProductModel.findOne(filter, { variants: 1 }).lean<ProductLiveLean>();
 
 	if (!product) {
 		return null;
 	}
 
-	return (product.variants ?? []).map((variant) => ({
-		id: typeof variant._id === "string" ? variant._id : variant._id.toString(),
-		priceRupees: Number(variant.priceRupees ?? 0),
-		quantity: Number(variant.quantity ?? 0),
-	}));
+	return (product.variants ?? []).map(toStorefrontVariant).filter((variant) => variant.id.length > 0);
 }
 
 /**
@@ -71,33 +45,34 @@ async function fetchProductLiveCommerce(slug: string): Promise<LiveVariantCommer
 export const getProductLiveCommerce = cache(fetchProductLiveCommerce);
 
 /**
- * Overlay live `priceRupees` + `quantity` onto a cached product shell.
- * Returns a shallow clone with new `variants[]`; unchanged variants keep
- * their reference identity from the shell.
+ * Replace the cached shell's variant list with live DB rows when available.
+ * Drops variants removed in admin; adds newly created ones.
  */
-export function mergeProductWithLiveCommerce(product: Product, live: LiveVariantCommerce[] | null): Product {
-	if (!live || live.length === 0) {
+export function mergeProductWithLiveCommerce(product: Product, live: Variant[] | null): Product {
+	if (live === null) {
 		return product;
 	}
-	const liveMap = new Map(live.map((variant) => [variant.id, variant]));
-	let touched = false;
-	const variants = product.variants.map((variant) => {
-		const liveVariant = liveMap.get(variant.id);
-		if (!liveVariant) {
-			return variant;
+	if (live.length === 0) {
+		return { ...product, variants: [] };
+	}
+
+	const shellById = new Map(product.variants.map((variant) => [variant.id, variant]));
+	const variants = live.map((liveVariant) => {
+		const shellVariant = shellById.get(liveVariant.id);
+		if (!shellVariant) {
+			return liveVariant;
 		}
-		if (liveVariant.priceRupees === variant.priceRupees && liveVariant.quantity === variant.quantity) {
-			return variant;
-		}
-		touched = true;
 		return {
-			...variant,
-			priceRupees: liveVariant.priceRupees,
-			quantity: liveVariant.quantity,
+			...shellVariant,
+			...liveVariant,
 		};
 	});
-	if (!touched) {
+
+	const shellIds = product.variants.map((variant) => variant.id).join(",");
+	const nextIds = variants.map((variant) => variant.id).join(",");
+	if (shellIds === nextIds && variants.every((variant, index) => variant === product.variants[index])) {
 		return product;
 	}
+
 	return { ...product, variants };
 }

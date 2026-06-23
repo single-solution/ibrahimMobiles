@@ -94,6 +94,7 @@ export function DealsCatalog({ catalogDeals, productPage }: DealsCatalogProps) {
 		if (!slug) {
 			return;
 		}
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- sync hash + offer preview when catalog seeds load
 		handleActiveSlugChange(slug);
 	}, [catalogDeals, handleActiveSlugChange]);
 
@@ -103,6 +104,7 @@ export function DealsCatalog({ catalogDeals, productPage }: DealsCatalogProps) {
 		}
 
 		let cancelled = false;
+		// eslint-disable-next-line react-hooks/set-state-in-effect -- loading flag before async offer product fetch
 		setIsLoadingProducts(true);
 
 		void (async () => {

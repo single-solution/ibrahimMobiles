@@ -6,7 +6,7 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 const DELIVERY_METHODS = ["courier", "pickup"] as const;
 export type DeliveryMethod = (typeof DELIVERY_METHODS)[number];
 
-export const PAYMENT_METHODS = ["bank-transfer", "easypaisa", "jazzcash", "cod"] as const;
+export const PAYMENT_METHODS = ["bank-transfer", "cod", "card"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 const PRODUCT_NAME_MAX_LENGTH = 160;
@@ -33,6 +33,10 @@ interface OrderItemAttributes {
 	variantSummary: string;
 	unitPriceRupees: number;
 	quantity: number;
+	/** Catalog deal locked in at add-to-cart — audit trail even if offer is later removed. */
+	appliedOfferId?: mongoose.Types.ObjectId;
+	appliedOfferTitle?: string;
+	appliedOfferLockedAt?: Date;
 }
 
 interface OrderAddressAttributes {
@@ -56,6 +60,7 @@ interface OrderTotalsAttributes {
 	subtotalRupees: number;
 	shippingRupees: number;
 	discountRupees: number;
+	paymentSurchargeRupees: number;
 	totalRupees: number;
 }
 
@@ -86,6 +91,10 @@ export interface OrderAttributes {
 	 * with the same key returns the original order instead of creating a second.
 	 */
 	idempotencyKey?: string;
+	/** PK payment gateway reference (PayFast basket / Rapid payment id). */
+	gatewayPaymentRef?: string;
+	/** Which gateway handled the online payment. */
+	gatewayProvider?: "payfast" | "rapid-gateway";
 	/** Array of admin User IDs who have viewed this order. */
 	seenByAdminIds: mongoose.Types.ObjectId[];
 	placedAt: Date;
@@ -101,6 +110,9 @@ const orderItemSchema = new Schema<OrderItemAttributes>(
 		variantSummary: { type: String, required: true, trim: true, maxlength: VARIANT_SUMMARY_MAX_LENGTH },
 		unitPriceRupees: { type: Number, required: true, min: 0 },
 		quantity: { type: Number, required: true, min: 1, default: 1 },
+		appliedOfferId: { type: Schema.Types.ObjectId, ref: "Offer" },
+		appliedOfferTitle: { type: String, trim: true, maxlength: PRODUCT_NAME_MAX_LENGTH },
+		appliedOfferLockedAt: { type: Date },
 	},
 	{ _id: true, timestamps: false },
 );
@@ -131,6 +143,7 @@ const totalsSchema = new Schema<OrderTotalsAttributes>(
 		subtotalRupees: { type: Number, required: true, min: 0 },
 		shippingRupees: { type: Number, required: true, min: 0, default: 0 },
 		discountRupees: { type: Number, required: true, min: 0, default: 0 },
+		paymentSurchargeRupees: { type: Number, required: true, min: 0, default: 0 },
 		totalRupees: { type: Number, required: true, min: 0 },
 	},
 	{ _id: false, timestamps: false },
@@ -166,6 +179,8 @@ const orderSchema = new Schema<OrderAttributes>(
 		pointsRedeemed: { type: Number, required: true, min: 0, default: 0 },
 		inventoryReserved: { type: Boolean, required: true, default: false },
 		idempotencyKey: { type: String, trim: true, maxlength: IDEMPOTENCY_KEY_MAX_LENGTH },
+		gatewayPaymentRef: { type: String, trim: true, maxlength: 200, index: true, sparse: true },
+		gatewayProvider: { type: String, enum: ["payfast", "rapid-gateway"], trim: true },
 		seenByAdminIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], default: [] },
 		placedAt: { type: Date, required: true, default: () => new Date() },
 	},

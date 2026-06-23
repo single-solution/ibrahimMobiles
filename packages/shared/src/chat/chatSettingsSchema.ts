@@ -24,8 +24,6 @@ export interface ChatSettingsValues {
 	assistantMaxTokens: number;
 	welcomeMessageGuest: string;
 	welcomeMessageCustomer: string;
-	liveModeEnabled: boolean;
-	websocketUrl: string;
 	pollIntervalMsFocused: number;
 	pollIntervalMsBlurred: number;
 	guestThreadTokenDays: number;
@@ -52,8 +50,6 @@ export const CHAT_SETTING_DEFAULTS: ChatSettingsValues = {
 	assistantMaxTokens: 500,
 	welcomeMessageGuest: CHAT_WELCOME_GUEST_DEFAULT,
 	welcomeMessageCustomer: CHAT_WELCOME_CUSTOMER_DEFAULT,
-	liveModeEnabled: false,
-	websocketUrl: "",
 	pollIntervalMsFocused: 5_000,
 	pollIntervalMsBlurred: 30_000,
 	guestThreadTokenDays: 90,
@@ -104,8 +100,6 @@ const CHAT_SETTING_DB_KEYS: Record<keyof ChatSettingsValues, string> = {
 	assistantMaxTokens: "chat.assistantMaxTokens",
 	welcomeMessageGuest: "chat.welcomeMessageGuest",
 	welcomeMessageCustomer: "chat.welcomeMessageCustomer",
-	liveModeEnabled: "chat.liveModeEnabled",
-	websocketUrl: "chat.websocketUrl",
 	pollIntervalMsFocused: "chat.pollIntervalMsFocused",
 	pollIntervalMsBlurred: "chat.pollIntervalMsBlurred",
 	guestThreadTokenDays: "chat.guestThreadTokenDays",
@@ -137,7 +131,6 @@ export function coerceChatSettingValue<K extends keyof ChatSettingsValues>(field
 	switch (field) {
 		case "enabled":
 		case "assistantEnabled":
-		case "liveModeEnabled":
 		case "proactiveNudgeEnabled":
 			return (typeof value === "boolean" ? value : null) as ChatSettingsValues[K] | null;
 		case "assistantName":
@@ -161,8 +154,6 @@ export function coerceChatSettingValue<K extends keyof ChatSettingsValues>(field
 		case "welcomeMessageGuest":
 		case "welcomeMessageCustomer":
 			return (typeof value === "string" ? value.trim().slice(0, 600) : null) as ChatSettingsValues[K] | null;
-		case "websocketUrl":
-			return (typeof value === "string" ? value.trim().slice(0, 500) : null) as ChatSettingsValues[K] | null;
 		case "pollIntervalMsFocused":
 			return (typeof value === "number" && Number.isFinite(value) ? clampNumber(Math.round(value), 1_000, 60_000) : null) as ChatSettingsValues[K] | null;
 		case "pollIntervalMsBlurred":
@@ -201,8 +192,6 @@ export function mergeChatSettingsFromDb(rows: ReadonlyArray<{ key: string; value
 		assistantMaxTokens: readChatSetting(map, "assistantMaxTokens"),
 		welcomeMessageGuest: readChatSetting(map, "welcomeMessageGuest"),
 		welcomeMessageCustomer: readChatSetting(map, "welcomeMessageCustomer"),
-		liveModeEnabled: readChatSetting(map, "liveModeEnabled"),
-		websocketUrl: readChatSetting(map, "websocketUrl"),
 		pollIntervalMsFocused: readChatSetting(map, "pollIntervalMsFocused"),
 		pollIntervalMsBlurred: readChatSetting(map, "pollIntervalMsBlurred"),
 		guestThreadTokenDays: readChatSetting(map, "guestThreadTokenDays"),
@@ -225,6 +214,27 @@ export function toClientChatSettings(settings: ChatSettingsValues): ChatSettings
 		providerApiKeyGoogle: "",
 		providerApiKeyAnthropic: "",
 		assistantInstructions: "",
+	};
+}
+
+function maskStoredSecret(value: string): string {
+	const trimmed = value.trim();
+	if (!trimmed) {
+		return "";
+	}
+	if (trimmed.length <= 8) {
+		return "••••••••";
+	}
+	return `${"•".repeat(Math.min(12, trimmed.length - 4))}${trimmed.slice(-4)}`;
+}
+
+/** Mask LLM API keys before sending chat settings to the admin browser. */
+export function toAdminChatSettings(settings: ChatSettingsValues): ChatSettingsValues {
+	return {
+		...settings,
+		providerApiKeyOpenai: maskStoredSecret(settings.providerApiKeyOpenai),
+		providerApiKeyGoogle: maskStoredSecret(settings.providerApiKeyGoogle),
+		providerApiKeyAnthropic: maskStoredSecret(settings.providerApiKeyAnthropic),
 	};
 }
 

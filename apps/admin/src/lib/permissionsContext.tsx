@@ -27,9 +27,15 @@ const AdminPermissionsContext = createContext<AdminPermissionsContextValue>({
 	can: () => false,
 });
 
-export function AdminPermissionsProvider({ children }: { children: ReactNode }) {
-	const [session, setSession] = useState<SessionPayload | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
+export function AdminPermissionsProvider({
+	children,
+	initialSession = null,
+}: {
+	children: ReactNode;
+	initialSession?: SessionPayload | null;
+}) {
+	const [session, setSession] = useState<SessionPayload | null>(initialSession);
+	const [isLoading, setIsLoading] = useState(initialSession === null);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -40,7 +46,7 @@ export function AdminPermissionsProvider({ children }: { children: ReactNode }) 
 					setSession(data);
 				}
 			} catch {
-				if (!cancelled) {
+				if (!cancelled && !initialSession) {
 					setSession(null);
 				}
 			} finally {
@@ -53,7 +59,7 @@ export function AdminPermissionsProvider({ children }: { children: ReactNode }) 
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [initialSession]);
 
 	const value = useMemo<AdminPermissionsContextValue>(() => {
 		const permissions = session?.permissions ?? [];

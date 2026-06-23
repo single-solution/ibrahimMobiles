@@ -7,6 +7,7 @@
  * stays JSON-safe.
  */
 
+import type { AssistantMuteReason } from "./inquiryAssistant";
 import type { StoredImage } from "../storage/types";
 
 export const CHAT_STATUSES = ["open", "awaiting-customer", "resolved"] as const;
@@ -59,6 +60,11 @@ export interface ChatThreadSummary {
 	lastMessageAuthor: ChatMessageAuthor;
 	unreadByCustomer: number;
 	unreadByTeam: number;
+	/** True when automated replies are paused on this thread. */
+	assistantPaused: boolean;
+	assistantPauseReason?: AssistantMuteReason | null;
+	/** ISO timestamp — when the bot was paused. */
+	assistantPausedAt?: string;
 	createdAt: string;
 	updatedAt: string;
 }

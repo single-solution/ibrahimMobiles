@@ -70,3 +70,15 @@ export function sameNumber(first: string | null | undefined, second: string | nu
 	const secondFingerprint = phoneFingerprint(second);
 	return Boolean(firstFingerprint && secondFingerprint && firstFingerprint === secondFingerprint);
 }
+
+const WHATSAPP_MIN_DIGITS = 10;
+const WHATSAPP_MAX_DIGITS = 15;
+
+/** Digits-only international form for WhatsApp deep links (e.g. `923204862403`). */
+export function normalizeWhatsappNumber(input: string): string {
+	return input.replace(/\D/g, "");
+}
+
+export function isValidWhatsappNumber(digits: string): boolean {
+	return digits.length >= WHATSAPP_MIN_DIGITS && digits.length <= WHATSAPP_MAX_DIGITS;
+}

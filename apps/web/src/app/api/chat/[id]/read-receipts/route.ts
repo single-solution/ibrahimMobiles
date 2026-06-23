@@ -9,6 +9,7 @@
 import { Inquiry as InquiryModel, connectDB } from "@store/db";
 import { logger, noContent, serverError } from "@store/shared";
 
+import { enforceSameOrigin } from "@/lib/api/sameOrigin";
 import { enforceChatPollRateLimit } from "@/lib/api/chatRateLimit";
 import { resolveChatAccess } from "@/lib/chat/access";
 
@@ -19,6 +20,11 @@ interface RouteContext {
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request, { params }: RouteContext) {
+	const csrf = enforceSameOrigin(request);
+	if (csrf) {
+		return csrf;
+	}
+
 	const rateLimited = enforceChatPollRateLimit(request);
 	if (rateLimited) {
 		return rateLimited;

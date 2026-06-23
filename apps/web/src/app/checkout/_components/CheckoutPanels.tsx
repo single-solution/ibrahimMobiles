@@ -2,8 +2,22 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowUpRight, Banknote, Building2, CreditCard, Phone, ShieldCheck, ShoppingBag, Smartphone, Sparkles, Store, Truck, User } from "lucide-react";
-import { LOYALTY_MAX_REDEEM_PERCENT, LOYALTY_MIN_REDEEM, LOYALTY_PROGRAM_NAME, classNames, formatPoints, formatPrice, getPaymentMethods, pointsToRupees } from "@store/shared";
+import { CheckoutPolicyNotice } from "@/app/checkout/_components/CheckoutPolicyNotice";
+import { BankTransferPaymentGuide } from "@/app/checkout/_components/BankTransferPaymentGuide";
+import { OnlinePaymentGuide } from "@/app/checkout/_components/OnlinePaymentGuide";
+import { CodPaymentGuide } from "@/app/checkout/_components/CodPaymentGuide";
+import { ArrowLeft, ArrowUpRight, Banknote, Building2, CreditCard, Phone, ShieldCheck, ShoppingBag, Sparkles, Store, Truck, User } from "lucide-react";
+import {
+	LOYALTY_MAX_REDEEM_PERCENT,
+	LOYALTY_MIN_REDEEM,
+	LOYALTY_PROGRAM_NAME,
+	classNames,
+	formatPoints,
+	formatPrice,
+	getPaymentMethods,
+	pointsToRupees,
+	type PaymentMethodId,
+} from "@store/shared";
 import { PhoneOtp } from "@/app/account/_components/PhoneOtp";
 import { Button } from "@store/ui";
 import { Card } from "@/components/ui/Card";
@@ -11,7 +25,7 @@ import { Input } from "@/components/ui/Input";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 
 export type DeliveryMethod = "pickup" | "delivery";
-export type PaymentMethodId = "bank" | "easypaisa" | "jazzcash" | "cod";
+export type { PaymentMethodId };
 
 export interface AddressFormState {
 	street: string;
@@ -37,6 +51,7 @@ export function EmptyCartState() {
 }
 
 export function CheckoutHeader() {
+	const settings = useStoreSettings();
 	return (
 		<div className="reveal flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
 			<div>
@@ -49,7 +64,7 @@ export function CheckoutHeader() {
 			</div>
 			<div className="hidden items-center gap-2 rounded-full bg-[var(--color-success-50)] px-3 py-1.5 text-[12px] font-semibold text-[var(--color-success-800)] md:inline-flex">
 				<ShieldCheck size={13} />
-				Secure · 15-day moneyback
+				Secure · {settings.moneybackDays}-day moneyback
 			</div>
 		</div>
 	);
@@ -87,7 +102,8 @@ export function OrderSummaryPreview({
 	totals: {
 		itemCount: number;
 		subtotalRupees: number;
-		discountRupees: number;
+		offersDiscountRupees?: number;
+		paymentSurchargeRupees?: number;
 		deliveryRupees: number;
 		pointsRedeemedRupees: number;
 		totalRupees: number;
@@ -100,8 +116,6 @@ export function OrderSummaryPreview({
 			totals={totals}
 			payment={payment}
 			delivery={delivery}
-			hasAgreed
-			onAgreedChange={() => undefined}
 			isPlacing={false}
 			isValid={false}
 			pointsEarnedOnThisOrder={0}
@@ -167,6 +181,7 @@ export interface FieldProps {
 	isReadOnly?: boolean;
 	isRequired?: boolean;
 	minLength?: number;
+	maxLength?: number;
 	inputRef?: React.Ref<HTMLInputElement>;
 	isLoading?: boolean;
 	disabled?: boolean;
@@ -184,6 +199,7 @@ export function Field({
 	isReadOnly,
 	isRequired,
 	minLength,
+	maxLength,
 	inputRef,
 	isLoading,
 	disabled,
@@ -202,6 +218,7 @@ export function Field({
 			readOnly={isReadOnly}
 			required={isRequired}
 			minLength={minLength}
+			maxLength={maxLength}
 			isLoading={isLoading}
 			disabled={disabled}
 		/>
@@ -218,7 +235,13 @@ export interface DeliveryPanelProps {
 
 export function DeliveryPanel({ delivery, onChange, address, onAddressChange, isPlacing }: DeliveryPanelProps) {
 	const settings = useStoreSettings();
-	const { globalDeliveryNote } = settings;
+	const { globalDeliveryNote, courierFlatFeeRupees, freeDeliveryThresholdRupees } = settings;
+	const courierFeeLabel = formatPrice(courierFlatFeeRupees);
+	const courierSubtitle = globalDeliveryNote
+		? `Nationwide tracked courier · ${globalDeliveryNote}`
+		: freeDeliveryThresholdRupees > 0
+			? `Nationwide tracked courier · free above ${formatPrice(freeDeliveryThresholdRupees)}`
+			: "Nationwide tracked courier";
 	return (
 		<Card className="p-4 md:p-5">
 			<PanelHeader icon={<Truck size={14} />} eyebrow="02 · Delivery" title="How should we get this to you?" />
@@ -239,8 +262,8 @@ export function DeliveryPanel({ delivery, onChange, address, onAddressChange, is
 					<ChoiceTile
 						icon={<Truck size={15} />}
 						title="Door delivery"
-						subtitle={globalDeliveryNote ? `Nationwide tracked courier · ${globalDeliveryNote}` : "Nationwide tracked courier"}
-						tag="Rs 1,500"
+						subtitle={courierSubtitle}
+						tag={courierFeeLabel}
 						isSelected={delivery === "delivery"}
 						onSelect={() => onChange("delivery")}
 						disabled={isPlacing}
@@ -273,26 +296,28 @@ export interface PaymentPanelProps {
 	payment: PaymentMethodId;
 	onChange: (id: PaymentMethodId) => void;
 	isPlacing?: boolean;
+	totalRupees: number;
+	paymentSurchargeRupees: number;
 }
 
-export function PaymentPanel({ payment, onChange, isPlacing }: PaymentPanelProps) {
+export function PaymentPanel({ payment, onChange, isPlacing, totalRupees, paymentSurchargeRupees }: PaymentPanelProps) {
 	const settings = useStoreSettings();
 	const paymentMethods = getPaymentMethods(settings);
-	const bankDiscount = Math.max(0, settings.bankTransferDiscountPercent);
+	const codSurchargePercent = Math.max(0, settings.codSurchargePercent);
 	return (
 		<Card className="p-4 md:p-5">
 			<PanelHeader icon={<CreditCard size={14} />} eyebrow="03 · Payment" title="How would you like to pay?" />
-			<div className="reveal-stagger mt-4 grid grid-cols-2 gap-2">
+			<div className="reveal-stagger mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
 				{paymentMethods.map((method) => {
-					const Icon = method.id === "cod" ? Banknote : method.id === "bank" ? Building2 : Smartphone;
+					const Icon = method.id === "cod" ? Banknote : method.id === "bank-transfer" ? Building2 : CreditCard;
 					return (
 						<div key={method.id} className="reveal">
 							<ChoiceTile
 								icon={<Icon size={15} />}
 								title={method.label}
 								subtitle={method.note}
-								tag={method.id === "bank" && bankDiscount > 0 ? `−${bankDiscount}%` : undefined}
-								tagTone="success"
+								tag={method.id === "cod" && codSurchargePercent > 0 ? `+${codSurchargePercent}%` : undefined}
+								tagTone={method.id === "cod" && codSurchargePercent > 0 ? "default" : "success"}
 								isSelected={payment === method.id}
 								onSelect={() => onChange(method.id)}
 								disabled={isPlacing}
@@ -301,6 +326,9 @@ export function PaymentPanel({ payment, onChange, isPlacing }: PaymentPanelProps
 					);
 				})}
 			</div>
+			{payment === "bank-transfer" ? <BankTransferPaymentGuide totalRupees={totalRupees} /> : null}
+			{payment === "card" ? <OnlinePaymentGuide totalRupees={totalRupees} isPlacing={Boolean(isPlacing)} /> : null}
+			{payment === "cod" ? <CodPaymentGuide totalRupees={totalRupees} surchargeRupees={paymentSurchargeRupees} /> : null}
 		</Card>
 	);
 }
@@ -384,15 +412,13 @@ export interface OrderSummaryPanelProps {
 		itemCount: number;
 		subtotalRupees: number;
 		offersDiscountRupees?: number;
-		discountRupees: number;
+		paymentSurchargeRupees?: number;
 		deliveryRupees: number;
 		pointsRedeemedRupees: number;
 		totalRupees: number;
 	};
 	payment: PaymentMethodId;
 	delivery: DeliveryMethod;
-	hasAgreed: boolean;
-	onAgreedChange: (value: boolean) => void;
 	isPlacing: boolean;
 	isValid: boolean;
 	pointsEarnedOnThisOrder: number;
@@ -405,8 +431,6 @@ export function OrderSummaryPanel({
 	totals,
 	payment,
 	delivery,
-	hasAgreed,
-	onAgreedChange,
 	isPlacing,
 	isValid,
 	pointsEarnedOnThisOrder,
@@ -429,7 +453,9 @@ export function OrderSummaryPanel({
 			<div className="space-y-2.5 p-4 md:p-5">
 				<SummaryRow label="Subtotal" value={formatPrice(totals.subtotalRupees)} />
 				{(totals.offersDiscountRupees ?? 0) > 0 && <SummaryRow label="Offers discount" value={`− ${formatPrice(totals.offersDiscountRupees!)}`} tone="success" />}
-				{totals.discountRupees > 0 && <SummaryRow label="Bank transfer discount" value={`− ${formatPrice(totals.discountRupees)}`} tone="success" />}
+				{(totals.paymentSurchargeRupees ?? 0) > 0 && (
+					<SummaryRow label="Cash handling" value={`+ ${formatPrice(totals.paymentSurchargeRupees!)}`} />
+				)}
 				<SummaryRow
 					label={delivery === "pickup" ? "Pickup" : "Delivery"}
 					value={totals.deliveryRupees > 0 ? formatPrice(totals.deliveryRupees) : "Free"}
@@ -447,7 +473,7 @@ export function OrderSummaryPanel({
 					<div className="flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent-50)] px-3 py-2 text-[12px] text-[var(--color-accent-800)]">
 						<Sparkles size={13} className="shrink-0" />
 						<span>
-							You&rsquo;ll earn <span className="font-semibold">{formatPoints(pointsEarnedOnThisOrder)}</span> on this order
+							You&rsquo;ll earn <span className="font-semibold">{formatPoints(pointsEarnedOnThisOrder)}</span> when this order is delivered
 						</span>
 					</div>
 				)}
@@ -467,22 +493,7 @@ export function OrderSummaryPanel({
 						{infoMessage}
 					</p>
 				)}
-				<label className="flex items-start gap-2.5 text-[12.5px] text-[var(--color-ink-700)]">
-					<input
-						type="checkbox"
-						checked={hasAgreed}
-						required
-						onChange={(event) => onAgreedChange(event.target.checked)}
-						className="mt-0.5 size-4 shrink-0 rounded border-[var(--color-ink-300)] text-[var(--color-accent-600)] focus:ring-[var(--color-accent-500)]"
-					/>
-					<span>
-						I&rsquo;ve reviewed my order and agree to the 15-day moneyback &amp;{" "}
-						<Link href="/return-policy" target="_blank" className="link-underline text-[var(--color-accent-700)]">
-							return policy
-						</Link>
-						.
-					</span>
-				</label>
+				<CheckoutPolicyNotice />
 				<Button
 					type="submit"
 					variant="primary"

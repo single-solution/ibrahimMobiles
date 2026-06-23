@@ -1,31 +1,20 @@
 /**
- * Public loyalty-balance check by phone number.
+ * Signed-in loyalty balance for checkout.
  *
- * POST /api/loyalty-balance  { phoneNumber }
+ * POST /api/loyalty-balance
  *
- * Customers paste their number on the storefront to see how many points they
- * have. We never reveal whether a number is registered (timing-safe response)
- * to avoid abuse for phone-number enumeration:
- *
- *   - Always return 200 OK with the same shape.
- *   - Set `isMember: false, balance: 0` when no matching customer/account is
- *     found, instead of 404 — same shape, same response time.
- *   - Heavy rate limit (10 lookups / minute / IP). Lookups are cheap to
- *     answer but cheap to abuse; this is a brute-force window.
+ * Returns the authenticated customer's points balance only — never accepts an
+ * arbitrary phone number (prevents balance enumeration).
  */
 
 import { Customer, LoyaltyAccount, connectDB } from "@store/db";
-import { FIELD_LIMITS, PER_MINUTE_WINDOW_MS, badRequest, isValidationError, logger, ok, parseBody, serverError, validateString } from "@store/shared";
+import { logger, ok, PER_MINUTE_WINDOW_MS, serverError, unauthorized } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
+import { getVerifiedCustomer } from "@/lib/server/customerSession";
 
-/** Loyalty lookups allowed per IP per minute — tight enough to block
- *  phone-number enumeration, generous enough for a busy customer. */
-const LOYALTY_LOOKUPS_PER_MINUTE = 10;
-
-interface LookupBody {
-	phoneNumber?: unknown;
-}
+/** Per-customer lookups allowed per minute — cheap guard against abuse. */
+const LOYALTY_LOOKUPS_PER_MINUTE = 30;
 
 interface LookupResponse {
 	isMember: boolean;
@@ -40,8 +29,14 @@ const NOT_A_MEMBER: LookupResponse = {
 };
 
 export async function POST(request: Request) {
+	const actor = await getVerifiedCustomer();
+	if (!actor) {
+		return unauthorized();
+	}
+
 	const limited = enforcePublicRateLimit(request, {
 		scope: "storefront-loyalty-lookup",
+		identifier: actor.id,
 		max: LOYALTY_LOOKUPS_PER_MINUTE,
 		windowMs: PER_MINUTE_WINDOW_MS,
 	});
@@ -49,27 +44,10 @@ export async function POST(request: Request) {
 		return limited;
 	}
 
-	const parsed = await parseBody<LookupBody>(request);
-	if (parsed instanceof Response) {
-		return parsed;
-	}
-	const body = parsed;
-
-	const phoneResult = validateString(body.phoneNumber, {
-		label: "Phone",
-		min: 7,
-		max: FIELD_LIMITS.phoneNumber,
-	});
-	if (isValidationError(phoneResult)) {
-		return badRequest(phoneResult.error);
-	}
-
 	try {
 		await connectDB();
-		const customer = await Customer.findOne({ phoneNumber: phoneResult })
-			.select("_id isLoyaltyMember")
-			.lean<{ _id: import("mongoose").Types.ObjectId; isLoyaltyMember: boolean }>();
-		if (!customer || !customer.isLoyaltyMember) {
+		const customer = await Customer.findById(actor.id).select("_id isLoyaltyMember").lean<{ _id: import("mongoose").Types.ObjectId; isLoyaltyMember: boolean }>();
+		if (!customer?.isLoyaltyMember) {
 			return ok(NOT_A_MEMBER);
 		}
 
@@ -84,7 +62,7 @@ export async function POST(request: Request) {
 			lifetimeEarned: account.lifetimeEarned,
 		});
 	} catch (error) {
-		logger.error({ error, phoneNumber: phoneResult }, "loyalty-balance check failed");
+		logger.error({ error, customerId: actor.id }, "loyalty-balance check failed");
 		return serverError("Failed to look up balance.");
 	}
 }

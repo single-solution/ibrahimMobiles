@@ -1,6 +1,6 @@
 import { Offer as OfferModel, connectDB } from "@store/db";
 import type { ActiveOffer } from "@store/shared";
-import { extractOfferScenarios, isCatalogWideStorefrontOffer, isOfferActiveSchedule, summarizeScenarioScope, toActiveOffer } from "@store/shared";
+import { extractOfferScenarios, isOfferActiveSchedule, summarizeScenarioScope, toActiveOffer } from "@store/shared";
 
 import type { ProductFilters, ProductPage } from "@/lib/core/queries";
 import { getProductsPage } from "@/lib/core/queries";
@@ -101,10 +101,6 @@ export async function resolveProductsPageForOfferSlug(offerSlug: string, options
 	}
 
 	const { offerSlug: _ignored, ...baseOptions } = options;
-
-	if (isCatalogWideStorefrontOffer(offer)) {
-		return getProductsPage(baseOptions);
-	}
 
 	const pageSize = baseOptions.limit ?? 24;
 	const page = baseOptions.page ?? 1;

@@ -31,10 +31,11 @@ import { useDeferredCounts } from "@/lib/useDeferredCounts";
 import { useUrlParams } from "@/lib/url/useUrlParams";
 import type { ListResponse } from "@/lib/api/listOptions";
 import type { AdminOrdersCounts } from "@/lib/cached";
-import { classNames, formatPrice, formatTimeAgo, ISO_DATE_LENGTH } from "@store/shared";
+import { classNames, formatPrice, formatTimeAgo, getPaymentMethodLabel, isLoyaltyEarnCredited, ISO_DATE_LENGTH } from "@store/shared";
 import { QuantityStepper, Button, ButtonLink } from "@store/ui";
 import type { AdminOrder, AdminOrderEditPayload, AdminOrderSummary, AdminActivityEntry } from "@/types/models";
 import { OrderEditModal } from "./OrderEditModal";
+import { BankTransferConfirmPanel } from "./BankTransferConfirmPanel";
 import { ActivityDetailGrid } from "@/components/shared/ActivityDetailGrid";
 import { formatActivityAction } from "@/lib/activityLabels";
 
@@ -53,7 +54,7 @@ const STATUS_TONE: Record<string, StatusTone> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-	"pending-payment": "Pending payment",
+	"pending-payment": "Awaiting payment",
 	confirmed: "Confirmed",
 	packed: "Order packed",
 	dispatched: "Dispatched",
@@ -477,7 +478,7 @@ function OrderDetailPanel({ orderId, onBack, canUpdate }: { orderId: string; onB
 				onBack={onBack}
 				backLabel="Back to orders"
 				title={order.orderNumber}
-				subtitle={`${new Date(order.placedAt).toLocaleString()} · ${order.payment} · ${order.delivery}`}
+				subtitle={`${new Date(order.placedAt).toLocaleString()} · ${getPaymentMethodLabel(order.payment)} · ${order.delivery}`}
 				badge={<StatusPill tone={STATUS_TONE[order.status] ?? "neutral"}>{STATUS_LABELS[order.status] ?? order.status}</StatusPill>}
 			/>
 
@@ -498,6 +499,14 @@ function OrderDetailPanel({ orderId, onBack, canUpdate }: { orderId: string; onB
 						)}
 					</section>
 
+					{order.payment === "bank-transfer" && order.status === "pending-payment" ? (
+						<BankTransferConfirmPanel
+							orderNumber={order.orderNumber}
+							totalRupees={order.totals.totalRupees}
+							bankTransferDetails={order.bankTransferDetails}
+						/>
+					) : null}
+
 					<section className="grid gap-3 rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 sm:grid-cols-2 relative">
 						<div className="absolute top-4 right-4">
 							{canUpdate && order.status === "pending-payment" ? (
@@ -516,7 +525,11 @@ function OrderDetailPanel({ orderId, onBack, canUpdate }: { orderId: string; onB
 						<div>
 							<p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">Loyalty</p>
 							<p className="mt-1 text-sm text-[var(--color-ink-800)]">
-								{order.pointsEarned > 0 ? `+${order.pointsEarned} earned` : "No points earned"}
+								{order.pointsEarned > 0
+									? isLoyaltyEarnCredited(order.status)
+										? `+${order.pointsEarned} earned`
+										: `+${order.pointsEarned} when delivered`
+									: "No points on this order"}
 								{order.pointsRedeemed > 0 ? ` · ${order.pointsRedeemed} redeemed` : ""}
 							</p>
 						</div>
@@ -565,7 +578,10 @@ function OrderDetailPanel({ orderId, onBack, canUpdate }: { orderId: string; onB
 							<TotalRow label="Subtotal" value={formatPrice(order.totals.subtotalRupees)} />
 							<TotalRow label="Shipping" value={formatPrice(order.totals.shippingRupees)} />
 							{order.totals.discountRupees > 0 ? <TotalRow label="Discount" value={`-${formatPrice(order.totals.discountRupees)}`} /> : null}
-							<TotalRow label="Total" value={formatPrice(Math.max(0, order.totals.subtotalRupees + order.totals.shippingRupees - order.totals.discountRupees))} strong />
+							{(order.totals.paymentSurchargeRupees ?? 0) > 0 ? (
+								<TotalRow label="Cash handling" value={`+${formatPrice(order.totals.paymentSurchargeRupees!)}`} />
+							) : null}
+							<TotalRow label="Total" value={formatPrice(order.totals.totalRupees)} strong />
 						</div>
 					</section>
 

@@ -12,6 +12,17 @@ export { handleMongoError, isMongoDuplicateKeyError } from "./mongoErrors";
 export { reserveStock, releaseStock, type StockLine, type StockReservationResult } from "./inventory";
 export { nextOrderNumberForYear, createWithUniqueOrderNumber } from "./orderNumber";
 export { getStoreSettings, invalidateStoreSettingsCache } from "./storeSettings";
+export { getIntegrationSettings, invalidateIntegrationSettingsCache, loadRawIntegrationSettingsFromDb } from "./integrationSettings";
+export { resolveInquiryStaffNotifyTargets, type InquiryStaffNotifyTargets } from "./inquiryStaffNotifyTargets";
+export {
+	collectStaffEmailRecipients,
+	collectStaffWhatsAppForShopEvent,
+	collectStaffWhatsAppForInquiry,
+} from "./staffNotifyContacts";
+export { fireOrderEventNotifications } from "./orderEventNotifications";
+export { incrementOfferUsageCounts, decrementOfferUsageCounts } from "./offerUsage";
+export { applyOrderTransition, type OrderTransitionActor } from "./orderTransitions";
+export { claimOrderStatusTransition, type ClaimOrderStatusInput } from "./orderStatusClaim";
 export { storedImageSchema } from "./schemas/storedImageSchema";
 export { seoSchema } from "./schemas/seoSchema";
 

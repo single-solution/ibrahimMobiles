@@ -17,7 +17,6 @@ import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 const LiveChatWidget = dynamic(() => import("@/app/_components/chat/LiveChatWidget").then((m) => m.LiveChatWidget), { ssr: false, loading: () => null });
 
 const LABEL_AUTO_HIDE_MS = 4500;
-const HIDDEN_PREFIXES = ["/checkout", "/account/sign-in"];
 const CHAT_EXIT_MS = 180;
 
 const NUDGE_OFF_KEY = "chat.nudge.off";
@@ -82,7 +81,7 @@ export function ChatFabShell() {
 	const { isMounted: isPanelMounted, status: panelStatus } = usePresence(isOpen, CHAT_EXIT_MS);
 	const isClosing = panelStatus === "closing";
 
-	const hidden = !chatSettings.enabled || HIDDEN_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+	const hidden = !chatSettings.enabled;
 
 	const refreshUnread = useCallback(async () => {
 		if (!chatSettings.enabled) return;

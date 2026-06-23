@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-import { getStoreSettings, Inquiry as InquiryModel, connectDB } from "@store/db";
+import { getStoreSettings, Inquiry as InquiryModel, connectDB, getIntegrationSettings, resolveInquiryStaffNotifyTargets } from "@store/db";
 import {
 	assistantReplyLooksUnsafe,
 	customerChatSupportLabel,
@@ -11,6 +11,7 @@ import {
 	splitAssistantReply,
 	type InquiryThreadStatus,
 } from "@store/shared";
+import { notifyStaffOnInquiryEscalation } from "@store/shared/server";
 
 import type { InquiryLean } from "@/lib/chat/serializer";
 import { generateAssistantReply, isAssistantConfigured, resolveProviderApiKey, type AssistantChatTurn } from "@/lib/chat/assistant/generateReply";
@@ -108,29 +109,36 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { 
 	// human"). That flags the thread for the team AND mutes the bot. The keyword
 	// signal is a softer net: notify the team but keep helping.
 	const escalated = generated?.escalation?.requested ?? false;
+	const needsHumanHandoff = escalated || wantsHuman;
 
 	// Skip the extra "notified our team" line while already escalated — the
 	// prompt already reassures the senior is looped in.
-	if (wantsHuman && !escalated && !awaitingHuman && !bubbles.some((bubble) => bubble.toLowerCase().includes("team"))) {
+	if (wantsHuman && !needsHumanHandoff && !awaitingHuman && !bubbles.some((bubble) => bubble.toLowerCase().includes("team"))) {
 		bubbles.push("I've also notified our team to follow up with you personally.");
 	}
 
 	await connectDB();
 	const now = new Date();
 	const status = inquiry.status as InquiryThreadStatus;
-	const flagTeam = escalated || wantsHuman || awaitingHuman;
+	const flagTeam = needsHumanHandoff || awaitingHuman;
 
-	// Escalation state: a fresh escalation mutes the bot and stamps the time;
+	// Escalation state: handoff mutes the bot and stamps the time;
 	// an awaiting-human reply keeps it muted (the senior still owns the issue);
 	// otherwise the normal status patch applies.
-	const escalationPatch: Record<string, unknown> = escalated
+	const escalationPatch: Record<string, unknown> = needsHumanHandoff
 		? {
 				status: "open" as InquiryThreadStatus,
 				assistantMuted: true,
+				assistantMuteReason: "escalation",
+				assistantMutedAt: inquiry.assistantMutedAt ?? now,
+				assistantMutedByUserId: null,
 				escalatedAt: inquiry.escalatedAt ?? now,
 			}
 		: awaitingHuman
-			? { status: "open" as InquiryThreadStatus, assistantMuted: true }
+			? {
+					status: "open" as InquiryThreadStatus,
+					assistantMuted: true,
+				}
 			: inquiryStatusPatchAfterMessage(status, "assistant");
 
 	// Stagger createdAt by 1ms per bubble so ordering is deterministic.
@@ -158,13 +166,32 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { 
 		},
 	);
 
+	if (needsHumanHandoff && !inquiry.escalatedAt) {
+		const [integration, store] = await Promise.all([getIntegrationSettings(), getStoreSettings()]);
+		const { notifyEmails, notifyWhatsAppPhones } = await resolveInquiryStaffNotifyTargets(inquiry, integration, store);
+		if (notifyEmails.length || notifyWhatsAppPhones.length) {
+			const preview = bubbles[0] ?? "Customer requested a human agent.";
+			void notifyStaffOnInquiryEscalation({
+				inquiryId: inquiry._id.toString(),
+				customerName: inquiry.customerName ?? "Guest",
+				phoneNumber: inquiry.phoneNumber,
+				messagePreview: preview,
+				notifyEmails,
+				notifyWhatsAppPhones,
+				whatsappStaffNotifyTemplate: integration.whatsappStaffNotifyTemplate.trim() || undefined,
+				siteName: store.siteName,
+				adminSiteUrl: integration.adminSiteUrl.trim() || undefined,
+			});
+		}
+	}
+
 	logger.info(
 		{
 			inquiryId: inquiry._id.toString(),
 			model: generated?.model ?? "fallback",
 			provider: generated?.provider ?? settings.assistantProvider,
 			wantsHuman,
-			escalated,
+			escalated: needsHumanHandoff,
 		},
 		"chat-assistant: replied",
 	);

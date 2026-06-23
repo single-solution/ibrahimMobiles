@@ -1,5 +1,9 @@
+import { configureDevDnsResolvers } from "@store/shared/devDns";
 import withBundleAnalyzer from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
+
+// Image optimizer workers inherit this process DNS list — must run before Next boots.
+configureDevDnsResolvers();
 
 /**
  * Security headers for the **storefront**. Tight CSP, customer-friendly:
@@ -24,6 +28,24 @@ const MARKETING_CONNECT_HOSTS = [
 	"https://analytics-ipv6.tiktok.com",
 ] as const;
 
+function buildS3ImageHosts(): string[] {
+	const hosts = ["https://*.amazonaws.com", "https://*.s3.amazonaws.com"];
+	const publicBase = process.env.AWS_S3_PUBLIC_URL_BASE?.trim();
+	if (publicBase) {
+		try {
+			const hostname = new URL(publicBase).hostname;
+			if (hostname) {
+				hosts.push(`https://${hostname}`);
+			}
+		} catch {
+			// Ignore invalid public URL at build time.
+		}
+	}
+	return hosts;
+}
+
+const S3_IMAGE_HOSTS = buildS3ImageHosts();
+
 function buildContentSecurityPolicy(): string {
 	// `unsafe-eval` is only needed for Next.js dev tooling (Fast Refresh /
 	// source maps). Production bundles never call `eval`, so we drop it
@@ -39,7 +61,7 @@ function buildContentSecurityPolicy(): string {
 		"object-src 'none'",
 		`script-src ${scriptSrc.join(" ")}`,
 		"style-src 'self' 'unsafe-inline'",
-		"img-src 'self' blob: data: https://images.unsplash.com https://cdn.simpleicons.org https://*.public.blob.vercel-storage.com https://www.facebook.com",
+		`img-src 'self' blob: data: https://images.unsplash.com https://cdn.simpleicons.org https://*.public.blob.vercel-storage.com https://www.facebook.com ${S3_IMAGE_HOSTS.join(" ")}`,
 		"font-src 'self' data:",
 		`connect-src 'self' ${MARKETING_CONNECT_HOSTS.join(" ")}`,
 		"media-src 'self'",
@@ -83,10 +105,10 @@ const nextConfig: NextConfig = {
 	// `static` matches the homepage `revalidate = 30` so prefetched routes stay aligned.
 	experimental: {
 		staleTimes: {
-			dynamic: 10,
-			static: 30,
+			dynamic: 30,
+			static: 60,
 		},
-		optimizePackageImports: ["lucide-react"],
+		optimizePackageImports: ["lucide-react", "@store/shared"],
 	},
 	// Treat the workspace packages as part of the build so Next.js compiles
 	// their TypeScript instead of expecting a published .js bundle.
@@ -99,11 +121,26 @@ const nextConfig: NextConfig = {
 	// worker.js'` followed by "the worker thread exited" in dev).
 	serverExternalPackages: ["pino", "pino-pretty", "thread-stream", "pino-abstract-transport", "sonic-boom", "mongoose", "bcryptjs"],
 	images: {
+		// Dev: load Blob URLs in the browser — skips `/_next/image` server fetch,
+		// which fails when local DNS cannot resolve `*.public.blob.vercel-storage.com`.
+		unoptimized: !isProduction,
 		formats: ["image/avif", "image/webp"],
+		qualities: [65, 70, 75, 80, 85],
 		remotePatterns: [
 			{ protocol: "https", hostname: "images.unsplash.com" },
 			{ protocol: "https", hostname: "cdn.simpleicons.org" },
 			{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+			{ protocol: "https", hostname: "*.amazonaws.com" },
+			...(process.env.AWS_S3_PUBLIC_URL_BASE?.trim()
+				? (() => {
+						try {
+							const hostname = new URL(process.env.AWS_S3_PUBLIC_URL_BASE.trim()).hostname;
+							return hostname ? [{ protocol: "https" as const, hostname }] : [];
+						} catch {
+							return [];
+						}
+					})()
+				: []),
 		],
 		// Product photos rarely change once uploaded; a week-long negative/
 		// positive cache on the optimizer cuts repeat upstream fetches on hot

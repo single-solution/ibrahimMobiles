@@ -524,11 +524,13 @@ export function LiveChatWidget({ onCollapse, initialOpenDetail = null, layout = 
 			subtitle={
 				isReconnecting
 					? "Reconnecting…"
-					: view === "thread" && activeThread
-						? statusLabel(activeThread.status)
-						: settings?.assistantEnabled
-							? "Support chat · replies in seconds"
-							: "We typically reply within an hour"
+					: view === "thread" && activeThread?.assistantPaused
+						? "Team is reviewing — you can still message us"
+						: view === "thread" && activeThread
+							? statusLabel(activeThread.status)
+							: settings?.assistantEnabled
+								? "Support chat · replies in seconds"
+								: "We typically reply within an hour"
 			}
 		>
 			{bootstrapError && (
@@ -565,7 +567,7 @@ export function LiveChatWidget({ onCollapse, initialOpenDetail = null, layout = 
 					onLoadOlder={loadOlderMessages}
 				/>
 			)}
-			<SupportHintFooter assistantEnabled={settings?.assistantEnabled ?? false} />
+			<SupportHintFooter assistantEnabled={settings?.assistantEnabled ?? false} assistantPaused={view === "thread" && (activeThread?.assistantPaused ?? false)} />
 		</ChatShell>
 	);
 }

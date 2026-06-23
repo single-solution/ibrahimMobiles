@@ -1,9 +1,11 @@
 "use client";
 
-import { ShieldCheck } from "lucide-react";
+import { FileText, ShieldCheck } from "lucide-react";
+import { STORE_SETTING_GROUPS } from "@store/shared";
 import { FormSection } from "@/components/forms/FormSection";
 import { FormGrid, SettingsTabHero, type SettingsHeroMetric } from "@/app/settings/_components/settingsWorkspaceUi";
 import { NumberField, SaveableSection } from "@/app/settings/_components/settingsSaveableSection";
+import { PolicyDocumentEditors } from "@/app/settings/_components/PolicyDocumentEditors";
 import type { SectionProps } from "@/app/settings/_components/settingsSectionProps";
 
 export function PolicySettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
@@ -22,10 +24,24 @@ export function PolicySettings({ draft, saved, setField, onSaved, canUpdate }: S
 			tone: draft.defaultWarrantyMonths > 0 ? "good" : "warn",
 			icon: ShieldCheck,
 		},
+		{
+			label: "Return policy",
+			value: draft.returnPolicyHtml.trim() ? "Published" : "Empty",
+			hint: "Opens in a checkout modal",
+			tone: draft.returnPolicyHtml.trim() ? "good" : "warn",
+			icon: FileText,
+		},
+		{
+			label: "Privacy policy",
+			value: draft.privacyPolicyHtml.trim() ? "Published" : "Empty",
+			hint: "Opens in a checkout modal",
+			tone: draft.privacyPolicyHtml.trim() ? "good" : "warn",
+			icon: FileText,
+		},
 	];
 	return (
 		<SaveableSection
-			fields={["moneybackDays", "defaultWarrantyMonths"] as const}
+			fields={STORE_SETTING_GROUPS.policy}
 			draft={draft}
 			saved={saved}
 			setField={setField}
@@ -54,6 +70,13 @@ export function PolicySettings({ draft, saved, setField, onSaved, canUpdate }: S
 						containerClassName="w-full"
 					/>
 				</FormGrid>
+			</FormSection>
+
+			<FormSection
+				title="Legal copy for checkout"
+				description="Return and privacy policies open in modals from checkout — no separate storefront pages. Use the rich editor for headings, lists, and links."
+			>
+				<PolicyDocumentEditors draft={draft} setField={setField} canUpdate={canUpdate} />
 			</FormSection>
 		</SaveableSection>
 	);

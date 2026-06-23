@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { badRequest, BCRYPT_ROUNDS, created, FIELD_LIMITS, isValidationError, ok, parseBody, validateEmail, validatePassword, validateString } from "@store/shared";
+import { badRequest, BCRYPT_ROUNDS, created, FIELD_LIMITS, forbidden, isValidationError, ok, parseBody, validateEmail, validatePassword, validateString } from "@store/shared";
 import { connectDB, handleMongoError, User, USER_ROLES, type UserRole } from "@store/db";
 
 import { requireSession } from "@/lib/api/requireSession";
@@ -93,6 +93,9 @@ export async function POST(request: Request) {
 	const phone = typeof body.phoneNumber === "string" && body.phoneNumber.trim().length > 0 ? body.phoneNumber.trim().slice(0, FIELD_LIMITS.phoneNumber) : undefined;
 
 	const role = parseRole(body.role);
+	if (role === "owner" && !actor.isSuperAdmin) {
+		return forbidden("Only super admins can invite users with the owner role.");
+	}
 	const isSuperAdmin = role === "owner" && body.isSuperAdmin === true && actor.isSuperAdmin;
 
 	await connectDB();

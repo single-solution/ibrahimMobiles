@@ -74,7 +74,7 @@ export function ShopHealthCard({ summary }: { summary: ShopHealthSummary }) {
 					</span>
 				</div>
 				<Link
-					href="/settings/health"
+					href="/settings?tab=integrations"
 					className="tap inline-flex items-center gap-1 text-[11.5px] font-semibold text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]"
 				>
 					View details <ArrowRight size={11} />
@@ -88,7 +88,7 @@ export function ShopHealthCard({ summary }: { summary: ShopHealthSummary }) {
 			{remaining > 0 ? (
 				<div className="flex items-center justify-between gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-2 md:px-5">
 					<p className="text-[11px] text-[var(--color-ink-600)] md:text-[11.5px]">{remaining === 1 ? "1 more thing to review" : `${remaining} more things to review`}</p>
-					<Link href="/settings/health" className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]">
+					<Link href="/settings?tab=integrations" className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--color-accent-700)] hover:text-[var(--color-accent-800)]">
 						Review all <ArrowRight size={11} />
 					</Link>
 				</div>

@@ -2,7 +2,8 @@ import type { OfferAction, OfferSchedule } from "./offerTypes";
 import {
 	cartMatchesOffer,
 	getMatchedCartItems,
-	isCatalogWideStorefrontOffer,
+	isCheckoutNoticeOffer,
+	isCheckoutOnlyOffer,
 	itemMatchesStorefrontScope,
 	type EvaluateOffersOptions,
 	type OfferMatchContext,
@@ -58,7 +59,14 @@ export interface OfferEvaluationResult {
 export type EvaluateCartOffersOptions = EvaluateOffersOptions & {
 	/** Per line id → offer chosen on the PDP (stored on cart lines). */
 	lineOfferIds?: Record<string, string | undefined>;
+	/** Cart-locked catalog offers — honored even when schedule/usage has lapsed. */
+	lockedCatalogOffers?: ActiveOffer[];
 };
+
+export interface LockedItemOfferOptions {
+	/** Honor a cart lock even when the offer is no longer eligible in the catalog. */
+	honorLock?: boolean;
+}
 
 export { isOfferActiveSchedule, isOfferEligible, isOfferUsageExhausted } from "./offerSchedule";
 
@@ -79,8 +87,16 @@ export function resolveOfferMinQuantity(offer: ActiveOffer): number {
 }
 
 /** PDP / cart-locked item offer — storefront item scope + quantity rules. */
-export function itemMatchesLockedItemOffer(item: EvaluatableItem, offer: ActiveOffer, context: OfferMatchContext): boolean {
-	if (!isOfferEligible(offer) || isCatalogWideStorefrontOffer(offer)) {
+export function itemMatchesLockedItemOffer(
+	item: EvaluatableItem,
+	offer: ActiveOffer,
+	context: OfferMatchContext,
+	options: LockedItemOfferOptions = {},
+): boolean {
+	if (!options.honorLock && !isOfferEligible(offer)) {
+		return false;
+	}
+	if (isCheckoutOnlyOffer(offer)) {
 		return false;
 	}
 	if (!itemMatchesStorefrontScope(item, offer, context)) {
@@ -90,8 +106,13 @@ export function itemMatchesLockedItemOffer(item: EvaluatableItem, offer: ActiveO
 }
 
 /** Discount for a PDP-locked item offer — line-level % or fixed amount. */
-export function computeLockedItemOfferDiscount(item: EvaluatableItem, offer: ActiveOffer, context: OfferMatchContext): number {
-	if (!itemMatchesLockedItemOffer(item, offer, context)) {
+export function computeLockedItemOfferDiscount(
+	item: EvaluatableItem,
+	offer: ActiveOffer,
+	context: OfferMatchContext,
+	options: LockedItemOfferOptions = {},
+): number {
+	if (!itemMatchesLockedItemOffer(item, offer, context, options)) {
 		return 0;
 	}
 	if (offer.action.type === "buy_x_get_y" || offer.action.type === "free_shipping") {
@@ -181,7 +202,16 @@ export function evaluateCartOffers(items: EvaluatableItem[], offers: ActiveOffer
 	};
 
 	const validOffers = offers.filter((offer) => isOfferEligible(offer));
-	const offerById = new Map(validOffers.map((offer) => [offer.id, offer]));
+	const lockedOfferById = new Map((options.lockedCatalogOffers ?? []).map((offer) => [offer.id, offer]));
+	const offerById = new Map<string, ActiveOffer>();
+	for (const offer of validOffers) {
+		offerById.set(offer.id, offer);
+	}
+	for (const offer of options.lockedCatalogOffers ?? []) {
+		if (!offerById.has(offer.id)) {
+			offerById.set(offer.id, offer);
+		}
+	}
 
 	const itemDiscounts = new Map<string, DiscountApplication[]>();
 	const cartDiscounts: DiscountApplication[] = [];
@@ -196,23 +226,22 @@ export function evaluateCartOffers(items: EvaluatableItem[], offers: ActiveOffer
 			continue;
 		}
 		const offer = offerById.get(lockedOfferId);
-		if (!offer || isCatalogWideStorefrontOffer(offer)) {
+		if (!offer || isCheckoutOnlyOffer(offer)) {
 			continue;
 		}
 
+		const honorLock = lockedOfferById.has(lockedOfferId);
+
 		if (offer.action.type === "free_shipping") {
-			if (!itemMatchesLockedItemOffer(item, offer, context)) {
+			if (!itemMatchesLockedItemOffer(item, offer, context, { honorLock })) {
 				continue;
 			}
 			freeShipping = true;
 			appliedOfferIds.push(offer.id);
-			if (!offer.allowLoyaltyPoints) {
-				isLoyaltyPointsAllowed = false;
-			}
 			continue;
 		}
 
-		const itemDiscount = computeLockedItemOfferDiscount(item, offer, context);
+		const itemDiscount = computeLockedItemOfferDiscount(item, offer, context, { honorLock });
 		if (itemDiscount <= 0) {
 			continue;
 		}
@@ -227,15 +256,12 @@ export function evaluateCartOffers(items: EvaluatableItem[], offers: ActiveOffer
 		totalDiscount += itemDiscount;
 		cartTotal -= itemDiscount;
 		appliedOfferIds.push(offer.id);
-		if (!offer.allowLoyaltyPoints) {
-			isLoyaltyPointsAllowed = false;
-		}
 	}
 
 	context.cartTotal = cartTotal;
 
 	for (const offer of validOffers) {
-		if (!isCatalogWideStorefrontOffer(offer)) {
+		if (!isCheckoutNoticeOffer(offer)) {
 			continue;
 		}
 		if (appliedOfferIds.includes(offer.id)) {

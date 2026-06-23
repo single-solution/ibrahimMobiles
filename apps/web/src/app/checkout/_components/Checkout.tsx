@@ -1,18 +1,29 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CHECKOUT_TO_ORDER_PAYMENT, maxRedeemable, pointsEarnedFor, pointsToRupees } from "@store/shared";
-import { useCart } from "@/lib/cart/useCart";
-import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
-import { evaluateCartOffers } from "@store/shared";
-import { buildCartLineOfferIds } from "@/lib/pricing/cartOfferPricing";
+import { AlertTriangle } from "lucide-react";
+import {
+	computeCodSurchargeRupees,
+	computeCourierShippingRupees,
+	maxRedeemable,
+	pointsEarnedFor,
+	pointsToRupees,
+	getPaymentMethods,
+	CHECKOUT_TO_ORDER_PAYMENT,
+} from "@store/shared";
+import { launchOnlineCheckout, type OnlineCheckoutApiPayload } from "@/lib/payments/launchOnlineCheckout";
+import { useCartReconciliationControls } from "@/lib/cart/useCartReconciliation";
+import { getCartSnapshot } from "@/lib/cart/store";
+import { useCartOfferPricing } from "@/lib/pricing/useCartOfferPricing";
 import { CheckoutOfferNotices } from "@/components/shared/CheckoutOfferNotices";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import type { AccountAddress, AccountCustomer } from "@/lib/core/account";
-import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
 import { resolvePublicErrorMessage } from "@/lib/errors/publicErrorMessage";
+import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
+import { useCart } from "@/lib/cart/useCart";
 import {
 	CheckoutHeader,
 	CheckoutSignInPanel,
@@ -28,14 +39,14 @@ import {
 	type PaymentMethodId,
 } from "@/app/checkout/_components/CheckoutPanels";
 
-const DELIVERY_FEE_RUPEES = 1_500;
-
 const EMPTY_ADDRESS: AddressFormState = {
 	street: "",
 };
 
 interface CheckoutProps {
 	customer: AccountCustomer | null;
+	paymentCancelled?: boolean;
+	cancelledOrderNumber?: string;
 }
 
 function addressToForm(address: AccountAddress | undefined): AddressFormState {
@@ -47,46 +58,21 @@ function addressToForm(address: AccountAddress | undefined): AddressFormState {
 	};
 }
 
-export function Checkout({ customer }: CheckoutProps) {
+export function Checkout({ customer, paymentCancelled = false, cancelledOrderNumber = "" }: CheckoutProps) {
 	const router = useRouter();
 	const { startNavigation } = useNavigationTransition();
 	const cart = useCart();
+	const { ensureReconciled, isReconciling } = useCartReconciliationControls();
 	const settings = useStoreSettings();
-	const { offers } = useActiveOffers();
-
-	const [payment, setPayment] = useState<PaymentMethodId>("bank");
-
-	const evaluatableItems = useMemo(
-		() =>
-			cart.items.map((item) => ({
-				id: item.id,
-				productId: item.productId,
-				variantId: item.variantId,
-				categorySlug: item.categorySlug,
-				brandSlug: item.brandSlug,
-				gradeSlug: item.gradeSlug,
-				price: item.unitPriceRupees,
-				quantity: item.quantity,
-				attributes: item.attributes,
-			})),
-		[cart.items],
-	);
-
-	const pricing = useMemo(
-		() =>
-			evaluateCartOffers(evaluatableItems, offers, {
-				paymentMethod: payment,
-				lineOfferIds: buildCartLineOfferIds(cart.items),
-			}),
-		[evaluatableItems, offers, payment, cart.items],
-	);
+	const [payment, setPayment] = useState<PaymentMethodId>("bank-transfer");
+	const { pricing, appliedOffers, isOffersLoading } = useCartOfferPricing(payment);
+	const enabledPaymentMethods = useMemo(() => getPaymentMethods(settings), [settings]);
 
 	const defaultAddress = customer?.addresses.find((candidate) => candidate.isDefault) ?? customer?.addresses[0];
 	const [fullName, setFullName] = useState(customer?.name ?? "");
 	const [phoneNumber, setPhoneNumber] = useState(customer?.phoneNumber ?? "");
 	const [delivery, setDelivery] = useState<DeliveryMethod>("pickup");
 	const [address, setAddress] = useState<AddressFormState>(() => addressToForm(defaultAddress));
-	const [hasAgreed, setHasAgreed] = useState<boolean>(false);
 	const [isPlacing, setIsPlacing] = useState<boolean>(false);
 	const [shouldRedeemLoyalty, setShouldRedeemLoyalty] = useState<boolean>(false);
 	const [loyaltyBalance, setLoyaltyBalance] = useState<number>(0);
@@ -96,23 +82,35 @@ export function Checkout({ customer }: CheckoutProps) {
 	const idempotencyKeyRef = useRef<string | null>(null);
 
 	const subtotalRupees = cart.subtotalRupees;
+	const subtotalAfterOffersRupees = pricing.finalTotal;
 
-	const maxPointsForOrder = useMemo(() => maxRedeemable(subtotalRupees, loyaltyBalance), [subtotalRupees, loyaltyBalance]);
+	const maxPointsForOrder = useMemo(
+		() => maxRedeemable(subtotalAfterOffersRupees, loyaltyBalance),
+		[subtotalAfterOffersRupees, loyaltyBalance],
+	);
 
 	const cappedPointsToUse = shouldRedeemLoyalty ? maxPointsForOrder : 0;
 
 	const totals = useMemo(() => {
 		const itemCount = cart.itemCount;
-		const subtotalRupees = pricing.finalTotal;
-		const discountRupees = payment === "bank" ? Math.round((subtotalRupees * settings.bankTransferDiscountPercent) / 100) : 0;
-		const deliveryRupees = delivery === "delivery" ? (subtotalRupees >= settings.freeDeliveryThresholdRupees ? 0 : DELIVERY_FEE_RUPEES) : 0;
+		const subtotalAfterOffersRupees = pricing.finalTotal;
+		const offersDiscountRupees = pricing.totalDiscount;
+		const paymentSurchargeRupees =
+			payment === "cod" ? computeCodSurchargeRupees(subtotalAfterOffersRupees, settings.codSurchargePercent) : 0;
+		const deliveryRupees = computeCourierShippingRupees({
+			isCourierDelivery: delivery === "delivery",
+			subtotalAfterOffersRupees,
+			freeDeliveryThresholdRupees: settings.freeDeliveryThresholdRupees,
+			courierFlatFeeRupees: settings.courierFlatFeeRupees,
+			offerGrantsFreeShipping: pricing.freeShipping,
+		});
 		const pointsRedeemedRupees = pricing.isLoyaltyPointsAllowed ? pointsToRupees(cappedPointsToUse) : 0;
-		const totalRupees = Math.max(0, subtotalRupees - discountRupees + deliveryRupees - pointsRedeemedRupees);
+		const totalRupees = Math.max(0, subtotalAfterOffersRupees + paymentSurchargeRupees + deliveryRupees - pointsRedeemedRupees);
 		return {
 			itemCount,
 			subtotalRupees: cart.subtotalRupees,
-			offersDiscountRupees: pricing.totalDiscount,
-			discountRupees,
+			offersDiscountRupees,
+			paymentSurchargeRupees,
 			deliveryRupees,
 			pointsRedeemedRupees,
 			totalRupees,
@@ -126,26 +124,37 @@ export function Checkout({ customer }: CheckoutProps) {
 		delivery,
 		payment,
 		cappedPointsToUse,
-		settings.bankTransferDiscountPercent,
+		pricing.freeShipping,
+		settings.codSurchargePercent,
 		settings.freeDeliveryThresholdRupees,
+		settings.courierFlatFeeRupees,
 	]);
 
 	const pointsEarnedOnThisOrder = pointsEarnedFor(totals.totalRupees, settings.loyaltyEarnPercent);
 
 	const isAddressValid = delivery === "pickup" || address.street.trim().length >= 2;
 
-	const isValid = !cart.isEmpty && fullName.trim().length > 1 && phoneNumber.trim().length >= 7 && isAddressValid && hasAgreed;
+	const isPricingReady = !isOffersLoading;
+	const hasPaymentMethod = enabledPaymentMethods.length > 0;
 
-	const lookupLoyalty = async (phoneOverride = phoneNumber) => {
-		const lookupPhone = phoneOverride.trim();
-		if (lookupPhone.length < 7) {
+	const isValid =
+		!cart.isEmpty && fullName.trim().length > 1 && phoneNumber.trim().length >= 7 && isAddressValid && isPricingReady && hasPaymentMethod;
+
+	useEffect(() => {
+		if (enabledPaymentMethods.length === 0) {
 			return;
 		}
+		if (!enabledPaymentMethods.some((method) => method.id === payment)) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect -- clamp selection when enabled methods change
+			setPayment(enabledPaymentMethods[0]?.id ?? "bank-transfer");
+		}
+	}, [enabledPaymentMethods, payment]);
+
+	const lookupLoyalty = async () => {
 		try {
 			const response = await fetch("/api/loyalty-balance", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ phoneNumber: lookupPhone }),
 			});
 			if (!response.ok) {
 				return;
@@ -158,18 +167,17 @@ export function Checkout({ customer }: CheckoutProps) {
 	};
 
 	useEffect(() => {
-		if (!customer?.phoneNumber) {
+		if (!customer?.id) {
 			return;
 		}
 		const timeoutId = window.setTimeout(() => {
-			void lookupLoyalty(customer.phoneNumber);
+			void lookupLoyalty();
 		}, 0);
 		return () => window.clearTimeout(timeoutId);
-		// eslint-disable-next-line react-hooks/exhaustive-deps -- one lookup when the signed-in customer changes
-	}, [customer?.phoneNumber]);
+	}, [customer?.id]);
 
 	const handlePlaceOrder = async () => {
-		if (!isValid || isPlacing) {
+		if (!isValid || isPlacing || isReconciling) {
 			return;
 		}
 		setErrorMessage(null);
@@ -178,6 +186,18 @@ export function Checkout({ customer }: CheckoutProps) {
 			idempotencyKeyRef.current = crypto.randomUUID();
 		}
 		try {
+			const reconciled = await ensureReconciled();
+			if (!reconciled) {
+				setErrorMessage("Your cart could not be refreshed. Check your connection and try again.");
+				setIsPlacing(false);
+				return;
+			}
+			const freshItems = getCartSnapshot().items;
+			if (freshItems.length === 0) {
+				setErrorMessage("Your cart is empty. Add items from the shop before placing an order.");
+				setIsPlacing(false);
+				return;
+			}
 			const response = await fetch("/api/orders", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -192,11 +212,20 @@ export function Checkout({ customer }: CheckoutProps) {
 									street: address.street || undefined,
 								}
 							: undefined,
-					items: cart.items.map((line) => ({
+					items: freshItems.map((line) => ({
 						productId: line.productId,
 						variantId: line.variantId,
 						quantity: line.quantity,
-						...(line.appliedOfferId ? { appliedOfferId: line.appliedOfferId } : {}),
+						gradeSlug: line.gradeSlug,
+						attributes: line.attributes ?? {},
+						...(line.appliedOffer
+							? {
+									appliedOfferId: line.appliedOffer.id,
+									appliedOfferLockedAt: line.appliedOffer.lockedAt,
+								}
+							: line.appliedOfferId
+								? { appliedOfferId: line.appliedOfferId }
+								: {}),
 					})),
 					loyalty: {
 						redeemPoints: cappedPointsToUse,
@@ -212,12 +241,25 @@ export function Checkout({ customer }: CheckoutProps) {
 				return;
 			}
 
-			const data = (await response.json()) as {
+			const data = (await response.json()) as OnlineCheckoutApiPayload & {
 				orderNumber: string;
 				totalRupees?: number;
 				pointsEarned?: number;
 				pointsRedeemed?: number;
 			};
+
+			if (data.checkoutUrl || data.checkoutForm) {
+				if (!data.checkoutUrl && (!data.checkoutForm?.postUrl || !data.checkoutForm?.fields)) {
+					setErrorMessage("Online payment could not be started. Try again or choose bank transfer / cash on delivery.");
+					setIsPlacing(false);
+					return;
+				}
+				cart.clear();
+				idempotencyKeyRef.current = null;
+				launchOnlineCheckout(data);
+				return;
+			}
+
 			cart.clear();
 			const params = new URLSearchParams({
 				order: data.orderNumber,
@@ -248,7 +290,7 @@ export function Checkout({ customer }: CheckoutProps) {
 			<div className={`${STOREFRONT_SHELL_CLASS} pb-24 pt-4 md:pb-16 md:pt-10`}>
 				<CheckoutHeader />
 				<div className="reveal mt-4 md:mt-5">
-					<CheckoutOfferNotices offers={offers} />
+					<CheckoutOfferNotices appliedOffers={appliedOffers} />
 				</div>
 				<div className="mt-5 grid gap-6 md:mt-8 md:grid-cols-[minmax(0,1fr)_360px] lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-8">
 					<div className="reveal">
@@ -274,8 +316,32 @@ export function Checkout({ customer }: CheckoutProps) {
 		>
 			<CheckoutHeader />
 
+			{paymentCancelled ? (
+				<div className="reveal mt-4 rounded-[var(--radius-md)] border border-[var(--color-warn-200)] bg-[var(--color-warn-50)] px-4 py-3 md:mt-5">
+					<div className="flex items-start gap-3">
+						<AlertTriangle size={18} className="mt-0.5 shrink-0 text-[var(--color-warn-700)]" />
+						<div className="min-w-0 text-[13px] leading-snug text-[var(--color-warn-900)]">
+							<p className="font-semibold">Online payment was not completed.</p>
+							<p className="mt-1 text-[var(--color-warn-800)]">
+								{cancelledOrderNumber ? (
+									<>
+										Your order <span className="font-mono font-semibold">{cancelledOrderNumber}</span> is still waiting for payment.{" "}
+										<Link href={`/account/orders/${encodeURIComponent(cancelledOrderNumber)}`} className="font-semibold underline">
+											Complete payment in your account
+										</Link>{" "}
+										or choose bank transfer / cash on delivery for a new order.
+									</>
+								) : (
+									<>You can place a new order below or open your account to finish a pending payment.</>
+								)}
+							</p>
+						</div>
+					</div>
+				</div>
+			) : null}
+
 			<div className="reveal mt-4 md:mt-5">
-				<CheckoutOfferNotices offers={offers} />
+				<CheckoutOfferNotices appliedOffers={appliedOffers} />
 			</div>
 
 			<div className="mt-5 grid gap-6 md:mt-8 md:grid-cols-[1fr_360px] lg:grid-cols-[1fr_400px] lg:gap-8">
@@ -287,7 +353,13 @@ export function Checkout({ customer }: CheckoutProps) {
 						<DeliveryPanel delivery={delivery} onChange={setDelivery} address={address} onAddressChange={setAddress} isPlacing={isPlacing} />
 					</div>
 					<div className="reveal">
-						<PaymentPanel payment={payment} onChange={setPayment} isPlacing={isPlacing} />
+						<PaymentPanel
+							payment={payment}
+							onChange={setPayment}
+							isPlacing={isPlacing}
+							totalRupees={totals.totalRupees}
+							paymentSurchargeRupees={totals.paymentSurchargeRupees}
+						/>
 					</div>
 				</div>
 
@@ -308,13 +380,18 @@ export function Checkout({ customer }: CheckoutProps) {
 							totals={totals}
 							payment={payment}
 							delivery={delivery}
-							hasAgreed={hasAgreed}
-							onAgreedChange={setHasAgreed}
-							isPlacing={isPlacing}
-							isValid={isValid}
+							isPlacing={isPlacing || isReconciling}
+							isValid={isValid && !isReconciling}
 							pointsEarnedOnThisOrder={pointsEarnedOnThisOrder}
 							pointsRedeemed={cappedPointsToUse}
 							errorMessage={errorMessage}
+							infoMessage={
+								!hasPaymentMethod
+									? "Checkout is paused — no payment methods are enabled. Contact the store."
+									: isOffersLoading
+										? "Updating offers and delivery…"
+										: null
+							}
 						/>
 					</div>
 				</aside>

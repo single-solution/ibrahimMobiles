@@ -120,7 +120,12 @@ export async function generateMetadata({ params, searchParams }: ProductDetailPa
 export default async function ProductDetailPage({ params, searchParams }: ProductDetailPageProps) {
 	const [{ category, slug }, search] = await Promise.all([params, searchParams]);
 
-	const [categoryMeta, product, allAttributes] = await Promise.all([getCategoryBySlugCached(category), getProductBySlugCached(slug), getAttributesCached()]);
+	const [categoryMeta, product, allAttributes, liveVariants] = await Promise.all([
+		getCategoryBySlugCached(category),
+		getProductBySlugCached(slug),
+		getAttributesCached(),
+		getProductLiveCommerce(slug),
+	]);
 
 	if (!categoryMeta) {
 		notFound();
@@ -130,24 +135,26 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
 		notFound();
 	}
 
-	const attributeSlugs = attributeSlugsForProduct(product, allAttributes);
-	const exactFromUrl = resolveExactVariantFromSearch(product, search, attributeSlugs);
-	const variantForSeo = exactFromUrl ?? getDefaultVariant(product);
+	const storefrontProduct = mergeProductWithLiveCommerce(product, liveVariants);
 
-	if (product.categorySlug !== categoryMeta.slug) {
-		redirect(productHref(product));
+	const attributeSlugs = attributeSlugsForProduct(storefrontProduct, allAttributes);
+	const exactFromUrl = resolveExactVariantFromSearch(storefrontProduct, search, attributeSlugs);
+	const variantForSeo = exactFromUrl ?? getDefaultVariant(storefrontProduct);
+
+	if (storefrontProduct.categorySlug !== categoryMeta.slug) {
+		redirect(productHref(storefrontProduct));
 	}
 
 	// Bad URL recovery (combination doesn't exist on any variant) is handled
 	// client-side via `history.replaceState` (see usePdpUrlParams) so configurator
 	// picks never refetch this RSC page.
 
-	const [brand, seoSettings] = await Promise.all([getBrandBySlugCached(product.brandSlug, product.categorySlug), getSeoSettings()]);
-	const brandName = brand?.name ?? product.brandSlug;
-	const brandFilterHref = `${categoryHref(categoryMeta.slug)}?brand=${product.brandSlug}`;
+	const [brand, seoSettings] = await Promise.all([getBrandBySlugCached(storefrontProduct.brandSlug, storefrontProduct.categorySlug), getSeoSettings()]);
+	const brandName = brand?.name ?? storefrontProduct.brandSlug;
+	const brandFilterHref = `${categoryHref(categoryMeta.slug)}?brand=${storefrontProduct.brandSlug}`;
 
 	const productLd = productJsonLd({
-		product,
+		product: storefrontProduct,
 		variant: variantForSeo,
 		brand: brand ? { slug: brand.slug, name: brand.name } : null,
 		category: { slug: categoryMeta.slug, label: categoryMeta.label },
@@ -164,38 +171,38 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
 			url: `${seoSettings.siteUrl}${brandFilterHref}`,
 		},
 		{
-			name: `${brandName} ${product.name}`,
-			url: productAbsoluteUrl(seoSettings.siteUrl, product, {
+			name: `${brandName} ${storefrontProduct.name}`,
+			url: productAbsoluteUrl(seoSettings.siteUrl, storefrontProduct, {
 				variant: variantForSeo,
 			}),
 		},
 	]);
 
 	return (
-		<VariantProvider product={product}>
+		<VariantProvider product={storefrontProduct}>
 			<PdpScrollReset />
-			<ProductChatBeacon productId={product.id} productName={`${brandName} ${product.name}`} />
+			<ProductChatBeacon productId={storefrontProduct.id} productName={`${brandName} ${storefrontProduct.name}`} />
 			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(productLd) }} />
 			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(breadcrumbLd) }} />
 			{/* Mobile */}
 			<div className="pdp-shell reveal-stagger pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-2 md:hidden">
 				<div className={`reveal space-y-3 ${STOREFRONT_SHELL_CLASS}`}>
-					<Breadcrumbs categorySlug={categoryMeta.slug} categoryLabel={categoryMeta.label} brandName={brandName} brandFilterHref={brandFilterHref} modelName={product.name} />
+					<Breadcrumbs categorySlug={categoryMeta.slug} categoryLabel={categoryMeta.label} brandName={brandName} brandFilterHref={brandFilterHref} modelName={storefrontProduct.name} />
 					<div className="relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
-						<VariantAwareGallery product={product} brandName={brandName} layout="mobile" />
-						<PdpOfferBadgeOverlay product={product} />
+						<VariantAwareGallery product={storefrontProduct} brandName={brandName} layout="mobile" />
+						<PdpOfferBadgeOverlay product={storefrontProduct} />
 					</div>
 				</div>
 
 				<div className={`pdp-content ${STOREFRONT_SHELL_CLASS} space-y-5 pt-4`}>
 					<div className="reveal">
-						<Suspense fallback={<VariantSelectorSkeleton layout="mobile" product={product} brandName={brandName} />}>
-							<LiveVariantSelector product={product} brandName={brandName} />
+						<Suspense fallback={<VariantSelectorSkeleton layout="mobile" product={storefrontProduct} brandName={brandName} />}>
+							<VariantSelector product={storefrontProduct} brandName={brandName} />
 						</Suspense>
 					</div>
 
 					<div className="reveal">
-						<GradeShowcase product={product} variant="mobile" />
+						<GradeShowcase product={storefrontProduct} variant="mobile" />
 					</div>
 
 					<section className="reveal pdp-related-panel cv-auto">
@@ -204,7 +211,7 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
 							<Link href={brandFilterHref}>See all</Link>
 						</div>
 						<Suspense fallback={<MobileRelatedRailSkeleton />}>
-							<MobileRelatedRail product={product} brandName={brandName} />
+							<MobileRelatedRail product={storefrontProduct} brandName={brandName} />
 						</Suspense>
 					</section>
 				</div>
@@ -213,24 +220,24 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
 			{/* Desktop */}
 			<div className={`pdp-shell reveal-stagger hidden pb-12 pt-8 md:block ${STOREFRONT_SHELL_CLASS}`}>
 				<div className="reveal">
-					<Breadcrumbs categorySlug={categoryMeta.slug} categoryLabel={categoryMeta.label} brandName={brandName} brandFilterHref={brandFilterHref} modelName={product.name} />
+					<Breadcrumbs categorySlug={categoryMeta.slug} categoryLabel={categoryMeta.label} brandName={brandName} brandFilterHref={brandFilterHref} modelName={storefrontProduct.name} />
 				</div>
 
 				<div className="mt-6 grid grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] items-start gap-10">
 					<div className="reveal relative min-w-0 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-2 shadow-[var(--shadow-sm)]">
-						<VariantAwareGallery product={product} brandName={brandName} layout="desktop" />
-						<PdpOfferBadgeOverlay product={product} />
+						<VariantAwareGallery product={storefrontProduct} brandName={brandName} layout="desktop" />
+						<PdpOfferBadgeOverlay product={storefrontProduct} />
 					</div>
 
 					<div className="reveal flex min-h-0 min-w-0 flex-col">
-						<Suspense fallback={<VariantSelectorSkeleton layout="desktop" product={product} brandName={brandName} />}>
-							<LiveVariantSelector product={product} brandName={brandName} />
+						<Suspense fallback={<VariantSelectorSkeleton layout="desktop" product={storefrontProduct} brandName={brandName} />}>
+							<VariantSelector product={storefrontProduct} brandName={brandName} />
 						</Suspense>
 					</div>
 				</div>
 
 				<div className="reveal">
-					<GradeShowcase product={product} />
+					<GradeShowcase product={storefrontProduct} />
 				</div>
 
 				<section className="reveal pdp-related-panel cv-auto mt-16">
@@ -241,7 +248,7 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
 						</Link>
 					</div>
 					<Suspense fallback={<DesktopRelatedRailSkeleton />}>
-						<DesktopRelatedRail product={product} brandName={brandName} />
+						<DesktopRelatedRail product={storefrontProduct} brandName={brandName} />
 					</Suspense>
 				</section>
 			</div>
@@ -249,20 +256,7 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
 	);
 }
 
-/* ─────────────────────── Live commerce slot ─────────────────────── */
-
-/**
- * Streams in fresh price + stock for every variant on each request. The
- * shell `product` arrives with cached commerce that may be up to 30s
- * stale; this async child overlays current values and renders the live
- * `<VariantSelector>`. Mobile + desktop boundaries share the same
- * React-cached query, so only one Mongo round-trip per render.
- */
-async function LiveVariantSelector({ product, brandName }: { product: Product; brandName: string }) {
-	const live = await getProductLiveCommerce(product.slug);
-	const merged = mergeProductWithLiveCommerce(product, live);
-	return <VariantSelector product={merged} brandName={brandName} />;
-}
+/* ─────────────────────── Variant selector skeleton ─────────────────────── */
 
 interface VariantSelectorSkeletonProps {
 	layout: "mobile" | "desktop";

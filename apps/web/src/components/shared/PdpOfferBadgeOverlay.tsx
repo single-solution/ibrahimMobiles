@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { type Product } from "@store/shared";
 
 import { ProductDealAvailableBadge } from "@/components/shared/ProductDealAvailableBadge";
-import { resolveProductItemScopedOffers } from "@/lib/pricing/productOfferMatch";
+import { resolveProductCatalogDealOffers } from "@/lib/pricing/productOfferMatch";
 import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
 import { isProductInStock } from "@/lib/productSummary";
 
@@ -17,7 +17,7 @@ export function PdpOfferBadgeOverlay({ product }: { product: Product }) {
 		if (offers.length === 0 || !isProductInStock(product)) {
 			return 0;
 		}
-		return resolveProductItemScopedOffers(product, offers).length;
+		return resolveProductCatalogDealOffers(product, offers).length;
 	}, [offers, product]);
 
 	if (applicableOfferCount <= 0) {

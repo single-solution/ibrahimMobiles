@@ -15,14 +15,39 @@ import {
 	coerceChatSettingValue,
 	isAssistantProviderConfigured,
 	mergeChatSettingsFromDb,
+	mergeIntegrationSecretUpdate,
 	ok,
 	parseBody,
 	resolveAssistantModelFromSettings,
 	toChatSettingKey,
+	toAdminChatSettings,
 	type ChatSettingsValues,
 } from "@store/shared";
 
 import type { SettingLean } from "@/lib/serializers/setting";
+
+function buildProviderStatus(settings: ChatSettingsValues) {
+	return {
+		openai: {
+			configured: isAssistantProviderConfigured("openai", settings.providerApiKeyOpenai),
+			model: resolveAssistantModelFromSettings("openai", settings),
+			defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.openai,
+			dbModel: settings.assistantModelOpenai,
+		},
+		google: {
+			configured: isAssistantProviderConfigured("google", settings.providerApiKeyGoogle),
+			model: resolveAssistantModelFromSettings("google", settings),
+			defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.google,
+			dbModel: settings.assistantModelGoogle,
+		},
+		anthropic: {
+			configured: isAssistantProviderConfigured("anthropic", settings.providerApiKeyAnthropic),
+			model: resolveAssistantModelFromSettings("anthropic", settings),
+			defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.anthropic,
+			dbModel: settings.assistantModelAnthropic,
+		},
+	};
+}
 
 export async function GET() {
 	const { response } = await requireSession("settings_view");
@@ -39,27 +64,8 @@ export async function GET() {
 		const settings = mergeChatSettingsFromDb(docs);
 
 		return ok({
-			settings,
-			providers: {
-				openai: {
-					configured: isAssistantProviderConfigured("openai", settings.providerApiKeyOpenai),
-					model: resolveAssistantModelFromSettings("openai", settings),
-					defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.openai,
-					dbModel: settings.assistantModelOpenai,
-				},
-				google: {
-					configured: isAssistantProviderConfigured("google", settings.providerApiKeyGoogle),
-					model: resolveAssistantModelFromSettings("google", settings),
-					defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.google,
-					dbModel: settings.assistantModelGoogle,
-				},
-				anthropic: {
-					configured: isAssistantProviderConfigured("anthropic", settings.providerApiKeyAnthropic),
-					model: resolveAssistantModelFromSettings("anthropic", settings),
-					defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.anthropic,
-					dbModel: settings.assistantModelAnthropic,
-				},
-			},
+			settings: toAdminChatSettings(settings),
+			providers: buildProviderStatus(settings),
 		});
 	} catch (error) {
 		return handleMongoError(error);
@@ -84,11 +90,28 @@ export async function PUT(request: Request) {
 		value: ChatSettingsValues[keyof ChatSettingsValues];
 	}> = [];
 
+	await connectDB();
+	const existing = mergeChatSettingsFromDb(
+		await Setting.find({ key: { $in: CHAT_SETTING_DB_KEY_LIST } })
+			.select({ key: 1, value: 1 })
+			.lean<SettingLean[]>(),
+	);
+
+	const secretFields = new Set<keyof ChatSettingsValues>(["providerApiKeyOpenai", "providerApiKeyGoogle", "providerApiKeyAnthropic"]);
+
 	for (const field of CHAT_SETTING_KEYS) {
 		if (!(field in body)) {
 			continue;
 		}
-		const coerced = coerceChatSettingValue(field, body[field]);
+		let incoming = body[field];
+		if (secretFields.has(field) && typeof incoming === "string") {
+			incoming = mergeIntegrationSecretUpdate(
+				field as Parameters<typeof mergeIntegrationSecretUpdate>[0],
+				incoming,
+				existing[field] as string,
+			);
+		}
+		const coerced = coerceChatSettingValue(field, incoming);
 		if (coerced === null) {
 			return badRequest(`Invalid value for "${field}".`);
 		}
@@ -99,7 +122,6 @@ export async function PUT(request: Request) {
 		return badRequest("No recognised inquiry settings fields supplied.");
 	}
 
-	await connectDB();
 	try {
 		await Promise.all(
 			updates.map(({ field, value }) =>
@@ -137,21 +159,8 @@ export async function PUT(request: Request) {
 		const settings = mergeChatSettingsFromDb(docs);
 
 		return ok({
-			settings,
-			providers: {
-				openai: {
-					configured: isAssistantProviderConfigured("openai"),
-					model: resolveAssistantModelFromSettings("openai", settings),
-					defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.openai,
-					dbModel: settings.assistantModelOpenai,
-				},
-				google: {
-					configured: isAssistantProviderConfigured("google"),
-					model: resolveAssistantModelFromSettings("google", settings),
-					defaultModel: CHAT_ASSISTANT_DEFAULT_MODELS.google,
-					dbModel: settings.assistantModelGoogle,
-				},
-			},
+			settings: toAdminChatSettings(settings),
+			providers: buildProviderStatus(settings),
 		});
 	} catch (error) {
 		return handleMongoError(error);

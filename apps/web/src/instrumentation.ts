@@ -21,16 +21,22 @@ export async function register(): Promise<void> {
 	if (process.env.NEXT_RUNTIME !== "nodejs") {
 		return;
 	}
-	const [shared, db] = await Promise.all([import("@store/shared"), import("@store/db")]);
+	const [server, db] = await Promise.all([import("@store/shared/server"), import("@store/db")]);
 	const { configureDevDnsResolvers } = await import("@store/shared/devDns");
 	configureDevDnsResolvers();
-	shared.assertServerEnv({ appName: "web" });
+	server.assertServerEnv({ appName: "web" });
 
 	// Kick off the Mongo connection in the background — don't await; we don't
 	// want a slow DB to block server boot. The first query that lands will
 	// hit the already-warm pool and skip the TLS handshake cost.
-	void db.connectDB().catch(() => {
-		// The connection helper logs its own errors; swallow here so an
-		// intermittent boot-time blip doesn't unhandled-reject the worker.
-	});
+	void db
+		.connectDB()
+		.then(async () => {
+			const { warmStorefrontReadCaches } = await import("@/lib/core/cached");
+			await warmStorefrontReadCaches();
+		})
+		.catch(() => {
+			// The connection helper logs its own errors; swallow here so an
+			// intermittent boot-time blip doesn't unhandled-reject the worker.
+		});
 }

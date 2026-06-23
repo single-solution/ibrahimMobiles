@@ -113,7 +113,7 @@ export async function issueCode(input: { phoneRaw: string; purpose: "customer-si
 
 	try {
 		const { siteName } = await getStoreSettings();
-		await getOtpProvider().send({
+		await (await getOtpProvider()).send({
 			phoneFingerprint: fingerprint,
 			phoneRaw: input.phoneRaw,
 			code,

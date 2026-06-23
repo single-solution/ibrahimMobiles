@@ -63,7 +63,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 				}
 
 				await connectDB();
-				const user = await User.findOne({ email, isActive: true }).select("+passwordHash");
+				const user = await User.findOne({ email, isActive: true }).select("+passwordHash passwordChangedAt");
 				if (!user) {
 					// Run a real bcrypt compare against a decoy hash so this branch
 					// takes the same time as the "bad password" branch below — no
@@ -90,6 +90,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 					name: user.name,
 					role: user.role,
 					isSuperAdmin: user.isSuperAdmin === true,
+					passwordChangedAtMs: user.passwordChangedAt?.getTime() ?? 0,
 				};
 			},
 		}),
@@ -103,6 +104,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 				token.name = (user.name as string | undefined) ?? "";
 				token.role = user.role;
 				token.isSuperAdmin = user.isSuperAdmin === true;
+				token.passwordChangedAtMs = user.passwordChangedAtMs ?? 0;
 			}
 			if (trigger === "update" && session?.user) {
 				if (session.user.name) {
@@ -120,6 +122,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 			session.user.name = (token.name as string | undefined) ?? "";
 			session.user.role = token.role as typeof session.user.role;
 			session.user.isSuperAdmin = token.isSuperAdmin === true;
+			session.user.passwordChangedAtMs = (token.passwordChangedAtMs as number | undefined) ?? 0;
 			return session;
 		},
 	},

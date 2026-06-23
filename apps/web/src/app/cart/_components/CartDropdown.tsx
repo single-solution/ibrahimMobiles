@@ -7,13 +7,17 @@ import { ArrowUpRight, ShoppingBag, Trash2, X } from "lucide-react";
 import { ButtonLink } from "@store/ui";
 import { QuantityStepper } from "@store/ui";
 import { ProductImage } from "@/components/shared/ProductImage";
+import { CartLinePrice } from "@/components/shared/CartLinePrice";
+import { CheckoutOfferNotices } from "@/components/shared/CheckoutOfferNotices";
 import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
 import { catalogRootHref, productHref } from "@/lib/catalog/productPaths";
 import { useCart } from "@/lib/cart/useCart";
+import { useCartOfferPricing } from "@/lib/pricing/useCartOfferPricing";
 import { usePresence } from "@/components/shared/motion/usePresence";
 import { useFocusTrap } from "@/lib/a11y/useFocusTrap";
 import { useToast } from "@/components/ui/Toast";
 import type { CartItem } from "@/lib/cart/types";
+import type { DiscountApplication } from "@store/shared";
 import { classNames, formatPrice } from "@store/shared";
 
 interface CartDropdownProps {
@@ -28,6 +32,7 @@ const CART_EXIT_MS = 180;
    a dedicated `/cart` page instead, reached via the bottom-bar tab. */
 export function CartDropdown({ open, onClose }: CartDropdownProps) {
 	const cart = useCart();
+	const { pricing, appliedOffers } = useCartOfferPricing();
 	const { toast } = useToast();
 	const [isHydrated, setIsHydrated] = useState(false);
 	const { isMounted: isPresent, status } = usePresence(open, CART_EXIT_MS);
@@ -64,7 +69,7 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
 	if (!isPresent || !isHydrated) {
 		return null;
 	}
-	const totals = { subtotal: cart.subtotalRupees, itemCount: cart.itemCount };
+	const totals = { subtotal: cart.subtotalRupees, itemCount: cart.itemCount, finalTotal: pricing.finalTotal, totalDiscount: pricing.totalDiscount };
 	const lines = cart.items;
 
 	const overlay = (
@@ -122,33 +127,51 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
 								</ButtonLink>
 							</div>
 						) : (
-							<>
-								<ul className="sheet-stagger min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto px-1">
-									{lines.map((line) => (
-										<CartDropdownLine
-											key={line.id}
-											line={line}
-											onClose={onClose}
-											onRemove={() => {
-												cart.removeItem(line.id);
-												toast(`${line.productName} removed`, { tone: "info" });
-											}}
-											onQuantityChange={(next) => cart.updateQuantity(line.id, next)}
-										/>
-									))}
-								</ul>
+							<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+								<div className="min-h-0 flex-1 overflow-y-auto">
+									{appliedOffers.length > 0 ? (
+										<div className="border-b border-[var(--color-ink-100)] px-3 py-2">
+											<CheckoutOfferNotices appliedOffers={appliedOffers} />
+										</div>
+									) : null}
+									<ul className="sheet-stagger divide-y divide-[var(--color-ink-100)] px-1">
+										{lines.map((line) => (
+											<CartDropdownLine
+												key={line.id}
+												line={line}
+												discounts={pricing.itemDiscounts.get(line.id) || []}
+												onClose={onClose}
+												onRemove={() => {
+													cart.removeItem(line.id);
+													toast(`${line.productName} removed`, { tone: "info" });
+												}}
+												onQuantityChange={(next) => cart.updateQuantity(line.id, next)}
+											/>
+										))}
+									</ul>
+								</div>
 
 								<div className="shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-canvas)] px-4 py-4">
 									<div className="flex items-baseline justify-between">
+										<span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">Subtotal</span>
+										<span className="text-[14px] font-semibold tabular-nums tracking-tight text-[var(--color-ink-900)]">{formatPrice(totals.subtotal)}</span>
+									</div>
+									{totals.totalDiscount > 0 && (
+										<div className="mt-1.5 flex items-baseline justify-between">
+											<span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent-700)]">Discounts</span>
+											<span className="text-[14px] font-semibold tabular-nums tracking-tight text-[var(--color-accent-700)]">-{formatPrice(totals.totalDiscount)}</span>
+										</div>
+									)}
+									<div className="mt-1.5 flex items-baseline justify-between">
 										<span className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">Total</span>
-										<span className="font-headline text-[22px] font-semibold tabular-nums tracking-tight text-[var(--color-ink-900)]">{formatPrice(totals.subtotal)}</span>
+										<span className="font-headline text-[22px] font-semibold tabular-nums tracking-tight text-[var(--color-ink-900)]">{formatPrice(totals.finalTotal)}</span>
 									</div>
 									<p className="mt-0.5 text-[11px] text-[var(--color-ink-500)]">Delivery &amp; payment chosen at checkout.</p>
 									<ButtonLink href="/checkout" variant="primary" size="md" className="mt-3 w-full" onClick={onClose} trailingIcon={<ArrowUpRight size={15} strokeWidth={2.4} />}>
 										Proceed to checkout
 									</ButtonLink>
 								</div>
-							</>
+							</div>
 						)}
 					</div>
 				</div>
@@ -161,12 +184,13 @@ export function CartDropdown({ open, onClose }: CartDropdownProps) {
 
 interface CartDropdownLineProps {
 	line: CartItem;
+	discounts?: DiscountApplication[];
 	onClose: () => void;
 	onQuantityChange: (quantity: number) => void;
 	onRemove: () => void;
 }
 
-function CartDropdownLine({ line, onClose, onQuantityChange, onRemove }: CartDropdownLineProps) {
+function CartDropdownLine({ line, discounts = [], onClose, onQuantityChange, onRemove }: CartDropdownLineProps) {
 	const [isRemoving, setIsRemoving] = useState(false);
 	const { quantity, productName, brandName, brandSlug, image } = line;
 	const lineTotal = line.unitPriceRupees * quantity;
@@ -234,7 +258,7 @@ function CartDropdownLine({ line, onClose, onQuantityChange, onRemove }: CartDro
 				</div>
 				<div className="mt-2.5 flex items-center justify-between gap-2">
 					<QuantityStepper quantity={quantity} max={line.maxQuantity ?? 10} onChange={onQuantityChange} size="sm" />
-					<p className="text-[15px] font-semibold leading-none tracking-tight tabular-nums text-[var(--color-ink-900)]">{formatPrice(lineTotal)}</p>
+					<CartLinePrice lineTotalRupees={lineTotal} discounts={discounts} lockedOfferTitle={line.appliedOffer?.title} />
 				</div>
 			</div>
 		</li>

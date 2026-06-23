@@ -3,7 +3,7 @@ import type { ActiveOffer, EvaluatableItem } from "./offerEvaluator";
 import { isOfferEligible } from "./offerSchedule";
 
 /** Checkout payment ids — matches storefront checkout panel values. */
-export type OfferPaymentMethod = "bank" | "easypaisa" | "jazzcash" | "cod";
+export type OfferPaymentMethod = "bank-transfer" | "card" | "cod";
 
 export type OfferMatchContext = {
 	cartTotal: number;
@@ -48,19 +48,6 @@ export function isCheckoutOnlyOffer(offer: ActiveOffer): boolean {
 		return false;
 	}
 	return offer.conditions.every(isCheckoutOnlyConditionTree);
-}
-
-/** Storewide + checkout-only offers — hint on every in-stock product, not per-SKU rules. */
-export function isCatalogWideStorefrontOffer(offer: ActiveOffer): boolean {
-	if (!isOfferEligible(offer)) {
-		return false;
-	}
-	return isStorewideOffer(offer) || isCheckoutOnlyOffer(offer);
-}
-
-/** Item-scoped + storewide promos — selectable deal buttons on `/deals` and the shop hero. */
-export function isCatalogDealOffer(offer: ActiveOffer): boolean {
-	return isOfferEligible(offer) && (hasItemScopeConditions(offer) || isStorewideOffer(offer));
 }
 
 /** Cart-total / payment-method promos — informational notices on cart and checkout (and `/deals` header). */
@@ -244,8 +231,8 @@ export function getStorefrontItemOffers(item: EvaluatableItem, offers: ActiveOff
 		if (!isOfferEligible(offer)) {
 			return false;
 		}
-		if (isCatalogWideStorefrontOffer(offer)) {
-			return true;
+		if (isCheckoutOnlyOffer(offer)) {
+			return false;
 		}
 		if (!hasItemScopeConditions(offer)) {
 			return false;

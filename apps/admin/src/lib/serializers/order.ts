@@ -9,6 +9,7 @@ const EMPTY_TOTALS = {
 	subtotalRupees: 0,
 	shippingRupees: 0,
 	discountRupees: 0,
+	paymentSurchargeRupees: 0,
 	totalRupees: 0,
 };
 
@@ -56,6 +57,7 @@ export function toOrderResponse(order: OrderLean): AdminOrder {
 			subtotalRupees: asNumber(totals?.subtotalRupees),
 			shippingRupees: asNumber(totals?.shippingRupees),
 			discountRupees: asNumber(totals?.discountRupees),
+			paymentSurchargeRupees: asNumber(totals?.paymentSurchargeRupees),
 			totalRupees: asNumber(totals?.totalRupees),
 		},
 		address: order?.address

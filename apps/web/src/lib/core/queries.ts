@@ -110,7 +110,7 @@ async function loadCatalogVisibility(): Promise<CatalogVisibility> {
 // live-commerce overlay. Cache it on the shared storefront tag/TTL so it costs
 // one round-trip per 30s window instead of per request. Tag: "storefront"
 // (mirrors STOREFRONT_CACHE_TAG in cached.ts; kept literal to avoid a cycle).
-const loadCatalogVisibilityCached = unstable_cache(loadCatalogVisibility, ["storefront-catalog-visibility"], { revalidate: 30, tags: ["storefront"] });
+const loadCatalogVisibilityCached = unstable_cache(loadCatalogVisibility, ["storefront-catalog-visibility"], { revalidate: 60, tags: ["storefront"] });
 
 export async function resolveCatalogVisibility(): Promise<CatalogVisibility> {
 	try {
@@ -685,7 +685,7 @@ export async function getOffers(): Promise<Offer[]> {
 	return offers.map(toOffer);
 }
 
-/** Item-scoped + storewide live offers — `/deals` buttons and shop hero CTAs. */
+/** Scoped catalog live offers — `/deals` buttons and shop hero CTAs. */
 export async function getCatalogDeals(): Promise<Offer[]> {
 	const offers = await loadScheduledActiveOfferDocs();
 	return offers

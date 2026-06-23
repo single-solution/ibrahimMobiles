@@ -1,5 +1,6 @@
 import mongoose, { Schema, type Model } from "mongoose";
-import type { StoredImage } from "@store/shared";
+import type { AssistantMuteReason, StoredImage } from "@store/shared";
+import { ASSISTANT_MUTE_REASONS } from "@store/shared";
 import { storedImageSchema } from "../schemas/storedImageSchema";
 
 /**
@@ -84,9 +85,19 @@ export interface InquiryAttributes {
 	 */
 	assistantMuted?: boolean;
 	/**
+	 * Why the bot is paused: auto-escalation or a teammate paused it manually.
+	 * Cleared when the bot is re-enabled.
+	 */
+	assistantMuteReason?: AssistantMuteReason;
+	/** When the bot was paused (escalation or manual). */
+	assistantMutedAt?: Date;
+	/** Admin who manually paused the bot — unset for auto-escalation. */
+	assistantMutedByUserId?: mongoose.Types.ObjectId;
+	/**
 	 * When the bot escalated to a human. After a grace period with no agent
 	 * reply, the bot resumes with reassurance-only help so the customer is not
-	 * left hanging if the senior is slow. Cleared when an agent replies.
+	 * left hanging if the senior is slow. Cleared when an agent replies or the
+	 * bot is re-enabled.
 	 */
 	escalatedAt?: Date;
 	internalNotes?: string;
@@ -203,6 +214,9 @@ const inquirySchema = new Schema<InquiryAttributes>(
 		unreadByCustomer: { type: Number, required: true, default: 0, min: 0 },
 		unreadByTeam: { type: Number, required: true, default: 1, min: 0 },
 		assistantMuted: { type: Boolean, default: false },
+		assistantMuteReason: { type: String, enum: ASSISTANT_MUTE_REASONS, required: false },
+		assistantMutedAt: { type: Date },
+		assistantMutedByUserId: { type: Schema.Types.ObjectId, ref: "User" },
 		escalatedAt: { type: Date },
 		internalNotes: { type: String, trim: true, maxlength: INTERNAL_NOTES_MAX_LENGTH },
 		messages: { type: [inquiryMessageSchema], default: [] },

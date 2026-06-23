@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { Bot } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { FormSection } from "@/components/forms/FormSection";
 import { SelectField } from "@/components/forms/SelectField";
 import { TextField } from "@/components/forms/TextField";
 import { TextArea } from "@/components/forms/TextArea";
 import { Switch } from "@/components/forms/Switch";
-import { SettingsFormPanel, SettingsLoadingPanel, SettingsSaveFooter } from "@/app/settings/_components/settingsWorkspaceUi";
+import { SettingsFormPanel, SettingsLoadingPanel, SettingsSaveFooter, SettingsTabHero, type SettingsHeroMetric } from "@/app/settings/_components/settingsWorkspaceUi";
 import { useToast } from "@/components/ui/Toast";
 import {
 	ASSISTANT_CORE_RULES,
@@ -94,10 +95,20 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 		return <SettingsLoadingPanel />;
 	}
 
+	const isEditable = !readOnly;
+	const providerMetrics: SettingsHeroMetric[] = providers
+		? (["openai", "google", "anthropic"] as const).map((providerId) => ({
+				label: CHAT_ASSISTANT_PROVIDER_LABELS[providerId],
+				value: providers[providerId].configured ? "Ready" : "Key missing",
+				tone: providers[providerId].configured ? "good" : "warn",
+				icon: Bot,
+			}))
+		: [];
+
 	return (
 		<SettingsFormPanel
 			footer={
-				!readOnly ? (
+				isEditable ? (
 					<SettingsSaveFooter
 						onSave={handleSave}
 						onDiscard={() => setDraft(saved)}
@@ -108,15 +119,21 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 				) : undefined
 			}
 		>
+			<div className="border-b border-[var(--color-ink-100)] px-4 py-4 md:px-6">
+				<SettingsTabHero
+					description="Widget visibility, AI assistant, and provider API keys. Keys saved here override environment fallbacks for the active provider."
+					metrics={providerMetrics}
+				/>
+			</div>
 			<div className="py-6">
-				<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-start">
-					<Switch label="Enable Widget" description="Show floating chat button." checked={draft.enabled} onCheckedChange={(value) => setField("enabled", value)} />
+				<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-start px-4 md:px-6">
+					<Switch label="Enable Widget" description="Show floating chat button." checked={draft.enabled} onCheckedChange={(value) => setField("enabled", value)} disabled={!isEditable} />
 					<Switch
 						label="Idle Nudge"
 						description="Teaser bubble when a visitor lingers."
 						checked={draft.proactiveNudgeEnabled}
 						onCheckedChange={(value) => setField("proactiveNudgeEnabled", value)}
-						disabled={!draft.enabled}
+						disabled={!isEditable || !draft.enabled}
 					/>
 					<NumberField
 						label="Nudge After"
@@ -125,7 +142,7 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 						suffix="min"
 						min={1}
 						max={60}
-						disabled={!draft.enabled || !draft.proactiveNudgeEnabled}
+						disabled={!isEditable || !draft.enabled || !draft.proactiveNudgeEnabled}
 						hint="Idle minutes before the nudge."
 					/>
 					<NumberField
@@ -134,7 +151,7 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 						onChange={(value) => setField("guestMessageLimit", value)}
 						min={1}
 						max={100}
-						disabled={!draft.enabled}
+						disabled={!isEditable || !draft.enabled}
 						hint="Max messages before sign-in."
 					/>
 					<NumberField
@@ -144,7 +161,7 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 						suffix="days"
 						min={1}
 						max={365}
-						disabled={!draft.enabled}
+						disabled={!isEditable || !draft.enabled}
 						hint="Keep anonymous threads."
 					/>
 
@@ -153,13 +170,13 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 						description="Instantly respond to messages."
 						checked={draft.assistantEnabled}
 						onCheckedChange={(value) => setField("assistantEnabled", value)}
-						disabled={!draft.enabled}
+						disabled={!isEditable || !draft.enabled}
 					/>
 					<SelectField
 						label="Live Provider"
 						value={draft.assistantProvider}
 						onChange={(event) => setField("assistantProvider", event.target.value === "google" ? "google" : event.target.value === "anthropic" ? "anthropic" : "openai")}
-						disabled={!draft.enabled || !draft.assistantEnabled}
+						disabled={!isEditable || !draft.enabled || !draft.assistantEnabled}
 						options={[
 							{ value: "openai", label: CHAT_ASSISTANT_PROVIDER_LABELS.openai },
 							{ value: "google", label: CHAT_ASSISTANT_PROVIDER_LABELS.google },
@@ -173,7 +190,7 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 						min={0}
 						max={1}
 						step={0.05}
-						disabled={!draft.enabled || !draft.assistantEnabled}
+						disabled={!isEditable || !draft.enabled || !draft.assistantEnabled}
 						hint="0 to 1. Higher is more creative."
 					/>
 					<NumberField
@@ -182,7 +199,7 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 						onChange={(value) => setField("assistantMaxTokens", value)}
 						min={100}
 						max={2000}
-						disabled={!draft.enabled || !draft.assistantEnabled}
+						disabled={!isEditable || !draft.enabled || !draft.assistantEnabled}
 						hint="Max length of response."
 					/>
 
@@ -192,65 +209,54 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 							value={draft.assistantName}
 							onChange={(event) => setField("assistantName", event.target.value)}
 							placeholder={CHAT_ASSISTANT_DEFAULT_NAME}
-							disabled={!draft.enabled || !draft.assistantEnabled}
+							disabled={!isEditable || !draft.enabled || !draft.assistantEnabled}
 						/>
 					</div>
 
-					{draft.assistantEnabled && draft.enabled && (
-						<>
-							<div className="sm:col-span-2 lg:col-span-3 xl:col-span-2">
-								<TextField
-									label={`${draft.assistantProvider === "openai" ? "OpenAI" : draft.assistantProvider === "anthropic" ? "Anthropic" : "Google Gemini"} API Key`}
-									type="password"
-									value={
-										draft.assistantProvider === "openai"
-											? draft.providerApiKeyOpenai
-											: draft.assistantProvider === "anthropic"
-												? draft.providerApiKeyAnthropic
-												: draft.providerApiKeyGoogle
-									}
-									onChange={(event) =>
-										setField(
-											draft.assistantProvider === "openai" ? "providerApiKeyOpenai" : draft.assistantProvider === "anthropic" ? "providerApiKeyAnthropic" : "providerApiKeyGoogle",
-											event.target.value,
-										)
-									}
-									placeholder={
-										providers?.[draft.assistantProvider].configured &&
-										!(draft.assistantProvider === "openai"
-											? draft.providerApiKeyOpenai
-											: draft.assistantProvider === "anthropic"
-												? draft.providerApiKeyAnthropic
-												: draft.providerApiKeyGoogle)
-											? "•••••••••••• (Using .env fallback)"
-											: "Enter API Key"
-									}
-									disabled={!draft.enabled || !draft.assistantEnabled}
-								/>
-							</div>
-							<div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
-								<TextField
-									label="Model ID"
-									value={
-										draft.assistantProvider === "openai"
-											? draft.assistantModelOpenai
-											: draft.assistantProvider === "anthropic"
-												? draft.assistantModelAnthropic
-												: draft.assistantModelGoogle
-									}
-									onChange={(event) =>
-										setField(
-											draft.assistantProvider === "openai" ? "assistantModelOpenai" : draft.assistantProvider === "anthropic" ? "assistantModelAnthropic" : "assistantModelGoogle",
-											event.target.value,
-										)
-									}
-									placeholder={CHAT_ASSISTANT_DEFAULT_MODELS[draft.assistantProvider]}
-									hint={`Leave blank for default.`}
-									disabled={!draft.enabled || !draft.assistantEnabled}
-								/>
-							</div>
-						</>
-					)}
+					{draft.assistantEnabled && draft.enabled ? (
+						<div className="sm:col-span-2 lg:col-span-3 xl:col-span-4 space-y-4">
+							<FormSection title="Provider API keys" description="Optional database overrides. Leave blank to use server environment variables. Only the active provider is called at runtime.">
+								<div className="grid gap-4 lg:grid-cols-3">
+									{(["openai", "google", "anthropic"] as const).map((providerId) => (
+										<ProviderKeyFields
+											key={providerId}
+											providerId={providerId}
+											label={CHAT_ASSISTANT_PROVIDER_LABELS[providerId]}
+											isActive={draft.assistantProvider === providerId}
+											configured={providers?.[providerId].configured ?? false}
+											apiKey={
+												providerId === "openai"
+													? draft.providerApiKeyOpenai
+													: providerId === "anthropic"
+														? draft.providerApiKeyAnthropic
+														: draft.providerApiKeyGoogle
+											}
+											model={
+												providerId === "openai"
+													? draft.assistantModelOpenai
+													: providerId === "anthropic"
+														? draft.assistantModelAnthropic
+														: draft.assistantModelGoogle
+											}
+											onApiKeyChange={(value) =>
+												setField(
+													providerId === "openai" ? "providerApiKeyOpenai" : providerId === "anthropic" ? "providerApiKeyAnthropic" : "providerApiKeyGoogle",
+													value,
+												)
+											}
+											onModelChange={(value) =>
+												setField(
+													providerId === "openai" ? "assistantModelOpenai" : providerId === "anthropic" ? "assistantModelAnthropic" : "assistantModelGoogle",
+													value,
+												)
+											}
+											disabled={!isEditable}
+										/>
+									))}
+								</div>
+							</FormSection>
+						</div>
+					) : null}
 
 					<div className="sm:col-span-2 lg:col-span-3 xl:col-span-2">
 						<TextArea
@@ -258,7 +264,7 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 							rows={3}
 							value={draft.welcomeMessageGuest}
 							onChange={(event) => setField("welcomeMessageGuest", event.target.value)}
-							disabled={!draft.enabled}
+							disabled={!isEditable || !draft.enabled}
 							placeholder={CHAT_WELCOME_GUEST_DEFAULT}
 							hint="Use {limit} to show message limit."
 						/>
@@ -269,9 +275,41 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 							rows={3}
 							value={draft.welcomeMessageCustomer}
 							onChange={(event) => setField("welcomeMessageCustomer", event.target.value)}
-							disabled={!draft.enabled}
+							disabled={!isEditable || !draft.enabled}
 							placeholder={CHAT_WELCOME_CUSTOMER_DEFAULT}
 						/>
+					</div>
+
+					<div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
+						<FormSection
+							title="Polling intervals"
+							description="How often open chat threads refresh. WebSocket live mode is not active yet — the storefront uses HTTP polling only."
+						>
+							<div className="grid gap-4 sm:grid-cols-2">
+								<NumberField
+									label="Poll (focused)"
+									value={draft.pollIntervalMsFocused}
+									onChange={(value) => setField("pollIntervalMsFocused", value)}
+									suffix="ms"
+									min={1000}
+									max={60000}
+									step={500}
+									disabled={!isEditable || !draft.enabled}
+									hint="Tab visible."
+								/>
+								<NumberField
+									label="Poll (background)"
+									value={draft.pollIntervalMsBlurred}
+									onChange={(value) => setField("pollIntervalMsBlurred", value)}
+									suffix="ms"
+									min={5000}
+									max={300000}
+									step={1000}
+									disabled={!isEditable || !draft.enabled}
+									hint="Tab in background."
+								/>
+							</div>
+						</FormSection>
 					</div>
 
 					<div className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
@@ -300,10 +338,10 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 							rows={18}
 							value={draft.assistantInstructions || DEFAULT_ASSISTANT_INSTRUCTIONS}
 							onChange={(event) => setField("assistantInstructions", event.target.value)}
-							disabled={!draft.enabled || !draft.assistantEnabled}
+							disabled={!isEditable || !draft.enabled || !draft.assistantEnabled}
 							hint="How the bot talks and sells. Edit freely or add store-specific notes (promos, which models to push). The built-in rules above always apply. Leave matching the default to keep the standard playbook."
 						/>
-						{!readOnly && draft.assistantInstructions.trim() && draft.assistantInstructions !== DEFAULT_ASSISTANT_INSTRUCTIONS ? (
+						{isEditable && draft.assistantInstructions.trim() && draft.assistantInstructions !== DEFAULT_ASSISTANT_INSTRUCTIONS ? (
 							<button
 								type="button"
 								onClick={() => setField("assistantInstructions", "")}
@@ -316,6 +354,60 @@ export function ChatSettingsTab({ readOnly = false }: { readOnly?: boolean }) {
 				</div>
 			</div>
 		</SettingsFormPanel>
+	);
+}
+
+interface ProviderKeyFieldsProps {
+	providerId: ChatAssistantProvider;
+	label: string;
+	isActive: boolean;
+	configured: boolean;
+	apiKey: string;
+	model: string;
+	onApiKeyChange: (value: string) => void;
+	onModelChange: (value: string) => void;
+	disabled?: boolean;
+}
+
+function ProviderKeyFields({ providerId, label, isActive, configured, apiKey, model, onApiKeyChange, onModelChange, disabled }: ProviderKeyFieldsProps) {
+	return (
+		<div
+			className={classNames(
+				"rounded-[var(--radius-md)] border p-3",
+				isActive ? "border-[var(--color-accent-300)] bg-[var(--color-accent-50)]/40" : "border-[var(--color-ink-200)] bg-[var(--color-surface)]",
+			)}
+		>
+			<div className="mb-2 flex items-center justify-between gap-2">
+				<p className="text-[12px] font-semibold text-[var(--color-ink-900)]">{label}</p>
+				<span
+					className={classNames(
+						"rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+						configured ? "bg-[var(--color-success-100)] text-[var(--color-success-800)]" : "bg-[var(--color-ink-100)] text-[var(--color-ink-600)]",
+					)}
+				>
+					{configured ? "Ready" : "No key"}
+				</span>
+			</div>
+			{isActive ? <p className="mb-2 text-[10.5px] font-medium text-[var(--color-accent-800)]">Active provider</p> : null}
+			<div className="space-y-3">
+				<TextField
+					label="API key"
+					type="password"
+					value={apiKey}
+					onChange={(event) => onApiKeyChange(event.target.value)}
+					placeholder={configured && !apiKey ? "•••••••• (env fallback)" : "sk-… or AIza…"}
+					disabled={disabled}
+				/>
+				<TextField
+					label="Model ID"
+					value={model}
+					onChange={(event) => onModelChange(event.target.value)}
+					placeholder={CHAT_ASSISTANT_DEFAULT_MODELS[providerId]}
+					hint="Blank = default."
+					disabled={disabled}
+				/>
+			</div>
+		</div>
 	);
 }
 

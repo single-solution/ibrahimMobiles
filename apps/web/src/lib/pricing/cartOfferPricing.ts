@@ -1,6 +1,7 @@
 import type { ActiveOffer, EvaluatableItem, Product } from "@store/shared";
-import { computeLockedItemOfferDiscount, resolveOfferMinQuantity } from "@store/shared";
+import { computeLockedItemOfferDiscount, resolveCartLineOfferId } from "@store/shared";
 
+import type { CartItem } from "@/lib/cart/types";
 import { buildEvaluatableItem } from "@/lib/pricing/productOfferMatch";
 
 export function buildEvaluatableItemWithQuantity(product: Product, variant: Product["variants"][number], quantity: number): EvaluatableItem {
@@ -8,6 +9,24 @@ export function buildEvaluatableItemWithQuantity(product: Product, variant: Prod
 		...buildEvaluatableItem(product, variant),
 		quantity,
 	};
+}
+
+export function buildEvaluatableItemFromCartLine(line: CartItem): EvaluatableItem {
+	return {
+		id: line.id,
+		productId: line.productId,
+		variantId: line.variantId,
+		categorySlug: line.categorySlug,
+		brandSlug: line.brandSlug,
+		gradeSlug: line.gradeSlug,
+		price: line.unitPriceRupees,
+		quantity: line.quantity,
+		attributes: line.attributes ?? {},
+	};
+}
+
+export function buildCartLineOfferIds(items: CartItem[]): Record<string, string | undefined> {
+	return Object.fromEntries(items.map((line) => [line.id, resolveCartLineOfferId(line)]));
 }
 
 export function resolvePdpOfferUnitPrice(listUnitPriceRupees: number, item: EvaluatableItem, offer: ActiveOffer | null): { unitPriceRupees: number; hasOfferDiscount: boolean } {
@@ -34,8 +53,4 @@ export function resolvePdpOfferUnitPrice(listUnitPriceRupees: number, item: Eval
 	};
 }
 
-export { resolveOfferMinQuantity };
-
-export function buildCartLineOfferIds(items: Array<{ id: string; appliedOfferId?: string }>): Record<string, string | undefined> {
-	return Object.fromEntries(items.filter((line) => typeof line.appliedOfferId === "string" && line.appliedOfferId.length > 0).map((line) => [line.id, line.appliedOfferId]));
-}
+export { resolveOfferMinQuantity } from "@store/shared";

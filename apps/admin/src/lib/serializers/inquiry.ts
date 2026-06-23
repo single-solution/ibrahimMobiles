@@ -9,6 +9,7 @@ import {
 	normalizeChatMessageAuthor,
 	normalizeChatStatus,
 	objectIdString,
+	resolveAssistantMuteReason,
 	sliceChatMessages,
 	toIsoDate,
 } from "@store/shared";
@@ -40,6 +41,8 @@ function toMessageResponse(message: InquiryMessageAttributes): AdminInquiryMessa
 
 export function summariseInquiry(inquiry: InquiryLean): AdminInquirySummary {
 	const fallbackTimestamp = resolveInquiryTimestamp(inquiry);
+	const pauseReason = resolveAssistantMuteReason(inquiry);
+	const assistantPaused = inquiry.assistantMuted === true;
 	return {
 		id: objectIdString(inquiry._id),
 		customerId: objectIdString(inquiry.customerId) || undefined,
@@ -54,7 +57,11 @@ export function summariseInquiry(inquiry: InquiryLean): AdminInquirySummary {
 		lastMessageAuthor: normalizeChatMessageAuthor(inquiry.lastMessageAuthor),
 		unreadByCustomer: inquiry.unreadByCustomer ?? 0,
 		unreadByTeam: inquiry.unreadByTeam ?? 0,
-		escalated: inquiry.assistantMuted ?? false,
+		escalated: assistantPaused,
+		assistantPaused,
+		assistantPauseReason: pauseReason,
+		assistantPausedAt: inquiry.assistantMutedAt ? toIsoDate(inquiry.assistantMutedAt) : undefined,
+		assistantPausedByUserId: objectIdString(inquiry.assistantMutedByUserId) || undefined,
 		createdAt: toIsoDate(inquiry.createdAt, fallbackTimestamp),
 		updatedAt: toIsoDate(inquiry.updatedAt, fallbackTimestamp),
 	};

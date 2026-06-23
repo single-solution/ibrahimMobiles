@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ShoppingBag, Trash2 } from "lucide-react";
 import { QuantityStepper } from "@store/ui";
 import { CheckoutOfferNotices } from "@/components/shared/CheckoutOfferNotices";
+import { CartLinePrice } from "@/components/shared/CartLinePrice";
 import { CartPageSkeletonBody } from "@/components/shared/CartPageSkeleton";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
 import { catalogRootHref, productHref } from "@/lib/catalog/productPaths";
 import { useCart } from "@/lib/cart/useCart";
-import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
-import { evaluateCartOffers } from "@store/shared";
-import { buildCartLineOfferIds } from "@/lib/pricing/cartOfferPricing";
+import { useCartOfferPricing } from "@/lib/pricing/useCartOfferPricing";
 import { useToast } from "@/components/ui/Toast";
 import type { CartItem } from "@/lib/cart/types";
+import type { DiscountApplication } from "@store/shared";
 import { formatPrice } from "@store/shared";
 
 /**
@@ -24,7 +24,11 @@ import { formatPrice } from "@store/shared";
  */
 export function Cart() {
 	const cart = useCart();
-	const { offers } = useActiveOffers();
+	const { pricing, appliedOffers } = useCartOfferPricing();
+	const catalogDiscountTotal = useMemo(() => {
+		const checkoutDiscountTotal = pricing.cartDiscounts.reduce((sum, discount) => sum + discount.discountAmount, 0);
+		return Math.max(0, pricing.totalDiscount - checkoutDiscountTotal);
+	}, [pricing.cartDiscounts, pricing.totalDiscount]);
 	const [isHydrated, setIsHydrated] = useState(false);
 
 	// The cart store hydrates from localStorage only after mount, so the SSR /
@@ -34,22 +38,6 @@ export function Cart() {
 		// eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot hydration detection
 		setIsHydrated(true);
 	}, []);
-
-	const evaluatableItems = cart.items.map((item) => ({
-		id: item.id,
-		productId: item.productId,
-		variantId: item.variantId,
-		categorySlug: item.categorySlug,
-		brandSlug: item.brandSlug,
-		gradeSlug: item.gradeSlug,
-		price: item.unitPriceRupees,
-		quantity: item.quantity,
-		attributes: item.attributes,
-	}));
-
-	const pricing = evaluateCartOffers(evaluatableItems, offers, {
-		lineOfferIds: buildCartLineOfferIds(cart.items),
-	});
 
 	if (!isHydrated) {
 		return <CartPageSkeletonBody />;
@@ -87,26 +75,44 @@ export function Cart() {
 				</p>
 			</div>
 
-			<CheckoutOfferNotices offers={offers} />
+			<div className="reveal mt-4 flex min-h-0 flex-1 flex-col md:mt-6 md:block md:h-auto md:flex-none">
+				<div className="flex min-h-0 flex-1 flex-col overflow-hidden md:grid md:grid-cols-[1fr_320px] md:gap-6 md:overflow-visible lg:grid-cols-[1fr_360px]">
+					<div className="flex min-h-0 flex-1 flex-col overflow-hidden md:min-h-0 md:overflow-visible">
+						<div className="reveal-scroll-list min-h-0 flex-1 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] md:overflow-visible">
+							{appliedOffers.length > 0 ? (
+								<div className="border-b border-[var(--color-ink-100)] px-3 py-2.5 md:px-4">
+									<CheckoutOfferNotices appliedOffers={appliedOffers} />
+								</div>
+							) : null}
+							<ul className="divide-y divide-[var(--color-ink-100)]">
+								{cart.items.map((line) => (
+									<CartLine key={line.id} line={line} discounts={pricing.itemDiscounts.get(line.id) || []} />
+								))}
+							</ul>
+						</div>
+					</div>
 
-			<div className="reveal mt-4 flex min-h-0 flex-1 flex-col gap-3 md:mt-6 md:grid md:flex-none md:grid-cols-[1fr_320px] md:gap-6 lg:grid-cols-[1fr_360px]">
-				<ul className="reveal-scroll-list min-h-0 flex-1 divide-y divide-[var(--color-ink-100)] overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] md:flex-none md:overflow-visible">
-					{cart.items.map((line) => (
-						<CartLine key={line.id} line={line} discounts={pricing.itemDiscounts.get(line.id) || []} />
-					))}
-				</ul>
-
-				<aside className="reveal shrink-0 md:space-y-3">
-					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 md:p-5">
+					<aside className="reveal mt-3 shrink-0 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] pt-3 md:mt-0 md:space-y-3 md:border-t-0 md:bg-transparent md:pt-0">
+						<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 md:p-5">
 						<p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-ink-500)]">Order summary</p>
 						<div className="mt-3 flex items-baseline justify-between">
 							<span className="text-[13px] text-[var(--color-ink-600)]">Subtotal</span>
 							<span className="text-[15px] font-semibold tabular-nums tracking-tight text-[var(--color-ink-900)]">{formatPrice(cart.subtotalRupees)}</span>
 						</div>
-						{pricing.totalDiscount > 0 && (
+						{catalogDiscountTotal > 0 && (
 							<div className="mt-2 flex items-baseline justify-between">
-								<span className="text-[13px] text-[var(--color-accent-700)]">Discounts</span>
-								<span className="text-[15px] font-semibold tabular-nums tracking-tight text-[var(--color-accent-700)]">-{formatPrice(pricing.totalDiscount)}</span>
+								<span className="text-[13px] text-[var(--color-accent-700)]">Product deals</span>
+								<span className="text-[15px] font-semibold tabular-nums tracking-tight text-[var(--color-accent-700)]">-{formatPrice(catalogDiscountTotal)}</span>
+							</div>
+						)}
+						{pricing.cartDiscounts.length > 0 && (
+							<div className="mt-2 space-y-1">
+								{pricing.cartDiscounts.map((discount) => (
+									<div key={discount.offerId} className="flex items-baseline justify-between">
+										<span className="text-[13px] text-[var(--color-accent-700)]">{discount.offerTitle}</span>
+										<span className="text-[15px] font-semibold tabular-nums tracking-tight text-[var(--color-accent-700)]">-{formatPrice(discount.discountAmount)}</span>
+									</div>
+								))}
 							</div>
 						)}
 						<div className="mt-2 flex items-baseline justify-between border-t border-[var(--color-ink-100)] pt-2">
@@ -123,14 +129,13 @@ export function Cart() {
 							Proceed to checkout
 							<ArrowUpRight size={15} strokeWidth={2.4} />
 						</Link>
-					</div>
-				</aside>
+						</div>
+					</aside>
+				</div>
 			</div>
 		</div>
 	);
 }
-
-import type { DiscountApplication } from "@store/shared";
 
 function CartLine({ line, discounts = [] }: { line: CartItem; discounts?: DiscountApplication[] }) {
 	const cart = useCart();
@@ -149,9 +154,6 @@ function CartLine({ line, discounts = [] }: { line: CartItem; discounts?: Discou
 	const lineProductHref =
 		line?.categorySlug && line?.productSlug ? productHref({ categorySlug: line.categorySlug, slug: line.productSlug }, { selection: cartSelection }) : catalogRootHref();
 	const attributeEntries = Object.entries(line.attributes ?? {});
-
-	const totalDiscountAmount = discounts.reduce((sum, discount) => sum + discount.discountAmount, 0);
-	const finalLineTotal = lineTotal - totalDiscountAmount;
 
 	const handleRemove = () => {
 		setIsRemoving(true);
@@ -195,22 +197,7 @@ function CartLine({ line, discounts = [] }: { line: CartItem; discounts?: Discou
 				</div>
 				<div className="mt-3 flex items-center justify-between gap-2">
 					<QuantityStepper quantity={line.quantity} max={line.maxQuantity ?? 10} onChange={(next) => cart.updateQuantity(line.id, next)} size="sm" />
-					<div className="flex flex-col items-end gap-0.5">
-						{discounts.length > 0 && <p className="text-[12px] font-medium text-[var(--color-ink-500)] line-through">{formatPrice(lineTotal)}</p>}
-						<p className="text-[16px] font-semibold leading-none tracking-tight tabular-nums text-[var(--color-ink-900)]">{formatPrice(finalLineTotal)}</p>
-						{discounts.length > 0 && (
-							<div className="flex flex-col items-end mt-1">
-								{discounts.map((discount) => (
-									<span
-										key={discount.offerId}
-										className="inline-flex items-center rounded-sm bg-[var(--color-accent-100)] px-1 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--color-accent-800)]"
-									>
-										{discount.offerTitle}
-									</span>
-								))}
-							</div>
-						)}
-					</div>
+					<CartLinePrice lineTotalRupees={lineTotal} discounts={discounts} lockedOfferTitle={line.appliedOffer?.title} />
 				</div>
 			</div>
 		</li>

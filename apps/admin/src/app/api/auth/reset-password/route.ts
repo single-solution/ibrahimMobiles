@@ -17,6 +17,8 @@ import {
 	ok,
 } from "@store/shared";
 
+import { invalidateSessionCache } from "@/lib/permissions";
+
 const RESET_PASSWORD_RATE_LIMIT_SCOPE = "admin:reset-password";
 const MS_PER_SECOND = 1000;
 
@@ -88,6 +90,8 @@ export async function POST(request: Request) {
 		user.resetPasswordExpiresAt = undefined;
 
 		await user.save();
+
+		invalidateSessionCache(String(user._id));
 
 		clearRateLimit(RESET_PASSWORD_RATE_LIMIT_SCOPE, rateLimitKey);
 

@@ -1,33 +1,11 @@
 /**
- * Storage provider abstraction.
- *
- * The admin upload pipeline writes WebP variants through a `StorageProvider`.
- * Vercel Blob is the default; `STORAGE_PROVIDER=s3` switches the backing store.
- *
- * Server-only: this module imports `@vercel/blob` lazily so importing
- * the shared package from a client bundle (e.g. for `StoredImage`
- * types) does not pull the SDK in.
+ * Storage provider abstraction — credentials from Admin → Integrations (env fallback).
  */
 
-/**
- * Minimal contract every storage provider implements. `put` returns the
- * public HTTPS URL of the stored object; `remove` deletes by URL (so
- * callers don't have to remember the original key).
- */
+import type { IntegrationSettingsValues } from "../integration/integrationSettingsSchema";
+
 export interface StorageProvider {
-	/**
-	 * Persist `body` at `key` and return its publicly accessible HTTPS URL.
-	 *
-	 * - `key` is provider-relative ("products/abc/variants/def-1.webp").
-	 *   Providers may prefix internally but the returned URL must stay
-	 *   stable for the lifetime of the object.
-	 * - `contentType` is the MIME of the body (`image/webp`, `video/mp4`).
-	 */
 	put(key: string, body: Buffer, contentType: string): Promise<string>;
-	/**
-	 * Best-effort delete by public URL. Implementations should swallow
-	 * "not found" errors so cleanup paths are idempotent.
-	 */
 	remove(url: string): Promise<void>;
 }
 
@@ -35,84 +13,131 @@ export type StorageProviderName = "vercel-blob" | "s3";
 
 const DEFAULT_PROVIDER_NAME: StorageProviderName = "vercel-blob";
 
-function readProviderName(): StorageProviderName {
-	const raw = process.env.STORAGE_PROVIDER?.trim().toLowerCase();
-	if (!raw) return DEFAULT_PROVIDER_NAME;
-	if (raw === "vercel-blob" || raw === "s3") return raw;
-	throw new Error(`Unsupported STORAGE_PROVIDER="${raw}". Expected one of: vercel-blob, s3.`);
+function readProviderName(settings?: IntegrationSettingsValues): StorageProviderName {
+	const raw = (settings?.storageProvider || process.env.STORAGE_PROVIDER)?.trim().toLowerCase();
+	if (!raw) {
+		return DEFAULT_PROVIDER_NAME;
+	}
+	if (raw === "vercel-blob" || raw === "s3") {
+		return raw;
+	}
+	throw new Error(`Unsupported storage provider "${raw}". Expected vercel-blob or s3.`);
 }
 
-/**
- * Vercel Blob implementation. Imports the SDK lazily so client bundles
- * that import `@store/shared` for type-only purposes don't pull it in.
- */
-const vercelBlobProvider: StorageProvider = {
-	async put(key, body, contentType) {
-		if (!process.env.BLOB_READ_WRITE_TOKEN) {
-			throw new Error("BLOB_READ_WRITE_TOKEN is not set — cannot upload to Vercel Blob.");
-		}
-		const { put } = await import("@vercel/blob");
-		const result = await put(key, body, {
-			access: "public",
-			contentType,
-			// The SDK appends a random suffix by default; we already pass a
-			// nanoid in the key from `processImage`, so disable the second
-			// randomisation to keep keys predictable for cleanup paths.
-			addRandomSuffix: false,
-			token: process.env.BLOB_READ_WRITE_TOKEN,
-		});
-		return result.url;
-	},
-	async remove(url) {
-		if (!process.env.BLOB_READ_WRITE_TOKEN) {
-			throw new Error("BLOB_READ_WRITE_TOKEN is not set — cannot delete from Vercel Blob.");
-		}
-		const { del } = await import("@vercel/blob");
-		try {
-			await del(url, { token: process.env.BLOB_READ_WRITE_TOKEN });
-		} catch (error) {
-			// "Not found" is a no-op from our perspective. Everything else
-			// bubbles so callers can decide to retry or log.
-			const message = error instanceof Error ? error.message.toLowerCase() : "";
-			if (message.includes("not found") || message.includes("does not exist")) {
+function readS3Config(settings?: IntegrationSettingsValues) {
+	const bucket = settings?.awsS3Bucket?.trim() || process.env.AWS_S3_BUCKET?.trim();
+	const region = settings?.awsS3Region?.trim() || process.env.AWS_S3_REGION?.trim();
+	const accessKeyId = settings?.awsAccessKeyId?.trim() || process.env.AWS_ACCESS_KEY_ID?.trim();
+	const secretAccessKey = settings?.awsSecretAccessKey?.trim() || process.env.AWS_SECRET_ACCESS_KEY?.trim();
+	if (!bucket || !region || !accessKeyId || !secretAccessKey) {
+		throw new Error("S3 storage requires bucket, region, and AWS credentials.");
+	}
+	return { bucket, region, accessKeyId, secretAccessKey };
+}
+
+function readBlobToken(settings?: IntegrationSettingsValues): string {
+	const token = settings?.blobReadWriteToken?.trim() || process.env.BLOB_READ_WRITE_TOKEN?.trim();
+	if (!token) {
+		throw new Error("Blob read/write token is not configured.");
+	}
+	return token;
+}
+
+function publicUrlForS3Key(key: string, bucket: string, region: string, settings?: IntegrationSettingsValues): string {
+	const publicBase = (settings?.awsS3PublicUrlBase?.trim() || process.env.AWS_S3_PUBLIC_URL_BASE?.trim())?.replace(/\/$/, "");
+	if (publicBase) {
+		return `${publicBase}/${key}`;
+	}
+	return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+}
+
+function s3KeyFromPublicUrl(url: string, bucket: string, region: string, settings?: IntegrationSettingsValues): string | null {
+	const publicBase = (settings?.awsS3PublicUrlBase?.trim() || process.env.AWS_S3_PUBLIC_URL_BASE?.trim())?.replace(/\/$/, "");
+	if (publicBase && url.startsWith(`${publicBase}/`)) {
+		return url.slice(publicBase.length + 1);
+	}
+	const defaultPrefix = `https://${bucket}.s3.${region}.amazonaws.com/`;
+	if (url.startsWith(defaultPrefix)) {
+		return url.slice(defaultPrefix.length);
+	}
+	return null;
+}
+
+export function resolveStorageProviderFromSettings(settings?: IntegrationSettingsValues): StorageProvider {
+	const name = readProviderName(settings);
+
+	if (name === "vercel-blob") {
+		return {
+			async put(key, body, contentType) {
+				const token = readBlobToken(settings);
+				const { put } = await import("@vercel/blob");
+				const result = await put(key, body, {
+					access: "public",
+					contentType,
+					addRandomSuffix: false,
+					token,
+				});
+				return result.url;
+			},
+			async remove(url) {
+				const token = readBlobToken(settings);
+				const { del } = await import("@vercel/blob");
+				try {
+					await del(url, { token });
+				} catch (error) {
+					const message = error instanceof Error ? error.message.toLowerCase() : "";
+					if (message.includes("not found") || message.includes("does not exist")) {
+						return;
+					}
+					throw error;
+				}
+			},
+		};
+	}
+
+	return {
+		async put(key, body, contentType) {
+			const { bucket, region, accessKeyId, secretAccessKey } = readS3Config(settings);
+			const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+			const client = new S3Client({
+				region,
+				credentials: { accessKeyId, secretAccessKey },
+			});
+			await client.send(
+				new PutObjectCommand({
+					Bucket: bucket,
+					Key: key,
+					Body: body,
+					ContentType: contentType,
+				}),
+			);
+			return publicUrlForS3Key(key, bucket, region, settings);
+		},
+		async remove(url) {
+			const { bucket, region, accessKeyId, secretAccessKey } = readS3Config(settings);
+			const key = s3KeyFromPublicUrl(url, bucket, region, settings);
+			if (!key) {
 				return;
 			}
-			throw error;
-		}
-	},
-};
-
-/**
- * Stub S3 provider. Throws on every call so a mis-set
- * `STORAGE_PROVIDER=s3` fails loud instead of silently dropping
- * uploads. The future S3 migration replaces these two function bodies
- * with `@aws-sdk/client-s3` calls — every consumer of `StorageProvider`
- * stays unchanged.
- */
-const s3Provider: StorageProvider = {
-	async put() {
-		throw new Error("S3 storage provider not yet implemented — set STORAGE_PROVIDER=vercel-blob.");
-	},
-	async remove() {
-		throw new Error("S3 storage provider not yet implemented — set STORAGE_PROVIDER=vercel-blob.");
-	},
-};
-
-/**
- * Resolve the active provider from `STORAGE_PROVIDER` (defaults to
- * `vercel-blob`). Throws on unknown values rather than silently falling
- * back so configuration mistakes surface during the first upload.
- */
-export function resolveStorageProvider(): StorageProvider {
-	const name = readProviderName();
-	switch (name) {
-		case "vercel-blob":
-			return vercelBlobProvider;
-		case "s3":
-			return s3Provider;
-		default: {
-			const exhaustive: never = name;
-			throw new Error(`Unknown STORAGE_PROVIDER: ${String(exhaustive)}`);
-		}
-	}
+			const { S3Client, DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+			const client = new S3Client({
+				region,
+				credentials: { accessKeyId, secretAccessKey },
+			});
+			try {
+				await client.send(
+					new DeleteObjectCommand({
+						Bucket: bucket,
+						Key: key,
+					}),
+				);
+			} catch (error) {
+				const message = error instanceof Error ? error.message.toLowerCase() : "";
+				if (message.includes("not found") || message.includes("nosuchkey")) {
+					return;
+				}
+				throw error;
+			}
+		},
+	};
 }

@@ -7,10 +7,11 @@ import { type Product } from "@store/shared";
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { productHref } from "@/lib/catalog/productPaths";
+import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
-import { resolveProductItemScopedOffers } from "@/lib/pricing/productOfferMatch";
-import { countProductGrades, getVariantsInDisplayOrder, isProductInStock, resolveListingVariant, resolveProductHeroImage, scopeProductToGrade } from "@/lib/productSummary";
+import { resolveProductCatalogDealOffers } from "@/lib/pricing/productOfferMatch";
+import { countProductGrades, getProductGradesInDisplayOrder, isProductInStock, resolveListingVariant, resolveProductHeroImage, scopeProductToGrade } from "@/lib/productSummary";
 import { useAttributesForCategory, useGradesForCategory } from "@/lib/core/storefrontReferenceContext";
 
 import { ProductDealAvailableBadge } from "./ProductDealAvailableBadge";
@@ -23,7 +24,7 @@ interface ProductCardProps {
 	product: Product;
 	/** Full product row (all grades) for catalog-wide price range in product view. */
 	catalogProduct?: Product;
-	/** Grade view: card copy scoped to this grade; link is always the base PDP URL. */
+	/** Grade view: card copy scoped to this grade; link opens that grade on the PDP. */
 	pinnedGradeSlug?: string;
 	/**
 	 * When `true` the hero image renders as a `priority` `<Image>` so the
@@ -71,9 +72,17 @@ export function ProductCard({ product, catalogProduct, pinnedGradeSlug, priority
 
 	const slideCycle = useSlideCycle(chipSlides?.length ?? 0, cycleKey, shouldCycleGradeMedia || shouldCycleVariantChips);
 
-	const orderedVariantsInGrade = useMemo(() => getVariantsInDisplayOrder(product.variants), [product.variants]);
-	const listingVariant = isGradeListing && shouldCycleVariantChips ? (orderedVariantsInGrade[slideCycle.activeIndex] ?? displayVariant) : displayVariant;
-	const href = productHref(catalog);
+	const href = useMemo(() => {
+		if (isGradeListing && pinnedGradeSlug) {
+			return productHref(catalog, { selection: { [GRADE_DIMENSION_KEY]: pinnedGradeSlug } });
+		}
+		const firstGradeSlug = getProductGradesInDisplayOrder(catalog, categoryGrades)[0];
+		if (!firstGradeSlug) {
+			return productHref(catalog);
+		}
+		const scoped = scopeProductToGrade(catalog, firstGradeSlug);
+		return productHref(catalog, { variant: resolveListingVariant(scoped) });
+	}, [catalog, categoryGrades, isGradeListing, pinnedGradeSlug]);
 
 	const attributeSource = isGradeListing ? product : catalog;
 	const productHeroImage = resolveProductHeroImage(catalog) ?? resolveProductHeroImage(product);
@@ -89,7 +98,7 @@ export function ProductCard({ product, catalogProduct, pinnedGradeSlug, priority
 		if (offers.length === 0 || !inStock) {
 			return 0;
 		}
-		return resolveProductItemScopedOffers(catalog, offers).length;
+		return resolveProductCatalogDealOffers(catalog, offers).length;
 	}, [catalog, inStock, offers]);
 
 	return (

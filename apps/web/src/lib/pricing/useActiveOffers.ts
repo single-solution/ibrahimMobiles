@@ -1,19 +1,92 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import type { ActiveOffer } from "@store/shared";
 
 /**
- * Offers power every price line (cart, drawer, PDP), so multiple instances of
- * this hook can mount on one page. A module-level cache + shared in-flight
- * promise collapses them into a single `/api/offers` round-trip, refreshed at
- * most once per `OFFERS_TTL_MS`.
+ * Offers power every price line (cart, drawer, PDP). A module-level cache +
+ * revision polling collapses duplicate fetches and busts stale data after
+ * admin publishes offer changes.
+ *
+ * One global poll interval serves every `useActiveOffers()` subscriber — each
+ * product card must not register its own timer.
  */
-const OFFERS_TTL_MS = 60_000;
+const OFFERS_TTL_MS = 30_000;
+const REVISION_POLL_MS = 20_000;
 
 let cachedOffers: ActiveOffer[] | null = null;
 let cachedAt = 0;
+let cachedRevision = "";
 let inflight: Promise<ActiveOffer[]> | null = null;
+
+type OffersSnapshot = { offers: ActiveOffer[]; isLoading: boolean };
+
+let snapshot: OffersSnapshot = {
+	offers: cachedOffers ?? [],
+	isLoading: cachedOffers === null,
+};
+
+const listeners = new Set<() => void>();
+let revisionTimer: number | null = null;
+let focusListenerAttached = false;
+let subscriberCount = 0;
+
+function publishSnapshot(next: OffersSnapshot): void {
+	snapshot = next;
+	for (const listener of listeners) {
+		listener();
+	}
+}
+
+function getSnapshot(): OffersSnapshot {
+	return snapshot;
+}
+
+function getServerSnapshot(): OffersSnapshot {
+	return { offers: [], isLoading: true };
+}
+
+function subscribe(listener: () => void): () => void {
+	listeners.add(listener);
+	subscriberCount += 1;
+	if (subscriberCount === 1) {
+		startGlobalSync();
+	}
+	return () => {
+		listeners.delete(listener);
+		subscriberCount -= 1;
+		if (subscriberCount === 0) {
+			stopGlobalSync();
+		}
+	};
+}
+
+function invalidateOffersCache(): void {
+	cachedAt = 0;
+}
+
+async function fetchOffersRevision(): Promise<string> {
+	try {
+		const response = await fetch("/api/offers/revision", { cache: "no-store" });
+		if (!response.ok) {
+			return cachedRevision;
+		}
+		const data = (await response.json()) as { revision?: string };
+		return typeof data.revision === "string" ? data.revision : "";
+	} catch {
+		return cachedRevision;
+	}
+}
+
+async function syncOffersRevision(): Promise<boolean> {
+	const revision = await fetchOffersRevision();
+	if (!revision) {
+		return false;
+	}
+	const changed = Boolean(cachedRevision && revision !== cachedRevision);
+	cachedRevision = revision;
+	return changed;
+}
 
 async function loadOffers(): Promise<ActiveOffer[]> {
 	const isFresh = cachedOffers !== null && Date.now() - cachedAt < OFFERS_TTL_MS;
@@ -25,17 +98,16 @@ async function loadOffers(): Promise<ActiveOffer[]> {
 	}
 	inflight = (async () => {
 		try {
-			const res = await fetch("/api/offers");
-			if (!res.ok) {
+			await syncOffersRevision();
+			const response = await fetch("/api/offers", { cache: "no-store" });
+			if (!response.ok) {
 				return cachedOffers ?? [];
 			}
-			const data = (await res.json()) as ActiveOffer[];
+			const data = (await response.json()) as ActiveOffer[];
 			cachedOffers = data;
 			cachedAt = Date.now();
 			return data;
 		} catch {
-			// Offers are non-critical pricing hints; a fetch failure just leaves
-			// the cart at list price until the next load.
 			return cachedOffers ?? [];
 		} finally {
 			inflight = null;
@@ -44,23 +116,48 @@ async function loadOffers(): Promise<ActiveOffer[]> {
 	return inflight;
 }
 
-export function useActiveOffers() {
-	const [offers, setOffers] = useState<ActiveOffer[]>(cachedOffers ?? []);
-	const [isLoading, setIsLoading] = useState(cachedOffers === null);
+async function refreshOffers(): Promise<void> {
+	publishSnapshot({ offers: cachedOffers ?? [], isLoading: cachedOffers === null });
+	const next = await loadOffers();
+	publishSnapshot({ offers: next, isLoading: false });
+}
 
-	useEffect(() => {
-		let active = true;
-		void loadOffers().then((next) => {
-			if (!active) {
-				return;
-			}
-			setOffers(next);
-			setIsLoading(false);
-		});
-		return () => {
-			active = false;
-		};
-	}, []);
+function onWindowFocus(): void {
+	void syncOffersRevision().then(() => {
+		invalidateOffersCache();
+		void refreshOffers();
+	});
+}
 
-	return { offers, isLoading };
+function checkRevisionAndRefresh(): void {
+	void syncOffersRevision().then((changed) => {
+		if (changed) {
+			invalidateOffersCache();
+			void refreshOffers();
+		}
+	});
+}
+
+function startGlobalSync(): void {
+	void refreshOffers();
+	revisionTimer = window.setInterval(checkRevisionAndRefresh, REVISION_POLL_MS);
+	if (!focusListenerAttached) {
+		window.addEventListener("focus", onWindowFocus);
+		focusListenerAttached = true;
+	}
+}
+
+function stopGlobalSync(): void {
+	if (revisionTimer) {
+		window.clearInterval(revisionTimer);
+		revisionTimer = null;
+	}
+	if (focusListenerAttached) {
+		window.removeEventListener("focus", onWindowFocus);
+		focusListenerAttached = false;
+	}
+}
+
+export function useActiveOffers(): OffersSnapshot {
+	return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

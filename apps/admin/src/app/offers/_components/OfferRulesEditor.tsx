@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { ChevronRight, Plus, Trash2 } from "lucide-react";
 import { ScenarioStepPicker } from "./ScenarioStepPicker";
 import type { OfferCondition, OfferAction, OfferSchedule, OfferConstraints } from "@store/shared";
-import { formatOfferScopeConflictMessage, wouldProductSelectionConflict } from "@store/shared";
+import { formatOfferScopeConflictMessage, normalizeCatalogOfferAction, normalizeOfferConstraintsForScope, wouldProductSelectionConflict } from "@store/shared";
 import type { AdminCategory, AdminBrand, AdminGrade, AdminAttribute, AdminProductSummary, AdminOffer } from "@/types/models";
 import { TextField } from "@/components/forms/TextField";
 import { SelectField } from "@/components/forms/SelectField";
@@ -10,6 +10,7 @@ import { SelectionToggleCards } from "@/components/forms/SelectionToggleCards";
 import { Switch } from "@/components/forms/Switch";
 import { Button } from "@store/ui";
 import { apiFetch } from "@/lib/api";
+import { useStoreSettings } from "@/lib/storeSettingsContext";
 
 interface OfferRulesEditorProps {
 	conditions: OfferCondition[];
@@ -26,17 +27,42 @@ interface OfferRulesEditorProps {
 }
 
 const PAYMENT_METHOD_OPTIONS = [
-	{ value: "bank", label: "Bank transfer (pre-pay)" },
-	{ value: "easypaisa", label: "Easypaisa" },
-	{ value: "jazzcash", label: "JazzCash" },
-	{ value: "cod", label: "Cash on delivery" },
+	{ value: "bank-transfer", label: "Bank transfer", settingsKey: "paymentBankTransferEnabled" as const },
+	{ value: "card", label: "Card payment", settingsKey: "paymentCardEnabled" as const },
+	{ value: "cod", label: "Cash on delivery", settingsKey: "paymentCodEnabled" as const },
 ];
 
-const ACTION_TYPES = [
+const CATALOG_ACTION_TYPES = [
 	{ value: "percentage_discount", label: "Percentage Discount (%)" },
 	{ value: "fixed_amount_discount", label: "Fixed Amount Discount (Rs)" },
+];
+
+const CHECKOUT_ACTION_TYPES = [
+	...CATALOG_ACTION_TYPES,
 	{ value: "free_shipping", label: "Free Shipping" },
 ];
+
+function defaultCatalogConditions(): OfferCondition[] {
+	return [
+		{
+			type: "group",
+			operator: "or",
+			value: [{ type: "group", operator: "and", value: [] }],
+		},
+	];
+}
+
+function findCatalogOrGroup(conditions: OfferCondition[]): OfferCondition | undefined {
+	return conditions.find((condition) => condition.type === "group" && condition.operator === "or");
+}
+
+function listCatalogScenarios(conditions: OfferCondition[]): OfferCondition[] {
+	const orGroup = findCatalogOrGroup(conditions);
+	if (!orGroup || !Array.isArray(orGroup.value)) {
+		return [];
+	}
+	return (orGroup.value as OfferCondition[]).filter((condition) => condition.type === "group" && condition.operator === "and");
+}
 
 function numericConditionValue(value: unknown): number | "" {
 	return typeof value === "number" && !Number.isNaN(value) ? value : "";
@@ -55,6 +81,7 @@ export function OfferRulesEditor({
 	editingOfferId = null,
 	onScopeConflict,
 }: OfferRulesEditorProps) {
+	const storeSettings = useStoreSettings();
 	const [categories, setCategories] = useState<AdminCategory[]>([]);
 	const [brands, setBrands] = useState<AdminBrand[]>([]);
 	const [grades, setGrades] = useState<AdminGrade[]>([]);
@@ -84,14 +111,14 @@ export function OfferRulesEditor({
 	const paymentMethodCondition = useMemo(() => conditions.find((c) => c.type === "payment_method"), [conditions]);
 	const minQuantityCondition = useMemo(() => conditions.find((c) => c.type === "min_quantity"), [conditions]);
 
-	const specificItemsGroup = useMemo(() => {
-		return conditions.find((c) => c.type === "group" && c.operator === "or");
-	}, [conditions]);
+	const scenarios = useMemo(() => listCatalogScenarios(conditions), [conditions]);
 
-	const scenarios = useMemo(() => {
-		if (!specificItemsGroup || !Array.isArray(specificItemsGroup.value)) return [];
-		return specificItemsGroup.value.filter((c: OfferCondition) => c.type === "group" && c.operator === "and");
-	}, [specificItemsGroup]);
+	const catalogScenarios = useMemo(() => {
+		if (scenarios.length > 0) {
+			return scenarios;
+		}
+		return [{ type: "group" as const, operator: "and" as const, value: [] }];
+	}, [scenarios]);
 
 	const peerOfferRows = useMemo(
 		() =>
@@ -137,56 +164,151 @@ export function OfferRulesEditor({
 		return wouldProductSelectionConflict(conditions, scenarioIndex, catalogProduct, peerOfferRows, editingOfferId ?? undefined) !== null;
 	}
 
-	type OfferScope = "storewide" | "specific_items" | "cart_total" | "checkout_method";
+	type OfferScope = "catalog" | "checkout";
+	type CheckoutTrigger = "cart_total" | "payment_method";
 
 	const scope: OfferScope = useMemo(() => {
-		if (cartTotalCondition) return "cart_total";
-		if (paymentMethodCondition) return "checkout_method";
-		if (specificItemsGroup || conditions.some((c) => ["categories", "brands", "grades", "products", "min_quantity"].includes(c.type))) return "specific_items";
-		return "storewide";
-	}, [cartTotalCondition, paymentMethodCondition, specificItemsGroup, conditions]);
+		if (cartTotalCondition || paymentMethodCondition) {
+			return "checkout";
+		}
+		return "catalog";
+	}, [cartTotalCondition, paymentMethodCondition]);
+
+	const checkoutTrigger: CheckoutTrigger = useMemo(() => {
+		if (paymentMethodCondition && !cartTotalCondition) {
+			return "payment_method";
+		}
+		return "cart_total";
+	}, [cartTotalCondition, paymentMethodCondition]);
+
+	const enabledPaymentMethodOptions = useMemo(
+		() => PAYMENT_METHOD_OPTIONS.filter((option) => storeSettings[option.settingsKey]),
+		[storeSettings],
+	);
+
+	const actionTypeOptions = scope === "catalog" ? CATALOG_ACTION_TYPES : CHECKOUT_ACTION_TYPES;
+
+	useEffect(() => {
+		if (scope !== "catalog") {
+			return;
+		}
+		if (action.type === "free_shipping" || action.type === "buy_x_get_y" || action.target !== "matched_items") {
+			onChangeAction(normalizeCatalogOfferAction(action));
+		}
+	}, [action, onChangeAction, scope]);
+
+	useEffect(() => {
+		if (scope !== "catalog") {
+			return;
+		}
+		if (constraints.allowLoyaltyPoints) {
+			onChangeConstraints(normalizeOfferConstraintsForScope(conditions, constraints));
+		}
+	}, [conditions, constraints, onChangeConstraints, scope]);
+
+	function preserveMinQuantityCondition(nextConditions: OfferCondition[]): OfferCondition[] {
+		const minQuantity = conditions.find((condition) => condition.type === "min_quantity");
+		if (!minQuantity || nextConditions.some((condition) => condition.type === "min_quantity")) {
+			return nextConditions;
+		}
+		return [...nextConditions, minQuantity];
+	}
 
 	function setScope(newScope: OfferScope) {
-		if (newScope === "storewide") {
-			onChangeConditions([]);
-			onChangeAction({ ...action, target: "cart_total" });
-		} else if (newScope === "cart_total") {
-			onChangeConditions([{ type: "cart_total", operator: "gte", value: 0 }]);
-			onChangeAction({ ...action, target: "cart_total" });
-		} else if (newScope === "checkout_method") {
-			onChangeConditions([{ type: "payment_method", operator: "in", value: "" }]);
-			onChangeAction({ ...action, target: "cart_total" });
-		} else if (newScope === "specific_items") {
-			onChangeConditions([{ type: "group", operator: "or", value: [{ type: "group", operator: "and", value: [] }] }]);
-			onChangeAction({ ...action, target: "matched_items" });
+		if (newScope === "catalog") {
+			onChangeConditions(preserveMinQuantityCondition(defaultCatalogConditions()));
+			onChangeAction(normalizeCatalogOfferAction({ ...action, target: "matched_items" }));
+			onChangeConstraints(normalizeOfferConstraintsForScope(defaultCatalogConditions(), constraints));
+			return;
 		}
+
+		onChangeConditions(
+			preserveMinQuantityCondition([
+				{
+					type: "cart_total",
+					operator: "gte",
+					value: typeof cartTotalCondition?.value === "number" && !Number.isNaN(cartTotalCondition.value) ? cartTotalCondition.value : 0,
+				},
+			]),
+		);
+		onChangeAction({ ...action, target: "cart_total" });
+	}
+
+	function setCheckoutTrigger(trigger: CheckoutTrigger) {
+		if (trigger === "cart_total") {
+			onChangeConditions(
+				preserveMinQuantityCondition([
+					{
+						type: "cart_total",
+						operator: "gte",
+						value: typeof cartTotalCondition?.value === "number" && !Number.isNaN(cartTotalCondition.value) ? cartTotalCondition.value : 0,
+					},
+				]),
+			);
+			return;
+		}
+
+		const currentPaymentValue = typeof paymentMethodCondition?.value === "string" ? paymentMethodCondition.value : "";
+		const defaultPaymentValue = enabledPaymentMethodOptions.some((option) => option.value === currentPaymentValue)
+			? currentPaymentValue
+			: (enabledPaymentMethodOptions[0]?.value ?? "");
+
+		onChangeConditions(
+			preserveMinQuantityCondition([{ type: "payment_method", operator: "in", value: defaultPaymentValue }]),
+		);
+	}
+
+	function updateCartTotalCondition(value: number) {
+		onChangeConditions(preserveMinQuantityCondition([{ type: "cart_total", operator: "gte", value }]));
+	}
+
+	function updatePaymentMethodCondition(value: string) {
+		if (!value) {
+			return;
+		}
+		onChangeConditions(preserveMinQuantityCondition([{ type: "payment_method", operator: "in", value }]));
 	}
 
 	function addScenario() {
 		const nextConditions = [...conditions];
-		let orGroupIdx = nextConditions.findIndex((c) => c.type === "group" && c.operator === "or");
+		let orGroupIdx = nextConditions.findIndex((condition) => condition.type === "group" && condition.operator === "or");
 
 		if (orGroupIdx === -1) {
-			nextConditions.push({ type: "group", operator: "or", value: [{ type: "group", operator: "and", value: [] }] });
+			nextConditions.push({
+				type: "group",
+				operator: "or",
+				value: [
+					{ type: "group", operator: "and", value: [] },
+					{ type: "group", operator: "and", value: [] },
+				],
+			});
 		} else {
 			const orGroup = { ...nextConditions[orGroupIdx] };
 			orGroup.value = [...(Array.isArray(orGroup.value) ? orGroup.value : []), { type: "group", operator: "and", value: [] }];
 			nextConditions[orGroupIdx] = orGroup;
 		}
+
 		onChangeConditions(nextConditions);
 	}
 
 	function removeScenario(index: number) {
 		const nextConditions = [...conditions];
-		const orGroupIdx = nextConditions.findIndex((c) => c.type === "group" && c.operator === "or");
-		if (orGroupIdx > -1) {
-			const orGroup = { ...nextConditions[orGroupIdx] };
-			const newScenarios = Array.isArray(orGroup.value) ? [...orGroup.value] : [];
-			newScenarios.splice(index, 1);
-			orGroup.value = newScenarios;
-			nextConditions[orGroupIdx] = orGroup;
-			onChangeConditions(nextConditions);
+		const orGroupIdx = nextConditions.findIndex((condition) => condition.type === "group" && condition.operator === "or");
+		if (orGroupIdx === -1) {
+			return;
 		}
+
+		const orGroup = { ...nextConditions[orGroupIdx] };
+		const newScenarios = Array.isArray(orGroup.value) ? [...orGroup.value] : [];
+		newScenarios.splice(index, 1);
+
+		if (newScenarios.length === 0) {
+			return;
+		}
+
+		orGroup.value = newScenarios;
+		nextConditions[orGroupIdx] = orGroup;
+		onChangeConditions(nextConditions);
 	}
 
 	function updateScenario(index: number, type: OfferCondition["type"], values: unknown, operator: OfferCondition["operator"] = "in") {
@@ -264,53 +386,40 @@ export function OfferRulesEditor({
 				<SelectionToggleCards
 					value={scope}
 					onChange={setScope}
-					columns={4}
+					columns={2}
 					options={[
 						{
-							value: "storewide",
-							title: "Entire Store",
-							description: "Applies to everything.",
+							value: "catalog",
+							title: "Catalog",
+							description: "Category or product scope — one catalog deal per product. Checkout offers are separate.",
 						},
 						{
-							value: "specific_items",
-							title: "Specific Items",
-							description: "Filter by brand, category, etc.",
-						},
-						{
-							value: "cart_total",
-							title: "Cart Total",
-							description: "Triggered by minimum spend.",
-						},
-						{
-							value: "checkout_method",
-							title: "Checkout Type",
-							description: "Specific payment method.",
+							value: "checkout",
+							title: "Checkout",
+							description: "Minimum spend and/or payment method.",
 						},
 					]}
 				/>
+
 			</section>
 
-			{scope === "specific_items" && (
+			{scope === "catalog" && (
 				<section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
 					<div className="flex items-center justify-between">
 						<div>
-							<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">Specific Item Rules</h3>
-							<p className="text-[13px] text-[var(--color-ink-500)] mt-1">Items matching ANY of the scenarios below will get the offer.</p>
+							<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">Catalog rules</h3>
+							<p className="mt-1 text-[13px] text-[var(--color-ink-500)]">
+								Pick a category (required), then optionally narrow by grade, brand, product, or variant. Add scenarios for OR paths. Overlapping products are blocked.
+							</p>
 						</div>
 						<Button type="button" variant="outline" size="sm" onClick={addScenario} className="h-7 px-2.5 text-[12px]">
 							<Plus size={12} className="mr-1" />
-							Add Scenario
+							Add scenario
 						</Button>
 					</div>
 
-					{scenarios.length === 0 && (
-						<div className="rounded border border-dashed border-[var(--color-ink-300)] p-8 text-center text-[13px] text-[var(--color-ink-500)]">
-							No scenarios added. Click &quot;Add Scenario&quot; to specify which items get this offer.
-						</div>
-					)}
-
 					<div className="space-y-4">
-						{scenarios.map((scenario: OfferCondition, i: number) => {
+						{catalogScenarios.map((scenario: OfferCondition, scenarioIndex: number) => {
 							const subConditions = Array.isArray(scenario.value) ? scenario.value : [];
 							const getVals = (t: string) => subConditions.find((c: OfferCondition) => c.type === t)?.value || [];
 
@@ -324,13 +433,17 @@ export function OfferRulesEditor({
 							const showProduct = showBrandGrade;
 							const showAttribute = showProduct && selectedProductIds.length > 0;
 
+							const canRemoveScenario = scenarios.length > 1;
+
 							return (
-								<div key={i} className="relative space-y-4 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4">
+								<div key={scenarioIndex} className="relative space-y-4 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4">
 									<div className="flex items-center justify-between border-b border-[var(--color-ink-200)] pb-3">
-										<h4 className="text-[13px] font-bold text-[var(--color-ink-900)]">Scenario {i + 1}</h4>
-										<button type="button" onClick={() => removeScenario(i)} className="text-[var(--color-ink-400)] hover:text-rose-600" aria-label="Remove scenario">
-											<Trash2 size={16} />
-										</button>
+										<h4 className="text-[13px] font-bold text-[var(--color-ink-900)]">Scenario {scenarioIndex + 1}</h4>
+										{canRemoveScenario ? (
+											<button type="button" onClick={() => removeScenario(scenarioIndex)} className="text-[var(--color-ink-400)] hover:text-rose-600" aria-label="Remove scenario">
+												<Trash2 size={16} />
+											</button>
+										) : null}
 									</div>
 
 									<div className="flex w-full items-end gap-2 overflow-x-auto pb-2 scroll-smooth">
@@ -341,8 +454,13 @@ export function OfferRulesEditor({
 												value: category.slug,
 											}))}
 											value={selectedCategorySlugs[0] || ""}
-											onChange={(nextValue) => updateScenario(i, "categories", nextValue ? [nextValue] : [])}
-											placeholder="Select category…"
+											onChange={(nextValue) => {
+												if (!nextValue) {
+													return;
+												}
+												updateScenario(scenarioIndex, "categories", [nextValue]);
+											}}
+											placeholder="Select category"
 										/>
 
 										{showBrandGrade ? (
@@ -357,7 +475,7 @@ export function OfferRulesEditor({
 															value: grade.slug,
 														}))}
 														value={selectedGradeSlugs[0] || ""}
-														onChange={(nextValue) => updateScenario(i, "grades", nextValue ? [nextValue] : [])}
+														onChange={(nextValue) => updateScenario(scenarioIndex, "grades", nextValue ? [nextValue] : [])}
 														placeholder="Any grade"
 													/>
 													<ScenarioStepPicker
@@ -368,7 +486,7 @@ export function OfferRulesEditor({
 															: brands
 														).map((brand) => ({ label: brand.name, value: brand.slug }))}
 														value={selectedBrandSlugs[0] || ""}
-														onChange={(nextValue) => updateScenario(i, "brands", nextValue ? [nextValue] : [])}
+														onChange={(nextValue) => updateScenario(scenarioIndex, "brands", nextValue ? [nextValue] : [])}
 														placeholder="Any brand"
 													/>
 												</div>
@@ -392,7 +510,7 @@ export function OfferRulesEditor({
 															return true;
 														})
 														.map((product) => {
-															const blocked = isProductOptionBlocked(i, product);
+															const blocked = isProductOptionBlocked(scenarioIndex, product);
 															return {
 																label: blocked ? `${product.name} (in another offer)` : product.name,
 																value: product.id,
@@ -402,10 +520,10 @@ export function OfferRulesEditor({
 													onChange={(nextValue) => {
 														const product = products.find((row) => row.id === nextValue);
 														if (!nextValue || !product) {
-															updateScenario(i, "products", []);
+															updateScenario(scenarioIndex, "products", []);
 															return;
 														}
-														trySelectProduct(i, product, nextValue);
+														trySelectProduct(scenarioIndex, product, nextValue);
 													}}
 													placeholder="Any product"
 												/>
@@ -423,7 +541,7 @@ export function OfferRulesEditor({
 															(attribute) => ({ label: attribute.label, value: attribute.slug }),
 														)}
 														value={selectedAttribute?.slug ?? ""}
-														onChange={(slug) => updateScenario(i, "attributes", slug ? { slug, value: "" } : null)}
+														onChange={(slug) => updateScenario(scenarioIndex, "attributes", slug ? { slug, value: "" } : null)}
 														placeholder="Any variant"
 													/>
 													{selectedAttribute?.slug ? (
@@ -440,7 +558,7 @@ export function OfferRulesEditor({
 															}
 															value={selectedAttribute.value ?? ""}
 															onChange={(nextValue) =>
-																updateScenario(i, "attributes", {
+																updateScenario(scenarioIndex, "attributes", {
 																	slug: selectedAttribute.slug,
 																	value: nextValue,
 																})
@@ -459,53 +577,58 @@ export function OfferRulesEditor({
 				</section>
 			)}
 
-			{scope === "cart_total" && (
+			{scope === "checkout" && (
 				<section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
-					<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">Cart Requirements</h3>
-					<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas)] p-4">
-						<TextField
-							label="Minimum Cart Total (Rs)"
-							type="number"
-							min="0"
-							value={numericConditionValue(cartTotalCondition?.value)}
-							onChange={(e) => {
-								const val = parseFloat(e.target.value);
-								const next = [...conditions];
-								const idx = next.findIndex((c) => c.type === "cart_total");
-								if (idx > -1) {
-									next[idx] = { type: "cart_total", operator: "gte", value: isNaN(val) ? 0 : val };
-								} else {
-									next.push({ type: "cart_total", operator: "gte", value: isNaN(val) ? 0 : val });
-								}
-								onChangeConditions(next);
-							}}
-							placeholder="e.g. 5000"
-						/>
-					</div>
-				</section>
-			)}
+					<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">Checkout rules</h3>
+					<SelectionToggleCards
+						label="Checkout trigger"
+						value={checkoutTrigger}
+						onChange={setCheckoutTrigger}
+						columns={2}
+						options={[
+							{
+								value: "cart_total",
+								title: "Cart total",
+								description: "Triggered by minimum spend.",
+							},
+							{
+								value: "payment_method",
+								title: "Payment method",
+								description: "Specific checkout payment type.",
+							},
+						]}
+					/>
 
-			{scope === "checkout_method" && (
-				<section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
-					<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">Checkout Requirements</h3>
-					<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas)] p-4">
-						<SelectField
-							label="Required Payment Method"
-							value={typeof paymentMethodCondition?.value === "string" ? paymentMethodCondition.value : ""}
-							onChange={(e) => {
-								const val = e.target.value;
-								const next = [...conditions];
-								const idx = next.findIndex((c) => c.type === "payment_method");
-								if (idx > -1) {
-									next[idx] = { type: "payment_method", operator: "in", value: val };
-								} else {
-									next.push({ type: "payment_method", operator: "in", value: val });
-								}
-								onChangeConditions(next);
-							}}
-							options={[{ value: "", label: "Select Method..." }, ...PAYMENT_METHOD_OPTIONS]}
-						/>
-					</div>
+					{checkoutTrigger === "cart_total" ? (
+						<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas)] p-4">
+							<TextField
+								label="Minimum cart total (Rs)"
+								type="number"
+								min="0"
+								value={numericConditionValue(cartTotalCondition?.value)}
+								onChange={(event) => {
+									const parsed = parseFloat(event.target.value);
+									updateCartTotalCondition(Number.isNaN(parsed) ? 0 : parsed);
+								}}
+								placeholder="e.g. 5000"
+							/>
+						</div>
+					) : (
+						<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas)] p-4">
+							{enabledPaymentMethodOptions.length > 0 ? (
+								<SelectField
+									label="Required payment method"
+									value={typeof paymentMethodCondition?.value === "string" ? paymentMethodCondition.value : ""}
+									onChange={(event) => updatePaymentMethodCondition(event.target.value)}
+									options={enabledPaymentMethodOptions.map((option) => ({ value: option.value, label: option.label }))}
+								/>
+							) : (
+								<p className="text-[13px] text-[var(--color-ink-500)]">
+									No payment methods are enabled in Settings → Payments. Enable at least one method to use this trigger.
+								</p>
+							)}
+						</div>
+					)}
 				</section>
 			)}
 
@@ -518,7 +641,7 @@ export function OfferRulesEditor({
 							label="Type"
 							value={action.type}
 							onChange={(event) => onChangeAction({ ...action, type: event.target.value as OfferAction["type"] })}
-							options={ACTION_TYPES}
+							options={actionTypeOptions}
 						/>
 					</div>
 					{action.type !== "free_shipping" && (
@@ -679,16 +802,17 @@ export function OfferRulesEditor({
 				</div>
 			</section>
 
-			{/* 4. CONSTRAINTS */}
-			<section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
-				<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">4. Constraints</h3>
-				<Switch
-					label="Allow Loyalty Points"
-					description="Can customers redeem loyalty points while this offer is active on their cart?"
-					checked={constraints.allowLoyaltyPoints}
-					onCheckedChange={(checked) => onChangeConstraints({ ...constraints, allowLoyaltyPoints: checked })}
-				/>
-			</section>
+			{scope === "checkout" ? (
+				<section className="space-y-4 rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)] md:p-5">
+					<h3 className="text-[14px] font-bold tracking-tight text-[var(--color-ink-900)]">4. Checkout constraints</h3>
+					<Switch
+						label="Allow loyalty points"
+						description="When off, customers cannot redeem loyalty points while this checkout offer applies."
+						checked={constraints.allowLoyaltyPoints}
+						onCheckedChange={(checked) => onChangeConstraints({ ...constraints, allowLoyaltyPoints: checked })}
+					/>
+				</section>
+			) : null}
 		</div>
 	);
 }

@@ -49,7 +49,7 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
 			{
 				id: "payments",
 				label: "Payments",
-				description: "Toggle which payment methods checkout shows and the bank / wallet account details customers see after placing an order.",
+				description: "Toggle card and cash-on-delivery at checkout, COD surcharge %, and optional chip notes per method.",
 			},
 			{
 				id: "delivery",

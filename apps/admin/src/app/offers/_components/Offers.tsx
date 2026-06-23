@@ -26,8 +26,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { pingNavigationProgress } from "@/lib/navigation/navigationProgress";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 import { OFFER_FIELD_LIMITS } from "@/lib/api/fieldLimits";
-import { classNames, emptyStructuredContent, formatRelativeDate, normalizeStructuredContent, seoScoreTone } from "@store/shared";
-import type { SeoMeta, StructuredContent } from "@store/shared";
+import { classNames, emptyStructuredContent, extractOfferScenarios, formatRelativeDate, getPaymentMethodLabel, isCheckoutOnlyOffer, normalizeOfferConstraintsForScope, normalizeStructuredContent, seoScoreTone, summarizeScenarioScope, validateCatalogOfferRules, type ActiveOffer, type OfferCondition, type SeoMeta, type StructuredContent } from "@store/shared";
 import { CatalogSeoPanel } from "@/app/settings/_components/CatalogSeoPanel";
 import { ImageUpload } from "@/components/shared/uploads/ImageUpload";
 import { type GalleryImage, uploadGalleryImages } from "@/components/shared/uploads/imageStaging";
@@ -35,7 +34,7 @@ import type { AdminOffer } from "@/types/models";
 import { PreviewPanel } from "@/app/categories/_components/previewPanel";
 import { OfferCardCompactPreview, OfferCardFullPreview } from "@/app/categories/_components/previews";
 import { OfferRulesEditor } from "./OfferRulesEditor";
-import type { OfferCondition, OfferAction, OfferSchedule, OfferConstraints } from "@store/shared";
+import type { OfferAction, OfferSchedule, OfferConstraints } from "@store/shared";
 
 const OFFER_SLUG_MAX_CHARS = 96;
 /** Matches `--color-accent-500` — persisted on offer documents as hex. */
@@ -113,6 +112,48 @@ function summarizeAction(action: OfferAction): string {
 		return `Rs ${action.value} off ${target}`;
 	}
 	return "Discount";
+}
+
+function defaultCatalogConditions(): OfferCondition[] {
+	return [
+		{
+			type: "group",
+			operator: "or",
+			value: [{ type: "group", operator: "and", value: [] }],
+		},
+	];
+}
+
+function summarizeOfferScope(conditions: OfferCondition[]): string {
+	if (isCheckoutOnlyOffer({ conditions } as ActiveOffer)) {
+		const cartTotal = conditions.find((condition) => condition.type === "cart_total");
+		const paymentMethod = conditions.find((condition) => condition.type === "payment_method");
+		if (paymentMethod && typeof paymentMethod.value === "string") {
+			return `Checkout · ${getPaymentMethodLabel(paymentMethod.value)}`;
+		}
+		if (cartTotal && typeof cartTotal.value === "number") {
+			return `Checkout · Rs ${cartTotal.value}+`;
+		}
+		return "Checkout";
+	}
+
+	const scenarios = extractOfferScenarios(conditions);
+	if (scenarios.length === 0) {
+		return "Catalog · incomplete";
+	}
+
+	const parts = scenarios.map((scenario) => {
+		const scope = summarizeScenarioScope(scenario);
+		if (scope.productIds.length > 0) {
+			return scope.productIds.length === 1 ? "1 product" : `${scope.productIds.length} products`;
+		}
+		if (scope.categorySlugs.length > 0) {
+			return scope.categorySlugs.join(", ");
+		}
+		return "incomplete";
+	});
+
+	return `Catalog · ${parts.join(" or ")}`;
 }
 
 function summarizeSchedule(schedule: OfferSchedule): string | null {
@@ -291,7 +332,7 @@ function OfferCard({ offer, status, onEdit, onDelete, onToggled }: OfferCardProp
 	const background = `linear-gradient(135deg, color-mix(in srgb, ${accent} 82%, var(--color-ink-900)) 0%, color-mix(in srgb, ${accent} 48%, var(--color-ink-900)) 100%)`;
 	const statusMeta = STATUS_META[status];
 	const scheduleSummary = summarizeSchedule(offer.schedule);
-	const conditionsLabel = offer.conditions?.length > 0 ? `${offer.conditions.length} condition${offer.conditions.length === 1 ? "" : "s"}` : "Whole cart";
+	const conditionsLabel = summarizeOfferScope(offer.conditions ?? []);
 
 	return (
 		<article className="group flex h-full flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-md)]">
@@ -323,7 +364,7 @@ function OfferCard({ offer, status, onEdit, onDelete, onToggled }: OfferCardProp
 							{scheduleSummary}
 						</StatusPill>
 					) : null}
-					{offer.constraints?.allowLoyaltyPoints ? (
+					{isCheckoutOnlyOffer({ conditions: offer.conditions ?? [] } as ActiveOffer) && offer.constraints?.allowLoyaltyPoints ? (
 						<StatusPill tone="neutral" leadingIcon={<Sparkles size={11} />}>
 							Loyalty
 						</StatusPill>
@@ -429,7 +470,12 @@ function OfferDrawer({ state, allOffers, onClose, onSaved }: OfferDrawerProps) {
 	const [seo, setSeo] = useState<SeoMeta>(initial?.seo ?? {});
 	const [offerId, setOfferId] = useState<string | null>(initial?.id ?? null);
 
-	const [conditions, setConditions] = useState<OfferCondition[]>(initial?.conditions ?? []);
+	const [conditions, setConditions] = useState<OfferCondition[]>(() => {
+		if (initial?.conditions?.length) {
+			return initial.conditions;
+		}
+		return defaultCatalogConditions();
+	});
 	const [action, setAction] = useState<OfferAction>(initial?.action ?? { type: "percentage_discount", value: 10, target: "matched_items" });
 	const [schedule, setSchedule] = useState<OfferSchedule>(initial?.schedule ?? {});
 	const [constraints, setConstraints] = useState<OfferConstraints>(initial?.constraints ?? { allowLoyaltyPoints: false, isStackable: false, usageCount: 0 });
@@ -470,6 +516,14 @@ function OfferDrawer({ state, allOffers, onClose, onSaved }: OfferDrawerProps) {
 
 		setIsSaving(true);
 		try {
+			if (step >= 2 || isStandaloneEdit) {
+				const catalogValidationError = validateCatalogOfferRules(conditions, action);
+				if (catalogValidationError) {
+					toast.danger(catalogValidationError);
+					return;
+				}
+			}
+
 			const [storedBannerImage] = bannerImage
 				? await uploadGalleryImages([bannerImage], {
 						subjectKind: "offers",
@@ -493,7 +547,7 @@ function OfferDrawer({ state, allOffers, onClose, onSaved }: OfferDrawerProps) {
 				conditions,
 				action,
 				schedule,
-				constraints,
+				constraints: normalizeOfferConstraintsForScope(conditions, constraints),
 			};
 			const targetId = offerId;
 			if (targetId) {

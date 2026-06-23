@@ -23,11 +23,12 @@ import { useToast } from "@/components/ui/Toast";
 import { useVariantSelection } from "@/components/shared/VariantContext";
 import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
 import { buildEvaluatableItemWithQuantity, resolveOfferMinQuantity, resolvePdpOfferUnitPrice } from "@/lib/pricing/cartOfferPricing";
-import { resolveProductItemScopedOffers, resolveVariantItemScopedOffers } from "@/lib/pricing/productOfferMatch";
+import { resolveProductCatalogDealOffers, resolveVariantCatalogDealOffers } from "@/lib/pricing/productOfferMatch";
 
-import { attributeValuesOnVariant, findVariantBySelection, getRequiredAttributeSlugsForProduct, isPdpSelectionComplete } from "@/lib/catalog/pdpSelection";
+import { attributeValuesOnVariant, findVariantBySelection, getRequiredAttributeSlugsForProduct, isPdpSelectionComplete, variantMatchesSelection } from "@/lib/catalog/pdpSelection";
 import { CART_MAX_LINES } from "@/lib/cart/store";
 import { useCart } from "@/lib/cart/useCart";
+import type { CartItem } from "@/lib/cart/types";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { useProductAttributeScope } from "@/lib/catalog/productAttributeScope";
 import { useGradesForCategory, useCategories } from "@/lib/core/storefrontReferenceContext";
@@ -39,6 +40,24 @@ import { MobileStickyCta, MobileStickyPlaceholder, PurchaseSummary, SelectToSeeP
 
 const ADD_TO_CART_FLASH_MS = 1_500;
 const REALIGNMENT_NOTICE_MS = 6_000;
+
+function cartLineMatchesSelection(line: CartItem, selection: Record<string, string>): boolean {
+	const pseudoVariant: Variant = {
+		id: line.variantId,
+		gradeSlug: line.gradeSlug,
+		priceRupees: line.unitPriceRupees,
+		quantity: line.maxQuantity ?? 0,
+		forceOutOfStock: false,
+		attributes: line.attributes ?? {},
+	};
+	return variantMatchesSelection(pseudoVariant, selection);
+}
+
+function quantityInCartForSelection(items: CartItem[], productId: string, selection: Record<string, string>): number {
+	return items
+		.filter((line) => line.productId === productId && cartLineMatchesSelection(line, selection))
+		.reduce((sum, line) => sum + line.quantity, 0);
+}
 
 interface VariantSelectorProps {
 	product: Product;
@@ -75,7 +94,15 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 	);
 	const dimensions = useMemo(() => buildDimensions(product, categoryAttributes, grades, productAttributeConfig), [product, categoryAttributes, grades, productAttributeConfig]);
 
-	const selected = product.variants.find((variant) => variant.id === selectedVariantId) ?? EMPTY_VARIANT;
+	const selected = useMemo(() => {
+		if (isPdpSelectionComplete(currentSelection, requiredAttributeSlugs)) {
+			return findVariantBySelection(product.variants, currentSelection) ?? EMPTY_VARIANT;
+		}
+		if (!selectedVariantId) {
+			return EMPTY_VARIANT;
+		}
+		return product.variants.find((variant) => variant.id === selectedVariantId) ?? EMPTY_VARIANT;
+	}, [currentSelection, product.variants, requiredAttributeSlugs, selectedVariantId]);
 
 	if (addQuantityState.variantId !== selectedVariantId) {
 		setAddQuantityState({ variantId: selectedVariantId, quantity: 1 });
@@ -97,8 +124,15 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 
 	const inStock = isVariantInStock(selected);
 	const stockQuantity = Math.max(0, selected.quantity ?? 0);
-	const cartLineId = selected.id.length > 0 ? `${product.id}:${selected.id}` : "";
-	const quantityInCart = cart.items.find((line) => line.id === cartLineId)?.quantity ?? 0;
+	const quantityInCart = useMemo(() => {
+		if (isPdpSelectionComplete(currentSelection, requiredAttributeSlugs)) {
+			return quantityInCartForSelection(cart.items, product.id, currentSelection);
+		}
+		if (!selected.id) {
+			return 0;
+		}
+		return cart.items.find((line) => line.id === `${product.id}:${selected.id}`)?.quantity ?? 0;
+	}, [cart.items, currentSelection, product.id, requiredAttributeSlugs, selected.id]);
 	const remainingStock = Math.max(0, stockQuantity - quantityInCart);
 	const maxSelectableQuantity = remainingStock;
 
@@ -123,12 +157,12 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 	const heroImage = product.images?.[0];
 
 	const { offers } = useActiveOffers();
-	const productOffers = useMemo(() => resolveProductItemScopedOffers(product, offers), [offers, product]);
+	const productOffers = useMemo(() => resolveProductCatalogDealOffers(product, offers), [offers, product]);
 	const variantOffers = useMemo(() => {
 		if (!selected.id) {
 			return [];
 		}
-		return resolveVariantItemScopedOffers(product, selected, offers);
+		return resolveVariantCatalogDealOffers(product, selected, offers);
 	}, [offers, product, selected]);
 
 	const selectedOfferId = variantOffers[0]?.id ?? null;
@@ -190,7 +224,15 @@ export function VariantSelector({ product, brandName }: VariantSelectorProps) {
 			attributes: selected.attributes ?? {},
 			quantity: quantityToAdd,
 			maxQuantity: stockQuantity,
-			...(selectedOfferId ? { appliedOfferId: selectedOfferId } : {}),
+			...(selectedOffer
+				? {
+						appliedOffer: {
+							id: selectedOffer.id,
+							title: selectedOffer.title,
+							lockedAt: new Date().toISOString(),
+						},
+					}
+				: {}),
 		});
 		if (!added) {
 			toast(`Cart is full — you can hold up to ${CART_MAX_LINES} different items.`, {

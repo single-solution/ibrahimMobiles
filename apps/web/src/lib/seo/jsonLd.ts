@@ -136,6 +136,13 @@ export function organizationJsonLd(
 		contactEmail?: string;
 		logoUrl?: string;
 		sameAs?: string[];
+		address?: {
+			street?: string;
+			city?: string;
+			region?: string;
+			postalCode?: string;
+			country?: string;
+		};
 	},
 ): Record<string, unknown> {
 	const jsonLd: Record<string, unknown> = {
@@ -150,6 +157,16 @@ export function organizationJsonLd(
 	}
 	if (settings.sameAs && settings.sameAs.length > 0) {
 		jsonLd.sameAs = settings.sameAs;
+	}
+	if (settings.address?.street?.trim()) {
+		jsonLd.address = {
+			"@type": "PostalAddress",
+			streetAddress: settings.address.street,
+			addressLocality: settings.address.city,
+			addressRegion: settings.address.region,
+			postalCode: settings.address.postalCode,
+			addressCountry: settings.address.country,
+		};
 	}
 	if (settings.contactPhone || settings.contactEmail) {
 		jsonLd.contactPoint = [
@@ -183,6 +200,5 @@ export function websiteJsonLd(settings: SeoSettings): Record<string, unknown> {
  * ------------------------------------------------------------------------ */
 
 export function jsonLdScriptContent(obj: Record<string, unknown>): string {
-	// Strip out undefined keys so the rendered script stays compact.
-	return JSON.stringify(obj, (_key, value) => (value === undefined ? undefined : value));
+	return JSON.stringify(obj, (_key, value) => (value === undefined ? undefined : value)).replace(/</g, "\\u003c");
 }

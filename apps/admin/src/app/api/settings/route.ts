@@ -10,6 +10,12 @@ import { recordActivity } from "@/lib/services/activityLog";
 import { toSettingResponse, type SettingLean } from "@/lib/serializers/setting";
 import type { AdminSetting } from "@/types/models";
 
+const ALLOWED_SETTING_KEY_PREFIXES = ["seo."] as const;
+
+function isAllowedSettingKey(key: string): boolean {
+	return ALLOWED_SETTING_KEY_PREFIXES.some((prefix) => key.startsWith(prefix));
+}
+
 export async function GET(request: Request) {
 	const { response } = await requireSession("settings_view");
 	if (response) {
@@ -64,6 +70,10 @@ export async function PUT(request: Request) {
 	const keyResult = validateString(body.key, { label: "Key", max: FIELD_LIMITS.mediumText });
 	if (isValidationError(keyResult)) {
 		return badRequest(keyResult.error);
+	}
+
+	if (!isAllowedSettingKey(keyResult)) {
+		return badRequest("This settings key is not allowed.");
 	}
 
 	if (body.value === undefined) {

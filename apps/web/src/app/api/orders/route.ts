@@ -31,6 +31,8 @@ import {
 	connectDB,
 	createWithUniqueOrderNumber,
 	Customer,
+	decrementOfferUsageCounts,
+	incrementOfferUsageCounts,
 	isMongoDuplicateKeyError,
 	LoyaltyAccount,
 	Offer as OfferModel,
@@ -39,12 +41,15 @@ import {
 	releaseStock,
 	reserveStock,
 	getStoreSettings,
+	fireOrderEventNotifications,
+	getIntegrationSettings,
 	type StockLine,
 	type CustomerAddressAttributes,
 	type CustomerAttributes,
 	type DeliveryMethod,
 	type OfferAttributes,
 	type OrderDoc,
+	type OrderStatus,
 	type PaymentMethod,
 	type ProductAttributes,
 	type VariantAttributes,
@@ -59,6 +64,7 @@ import {
 	isValidationError,
 	logger,
 	isVariantInStock,
+	LOYALTY_MIN_REDEEM,
 	maxRedeemable,
 	parseBody,
 	pointsEarnedFor,
@@ -67,31 +73,36 @@ import {
 	SHORT_BURST_WINDOW_MS,
 	unauthorized,
 	validateString,
-	type ActiveOffer,
-	type EvaluatableItem,
+	validateSubmittedCatalogOfferLock,
+	computeCodSurchargeRupees,
+	computeCourierShippingRupees,
+	getPaymentMethods,
+	isOfferEligible,
+	isOnlineCardCheckoutReady,
 	orderPaymentToCheckoutId,
 	toActiveOffer,
+	type EvaluatableItem,
 } from "@store/shared";
 
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 import { enforceSameOrigin } from "@/lib/api/sameOrigin";
+import { findVariantOnProduct } from "@/lib/cart/reconcileCartLines";
+import { applyCatalogVisibility, resolveCatalogVisibility } from "@/lib/core/queries";
 import { getVerifiedCustomer } from "@/lib/server/customerSession";
+import { startOrderOnlineCheckout, toOnlineCheckoutApiResponse } from "@/lib/payments/startOnlineCheckout";
 
 const ALLOWED_DELIVERY: ReadonlyArray<DeliveryMethod> = ["pickup", "courier"];
-const ALLOWED_PAYMENT: ReadonlyArray<PaymentMethod> = ["bank-transfer", "easypaisa", "jazzcash", "cod"];
+const ALLOWED_PAYMENT: ReadonlyArray<PaymentMethod> = ["bank-transfer", "cod", "card"];
 
 const isDeliveryMethod = (value: unknown): value is DeliveryMethod => typeof value === "string" && (ALLOWED_DELIVERY as readonly string[]).includes(value);
 const isPaymentMethod = (value: unknown): value is PaymentMethod => typeof value === "string" && (ALLOWED_PAYMENT as readonly string[]).includes(value);
 
-const COURIER_FLAT_FEE_RUPEES = 1_500;
 const MAX_LINES_PER_ORDER = 20;
 /** Inclusive minimum quantity per cart line — anything below is a bad-request. */
 const MIN_QUANTITY_PER_LINE = 1;
 const MAX_QUANTITY_PER_LINE = 10;
 /** Max order placements per IP+phone per `SHORT_BURST_WINDOW_MS`. */
 const MAX_ORDERS_PER_WINDOW = 5;
-/** Denominator used to convert a percent into a multiplier (e.g. 5 → 0.05). */
-const PERCENT_DENOMINATOR = 100;
 
 /** Inclusive minimum length for the customer's full name on checkout. */
 const MIN_NAME_CHARS = 2;
@@ -104,7 +115,10 @@ interface OrderItemBody {
 	productId?: unknown;
 	variantId?: unknown;
 	quantity?: unknown;
+	gradeSlug?: unknown;
+	attributes?: unknown;
 	appliedOfferId?: unknown;
+	appliedOfferLockedAt?: unknown;
 }
 
 interface AddressBody {
@@ -137,6 +151,9 @@ interface ResolvedItem {
 	productDoc: ProductAttributes & { _id: Types.ObjectId };
 	variant: VariantAttributes & { _id: Types.ObjectId };
 	quantity: number;
+	appliedOfferId?: string;
+	appliedOfferTitle?: string;
+	appliedOfferLockedAt?: Date;
 }
 
 export async function POST(request: Request) {
@@ -175,16 +192,29 @@ export async function POST(request: Request) {
 	}
 	const payment = body.payment;
 
+	if (payment === "card") {
+		const integration = await getIntegrationSettings();
+		if (!isOnlineCardCheckoutReady(integration)) {
+			return badRequest("Online payment is not available right now. Choose bank transfer or cash on delivery.");
+		}
+	}
+
+	const items = body.items;
+
 	// Items: at least one, at most MAX_LINES_PER_ORDER.
-	if (!Array.isArray(body.items) || body.items.length === 0) {
+	if (!Array.isArray(items) || items.length === 0) {
 		return badRequest("Cart cannot be empty.");
 	}
-	if (body.items.length > MAX_LINES_PER_ORDER) {
+	if (items.length > MAX_LINES_PER_ORDER) {
 		return badRequest(`Cart cannot contain more than ${MAX_LINES_PER_ORDER} lines.`);
 	}
 
 	const idempotencyKey =
 		typeof body.idempotencyKey === "string" && body.idempotencyKey.trim().length > 0 ? body.idempotencyKey.trim().slice(0, MAX_IDEMPOTENCY_KEY_CHARS) : undefined;
+
+	if (!idempotencyKey) {
+		return badRequest("Missing idempotency key. Refresh checkout and try again.");
+	}
 
 	await connectDB();
 
@@ -195,15 +225,41 @@ export async function POST(request: Request) {
 		const priorOrder = await OrderModel.findOne({
 			idempotencyKey,
 			customerId: actor.id,
-		}).lean<{ _id: Types.ObjectId; orderNumber: string; totals: { totalRupees: number }; pointsEarned: number; pointsRedeemed: number }>();
+		}).lean<{
+			_id: Types.ObjectId;
+			orderNumber: string;
+			payment: PaymentMethod;
+			status: OrderStatus;
+			totals: { totalRupees: number };
+			pointsEarned: number;
+			pointsRedeemed: number;
+		}>();
 		if (priorOrder) {
-			return created({
+			const base = {
 				id: priorOrder._id.toString(),
 				orderNumber: priorOrder.orderNumber,
 				totalRupees: priorOrder.totals.totalRupees,
 				pointsEarned: priorOrder.pointsEarned,
 				pointsRedeemed: priorOrder.pointsRedeemed,
-			});
+			};
+			if (priorOrder.payment === "card" && priorOrder.status === "pending-payment") {
+				const orderDoc = await OrderModel.findById(priorOrder._id);
+				if (orderDoc) {
+					try {
+						const [integration, storeSettings] = await Promise.all([getIntegrationSettings(), getStoreSettings()]);
+						const checkout = await startOrderOnlineCheckout({
+							order: orderDoc,
+							integration,
+							storeName: storeSettings.siteName,
+							publicSiteUrl: storeSettings.publicSiteUrl,
+						});
+						return created({ ...base, ...toOnlineCheckoutApiResponse(checkout) });
+					} catch {
+						return created(base);
+					}
+				}
+			}
+			return created(base);
 		}
 	}
 
@@ -252,15 +308,18 @@ export async function POST(request: Request) {
 		productId: string;
 		variantId: string;
 		quantity: number;
+		gradeSlug: string;
+		attributes: Record<string, string | string[]>;
 		appliedOfferId?: string;
+		appliedOfferLockedAt?: Date;
 	}
 	const productIds = new Set<string>();
 	// Merge by product+variant so the same variant sent across two lines is
 	// validated (and reserved) against one combined quantity — otherwise two
 	// qty-1 lines could each pass a "1 in stock" check and oversell.
 	const mergedLines = new Map<string, ValidatedLine>();
-	for (const raw of body.items) {
-		// `body.items` was confirmed to be an array above; each element still
+	for (const raw of items) {
+		// `items` was confirmed to be an array above; each element still
 		// arrives as a freshly-parsed JSON value, so we type it through the
 		// all-`unknown` `OrderItemBody` shape and validate every field below.
 		const line = raw as OrderItemBody;
@@ -281,31 +340,56 @@ export async function POST(request: Request) {
 			return badRequest(`Quantity per line cannot exceed ${MAX_QUANTITY_PER_LINE}.`);
 		}
 		const appliedOfferId = typeof line.appliedOfferId === "string" && isValidId(line.appliedOfferId) ? line.appliedOfferId : existing?.appliedOfferId;
+		let appliedOfferLockedAt: Date | undefined = existing?.appliedOfferLockedAt;
+		if (typeof line.appliedOfferLockedAt === "string" && line.appliedOfferLockedAt.trim().length > 0) {
+			const parsedLock = new Date(line.appliedOfferLockedAt);
+			if (!Number.isNaN(parsedLock.getTime())) {
+				appliedOfferLockedAt = parsedLock;
+			}
+		}
+		const gradeSlug = typeof line.gradeSlug === "string" ? line.gradeSlug : existing?.gradeSlug ?? "";
+		const attributes =
+			line.attributes && typeof line.attributes === "object" && !Array.isArray(line.attributes)
+				? (line.attributes as Record<string, string | string[]>)
+				: (existing?.attributes ?? {});
 		productIds.add(line.productId);
 		mergedLines.set(key, {
 			productId: line.productId,
 			variantId: line.variantId,
 			quantity: combined,
+			gradeSlug,
+			attributes,
 			appliedOfferId,
+			appliedOfferLockedAt,
 		});
 	}
 	const validatedLines: ValidatedLine[] = Array.from(mergedLines.values());
-	const products = await ProductModel.find({
+	const productFilter: Record<string, unknown> = {
 		_id: { $in: Array.from(productIds) },
 		isActive: true,
 		isArchived: { $ne: true },
-	}).lean<(ProductAttributes & { _id: Types.ObjectId })[]>();
+	};
+	applyCatalogVisibility(productFilter, await resolveCatalogVisibility());
+	const products = await ProductModel.find(productFilter).lean<(ProductAttributes & { _id: Types.ObjectId })[]>();
 	const productMap = new Map(products.map((doc) => [doc._id.toString(), doc]));
 
 	const resolvedItems: ResolvedItem[] = [];
 	for (const line of validatedLines) {
 		const product = productMap.get(line.productId);
 		if (!product) {
-			return conflict("One or more products are no longer available.");
+			return conflict("One or more products in your cart are no longer available. Remove them and add fresh items from the shop.");
 		}
-		const variant = product.variants.find((candidate) => candidate._id?.toString() === line.variantId);
+		const variant =
+			product.variants.find((candidate) => candidate._id?.toString() === line.variantId) ??
+			findVariantOnProduct(product, {
+				variantId: line.variantId,
+				gradeSlug: line.gradeSlug,
+				attributes: line.attributes,
+			});
 		if (!variant) {
-			return conflict(`Variant not found on ${product.name}.`);
+			return conflict(
+				`${product.name} in your cart is out of date. Remove it from your cart, open the product page again, and add it back before placing your order.`,
+			);
 		}
 		if (
 			!isVariantInStock({
@@ -325,12 +409,18 @@ export async function POST(request: Request) {
 			productDoc: product,
 			variant: variant as VariantAttributes & { _id: Types.ObjectId },
 			quantity: line.quantity,
+			appliedOfferId: line.appliedOfferId,
+			appliedOfferLockedAt: line.appliedOfferLockedAt,
 		});
 	}
 
 	// Totals — server-authoritative. Discount % and free-delivery threshold are
 	// resolved from `StoreSettings` so the admin can change them without a deploy.
 	const settings = await getStoreSettings();
+	const checkoutPaymentId = orderPaymentToCheckoutId(payment);
+	if (!checkoutPaymentId || !getPaymentMethods(settings).some((method) => method.id === checkoutPaymentId)) {
+		return badRequest("This payment method is not available right now.");
+	}
 	const subtotalRupees = resolvedItems.reduce((sum, line) => sum + line.variant.priceRupees * line.quantity, 0);
 
 	// Promotional offers — server-authoritative. The client computes the same
@@ -338,7 +428,6 @@ export async function POST(request: Request) {
 	// re-evaluated here from live offer documents so a tampered cart can't claim
 	// a discount that doesn't apply. Schedule/usage-limit gating happens inside
 	// `evaluateOffers`.
-	const offerDocs = await OfferModel.find({ isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean<(OfferAttributes & { _id: Types.ObjectId })[]>();
 	const evaluatableItems: EvaluatableItem[] = resolvedItems.map((line) => ({
 		id: `${line.productDoc._id.toString()}:${line.variant._id.toString()}`,
 		productId: line.productDoc._id.toString(),
@@ -350,17 +439,65 @@ export async function POST(request: Request) {
 		quantity: line.quantity,
 		attributes: line.variant.attributes ?? {},
 	}));
-	const lineOfferIds = Object.fromEntries(validatedLines.filter((line) => line.appliedOfferId).map((line) => [`${line.productId}:${line.variantId}`, line.appliedOfferId]));
+	const lineOfferIds = Object.fromEntries(resolvedItems.filter((line) => line.appliedOfferId).map((line) => [`${line.productDoc._id.toString()}:${line.variant._id.toString()}`, line.appliedOfferId]));
+
+	const lockedOfferIds = Array.from(new Set(resolvedItems.map((line) => line.appliedOfferId).filter((offerId): offerId is string => Boolean(offerId))));
+	const lockedOfferDocs =
+		lockedOfferIds.length > 0
+			? await OfferModel.find({ _id: { $in: lockedOfferIds }, isActive: true }).lean<(OfferAttributes & { _id: Types.ObjectId })[]>()
+			: [];
+	if (lockedOfferIds.length !== lockedOfferDocs.length) {
+		return badRequest("One or more applied offers are invalid.");
+	}
+	const lockedCatalogOffers = lockedOfferDocs.map(toActiveOffer).filter((offer) => isOfferEligible(offer));
+	const lockedOfferById = new Map(lockedCatalogOffers.map((offer) => [offer.id, offer]));
+
+	for (const line of resolvedItems) {
+		if (!line.appliedOfferId) {
+			continue;
+		}
+		const item = evaluatableItems.find((entry) => entry.id === `${line.productDoc._id.toString()}:${line.variant._id.toString()}`);
+		if (!item) {
+			return badRequest("Could not validate applied offer for a cart line.");
+		}
+		const offer = lockedOfferById.get(line.appliedOfferId);
+		const validationError = validateSubmittedCatalogOfferLock(line.appliedOfferId, item, offer, {
+			cartTotal: item.price * item.quantity,
+		});
+		if (validationError) {
+			return badRequest(validationError);
+		}
+		line.appliedOfferTitle = offer?.title;
+	}
+
+	const offerDocs = await OfferModel.find({ isActive: true }).sort({ sortOrder: 1, createdAt: -1 }).lean<(OfferAttributes & { _id: Types.ObjectId })[]>();
 	const offerPricing = evaluateCartOffers(evaluatableItems, offerDocs.map(toActiveOffer), {
 		paymentMethod: orderPaymentToCheckoutId(payment),
 		lineOfferIds,
+		lockedCatalogOffers,
 	});
 	const offerDiscountRupees = Math.round(offerPricing.totalDiscount);
+	if (offerDiscountRupees > subtotalRupees) {
+		return badRequest("Invalid offer discount for this cart.");
+	}
 
-	const paymentDiscountRupees = payment === "bank-transfer" ? Math.round((subtotalRupees * settings.bankTransferDiscountPercent) / PERCENT_DENOMINATOR) : 0;
-	// Single discount line on the order = payment-method discount + offer engine.
-	const discountRupees = paymentDiscountRupees + offerDiscountRupees;
-	const shippingRupees = delivery === "courier" && !offerPricing.freeShipping ? (subtotalRupees >= settings.freeDeliveryThresholdRupees ? 0 : COURIER_FLAT_FEE_RUPEES) : 0;
+	for (const line of resolvedItems) {
+		if (line.appliedOfferId && !offerPricing.appliedOfferIds.includes(line.appliedOfferId)) {
+			return badRequest("One or more applied offers could not be honored on this order.");
+		}
+	}
+
+	const subtotalAfterOffersRupees = subtotalRupees - offerDiscountRupees;
+	const paymentSurchargeRupees =
+		payment === "cod" ? computeCodSurchargeRupees(subtotalAfterOffersRupees, settings.codSurchargePercent) : 0;
+	const discountRupees = offerDiscountRupees;
+	const shippingRupees = computeCourierShippingRupees({
+		isCourierDelivery: delivery === "courier",
+		subtotalAfterOffersRupees,
+		freeDeliveryThresholdRupees: settings.freeDeliveryThresholdRupees,
+		courierFlatFeeRupees: settings.courierFlatFeeRupees,
+		offerGrantsFreeShipping: offerPricing.freeShipping,
+	});
 	const requestedRedeemPoints = Number(body.loyalty?.redeemPoints ?? 0);
 	if (!Number.isFinite(requestedRedeemPoints) || requestedRedeemPoints < 0) {
 		return badRequest("Redeemed points must be a positive number.");
@@ -370,15 +507,18 @@ export async function POST(request: Request) {
 		return badRequest("No loyalty balance is available for this customer.");
 	}
 	const pointsRedeemed = requestedRedeemPoints ? Math.floor(requestedRedeemPoints) : 0;
+	if (pointsRedeemed > 0 && pointsRedeemed < LOYALTY_MIN_REDEEM) {
+		return badRequest(`Redeem at least ${LOYALTY_MIN_REDEEM} points or leave redemption off.`);
+	}
 	if (pointsRedeemed > 0 && !offerPricing.isLoyaltyPointsAllowed) {
 		return badRequest("Loyalty points can't be combined with the current offers.");
 	}
-	const maxRedeemablePoints = loyaltyAccount ? maxRedeemable(subtotalRupees, loyaltyAccount.balance) : 0;
+	const maxRedeemablePoints = loyaltyAccount ? maxRedeemable(subtotalAfterOffersRupees, loyaltyAccount.balance) : 0;
 	if (pointsRedeemed > maxRedeemablePoints) {
 		return badRequest(`You can redeem up to ${maxRedeemablePoints} points on this order.`);
 	}
 	const pointsRedeemedRupees = pointsToRupees(pointsRedeemed);
-	const totalRupees = Math.max(0, subtotalRupees - discountRupees + shippingRupees - pointsRedeemedRupees);
+	const totalRupees = Math.max(0, subtotalAfterOffersRupees + shippingRupees + paymentSurchargeRupees - pointsRedeemedRupees);
 
 	const nextAddresses = addressInput && "value" in addressInput ? mergeCheckoutAddress(existingCustomer.addresses ?? [], addressInput.value) : (existingCustomer.addresses ?? []);
 
@@ -393,6 +533,8 @@ export async function POST(request: Request) {
 	let createdOrder: OrderDoc | null = null;
 	let reservation: { ok: boolean } | null = null;
 	let customerDoc: { _id: Types.ObjectId; isLoyaltyMember: boolean } | null = null;
+	let offerUsageReserved = false;
+	const reservedOfferIds = offerPricing.appliedOfferIds;
 	try {
 		customerDoc = await Customer.findByIdAndUpdate(
 			existingCustomer._id,
@@ -410,16 +552,33 @@ export async function POST(request: Request) {
 			return badRequest("Could not place order.");
 		}
 
-		// Compute the points the customer *will* earn once the order ships. The
-		// orderTransitions service only actually credits this on the `delivered`
-		// transition.
-		// Using `subtotalRupees` so a payment discount doesn't shrink the reward.
-		const pointsEarned = pointsEarnedFor(subtotalRupees, settings.loyaltyEarnPercent);
+		// Earn on the payable order total (merchandise after offers + fees − redemption).
+		const pointsEarned = pointsEarnedFor(totalRupees, settings.loyaltyEarnPercent);
 
 		reservation = await reserveStock(stockLines);
 		if (!reservation.ok) {
 			return conflict("Some items just sold out. Please review your cart and try again.");
 		}
+
+		if (reservedOfferIds.length > 0) {
+			const usageOk = await incrementOfferUsageCounts(reservedOfferIds);
+			if (!usageOk) {
+				await releaseStock(stockLines);
+				return conflict("One or more offers are no longer available. Refresh your cart and try again.");
+			}
+			offerUsageReserved = true;
+		}
+
+		// COD is confirmed on placement — customer pays cash on delivery.
+		// Bank transfer and card stay pending until admin confirms or gateway pays.
+		const initialStatus: OrderStatus = payment === "cod" ? "confirmed" : "pending-payment";
+		const placedAt = new Date();
+		const placementNote =
+			payment === "cod"
+				? "Cash on delivery order placed."
+				: payment === "bank-transfer"
+					? "Order placed — transfer payment and send screenshot on WhatsApp."
+					: "Order placed — complete online payment.";
 
 		createdOrder = await createWithUniqueOrderNumber<OrderDoc>((orderNumber) =>
 			OrderModel.create({
@@ -430,7 +589,7 @@ export async function POST(request: Request) {
 					phoneNumber: phoneResult,
 					city: cityResult,
 				},
-				status: "pending-payment",
+				status: initialStatus,
 				items: resolvedItems.map((line) => ({
 					productId: line.productDoc._id,
 					variantId: line.variant._id,
@@ -438,6 +597,13 @@ export async function POST(request: Request) {
 					variantSummary: buildVariantSummary(line.variant),
 					unitPriceRupees: line.variant.priceRupees,
 					quantity: line.quantity,
+					...(line.appliedOfferId
+						? {
+								appliedOfferId: line.appliedOfferId,
+								appliedOfferTitle: line.appliedOfferTitle,
+								appliedOfferLockedAt: line.appliedOfferLockedAt ?? new Date(),
+							}
+						: {}),
 				})),
 				delivery,
 				payment,
@@ -446,20 +612,27 @@ export async function POST(request: Request) {
 					subtotalRupees,
 					shippingRupees,
 					discountRupees,
+					paymentSurchargeRupees,
 					totalRupees,
 				},
 				timeline: [
-					{
-						status: "pending-payment",
-						occurredAt: new Date(),
-						note: "Order placed via storefront.",
-					},
+					payment === "cod"
+						? {
+								status: "confirmed",
+								occurredAt: placedAt,
+								note: placementNote,
+							}
+						: {
+								status: "pending-payment",
+								occurredAt: placedAt,
+								note: placementNote,
+							},
 				],
 				pointsEarned,
 				pointsRedeemed,
 				inventoryReserved: true,
 				idempotencyKey,
-				placedAt: new Date(),
+				placedAt,
 			}),
 		);
 
@@ -488,12 +661,57 @@ export async function POST(request: Request) {
 			}
 		}
 
-		// Best-effort usage tracking — a failure here must not fail a placed order.
-		if (offerPricing.appliedOfferIds.length > 0) {
+		const placedOrderNumber = createdOrder.orderNumber;
+		void fireOrderEventNotifications({
+			event: "placed",
+			order: createdOrder,
+			nextStatus: initialStatus,
+		}).catch((error: unknown) => {
+			logger.warn({ error, orderNumber: placedOrderNumber }, "Order notifications failed");
+		});
+
+		if (payment === "card") {
+			const integration = await getIntegrationSettings();
 			try {
-				await OfferModel.updateMany({ _id: { $in: offerPricing.appliedOfferIds } }, { $inc: { "constraints.usageCount": 1 } });
-			} catch (error) {
-				logger.warn({ error }, "Failed to increment offer usage counts");
+				const checkout = await startOrderOnlineCheckout({
+					order: createdOrder,
+					integration,
+					storeName: settings.siteName,
+					publicSiteUrl: settings.publicSiteUrl,
+				});
+				return created({
+					id: createdOrder._id.toString(),
+					orderNumber: createdOrder.orderNumber,
+					totalRupees,
+					pointsEarned,
+					pointsRedeemed,
+					...toOnlineCheckoutApiResponse(checkout),
+				});
+			} catch (gatewayError) {
+				logger.error({ error: gatewayError, orderNumber: createdOrder.orderNumber }, "Online checkout session failed");
+				await createdOrder.deleteOne().catch(() => undefined);
+				if (pointsRedeemed > 0) {
+					await LoyaltyAccount.findOneAndUpdate(
+						{ customerId: customerDoc!._id },
+						{
+							$inc: { balance: pointsRedeemed },
+							$push: {
+								transactions: {
+									kind: "adjust",
+									amount: pointsRedeemed,
+									occurredAt: new Date(),
+									reason: "Checkout payment setup failed — points restored.",
+									orderRef: createdOrder.orderNumber,
+								},
+							},
+						},
+					).catch(() => undefined);
+				}
+				await releaseStock(stockLines);
+				if (offerUsageReserved) {
+					await decrementOfferUsageCounts(reservedOfferIds).catch(() => undefined);
+				}
+				return serverError("Could not start card payment. Please try again or choose bank transfer or cash on delivery.");
 			}
 		}
 
@@ -512,6 +730,26 @@ export async function POST(request: Request) {
 		}
 		if (reservation?.ok) {
 			await releaseStock(stockLines);
+		}
+		if (offerUsageReserved) {
+			await decrementOfferUsageCounts(reservedOfferIds).catch(() => undefined);
+		}
+		if (pointsRedeemed > 0 && customerDoc) {
+			await LoyaltyAccount.findOneAndUpdate(
+				{ customerId: customerDoc._id },
+				{
+					$inc: { balance: pointsRedeemed },
+					$push: {
+						transactions: {
+							kind: "adjust",
+							amount: pointsRedeemed,
+							occurredAt: new Date(),
+							reason: "Order placement failed — points restored.",
+							orderRef: createdOrder?.orderNumber,
+						},
+					},
+				},
+			).catch(() => undefined);
 		}
 
 		// A duplicate idempotency key means a parallel submission won the race —
@@ -608,6 +846,10 @@ function parseAddress(input: AddressBody | undefined, fallbacks: AddressFallback
 		postalCode = result;
 	}
 
+	if (!street || street.length < 2) {
+		return { error: "Street address is required for courier delivery (at least 2 characters)." };
+	}
+
 	return {
 		value: {
 			recipientName: recipient,
@@ -678,3 +920,4 @@ function humaniseSlug(slug: string): string {
 		.map((segment) => (segment.length === 0 ? segment : segment[0].toUpperCase() + segment.slice(1)))
 		.join(" ");
 }
+

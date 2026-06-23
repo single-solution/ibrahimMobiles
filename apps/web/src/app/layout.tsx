@@ -3,11 +3,12 @@ import { Bricolage_Grotesque, Oswald } from "next/font/google";
 import { Footer } from "@/components/layout/Footer";
 import { AppShell } from "@/components/layout/AppShell";
 import { MarketingPixels, MarketingPixelsNoScript } from "@/app/_components/marketing/MarketingPixels";
+import { SiteJsonLd } from "@/app/_components/seo/SiteJsonLd";
 import { getStorefrontBaseUrl } from "@/lib/core/baseUrl";
-import { getAttributesCached, getCategoriesCached, getGradesCached, getStoreSettingsCached } from "@/lib/core/cached";
+import { getAttributesCached, getCategoriesCached, getGradesCached, getIntegrationSettingsCached, getStoreSettingsCached } from "@/lib/core/cached";
 import { getChatSettings } from "@/lib/chat/chatSettings";
 import { ChatSettingsProvider } from "@/lib/chat/chatSettingsContext";
-import { toClientChatSettings } from "@store/shared";
+import { isOnlineCardCheckoutReady, toClientChatSettings } from "@store/shared";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
 import { firstCategoryHref } from "@/lib/catalog/productPaths";
 import { getGoogleSiteVerification } from "@/lib/seo/googleVerification";
@@ -132,7 +133,16 @@ async function loadStorefrontReference(): Promise<ReferenceData> {
 }
 
 export default async function RootLayout({ children }: RootLayoutProps) {
-	const [settings, reference, chatSettings] = await Promise.all([getStoreSettingsCached(), loadStorefrontReference(), getChatSettings()]);
+	const [settings, reference, chatSettings, integration] = await Promise.all([
+		getStoreSettingsCached(),
+		loadStorefrontReference(),
+		getChatSettings(),
+		getIntegrationSettingsCached(),
+	]);
+	const storefrontSettings = {
+		...settings,
+		cardCheckoutReady: isOnlineCardCheckoutReady(integration),
+	};
 	const catalogHomeHref = firstCategoryHref(reference.categories) ?? "/";
 	return (
 		<html
@@ -210,8 +220,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 				// does NOT suppress mismatches in our own components.
 				suppressHydrationWarning
 			>
+				<SiteJsonLd />
 				<MarketingPixelsNoScript googleTagManagerId={settings.googleTagManagerId} />
-				<StoreSettingsProvider value={settings}>
+				<StoreSettingsProvider value={storefrontSettings}>
 					<ChatSettingsProvider value={toClientChatSettings(chatSettings)}>
 						<ReferenceProvider value={reference}>
 							<AppShell footer={<Footer settings={settings} catalogHomeHref={catalogHomeHref} />}>{children}</AppShell>

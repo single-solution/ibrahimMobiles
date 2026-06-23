@@ -3,7 +3,7 @@
  *
  * POST /api/auth/otp  { phoneNumber }
  *
- * - IP rate-limited to prevent SMS bombing.
+ * - IP rate-limited to prevent OTP abuse.
  * - Phone-scoped resend throttling lives inside `issueCode`.
  * - Always returns `200 { phoneTail, expiresAt }` for plausibly-valid phones
  *   (we never reveal whether a number is registered with us).

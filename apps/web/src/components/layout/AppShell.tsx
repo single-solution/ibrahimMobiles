@@ -12,6 +12,7 @@ import { StoreNoticeBanner } from "@/components/layout/StoreNoticeBanner";
 import { RevealRoot } from "@/components/shared/motion/RevealRoot";
 import { RouteTransition } from "@/components/shared/motion/RouteTransition";
 import { ToastProvider } from "@/components/ui/Toast";
+import { CartReconciliationRunner } from "@/lib/cart/useCartReconciliation";
 import { IdleRoutePrefetch } from "@/components/layout/IdleRoutePrefetch";
 
 /**
@@ -80,6 +81,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 	// `RouteTransition` applies a light cross-fade when the route commits.
 	return (
 		<ToastProvider>
+			<CartReconciliationRunner />
 			<div className="app-shell-pad flex min-h-dvh flex-col">
 				<a
 					href="#main-content"

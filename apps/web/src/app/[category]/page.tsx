@@ -14,7 +14,7 @@ import { ShopCatalogToolbarFallback, ShopProductsAreaFallback } from "@/componen
 import { NavigationPendingFallback } from "@/components/shared/NavigationPendingFallback";
 import { StructuredContentFull } from "@/components/shared/StructuredContent";
 import { parseFiltersFromSearchParams, type CategoryMeta, type ProductFilters, type ProductPage } from "@/lib/core";
-import { getCategoryBySlugCached, getProductsPageCached } from "@/lib/core/cached";
+import { getCategoriesCached, getCategoryBySlugCached, getProductsPageCached } from "@/lib/core/cached";
 import { composeCategorySeo } from "@/lib/seo/composeSeoMeta";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
 import { breadcrumbJsonLd, collectionPageJsonLd, jsonLdScriptContent } from "@/lib/seo/jsonLd";
@@ -28,6 +28,18 @@ import { breadcrumbJsonLd, collectionPageJsonLd, jsonLdScriptContent } from "@/l
 // every click. Mutations that need instant propagation should call
 // `revalidateTag(STOREFRONT_CACHE_TAG)` from the admin server action.
 export const revalidate = 60;
+
+/** Pre-build active category listings at deploy so first visitors skip cold ISR. */
+export async function generateStaticParams() {
+	try {
+		const categories = await getCategoriesCached();
+		return categories
+			.filter((category) => category.isActive)
+			.map((category) => ({ category: category.slug }));
+	} catch {
+		return [];
+	}
+}
 
 interface CategoryPageProps {
 	params: Promise<{ category: string }>;

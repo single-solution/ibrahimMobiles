@@ -1,7 +1,7 @@
 import { requireSession } from "@/lib/api/requireSession";
 import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { OFFER_FIELD_LIMITS } from "@/lib/api/fieldLimits";
-import { badRequest, conflict, created, isValidationError, normalizeStructuredContent, ok, parseBody, validateString, type OfferCondition } from "@store/shared";
+import { badRequest, conflict, created, isValidationError, normalizeOfferConstraintsForScope, normalizeStructuredContent, ok, parseBody, validateCatalogOfferRules, validateString, type OfferAction, type OfferCondition, type OfferConstraints } from "@store/shared";
 
 import { connectDB, handleMongoError, Offer } from "@store/db";
 
@@ -14,14 +14,13 @@ import { toOfferResponse, type OfferLean } from "@/lib/serializers/offer";
 import type { AdminOffer } from "@/types/models";
 import { parseSeoPayload } from "@/lib/api/seoPayload";
 
-function normalizeOfferConstraints(constraints: unknown) {
+function normalizeOfferConstraints(constraints: unknown, conditions: OfferCondition[]): OfferConstraints {
 	const base = typeof constraints === "object" && constraints !== null ? (constraints as Record<string, unknown>) : { allowLoyaltyPoints: false, usageCount: 0 };
-	return {
-		...base,
+	return normalizeOfferConstraintsForScope(conditions, {
 		allowLoyaltyPoints: Boolean(base.allowLoyaltyPoints),
 		isStackable: false,
 		usageCount: typeof base.usageCount === "number" ? base.usageCount : 0,
-	};
+	});
 }
 
 export async function GET(request: Request) {
@@ -136,6 +135,15 @@ export async function POST(request: Request) {
 	const content = normalizeStructuredContent(body.content, descriptionResult);
 
 	const candidateConditions: OfferCondition[] = Array.isArray(body.conditions) ? body.conditions : [];
+	const candidateAction: OfferAction =
+		typeof body.action === "object" && body.action !== null
+			? (body.action as OfferAction)
+			: { type: "percentage_discount", value: 10, target: "matched_items" };
+
+	const catalogValidationError = validateCatalogOfferRules(candidateConditions, candidateAction);
+	if (catalogValidationError) {
+		return badRequest(catalogValidationError);
+	}
 
 	await connectDB();
 
@@ -159,7 +167,7 @@ export async function POST(request: Request) {
 			conditions: candidateConditions,
 			action: typeof body.action === "object" && body.action !== null ? body.action : { type: "percentage_discount", value: 10, target: "matched_items" },
 			schedule: typeof body.schedule === "object" && body.schedule !== null ? body.schedule : {},
-			constraints: normalizeOfferConstraints(body.constraints),
+			constraints: normalizeOfferConstraints(body.constraints, candidateConditions),
 			...(seo ? { seo } : {}),
 		});
 		await recordActivity({

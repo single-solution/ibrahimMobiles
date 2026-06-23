@@ -164,7 +164,7 @@ interface AccountOverview {
 	totalSpentRupees: number;
 }
 
-const ACTIVE_STATUSES = new Set<OrderAttributes["status"]>(["pending-payment", "confirmed", "dispatched"]);
+const ACTIVE_STATUSES = new Set<OrderAttributes["status"]>(["pending-payment", "confirmed", "packed", "dispatched"]);
 
 export async function getAccountOverview(customerId: string): Promise<AccountOverview | null> {
 	const customer = await getAccountCustomer(customerId);

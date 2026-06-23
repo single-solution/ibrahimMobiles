@@ -70,10 +70,18 @@ async function getVerifiedSessionUncached(): Promise<VerifiedUser | null> {
 	}
 
 	await connectDB();
-	const user = await User.findById(userId).lean();
+	const user = await User.findById(userId).select({ email: 1, name: 1, role: 1, isSuperAdmin: 1, isActive: 1, passwordChangedAt: 1 }).lean();
 	if (!user || user.isActive === false) {
 		sessionCache.delete(userId);
 		logger.info({ userId }, "Session rejected: user not found or inactive");
+		return null;
+	}
+
+	const sessionChangedAt = session.user.passwordChangedAtMs ?? 0;
+	const dbChangedAt = user.passwordChangedAt?.getTime() ?? 0;
+	if (dbChangedAt > sessionChangedAt) {
+		sessionCache.delete(userId);
+		logger.info({ userId }, "Session rejected: password changed since login");
 		return null;
 	}
 

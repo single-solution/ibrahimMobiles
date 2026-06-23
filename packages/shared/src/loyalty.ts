@@ -1,6 +1,6 @@
 /**
  * Loyalty Points — math helpers shared by storefront, checkout, and admin.
- * Earn/review/referral rates come from live `StoreSettings` at call sites.
+ * Earn rate comes from live `StoreSettings` at call sites.
  */
 import type { StoreSettings } from "./storeSettings";
 
@@ -20,48 +20,6 @@ export const LOYALTY_MAX_REDEEM_PERCENT = 20;
 
 /** Minimum redemption per order to keep the UI tidy. */
 export const LOYALTY_MIN_REDEEM = 100;
-
-export interface LoyaltyEarnRule {
-	id: string;
-	label: string;
-	description: string;
-	reward: string;
-}
-
-/**
- * Build the customer-facing "how you earn" list from live admin settings.
- * The numbers in the copy track whatever the admin saved (e.g. raising
- * the earn percent from 1% to 2% updates the chip text automatically).
- */
-export function getLoyaltyEarnRules(settings: {
-	loyaltyEarnPercent: StoreSettings["loyaltyEarnPercent"];
-	loyaltyReviewBonusPoints: StoreSettings["loyaltyReviewBonusPoints"];
-	loyaltyReferralBonusPoints: StoreSettings["loyaltyReferralBonusPoints"];
-}): LoyaltyEarnRule[] {
-	const earnPercent = Math.max(0, settings.loyaltyEarnPercent);
-	const reviewBonus = Math.max(0, settings.loyaltyReviewBonusPoints);
-	const referralBonus = Math.max(0, settings.loyaltyReferralBonusPoints);
-	return [
-		{
-			id: "purchase",
-			label: "Every purchase",
-			description: `Earn ${earnPercent} ${POINT_LABEL_PLURAL} for every Rs ${PERCENT_DENOMINATOR} spent.`,
-			reward: `${earnPercent}% back`,
-		},
-		{
-			id: "review",
-			label: "Review your phone",
-			description: "Drop a quick review after delivery and we'll add bonus points.",
-			reward: `+ ${formatPointsShort(reviewBonus)} pts`,
-		},
-		{
-			id: "refer",
-			label: "Refer a friend",
-			description: "Both of you earn when their first order ships.",
-			reward: `+ ${formatPointsShort(referralBonus)} pts each`,
-		},
-	];
-}
 
 /**
  * Compute how many points an order earns based on its total (or subtotal).
@@ -99,7 +57,13 @@ export function formatPoints(value: number): string {
 	return `${value < 0 ? "−" : ""}${formatted} ${label}`;
 }
 
-/** Thousand-separated short form for inline chip copy ("1,500"). */
-function formatPointsShort(value: number): string {
-	return Math.max(0, value).toLocaleString("en-PK");
+/** Loyalty earn copy is only accurate after delivery credits the account. */
+export function isLoyaltyEarnCredited(orderStatus: string | undefined): boolean {
+	return orderStatus === "delivered";
+}
+
+/** Customer-facing earn copy from live admin settings. */
+export function formatLoyaltyEarnDescription(settings: Pick<StoreSettings, "loyaltyEarnPercent">): string {
+	const earnPercent = Math.max(0, settings.loyaltyEarnPercent);
+	return `Earn ${earnPercent} ${POINT_LABEL_PLURAL} for every Rs ${PERCENT_DENOMINATOR} spent.`;
 }
