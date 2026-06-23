@@ -8,6 +8,8 @@
  * Anthropic) are normalised to the same `AssistantChatMessage` / tool shapes.
  */
 
+import { logger } from "../logger";
+
 export const CHAT_ASSISTANT_PROVIDERS = ["openai", "google", "anthropic"] as const;
 export type ChatAssistantProvider = (typeof CHAT_ASSISTANT_PROVIDERS)[number];
 
@@ -109,6 +111,21 @@ const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models
 const ANTHROPIC_CHAT_URL = "https://api.anthropic.com/v1/messages";
 const REQUEST_TIMEOUT_MS = 12_000;
 
+/**
+ * Read a failed provider response body (truncated, no secrets) so the real
+ * cause — invalid key (401), bad model (400/404), rate limit/quota (429) — lands
+ * in logs instead of being swallowed into the generic customer fallback.
+ */
+async function logProviderHttpError(provider: ChatAssistantProvider, model: string, response: Response): Promise<void> {
+	let body = "";
+	try {
+		body = (await response.text()).slice(0, 300);
+	} catch {
+		// Body already consumed or unreadable — status alone is still useful.
+	}
+	logger.warn({ provider, model, status: response.status, body }, "chat-assistant: provider HTTP error");
+}
+
 function safeParseArguments(raw: unknown): Record<string, unknown> {
 	if (raw && typeof raw === "object") {
 		return raw as Record<string, unknown>;
@@ -185,6 +202,7 @@ async function callOpenAi(
 	});
 
 	if (!response.ok) {
+		await logProviderHttpError("openai", model, response);
 		return null;
 	}
 
@@ -297,6 +315,7 @@ async function callGemini(
 	});
 
 	if (!response.ok) {
+		await logProviderHttpError("google", model, response);
 		return null;
 	}
 
@@ -409,6 +428,7 @@ async function callAnthropic(
 	});
 
 	if (!response.ok) {
+		await logProviderHttpError("anthropic", model, response);
 		return null;
 	}
 
@@ -470,6 +490,17 @@ export async function callAssistantCompletion(input: AssistantCompletionInput): 
 			model: input.model,
 			provider: input.provider,
 		};
+	} catch (error) {
+		// AbortError = our own 12s timeout fired; anything else is a network/DNS
+		// failure reaching the provider. Either way, log the reason and return
+		// null so the caller serves the safe fallback instead of throwing into a
+		// no-reply for the customer.
+		const reason = error instanceof Error && error.name === "AbortError" ? "timeout" : "network";
+		logger.warn(
+			{ provider: input.provider, model: input.model, reason, error: error instanceof Error ? error.message : String(error) },
+			"chat-assistant: provider call threw",
+		);
+		return null;
 	} finally {
 		clearTimeout(timeout);
 	}
