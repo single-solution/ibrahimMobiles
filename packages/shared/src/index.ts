@@ -25,6 +25,7 @@ export * from "./chat/assistantConstants";
 export * from "./chat/storefrontPaths";
 export * from "./chat/assistantLanguage";
 export * from "./chat/assistantMessageRich";
+export * from "./chat/assistantQueryExtract";
 export * from "./wireCoercion";
 export * from "./icons";
 export * from "./classNames";

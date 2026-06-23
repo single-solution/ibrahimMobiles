@@ -6,6 +6,7 @@ import {
 	assistantReplyMatchesLanguage,
 	buildDealListMessageChunks,
 	customerAskedAboutDeals,
+	customerAskedProductComparison,
 	customerChatSupportLabel,
 	customerMessageIsGreetingOnly,
 	customerWantsHumanSupport,
@@ -21,6 +22,8 @@ import {
 import { notifyStaffOnInquiryEscalation } from "@store/shared/server";
 
 import type { InquiryLean } from "@/lib/chat/serializer";
+import { buildCatalogComparisonFallback } from "@/lib/chat/assistant/catalogComparisonFallback";
+import { buildSmartDataFallback } from "@/lib/chat/assistant/smartDataFallback";
 import { generateAssistantReply, isAssistantConfigured, resolveProviderApiKey, type AssistantChatTurn } from "@/lib/chat/assistant/generateReply";
 import { getChatSettings } from "@/lib/chat/chatSettings";
 import { getActiveOffersCached } from "@/lib/core/cached";
@@ -60,6 +63,9 @@ async function buildFallbackReply(input: {
 	supportPhone: string;
 	wantsHuman: boolean;
 	requiredLanguage: CustomerMessageLanguage;
+	verifiedCustomerId?: string;
+	subjectProductId?: string;
+	subjectProductName?: string;
 }): Promise<string[]> {
 	const { requiredLanguage } = input;
 
@@ -107,6 +113,16 @@ async function buildFallbackReply(input: {
 		];
 	}
 
+	if (customerAskedProductComparison(input.customerMessage)) {
+		const comparison = await buildCatalogComparisonFallback({
+			customerMessage: input.customerMessage,
+			requiredLanguage,
+		});
+		if (comparison?.length) {
+			return comparison;
+		}
+	}
+
 	if (customerMessageIsGreetingOnly(input.customerMessage)) {
 		if (requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script") {
 			return [
@@ -118,13 +134,24 @@ async function buildFallbackReply(input: {
 		];
 	}
 
+	const smartReply = await buildSmartDataFallback({
+		customerMessage: input.customerMessage,
+		requiredLanguage,
+		verifiedCustomerId: input.verifiedCustomerId,
+		subjectProductId: input.subjectProductId,
+		subjectProductName: input.subjectProductName,
+	});
+	if (smartReply?.length) {
+		return smartReply;
+	}
+
 	if (requiredLanguage === "roman_urdu" || requiredLanguage === "urdu_script") {
 		return [
-			`Shukriya — jo phone ya budget hai bata dein, main live price aur stock share kar dun ga. Ya "kisi se baat karni hai" likh dein, teammate join kar lega.`,
+			`Main ne catalog aur deals check kiye — exact match nahi mila. Model ka naam, budget, ya "deals" likh dein; ya "kisi se baat karni hai" for a teammate.`,
 		];
 	}
 	return [
-		`Thanks for your message. Tell me the phone or budget you are looking for and I will share live prices and stock, or say "speak to someone" if you want a teammate on this chat.`,
+		`I checked our live catalog and deals but did not find a clear match yet. Try a model name, budget, or say "deals" — or say "speak to someone" for a teammate.`,
 	];
 }
 
@@ -193,6 +220,9 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { 
 			supportPhone: store.supportPhone,
 			wantsHuman,
 			requiredLanguage,
+			verifiedCustomerId: options?.verifiedCustomerId,
+			subjectProductId: inquiry.subjectProductId?.toString(),
+			subjectProductName: inquiry.subjectProductName,
 		});
 		logger.warn(
 			{

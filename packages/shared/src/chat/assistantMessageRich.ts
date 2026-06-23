@@ -77,6 +77,36 @@ export function formatActiveDealsMarkdownTable(
 	return ["| Deal | Saving | When | Type | Until |", "| --- | --- | --- | --- | --- |", ...rows].join("\n") + overflow;
 }
 
+export interface AssistantCatalogTableRow {
+	name: string;
+	priceSummary: string;
+	stockLabel: string;
+	linkPath: string;
+}
+
+/** Markdown table for in-stock catalog matches in chat bubbles. */
+export function formatCatalogProductsMarkdownTable(
+	rows: AssistantCatalogTableRow[],
+	maxRows = 8,
+): string | undefined {
+	const visible = rows.slice(0, maxRows);
+	if (visible.length === 0) {
+		return undefined;
+	}
+
+	const tableRows = visible.map((row) => {
+		const name = escapeMarkdownTableCell(row.name);
+		const price = escapeMarkdownTableCell(row.priceSummary);
+		const stock = escapeMarkdownTableCell(row.stockLabel);
+		return `| **${name}** | **${price}** | ${stock} | [View](${row.linkPath}) |`;
+	});
+
+	const overflow =
+		rows.length > visible.length ? `\n| +${rows.length - visible.length} more | [Browse shop](/) | | | |` : "";
+
+	return ["| Phone | From | Stock | Link |", "| --- | --- | --- | --- |", ...tableRows].join("\n") + overflow;
+}
+
 /** Split deal answers into intro, table, and follow-up bubbles. */
 export function buildDealListMessageChunks(input: { intro: string; outro: string; offers: ActiveOffer[] }): string[] {
 	const table = formatActiveDealsMarkdownTable(input.offers);

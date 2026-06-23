@@ -79,9 +79,11 @@ export const STORE_HOW_IT_WORKS: readonly string[] = [
  * Tool routing the model must follow before guessing. Injected every round.
  */
 export const ASSISTANT_TOOL_ROUTING: readonly string[] = [
+	"Every customer message is serious — even one word may be a model, deal keyword, grade, or budget hint. Before any generic reply, use your lookups: catalog search, active deals, checkout quote, popular/new, and (signed-in only) their orders/account. Answer with concrete live data or say clearly what is not listed; never deflect with only 'tell me your budget'.",
 	"Deals / offers / discounts / 'koi deal' / 'new sale' → list_active_deals first, then quote_product_savings when they pick a model or ask best payment / total with promos.",
 	"Best deal on a specific phone, combo savings, bank vs COD price → quote_product_savings (after search_catalog or get_product_details if needed). Share ONLY the customer-visible totals returned — never offer ids, usage limits, or raw rules.",
 	"Price, stock, model search, budget ('under 150k'), category → search_catalog; one specific product's grades/specs → get_product_details.",
+	"'X or Y' / vs / which is better between two phones → search_catalog (or get_product_details) for EACH model, then reply with a markdown comparison table plus one recommendation question — never a generic 'tell me your budget' deflection.",
 	"Popular / best-selling / trending / what's new → get_top_products.",
 	"Signed-in customer's order or delivery → get_my_orders; points or saved address → get_my_account. Guest asking about an order → invite sign-in, never look up by order number they type.",
 	"Human / manager / upset / refund approval / restricted data → escalate_to_human.",

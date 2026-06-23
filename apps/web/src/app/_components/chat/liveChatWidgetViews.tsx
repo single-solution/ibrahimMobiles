@@ -10,13 +10,25 @@ import { ChatMessageBubble, ChatMessageDayDivider, ChatTypingIndicator, chatWelc
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
 /**
- * Human pacing model for bot bubbles.
- * We use a clean, deterministic character-count approach:
- * - 0.3 seconds per character for typing.
- * - 0.1 seconds per character for reading.
+ * Human pacing model for bot bubbles (2x faster than the original 20ms/100ms rates).
+ * Tables cap lower so long deal/comparison bubbles do not stall the chat.
  */
-/** Brief settle between a revealed bubble and the next typing pause. */
-const STAGGER_GAP_MS = 250;
+const STAGGER_GAP_MS = 125;
+const TYPING_MS_PER_CHAR = 10;
+const READING_MS_PER_CHAR = 50;
+const MAX_TYPING_MS = 2500;
+const MAX_READING_MS = 1200;
+
+function estimateTypingDelayMs(body: string): number {
+	if (/^\|/m.test(body.trim())) {
+		return Math.min(1500, 300 + body.length * 4);
+	}
+	return Math.min(MAX_TYPING_MS, body.length * TYPING_MS_PER_CHAR);
+}
+
+function estimateReadingDelayMs(customerBody: string): number {
+	return Math.min(MAX_READING_MS, customerBody.length * READING_MS_PER_CHAR);
+}
 
 /**
  * First-message bridge: shows the customer's just-sent bubble while the thread
@@ -192,7 +204,7 @@ export function ThreadConversation({
 				bumpReveal();
 				setBotActivity(false);
 				timerRef.current = setTimeout(() => doPump(), STAGGER_GAP_MS);
-			}, nextBody.length * 20); // 20ms per character
+			}, estimateTypingDelayMs(nextBody));
 		};
 
 		if (startGap > 0) {
@@ -231,7 +243,7 @@ export function ThreadConversation({
 		if (revealedAny) bumpReveal();
 		if (queueRef.current.length > 0 && !timerRef.current) {
 			const lastCustomer = [...messagesRef.current].reverse().find((message) => message.author === "customer");
-			readDelayRef.current = (lastCustomer?.body ?? "").length * 100;
+			readDelayRef.current = estimateReadingDelayMs(lastCustomer?.body ?? "");
 			pump();
 		}
 	}, [thread.messages, pump]);
