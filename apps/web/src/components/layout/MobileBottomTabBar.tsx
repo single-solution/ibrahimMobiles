@@ -207,7 +207,7 @@ function TabMessageItem() {
 			type="button"
 			onClick={handleClick}
 			className="tap focus-ring group relative flex w-full flex-col items-center justify-center gap-0.5"
-			aria-label={isActive ? "Close chat support" : "Chat support — get help with orders, products, and more"}
+			aria-label={isActive ? "Close chat" : "Need any help? Open chat support"}
 			aria-pressed={isActive}
 		>
 			<span
@@ -229,7 +229,9 @@ function TabMessageItem() {
 					</span>
 				)}
 			</span>
-			<span className={classNames("text-[11px] leading-none", isActive ? "font-semibold text-[var(--color-accent-800)]" : "font-medium text-[var(--color-ink-500)]")}>Support</span>
+			<span className={classNames("max-w-[4.5rem] text-center text-[10px] leading-tight", isActive ? "font-semibold text-[var(--color-accent-800)]" : "font-medium text-[var(--color-ink-500)]")}>
+				{isActive ? "Close" : "Need any help?"}
+			</span>
 		</button>
 	);
 }
