@@ -206,18 +206,18 @@ function TabMessageItem() {
 		<button
 			type="button"
 			onClick={handleClick}
-			className="tap focus-ring group relative flex w-full flex-col items-center justify-center gap-0.5"
+			className="tap focus-ring group relative flex h-full w-full items-center justify-center"
 			aria-label={isActive ? "Close chat" : "Need any help? Open chat support"}
 			aria-pressed={isActive}
 		>
 			<span
 				className={classNames(
-					"relative grid size-12 place-items-center rounded-[var(--radius-full)] text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-[transform,box-shadow] duration-300 active:scale-[0.97]",
+					"relative grid size-14 place-items-center rounded-[var(--radius-full)] text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-[transform,box-shadow] duration-300 active:scale-[0.97] -translate-y-[var(--mobile-tabbar-fab-lift)]",
 					"bg-[var(--color-ink-900)]",
 					isActive ? "shadow-[var(--shadow-lg)]" : "",
 				)}
 			>
-				<span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-500)] text-[var(--color-ink-900)] transition-transform group-active:scale-105">
+				<span className="grid size-10 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-400)] to-[var(--color-accent-500)] text-[var(--color-ink-900)] transition-transform group-active:scale-105">
 					<TabIcon size={18} strokeWidth={2.4} />
 				</span>
 				{!isActive && unread > 0 && (
@@ -229,7 +229,12 @@ function TabMessageItem() {
 					</span>
 				)}
 			</span>
-			<span className={classNames("max-w-[4.5rem] text-center text-[10px] leading-tight", isActive ? "font-semibold text-[var(--color-accent-800)]" : "font-medium text-[var(--color-ink-500)]")}>
+			<span
+				className={classNames(
+					"absolute bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap text-[11px] leading-none",
+					isActive ? "font-semibold text-[var(--color-accent-800)]" : "font-medium text-[var(--color-ink-500)]",
+				)}
+			>
 				{isActive ? "Close" : "Need any help?"}
 			</span>
 		</button>

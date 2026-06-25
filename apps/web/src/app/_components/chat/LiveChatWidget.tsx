@@ -493,7 +493,7 @@ export function LiveChatWidget({ onCollapse, initialOpenDetail = null, layout = 
 	if (!bootstrapLoaded) {
 		return (
 			<ChatShell layout={shellLayout} onClose={shellClose} title={siteName} subtitle="Connecting…">
-				<div className="flex flex-1 items-center justify-center text-sm text-[var(--color-ink-500)]">Loading chat…</div>
+				<div className="flex flex-1 items-center justify-center text-[length:var(--chat-font-body)] text-[var(--color-ink-500)]">Loading chat…</div>
 			</ChatShell>
 		);
 	}
@@ -501,13 +501,13 @@ export function LiveChatWidget({ onCollapse, initialOpenDetail = null, layout = 
 	if (!enabled) {
 		return (
 			<ChatShell layout={shellLayout} onClose={shellClose} title={siteName} subtitle="Chat is offline">
-				<div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-sm text-[var(--color-ink-500)]">
+				<div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-[length:var(--chat-font-body)] text-[var(--color-ink-500)]">
 					<p className="max-w-prose">Chat is currently disabled. Please reach us on WhatsApp.</p>
 					<a
 						href={buildWhatsAppLink("Salam!", whatsappNumber)}
 						target="_blank"
 						rel="noopener noreferrer"
-						className="rounded-[var(--radius-md)] bg-[var(--color-accent-500)] px-3 py-1.5 text-xs font-semibold text-[var(--color-ink-900)] hover:bg-[var(--color-accent-600)]"
+						className="rounded-[var(--radius-md)] bg-[var(--color-accent-500)] px-3 py-1.5 text-[length:var(--chat-font-body)] font-semibold text-[var(--color-ink-900)] hover:bg-[var(--color-accent-600)]"
 					>
 						Open WhatsApp
 					</a>
@@ -534,7 +534,7 @@ export function LiveChatWidget({ onCollapse, initialOpenDetail = null, layout = 
 			}
 		>
 			{bootstrapError && (
-				<div className="border-b border-[var(--color-danger-200)] bg-[var(--color-danger-50)] px-4 py-2 text-xs text-[var(--color-danger-700)]">{bootstrapError}</div>
+				<div className="border-b border-[var(--color-danger-200)] bg-[var(--color-danger-50)] px-4 py-2 text-[length:var(--chat-font-small)] text-[var(--color-danger-700)]">{bootstrapError}</div>
 			)}
 			{view === "starting" && pendingFirstMessage && <StartingConversation message={pendingFirstMessage} />}
 			{view === "compose" && (

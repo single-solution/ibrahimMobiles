@@ -9,6 +9,92 @@ import { CHAT_GUEST_MESSAGE_LIMIT, CHAT_MESSAGE_BODY_MAX, classNames, type ChatM
 import { ChatMessageBubble, ChatMessageDayDivider, ChatTypingIndicator, chatWelcomeMessage, groupChatMessagesByDay } from "@/app/_components/chat/chatMessageUi";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
 
+const CHAT_COMPOSER_FORM_CLASS =
+	"flex items-end gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2.5 max-md:gap-2.5 max-md:px-3.5 max-md:py-3";
+const CHAT_COMPOSER_TEXTAREA_CLASS =
+	"box-border max-h-[120px] min-h-[var(--chat-composer-control-h)] min-w-0 flex-1 resize-none rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] px-3 py-2 max-md:px-3.5 text-[length:var(--chat-font-body)] leading-normal text-[var(--color-ink-800)] placeholder:text-[var(--color-ink-400)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-500)] disabled:opacity-60";
+const CHAT_COMPOSER_SEND_CLASS =
+	"tap grid h-[var(--chat-composer-control-h)] w-[var(--chat-composer-control-h)] shrink-0 place-items-center self-end rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] transition-colors enabled:hover:bg-[var(--color-ink-800)] disabled:opacity-40";
+
+const CHAT_COMPOSER_MAX_HEIGHT_PX = 120;
+
+function isMobileChatComposerViewport(): boolean {
+	if (typeof window === "undefined") {
+		return false;
+	}
+	return window.matchMedia("(max-width: 39.999rem)").matches;
+}
+
+interface ChatComposerProps {
+	draft: string;
+	onDraftChange: (value: string) => void;
+	onSubmit: () => void | Promise<void>;
+	sending: boolean;
+	placeholder: string;
+	ariaLabel: string;
+}
+
+function ChatComposer({ draft, onDraftChange, onSubmit, sending, placeholder, ariaLabel }: ChatComposerProps) {
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+	useLayoutEffect(() => {
+		const textarea = textareaRef.current;
+		if (!textarea) {
+			return;
+		}
+		textarea.style.height = "auto";
+		textarea.style.height = `${Math.min(textarea.scrollHeight, CHAT_COMPOSER_MAX_HEIGHT_PX)}px`;
+	}, [draft]);
+
+	async function handleFormSubmit(event: React.FormEvent) {
+		event.preventDefault();
+		await onSubmit();
+	}
+
+	function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+		if (event.key !== "Enter") {
+			return;
+		}
+		if (isMobileChatComposerViewport()) {
+			return;
+		}
+		if (event.shiftKey) {
+			return;
+		}
+		event.preventDefault();
+		void onSubmit();
+	}
+
+	return (
+		<form onSubmit={handleFormSubmit} className={CHAT_COMPOSER_FORM_CLASS}>
+			<textarea
+				ref={textareaRef}
+				value={draft}
+				onChange={(event) => onDraftChange(event.target.value)}
+				onKeyDown={handleKeyDown}
+				placeholder={placeholder}
+				aria-label={ariaLabel}
+				maxLength={CHAT_MESSAGE_BODY_MAX}
+				rows={1}
+				disabled={sending}
+				className={CHAT_COMPOSER_TEXTAREA_CLASS}
+			/>
+			<button
+				type="submit"
+				aria-label="Send message"
+				disabled={sending || draft.trim().length === 0}
+				className={CHAT_COMPOSER_SEND_CLASS}
+			>
+				{sending ? (
+					<span className="block size-3.5 max-md:size-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+				) : (
+					<Send className="size-3.5 max-md:size-4" strokeWidth={2.2} />
+				)}
+			</button>
+		</form>
+	);
+}
+
 /**
  * Human pacing model for bot bubbles (2x faster than the original 20ms/100ms rates).
  * Tables cap lower so long deal/comparison bubbles do not stall the chat.
@@ -73,10 +159,9 @@ export function ChatShell({ title, subtitle, onClose, onBack, layout: _layout = 
 			aria-label={`Chat with ${title}`}
 			/* Anchored popover on every breakpoint — the widget appears to
          "lift" out of the floating FAB rather than take over the screen.
-         Sized to match the cart dropdown so chat and cart feel like
-         siblings, with mobile shrinking only when the viewport can't fit
-         the desktop dimensions. */
-			className="flex h-full w-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:rounded-[var(--radius-lg)]"
+         Desktop width uses --desktop-chat-sheet-w; mobile fills the sheet
+         inset between header and tab bar. */
+			className="chat-widget flex h-full w-full flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] md:rounded-[var(--radius-lg)]"
 		>
 			<header className="flex items-center gap-3 border-b border-[var(--color-accent-200)] bg-[var(--color-accent-50)] px-3 py-3 text-[var(--color-ink-900)]">
 				{onBack ? (
@@ -94,8 +179,8 @@ export function ChatShell({ title, subtitle, onClose, onBack, layout: _layout = 
 					</span>
 				)}
 				<div className="min-w-0 flex-1">
-					<p className="text-sm font-semibold leading-tight">{title}</p>
-					<p className="truncate text-[11px] leading-tight text-[var(--color-ink-700)]">{subtitle}</p>
+					<p className="text-[length:var(--chat-font-body)] font-semibold leading-tight">{title}</p>
+					<p className="truncate text-[length:var(--chat-font-small)] leading-tight text-[var(--color-ink-700)]">{subtitle}</p>
 				</div>
 				{onClose && (
 					<button
@@ -314,9 +399,10 @@ export function ThreadConversation({
 
 	const groupedMessages = groupChatMessagesByDay(visibleMessages);
 
-	async function handleSubmit(event: React.FormEvent) {
-		event.preventDefault();
-		if (loginRequired || draft.trim().length === 0) return;
+	async function sendDraft() {
+		if (loginRequired || draft.trim().length === 0 || sending) {
+			return;
+		}
 		const body = draft.trim();
 		setSending(true);
 		setError(null);
@@ -353,7 +439,7 @@ export function ThreadConversation({
 				))}
 				{assistantEnabled && !thread.assistantPaused && botActivity && <ChatTypingIndicator label={botActivity === "reading" ? "Just a moment..." : undefined} />}
 				{thread.messages.length === 0 && (
-					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3.5 text-xs leading-relaxed text-[var(--color-ink-600)] shadow-[var(--shadow-sm)]">
+					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3.5 text-[length:var(--chat-font-body)] leading-relaxed text-[var(--color-ink-600)] shadow-[var(--shadow-sm)]">
 						{chatWelcomeMessage({
 							audience: thread.customerId ? "customer" : "guest",
 							guestMessageLimit,
@@ -363,35 +449,24 @@ export function ThreadConversation({
 					</div>
 				)}
 			</div>
-			{error && <div className="border-t border-[var(--color-danger-200)] bg-[var(--color-danger-50)] px-3 py-1.5 text-[11px] text-[var(--color-danger-700)]">{error}</div>}
+			{error && <div className="border-t border-[var(--color-danger-200)] bg-[var(--color-danger-50)] px-3 py-1.5 text-[length:var(--chat-font-small)] text-[var(--color-danger-700)]">{error}</div>}
 			{loginRequired ? (
 				<ChatLoginGate signInHref={signInHref} />
 			) : (
 				<>
 					{previewMessagesLeft !== null && previewMessagesLeft <= 2 && (
-						<p className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-1.5 text-center text-[10px] text-[var(--color-ink-500)]">
+						<p className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-1.5 text-center text-[length:var(--chat-font-small)] text-[var(--color-ink-500)]">
 							{previewMessagesLeft === 1 ? "Last preview message — sign in after this to continue." : `${previewMessagesLeft} preview messages left before sign-in.`}
 						</p>
 					)}
-					<form onSubmit={handleSubmit} className="flex items-center gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2.5">
-						<input
-							type="text"
-							value={draft}
-							onChange={(event) => setDraft(event.target.value)}
-							placeholder="Type a message"
-							aria-label="Type a message"
-							maxLength={CHAT_MESSAGE_BODY_MAX}
-							className="h-9 flex-1 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] px-3 text-sm text-[var(--color-ink-800)] placeholder:text-[var(--color-ink-400)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-500)] disabled:opacity-60"
-						/>
-						<button
-							type="submit"
-							aria-label="Send message"
-							disabled={sending || draft.trim().length === 0}
-							className="tap grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] disabled:opacity-40"
-						>
-							<Send size={14} />
-						</button>
-					</form>
+					<ChatComposer
+						draft={draft}
+						onDraftChange={setDraft}
+						onSubmit={sendDraft}
+						sending={sending}
+						placeholder="Type a message"
+						ariaLabel="Type a message"
+					/>
 				</>
 			)}
 		</>
@@ -422,9 +497,10 @@ export function ComposeConversation({
 	const [sending, setSending] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	async function handleSubmit(event: React.FormEvent) {
-		event.preventDefault();
-		if (draft.trim().length === 0 || sending) return;
+	async function sendDraft() {
+		if (draft.trim().length === 0 || sending) {
+			return;
+		}
 		const body = draft.trim();
 		setSending(true);
 		setError(null);
@@ -442,7 +518,7 @@ export function ComposeConversation({
 	return (
 		<>
 			<div className="flex-1 space-y-3 overflow-y-auto bg-[var(--color-canvas-deep)] px-3 py-3">
-				<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3.5 text-xs leading-relaxed text-[var(--color-ink-600)] shadow-[var(--shadow-sm)]">
+				<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-3.5 text-[length:var(--chat-font-body)] leading-relaxed text-[var(--color-ink-600)] shadow-[var(--shadow-sm)]">
 					{welcomeMessage ??
 						chatWelcomeMessage({
 							audience: isSignedInCustomer ? "customer" : "guest",
@@ -451,9 +527,9 @@ export function ComposeConversation({
 					{subjectProductName ? <p className="mt-2 font-semibold text-[var(--color-ink-800)]">About: {subjectProductName}</p> : null}
 				</div>
 			</div>
-			{error ? <div className="border-t border-[var(--color-danger-200)] bg-[var(--color-danger-50)] px-3 py-1.5 text-[11px] text-[var(--color-danger-700)]">{error}</div> : null}
+			{error ? <div className="border-t border-[var(--color-danger-200)] bg-[var(--color-danger-50)] px-3 py-1.5 text-[length:var(--chat-font-small)] text-[var(--color-danger-700)]">{error}</div> : null}
 			{!isSignedInCustomer ? (
-				<p className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-1.5 text-center text-[10px] text-[var(--color-ink-500)]">
+				<p className="border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-3 py-1.5 text-center text-[length:var(--chat-font-small)] text-[var(--color-ink-500)]">
 					Guest preview —{" "}
 					<Link href={signInHref} className="font-semibold text-[var(--color-accent-700)] underline">
 						sign in
@@ -461,26 +537,14 @@ export function ComposeConversation({
 					after a few messages to continue.
 				</p>
 			) : null}
-			<form onSubmit={handleSubmit} className="flex items-center gap-2 border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3 py-2.5">
-				<input
-					type="text"
-					value={draft}
-					onChange={(event) => onDraftChange(event.target.value)}
-					placeholder="Type your first message"
-					aria-label="Type your first message"
-					maxLength={CHAT_MESSAGE_BODY_MAX}
-					disabled={sending}
-					className="h-9 flex-1 rounded-[var(--radius-md)] bg-[var(--color-canvas-deep)] px-3 text-sm text-[var(--color-ink-800)] placeholder:text-[var(--color-ink-400)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-500)] disabled:opacity-60"
-				/>
-				<button
-					type="submit"
-					aria-label="Send message"
-					disabled={sending || draft.trim().length === 0}
-					className="tap grid size-9 place-items-center rounded-[var(--radius-md)] bg-[var(--color-ink-900)] text-[var(--color-on-dark)] disabled:opacity-40"
-				>
-					{sending ? <span className="block size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" /> : <Send size={14} />}
-				</button>
-			</form>
+			<ChatComposer
+				draft={draft}
+				onDraftChange={onDraftChange}
+				onSubmit={sendDraft}
+				sending={sending}
+				placeholder="Type your first message"
+				ariaLabel="Type your first message"
+			/>
 		</>
 	);
 }
@@ -494,7 +558,7 @@ function AssistantPausedNotice(_props: { reason?: ChatThread["assistantPauseReas
 	return (
 		<div
 			role="status"
-			className="flex items-start gap-2 border-b border-[var(--color-warn-200)] bg-[var(--color-warn-50)] px-3 py-2.5 text-[11px] leading-relaxed text-[var(--color-warn-900)]"
+			className="flex items-start gap-2 border-b border-[var(--color-warn-200)] bg-[var(--color-warn-50)] px-3 py-2.5 text-[length:var(--chat-font-small)] leading-relaxed text-[var(--color-warn-900)]"
 		>
 			<AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden />
 			<span>
@@ -507,13 +571,13 @@ function AssistantPausedNotice(_props: { reason?: ChatThread["assistantPauseReas
 function ChatLoginGate({ signInHref }: { signInHref: string }) {
 	return (
 		<div className="border-t border-[var(--color-ink-100)] bg-[var(--color-surface)] px-4 py-4">
-			<p className="text-center text-sm font-medium text-[var(--color-ink-800)]">Sign in to keep chatting</p>
-			<p className="mx-auto mt-1 max-w-prose text-center text-xs leading-relaxed text-[var(--color-ink-600)]">
+			<p className="text-center text-[length:var(--chat-font-body)] font-medium text-[var(--color-ink-800)]">Sign in to keep chatting</p>
+			<p className="mx-auto mt-1 max-w-prose text-center text-[length:var(--chat-font-body)] leading-relaxed text-[var(--color-ink-600)]">
 				You&apos;ve used your {CHAT_GUEST_MESSAGE_LIMIT} free preview messages. Sign in to continue this conversation and get order updates.
 			</p>
 			<Link
 				href={signInHref}
-				className="tap mt-3 flex h-10 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-sm font-semibold text-[var(--color-ink-900)] hover:bg-[var(--color-accent-600)]"
+				className="tap mt-3 flex h-10 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-accent-500)] text-[length:var(--chat-font-body)] font-semibold text-[var(--color-ink-900)] hover:bg-[var(--color-accent-600)]"
 			>
 				Sign in
 			</Link>
@@ -523,7 +587,7 @@ function ChatLoginGate({ signInHref }: { signInHref: string }) {
 
 export function SupportHintFooter({ assistantEnabled, assistantPaused = false }: SupportHintFooterProps) {
 	return (
-		<p className="mx-auto border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-4 py-2.5 text-center text-[11px] leading-relaxed text-[var(--color-ink-600)]">
+		<p className="mx-auto border-t border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)] px-4 py-2.5 text-center text-[length:var(--chat-font-small)] leading-relaxed text-[var(--color-ink-600)]">
 			<span className="mx-auto block max-w-prose">
 				{assistantPaused
 					? "Leave your message below — a teammate will read this chat and reply here."

@@ -129,7 +129,7 @@ function renderInlineSegments(text: string, keyPrefix: string): ReactNode[] {
 function ChatMarkdownTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
 	return (
 		<div className="overflow-x-auto rounded-[var(--radius-md)] border border-[var(--color-ink-100)]">
-			<table className="w-full min-w-[280px] border-collapse text-left text-[11px] leading-snug">
+			<table className="w-full min-w-[280px] border-collapse text-left text-[length:var(--chat-font-body)] leading-snug">
 				<thead>
 					<tr className="border-b border-[var(--color-ink-100)] bg-[var(--color-canvas-deep)]">
 						{headers.map((header, index) => (
@@ -297,7 +297,7 @@ export function groupChatMessagesByDay(messages: ChatMessage[]): ChatMessageDayG
 export function ChatMessageDayDivider({ label }: { label: string }) {
 	return (
 		<div className="flex justify-center py-1">
-			<span className="rounded-[var(--radius-full)] bg-[var(--color-surface)] px-3 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--color-ink-500)] shadow-[var(--shadow-sm)]">
+			<span className="rounded-[var(--radius-full)] bg-[var(--color-surface)] px-3 py-1 text-[length:var(--chat-font-meta)] font-medium uppercase tracking-[0.18em] text-[var(--color-ink-500)] shadow-[var(--shadow-sm)]">
 				{label}
 			</span>
 		</div>
@@ -308,11 +308,11 @@ export function ChatMessageDayDivider({ label }: { label: string }) {
 export function ChatTypingIndicator({ label }: { label?: string }) {
 	return (
 		<div className="chat-msg-in flex justify-start gap-2.5">
-			<span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-300)] to-[var(--color-accent-500)] text-[11px] font-semibold text-[var(--color-ink-900)]">
+			<span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-300)] to-[var(--color-accent-500)] text-[length:var(--chat-font-caption)] font-semibold text-[var(--color-ink-900)]">
 				{CHAT_SUPPORT_DISPLAY_NAME.charAt(0).toUpperCase()}
 			</span>
 			<div className="flex items-center gap-2 rounded-[var(--radius-lg)] rounded-tl-sm border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3.5 py-3 shadow-[var(--shadow-sm)]">
-				<span className="text-xs font-medium text-[var(--color-ink-500)]">{label ?? `${CHAT_SUPPORT_DISPLAY_NAME} is typing`}</span>
+				<span className="text-[length:var(--chat-font-body)] font-medium text-[var(--color-ink-500)]">{label ?? `${CHAT_SUPPORT_DISPLAY_NAME} is typing`}</span>
 				<span className="flex items-center gap-1">
 					<span className="size-1.5 animate-bounce rounded-full bg-[var(--color-ink-400)] [animation-delay:-0.3s]" />
 					<span className="size-1.5 animate-bounce rounded-full bg-[var(--color-ink-400)] [animation-delay:-0.15s]" />
@@ -339,21 +339,21 @@ export function ChatMessageBubble({ message, variant = "widget" }: ChatMessageBu
 	return (
 		<div className={classNames("chat-msg-in flex gap-2.5", isCustomer ? "justify-end" : "justify-start")}>
 			{!isCustomer && (
-				<span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-300)] to-[var(--color-accent-500)] text-[11px] font-semibold text-[var(--color-ink-900)]">
+				<span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-300)] to-[var(--color-accent-500)] text-[length:var(--chat-font-caption)] font-semibold text-[var(--color-ink-900)]">
 					{(isAssistant ? "S" : (message.authorName ?? "T")).charAt(0).toUpperCase()}
 				</span>
 			)}
 			<div
 				className={classNames(
 					maxWidth,
-					"whitespace-pre-line rounded-[var(--radius-lg)] px-3.5 py-2.5 text-sm leading-relaxed shadow-[var(--shadow-sm)]",
+					"whitespace-pre-line rounded-[var(--radius-lg)] px-3.5 py-2.5 text-[length:var(--chat-font-body)] leading-relaxed shadow-[var(--shadow-sm)]",
 					isCustomer
 						? "rounded-tr-sm border border-[var(--color-accent-300)] bg-[var(--color-accent-50)] text-[var(--color-ink-800)]"
 						: "rounded-tl-sm border border-[var(--color-ink-100)] bg-[var(--color-surface)] text-[var(--color-ink-800)]",
 				)}
 			>
 				{teamLabel && !isCustomer && (
-					<p className={classNames("mb-1 text-[10px] font-semibold uppercase tracking-wide", isAssistant ? "text-[var(--color-ink-700)]" : "text-[var(--color-ink-500)]")}>
+					<p className={classNames("mb-1 text-[length:var(--chat-font-caption)] font-semibold uppercase tracking-wide", isAssistant ? "text-[var(--color-ink-700)]" : "text-[var(--color-ink-500)]")}>
 						{teamLabel}
 					</p>
 				)}
@@ -365,7 +365,7 @@ export function ChatMessageBubble({ message, variant = "widget" }: ChatMessageBu
 					</div>
 				)}
 				{message.body.trim().length > 0 && <div>{renderRichMessageBody(message.body)}</div>}
-				<p className={classNames("mt-1 text-[10px]", isCustomer ? "text-[var(--color-ink-500)]" : "text-[var(--color-ink-500)]")}>
+				<p className={classNames("mt-1 text-[length:var(--chat-font-meta)]", isCustomer ? "text-[var(--color-ink-500)]" : "text-[var(--color-ink-500)]")}>
 					{new Date(message.createdAt).toLocaleTimeString(undefined, {
 						hour: "numeric",
 						minute: "2-digit",
@@ -401,11 +401,11 @@ function ChatAttachmentPreview({ attachment }: { attachment: ChatAttachment }) {
 			href={attachment.url}
 			target="_blank"
 			rel="noopener noreferrer"
-			className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-ink-800)] hover:bg-[var(--color-accent-50)]"
+			className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas-deep)] px-2.5 py-1.5 text-[length:var(--chat-font-body)] font-medium text-[var(--color-ink-800)] hover:bg-[var(--color-accent-50)]"
 		>
 			<Paperclip size={12} />
 			<span className="max-w-[180px] truncate">{attachment.filename}</span>
-			<span className="text-[10px] text-[var(--color-ink-500)]">{sizeKb} KB</span>
+			<span className="text-[length:var(--chat-font-meta)] text-[var(--color-ink-500)]">{sizeKb} KB</span>
 		</a>
 	);
 }

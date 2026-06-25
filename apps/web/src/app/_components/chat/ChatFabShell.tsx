@@ -264,7 +264,7 @@ export function ChatFabShell() {
 							className={classNames(
 								"fixed z-[var(--z-modal)] flex min-h-0 flex-col",
 								"inset-x-3 top-[var(--mobile-chat-sheet-top)] bottom-[var(--mobile-chat-sheet-bottom)]",
-								"md:inset-x-auto md:right-7 md:top-auto md:bottom-[calc(28px+3.25rem+10px)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[440px]",
+								"md:inset-x-auto md:right-7 md:top-auto md:bottom-[calc(28px+3.25rem+10px)] md:h-[min(620px,calc(100dvh-var(--desktop-header-h)-32px))] md:w-[var(--desktop-chat-sheet-w)]",
 								isClosing ? "animate-popover-out" : "animate-popover-in",
 							)}
 						>

@@ -162,6 +162,7 @@
 	--shadow-lg: 0 14px 36px -10px color-mix(in srgb, var(--color-ink-900) 12%, transparent);
 
 	--mobile-tabbar-h: 64px;
+	--mobile-tabbar-fab-lift: 1.25rem;
 	--mobile-header-h: 56px;
 	--mobile-tabbar-bottom-offset: calc(env(safe-area-inset-bottom, 0px) + 4px);
 	--mobile-tabbar-inline-inset: 0.75rem;
@@ -171,11 +172,12 @@
 	--mobile-shop-toolbar-gap: 4px;
 	--mobile-shop-toolbar-bottom: calc(var(--mobile-tabbar-bottom-offset) + var(--mobile-tabbar-h) + var(--mobile-shop-toolbar-gap));
 	--mobile-chat-sheet-top: calc(env(safe-area-inset-top, 0px) + var(--mobile-header-h) + 8px);
-	--mobile-chat-sheet-bottom: calc(var(--mobile-tabbar-bottom-offset) + var(--mobile-tabbar-h) + 8px);
+	--mobile-chat-sheet-bottom: calc(var(--mobile-tabbar-bottom-offset) + var(--mobile-tabbar-h) + var(--mobile-tabbar-fab-lift) + 8px);
 	--mobile-toolbar-sticky-top: calc(env(safe-area-inset-top, 0px) + var(--mobile-header-h));
 
 	/* Desktop header height = 64px nav row. */
 	--desktop-header-h: 64px;
+	--desktop-chat-sheet-w: 580px;
 
 	--z-sticky: 40;
 	--z-overlay: 50;
@@ -1698,6 +1700,14 @@ html {
 }
 
 /* Chat message bubbles spring in on mount (initial open + each new message). */
+.chat-widget {
+	--chat-font-body: 0.9375rem;
+	--chat-font-small: 0.8125rem;
+	--chat-font-caption: 0.75rem;
+	--chat-font-meta: 0.6875rem;
+	--chat-composer-control-h: 2.75rem;
+}
+
 .chat-msg-in {
 	animation: chat-msg-in 340ms var(--ease-spring-soft) backwards;
 }
