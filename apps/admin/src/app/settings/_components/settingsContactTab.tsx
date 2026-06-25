@@ -22,7 +22,7 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
 			icon: Phone,
 		},
 		{
-			label: "WhatsApp",
+			label: "Customer WhatsApp",
 			value: draft.whatsappNumber || "Not set",
 			tone: wa ? (whatsappInvalid ? "warn" : "good") : "warn",
 			icon: MessageCircle,
@@ -86,7 +86,7 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
 				/>
 			}
 		>
-			<FormSection title="Store contact" description="Used in the support strip, footer, automated inquiry replies, and order confirmation emails.">
+			<FormSection title="Store contact" description="Support phone is for calls. WhatsApp number is separate — customer chat links only (footer, PDP, orders). Staff alert numbers live under Integrations.">
 				<FormGrid cols={3}>
 					<TextField
 						label="Support phone"
@@ -95,6 +95,7 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
 						placeholder="+92 320 4862403"
 						inputMode="tel"
 						autoComplete="tel"
+						hint="Callers reach this for sales and support. Not used for WhatsApp chat links."
 						leadingIcon={<Phone size={14} />}
 						disabled={!canUpdate}
 					/>
@@ -119,12 +120,12 @@ export function ContactSettings({ draft, saved, setField, onSaved, canUpdate }: 
 						disabled={!canUpdate}
 					/>
 					<TextField
-						label="WhatsApp number"
+						label="Customer WhatsApp number"
 						value={draft.whatsappNumber}
 						onChange={(event) => setField("whatsappNumber", event.target.value)}
 						placeholder="923204862403"
 						inputMode="tel"
-						hint="Digits only — country code first, no plus or spaces. Powers Support tab, checkout, and PDP WhatsApp links."
+						hint="Storefront chat only — separate from support phone and from staff WhatsApp in Integrations. Footer chat button appears when this is valid."
 						errorText={whatsappInvalid ? "Use 10–15 digits (e.g. 923204862403)." : undefined}
 						leadingIcon={<MessageCircle size={14} />}
 						disabled={!canUpdate}

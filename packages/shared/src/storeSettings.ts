@@ -45,13 +45,13 @@ export interface StoreSettings {
 	/** Injected at request time — not stored in Mongo. Hides pay-online when no PK gateway is configured. */
 	cardCheckoutReady?: boolean;
 
-	/** Mobile/cell number callers reach for sales + support. */
+	/** Mobile/cell number callers reach for sales + support (phone calls only — not WhatsApp chat links). */
 	supportPhone: string;
 	/** Landline number printed in the footer. */
 	supportLandline: string;
 	/** Public support email shown on the storefront and used in transactional copy. */
 	supportEmail: string;
-	/** WhatsApp number in international digits-only form, e.g. `923204862403`. */
+	/** Customer-facing WhatsApp for storefront chat links (footer, PDP, orders). Not support phone or staff alert numbers. */
 	whatsappNumber: string;
 
 	/** First line of the physical store address (street/area). */

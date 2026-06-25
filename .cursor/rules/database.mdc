@@ -1,25 +1,22 @@
 ---
-description: Schema, indexes, queries, migrations.
-globs:
-  - packages/db/**
-  - **/*.sql
-  - **/migrations/**
+description: Schema, queries, migrations. Apply when touching persistence.
+alwaysApply: false
 ---
 
 # Database Patterns
 
 Coding patterns for database design and usage. IF your project has a database, apply these patterns. Applies to SQL (PostgreSQL, MySQL) and NoSQL (MongoDB, DynamoDB) alike.
 
-> All numeric values in this file are `[DEFAULT]` — adjust per project.
+> All numeric values in this file are `[DEFAULT]` - adjust per project.
 
 ---
 
 ## Schema Design
 
-- **One entity per file** — User model in user file, Record model in record file
-- **Timestamps always** — every table/collection gets `createdAt` and `updatedAt`
-- **Soft delete** where appropriate — use `deletedAt: Date | null` (preferred: nullable timestamp is unambiguous and supports audit). Reserve `isActive` for business status (active/suspended entity), NOT for deletion.
-- **Consistent ID naming** — `id` or `_id` (pick one per project, never mix)
+- **One entity per file** - User model in user file, Record model in record file
+- **Timestamps always** - every table/collection gets `createdAt` and `updatedAt`
+- **Soft delete** where appropriate - use `deletedAt: Date | null` (preferred: nullable timestamp is unambiguous and supports audit). Reserve `isActive` for business status (active/suspended entity), NOT for deletion.
+- **Consistent ID naming** - `id` or `_id` (pick one per project, never mix)
 - **References over embedding** for relational data (unless read performance demands embedding)
 
 ---
@@ -41,11 +38,11 @@ Coding patterns for database design and usage. IF your project has a database, a
 
 ## Indexing
 
-**Principle:** Index based on query patterns — every frequently-queried field or filter condition should have an appropriate index.
+**Principle:** Index based on query patterns - every frequently-queried field or filter condition should have an appropriate index.
 
 [REFERENCE] Common indexing patterns:
 
-**Index fields used in frequent WHERE/filter clauses.** Prioritize by query frequency and table size. Rarely-used ad-hoc filters and small tables don't need indexes — over-indexing hurts write performance.
+**Index fields used in frequent WHERE/filter clauses.** Prioritize by query frequency and table size. Rarely-used ad-hoc filters and small tables don't need indexes - over-indexing hurts write performance.
 
 - Index foreign keys automatically
 - Compound indexes for common multi-field queries (key sequence matters)
@@ -57,13 +54,13 @@ Coding patterns for database design and usage. IF your project has a database, a
 
 ## Query Rules
 
-- **Select only needed fields** for API responses — avoid `SELECT *` in production queries. `SELECT *` is acceptable for admin tools, migrations, and small tables during prototyping.
-- **Paginate list queries** — never return unbounded results
+- **Select only needed fields** for API responses - avoid `SELECT *` in production queries. `SELECT *` is acceptable for admin tools, migrations, and small tables during prototyping.
+- **Paginate list queries** - never return unbounded results
 - **Validate IDs** before querying (reject invalid format with 400, don't hit DB)
 - **Use lean/plain objects** for API read responses (not full ORM instances)
-- **Parallel queries** where possible — use your language's concurrency primitives (e.g. `Promise.all` in JS, `asyncio.gather` in Python, `errgroup` in Go) for independent reads
-- **Avoid N+1** — use joins/populate/include, not loops with individual queries
-- **Centralize relation patterns** — define reusable populate/include/join configurations in a shared module rather than repeating join logic in every handler
+- **Parallel queries** where possible - use your language's concurrency primitives (e.g. `Promise.all` in JS, `asyncio.gather` in Python, `errgroup` in Go) for independent reads
+- **Avoid N+1** - use joins/populate/include, not loops with individual queries
+- **Centralize relation patterns** - define reusable populate/include/join configurations in a shared module rather than repeating join logic in every handler
 
 ---
 
@@ -79,7 +76,7 @@ When to use:
 
 Rules:
 - **Must-be-atomic** (money, inventory, paired writes): transaction rollback on failure
-- **Retryable side effects** (audit log, notification, webhook): primary write keeps; **retry** secondary; persist error if retry fails — do not default to rolling back step 1
+- **Retryable side effects** (audit log, notification, webhook): primary write keeps; **retry** secondary; persist error if retry fails - do not default to rolling back step 1
 - Keep transactions short (don't do HTTP calls inside)
 - Pass the transaction/session to all operations within it
 
@@ -87,24 +84,24 @@ Rules:
 
 ## Migrations
 
-- **Version-controlled** — migration files in source control
-- **Reversible** — every migration has an up AND down
-- **One purpose per file** — do not mix unrelated table changes
-- **Named descriptively** — reader knows purpose from filename (e.g. `add-phone-to-users`) — tool timestamps OK when paired with semantic suffix
-- **Dead fields:** when touching schema, audit unused columns — ask before drop
+- **Version-controlled** - migration files in source control
+- **Reversible** - every migration has an up AND down
+- **One purpose per file** - do not mix unrelated table changes
+- **Named descriptively** - reader knows purpose from filename (e.g. `add-phone-to-users`) - tool timestamps OK when paired with semantic suffix
+- **Dead fields:** when touching schema, audit unused columns - ask before drop
 - **Indexes:** align with filter/sort query patterns; revise when queries change
 - **Never edit** a migration that's been applied (create a new one)
-- **Failed migration with side effects:** fix forward or retry idempotent steps — do not assume `down` alone repairs external systems (email, webhooks, files)
+- **Failed migration with side effects:** fix forward or retry idempotent steps - do not assume `down` alone repairs external systems (email, webhooks, files)
 
 ---
 
 ## Security
 
-- **Never expose passwords** — exclude from all queries/responses
+- **Never expose passwords** - exclude from all queries/responses
 - **Never expose tokens** (reset tokens, API keys) in responses
-- **Hash sensitive data** — passwords with a slow hash (bcrypt, argon2, or equivalent); tokens with a cryptographic hash before storage
+- **Hash sensitive data** - passwords with a slow hash (bcrypt, argon2, or equivalent); tokens with a cryptographic hash before storage
 - **Encrypt at rest** for PII where required by compliance
-- **Parameterized queries** always — NEVER concatenate user input into queries (SQL injection)
+- **Parameterized queries** always - NEVER concatenate user input into queries (SQL injection)
 - **Limit query depth** for GraphQL / nested populate (prevent resource exhaustion)
 
 ---
@@ -114,14 +111,14 @@ Rules:
 In serverless environments or dev servers with hot module reloading, naive connection code creates duplicate connections on every request or reload. Use a singleton pattern:
 
 ```
-// lib/db (or equivalent — adapt to your language/ORM)
+// lib/db (or equivalent - adapt to your language/ORM)
 function connectDB():
-  → Check global/module-level cache for existing connection
-  → If cached and connected → return cached
-  → If no URI configured → throw immediately (don't silently fail)
-  → Connect with explicit timeouts (per your driver's options)
-  → Store promise/future in global cache (so concurrent calls share one connection attempt)
-  → Return connection
+  -> Check global/module-level cache for existing connection
+  -> If cached and connected -> return cached
+  -> If no URI configured -> throw immediately (don't silently fail)
+  -> Connect with explicit timeouts (per your driver's options)
+  -> Store promise/future in global cache (so concurrent calls share one connection attempt)
+  -> Return connection
 ```
 
 - Cache the **connection promise** (not just the client) to prevent race conditions during startup
@@ -133,27 +130,27 @@ function connectDB():
 
 ## Performance
 
-- **Connection pooling** — reuse DB connections, don't create per-request (see Connection Singleton above)
-- **Query timeouts** — set max execution time to prevent runaway queries
+- **Connection pooling** - reuse DB connections, don't create per-request (see Connection Singleton above)
+- **Query timeouts** - set max execution time to prevent runaway queries
 - **Caching** for expensive reads (TTL-based, invalidate on write)
 - **Denormalize** for read-heavy paths where joins are too expensive (maintain via triggers/hooks)
-- **Batch operations** — bulk insert/update instead of individual queries in loops
+- **Batch operations** - bulk insert/update instead of individual queries in loops
 
 ---
 
 ## Backups & Safety
 
-- **Automated backups** — daily minimum. Frequency for critical data depends on RPO requirements and cost constraints (managed DB services handle this well).
+- **Automated backups** - daily minimum. Frequency for critical data depends on RPO requirements and cost constraints (managed DB services handle this well).
 - **Point-in-time recovery** capability
 - **Test restores** periodically (a backup you've never tested isn't a backup)
-- **Separate environments** — never point staging/dev at production DB
+- **Separate environments** - never point staging/dev at production DB
 - **Seed data** scripts for development (realistic but not real user data)
 
 ---
 
 ## Dead Field Policy
 
-**Every field in a schema must earn its place.** A column / property / enum value that no production code reads, writes, or filters by is dead weight — it pollutes serializers, migrations, validators, type hints, and the mental model. Dead fields must be removed.
+**Every field in a schema must earn its place.** A column / property / enum value that no production code reads, writes, or filters by is dead weight - it pollutes serializers, migrations, validators, type hints, and the mental model. Dead fields must be removed.
 
 This is the schema-level parallel of `project-structure.md` § Dead File Policy. Dead-file audits catch unused source files; dead-field audits catch unused schema columns.
 
@@ -168,16 +165,16 @@ A field is dead if **any** of the following is true:
 - It is a snapshot of another field that is never used independently (e.g. `customerNameSnapshot` that is never read separately from `customerName`)
 - It is an enum value that no document holds anymore (legacy enum tail kept "for compatibility" after the migration that replaced it is complete)
 - It is a denormalized counter that no read path consumes
-- It duplicates a Mongoose / ORM-managed field (e.g. authoring `createdAt: Date` in an interface when the schema already sets `{ timestamps: true }` — the runtime field exists, the interface declaration is dead noise)
+- It duplicates a Mongoose / ORM-managed field (e.g. authoring `createdAt: Date` in an interface when the schema already sets `{ timestamps: true }` - the runtime field exists, the interface declaration is dead noise)
 - Its only purpose, per its inline comment, is to keep something else compiling that has itself been deleted
 
-### Detection — What the Audit Checks
+### Detection - What the Audit Checks
 
 During every audit, for every schema, scan for:
 
 ```
 1. Fields or enum values whose names indicate lifecycle status rather than purpose
-   (see naming.md § Banned Filename Suffixes — same principle applies to column names)
+   (see naming.md § Banned Filename Suffixes - same principle applies to column names)
 
 2. Fields with zero read sites across the whole codebase
    (grep for the field name; if it never appears outside the model file itself, it's dead)
@@ -209,8 +206,8 @@ BANNED (Mongoose example):
   interface UserAttributes {
     email: string;
     name: string;
-    createdAt: Date;      // dead — Mongoose's { timestamps: true } adds this
-    updatedAt: Date;      // dead — same
+    createdAt: Date;      // dead - Mongoose's { timestamps: true } adds this
+    updatedAt: Date;      // dead - same
   }
 
 REQUIRED:
@@ -218,7 +215,7 @@ REQUIRED:
     email: string;
     name: string;
   }
-  // schema uses { timestamps: true } — runtime carries createdAt + updatedAt
+  // schema uses { timestamps: true } - runtime carries createdAt + updatedAt
 ```
 
 The same applies to `_id` / `id` on top-level documents: the ORM provides it, the interface doesn't declare it. Sub-document interfaces may declare an optional `_id?: ObjectId` if other code asserts on it.

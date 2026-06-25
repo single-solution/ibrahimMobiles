@@ -1,6 +1,6 @@
 import { MessageCircle } from "lucide-react";
 
-import { buildWhatsAppLink, type StoreSettings } from "@store/shared";
+import { buildWhatsAppLink, isValidWhatsappNumber, normalizeWhatsappNumber, type StoreSettings } from "@store/shared";
 
 import { BrandLockup } from "@/components/layout/BrandLockup";
 import { FacebookIcon, InstagramIcon, TiktokIcon, YoutubeIcon } from "@/components/ui/SocialIcons";
@@ -24,6 +24,9 @@ export function Footer({ settings, catalogHomeHref }: FooterProps) {
 		{ href: settings.socialYoutube, label: "YouTube", icon: <YoutubeIcon size={15} /> },
 	].filter((btn) => Boolean(btn.href && btn.href.trim()));
 
+	const whatsappDigits = normalizeWhatsappNumber(settings.whatsappNumber);
+	const showWhatsAppButton = isValidWhatsappNumber(whatsappDigits);
+
 	return (
 		<footer className="cv-auto mt-14 border-t border-[var(--color-ink-100)] bg-[var(--color-ink-900)] text-[var(--color-ink-200)] sm:mt-24">
 			<div className={`${STOREFRONT_SHELL_CLASS} py-8 sm:py-10`}>
@@ -45,15 +48,17 @@ export function Footer({ settings, catalogHomeHref }: FooterProps) {
 					</div>
 
 					<div className="flex flex-wrap items-center justify-center gap-3">
-						<a
-							href={buildWhatsAppLink("Salam!", settings.whatsappNumber)}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="tap focus-ring inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-whatsapp)] px-4 text-sm font-semibold text-[var(--color-on-dark)] transition-colors hover:bg-[var(--color-whatsapp-dark)]"
-						>
-							<MessageCircle size={15} className="fill-[var(--color-on-dark)]" />
-							Chat on WhatsApp
-						</a>
+						{showWhatsAppButton ? (
+							<a
+								href={buildWhatsAppLink("Salam!", whatsappDigits)}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="tap focus-ring inline-flex h-10 items-center gap-2 rounded-full bg-[var(--color-whatsapp)] px-4 text-sm font-semibold text-[var(--color-on-dark)] transition-colors hover:bg-[var(--color-whatsapp-dark)]"
+							>
+								<MessageCircle size={15} className="fill-[var(--color-on-dark)]" />
+								Chat on WhatsApp
+							</a>
+						) : null}
 						<div className="flex items-center gap-1.5">
 							{socialButtons.map((socialButton) => (
 								<a

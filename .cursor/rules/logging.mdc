@@ -1,13 +1,13 @@
 ---
-description: Structured logs, levels, context. Apply to deployed backend and ops paths.
-alwaysApply: true
+description: Structured logs and observability. Apply for backend/worker logging.
+alwaysApply: false
 ---
 
 # Logging & Monitoring
 
 Coding patterns for application logging, error tracking, and observability. IF your project has a deployed backend, apply these patterns.
 
-> All numeric values in this file are `[DEFAULT]` — adjust per project.
+> All numeric values in this file are `[DEFAULT]` - adjust per project.
 
 ---
 
@@ -45,7 +45,7 @@ Development:  DEBUG and above (TRACE if actively debugging)
 Tests:        WARN and above (don't clutter test output)
 ```
 
-**Rule:** Avoid DEBUG/TRACE in production by default — it generates massive volume and can expose sensitive data. Short-lived, sampled debug logging for active incident investigation is acceptable with guardrails (auto-revert after N minutes).
+**Rule:** Avoid DEBUG/TRACE in production by default - it generates massive volume and can expose sensitive data. Short-lived, sampled debug logging for active incident investigation is acceptable with guardrails (auto-revert after N minutes).
 
 ---
 
@@ -57,27 +57,27 @@ Write all logs to **stdout** (or stderr for errors). Never write to log files di
 
 ### Format: Structured (Always in Production)
 
-Use a **structured, machine-parseable format** in production (JSON, logfmt, or whatever your log aggregation platform expects). The specific format depends on your infrastructure — pick one per project and be consistent.
+Use a **structured, machine-parseable format** in production (JSON, logfmt, or whatever your log aggregation platform expects). The specific format depends on your infrastructure - pick one per project and be consistent.
 
 ```
 Example structure (fields, not format):
-  timestamp     → ISO 8601
-  level         → ERROR, WARN, INFO, etc.
-  summary       → Human-readable description
-  service       → Service/app name
-  requestId     → Correlation ID
-  userId        → Actor identifier
-  method        → HTTP method (for request logs)
-  path          → Request path
-  statusCode    → Response status
-  error         → { name, code, detail } (for error logs)
-  duration      → Request/operation duration in ms
+  timestamp     -> ISO 8601
+  level         -> ERROR, WARN, INFO, etc.
+  summary       -> Human-readable description
+  service       -> Service/app name
+  requestId     -> Correlation ID
+  userId        -> Actor identifier
+  method        -> HTTP method (for request logs)
+  path          -> Request path
+  statusCode    -> Response status
+  error         -> { name, code, detail } (for error logs)
+  duration      -> Request/operation duration in ms
 ```
 
 ### Rules
 
-- **Structured format in production** — parseable by log aggregation tools (JSON is the most common, but match your infrastructure)
-- **Human-readable in development** — pretty-printed with colors
+- **Structured format in production** - parseable by log aggregation tools (JSON is the most common, but match your infrastructure)
+- **Human-readable in development** - pretty-printed with colors
 - **Every log entry includes**: timestamp, level, summary (or equivalent body field), service name
 - **Request logs include**: requestId, userId, method, path, statusCode, duration
 - **Error logs include**: error name, error code, error detail, stack trace (in debug context, not in response)
@@ -93,13 +93,13 @@ Example structure (fields, not format):
 
 [REFERENCE] Typical mandatory log categories:
 
-- **Application lifecycle** — startup, shutdown, critical connection events (INFO/FATAL)
-- **Authentication events** (if applicable) — session creation, session end, failed attempts, token issues (INFO/WARN/ERROR)
-- **Request activity** — completed requests with method/path/status/duration; flag slow ones (INFO/WARN)
-- **Failures** — failed requests, failed queries, failed external calls — with enough context to reproduce (ERROR)
-- **Business events** — significant domain actions that would matter in an audit or support ticket (INFO)
-- **Permission denials** — any time access is blocked; useful for both security monitoring and debugging user-reported issues (WARN)
-- **External service health** — slow or failed calls to third-party services (WARN/ERROR)
+- **Application lifecycle** - startup, shutdown, critical connection events (INFO/FATAL)
+- **Authentication events** (if applicable) - session creation, session end, failed attempts, token issues (INFO/WARN/ERROR)
+- **Request activity** - completed requests with method/path/status/duration; flag slow ones (INFO/WARN)
+- **Failures** - failed requests, failed queries, failed external calls - with enough context to reproduce (ERROR)
+- **Business events** - significant domain actions that would matter in an audit or support ticket (INFO)
+- **Permission denials** - any time access is blocked; useful for both security monitoring and debugging user-reported issues (WARN)
+- **External service health** - slow or failed calls to third-party services (WARN/ERROR)
 
 **What context to include:** Always attach enough structured data (identifiers, durations, status codes, operation names) to make the log searchable and actionable. Never log just a message without context.
 
@@ -109,11 +109,11 @@ Example structure (fields, not format):
 
 [REFERENCE] Commonly banned log content:
 
-- **Authentication material** — anything that could be used to gain access (passwords, tokens, keys, secrets, session identifiers in full)
-- **Personally identifiable information (PII)** — anything that identifies a person beyond what's needed for the log context (full names + government IDs together, full unmasked contact details)
-- **Raw request/response bodies of sensitive endpoints** — these often contain credentials or private data
-- **Raw database queries with user input interpolated** — reveals both schema and user data
-- **Environment variables or secrets** — never print config that contains credentials
+- **Authentication material** - anything that could be used to gain access (passwords, tokens, keys, secrets, session identifiers in full)
+- **Personally identifiable information (PII)** - anything that identifies a person beyond what's needed for the log context (full names + government IDs together, full unmasked contact details)
+- **Raw request/response bodies of sensitive endpoints** - these often contain credentials or private data
+- **Raw database queries with user input interpolated** - reveals both schema and user data
+- **Environment variables or secrets** - never print config that contains credentials
 
 **When in doubt, redact.** Log a masked/truncated version or just the identifier (user ID, token ID) instead of the full value.
 
@@ -154,10 +154,10 @@ Every incoming request gets a unique ID:
 - **Capture unhandled exceptions** automatically
 - **Capture handled errors** that indicate bugs (not validation errors)
 - **Include context**: user ID, request path, OS/browser, app version
-- **Group by root cause** (not by surface text alone — same root cause should group into one issue regardless of variation in error messages)
+- **Group by root cause** (not by surface text alone - same root cause should group into one issue regardless of variation in error messages)
 - **Alert on new errors** (errors that have never been seen before)
 - **Alert on error spikes** (error rate jumps significantly)
-- **Assign and track** — every error in tracking must be assigned and resolved
+- **Assign and track** - every error in tracking must be assigned and resolved
 
 ### What to Send to Error Tracker
 
@@ -200,7 +200,7 @@ API:
 Database:
   - Query time (p50, p95, p99)
   - Connection pool usage (% active connections)
-  - Slow queries (threshold per query class — 500ms for CRUD, higher for analytics)
+  - Slow queries (threshold per query class - 500ms for CRUD, higher for analytics)
 
 Infrastructure:
   - CPU usage (%)
@@ -246,7 +246,7 @@ Side effects (audit logging, analytics, external API calls, event broadcasting) 
 
 ```
 Pattern:
-  // CORRECT — fire-and-forget with error swallowing
+  // CORRECT - fire-and-forget with error swallowing
   void logActivity(actor.id, "resource:create", record.id);
   void broadcastEvent("resource:created", record);
   return ok(record); // responds immediately
@@ -255,14 +255,14 @@ Pattern:
   try {
     await writeAuditLog(...);
   } catch (error) {
-    logger.warn("Audit log failed", { error }); // swallow — don't crash the request
+    logger.warn("Audit log failed", { error }); // swallow - don't crash the request
   }
 ```
 
-- Use `void` (or equivalent) to express "fire and forget" — the caller doesn't await the result
-- Wrap ALL side-effect logic in try/catch — a failed audit log or analytics call must NEVER cause a 500 for the user
+- Use `void` (or equivalent) to express "fire and forget" - the caller doesn't await the result
+- Wrap ALL side-effect logic in try/catch - a failed audit log or analytics call must NEVER cause a 500 for the user
 - For critical side effects (must eventually complete), use a job queue instead of inline execution
-- Log side-effect failures at WARN level — they need attention but aren't request-blocking errors
+- Log side-effect failures at WARN level - they need attention but aren't request-blocking errors
 
 ---
 
@@ -292,9 +292,9 @@ Audit log fields:
 ```
 
 **Rules:**
-- Audit logs are **append-only** — never update or delete
+- Audit logs are **append-only** - never update or delete
 - Store separately from application logs (different retention, different access)
-- Retain for the required compliance period (`[DEFAULT]` minimum 1 year, often 7 years — adjust per regulation)
+- Retain for the required compliance period (`[DEFAULT]` minimum 1 year, often 7 years - adjust per regulation)
 - Access to audit logs requires elevated permissions
 
 ---

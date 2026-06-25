@@ -301,7 +301,7 @@ export function ChatFabShell() {
 				<button
 					type="button"
 					onClick={() => (isOpen ? closeChat() : openChat())}
-					aria-label={isOpen ? "Close chat" : "Ask us a question"}
+					aria-label={isOpen ? "Close chat" : "Need any help? Open chat support"}
 					aria-expanded={isOpen}
 					className={classNames(
 						"tap group relative flex cursor-pointer items-center rounded-[var(--radius-full)] bg-[var(--color-ink-900)] py-2.5 text-[var(--color-on-dark)] shadow-[var(--shadow-md)] transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-ink-800)] hover:shadow-[var(--shadow-lg)] max-md:hidden",
@@ -319,7 +319,7 @@ export function ChatFabShell() {
 							"md:max-w-[160px] md:opacity-100",
 						)}
 					>
-						{isOpen ? "Close" : "Ask us!"}
+						{isOpen ? "Close" : "Need any help?"}
 					</span>
 					{!isOpen && unread > 0 && (
 						<span className="absolute -right-0.5 -top-0.5 flex min-w-[18px] items-center justify-center rounded-full bg-[var(--color-danger-500)] px-1 text-[10px] font-bold text-[var(--color-on-dark)]">

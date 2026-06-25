@@ -1,13 +1,13 @@
 ---
-description: Pre/post-implementation checklist, refactor and removal rules. Apply to features and changes.
-alwaysApply: true
+description: Pre/post implementation, refactors, deletion. Apply for features or refactors.
+alwaysApply: false
 ---
 
 # Maintenance & Cleanup
 
-Rules for keeping a codebase healthy over time. Code rots if left alone. These routines ensure every project stays clean, up-to-date, and free of legacy debt — whether maintained by a solo developer or a large team.
+Rules for keeping a codebase healthy over time. Code rots if left alone. These routines ensure every project stays clean, up-to-date, and free of legacy debt - whether maintained by a solo developer or a large team.
 
-> All numeric values (cadences, percentages, durations) in this file are `[DEFAULT]` — adjust to your team's rhythm and project size.
+> All numeric values (cadences, percentages, durations) in this file are `[DEFAULT]` - adjust to your team's rhythm and project size.
 
 ---
 
@@ -23,7 +23,7 @@ When adding a new feature, follow this exact checklist BEFORE writing any code:
 
 ### Pre-Implementation Checklist
 
-**Principle:** Before writing any code for a new feature or change, verify that the foundation is solid — understand the existing patterns, check for reusable pieces, and plan the integration.
+**Principle:** Before writing any code for a new feature or change, verify that the foundation is solid - understand the existing patterns, check for reusable pieces, and plan the integration.
 
 [REFERENCE] Pre-implementation checklist:
 
@@ -50,7 +50,7 @@ When adding a new feature, follow this exact checklist BEFORE writing any code:
    c. Business logic (services/lib)
    d. API handler (if needed)
    e. UI component (if needed)
-   f. Tests per `testing.md` when harness exists
+   f. Tests per `testing.md`: SHOULD add/update when a harness exists; otherwise only when the user asks
 ```
 
 ### After-Implementation Checklist
@@ -58,16 +58,16 @@ When adding a new feature, follow this exact checklist BEFORE writing any code:
 ```
 After the feature works:
 
-- [ ] Follows naming conventions (naming.md) — no abbreviations, descriptive names
-- [ ] Follows code patterns (code-patterns.md) — correct anatomy for functions/components/handlers
-- [ ] Follows formatting (code-formatting.md) — linter passes, imports ordered
-- [ ] No duplicate logic — fix in task scope; **ask user before** extracting shared utilities outside scope
-- [ ] No hardcoded values — magic numbers extracted to constants, URLs from env
-- [ ] Error handling complete — all failure paths handled with user-friendly messages
-- [ ] Loading states — every async operation has loading/error/success states in UI
-- [ ] Types are correct — no `any` without justification
-- [ ] Tests per `testing.md` (not listed here — user/harness policy)
-- [ ] Documentation updated — JSDoc on exported functions; README if behavior changed; docs/ if setup/env/architecture changed (see documentation.md)
+- [ ] Follows naming conventions (naming.md) - no non-idiomatic abbreviations, descriptive names
+- [ ] Follows code patterns (code-patterns.md) - correct anatomy for functions/components/handlers
+- [ ] Follows formatting (code-formatting.md) - linter passes, imports ordered
+- [ ] No duplicate logic - fix in task scope; **ask user before** extracting shared utilities outside scope
+- [ ] No hardcoded values - magic numbers extracted to constants, URLs from env
+- [ ] Error handling complete - all failure paths handled with user-friendly messages
+- [ ] Loading states - every async operation has loading/error/success states in UI
+- [ ] Types are correct - no `any` without justification
+- [ ] Tests per `testing.md`: SHOULD add/update when a harness exists; otherwise only when the user asks
+- [ ] Documentation updated - JSDoc on exported functions; README if behavior changed; docs/ if setup/env/architecture changed (see documentation.md)
 ```
 
 ---
@@ -87,9 +87,9 @@ After the feature works:
    - Change the minimum necessary to achieve the goal
    - Don't "improve" unrelated code in the same change (separate PR)
    - If renaming within stated scope, update all callers in the same change
-   - If rename/export blast radius exceeds task scope → **ask user first**
+   - If rename/export blast radius exceeds task scope -> **ask user first**
    - If changing a function signature, update all callers in the same commit (or ask if scope is unclear)
-   - Duplicate logic elsewhere → fix task scope; **ask before** cross-file extract/refactor
+   - Duplicate logic elsewhere -> fix task scope; **ask before** cross-file extract/refactor
 
 3. VERIFY after changing
    - Run type checker (tsc --noEmit, mypy, etc.)
@@ -132,10 +132,10 @@ After the feature works:
    - Remove unused dependencies (npm packages, pip packages) if this was the only consumer
 
 3. VERIFY nothing broke
-   - Run type checker — catches missing imports/references
-   - Run linter — catches unused imports
-   - Run all tests — catches broken functionality
-   - Build the project — catches compilation errors
+   - Run type checker - catches missing imports/references
+   - Run linter - catches unused imports
+   - Run all tests - catches broken functionality
+   - Build the project - catches compilation errors
    - Do a quick smoke test of related features
 
 4. DOCUMENT the removal
@@ -146,10 +146,10 @@ After the feature works:
 
 ### Rules
 
-- **Never comment out code** as a way to "remove" it — delete it. Git has the history.
-- **Remove in a dedicated PR** — don't mix removal with new feature work
-- **Keep removals focused** — a cleanup PR can batch related removals, but don't mix removals with new features in the same PR
-- **If unsure, add a deprecation warning first** — log a warning for 2 weeks, then remove if no hits
+- **Never comment out code** as a way to "remove" it - delete it. Git has the history.
+- **Remove in a dedicated PR** - don't mix removal with new feature work
+- **Keep removals focused** - a cleanup PR can batch related removals, but don't mix removals with new features in the same PR
+- **If unsure, add a deprecation warning first** - log a warning for 2 weeks, then remove if no hits
 
 ---
 
@@ -176,21 +176,21 @@ Schedule dedicated time regularly for codebase hygiene:
 
 1. DEPENDENCY AUDIT
    - Run vulnerability scanner (npm audit, pip audit, etc.)
-   - Update patch versions (x.x.PATCH) — these should be safe
-   - Review minor version updates (x.MINOR.x) — check changelogs
-   - Plan major version updates (MAJOR.x.x) — schedule as a dedicated task
+   - Update patch versions (x.x.PATCH) - these should be safe
+   - Review minor version updates (x.MINOR.x) - check changelogs
+   - Plan major version updates (MAJOR.x.x) - schedule as a dedicated task
 
 2. DEAD CODE SCAN
    - Run dead code detection tool (ts-prune, vulture, etc.)
-   - Review results — delete confirmed dead code
+   - Review results - delete confirmed dead code
    - Investigate ambiguous results (might be used dynamically)
 
-   DEAD FILE scan (separate from dead code — checks whole files, not just functions):
+   DEAD FILE scan (separate from dead code - checks whole files, not just functions):
    a. Search for files/directories whose names indicate lifecycle status rather than purpose
       (apply the test from naming.md § Banned Filename Suffixes).
       Any match is a deletion candidate unless there is a documented expiry date in the file.
-   b. Find source files with zero imports (and no entry point — not a route, script, or cron job).
-   c. Find .md / .txt files outside docs/ and rules/ — likely scratch notes that were accidentally committed.
+   b. Find source files with zero imports (and no entry point - not a route, script, or cron job).
+   c. Find .md / .txt files outside docs/ and rules/ - likely scratch notes that were accidentally committed.
    d. Find route/config files that are not reachable from any navigation entry or entry point.
    See `project-structure.md` § Dead File Policy for the full checklist.
 
@@ -200,15 +200,15 @@ Schedule dedicated time regularly for codebase hygiene:
    - Replace any `any` types that now have proper types available
 
 4. TEST HEALTH
-   - Check for flaky tests (tests that sometimes pass, sometimes fail) — fix or delete
-   - Check test coverage report — are new files being tested?
+   - Check for flaky tests (tests that sometimes pass, sometimes fail) - fix or delete
+   - Check test coverage report - are new files being tested?
    - Delete tests for removed features (orphan tests)
 
 5. PERFORMANCE REVIEW
    - Check for N+1 queries (database call inside a loop)
    - Check for missing database indexes on frequently queried fields
-   - Check for large bundle sizes (frontend) — are there unused imports increasing build size?
-   - Check API response times — any new slow endpoints?
+   - Check for large bundle sizes (frontend) - are there unused imports increasing build size?
+   - Check API response times - any new slow endpoints?
 ```
 
 ### Quarterly (or at a cadence that fits your project's release cycle)
@@ -251,7 +251,7 @@ Schedule a dedicated cleanup session periodically:
 Before adding ANY new package/library:
 
 1. IS IT NECESSARY?
-   - Is the functionality simple enough to implement in-house? (consider effort vs. maintenance cost of a dependency — not just line count)
+   - Is the functionality simple enough to implement in-house? (consider effort vs. maintenance cost of a dependency - not just line count)
    - Is the functionality already covered by an existing dependency?
    - Is the library maintained? (check: last commit date, open issues, download count)
 
@@ -292,7 +292,7 @@ Minor updates (1.x.0):
 Major updates (x.0.0):
   - NEVER auto-update. Read migration guide. Plan as a task.
   - Update in a dedicated branch and PR.
-  - Test thoroughly — breaking changes are expected.
+  - Test thoroughly - breaking changes are expected.
 ```
 
 ---
@@ -319,9 +319,9 @@ Major updates (x.0.0):
 ```
 1. Create an issue for every known debt item
 2. Tag it: "tech-debt"
-3. Prioritize: critical (causes bugs) → high (slows development) → low (cosmetic)
+3. Prioritize: critical (causes bugs) -> high (slows development) -> low (cosmetic)
 4. Allocate regular time to debt reduction (don't let it stack indefinitely)
-5. Review and address debt items periodically — the cadence depends on your project's pace
+5. Review and address debt items periodically - the cadence depends on your project's pace
 ```
 
 ### Fixing Debt
@@ -351,10 +351,10 @@ Rules:
 
 2. PR REVIEW CHECKLIST (catches the other 20%)
    Every PR reviewer checks:
-   - [ ] Function anatomy follows the pattern (guards → logic → return)
-   - [ ] Component anatomy follows the pattern (hooks → handlers → early returns → render)
+   - [ ] Function anatomy follows the pattern (guards -> logic -> return)
+   - [ ] Component anatomy follows the pattern (hooks -> handlers -> early returns -> render)
    - [ ] API handler follows the 7-step pattern
-   - [ ] No abbreviations in names
+   - [ ] No non-idiomatic abbreviations in names (see naming.md)
    - [ ] No magic numbers (all extracted to constants)
    - [ ] No duplicate logic (uses existing utilities)
    - [ ] Error handling is complete (not just happy path)
@@ -371,7 +371,7 @@ Rules:
 4. PERIODIC ALIGNMENT (prevents drift over time)
    - Monthly: spot-check 3 random files from each developer for pattern compliance
    - If patterns are drifting: team discussion about which pattern to follow
-   - Update rules/ if the team agrees on a better pattern (don't just drift — decide and document)
+   - Update rules/ if the team agrees on a better pattern (don't just drift - decide and document)
 ```
 
 ---
@@ -383,7 +383,7 @@ Rules:
 - Before adding a new feature to a messy area (clean first, then build)
 - When you see the same code copied in 3+ places (extract to shared utility)
 - When a file exceeds size limits (split into smaller modules)
-- When a function exceeds 50 lines (see code-formatting.md — consider extracting helper functions)
+- When a function exceeds 50 lines (see code-formatting.md - consider extracting helper functions)
 - When tests are hard to write (usually means the code is too tightly coupled)
 
 ### When NOT to Refactor
@@ -399,7 +399,7 @@ Rules:
 1. Ensure tests exist for the code being refactored (add them first if they don't)
 2. Make the change in small, verifiable steps
 3. Run tests after EACH step (not just at the end)
-4. Don't change behavior — refactoring means same inputs → same outputs
+4. Don't change behavior - refactoring means same inputs -> same outputs
 5. If behavior needs to change, that's a separate PR (refactor first, then change behavior)
 6. Update all callers in the same PR (don't leave broken references)
 7. Commit message starts with "refactor:" and explains WHY
@@ -461,7 +461,7 @@ REGULARLY (at a cadence that fits your team):
   - Test health check
   - Performance review
 
-PERIODICALLY (less frequently — e.g. quarterly):
+PERIODICALLY (less frequently - e.g. quarterly):
   - Major dependency updates
   - Architecture review
   - Documentation refresh

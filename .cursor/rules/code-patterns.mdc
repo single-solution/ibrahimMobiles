@@ -1,11 +1,11 @@
 ---
-description: Function/handler/component anatomy, guards, async, errors. Apply to any code change.
-alwaysApply: true
+description: Function anatomy, guards, async, errors. Apply on any code change.
+alwaysApply: false
 ---
 
 # Code Patterns
 
-The exact blueprints for writing code. If multiple developers follow these patterns, their code will be structurally identical — same sequence, same shape, same error handling, same flow. This is the file that eliminates "different developer, different style."
+The exact blueprints for writing code. If multiple developers follow these patterns, their code will be structurally identical - same sequence, same shape, same error handling, same flow. This is the file that eliminates "different developer, different style."
 
 > All numeric values in this file are `[DEFAULT]`. The **structure and sequence** are the standard; the content is yours.
 
@@ -13,7 +13,7 @@ The exact blueprints for writing code. If multiple developers follow these patte
 
 ## The Rule
 
-**Every function, component, handler, and service follows a consistent anatomy.** These patterns are the default structure. Framework-specific patterns (middleware chains, decorators, streaming handlers, compound components) may require adaptation — but the internal logic sequence should stay the same.
+**Every function, component, handler, and service follows a consistent anatomy.** These patterns are the default structure. Framework-specific patterns (middleware chains, decorators, streaming handlers, compound components) may require adaptation - but the internal logic sequence should stay the same.
 
 ---
 
@@ -61,12 +61,12 @@ function aggregateMetrics(dataset, filters, options) {
 
 ### Rules
 
-- **Guard clauses FIRST** — handle invalid/edge cases before doing anything
-- **Early return** — don't wrap the entire function in an if/else; return early for the invalid case
-- **One responsibility** — if you're writing "and" in the function description, split it into two functions
-- **Pure when possible** — same input = same output, no side effects
-- **Prefer ≤ 5 parameters** — if more, consider an options object. Domain methods with 5-6 clear params are fine when each param has a distinct meaning.
-- **All parameter names must be descriptive** — single-letter parameter names are banned even for math/date utility functions. See `naming.md` § Single-Letter Variables for the complete rule and allowed exceptions.
+- **Guard clauses FIRST** - handle invalid/edge cases before doing anything
+- **Early return** - don't wrap the entire function in an if/else; return early for the invalid case
+- **One responsibility** - if you're writing "and" in the function description, split it into two functions
+- **Pure when possible** - same input = same output, no side effects
+- **Prefer <= 5 parameters** - if more, consider an options object. Domain methods with 5-6 clear params are fine when each param has a distinct meaning.
+- **All parameter names must be descriptive** - single-letter parameter names are banned even for math/date utility functions. See `naming.md` § Single-Letter Variables for the complete rule and allowed exceptions.
 - **Explicit return types** on public/exported API boundaries. Internal helpers and simple functions can rely on inference when the return type is obvious.
 
 ---
@@ -110,23 +110,23 @@ REQUIRED (flat with guards):
 
 ### Rules
 
-- **Prefer ≤ 3 levels of nesting** inside any function — deeper nesting is a signal to extract, but config maps, switch statements, and data transformations may go deeper without harm
-- **Guard first, happy path last** — handle the exceptions, then let the main logic flow naturally
-- **No else after return** — if the if-block returns, don't use else (the code after is already the else)
-- **Always use your language's shorthand conditional idioms** for null/optional access, default values, and simple branching. Use the shortest readable form anywhere you conditionally access, assign, or return data — variables, returns, templates, function arguments, object properties, data loading, API responses. (In JS/TS: `?.`, `??`, `||`, ternary. Other languages: `&.` in Ruby, `?.` in Kotlin/Swift, `or` in Python, `??` in C#, etc.)
+- **Prefer <= 3 levels of nesting** inside any function - deeper nesting is a signal to extract, but config maps, switch statements, and data transformations may go deeper without harm
+- **Guard first, happy path last** - handle the exceptions, then let the main logic flow naturally
+- **No else after return** - if the if-block returns, don't use else (the code after is already the else)
+- **Always use your language's shorthand conditional idioms** for null/optional access, default values, and simple branching. Use the shortest readable form anywhere you conditionally access, assign, or return data - variables, returns, templates, function arguments, object properties, data loading, API responses. (In JS/TS: `?.`, `??`, `||`, ternary. Other languages: `&.` in Ruby, `?.` in Kotlin/Swift, `or` in Python, `??` in C#, etc.)
 
-  **Optional chaining (`?.`)** — access nested properties safely (JS/TS example — adapt to your language's safe-navigation operator).
+  **Optional chaining (`?.`)** - access nested properties safely (JS/TS example - adapt to your language's safe-navigation operator).
 
-  **Default rule:** use `?.` on **every** property access against data you do not 100% control locally — API responses, DB documents, query/route params, props from parents, store/context reads, third-party SDK returns, JSON parses, and anything `lean()`/`toJSON()`-derived. The type system narrowing the value to non-null is *not* enough by itself: types lie at the network boundary, models drift, and runtime crashes hurt users. Skip `?.` only when the value is constructed in the same scope (a literal, the result of `new`, a function-local destructure with a default, or a verified guard a few lines above) **and** you've added a guard clause for the rare null case.
+  **Default rule:** use `?.` on **every** property access against data you do not 100% control locally - API responses, DB documents, query/route params, props from parents, store/context reads, third-party SDK returns, JSON parses, and anything `lean()`/`toJSON()`-derived. The type system narrowing the value to non-null is *not* enough by itself: types lie at the network boundary, models drift, and runtime crashes hurt users. Skip `?.` only when the value is constructed in the same scope (a literal, the result of `new`, a function-local destructure with a default, or a verified guard a few lines above) **and** you've added a guard clause for the rare null case.
 
-  Concretely: any expression of the form `someDynamicValue.x.y` should be `someDynamicValue?.x?.y` unless every intermediate is locally constructed in the same function. Single-level access on dynamic data (`user.email`) still uses `?.` (`user?.email`) — runtime crashes from "Cannot read properties of undefined" are unacceptable in production code.
+  Concretely: any expression of the form `someDynamicValue.x.y` should be `someDynamicValue?.x?.y` unless every intermediate is locally constructed in the same function. Single-level access on dynamic data (`user.email`) still uses `?.` (`user?.email`) - runtime crashes from "Cannot read properties of undefined" are unacceptable in production code.
 
   ```
   BANNED:
     const name = user && user.profile && user.profile.name;
     if (response && response.data && response.data.items) { ... }
     const tz = settings ? settings.company ? settings.company.timezone : null : null;
-    // Type says non-null but the value crosses a boundary — still BANNED:
+    // Type says non-null but the value crosses a boundary - still BANNED:
     const email = user.email;          // user came from an API / DB / props
     const first = items[0].title;      // items came from props / a fetch
     const id = router.query.id;        // route params are dynamic
@@ -139,7 +139,7 @@ REQUIRED (flat with guards):
     const first = items?.[0]?.title;
     const id = router.query?.id;
 
-  ALSO OK (locally constructed, guarded — `?.` adds no value):
+  ALSO OK (locally constructed, guarded - `?.` adds no value):
     const config = { region: "pk-1", retries: 3 };
     const region = config.region;       // literal, same scope
     const user = await getUser();
@@ -147,7 +147,7 @@ REQUIRED (flat with guards):
     const email = user.email;           // safe in this branch
   ```
 
-  **Nullish coalescing (`??`)** — provide fallback for null/undefined (JS/TS example — adapt to your language's default-value operator):
+  **Nullish coalescing (`??`)** - provide fallback for null/undefined (JS/TS example - adapt to your language's default-value operator):
   ```
   BANNED:
     const limit = options.limit !== null && options.limit !== undefined ? options.limit : 20;
@@ -163,7 +163,7 @@ REQUIRED (flat with guards):
     const timezone = user.timezone ?? "UTC";
   ```
 
-  **Logical OR (`||`)** — provide fallback for any falsy value (JS/TS example):
+  **Logical OR (`||`)** - provide fallback for any falsy value (JS/TS example):
   ```
   BANNED:
     let displayName;
@@ -177,7 +177,7 @@ REQUIRED (flat with guards):
     const displayName = user.name || "Anonymous";
   ```
 
-  **Ternary (`? :`)** — choose between two values based on a condition (most C-family languages):
+  **Ternary (`? :`)** - choose between two values based on a condition (most C-family languages):
   ```
   BANNED:
     let label;
@@ -193,7 +193,7 @@ REQUIRED (flat with guards):
     const color = score > 80 ? "green" : score > 50 ? "yellow" : "red";
   ```
 
-  **Combined (chain them together for complex data access — JS/TS example):**
+  **Combined (chain them together for complex data access - JS/TS example):**
   ```
   BANNED:
     let companyName;
@@ -216,15 +216,15 @@ REQUIRED (flat with guards):
     const role = user?.permissions?.isAdmin ? "Admin" : user?.role ?? "Member";
   ```
 
-  **Restrictions** — never use ternary for side effects, and avoid nesting beyond 2 levels:
+  **Restrictions** - never use ternary for side effects, and avoid nesting beyond 2 levels:
   ```
   BANNED (side effects):
     isActive ? doThis() : doThat();
 
-  BANNED (deeply nested — unreadable):
+  BANNED (deeply nested - unreadable):
     const x = a ? b ? c ? "d" : "e" : "f" : "g";
 
-  OK (one level of nesting — still readable):
+  OK (one level of nesting - still readable):
     const color = score > 80 ? "green" : score > 50 ? "yellow" : "red";
   ```
 
@@ -262,13 +262,13 @@ async function createRecord(recordData) {
 
 ### Rules
 
-- **Validation outside try/catch** — don't treat expected validation as exceptions
-- **Specific catches before generic** — handle known errors explicitly
-- **Always log unexpected errors** — with context (what was being attempted, what data was involved)
-- **Never swallow errors silently** — no empty catch blocks, no catch that only logs without handling. Exception: non-blocking side effects (audit logs, analytics) where failure should not crash the request — see logging.md § Side Effects
-- **Never expose internal errors to users** — log the real error, return a safe user-facing summary
-- **One try/catch per operation** — don't wrap 100 lines in one try/catch; wrap the specific risky operation
-- **Avoid using try/catch for flow control** — exceptions are for exceptional situations, not normal branching. Exception: JSON parsing boundaries and external API calls where try/catch is the idiomatic pattern.
+- **Validation outside try/catch** - don't treat expected validation as exceptions
+- **Specific catches before generic** - handle known errors explicitly
+- **Always log unexpected errors** - with context (what was being attempted, what data was involved)
+- **Never swallow errors silently** - no empty catch blocks, no catch that only logs without handling. Exception: non-blocking side effects (audit logs, analytics) where failure should not crash the request - see logging.md § Side Effects: Never Block the Primary Response
+- **Never expose internal errors to users** - log the real error, return a safe user-facing summary
+- **One try/catch per operation** - don't wrap 100 lines in one try/catch; wrap the specific risky operation
+- **Avoid using try/catch for flow control** - exceptions are for exceptional situations, not normal branching. Exception: JSON parsing boundaries and external API calls where try/catch is the idiomatic pattern.
 
 ```
 BANNED:
@@ -295,7 +295,7 @@ REQUIRED:
 ### Sequential (When Sequence Matters)
 
 ```
-// JS/TS example — adapt to your language's async model
+// JS/TS example - adapt to your language's async model
 const user = await getUser(userId);
 const team = await getTeam(user.teamId);
 const owner = await getOwner(team.ownerId);
@@ -314,13 +314,13 @@ const [users, teams, roles] = await Promise.all([
 
 ### Rules
 
-- **Prefer your language's highest-level async abstraction** — async/await over `.then()` chains (JS/TS), coroutines over callbacks (Kotlin), async/await over raw threads (Python/Rust). Lower-level patterns are fine for simple one-liner transforms and stream interop.
-- **Always await or return** an async result — never fire-and-forget without explicit intent
-- **Parallelize independent operations** — fetching users and teams simultaneously is faster than sequential
-- **Avoid awaiting inside a loop** — use your language's batch concurrency idiom (JS: `Promise.all` + `.map()`, Python: `asyncio.gather`, Go: `errgroup`) when possible. Exceptions: rate-limited external APIs, serialized transactions, or memory-bound batches that need sequential processing.
+- **Prefer your language's highest-level async abstraction** - async/await over `.then()` chains (JS/TS), coroutines over callbacks (Kotlin), async/await over raw threads (Python/Rust). Lower-level patterns are fine for simple one-liner transforms and stream interop.
+- **Always await or return** an async result - never fire-and-forget without explicit intent
+- **Parallelize independent operations** - fetching users and teams simultaneously is faster than sequential
+- **Avoid awaiting inside a loop** - use your language's batch concurrency idiom (JS: `Promise.all` + `.map()`, Python: `asyncio.gather`, Go: `errgroup`) when possible. Exceptions: rate-limited external APIs, serialized transactions, or memory-bound batches that need sequential processing.
 
 ```
-BANNED (sequential, slow — JS/TS example):
+BANNED (sequential, slow - JS/TS example):
   for (const user of users) {
     await sendConfirmation(user.id);
   }
@@ -331,8 +331,8 @@ REQUIRED (parallel, fast):
   );
 ```
 
-- **Handle partial failures** — if one operation in a batch fails, all may fail. Use partial-success patterns (JS: `Promise.allSettled`, Go: collect errors per goroutine) if acceptable.
-- **Explicit fire-and-forget for side effects** — make it clear when you intentionally don't wait:
+- **Handle partial failures** - if one operation in a batch fails, all may fail. Use partial-success patterns (JS: `Promise.allSettled`, Go: collect errors per goroutine) if acceptable.
+- **Explicit fire-and-forget for side effects** - make it clear when you intentionally don't wait:
 
 ```
 // JS/TS: void prefix  |  Go: go func()  |  Python: asyncio.create_task()
@@ -343,7 +343,7 @@ void sendAnalyticsEvent("record_created", { recordId });
 
 ## 5. API Handler Anatomy (Backend)
 
-Every authenticated API handler follows this shape, in this sequence. Example uses JS/TS-style pseudocode — adapt syntax to your stack:
+Every authenticated API handler follows this shape, in this sequence. Example uses JS/TS-style pseudocode - adapt syntax to your stack:
 
 ```
 export async function POST(request) {
@@ -402,7 +402,7 @@ export async function POST(request) {
 
 ## 6. UI Component Anatomy (Frontend)
 
-Every component follows this internal sequence. Example uses React/JSX — adapt to your framework's component model:
+Every component follows this internal sequence. Example uses React/JSX - adapt to your framework's component model:
 
 ```
 // 1. Props type definition (if typed language)
@@ -462,15 +462,15 @@ export function ResourceCard({ resource, onEdit, onDelete, isLoading = false }: 
 }
 ```
 
-**This is the default component shape.** `forwardRef` wrappers, compound components, and animation-library integrations may adapt the structure — but keep the same logical grouping (hooks at top, handlers in middle, render at bottom).
+**This is the default component shape.** `forwardRef` wrappers, compound components, and animation-library integrations may adapt the structure - but keep the same logical grouping (hooks at top, handlers in middle, render at bottom).
 
 ### Rules (adapt terminology to your framework)
 
-- **Type definitions at the top** — before the component (props interface, input types, etc.)
-- **All reactive primitives at the top** of the component body — never inside conditionals or loops
-- **Handlers before output** — defined as named functions, not inline in templates/markup
-- **Early returns for states** — loading, error, empty before the main output
-- **No business logic in output/render** — extract to functions or composables
+- **Type definitions at the top** - before the component (props interface, input types, etc.)
+- **All reactive primitives at the top** of the component body - never inside conditionals or loops
+- **Handlers before output** - defined as named functions, not inline in templates/markup
+- **Early returns for states** - loading, error, empty before the main output
+- **No business logic in output/render** - extract to functions or composables
 - **Inline functions in templates** only for trivial one-liners (e.g., `onClick={() => setOpen(true)}` in JSX, `@click="open = true"` in Vue)
 - **Complex inline logic** gets extracted to a handler function
 
@@ -485,23 +485,23 @@ export function ResourceCard({ resource, onEdit, onDelete, isLoading = false }: 
 
 // 3. Constants
 
-// 4. Exported functions (public API — what others import)
+// 4. Exported functions (public API - what others import)
 export function buildScopedFilter(actor) { ... }
 export function assertTargetVisible(actor, targetId) { ... }
 
-// 5. Internal helper functions (private — not exported)
+// 5. Internal helper functions (private - not exported)
 function resolveHierarchyGroups(actor) { ... }
 function buildGroupCondition(groupIds) { ... }
 ```
 
 ### Rules
 
-- **Exports first, helpers last** — the reader sees the public API immediately
-- **No classes for stateless logic** — use plain functions (classes for stateful services only)
-- **Group related functions** in one file — respect the limits in `code-formatting.md` § File Length
-- **Every exported function has a JSDoc/docstring** — what it does, params, return value
-- **Internal helpers are not exported** — if another file needs it, promote it to a shared utility
-- **Extract reusable CRUD helpers** — common DB operations like "find by ID or 404", "create and populate" should be shared utilities, not duplicated in every handler
+- **Exports first, helpers last** - the reader sees the public API immediately
+- **No classes for stateless logic** - use plain functions (classes for stateful services only)
+- **Group related functions** in one file - respect the limits in `code-formatting.md` § File Length
+- **Every exported function has a JSDoc/docstring** - what it does, params, return value
+- **Internal helpers are not exported** - if another file needs it, promote it to a shared utility
+- **Extract reusable CRUD helpers** - common DB operations like "find by ID or 404", "create and populate" should be shared utilities, not duplicated in every handler
 
 ---
 
@@ -510,7 +510,7 @@ function buildGroupCondition(groupIds) { ... }
 **The principle:** Use your language's type system to its fullest. Prefer narrow types over escape hatches. Prefer composition over inheritance for type shapes. (Adapt to your type system: TypeScript uses `interface`/`type`, Python uses `dataclass`/`TypedDict`, Go uses `struct`, Rust uses `struct`/`trait`, Kotlin uses `data class`, Swift uses `struct`/`protocol`.)
 
 ```
-// TypeScript example — adapt to your language's type system
+// TypeScript example - adapt to your language's type system
 
 // Simple types: type alias
 type RecordStatus = "active" | "inactive" | "suspended";
@@ -552,19 +552,19 @@ interface ResourceListProps {
 
 ### Rules
 
-- **Prefer structured type definitions over untyped dictionaries/maps** — define the shape explicitly
-- **Use the most specific type possible** — unions, enums, and literal types over generic strings/numbers
+- **Prefer structured type definitions over untyped dictionaries/maps** - define the shape explicitly
+- **Use the most specific type possible** - unions, enums, and literal types over generic strings/numbers
 - **Never use type escape hatches** (TS: `any`, Python: untyped `dict`, Go: `interface{}`) without a justification comment explaining why the type cannot be narrowed
-- **Prefer narrow unknown types over broad escape hatches** (TS: `unknown` over `any`, Python: typed protocols over `Any`) — force type checking at usage
+- **Prefer narrow unknown types over broad escape hatches** (TS: `unknown` over `any`, Python: typed protocols over `Any`) - force type checking at usage
 - **Avoid type casting/assertions** unless absolutely necessary (and justify with a comment)
-- **Types live near usage** — in the same file if used only there, in a shared types file if used across modules
+- **Types live near usage** - in the same file if used only there, in a shared types file if used across modules
 
 ---
 
 ## 9. Constants & Configuration Pattern
 
 ```
-// constants.ts — all in one place, grouped by domain
+// constants.ts - all in one place, grouped by domain
 
 // ─── Authentication ─────────────────────
 export const BCRYPT_ROUNDS = 12;
@@ -587,12 +587,12 @@ export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 ### Rules
 
-- **No magic numbers in code** — extract to a named constant
+- **No magic numbers in code** - extract to a named constant
 - **All constants in one file** (or one file per domain if large)
 - **SCREAMING_SNAKE_CASE** always
 - **Include units in the name** when ambiguous: `TIMEOUT_MS`, `MAX_SIZE_BYTES`, `EXPIRY_HOURS`
 - **Group by domain** with section dividers
-- **Never mutate constants** — use `Object.freeze()` for objects/arrays if the language doesn't enforce it
+- **Never mutate constants** - use `Object.freeze()` for objects/arrays if the language doesn't enforce it
 
 ---
 
@@ -614,10 +614,10 @@ return <ResourceList items={data} />;
 
 ### Rules
 
-- **`&&` for show/hide** — but ONLY with booleans (never `{count && <Badge />}` — 0 renders as "0")
-- **Always ternary for two states** — never use if/else when ternary works. Avoid nesting beyond 2 levels.
-- **Early return for multiple states** — loading → error → empty → content (always in this sequence)
-- **Never hide with CSS when you can not-render** — unmounted components don't waste resources
+- **`&&` for show/hide** - but ONLY with booleans (never `{count && <Badge />}` - 0 renders as "0")
+- **Always ternary for two states** - never use if/else when ternary works. Avoid nesting beyond 2 levels.
+- **Early return for multiple states** - loading -> error -> empty -> content (always in this sequence)
+- **Never hide with CSS when you can not-render** - unmounted components don't waste resources
 - **Complex conditions** get extracted to a variable:
   ```
   BANNED:  {user && user.role === "admin" && permissions.includes("edit") && <EditButton />}
@@ -629,7 +629,7 @@ return <ResourceList items={data} />;
 
 ## 11. Data Transformation Pattern
 
-When transforming data between layers (API → UI, DB → API), always use explicit mapping functions:
+When transforming data between layers (API -> UI, DB -> API), always use explicit mapping functions:
 
 ```
 // Map DB model to API response (always expose "id", never raw "_id" or internal keys)
@@ -657,10 +657,10 @@ function toResourceDisplay(apiRecord) {
 
 ### Rules
 
-- **Explicit mapping functions** — never pass raw DB objects to the API response or raw API responses to the UI
-- **Name the mapping function** — `toXxxResponse`, `toXxxDisplay`, `fromXxxRequest`
-- **Map at the boundary** — at the edge of each layer, not deep inside
-- **No spread-and-pray** — don't `{ ...dbRecord }` as the response (leaks internal fields)
+- **Explicit mapping functions** - never pass raw DB objects to the API response or raw API responses to the UI
+- **Name the mapping function** - `toXxxResponse`, `toXxxDisplay`, `fromXxxRequest`
+- **Map at the boundary** - at the edge of each layer, not deep inside
+- **No spread-and-pray** - don't `{ ...dbRecord }` as the response (leaks internal fields)
 
 ---
 
@@ -678,23 +678,23 @@ REQUIRED (configurable):
 
 ### Rules
 
-- **All external URLs, credentials, and feature flags** come from environment/config — never hardcoded
-- **All thresholds and limits** come from constants — never inline magic numbers
-- **Services receive dependencies** through constructor/params — not by importing globals
-- **Feature flags** for risky features — so you can disable without redeploying
+- **All external URLs, credentials, and feature flags** come from environment/config - never hardcoded
+- **All thresholds and limits** come from constants - never inline magic numbers
+- **Services receive dependencies** through constructor/params - not by importing globals
+- **Feature flags** for risky features - so you can disable without redeploying
 
 ---
 
 ## 13. Code Conciseness & Consolidation
 
-The rulebook has rules for splitting and extracting. This section covers the **opposite direction** — when to combine, simplify, and reduce file count. Applies to the entire project: components, pages, services, routes, hooks, utilities, everything.
+The rulebook has rules for splitting and extracting. This section covers the **opposite direction** - when to combine, simplify, and reduce file count. Applies to the entire project: components, pages, services, routes, hooks, utilities, everything.
 
 ### File Consolidation
 
 ```
 MERGE when:
   - Two files are small (< ~100 lines each) AND tightly related (same domain, one imports from the other)
-  - A file has 1-2 small functions used by only one other file → move them into the consumer
+  - A file has 1-2 small functions used by only one other file -> move them into the consumer
   - Understanding a feature requires jumping between 5+ tiny files that could be 2-3
   - Multiple small "helper" files in the same folder serve the same domain
 
@@ -708,60 +708,60 @@ KEEP SEPARATE when:
 **Examples:**
 
 ```
-BAD (over-fragmented — 4 files for one tightly-coupled domain):
-  lib/tz.ts                    → resolveTimezone(), dateParts(), dateInTz()   (75 lines)
-  lib/dayBoundary.ts           → startOfDay(), isSameDay()                    (41 lines)
-  lib/formatDate.ts            → formatRelativeDate()                         (25 lines)
-  lib/dateConstants.ts         → DAY_START_HOUR, DATE_FORMAT                  (10 lines)
+BAD (over-fragmented - 4 files for one tightly-coupled domain):
+  lib/tz.ts                    -> resolveTimezone(), dateParts(), dateInTz()   (75 lines)
+  lib/dayBoundary.ts           -> startOfDay(), isSameDay()                    (41 lines)
+  lib/formatDate.ts            -> formatRelativeDate()                         (25 lines)
+  lib/dateConstants.ts         -> DAY_START_HOUR, DATE_FORMAT                  (10 lines)
 
 GOOD (one cohesive file):
-  lib/dateUtils.ts             → all of the above                             (~150 lines)
+  lib/dateUtils.ts             -> all of the above                             (~150 lines)
 
 BAD (tiny component files that always go together):
   components/StatusDot.tsx       (20 lines)
   components/StatusLabel.tsx     (25 lines)
-  components/StatusBadge.tsx     (40 lines — imports both above)
+  components/StatusBadge.tsx     (40 lines - imports both above)
 
 GOOD (one file, small helpers are unexported):
-  components/StatusBadge.tsx     (~80 lines — Dot and Label are internal)
+  components/StatusBadge.tsx     (~80 lines - Dot and Label are internal)
 ```
 
 ### File Naming
 
-- **File name must match its primary export or purpose** — if the file exports `buildScopedFilter`, the file is `scopeBuilder.ts`, not `helpers.ts`
-- **Rename immediately when purpose changes** — if a refactor changes what a file does, rename it in the same commit. Stale names mislead every future reader.
+- **File name must match its primary export or purpose** - if the file exports `buildScopedFilter`, the file is `scopeBuilder.ts`, not `helpers.ts`
+- **Rename immediately when purpose changes** - if a refactor changes what a file does, rename it in the same commit. Stale names mislead every future reader.
 - **When merging files**, the surviving file gets the name that best describes the combined purpose (not the name of whichever file was bigger)
-- **Never leave generic names** like `helpers.ts`, `utils2.ts`, `misc.ts`, `stuff.ts` — name by domain: `dateUtils.ts`, `permissionHelpers.ts`, `formatters.ts`
+- **Never leave grab-bag names** like bare `helpers.ts`, `utils2.ts`, `misc.ts`, `stuff.ts` - name by domain: `dateUtils.ts`, `permissionHelpers.ts`, `formatters.ts`. A cohesive, domain-scoped `helpers`/`utils` module is fine (see `naming.md` Test 10).
 
 ### Code Conciseness
 
-- **Always use your language's shorthand conditional operators** — use the shortest readable form everywhere you conditionally access, assign, or return data. Never write verbose if/else or null-check chains when a one-liner operator does the same thing. See Section 2 for full rules, examples, and restrictions.
-- **Don't create abstractions for things that aren't reused** — a wrapper function used in one place is overhead, not simplification. Extract when you actually see duplication (2+ call sites), not "in case" you might reuse it later.
-- **Inline trivial helpers** — a 3-line function called once is clearer inline than as a separate named function in a separate file
-- **Prefer direct code over indirection chains** — if calling `A()` just calls `B()` which just calls `C()`, remove the middle layers unless each adds real logic
-- **Reduce cognitive jumps** — if understanding one feature requires opening 6+ files, consolidate until the reader can follow the flow in 2-3 files
-- **Shorter is not always better** — clarity wins over brevity. A clear 10-line function beats a clever 3-line one-liner that requires mental decryption. Concise means removing unnecessary indirection and fragmentation, not making code cryptic.
+- **Always use your language's shorthand conditional operators** - use the shortest readable form everywhere you conditionally access, assign, or return data. Never write verbose if/else or null-check chains when a one-liner operator does the same thing. See Section 2 for full rules, examples, and restrictions.
+- **Don't create abstractions for things that aren't reused** - a wrapper function used in one place is overhead, not simplification. Extract when you actually see duplication (2+ call sites), not "in case" you might reuse it later.
+- **Inline trivial helpers** - a 3-line function called once is clearer inline than as a separate named function in a separate file
+- **Prefer direct code over indirection chains** - if calling `A()` just calls `B()` which just calls `C()`, remove the middle layers unless each adds real logic
+- **Reduce cognitive jumps** - if understanding one feature requires opening 6+ files, consolidate until the reader can follow the flow in 2-3 files
+- **Shorter is not always better** - clarity wins over brevity. A clear 10-line function beats a clever 3-line one-liner that requires mental decryption. Concise means removing unnecessary indirection and fragmentation, not making code cryptic.
 
 ### The Consolidation Checklist (During Refactoring or Cleanup)
 
 ```
 For every file you touch, ask:
-  1. Does this file's name still match what it does?         → Rename if not
-  2. Is this file < 80 lines AND only imported by one file?  → Consider merging into that consumer
-  3. Are there 2-3 sibling files in this folder that share   → Consider merging into one domain file
+  1. Does this file's name still match what it does?         -> Rename if not
+  2. Is this file < 80 lines AND only imported by one file?  -> Consider merging into that consumer
+  3. Are there 2-3 sibling files in this folder that share   -> Consider merging into one domain file
      the same domain and import each other?
-  4. Does this file have a generic name (helpers, utils2)?    → Rename to describe its domain
-  5. Is there a wrapper/abstraction here that only has one    → Inline it
+  4. Does this file have a generic name (helpers, utils2)?    -> Rename to describe its domain
+  5. Is there a wrapper/abstraction here that only has one    -> Inline it
      call site and adds no logic?
 ```
 
 ### Rules
 
 - **MUST run the consolidation checklist** on every file you touch for the stated task. Ask the user before cross-file merges outside scope (`maintenance.md`).
-- **Merging must respect file length limits** — consolidate small files, but don't create a 2,000-line monster. The soft/hard limits in `code-formatting.md` § File Length still apply.
-- **One logical domain per file** — merging is for tightly-coupled code in the same domain. Never merge unrelated utilities into a grab-bag file.
-- **Renaming is not optional** — a file with a wrong name is a bug. Fix it immediately, update all imports, same commit.
-- **Test after consolidation** — run type checker + tests after every merge/rename to catch broken imports
+- **Merging must respect file length limits** - consolidate small files, but don't create a 2,000-line monster. The soft/hard limits in `code-formatting.md` § File Length still apply.
+- **One logical domain per file** - merging is for tightly-coupled code in the same domain. Never merge unrelated utilities into a grab-bag file.
+- **Renaming is not optional** - a file with a wrong name is a bug. Fix it immediately, update all imports, same commit.
+- **Test after consolidation** - run type checker + tests after every merge/rename to catch broken imports
 
 ---
 
@@ -769,7 +769,7 @@ For every file you touch, ask:
 
 Every file and every function must follow a predictable top-to-bottom order. When a developer opens any file, they should **always** know where to find things without searching. This section consolidates all ordering rules in one place.
 
-**Agents:** When you edit a file, reorder declarations to match this section for the **whole file** — not only new lines.
+**Agents:** When you edit a file, reorder declarations to match this section for the **whole file** - not only new lines.
 
 ### File-Level Order (All File Types)
 
@@ -780,7 +780,7 @@ Every file follows this sequence from top to bottom:
 2. Type definitions / Interfaces (if co-located)
 3. Constants
 4. Exported functions / classes / components (PUBLIC API)
-5. Internal helpers (NOT exported — private to this file)
+5. Internal helpers (NOT exported - private to this file)
 ```
 
 **Why exports before helpers:** The reader sees the public contract first. They only dig into helpers if they need implementation details.
@@ -831,23 +831,23 @@ function calculateInvoiceTotal(invoice, taxRules, discountCode) {
 
 ### Component-Internal Order (Frontend)
 
-Inside a UI component, group declarations by purpose. The specific groups depend on your framework, but the principle is the same: **dependencies/inputs first → state → derived values → side effects → handlers → output.**
+Inside a UI component, group declarations by purpose. The specific groups depend on your framework, but the principle is the same: **dependencies/inputs first -> state -> derived values -> side effects -> handlers -> output.**
 
 ```
-1. External dependencies (injected context, routing, services — things from outside the component)
+1. External dependencies (injected context, routing, services - things from outside the component)
 2. Props extraction (if not done in signature)
 3. References (mutable refs that persist across renders)
 4. Reactive state (local mutable state the component owns)
-5. Derived / computed values (values calculated from state or props — read-only)
-6. Data fetching / async hooks (queries, subscriptions — things that load external data)
-7. Side effects (lifecycle reactions — "when X changes, do Y")
+5. Derived / computed values (values calculated from state or props - read-only)
+6. Data fetching / async hooks (queries, subscriptions - things that load external data)
+7. Side effects (lifecycle reactions - "when X changes, do Y")
 8. Event handlers (functions triggered by user interaction)
 9. Render helpers (functions that compute parts of the output)
 10. Early returns (loading, error, empty states)
 11. Main output (the returned UI)
 ```
 
-**The principle:** Group by what it IS (dependency, state, derived, effect, handler, output) — not by the specific API your framework uses. Whether you use `useState`, `ref()`, `signal()`, `@State`, or `BehaviorSubject` — they all go in the "reactive state" group.
+**The principle:** Group by what it IS (dependency, state, derived, effect, handler, output) - not by the specific API your framework uses. Whether you use `useState`, `ref()`, `signal()`, `@State`, or `BehaviorSubject` - they all go in the "reactive state" group.
 
 ### Class Member Order
 
@@ -856,7 +856,7 @@ When using classes (stateful services, OOP languages), order members as:
 ```
 1. Static properties
 2. Static methods
-3. Instance properties (public → protected → private)
+3. Instance properties (public -> protected -> private)
 4. Constructor
 5. Public methods (the API consumers call)
 6. Protected methods
@@ -869,7 +869,7 @@ For object shapes, order properties by importance and category:
 
 ```
 1. Identifiers (id, slug, key)
-2. Primary fields (name, title, email — the core data)
+2. Primary fields (name, title, email - the core data)
 3. Relationships / foreign keys (categoryId, ownerId, parentId)
 4. Status / flags (isActive, status, role)
 5. Metadata (createdAt, updatedAt, createdBy)
@@ -919,9 +919,9 @@ interface User {
 
 ### Rules
 
-- **Sorting order is not optional** — it is enforced the same way as naming. Every file, every function, every component must follow the sequence above.
-- **Never mix concerns** — don't declare a state variable between two effect hooks, or a constant between two handlers
-- **New declarations go in the correct slot** — when adding a new variable/hook/function, place it in the right group even if "just adding it at the bottom" is faster
-- **Comments between groups are optional** — use them in large files where visual separation helps, skip them in small files where the grouping is obvious
-- **Within each group, order by usage** — if `const taxableAmount` depends on `const subtotal`, declare `subtotal` first. If no dependency, order alphabetically or by importance.
-- **Consistency trumps personal preference** — even if you disagree with the sequence, follow it. One consistent order everywhere beats five "better" orders in different files.
+- **Sorting order is not optional** - it is enforced the same way as naming. Every file, every function, every component must follow the sequence above.
+- **Never mix concerns** - don't declare a state variable between two effect hooks, or a constant between two handlers
+- **New declarations go in the correct slot** - when adding a new variable/hook/function, place it in the right group even if "just adding it at the bottom" is faster
+- **Comments between groups are optional** - use them in large files where visual separation helps, skip them in small files where the grouping is obvious
+- **Within each group, order by usage** - if `const taxableAmount` depends on `const subtotal`, declare `subtotal` first. If no dependency, order alphabetically or by importance.
+- **Consistency trumps personal preference** - even if you disagree with the sequence, follow it. One consistent order everywhere beats five "better" orders in different files.

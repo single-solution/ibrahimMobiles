@@ -248,6 +248,7 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 						value={draft.staffNotifyWhatsApp}
 						onChange={(event) => setField("staffNotifyWhatsApp", event.target.value)}
 						placeholder="923001234567"
+						hint="Internal staff alerts only — not the customer chat number in Store contact."
 						disabled={!canUpdate}
 					/>
 					<TextField

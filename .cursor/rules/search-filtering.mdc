@@ -1,18 +1,13 @@
 ---
-description: Search UX, filters in URL, pagination reset.
-globs:
-  - apps/*/src/**/search/**
-  - apps/*/src/**/shop/**
-  - apps/*/src/**/filter*.ts
-  - apps/*/src/**/filter*.tsx
-  - apps/*/src/**/*Filters*.tsx
+description: Search UX and list filters. Apply for searchable tables/lists.
+alwaysApply: false
 ---
 
 # Search & Filtering
 
 Coding patterns for search, filtering, sorting, and data discovery. IF your project has searchable lists, apply these patterns.
 
-> All numeric values (thresholds, sizes, timings, percentages) in this file are `[DEFAULT]` — adjust per project.
+> All numeric values (thresholds, sizes, timings, percentages) in this file are `[DEFAULT]` - adjust per project.
 
 ---
 
@@ -30,13 +25,13 @@ Cosmetic tabs with no shareable meaning may use local state.
 
 ### Search Bar Rules
 
-- **Visible or easily accessible** on pages with searchable content — full search bar on desktop, icon toggle on mobile is fine
-- **Placeholder text** hints at what's searchable: "Search by keyword…" not just "Search"
-- **Instant feedback** — show results as user types (debounced, not on every keystroke)
+- **Visible or easily accessible** on pages with searchable content - full search bar on desktop, icon toggle on mobile is fine
+- **Placeholder text** hints at what's searchable: "Search by keyword..." not just "Search"
+- **Instant feedback** - show results as user types (debounced, not on every keystroke)
 - **Debounce**: 200-400ms after last keystroke (200ms for local/fast search, 300-400ms for remote APIs)
 - **Loading indicator** inside the search input or below it while fetching
-- **Clear button** (X icon) appears when input has text — clears search and restores full list
-- **Keyboard shortcut**: Cmd/Ctrl+K to focus search (avoid `/` shortcut on pages with text inputs — it conflicts with text entry)
+- **Clear button** (X icon) appears when input has text - clears search and restores full list
+- **Keyboard shortcut**: Cmd/Ctrl+K to focus search (avoid `/` shortcut on pages with text inputs - it conflicts with text entry)
 - **No results state**: "No results for "xyz"" with suggestions (check spelling, try different keywords, clear filters)
 - **Result count**: Show "Showing 12 of 458 results" or "3 results for "john""
 - **Highlight matches** in results (bold the matching portion of text)
@@ -46,13 +41,13 @@ Cosmetic tabs with no shareable meaning may use local state.
 ```
 1. User focuses search input
 2. (Optional) Show recent searches dropdown
-3. User types → debounce 300ms → send request
+3. User types -> debounce 300ms -> send request
 4. Show loading spinner in input
 5. Results appear below (or update the list in place)
-6. User presses Enter → submit search (for forms) or focus first result
-7. User presses Escape → clear search or close dropdown
-8. User clicks X → clear search, restore full list
-9. Empty search → show all results (don't show "no results" for empty query)
+6. User presses Enter -> submit search (for forms) or focus first result
+7. User presses Escape -> clear search or close dropdown
+8. User clicks X -> clear search, restore full list
+9. Empty search -> show all results (don't show "no results" for empty query)
 ```
 
 ---
@@ -61,41 +56,41 @@ Cosmetic tabs with no shareable meaning may use local state.
 
 ### Filter Types
 
-**Principle:** Offer filter types that match the data type of each field — users should be able to filter intuitively.
+**Principle:** Offer filter types that match the data type of each field - users should be able to filter intuitively.
 
 [REFERENCE] Common filter types by data kind:
 
 ```
 Discrete (enum/category):
-  Status: [Active, Inactive, Pending]         → dropdown or chip selector
-  Category: [Type A, Type B, Type C]          → dropdown or checkbox list
-  Group: [Group 1, Group 2, Group 3]          → dropdown with search
+  Status: [Active, Inactive, Pending]         -> dropdown or chip selector
+  Category: [Type A, Type B, Type C]          -> dropdown or checkbox list
+  Group: [Group 1, Group 2, Group 3]          -> dropdown with search
 
 Boolean:
-  Show inactive: [Yes/No]                      → toggle switch
-  Has related items: [Yes/No]                  → toggle switch
+  Show inactive: [Yes/No]                      -> toggle switch
+  Has related items: [Yes/No]                  -> toggle switch
 
 Date range:
-  Created: [Start date] to [End date]          → date picker pair
-  Date: [Today, This week, This month]         → preset buttons + custom range
+  Created: [Start date] to [End date]          -> date picker pair
+  Date: [Today, This week, This month]         -> preset buttons + custom range
 
 Numeric range:
-  Numeric value: [Min] to [Max]                → range slider or two inputs
-  Score: [1-5]                                 → star selector
+  Numeric value: [Min] to [Max]                -> range slider or two inputs
+  Score: [1-5]                                 -> star selector
 
 Text:
-  Name contains: [input]                        → text input
-  Tags: [multiple values]                       → tag input with autocomplete
+  Name contains: [input]                        -> text input
+  Tags: [multiple values]                       -> tag input with autocomplete
 ```
 
 ### Filter UX Rules
 
-- **Filters persist in URL** — `?status=active&category=featured&page=2` — so the user can share/bookmark filtered views
+- **Filters persist in URL** - `?status=active&category=featured&page=2` - so the user can share/bookmark filtered views
 - **Active filter count** shown on filter button: "Filters (3)"
 - **Clear all filters** button always visible when any filter is active
-- **Individual filter removal** — each active filter shown as a chip with X to remove
+- **Individual filter removal** - each active filter shown as a chip with X to remove
 - **Filter changes reset pagination** to page 1 (don't stay on page 5 when the dataset changed)
-- **Filter counts** — show number of results per filter value when feasible: "Active (45)" "Inactive (12)"
+- **Filter counts** - show number of results per filter value when feasible: "Active (45)" "Inactive (12)"
 - **Collapsible filter panel** on desktop; bottom sheet or modal on mobile
 - **Preserve filters** on back-navigation (don't lose filters when viewing a detail and coming back)
 
@@ -106,8 +101,8 @@ Search and filters are ADDITIVE:
   Search "keyword" + Status: Active + Category: Type A
   = Records matching "keyword" that are active AND in Type A
 
-Clear search ≠ clear filters (independent controls)
-Clear filters ≠ clear search
+Clearing the search does NOT clear the filters (independent controls)
+Clearing the filters does NOT clear the search
 "Clear all" clears both
 ```
 
@@ -118,11 +113,11 @@ Clear filters ≠ clear search
 ### Rules
 
 - **Default sort** makes sense for the context (most recent first for activity, alphabetical for directories)
-- **Sort indicator** — visible arrow/icon on the active sort column (↑ ascending, ↓ descending)
-- **Click to toggle** — first click: ascending, second click: descending, third click: remove sort (or back to default)
-- **Sort persists in URL** — `?sort=createdAt&dir=desc`
-- **Secondary sort** — define a tiebreaker (e.g., sort by status, then by name within same status)
-- **Consistent null handling** — nulls always sort last, regardless of direction
+- **Sort indicator** - visible arrow/icon on the active sort column (up for ascending, down for descending)
+- **Click to toggle** - first click: ascending, second click: descending, third click: remove sort (or back to default)
+- **Sort persists in URL** - `?sort=createdAt&dir=desc`
+- **Secondary sort** - define a tiebreaker (e.g., sort by status, then by name within same status)
+- **Consistent null handling** - nulls always sort last, regardless of direction
 
 ### API Sort Parameters
 
@@ -131,7 +126,7 @@ GET /api/resources?sort=name&dir=asc
 GET /api/resources?sort=createdAt&dir=desc
 GET /api/resources?sort=group.name&dir=asc    (nested field)
 
-Validate sort field on server — reject unknown fields:
+Validate sort field on server - reject unknown fields:
   Allowed: name, email, createdAt, updatedAt, status (define per entity)
   Reject: password, token, internal/driver-specific fields, or any field not in the whitelist
 ```
@@ -164,14 +159,14 @@ Level 3: Dedicated search engine (best UX)
 
 ### Which to Use
 
-**Principle:** Choose your search backend based on dataset size and query complexity — start simple and scale up only when needed.
+**Principle:** Choose your search backend based on dataset size and query complexity - start simple and scale up only when needed.
 
 [REFERENCE] Typical backend tiers by dataset size:
 
 ```
 < 10,000 records:     Level 1 (regex/LIKE) is fine
 10,000 - 1,000,000:   Level 2 (full-text index) recommended
-> 1,000,000:           Level 3 (dedicated search engine) recommended — strong DB FTS with good indexing can handle millions for simple search
+> 1,000,000:           Level 3 (dedicated search engine) recommended - strong DB FTS with good indexing can handle millions for simple search
 Complex search needs:  Level 3 regardless of size (typo tolerance, faceting, synonyms)
 ```
 
@@ -201,10 +196,10 @@ Response:
 
 ### Server-Side Rules
 
-- **Sanitize search input** — strip special regex/query characters to prevent injection
-- **Limit search length** — max 200 characters (prevent massive regex/query payloads)
-- **Index searchable fields** — EVERY field used in WHERE/filter MUST have an index
-- **Combine search + filters server-side** — search narrows within the filtered set, not separately
+- **Sanitize search input** - strip special regex/query characters to prevent injection
+- **Limit search length** - max 200 characters (prevent massive regex/query payloads)
+- **Index searchable fields** - EVERY field used in WHERE/filter MUST have an index
+- **Combine search + filters server-side** - search narrows within the filtered set, not separately
 - **Case-insensitive** by default for text search
 - **Trim whitespace** before searching
 
@@ -217,12 +212,12 @@ Response:
 - **Minimum 2 characters** before triggering autocomplete by default. 1 character is fine for small datasets (country codes, stock tickers, short reference lists).
 - **5-10 suggestions** for standard dropdowns. Command palettes and admin tooling may show 15-20.
 - **Debounce 200ms** (shorter than full search since user expects instant suggestions)
-- **Keyboard navigation** — arrow keys to move between suggestions, Enter to select, Escape to close
+- **Keyboard navigation** - arrow keys to move between suggestions, Enter to select, Escape to close
 - **Highlight matching text** in suggestions
 - **Show category/type** if suggestions come from different entities ("Record A - Type X", "Record B - Type Y")
 - **Recent searches** shown when input is focused but empty
-- **Loading state** — subtle spinner in the dropdown while fetching
-- **No results** — "No matches for "xyz"" (don't just show empty dropdown)
+- **Loading state** - subtle spinner in the dropdown while fetching
+- **No results** - "No matches for "xyz"" (don't just show empty dropdown)
 - **Cache suggestions** client-side for repeated queries (user types "jo", deletes, types "jo" again)
 
 ---
@@ -247,12 +242,12 @@ Storage:
 
 ## Performance
 
-- **Paginate search results** — avoid unbounded result sets in user-facing UIs. Export and BI tools may use streaming or high-cap cursors.
-- **Set query timeout** — if interactive search takes > 5 seconds, show a loading state or partial results. Heavy reporting queries may use async job patterns instead of aborting.
-- **Cache popular searches** — if many users search the same terms, cache the results (TTL: 1-5 minutes)
-- **Search debounce** — don't hit the server on every keystroke
-- **Index maintenance** — rebuild/reindex periodically if using dedicated search engine
-- **Monitor slow searches** — log queries that exceed your app's expected threshold (e.g., 500ms for instant search, higher for complex filters)
+- **Paginate search results** - avoid unbounded result sets in user-facing UIs. Export and BI tools may use streaming or high-cap cursors.
+- **Set query timeout** - if interactive search takes > 5 seconds, show a loading state or partial results. Heavy reporting queries may use async job patterns instead of aborting.
+- **Cache popular searches** - if many users search the same terms, cache the results (TTL: 1-5 minutes)
+- **Search debounce** - don't hit the server on every keystroke
+- **Index maintenance** - rebuild/reindex periodically if using dedicated search engine
+- **Monitor slow searches** - log queries that exceed your app's expected threshold (e.g., 500ms for instant search, higher for complex filters)
 
 ---
 

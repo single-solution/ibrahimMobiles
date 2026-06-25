@@ -1,23 +1,23 @@
 ---
-description: Indent, line length, imports, file tiers, comment policy. Apply to any code change.
-alwaysApply: true
+description: Indent, imports, line length, comments. Apply on any code change.
+alwaysApply: false
 ---
 
 # Code Formatting
 
 Consistent formatting makes all projects look like they came from the same developer. These rules apply regardless of language or framework.
 
-> All numeric values in this file are `[DEFAULT]` — adjust per project.
+> All numeric values in this file are `[DEFAULT]` - adjust per project.
 
-**Tooling test (agents):** If the project has a formatter/linter, run it on **touched files** — do not manually drive whitespace across the repo. **Comment policy:** WHY-only, no edit-narration — see `token-efficiency.md` and `code-patterns.md` (this file’s comment section is `[REFERENCE]` detail).
+**Tooling test (agents):** If the project has a formatter/linter, run it on **touched files** - do not manually drive whitespace across the repo. **Comment policy:** WHY-only, no edit-narration - see `token-efficiency.md` and `code-patterns.md` (this file's comment section is `[REFERENCE]` detail).
 
 ---
 
 ## Indentation
 
-- **Tabs** for indentation — all languages, all files
+- **Tabs** for indentation - all languages, all files
 - **Tab width `[DEFAULT]`**: renders as 2 columns in most editors (configure per project/IDE if preferred differently)
-- **Nested indentation** must be consistent — never mix tabs and spaces for indentation
+- **Nested indentation** must be consistent - never mix tabs and spaces for indentation
 - Why tabs: one character per level, user-configurable display width, smaller file size, accessibility (developers set their own visual width)
 
 ---
@@ -58,13 +58,13 @@ REQUIRED:
   const config = {
     host: "localhost",
     port: 3000,
-    debug: true,     ← trailing comma
+    debug: true,     <- trailing comma
   };
 
   function createUser(
     name: string,
     email: string,
-    role: string,     ← trailing comma
+    role: string,     <- trailing comma
   ) { ... }
 ```
 
@@ -74,14 +74,14 @@ Why: cleaner git diffs (adding a line doesn't modify the previous line).
 
 ## Semicolons
 
-- **JavaScript / TypeScript**: Pick one style per project (semicolons or no-semicolons) and enforce with linter. Be consistent — never mix styles in the same codebase.
+- **JavaScript / TypeScript**: Pick one style per project (semicolons or no-semicolons) and enforce with linter. Be consistent - never mix styles in the same codebase.
 - **Other languages**: Follow language convention (Python: no; Java: yes; Go: auto-inserted).
 
 ---
 
 ## Quotes
 
-- **JavaScript / TypeScript**: Pick one quote style per project (double `"` or single `'`) and enforce with linter. Be consistent throughout the codebase — never mix styles.
+- **JavaScript / TypeScript**: Pick one quote style per project (double `"` or single `'`) and enforce with linter. Be consistent throughout the codebase - never mix styles.
 - **Python**: Pick one and be consistent (PEP 8 allows both)
 - **Other languages**: Follow language convention
 
@@ -94,19 +94,19 @@ Why: cleaner git diffs (adding a line doesn't modify the previous line).
 Pick one brace style per project and be consistent. Same-line (K&R) is the most common default:
 
 ```
-Same-line (K&R — most common):
+Same-line (K&R - most common):
   if (condition) {
     doSomething();
   }
 
-Next-line (Allman — common in C#, some C/C++ codebases):
+Next-line (Allman - common in C#, some C/C++ codebases):
   if (condition)
   {
     doSomething();
   }
 ```
 
-What matters is **consistency** — never mix brace styles in the same project.
+What matters is **consistency** - never mix brace styles in the same project.
 
 ### Single-Line Bodies: Still Use Braces
 
@@ -128,7 +128,7 @@ Exception: Single-expression arrow functions and ternaries are fine inline.
 
 ## Blank Lines & New Lines
 
-The principle: **one blank line separates groups of different purpose; no blank line between things of the same purpose.** What counts as a "group" depends on your stack — the rule is the separation pattern, not a fixed list.
+The principle: **one blank line separates groups of different purpose; no blank line between things of the same purpose.** What counts as a "group" depends on your stack - the rule is the separation pattern, not a fixed list.
 
 ### The Rule
 
@@ -145,7 +145,7 @@ The principle: **one blank line separates groups of different purpose; no blank 
   [function / class / component B]
 ```
 
-Inside a function or component body, the same principle applies — separate each group of purpose with 1 blank line:
+Inside a function or component body, the same principle applies - separate each group of purpose with 1 blank line:
 
 ```
   [guards / early returns]
@@ -163,12 +163,12 @@ Inside a function or component body, the same principle applies — separate eac
   [return / render]
 ```
 
-Which groups exist depends on your stack. A plain utility function may only have guards → declarations → logic → return. A UI component may have state → computed → effects → handlers → render. A class may have properties → constructor → public methods → private methods. **The pattern is always the same: group by purpose, separate groups with 1 blank line.**
+Which groups exist depends on your stack. A plain utility function may only have guards -> declarations -> logic -> return. A UI component may have state -> computed -> effects -> handlers -> render. A class may have properties -> constructor -> public methods -> private methods. **The pattern is always the same: group by purpose, separate groups with 1 blank line.**
 
 ### When to Add a Blank Line
 
 - Between groups of **different purpose** (declarations vs. logic vs. return)
-- Before a `return` statement (unless the function body is ≤ 3 lines total)
+- Before a `return` statement (unless the function body is <= 3 lines total)
 - Before and after multi-line control flow blocks (`if`, `for`, `try` that span 3+ lines)
 - Between functions / methods / class members
 - Before a comment that starts a new logical section
@@ -177,7 +177,7 @@ Which groups exist depends on your stack. A plain utility function may only have
 
 - Between lines of the **same purpose** (consecutive declarations, consecutive guards, consecutive imports in the same group)
 - After an opening brace or before a closing brace
-- Inside short functions (≤ 3 lines) — keep them compact
+- Inside short functions (<= 3 lines) - keep them compact
 - Between a function signature and its body
 
 ### Hard Rules
@@ -191,16 +191,16 @@ Which groups exist depends on your stack. A plain utility function may only have
 
 ## Import Order
 
-**The principle:** Imports are ordered by distance from the current file — furthest away first, closest last. Separate each group with a blank line.
+**The principle:** Imports are ordered by distance from the current file - furthest away first, closest last. Separate each group with a blank line.
 
 [REFERENCE] Common implementation:
 
 ```
-1. Language / framework built-ins (furthest — part of the platform)
+1. Language / framework built-ins (furthest - part of the platform)
 2. External packages (third-party libraries)
 3. Internal absolute imports (your project's own code via aliases)
-4. Relative imports (siblings, parents — closest to the current file)
-5. Side-effect-only imports (styles, polyfills, or anything with no named import — if your stack has them)
+4. Relative imports (siblings, parents - closest to the current file)
+5. Side-effect-only imports (styles, polyfills, or anything with no named import - if your stack has them)
 ```
 
 Some stacks have additional groups (type-only imports, protocol imports, generated code). Add them where they logically fit in the "distance from current file" ordering and be consistent.
@@ -226,7 +226,7 @@ Some stacks have additional groups (type-only imports, protocol imports, generat
 
 ### When NOT to Comment
 
-**Principle:** Never narrate what the code literally does — the code already says that.
+**Principle:** Never narrate what the code literally does - the code already says that.
 
 [REFERENCE] Narration to avoid:
 
@@ -250,7 +250,7 @@ BANNED (narrating the obvious):
 
 ### Never Narrate the Change
 
-**Principle:** Code comments describe the code that exists today, not the edit that produced it. The reader has git history for that — never write a comment whose meaning depends on the edit having "just happened."
+**Principle:** Code comments describe the code that exists today, not the edit that produced it. The reader has git history for that - never write a comment whose meaning depends on the edit having "just happened."
 
 **Banned phrasings (regardless of how true the comment was when the edit landed):**
 
@@ -269,7 +269,7 @@ BANNED (narrates the change, not the code):
   // Recently added scheduleMode-aware overtime calculation.
   if (targetMinutes > 0) { overtimeMinutes += ... }
 
-  // Copy Monday's row onto Tue–Fri (workweek). Saturday and Sunday
+  // Copy Monday's row onto Tue-Fri (workweek). Saturday and Sunday
   // are left untouched so the user's weekend config is preserved.
   function copyMondayToWeekdays() { ... }
 
@@ -282,7 +282,7 @@ REQUIRED (states the WHY that survives any future edit, or no comment at all):
   // would otherwise count every worked minute as overtime.
   if (targetMinutes > 0) { overtimeMinutes += ... }
 
-  // (no comment — the function name says it)
+  // (no comment - the function name says it)
   function copyMondayToWeekdays() { ... }
 ```
 
@@ -313,7 +313,7 @@ REQUIRED (states the WHY that survives any future edit, or no comment at all):
 - If longer, extract logical chunks into well-named helper functions
 - A function should do ONE thing and do it well
 - If you need a comment to separate sections within a function, those sections should probably be separate functions
-- **Exception — render functions**: A component's main `return` block may exceed 50 lines if the JSX is flat (no deeply nested logic). Extract repeated JSX chunks into sub-components, not the layout itself.
+- **Exception - render functions**: A component's main `return` block may exceed 50 lines if the JSX is flat (no deeply nested logic). Extract repeated JSX chunks into sub-components, not the layout itself.
 
 ---
 
@@ -328,17 +328,17 @@ REQUIRED (states the WHY that survives any future edit, or no comment at all):
 | Simple component (Button, Card, Icon) | 200 | 400 | If it's over 400, it's doing too much for a "simple" component |
 | Standard component (Form, Table, List view) | 400 | 800 | Most components live here |
 | Complex module (rich editor, scheduler, multi-step wizard) | 800 | 1,500 | Tightly-coupled state + UI that genuinely belongs together |
-| Page / Screen (top-level route) | 400 | 1,000 | Pages orchestrate components — extract reusable pieces, keep orchestration |
+| Page / Screen (top-level route) | 400 | 1,000 | Pages orchestrate components - extract reusable pieces, keep orchestration |
 | Service / Utility | 300 | 800 | Single cohesive domain (e.g., metrics calculator, permission engine) |
-| API route handler (simple CRUD) | 150 | 300 | Thin handlers — validate, call service, respond |
-| API route handler (complex logic) | 300 | 800 | Multi-step workflows, reports, bulk ops — when extracting to a service just moves the problem |
+| API route handler (simple CRUD) | 150 | 300 | Thin handlers - validate, call service, respond |
+| API route handler (complex logic) | 300 | 800 | Multi-step workflows, reports, bulk ops - when extracting to a service just moves the problem |
 | Test file (per test suite) | 300 | 600 | Large integration suites with many scenarios |
 | CSS / Style file | 400 | 1,000 | Design-system token files can be large |
 | Type definitions / Constants | 200 | 500 | Large domain models |
 
 **Rules:**
 - **Soft limit**: Aim to stay here. If you pass it, ask "can I extract a reusable piece that other files would also use?"
-- **Hard limit**: You can go up to this without justification — some modules are just complex. But stay organized: clear sections, well-named functions, logical grouping.
+- **Hard limit**: You can go up to this without justification - some modules are just complex. But stay organized: clear sections, well-named functions, logical grouping.
 - **Beyond hard limit (up to ~2,000)**: Allowed for genuinely complex modules where splitting would create worse problems (scattered state, prop-drilling 5+ levels, constant file-jumping with no reuse gained). Must be well-organized with clear internal sections.
 - **2,000+ lines**: Refactor target. At this size, there are almost certainly reusable pieces hiding inside. Not an emergency, but should be on the backlog.
 - **The golden rule**: A well-organized 1,200-line complex module beats 20 fragmented files that require jumping back and forth to understand one feature. **Readability and cohesion win over line-count policing.**
@@ -375,9 +375,9 @@ REQUIRED:
 
 Every project should have:
 
-1. **A linter** configured and enforced — use the standard/most-adopted linter for your stack. If your ecosystem has a clear community standard, use it. If multiple options exist, pick one and be consistent.
+1. **A linter** configured and enforced - use the standard/most-adopted linter for your stack. If your ecosystem has a clear community standard, use it. If multiple options exist, pick one and be consistent.
 
-2. **An auto-formatter** that runs on save — use the standard formatter for your stack. The formatter handles style decisions so developers never argue about formatting.
+2. **An auto-formatter** that runs on save - use the standard formatter for your stack. The formatter handles style decisions so developers never argue about formatting.
 
 3. **Prettier config** (`.prettierrc`) for JS/TS projects:
 
@@ -395,7 +395,7 @@ Every project should have:
 }
 ```
 
-`[DEFAULT]` — all settings above are project defaults. The two settings the team MUST agree on before starting are indentation style and line width — everything else adapts per project. Pick your values, enforce them with the formatter, and never argue about style again.
+`[DEFAULT]` - all settings above are project defaults. The two settings the team MUST agree on before starting are indentation style and line width - everything else adapts per project. Pick your values, enforce them with the formatter, and never argue about style again.
 
 4. **Editor config** (`.editorconfig`) for cross-IDE consistency:
 
@@ -418,7 +418,7 @@ trim_trailing_whitespace = false
 
 ## Enforcement
 
-- Linter runs in CI — PRs with lint errors should not be merged (same emergency bypass policy as git-workflow.md)
-- Formatter runs on pre-commit hook — code is auto-formatted before commit
-- Type checker runs in CI — type errors block merge (same emergency bypass policy)
+- Linter runs in CI - PRs with lint errors should not be merged (same emergency bypass policy as git-workflow.md)
+- Formatter runs on pre-commit hook - code is auto-formatted before commit
+- Type checker runs in CI - type errors block merge (same emergency bypass policy)
 - No `// eslint-disable` or `# noqa` without a comment explaining WHY

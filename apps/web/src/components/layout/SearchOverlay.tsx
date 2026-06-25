@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, History, Search, TrendingUp, X } from "lucide-react";
-import { classNames, formatPrice, type StoredImage } from "@store/shared";
+import { classNames, formatPrice, type Product, type StoredImage } from "@store/shared";
 
 import { useNavigationTransition } from "@/lib/navigation/navigationProgress";
 import { usePresence } from "@/components/shared/motion/usePresence";
@@ -34,6 +34,8 @@ const DEBOUNCE_MS = 220;
 const MIN_QUERY_LEN = 2;
 const AUTOFOCUS_DELAY_MS = 60;
 const SEARCH_RESULTS_LIMIT = 10;
+/** Recently updated products shown in the empty search state. */
+const RECENT_PRODUCTS_LIMIT = 6;
 /** Skeleton placeholder rows shown while results load. */
 const SKELETON_PLACEHOLDER_ROWS = 4;
 /** Matches the `sheet-fade-out` exit duration in globals.css. */
@@ -52,6 +54,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
 	const [isLoading, setIsLoading] = useState(false);
 	const [hints, setHints] = useState<string[]>([]);
 	const [recentSearches, setRecentSearches] = useState<string[]>([]);
+	const [recentProducts, setRecentProducts] = useState<SearchResult[]>([]);
 	const [isHydrated, setIsHydrated] = useState(false);
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const router = useRouter();
@@ -70,6 +73,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
 			setQuery("");
 			setResults([]);
 			setHints([]);
+			setRecentProducts([]);
 			return;
 		}
 
@@ -119,6 +123,25 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
 			.catch((error) => {
 				if (!(error instanceof DOMException) || error.name !== "AbortError") {
 					setHints([]);
+				}
+			});
+		return () => controller.abort();
+	}, [isOpen]);
+
+	// Recently updated products — fills the empty search state when the query is blank.
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+		const controller = new AbortController();
+		fetch(`/api/products?limit=${RECENT_PRODUCTS_LIMIT}&sort=recently-updated`, { signal: controller.signal })
+			.then((response) => (response.ok ? response.json() : { products: [] }))
+			.then((data: { products?: Product[] }) => {
+				setRecentProducts((data.products ?? []).map(toSearchResult));
+			})
+			.catch((error) => {
+				if (!(error instanceof DOMException) || error.name !== "AbortError") {
+					setRecentProducts([]);
 				}
 			});
 		return () => controller.abort();
@@ -242,7 +265,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
 
 			<div className="flex-1 overflow-y-auto px-4 py-4 md:mx-auto md:w-full md:max-w-5xl">
 				{query.trim().length < MIN_QUERY_LEN ? (
-					<SearchEmptyState hints={hints} recentSearches={recentSearches} onPick={(value) => submitSearch(value)} />
+					<SearchEmptyState hints={hints} recentSearches={recentSearches} recentProducts={recentProducts} onPick={(value) => submitSearch(value)} onNavigate={onClose} />
 				) : isLoading && results.length === 0 ? (
 					<SearchSkeleton />
 				) : results.length === 0 ? (
@@ -317,11 +340,13 @@ function SearchHit({ result, onNavigate }: SearchHitProps) {
 interface SearchEmptyStateProps {
 	hints: string[];
 	recentSearches: string[];
+	recentProducts: SearchResult[];
 	onPick: (value: string) => void;
+	onNavigate: () => void;
 }
 
-function SearchEmptyState({ hints, recentSearches, onPick }: SearchEmptyStateProps) {
-	if (hints.length === 0 && recentSearches.length === 0) {
+function SearchEmptyState({ hints, recentSearches, recentProducts, onPick, onNavigate }: SearchEmptyStateProps) {
+	if (hints.length === 0 && recentSearches.length === 0 && recentProducts.length === 0) {
 		return null;
 	}
 	return (
@@ -371,8 +396,34 @@ function SearchEmptyState({ hints, recentSearches, onPick }: SearchEmptyStatePro
 					</div>
 				</div>
 			)}
+
+			{recentProducts.length > 0 && (
+				<div>
+					<h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-ink-500)]">Recent products</h3>
+					<ul className="sheet-stagger mt-3 space-y-1.5">
+						{recentProducts.map((result) => (
+							<SearchHit key={result.id} result={result} onNavigate={onNavigate} />
+						))}
+					</ul>
+				</div>
+			)}
 		</div>
 	);
+}
+
+function toSearchResult(product: Product): SearchResult {
+	const minPrice = product.variants.length ? Math.min(...product.variants.map((variant) => variant.priceRupees)) : 0;
+	return {
+		id: product.id,
+		slug: product.slug,
+		categorySlug: product.categorySlug,
+		name: product.name,
+		brandSlug: product.brandSlug,
+		brandName: product.brandName,
+		image: product.images?.[0] ?? null,
+		variantCount: product.variants.length,
+		fromPriceRupees: minPrice,
+	};
 }
 
 function SearchSkeleton() {
