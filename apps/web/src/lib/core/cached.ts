@@ -319,7 +319,8 @@ const CATEGORY_WARM_LIMIT = 4;
 const CATEGORY_LISTING_WARM_PAGE_SIZE = 24;
 
 /**
- * Prime Mongo + `unstable_cache` for the paths every cold visit hits.
+ * Prime Mongo for the paths every cold visit hits.
+ * Uses raw queries only — `unstable_cache` is unavailable during instrumentation boot.
  * Safe to fire-and-forget at server boot — failures are logged, never thrown.
  */
 export async function warmStorefrontReadCaches(): Promise<void> {
@@ -337,7 +338,11 @@ export async function warmStorefrontReadCaches(): Promise<void> {
 			getOffersRaw(),
 			getCatalogDealsRaw(),
 			hasAnyProductsRaw(),
-			getHomeHeroProductsCached(HOME_HERO_WARM_LIMIT),
+			getProductsRaw({
+				sort: "recently-updated",
+				inStockOnly: true,
+				limit: HOME_HERO_WARM_LIMIT,
+			}),
 		]);
 
 		const activeCategories = categories.filter((category) => category.isActive).slice(0, CATEGORY_WARM_LIMIT);

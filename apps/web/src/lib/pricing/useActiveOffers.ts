@@ -26,6 +26,8 @@ let snapshot: OffersSnapshot = {
 	isLoading: cachedOffers === null,
 };
 
+const serverSnapshot: OffersSnapshot = { offers: [], isLoading: true };
+
 const listeners = new Set<() => void>();
 let revisionTimer: number | null = null;
 let focusListenerAttached = false;
@@ -43,7 +45,7 @@ function getSnapshot(): OffersSnapshot {
 }
 
 function getServerSnapshot(): OffersSnapshot {
-	return { offers: [], isLoading: true };
+	return serverSnapshot;
 }
 
 function subscribe(listener: () => void): () => void {

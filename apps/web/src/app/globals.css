@@ -1878,7 +1878,7 @@ html {
 	inset-inline: var(--mobile-shop-toolbar-inline-inset);
 	bottom: var(--mobile-shop-toolbar-bottom);
 	top: auto;
-	z-index: calc(var(--z-sticky) - 1);
+	z-index: 30;
 	overflow: hidden;
 	padding-bottom: 0;
 	border-radius: var(--radius-full);

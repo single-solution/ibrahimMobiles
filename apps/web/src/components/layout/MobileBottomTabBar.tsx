@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, MessageSquare, ShoppingCart, Tag, User, X } from "lucide-react";
@@ -10,7 +11,8 @@ import { useCart } from "@/lib/cart/useCart";
 import { useStoreSettings } from "@/lib/core/storeSettingsContext";
 import { useShopHref } from "@/lib/core/storefrontReferenceContext";
 import { useChatSettings } from "@/lib/chat/chatSettingsContext";
-import { openChatWidget, closeChatWidget, CHAT_OPEN_STATE_EVENT, type ChatOpenStateDetail } from "@/lib/chat/openChat";
+import { openChatWidget, closeChatWidget } from "@/lib/chat/openChat";
+import { useChatOpenState } from "@/lib/chat/useChatOpenState";
 import { fetchChatUnreadSummary } from "@/lib/chat/transport";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 
@@ -139,15 +141,11 @@ function TabMessageItem() {
 	const chatSettings = useChatSettings();
 	const { whatsappNumber } = useStoreSettings();
 	const [unread, setUnread] = useState(0);
-	const [isChatOpen, setIsChatOpen] = useState(false);
+	const [isMounted, setIsMounted] = useState(false);
+	const isChatOpen = useChatOpenState();
 
 	useEffect(() => {
-		function onChatOpenState(event: Event) {
-			const detail = (event as CustomEvent<ChatOpenStateDetail>).detail;
-			setIsChatOpen(detail?.isOpen ?? false);
-		}
-		window.addEventListener(CHAT_OPEN_STATE_EVENT, onChatOpenState);
-		return () => window.removeEventListener(CHAT_OPEN_STATE_EVENT, onChatOpenState);
+		setIsMounted(true);
 	}, []);
 
 	useEffect(() => {
@@ -200,12 +198,55 @@ function TabMessageItem() {
 	}
 
 	const isActive = isChatOpen && chatSettings.enabled;
+	const showElevatedButton = isActive && isMounted;
+	const tabBarBottom = "calc(env(safe-area-inset-bottom, 0px) + 4px)";
+	const buttonProps = { isActive, unread, onClick: handleClick };
+
+	return (
+		<>
+			{showElevatedButton ? (
+				<div className="invisible" aria-hidden>
+					<TabMessageButton {...buttonProps} />
+				</div>
+			) : (
+				<TabMessageButton {...buttonProps} />
+			)}
+			{showElevatedButton
+				? createPortal(
+						<div
+							className="pointer-events-none fixed inset-x-3 z-[calc(var(--z-modal)+1)] md:hidden"
+							style={{ bottom: tabBarBottom, height: "var(--mobile-tabbar-h)" }}
+						>
+							<div className="grid h-full grid-cols-5">
+								<div aria-hidden />
+								<div aria-hidden />
+								<div className="pointer-events-auto relative flex items-center justify-center p-1.5">
+									<TabMessageButton {...buttonProps} />
+								</div>
+								<div aria-hidden />
+								<div aria-hidden />
+							</div>
+						</div>,
+						document.body,
+					)
+				: null}
+		</>
+	);
+}
+
+interface TabMessageButtonProps {
+	isActive: boolean;
+	unread: number;
+	onClick: () => void;
+}
+
+function TabMessageButton({ isActive, unread, onClick }: TabMessageButtonProps) {
 	const TabIcon = isActive ? X : MessageSquare;
 
 	return (
 		<button
 			type="button"
-			onClick={handleClick}
+			onClick={onClick}
 			className="tap focus-ring group relative flex h-full w-full items-center justify-center"
 			aria-label={isActive ? "Close chat" : "Need any help? Open chat support"}
 			aria-pressed={isActive}
