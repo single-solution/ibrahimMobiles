@@ -307,10 +307,7 @@ export function ChatMessageDayDivider({ label }: { label: string }) {
 /** Three-dot "support is typing" bubble shown while awaiting an assistant reply. */
 export function ChatTypingIndicator({ label }: { label?: string }) {
 	return (
-		<div className="chat-msg-in flex justify-start gap-2.5">
-			<span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-300)] to-[var(--color-accent-500)] text-[length:var(--chat-font-caption)] font-semibold text-[var(--color-ink-900)]">
-				{CHAT_SUPPORT_DISPLAY_NAME.charAt(0).toUpperCase()}
-			</span>
+		<div className="chat-msg-in flex justify-start">
 			<div className="flex items-center gap-2 rounded-[var(--radius-lg)] rounded-tl-sm border border-[var(--color-ink-100)] bg-[var(--color-surface)] px-3.5 py-3 shadow-[var(--shadow-sm)]">
 				<span className="text-[length:var(--chat-font-body)] font-medium text-[var(--color-ink-500)]">{label ?? `${CHAT_SUPPORT_DISPLAY_NAME} is typing`}</span>
 				<span className="flex items-center gap-1">
@@ -337,12 +334,7 @@ export function ChatMessageBubble({ message, variant = "widget" }: ChatMessageBu
 	const teamLabel = isAssistant ? CHAT_SUPPORT_DISPLAY_NAME : message.authorName;
 
 	return (
-		<div className={classNames("chat-msg-in flex gap-2.5", isCustomer ? "justify-end" : "justify-start")}>
-			{!isCustomer && (
-				<span className="mt-1 grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent-300)] to-[var(--color-accent-500)] text-[length:var(--chat-font-caption)] font-semibold text-[var(--color-ink-900)]">
-					{(isAssistant ? "S" : (message.authorName ?? "T")).charAt(0).toUpperCase()}
-				</span>
-			)}
+		<div className={classNames("chat-msg-in flex", isCustomer ? "justify-end" : "justify-start")}>
 			<div
 				className={classNames(
 					maxWidth,
