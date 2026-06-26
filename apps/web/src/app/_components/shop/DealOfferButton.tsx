@@ -66,7 +66,8 @@ export function DealOfferToggleButton({ offer, isActive, onToggle }: DealOfferTo
 			onClick={onToggle}
 			className={classNames(
 				PRIMARY_DEAL_BUTTON_CLASS,
-				isActive && "ring-2 ring-[var(--color-accent-700)] ring-offset-2 ring-offset-[var(--color-canvas)]",
+				isActive &&
+					"ring-2 ring-[var(--color-accent-700)] ring-offset-2 ring-offset-[var(--color-canvas)] max-md:ring-inset max-md:ring-offset-0",
 			)}
 		>
 			<DealOfferButtonContent

@@ -17,7 +17,7 @@ export function DealsPageHeader({ checkoutNotices = [] }: DealsPageHeaderProps) 
 			className="-mt-[var(--mobile-header-h)] pb-6 pt-[calc(var(--mobile-header-h)+1.75rem)] text-center md:-mt-[var(--desktop-header-h)] md:pb-8 md:pt-[calc(var(--desktop-header-h)+2.5rem)]"
 			style={{ background: DEALS_HEADER_GRADIENT }}
 		>
-			<div className={`reveal mx-auto flex w-full flex-col items-center px-4 md:px-0 ${SHOP_CATEGORY_PAGE_CLASS}`}>
+			<div className={`reveal mx-auto flex w-full flex-col items-center ${SHOP_CATEGORY_PAGE_CLASS}`}>
 				<p className="inline-flex items-center justify-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)] md:text-xs">
 					<Sparkles size={12} aria-hidden />
 					Live offers

@@ -137,7 +137,7 @@ export function DealsCatalog({ catalogDeals, productPage }: DealsCatalogProps) {
 	return (
 		<>
 			{catalogDeals.length > 0 ? (
-				<section className="cv-auto-lg pt-2 pb-6 md:pt-4 md:pb-8">
+				<section className="pt-2 pb-6 md:pt-4 md:pb-8">
 					<DealsOffersPanel catalogDeals={catalogDeals} activeSlug={activeSlug} onActiveSlugChange={handleActiveSlugChange} />
 
 					{activeOffer ? (
@@ -159,7 +159,7 @@ export function DealsCatalog({ catalogDeals, productPage }: DealsCatalogProps) {
 					)}
 				</section>
 			) : (
-				<section className="cv-auto-lg pt-2 pb-6 md:pt-4 md:pb-8">
+				<section className="pt-2 pb-6 md:pt-4 md:pb-8">
 					<ShopProductFeed
 						initialPage={displayInitial}
 						categoryLabel="products"

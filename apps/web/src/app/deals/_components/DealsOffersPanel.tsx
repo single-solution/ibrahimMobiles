@@ -26,7 +26,7 @@ export function DealsOffersPanel({ catalogDeals, activeSlug, onActiveSlugChange 
 	}
 
 	return (
-		<div className="reveal-scroll-list flex w-full flex-col gap-4 md:items-center">
+		<div className="reveal-scroll-list flex w-full flex-col gap-4 px-0.5 md:items-center md:px-0">
 			<h2 className="w-full max-w-md text-center text-[13px] font-normal leading-snug text-pretty text-[var(--color-ink-600)] md:text-[15px]">
 				{DEALS_CATALOG_INTRO}
 			</h2>

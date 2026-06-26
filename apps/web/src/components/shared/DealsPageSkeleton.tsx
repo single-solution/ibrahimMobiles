@@ -13,14 +13,14 @@ export function DealsPageSkeleton() {
 				className="-mt-[var(--mobile-header-h)] pb-6 pt-[calc(var(--mobile-header-h)+1.75rem)] text-center md:-mt-[var(--desktop-header-h)] md:pb-8 md:pt-[calc(var(--desktop-header-h)+2.5rem)]"
 				style={{ background: DEALS_HEADER_GRADIENT }}
 			>
-				<div className={`mx-auto flex w-full flex-col items-center px-4 md:px-0 ${SHOP_CATEGORY_PAGE_CLASS}`}>
+				<div className={`mx-auto flex w-full flex-col items-center ${SHOP_CATEGORY_PAGE_CLASS}`}>
 					<Skeleton shape="pill" className="h-5 w-24" />
 					<Skeleton shape="text" className="mt-4 h-10 w-56 md:h-14 md:w-72" />
 					<Skeleton shape="text" className="mt-4 h-9 w-full max-w-md rounded-[var(--radius-md)] md:mt-5" />
 				</div>
 			</section>
 
-			<div className="app-page mx-auto w-full max-w-[1440px] pb-24 pt-4 md:px-6 md:pb-16 md:pt-4 lg:px-8">
+			<div className={`${SHOP_CATEGORY_PAGE_CLASS} pb-10 md:pb-20`}>
 				<section className="flex w-full flex-col gap-3 py-6 md:flex-row md:flex-wrap md:justify-center md:gap-2.5 md:py-8">
 					{Array.from({ length: 4 }).map((_, index) => (
 						<Skeleton key={index} shape="block" className="h-[4.25rem] w-full rounded-[var(--radius-lg)] md:h-10 md:w-44 md:rounded-full" />

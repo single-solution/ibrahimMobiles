@@ -7,7 +7,7 @@ import { DealsCatalog } from "@/app/deals/_components/DealsCatalog";
 import { DealsPageHeader } from "@/app/deals/_components/DealsPageHeader";
 import { ProductGridSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { SHOP_CATEGORY_GRID_CLASS, SHOP_CATEGORY_SKELETON_CARDS } from "@/lib/catalog/shopListingGrid";
+import { SHOP_CATEGORY_GRID_CLASS, SHOP_CATEGORY_PAGE_CLASS, SHOP_CATEGORY_SKELETON_CARDS } from "@/lib/catalog/shopListingGrid";
 import { DEALS_PRODUCT_PAGE_SIZE, loadDealsPageContent, type DealsPageContent } from "@/lib/pricing/dealsPageContent";
 import { DEAL_BUTTONS_LAYOUT_CLASS } from "@/app/_components/shop/dealOfferButtonStyles";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
@@ -53,7 +53,7 @@ async function DealsPageContent() {
 	return (
 		<>
 			<DealsPageHeader checkoutNotices={content.checkoutNotices} />
-			<div className="app-page mx-auto w-full max-w-[1440px] pb-24 pt-4 md:px-6 md:pb-16 md:pt-4 lg:px-8">
+			<div className={`${SHOP_CATEGORY_PAGE_CLASS} pb-10 md:pb-20`}>
 				<DealsCatalog catalogDeals={content.catalogDeals} productPage={content.productPage} />
 			</div>
 		</>
@@ -72,7 +72,7 @@ function DealsContentFallback() {
 	return (
 		<>
 			<DealsPageHeader />
-			<div className="app-page mx-auto w-full max-w-[1440px] pb-24 pt-4 md:px-6 md:pb-16 md:pt-4 lg:px-8">
+			<div className={`${SHOP_CATEGORY_PAGE_CLASS} pb-10 md:pb-20`}>
 				<section className="flex w-full flex-col gap-4 pt-2 pb-6 md:items-center md:pt-4 md:pb-8">
 					<Skeleton shape="text" className="mx-auto h-4 w-64 max-w-full md:h-[18px] md:w-96" />
 					<div className={classNames(DEAL_BUTTONS_LAYOUT_CLASS)}>
