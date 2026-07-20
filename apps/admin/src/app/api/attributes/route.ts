@@ -8,6 +8,7 @@ import { ATTRIBUTE_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import { bustAdminCaches } from "@/lib/cached";
 import { readListOptions, type ListResponse } from "@/lib/api/listOptions";
 import { recordActivity } from "@/lib/services/activityLog";
+import { regenerateAttributeSeo } from "@/lib/seo/regenerateGlossarySeo";
 import { toAttributeResponse, type AttributeLean } from "@/lib/serializers/attribute";
 import { parseAttributeOptions, parseAttributeUnit, parseAttributeVisibilityInput } from "@/lib/api/attributesPayload";
 import type { AdminAttribute } from "@/types/models";
@@ -140,6 +141,7 @@ export async function POST(request: Request) {
 			resourceLabel: doc.label,
 		});
 		bustAdminCaches();
+		await regenerateAttributeSeo(doc._id.toString());
 		return created(toAttributeResponse(doc.toObject() as unknown as AttributeLean));
 	} catch (error) {
 		return handleMongoError(error);

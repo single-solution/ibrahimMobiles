@@ -2,8 +2,6 @@
 
 export type IntegrationOtpProvider = "auto" | "whatsapp-cloud" | "console";
 
-export type IntegrationStorageProvider = "vercel-blob" | "s3";
-
 /** Pakistan online payment gateway — admin picks one active provider. */
 export type OnlinePaymentProvider = "none" | "payfast" | "rapid-gateway";
 
@@ -34,13 +32,13 @@ export interface IntegrationSettingsValues {
 	rapidGatewayWebhookSecret: string;
 	rapidGatewaySandbox: boolean;
 
-	storageProvider: IntegrationStorageProvider;
-	blobReadWriteToken: string;
 	awsS3Bucket: string;
 	awsS3Region: string;
 	awsAccessKeyId: string;
 	awsSecretAccessKey: string;
 	awsS3PublicUrlBase: string;
+	/** S3-compatible endpoint (e.g. Cloudflare R2). Empty = native AWS S3. */
+	awsS3Endpoint: string;
 }
 
 export const INTEGRATION_SETTING_DEFAULTS: IntegrationSettingsValues = {
@@ -68,13 +66,12 @@ export const INTEGRATION_SETTING_DEFAULTS: IntegrationSettingsValues = {
 	rapidGatewayWebhookSecret: "",
 	rapidGatewaySandbox: true,
 
-	storageProvider: "vercel-blob",
-	blobReadWriteToken: "",
 	awsS3Bucket: "",
 	awsS3Region: "",
 	awsAccessKeyId: "",
 	awsSecretAccessKey: "",
 	awsS3PublicUrlBase: "",
+	awsS3Endpoint: "",
 };
 
 export const INTEGRATION_SETTING_KEYS = Object.keys(INTEGRATION_SETTING_DEFAULTS) as Array<keyof IntegrationSettingsValues>;
@@ -104,13 +101,12 @@ const INTEGRATION_SETTING_DB_KEYS: Record<keyof IntegrationSettingsValues, strin
 	rapidGatewayWebhookSecret: "integration.rapidGatewayWebhookSecret",
 	rapidGatewaySandbox: "integration.rapidGatewaySandbox",
 
-	storageProvider: "integration.storageProvider",
-	blobReadWriteToken: "integration.blobReadWriteToken",
 	awsS3Bucket: "integration.awsS3Bucket",
 	awsS3Region: "integration.awsS3Region",
 	awsAccessKeyId: "integration.awsAccessKeyId",
 	awsSecretAccessKey: "integration.awsSecretAccessKey",
 	awsS3PublicUrlBase: "integration.awsS3PublicUrlBase",
+	awsS3Endpoint: "integration.awsS3Endpoint",
 };
 
 export const INTEGRATION_SETTING_DB_KEY_LIST = Object.values(INTEGRATION_SETTING_DB_KEYS);
@@ -145,11 +141,6 @@ export function coerceIntegrationSettingValue<K extends keyof IntegrationSetting
 				return value as IntegrationSettingsValues[K];
 			}
 			return null;
-		case "storageProvider":
-			if (value === "vercel-blob" || value === "s3") {
-				return value as IntegrationSettingsValues[K];
-			}
-			return null;
 		case "whatsappOtpTemplateIncludesButton":
 		case "payfastSandbox":
 		case "rapidGatewaySandbox":
@@ -181,12 +172,12 @@ export function coerceIntegrationSettingValue<K extends keyof IntegrationSetting
 		case "payfastSecuredKey":
 		case "rapidGatewaySecretKey":
 		case "rapidGatewayWebhookSecret":
-		case "blobReadWriteToken":
 		case "awsSecretAccessKey":
 			return trimSecret(value, 500) as IntegrationSettingsValues[K] | null;
 		case "staffNotifyEmail":
 		case "adminSiteUrl":
 		case "awsS3PublicUrlBase":
+		case "awsS3Endpoint":
 			return trimSecret(value, 500) as IntegrationSettingsValues[K] | null;
 		case "staffNotifyWhatsApp":
 			return trimSecret(value, 32) as IntegrationSettingsValues[K] | null;
@@ -234,13 +225,12 @@ export function mergeIntegrationSettingsFromDb(rows: ReadonlyArray<{ key: string
 		rapidGatewaySecretKey: readIntegrationSetting(map, "rapidGatewaySecretKey"),
 		rapidGatewayWebhookSecret: readIntegrationSetting(map, "rapidGatewayWebhookSecret"),
 		rapidGatewaySandbox: readIntegrationSetting(map, "rapidGatewaySandbox"),
-		storageProvider: readIntegrationSetting(map, "storageProvider"),
-		blobReadWriteToken: readIntegrationSetting(map, "blobReadWriteToken"),
 		awsS3Bucket: readIntegrationSetting(map, "awsS3Bucket"),
 		awsS3Region: readIntegrationSetting(map, "awsS3Region"),
 		awsAccessKeyId: readIntegrationSetting(map, "awsAccessKeyId"),
 		awsSecretAccessKey: readIntegrationSetting(map, "awsSecretAccessKey"),
 		awsS3PublicUrlBase: readIntegrationSetting(map, "awsS3PublicUrlBase"),
+		awsS3Endpoint: readIntegrationSetting(map, "awsS3Endpoint"),
 	};
 }
 
@@ -253,7 +243,6 @@ export function toAdminIntegrationSettings(settings: IntegrationSettingsValues):
 		payfastSecuredKey: maskSecret(settings.payfastSecuredKey),
 		rapidGatewaySecretKey: maskSecret(settings.rapidGatewaySecretKey),
 		rapidGatewayWebhookSecret: maskSecret(settings.rapidGatewayWebhookSecret),
-		blobReadWriteToken: maskSecret(settings.blobReadWriteToken),
 		awsSecretAccessKey: maskSecret(settings.awsSecretAccessKey),
 	};
 }

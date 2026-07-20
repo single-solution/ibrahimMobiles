@@ -12,6 +12,8 @@ import { useToast } from "@/components/ui/Toast";
 import { WorkspaceDetailHeader } from "@/components/shared/workspaceUi";
 import { apiFetch } from "@/lib/api";
 import { getInitials } from "@/lib/initials";
+import { encodeImageVariants } from "@/components/shared/uploads/imageEncoder";
+import { ALLOWED_IMAGE_MIME } from "@/lib/uploads/limits";
 import { classNames, createChatTransport, formatTimeAgo, mergeChatMessagesById, type AssistantMuteReason } from "@store/shared";
 import type { AdminInquiry, AdminInquiryAttachment, AdminInquiryMessage, AdminInquiryStatus, AdminInquirySummary } from "@/types/models";
 
@@ -282,7 +284,20 @@ export function InquiryConversationPanel({
 		setIsUploading(true);
 		try {
 			const formData = new FormData();
-			formData.append("file", file);
+			// Images are encoded to the WebP variant ladder in-browser (Workers
+			// can't run sharp); documents upload as-is.
+			if ((ALLOWED_IMAGE_MIME as readonly string[]).includes(file.type)) {
+				const encoded = await encodeImageVariants(file);
+				formData.append("variant_thumb", encoded.variants.thumb, "thumb.webp");
+				formData.append("variant_card", encoded.variants.card, "card.webp");
+				formData.append("variant_detail", encoded.variants.detail, "detail.webp");
+				formData.append("variant_full", encoded.variants.full, "full.webp");
+				formData.append("blurDataURL", encoded.blurDataURL);
+				formData.append("width", String(encoded.width));
+				formData.append("height", String(encoded.height));
+			} else {
+				formData.append("file", file);
+			}
 			if (reply.trim()) formData.append("body", reply.trim());
 			const updated = await apiFetch<AdminInquiry>(`/api/inquiries/${inquiryId}/attachments`, { method: "POST", body: formData });
 			applyThreadUpdate(updated);

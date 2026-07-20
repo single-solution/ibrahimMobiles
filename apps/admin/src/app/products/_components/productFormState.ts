@@ -4,7 +4,7 @@
  * the canonical conversion to a clean POST body.
  */
 
-import { formatAttributeOptionLabel, filterAttributesForProduct, mergeProductPoolIntoAttributeOptions, type ProductAttributeConfig, type SeoMeta } from "@store/shared";
+import { compareAlphabetically, formatAttributeOptionLabel, filterAttributesForProduct, mergeProductPoolIntoAttributeOptions, type ProductAttributeConfig, type SeoMeta } from "@store/shared";
 import type { GalleryImage } from "@/components/shared/uploads/imageStaging";
 
 import type { AdminAttribute, AdminBrand, AdminCategory, AdminGrade, AdminProduct, AdminVariant } from "@/types/models";
@@ -78,11 +78,24 @@ export function emptyVariantDraft(): VariantDraft {
 }
 
 /** Merge single- and multi-select fields into the API/storefront attribute map. */
+export interface DescribeVariantDraftLabelOptions {
+	productConfig?: ProductAttributeConfig;
+	/** Omit attributes whose product option pool has only one choice (sidebar summaries). */
+	hideSingularPoolAttributes?: boolean;
+}
+
 /** Short label for pickers (e.g. "copy images from" sibling in the same grade). */
-export function describeVariantDraftLabel(draft: VariantDraft, attributes: AdminAttribute[]): string {
+export function describeVariantDraftLabel(draft: VariantDraft, attributes: AdminAttribute[], options?: DescribeVariantDraftLabelOptions): string {
 	const merged = mergeVariantDraftAttributes(draft);
 	const parts: string[] = [];
 	for (const attribute of attributes) {
+		if (options?.hideSingularPoolAttributes && options.productConfig) {
+			const poolOptions = mergeProductPoolIntoAttributeOptions(attribute, options.productConfig);
+			if (poolOptions.length <= 1) {
+				continue;
+			}
+		}
+
 		const raw = merged[attribute.slug];
 		if (!raw) {
 			continue;
@@ -92,13 +105,16 @@ export function describeVariantDraftLabel(draft: VariantDraft, attributes: Admin
 			if (!value) {
 				continue;
 			}
-			const option = attribute.options.find((row) => row.value === value);
+			const option = attribute.options.find((row) => row.value.toLowerCase() === value.toLowerCase());
 			const label = draft.attributeDisplay?.[attribute.slug] ?? (option ? formatAttributeOptionLabel(option.label, attribute.unit) : String(value));
 			parts.push(label);
 		}
 	}
 	if (parts.length > 0) {
 		return parts.slice(0, 4).join(" · ");
+	}
+	if (options?.hideSingularPoolAttributes && Object.keys(merged).length > 0) {
+		return "Variant";
 	}
 	return "Unconfigured variant";
 }
@@ -121,6 +137,103 @@ export function attributeValuesOnDraft(draft: VariantDraft, slug: string): strin
 	}
 	const single = draft.attributes[slug];
 	return single ? [single] : [];
+}
+
+export function attributeOptionValueMatches(left: string, right: string): boolean {
+	return left.toLowerCase() === right.toLowerCase();
+}
+
+export function attributeValuesInclude(values: string[], candidate: string): boolean {
+	const target = candidate.toLowerCase();
+	return values.some((entry) => entry.toLowerCase() === target);
+}
+
+export function attributeValuesWithout(values: string[], candidate: string): string[] {
+	const target = candidate.toLowerCase();
+	return values.filter((entry) => entry.toLowerCase() !== target);
+}
+
+export function resolveCanonicalAttributeOptionValue(options: Array<{ value: string }>, value: string): string {
+	const match = options.find((option) => attributeOptionValueMatches(option.value, value));
+	return match?.value ?? value.trim().toLowerCase();
+}
+
+export function canonicalizeSelectedOptionKeys(options: Array<{ value: string }>, values: string[]): string[] {
+	const seen = new Set<string>();
+	const canonical: string[] = [];
+	for (const value of values) {
+		const resolved = resolveCanonicalAttributeOptionValue(options, value);
+		const key = resolved.toLowerCase();
+		if (seen.has(key)) {
+			continue;
+		}
+		seen.add(key);
+		canonical.push(resolved);
+	}
+	return canonical;
+}
+
+function variantAttributeSortKey(variant: VariantDraft, slug: string, pool: Array<{ value: string }>): string {
+	const merged = mergeVariantDraftAttributes(variant);
+	const raw = merged[slug];
+	if (raw === undefined || raw === null || raw === "") {
+		return "~";
+	}
+
+	const values = Array.isArray(raw) ? raw : [raw];
+	const ranks = values
+		.map((value) => {
+			const index = pool.findIndex((option) => attributeOptionValueMatches(option.value, String(value)));
+			return index >= 0 ? index : 99_999;
+		})
+		.sort((left, right) => left - right)
+		.map((rank) => String(rank).padStart(5, "0"));
+
+	return ranks.join(",");
+}
+
+/** Stable admin order: product attribute slugs, then option-pool order (matches Generate). */
+export function compareVariantDraftsForDisplay(
+	left: VariantDraft,
+	right: VariantDraft,
+	attributes: AdminAttribute[],
+	productConfig: ProductAttributeConfig,
+): number {
+	const attributesBySlug = new Map(attributes.map((attribute) => [attribute.slug, attribute]));
+
+	for (const slug of productConfig.attributeSlugs) {
+		const attribute = attributesBySlug.get(slug);
+		if (!attribute) {
+			continue;
+		}
+
+		const pool = mergeProductPoolIntoAttributeOptions(attribute, productConfig);
+		if (pool.length <= 1) {
+			continue;
+		}
+
+		const leftKey = variantAttributeSortKey(left, slug, pool);
+		const rightKey = variantAttributeSortKey(right, slug, pool);
+		if (leftKey !== rightKey) {
+			return leftKey.localeCompare(rightKey);
+		}
+	}
+
+	const scoped = filterAttributesForProduct(attributes, productConfig);
+	const labelOrder = compareAlphabetically(describeVariantDraftLabel(left, scoped), describeVariantDraftLabel(right, scoped));
+	if (labelOrder !== 0) {
+		return labelOrder;
+	}
+
+	return compareAlphabetically(left.uid, right.uid);
+}
+
+export function sortVariantDraftsForDisplay(
+	variants: VariantDraft[],
+	attributes: AdminAttribute[],
+	productConfig: ProductAttributeConfig,
+): VariantDraft[] {
+	return [...variants].sort((left, right) => compareVariantDraftsForDisplay(left, right, attributes, productConfig));
 }
 
 export function adminVariantToDraft(variant: AdminVariant): VariantDraft {

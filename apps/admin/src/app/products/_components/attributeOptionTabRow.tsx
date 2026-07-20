@@ -32,7 +32,7 @@ const TAB_IDLE = "bg-[var(--color-surface)] text-[var(--color-ink-800)] hover:bg
 
 /** Matches storefront PDP `DimensionTabRow` segmented control. */
 export function AttributeOptionTabRow({ options, selectedKeys, onSelect, ariaLabel, trailingOption }: AttributeOptionTabRowProps) {
-	const selectedSet = new Set(selectedKeys);
+	const selectedSet = new Set(selectedKeys.map((key) => key.toLowerCase()));
 
 	return (
 		<div
@@ -41,7 +41,7 @@ export function AttributeOptionTabRow({ options, selectedKeys, onSelect, ariaLab
 			aria-label={ariaLabel}
 		>
 			{options.map((option) => {
-				const isSelected = selectedSet.has(option.key);
+				const isSelected = selectedSet.has(option.key.toLowerCase());
 				return (
 					<button
 						key={option.key}

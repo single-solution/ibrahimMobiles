@@ -124,7 +124,7 @@ Everything below is **already implemented**. Do not remove or bypass without upd
 | Deferred client islands | Chat, search, heavy drawers | `next/dynamic` in `AppShell`, `ChatFabShell`, admin catalogs |
 | Package import tree-shake | Smaller lucide + shared imports | `optimizePackageImports` |
 | Bundle analyzer (web) | `ANALYZE=true npm run build` | `apps/web/next.config.ts` |
-| Server externals | pino, mongoose, bcryptjs out of webpack bundles | `serverExternalPackages` |
+| Server externals | pino, mongoose out of webpack bundles | `serverExternalPackages` |
 | Infinite scroll | SSR seed + client pages | `useInfiniteProducts`, `useInfiniteList` |
 | Single global offer poll | One revision timer for all subscribers | `useActiveOffers.ts` + `useSyncExternalStore` |
 | Offer client cache | Module TTL + 20s revision polling | `useActiveOffers.ts` |
@@ -161,7 +161,7 @@ Everything below is **already implemented**. Do not remove or bypass without upd
 | Rapid Gateway | Webhook signature verification |
 | Order status races | `claimOrderStatusTransition` |
 | Atomic offer usage | `incrementOfferUsageCounts` / `decrementOfferUsageCounts` |
-| Password security | bcrypt 12+, hashed reset tokens, session kill on password change |
+| Password security | Web Crypto PBKDF2 (`passwordHash.ts`), hashed reset tokens, session kill on password change |
 | Integration masking | Admin API masks keys before JSON |
 | Security headers | CSP, HSTS (prod), `X-Frame-Options`, `nosniff`, `Permissions-Policy` |
 | Separate auth cookies | Storefront vs admin |

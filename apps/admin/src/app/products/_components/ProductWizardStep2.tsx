@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus } from "lucide-react";
-import { compareAlphabetically, isValidId, buildVariantDefaultsFromProductConfig, filterAttributesForProduct } from "@store/shared";
+import { LayoutGrid, Plus } from "lucide-react";
+import {
+	buildCartesianAttributeCombinations,
+	compareAlphabetically,
+	isValidId,
+	buildVariantDefaultsFromProductConfig,
+	filterAttributesForProduct,
+	type ProductAttributeConfig,
+} from "@store/shared";
 
 import { Button } from "@store/ui";
 import { Drawer } from "@/components/ui/Drawer";
@@ -24,6 +31,7 @@ import {
 	errorsByPath,
 	mergeVariantDraftAttributes,
 	newVariantUid,
+	sortVariantDraftsForDisplay,
 	validateVariantDrafts,
 	variantErrorCount,
 	variantHasErrors,
@@ -84,6 +92,17 @@ function combinationSignature(variant: VariantDraft): string {
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([slug, value]) => [slug, Array.isArray(value) ? [...value].sort() : value]);
 	return `${variant.gradeSlug}::${JSON.stringify(entries)}`;
+}
+
+function attributeDisplayForCombination(config: ProductAttributeConfig, attributes: Record<string, string>): Record<string, string> {
+	const display: Record<string, string> = {};
+	for (const [slug, value] of Object.entries(attributes)) {
+		const custom = config.attributeCustomOptions?.[slug]?.find((option) => option.value.toLowerCase() === value.toLowerCase());
+		if (custom) {
+			display[slug] = custom.label;
+		}
+	}
+	return display;
 }
 
 export function ProductWizardStep2({
@@ -159,7 +178,12 @@ export function ProductWizardStep2({
 
 	const resetWorkspace = useCallback(
 		(nextProduct: AdminProduct, categoryGrades: AdminGrade[], urlGrade: string | null = null, urlUid: string | null = null) => {
-			const built = buildGradeSections(nextProduct, categoryGrades);
+			const categoryAttributes = catalog.attributesByCategory[nextProduct.categorySlug] ?? [];
+			const config = attributeConfigFromProduct(nextProduct, categoryAttributes);
+			const built = buildGradeSections(nextProduct, categoryGrades).map((section) => ({
+				...section,
+				combinations: sortVariantDraftsForDisplay(section.combinations, categoryAttributes, config),
+			}));
 			setSections(built);
 			setErrors([]);
 			const { gradeSlug, variantUid } = resolveWorkspaceSelection(built, categoryGrades, urlGrade, urlUid);
@@ -167,7 +191,12 @@ export function ProductWizardStep2({
 			setSelectedVariantUid(variantUid);
 			syncVariantWorkspaceUrl(gradeSlug, variantUid);
 		},
-		[resolveWorkspaceSelection, syncVariantWorkspaceUrl],
+		[catalog.attributesByCategory, resolveWorkspaceSelection, syncVariantWorkspaceUrl],
+	);
+
+	const sortCombinations = useCallback(
+		(combinations: VariantDraft[]) => sortVariantDraftsForDisplay(combinations, attributes, attributeConfig),
+		[attributes, attributeConfig],
 	);
 
 	const flatCombinations = useMemo(() => {
@@ -223,7 +252,7 @@ export function ProductWizardStep2({
 		const defaults = buildVariantDefaultsFromProductConfig(attributeConfig);
 		updateSection(gradeSlug, (section) => ({
 			...section,
-			combinations: [
+			combinations: sortCombinations([
 				...section.combinations,
 				{
 					...emptyVariantDraft(),
@@ -232,21 +261,94 @@ export function ProductWizardStep2({
 					attributes: { ...defaults.attributes },
 					attributeDisplay: defaults.attributeDisplay ?? {},
 				},
-			],
+			]),
 		}));
 		setSelectedGradeSlug(gradeSlug);
 		setSelectedVariantUid(uid);
 		syncVariantWorkspaceUrl(gradeSlug, uid);
 	}
 
+	function generateCombinationsForGrade(gradeSlug: string) {
+		const section = sections.find((row) => row.gradeSlug === gradeSlug);
+		if (!section) {
+			return;
+		}
+
+		const result = buildCartesianAttributeCombinations(attributeConfig);
+		if (!result.ok) {
+			const missingSlug = result.error.match(/\(missing: ([^)]+)\)/)?.[1];
+			const attributeLabel = missingSlug ? (productScopedAttributes.find((row) => row.slug === missingSlug)?.label ?? missingSlug) : null;
+			toast.danger(
+				missingSlug && attributeLabel
+					? result.error.replace(`(missing: ${missingSlug})`, `(missing: ${attributeLabel})`)
+					: result.error,
+			);
+			return;
+		}
+
+		const existingSignatures = new Set(section.combinations.map((variant) => combinationSignature({ ...variant, gradeSlug })));
+		const pendingCombinations = result.combinations.filter((attributes) => {
+			const probe: VariantDraft = {
+				...emptyVariantDraft(),
+				gradeSlug,
+				attributes,
+			};
+			return !existingSignatures.has(combinationSignature(probe));
+		});
+
+		if (pendingCombinations.length === 0) {
+			toast.info("Every combination for this grade already exists.");
+			return;
+		}
+
+		const newVariants: VariantDraft[] = pendingCombinations.map((attributes) => {
+			const attributeDisplay = attributeDisplayForCombination(attributeConfig, attributes);
+			return {
+				...emptyVariantDraft(),
+				uid: newVariantUid(),
+				gradeSlug,
+				priceRupees: 0,
+				quantity: 0,
+				forceOutOfStock: true,
+				attributes: { ...attributes },
+				attributeDisplay,
+				attributesMulti: {},
+			};
+		});
+
+		const firstNewUid = newVariants[0]?.uid ?? null;
+		updateSection(gradeSlug, (row) => ({
+			...row,
+			combinations: sortCombinations([...row.combinations, ...newVariants]),
+		}));
+		setSelectedGradeSlug(gradeSlug);
+		if (firstNewUid) {
+			setSelectedVariantUid(firstNewUid);
+			syncVariantWorkspaceUrl(gradeSlug, firstNewUid);
+		}
+
+		const gradeLabel = grades.find((row) => row.slug === gradeSlug)?.label ?? gradeSlug;
+		toast.success(
+			newVariants.length === 1
+				? `1 combination added for ${gradeLabel} (out of stock). Set prices before saving.`
+				: `${newVariants.length} combinations added for ${gradeLabel} (out of stock). Set prices before saving.`,
+		);
+	}
+
 	function updateCombination(gradeSlug: string, uid: string, next: VariantDraft) {
 		const section = sections.find((row) => row.gradeSlug === gradeSlug);
 		const comboIndex = section?.combinations.findIndex((row) => row.uid === uid) ?? -1;
+		const before = section?.combinations.find((row) => row.uid === uid);
+		const beforeSignature = before ? combinationSignature({ ...before, gradeSlug }) : "";
+		const afterSignature = combinationSignature({ ...next, gradeSlug });
 
-		updateSection(gradeSlug, (row) => ({
-			...row,
-			combinations: row.combinations.map((variant) => (variant.uid === uid ? { ...next, gradeSlug } : variant)),
-		}));
+		updateSection(gradeSlug, (row) => {
+			const combinations = row.combinations.map((variant) => (variant.uid === uid ? { ...next, gradeSlug } : variant));
+			return {
+				...row,
+				combinations: beforeSignature !== afterSignature ? sortCombinations(combinations) : combinations,
+			};
+		});
 
 		if (comboIndex >= 0) {
 			const errorPrefix = `grade.${gradeSlug}.combinations.${comboIndex}`;
@@ -261,7 +363,7 @@ export function ProductWizardStep2({
 		const nextCombinations = section.combinations.filter((row) => row.uid !== uid);
 		updateSection(gradeSlug, (row) => ({
 			...row,
-			combinations: nextCombinations,
+			combinations: sortCombinations(nextCombinations),
 		}));
 		if (selectedVariantUid === uid) {
 			const neighbor = nextCombinations[index] ?? nextCombinations[index - 1] ?? null;
@@ -359,6 +461,14 @@ export function ProductWizardStep2({
 			}
 
 			const reloadedProduct = await apiFetch<AdminProduct>(`/api/products/${product.id}`);
+			try {
+				const regen = await apiFetch<{ seo: import("@store/shared").SeoMeta }>(`/api/products/${product.id}/seo/regenerate`, { method: "POST" });
+				if (regen.seo) {
+					reloadedProduct.seo = regen.seo;
+				}
+			} catch {
+				// Variant save succeeded; SEO regen is best-effort.
+			}
 			const latest = reloadedProduct;
 			const savedCount = result.payload.variants.length;
 			toast.success(savedCount === 1 ? "1 variation saved." : `${savedCount} variations saved.`);
@@ -449,6 +559,7 @@ export function ProductWizardStep2({
 														key={variant.uid}
 														variant={variant}
 														attributes={productScopedAttributes}
+														productConfig={attributeConfig}
 														isSelected={variant.uid === selectedVariantUid}
 														hasErrors={hasErrors}
 														errorCount={errorCount}
@@ -460,17 +571,30 @@ export function ProductWizardStep2({
 										</ul>
 									)}
 								</nav>
-								<Button
-									variant="outline"
-									size="sm"
-									type="button"
-									className="mt-2 w-full border-dashed"
-									leadingIcon={<Plus size={13} aria-hidden />}
-									disabled={!selectedGradeSlug}
-									onClick={() => selectedGradeSlug && addCombination(selectedGradeSlug)}
-								>
-									New variant
-								</Button>
+								<div className="mt-2 flex gap-2">
+									<Button
+										variant="outline"
+										size="sm"
+										type="button"
+										className="min-w-0 flex-1 border-dashed px-2"
+										leadingIcon={<LayoutGrid size={13} aria-hidden />}
+										disabled={!selectedGradeSlug || productScopedAttributes.length === 0}
+										onClick={() => selectedGradeSlug && generateCombinationsForGrade(selectedGradeSlug)}
+									>
+										Generate
+									</Button>
+									<Button
+										variant="outline"
+										size="sm"
+										type="button"
+										className="min-w-0 flex-1 border-dashed px-2"
+										leadingIcon={<Plus size={13} aria-hidden />}
+										disabled={!selectedGradeSlug}
+										onClick={() => selectedGradeSlug && addCombination(selectedGradeSlug)}
+									>
+										New variant
+									</Button>
+								</div>
 							</aside>
 
 							<div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -480,18 +604,29 @@ export function ProductWizardStep2({
 									<div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center">
 										<p className="text-sm font-semibold text-[var(--color-ink-800)]">No variant selected</p>
 										<p className="mt-1 max-w-xs text-[12px] text-[var(--color-ink-500)]">
-											Add a variant for {grades.find((row) => row.slug === selectedGradeSlug)?.label} or pick one from the sidebar.
+											Generate every option combination for {grades.find((row) => row.slug === selectedGradeSlug)?.label}, or add variants one at a time.
 										</p>
-										<Button
-											variant="primary"
-											size="sm"
-											type="button"
-											className="mt-4"
-											leadingIcon={<Plus size={13} aria-hidden />}
-											onClick={() => addCombination(selectedGradeSlug)}
-										>
-											Add variant
-										</Button>
+										<div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+											<Button
+												variant="primary"
+												size="sm"
+												type="button"
+												leadingIcon={<LayoutGrid size={13} aria-hidden />}
+												disabled={productScopedAttributes.length === 0}
+												onClick={() => generateCombinationsForGrade(selectedGradeSlug)}
+											>
+												Generate
+											</Button>
+											<Button
+												variant="outline"
+												size="sm"
+												type="button"
+												leadingIcon={<Plus size={13} aria-hidden />}
+												onClick={() => addCombination(selectedGradeSlug)}
+											>
+												Add variant
+											</Button>
+										</div>
 									</div>
 								) : (
 									<>
@@ -517,7 +652,7 @@ export function ProductWizardStep2({
 												productNameForAlt={product.name}
 												lockGradeSlug={selectedGradeSlug}
 												errorPathPrefix={`grade.${selectedGradeSlug}.combinations.${selectedComboIndex}`}
-												allowMultiAttributeSelect={false}
+												allowMultiAttributeSelect
 												productConfig={attributeConfig}
 												embedded
 												onChange={(next) => updateCombination(selectedGradeSlug, selectedVariant.uid, next)}

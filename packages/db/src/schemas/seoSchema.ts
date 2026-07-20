@@ -37,6 +37,17 @@ export const seoSchema = new Schema<SeoMeta>(
 		score: { type: Number },
 		noindex: { type: Boolean },
 		nofollow: { type: Boolean },
+		faqs: {
+			type: [
+				{
+					question: { type: String, trim: true, maxlength: SEO_META_FIELD_LIMITS.faqQuestion },
+					answer: { type: String, trim: true, maxlength: SEO_META_FIELD_LIMITS.faqAnswer },
+				},
+			],
+			default: undefined,
+		},
+		aiGeneratedAt: { type: String, trim: true },
+		aiModelId: { type: String, trim: true },
 	},
 	{ _id: false },
 );

@@ -20,6 +20,13 @@ export {
 	collectStaffWhatsAppForInquiry,
 } from "./staffNotifyContacts";
 export { fireOrderEventNotifications } from "./orderEventNotifications";
+export { aggregateIntentSurfaceComboStats, listEligibleIntentSurfaceCombos } from "./intentSurfaceStats";
+export {
+	categoryBrandHasEligibleGradeIntent,
+	listIndexableIntentSurfacesForSitemap,
+	reconcileAllSeoSurfaces,
+	type SeoReconcileResult,
+} from "./seoReconciliation";
 export { incrementOfferUsageCounts, decrementOfferUsageCounts } from "./offerUsage";
 export { applyOrderTransition, type OrderTransitionActor } from "./orderTransitions";
 export { claimOrderStatusTransition, type ClaimOrderStatusInput } from "./orderStatusClaim";

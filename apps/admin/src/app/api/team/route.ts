@@ -1,5 +1,4 @@
-import bcrypt from "bcryptjs";
-import { badRequest, BCRYPT_ROUNDS, created, FIELD_LIMITS, forbidden, isValidationError, ok, parseBody, validateEmail, validatePassword, validateString } from "@store/shared";
+import { badRequest, created, FIELD_LIMITS, forbidden, hashPassword, isValidationError, ok, parseBody, validateEmail, validatePassword, validateString } from "@store/shared";
 import { connectDB, handleMongoError, User, USER_ROLES, type UserRole } from "@store/db";
 
 import { requireSession } from "@/lib/api/requireSession";
@@ -100,7 +99,7 @@ export async function POST(request: Request) {
 
 	await connectDB();
 	try {
-		const passwordHash = await bcrypt.hash(passwordResult, BCRYPT_ROUNDS);
+		const passwordHash = await hashPassword(passwordResult);
 		const doc = await User.create({
 			name: nameResult,
 			email: emailResult,

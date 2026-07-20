@@ -15,10 +15,8 @@
  *     wrong tries to prevent brute-forcing.
  */
 
-import bcrypt from "bcryptjs";
-
 import { OtpCode, connectDB, getStoreSettings } from "@store/db";
-import { BCRYPT_ROUNDS, logger, OTP_CODE_LENGTH, PHONE_TAIL_LENGTH, phoneFingerprint } from "@store/shared";
+import { hashOtpCode, logger, OTP_CODE_LENGTH, PHONE_TAIL_LENGTH, phoneFingerprint, verifyOtpCode } from "@store/shared";
 
 import { getOtpProvider } from "@/lib/otp/provider";
 
@@ -100,7 +98,7 @@ export async function issueCode(input: { phoneRaw: string; purpose: "customer-si
 	}
 
 	const code = generateOtp();
-	const codeHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
+	const codeHash = await hashOtpCode(code);
 	const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
 	const otpDoc = await OtpCode.create({
@@ -170,7 +168,7 @@ export async function verifyCode(input: { phoneRaw: string; code: string; purpos
 		return { ok: false, error: "exhausted" };
 	}
 
-	const matches = await bcrypt.compare(trimmed, candidate.codeHash);
+	const matches = await verifyOtpCode(trimmed, candidate.codeHash);
 
 	if (!matches) {
 		candidate.attempts += 1;

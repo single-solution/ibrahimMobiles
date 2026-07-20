@@ -56,9 +56,9 @@ export function SeoPanel({ value, onChange, contextLabel, previewSlot, checklist
 
 			<div className="grid gap-6 md:grid-cols-2">
 				<FieldRow
-					label="Focus keyword"
+					label="Focus keyword (optional)"
 					htmlFor={`${id}-focus`}
-					hint="Primary keyword to analyze SEO score against."
+					hint="Used for the SEO score only. Auto-derived from product name and category when blank."
 					validations={checklist?.items.filter((item) => item.id.startsWith("keyword-"))}
 				>
 					<input
@@ -66,18 +66,18 @@ export function SeoPanel({ value, onChange, contextLabel, previewSlot, checklist
 						type="text"
 						value={value.focusKeyword ?? ""}
 						onChange={(event) => set("focusKeyword", clampLength(event.target.value, SEO_META_FIELD_LIMITS.focusKeyword))}
-						placeholder="e.g. product name category"
+						placeholder="Optional — checklist hint only"
 						maxLength={SEO_META_FIELD_LIMITS.focusKeyword}
 						className="w-full rounded-[var(--radius-md)] border border-[color:var(--color-ink-200)] bg-[color:var(--color-surface)] px-3 py-2 text-sm"
 					/>
 				</FieldRow>
 
 				<FieldRow
-					label="Title override"
+					label="Title override (fix only if wrong)"
 					htmlFor={`${id}-title`}
 					counter={`${(value.title ?? "").length} / 60`}
 					counterTone={counterTone((value.title ?? "").length, 30, 60)}
-					hint="Leave blank to use the auto-generated title."
+					hint="Leave blank to use the formula-generated title from live variant data."
 					validations={checklist?.items.filter((item) => item.id === "title-length")}
 				>
 					<input
@@ -93,11 +93,11 @@ export function SeoPanel({ value, onChange, contextLabel, previewSlot, checklist
 			</div>
 
 			<FieldRow
-				label="Description override"
+				label="Description override (fix only if wrong)"
 				htmlFor={`${id}-desc`}
 				counter={`${(value.description ?? "").length} / 160`}
 				counterTone={counterTone((value.description ?? "").length, 120, 160)}
-				hint="Custom description for search results. Recommended length is 120-160 characters."
+				hint="Leave blank to use the formula-generated description from prices, grades, and stock."
 				validations={checklist?.items.filter((item) => item.id === "description-length")}
 			>
 				<textarea

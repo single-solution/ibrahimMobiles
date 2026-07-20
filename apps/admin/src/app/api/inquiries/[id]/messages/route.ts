@@ -17,6 +17,8 @@
  *     (first-reply ownership).
  */
 
+import { after } from "next/server";
+
 import { Inquiry, connectDB, getIntegrationSettings, getStoreSettings, handleMongoError } from "@store/db";
 import { badRequest, CHAT_MESSAGE_BODY_MAX, created, isFieldError, isValidId, notFound, parseBody, validateMessageBody } from "@store/shared";
 import { notifyCustomerOnAgentReply } from "@store/shared/server";
@@ -106,14 +108,14 @@ export async function POST(request: Request, { params }: RouteContext) {
 		});
 
 		const [integration, settings] = await Promise.all([getIntegrationSettings(), getStoreSettings()]);
-		void notifyCustomerOnAgentReply({
+		after(() => notifyCustomerOnAgentReply({
 			customerPhone: refreshed.phoneNumber,
 			customerName: refreshed.customerName ?? "Customer",
 			agentName: actor.name,
 			messagePreview: bodyResult,
 			siteName: settings.siteName,
 			whatsappCustomerOrderTemplate: integration.whatsappCustomerOrderTemplate.trim() || undefined,
-		});
+		}));
 
 		return created(toInquiryLatestPage(refreshed));
 	} catch (error) {

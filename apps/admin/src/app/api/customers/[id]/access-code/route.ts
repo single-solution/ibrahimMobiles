@@ -1,8 +1,6 @@
-import bcrypt from "bcryptjs";
-
 import { requireSession } from "@/lib/api/requireSession";
 import { connectDB, Customer, handleMongoError, OtpCode } from "@store/db";
-import { BCRYPT_ROUNDS, OTP_CODE_LENGTH, badRequest, isValidId, notFound, ok, phoneFingerprint } from "@store/shared";
+import { hashOtpCode, OTP_CODE_LENGTH, badRequest, isValidId, notFound, ok, phoneFingerprint } from "@store/shared";
 
 import { recordActivity } from "@/lib/services/activityLog";
 
@@ -66,7 +64,7 @@ export async function POST(_request: Request, { params }: RouteContext) {
 		}
 
 		const code = generateNumericCode();
-		const codeHash = await bcrypt.hash(code, BCRYPT_ROUNDS);
+		const codeHash = await hashOtpCode(code);
 		const expiresAt = new Date(Date.now() + MANUAL_CODE_TTL_MINUTES * MS_PER_MINUTE);
 
 		// Retire any still-live codes for this phone so only the one we just read

@@ -14,6 +14,8 @@ import type { AdminProductSummary } from "@/types/models";
 import { validateVariantsBatch, type VariantInput } from "@/lib/api/variantValidation";
 import { validateProductImages } from "@/lib/api/productImagesValidation";
 import { parseSeoPayload } from "@/lib/api/seoPayload";
+import { regenerateProductSeo } from "@/lib/seo/regenerateProductSeo";
+import { syncIntentSurfacesForProduct } from "@/lib/seo/syncIntentSurfacesForProduct";
 
 export async function GET(request: Request) {
 	const { response } = await requireSession("product_view");
@@ -181,7 +183,12 @@ export async function POST(request: Request) {
 		// storefront cache (so listings reflect the new SKU immediately).
 		bustAdminCaches();
 
-		return created(toProductResponse(doc.toObject() as unknown as ProductLean, brand ?? undefined));
+		const createdId = doc._id.toString();
+		await regenerateProductSeo(createdId);
+		await syncIntentSurfacesForProduct(createdId);
+		const refreshed = await Product.findById(createdId).lean<ProductLean>();
+
+		return created(toProductResponse((refreshed ?? doc.toObject()) as ProductLean, brand ?? undefined));
 	} catch (error) {
 		return handleMongoError(error);
 	}

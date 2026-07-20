@@ -69,29 +69,6 @@ export function ProductDetailsForm({
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
 			<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 				<div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
-					<WizardSection title="Name">
-						<input
-							type="text"
-							required
-							value={name}
-							onChange={(event) => onNameChange(event.target.value)}
-							maxLength={120}
-							placeholder="Product name"
-							disabled={nameDisabled}
-							autoComplete="off"
-							className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[15px] focus:border-[var(--color-accent-500)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-						/>
-						{slugHint && categorySlug ? (
-							<p className="mt-1 text-[11.5px] text-[var(--color-ink-500)]">
-								Storefront URL:{" "}
-								<code>
-									/{categorySlug}/{slugHint}
-								</code>
-							</p>
-						) : null}
-						<WizardFieldError message={errorMap?.get("name")} />
-					</WizardSection>
-
 					<WizardSection title="Category">
 						{categories.length === 0 ? (
 							<CategoriesEmptyHint />
@@ -138,6 +115,35 @@ export function ProductDetailsForm({
 						<WizardFieldError message={errorMap?.get("brandSlug")} />
 					</WizardSection>
 
+					<WizardSection title="Name">
+						{!categorySlug ? (
+							<WizardEmptyHint>Select a category first.</WizardEmptyHint>
+						) : (
+							<>
+								<input
+									type="text"
+									required
+									value={name}
+									onChange={(event) => onNameChange(event.target.value)}
+									maxLength={120}
+									placeholder="Product name"
+									disabled={nameDisabled}
+									autoComplete="off"
+									className="block w-full rounded-md border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-3 py-2 text-[15px] focus:border-[var(--color-accent-500)] focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+								/>
+								{slugHint ? (
+									<p className="mt-1 text-[11.5px] text-[var(--color-ink-500)]">
+										Storefront URL:{" "}
+										<code>
+											/{categorySlug}/{slugHint}
+										</code>
+									</p>
+								) : null}
+							</>
+						)}
+						<WizardFieldError message={errorMap?.get("name")} />
+					</WizardSection>
+
 					<WizardSection title="Photos">
 						{!showPhotos ? (
 							<WizardEmptyHint>Select a category first.</WizardEmptyHint>
@@ -179,10 +185,6 @@ export function ProductDetailsFormSkeleton() {
 		<div className="flex min-h-0 flex-1 animate-pulse flex-col overflow-hidden lg:flex-row">
 			<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 				<div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
-					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
-						<div className="mb-3 h-3 w-12 rounded bg-[var(--color-ink-200)]" />
-						<div className="h-10 w-full rounded-md bg-[var(--color-ink-100)]" />
-					</div>
 					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4">
 						<div className="mb-3 h-3 w-20 rounded bg-[var(--color-ink-200)]" />
 						<div className="flex flex-wrap gap-1.5">
@@ -196,6 +198,10 @@ export function ProductDetailsFormSkeleton() {
 							<div className="h-7 w-16 rounded-full bg-[var(--color-ink-100)]" />
 							<div className="h-7 w-14 rounded-full bg-[var(--color-ink-100)]" />
 						</div>
+					</div>
+					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+						<div className="mb-3 h-3 w-12 rounded bg-[var(--color-ink-200)]" />
+						<div className="h-10 w-full rounded-md bg-[var(--color-ink-100)]" />
 					</div>
 					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4">
 						<div className="mb-3 h-3 w-14 rounded bg-[var(--color-ink-200)]" />

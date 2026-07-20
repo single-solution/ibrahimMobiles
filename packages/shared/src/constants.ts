@@ -110,9 +110,6 @@ export const SECONDS_PER_DAY = SECONDS_PER_MINUTE * MINUTES_PER_HOUR * HOURS_PER
 
 // ─── Backend limits & policy ────────────────────────────────────────────────
 
-/** bcrypt cost factor (security policy: 12 minimum). */
-export const BCRYPT_ROUNDS = 12;
-
 /** Session lifetime in days (Auth.js JWT). */
 export const SESSION_MAX_AGE_DAYS = 30;
 

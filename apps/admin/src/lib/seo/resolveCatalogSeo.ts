@@ -3,7 +3,9 @@ import {
 	composeCategorySeo,
 	composeOfferSeo,
 	composeProductSeo,
+	deriveProductFocusKeyword,
 	evaluateSeoChecklist,
+	type AttributeDescriptor,
 	type Brand,
 	type CatalogSeoChecklistContext,
 	type CatalogSeoKind,
@@ -17,6 +19,15 @@ import {
 	type Variant,
 } from "@store/shared";
 
+export interface ProductSeoVariantInput {
+	id: string;
+	gradeSlug: string;
+	priceRupees: number;
+	quantity: number;
+	forceOutOfStock: boolean;
+	attributes?: Record<string, string | string[]>;
+}
+
 export interface ProductSeoInput {
 	slug: string;
 	name: string;
@@ -25,7 +36,10 @@ export interface ProductSeoInput {
 	brand?: { slug: string; name: string };
 	category?: { slug: string; label: string; description?: string };
 	images: StoredImage[];
-	variants: Array<{ id: string; gradeSlug: string }>;
+	variants: ProductSeoVariantInput[];
+	attributeSlugs?: string[];
+	gradeLabels?: Record<string, string>;
+	attributes?: AttributeDescriptor[];
 }
 
 export interface CategorySeoInput {
@@ -55,21 +69,21 @@ export type CatalogSeoInput =
 function toPreviewProduct(input: ProductSeoInput): Product {
 	const variants: Variant[] =
 		input.variants.length > 0
-			? input.variants.map((v) => ({
-					id: v.id || "preview",
-					gradeSlug: v.gradeSlug || "preview",
-					priceRupees: 0,
-					quantity: 1,
-					forceOutOfStock: false,
-					attributes: {},
+			? input.variants.map((variant) => ({
+					id: variant.id || "preview",
+					gradeSlug: variant.gradeSlug || "preview",
+					priceRupees: variant.priceRupees,
+					quantity: variant.quantity,
+					forceOutOfStock: variant.forceOutOfStock,
+					attributes: variant.attributes ?? {},
 				}))
 			: [
 					{
 						id: "preview",
 						gradeSlug: "preview",
 						priceRupees: 0,
-						quantity: 1,
-						forceOutOfStock: false,
+						quantity: 0,
+						forceOutOfStock: true,
 						attributes: {},
 					},
 				];
@@ -83,17 +97,19 @@ function toPreviewProduct(input: ProductSeoInput): Product {
 		isFeatured: false,
 		images: input.images,
 		variants,
+		attributeSlugs: input.attributeSlugs,
 	};
 }
 
 export function resolveCatalogSeo(input: CatalogSeoInput, seo: SeoMeta, settings: SeoSettings): { resolved: ResolvedSeoMeta; checklist: SeoChecklistResult } {
 	let resolved: ResolvedSeoMeta;
 	let context: CatalogSeoChecklistContext;
+	let focusKeyword = seo.focusKeyword;
 
 	switch (input.type) {
 		case "product": {
 			const product = toPreviewProduct(input.entity);
-			const variant = product.variants[0];
+			const variant = product.variants[0]!;
 			resolved = composeProductSeo({
 				product,
 				variant,
@@ -101,13 +117,20 @@ export function resolveCatalogSeo(input: CatalogSeoInput, seo: SeoMeta, settings
 				category: input.entity.category ?? null,
 				settings,
 				seo,
+				factsContext: {
+					gradeLabels: input.entity.gradeLabels,
+					attributes: input.entity.attributes,
+				},
 			});
-			const allAltsOk = product.images.length === 0 || product.images.every((img) => img.alt.trim().length > 0);
+			const allAltsOk = product.images.length === 0 || product.images.every((image) => image.alt.trim().length > 0);
 			context = {
 				slug: input.entity.slug,
 				hasHeroImage: product.images.length > 0,
 				allVariantImagesHaveAlt: allAltsOk,
 			};
+			if (!focusKeyword?.trim()) {
+				focusKeyword = deriveProductFocusKeyword(input.entity.name, input.entity.category?.label);
+			}
 			break;
 		}
 		case "category": {
@@ -156,7 +179,7 @@ export function resolveCatalogSeo(input: CatalogSeoInput, seo: SeoMeta, settings
 		}
 	}
 
-	const checklist = evaluateSeoChecklist(resolved, context, seo.focusKeyword, input.type as CatalogSeoKind);
+	const checklist = evaluateSeoChecklist(resolved, context, focusKeyword, input.type as CatalogSeoKind);
 
 	return { resolved, checklist };
 }

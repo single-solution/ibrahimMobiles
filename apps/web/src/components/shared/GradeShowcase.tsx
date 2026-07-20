@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { Camera, PlayCircle, ShieldCheck } from "lucide-react";
 
 import { formatWarrantyPeriod, resolveWarrantyDays, toYouTubeEmbedUrl, type Product } from "@store/shared";
 
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { StructuredContentFull } from "@/components/shared/StructuredContent";
+import { gradeGlossaryHref } from "@/lib/catalog/glossaryPaths";
 import { useSelectedVariantId } from "@/components/shared/VariantContext";
 import { useGrade } from "@/lib/core/storefrontReferenceContext";
 import { useGlobalEagerLoad } from "@/lib/useGlobalEagerLoad";
@@ -36,8 +38,14 @@ export function GradeShowcase({ product, variant = "desktop" }: GradeShowcasePro
 	if (variant === "mobile") {
 		return (
 			<section className="app-section cv-auto">
-				<div className="app-section-eyebrow">
+				<div className="app-section-eyebrow flex items-center justify-between gap-2">
 					<span>Grade · {descriptor.label}</span>
+					<Link
+						href={gradeGlossaryHref(product.categorySlug, selected.gradeSlug)}
+						className="tap text-[11px] font-medium text-[var(--color-accent-700)] underline-offset-2 hover:underline"
+					>
+						Learn more
+					</Link>
 				</div>
 				{/* Concentric: inner GradeBullet --radius-md (8) + p-3.5 (14)
             content gutter → outer 22 ≈ --radius-2xl (24, within 2px). */}
@@ -73,6 +81,12 @@ export function GradeShowcase({ product, variant = "desktop" }: GradeShowcasePro
 					<div>
 						<p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-ink-500)]">Selected grade</p>
 						<p className="text-2xl font-semibold leading-tight tracking-tight text-[var(--color-ink-900)]">{descriptor.label}</p>
+						<Link
+							href={gradeGlossaryHref(product.categorySlug, selected.gradeSlug)}
+							className="tap mt-1 inline-block text-xs font-medium text-[var(--color-accent-700)] underline-offset-2 hover:underline"
+						>
+							What is {descriptor.label}?
+						</Link>
 					</div>
 				</div>
 				<StructuredContentFull

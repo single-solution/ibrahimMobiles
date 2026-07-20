@@ -4,8 +4,35 @@
  */
 
 import type { Brand, Offer, Product, Variant } from "../types";
+import {
+	buildProductSeoDescription,
+	buildProductSeoFacts,
+	buildProductSeoTitle,
+	buildProductTitleTemplateVars,
+	buildVariantSeoDescription,
+	buildVariantSeoTitle,
+	DEFAULT_PRODUCT_TITLE_TEMPLATE,
+	type ProductSeoFactsContext,
+} from "./productSeoFacts";
+import {
+	buildAttributeGlossaryDescription,
+	buildAttributeGlossaryTitle,
+	buildGradeGlossaryDescription,
+	buildGradeGlossaryTitle,
+} from "./glossarySeoFacts";
+import type { IntentSurfaceKey } from "./intentSurface";
 import { buildRobotsDirective, type SeoMeta } from "./seoMeta";
 import { applyTitleTemplate } from "./titleTemplate";
+
+export type { ProductSeoFacts, ProductSeoFactsContext } from "./productSeoFacts";
+export {
+	buildProductSeoFacts,
+	buildProductSeoDescription,
+	buildProductSeoTitle,
+	buildVariantSeoDescription,
+	buildVariantSeoTitle,
+	deriveProductFocusKeyword,
+} from "./productSeoFacts";
 
 export interface ResolvedSeoMeta {
 	title: string;
@@ -86,37 +113,113 @@ function resolveOgImage(override: string | undefined, derived: string | undefine
 
 export function composeProductSeo({
 	product,
-	variant,
+	variant: _variant,
 	brand,
 	category,
 	settings,
 	seo,
+	factsContext,
 }: {
 	product: Product;
+	/** Kept for call-site compatibility; formulas use the full variant matrix. */
 	variant: Variant;
 	brand: BrandSeoRef | null;
 	category: CategorySeoRef | null;
 	settings: SeoSettings;
 	seo?: SeoMeta;
+	factsContext?: ProductSeoFactsContext;
 }): ResolvedSeoMeta {
-	const brandName = brand?.name ?? product.brandName;
-	const baseTitle = `${brandName} ${product.name}`.trim();
+	const storeName = resolveStoreName(settings);
+	const facts = buildProductSeoFacts(product, storeName, factsContext, category?.label ?? "");
 	const path = `/${product.categorySlug}/${product.slug}`;
 	const heroImage = product.images[0]?.variants?.detail ?? "";
-	const derivedDescription = category
-		? `${baseTitle} — graded ${category.label.toLowerCase()} from ${resolveStoreName(settings)}.`
-		: `${baseTitle} from ${resolveStoreName(settings)}.`;
+	const derivedTitle = buildProductSeoTitle(facts);
+	const derivedDescription = buildProductSeoDescription(facts);
+	const usesDefaultTitleTemplate = settings.titleTemplate.trim() === DEFAULT_PRODUCT_TITLE_TEMPLATE;
 
 	return {
-		title: resolveTitle(seo?.title, baseTitle, settings, {
-			brandName,
-			categoryLabel: category?.label ?? "",
-		}),
+		title: seo?.title?.trim()
+			? seo.title.trim()
+			: usesDefaultTitleTemplate
+				? derivedTitle
+				: resolveTitle(undefined, facts.baseTitle, settings, buildProductTitleTemplateVars(facts)),
 		description: resolveDescription(seo?.description, derivedDescription, settings.defaultDescription),
 		canonical: resolveCanonical(seo?.canonicalUrl, path, settings.siteUrl),
 		ogImageUrl: resolveOgImage(seo?.ogImageUrl, heroImage, settings.defaultOgImageUrl, settings.siteUrl),
 		twitterCard: heroImage || settings.defaultOgImageUrl ? "summary_large_image" : "summary",
 		robots: buildRobotsDirective(seo),
+	};
+}
+
+/**
+ * Storefront PDP metadata policy (ban-safe + market-competitive):
+ * - One indexable canonical per product (no query params).
+ * - Aggregate title/description on the clean URL.
+ * - Variant query URLs get specific share copy but `noindex,follow`.
+ */
+export function composeProductPageSeo({
+	product,
+	brand: _brand,
+	category,
+	settings,
+	seo,
+	factsContext,
+	selectedVariant,
+	hasVariantQueryParams,
+}: {
+	product: Product;
+	brand: BrandSeoRef | null;
+	category: CategorySeoRef | null;
+	settings: SeoSettings;
+	seo?: SeoMeta;
+	factsContext?: ProductSeoFactsContext;
+	selectedVariant: Variant | null;
+	hasVariantQueryParams: boolean;
+}): ResolvedSeoMeta {
+	const path = `/${product.categorySlug}/${product.slug}`;
+	const indexableCanonical = absoluteUrl(settings.siteUrl, path);
+	const heroImage = product.images[0]?.variants?.detail ?? "";
+
+	if (hasVariantQueryParams) {
+		const storeName = resolveStoreName(settings);
+		const variant = selectedVariant;
+		const derivedTitle = variant
+			? buildVariantSeoTitle(product, variant, storeName, factsContext)
+			: buildProductSeoTitle(buildProductSeoFacts(product, storeName, factsContext, category?.label ?? ""));
+		const derivedDescription = variant
+			? buildVariantSeoDescription(product, variant, storeName, factsContext)
+			: buildProductSeoDescription(buildProductSeoFacts(product, storeName, factsContext, category?.label ?? ""));
+		const staffNoindex = seo?.noindex === true;
+		return {
+			title: seo?.title?.trim() || derivedTitle,
+			description: resolveDescription(seo?.description, derivedDescription, settings.defaultDescription),
+			canonical: indexableCanonical,
+			ogImageUrl: resolveOgImage(seo?.ogImageUrl, heroImage, settings.defaultOgImageUrl, settings.siteUrl),
+			twitterCard: heroImage || settings.defaultOgImageUrl ? "summary_large_image" : "summary",
+			robots: staffNoindex ? buildRobotsDirective(seo) : "noindex,follow",
+		};
+	}
+
+	const aggregate = composeProductSeo({
+		product,
+		variant: product.variants[0] ?? {
+			id: "",
+			gradeSlug: "",
+			priceRupees: 0,
+			quantity: 0,
+			forceOutOfStock: false,
+			attributes: {},
+		},
+		brand: _brand,
+		category,
+		settings,
+		seo,
+		factsContext,
+	});
+
+	return {
+		...aggregate,
+		canonical: seo?.canonicalUrl?.trim() ? aggregate.canonical : indexableCanonical,
 	};
 }
 
@@ -180,5 +283,94 @@ export function composeHomeSeo({ settings, seo }: { settings: SeoSettings; seo?:
 		ogImageUrl: resolveOgImage(seo?.ogImageUrl, undefined, settings.defaultOgImageUrl, settings.siteUrl),
 		twitterCard: settings.defaultOgImageUrl ? "summary_large_image" : "summary",
 		robots: buildRobotsDirective(seo),
+	};
+}
+
+export function composeGradeGlossarySeo({
+	grade,
+	categoryLabel,
+	settings,
+	seo,
+}: {
+	grade: { categorySlug: string; slug: string; label: string; notes: string };
+	categoryLabel: string;
+	settings: SeoSettings;
+	seo?: SeoMeta;
+}): ResolvedSeoMeta {
+	const storeName = resolveStoreName(settings);
+	const path = `/grades/${grade.categorySlug}/${grade.slug}`;
+	const derivedTitle = buildGradeGlossaryTitle(grade.label, storeName);
+	const derivedDescription = buildGradeGlossaryDescription({
+		gradeLabel: grade.label,
+		gradeNotes: grade.notes,
+		categoryLabel,
+		storeName,
+	});
+
+	return {
+		title: seo?.title?.trim() ? seo.title.trim() : derivedTitle,
+		description: resolveDescription(seo?.description, derivedDescription, settings.defaultDescription),
+		canonical: resolveCanonical(seo?.canonicalUrl, path, settings.siteUrl),
+		ogImageUrl: resolveOgImage(seo?.ogImageUrl, undefined, settings.defaultOgImageUrl, settings.siteUrl),
+		twitterCard: settings.defaultOgImageUrl ? "summary_large_image" : "summary",
+		robots: buildRobotsDirective(seo),
+	};
+}
+
+export function composeAttributeGlossarySeo({
+	attribute,
+	categoryLabel,
+	settings,
+	seo,
+}: {
+	attribute: { categorySlug: string; slug: string; label: string; unit?: string; optionLabels: string[] };
+	categoryLabel: string;
+	settings: SeoSettings;
+	seo?: SeoMeta;
+}): ResolvedSeoMeta {
+	const storeName = resolveStoreName(settings);
+	const path = `/attributes/${attribute.categorySlug}/${attribute.slug}`;
+	const derivedTitle = buildAttributeGlossaryTitle(attribute.label, storeName);
+	const derivedDescription = buildAttributeGlossaryDescription({
+		attributeLabel: attribute.label,
+		optionLabels: attribute.optionLabels,
+		unit: attribute.unit,
+		categoryLabel,
+		storeName,
+	});
+
+	return {
+		title: seo?.title?.trim() ? seo.title.trim() : derivedTitle,
+		description: resolveDescription(seo?.description, derivedDescription, settings.defaultDescription),
+		canonical: resolveCanonical(seo?.canonicalUrl, path, settings.siteUrl),
+		ogImageUrl: resolveOgImage(seo?.ogImageUrl, undefined, settings.defaultOgImageUrl, settings.siteUrl),
+		twitterCard: settings.defaultOgImageUrl ? "summary_large_image" : "summary",
+		robots: buildRobotsDirective(seo),
+	};
+}
+
+export function composeIntentSurfaceSeo({
+	surface,
+	settings,
+	isIndexable,
+}: {
+	surface: {
+		key: IntentSurfaceKey;
+		title: string;
+		description: string;
+		canonicalQuery: string;
+	};
+	settings: SeoSettings;
+	isIndexable: boolean;
+}): ResolvedSeoMeta {
+	const path = `/${surface.key.categorySlug}${surface.canonicalQuery}`;
+
+	return {
+		title: surface.title,
+		description: truncateDescription(surface.description),
+		canonical: absoluteUrl(settings.siteUrl, path),
+		ogImageUrl: resolveOgImage(undefined, undefined, settings.defaultOgImageUrl, settings.siteUrl),
+		twitterCard: settings.defaultOgImageUrl ? "summary_large_image" : "summary",
+		robots: isIndexable ? "index,follow" : "noindex,follow",
 	};
 }

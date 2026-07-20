@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { logger } from "@store/shared";
 
 import { ShopProductFeed } from "@/components/shared/ShopProductFeed";
+import { IntentSurfaceHeader } from "@/app/_components/shop/IntentSurfaceHeader";
 import { ShopCategoryToolbar } from "@/app/_components/shop/ShopCategoryToolbar";
 import { SHOP_CATEGORY_GRID_CLASS, SHOP_CATEGORY_PAGE_CLASS } from "@/lib/catalog/shopListingGrid";
 import { ShopScrollReset } from "@/app/_components/shop/ShopScrollReset";
@@ -15,7 +16,9 @@ import { NavigationPendingFallback } from "@/components/shared/NavigationPending
 import { StructuredContentFull } from "@/components/shared/StructuredContent";
 import { parseFiltersFromSearchParams, type CategoryMeta, type ProductFilters, type ProductPage } from "@/lib/core";
 import { getCategoriesCached, getCategoryBySlugCached, getProductsPageCached } from "@/lib/core/cached";
-import { composeCategorySeo } from "@/lib/seo/composeSeoMeta";
+import { composeCategorySeo, composeIntentSurfaceSeo } from "@/lib/seo/composeSeoMeta";
+import { shouldNoindexFilteredCategoryPageAsync } from "@/lib/seo/filteredListingRobots";
+import { resolveIntentSurfacePage } from "@/lib/seo/resolveIntentSurfacePage";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
 import { breadcrumbJsonLd, collectionPageJsonLd, jsonLdScriptContent } from "@/lib/seo/jsonLd";
 
@@ -46,13 +49,51 @@ interface CategoryPageProps {
 	searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
-	const { category } = await params;
+export async function generateMetadata({ params, searchParams }: CategoryPageProps): Promise<Metadata> {
+	const [{ category }, rawSearchParams] = await Promise.all([params, searchParams]);
 	const meta = await getCategoryBySlugCached(category);
 	if (!meta) {
 		return { title: "Shop" };
 	}
 	const seoSettings = await getSeoSettings();
+	const filters = parseFiltersFromSearchParams(rawSearchParams, { categorySlug: meta.slug });
+	const intentSurface = await resolveIntentSurfacePage({
+		category: meta,
+		filters,
+		rawSearchParams,
+		seoSettings,
+	});
+
+	if (intentSurface?.showHeader) {
+		const resolved = composeIntentSurfaceSeo({
+			surface: {
+				key: intentSurface.key,
+				title: intentSurface.title,
+				description: intentSurface.description,
+				canonicalQuery: intentSurface.canonicalQuery,
+			},
+			settings: seoSettings,
+			isIndexable: intentSurface.isIndexable,
+		});
+		return {
+			title: resolved.title,
+			description: resolved.description,
+			alternates: { canonical: resolved.canonical },
+			robots: resolved.robots,
+			openGraph: {
+				title: resolved.title,
+				description: resolved.description,
+				url: resolved.canonical,
+				type: "website",
+			},
+			twitter: {
+				card: resolved.twitterCard,
+				title: resolved.title,
+				description: resolved.description,
+			},
+		};
+	}
+
 	const resolved = composeCategorySeo({
 		category: {
 			slug: meta.slug,
@@ -61,11 +102,14 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 		},
 		settings: seoSettings,
 	});
+	const noindexFiltered = await shouldNoindexFilteredCategoryPageAsync(rawSearchParams, meta.slug, filters);
+	const robots = noindexFiltered ? "noindex,follow" : resolved.robots;
+
 	return {
 		title: resolved.title,
 		description: resolved.description,
 		alternates: { canonical: resolved.canonical },
-		robots: resolved.robots,
+		robots,
 		openGraph: {
 			title: resolved.title,
 			description: resolved.description,
@@ -98,13 +142,21 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 		categorySlug: meta.slug,
 	});
 
+	const seoSettings = await getSeoSettings();
+	const intentSurface = await resolveIntentSurfacePage({
+		category: meta,
+		filters,
+		rawSearchParams,
+		seoSettings,
+	});
+
 	return (
 		<>
 			<Suspense fallback={null}>
 				<ShopScrollReset />
 			</Suspense>
 			<Suspense fallback={null}>
-				<CategoryJsonLd meta={meta} filters={filters} />
+				<CategoryJsonLd meta={meta} filters={filters} intentSurface={intentSurface} />
 			</Suspense>
 
 			<div className={`${SHOP_CATEGORY_PAGE_CLASS} pb-10 md:pb-20`}>
@@ -114,10 +166,12 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 					</Suspense>
 				</div>
 
+				{intentSurface?.showHeader ? <IntentSurfaceHeader headline={intentSurface.headline} intro={intentSurface.intro} /> : null}
+
 				<div className="shop-listing-mobile-scroll-pad pt-1">
 					<Suspense fallback={<ShopProductsAreaFallback />}>
 						<NavigationPendingFallback fallback={<ShopProductsAreaFallback />}>
-							<ProductsArea meta={meta} filters={filters} />
+							<ProductsArea meta={meta} filters={filters} intentSurface={intentSurface} />
 						</NavigationPendingFallback>
 					</Suspense>
 				</div>
@@ -147,19 +201,30 @@ async function loadCategoryProducts(filters: ProductFilters): Promise<ProductPag
 interface CategoryJsonLdProps {
 	meta: CategoryMeta;
 	filters: ProductFilters;
+	intentSurface: Awaited<ReturnType<typeof resolveIntentSurfacePage>>;
 }
 
-async function CategoryJsonLd({ meta, filters }: CategoryJsonLdProps) {
+async function CategoryJsonLd({ meta, filters, intentSurface }: CategoryJsonLdProps) {
 	const [page, seoSettings] = await Promise.all([loadCategoryProducts(filters), getSeoSettings()]);
+	const pageUrl = intentSurface?.showHeader
+		? `${seoSettings.siteUrl}/${meta.slug}${intentSurface.canonicalQuery}`
+		: undefined;
+	const pageName = intentSurface?.showHeader ? intentSurface.headline : undefined;
 	const collectionLd = collectionPageJsonLd({
 		category: { slug: meta.slug, label: meta.label },
 		products: page.products,
 		settings: seoSettings,
+		pageUrl,
+		pageName,
 	});
-	const breadcrumbLd = breadcrumbJsonLd([
-		{ name: "Home", url: seoSettings.siteUrl },
-		{ name: meta.label, url: `${seoSettings.siteUrl}${categoryHref(meta.slug)}` },
-	]);
+	const breadcrumbItems = [{ name: "Home", url: seoSettings.siteUrl }, { name: meta.label, url: `${seoSettings.siteUrl}${categoryHref(meta.slug)}` }];
+	if (intentSurface?.showHeader) {
+		breadcrumbItems.push({
+			name: intentSurface.headline,
+			url: `${seoSettings.siteUrl}/${meta.slug}${intentSurface.canonicalQuery}`,
+		});
+	}
+	const breadcrumbLd = breadcrumbJsonLd(breadcrumbItems);
 	return (
 		<>
 			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(collectionLd) }} />
@@ -173,11 +238,17 @@ async function CategoryJsonLd({ meta, filters }: CategoryJsonLdProps) {
 interface ProductsAreaProps {
 	meta: CategoryMeta;
 	filters: ProductFilters;
+	intentSurface: Awaited<ReturnType<typeof resolveIntentSurfacePage>>;
 }
 
-async function ProductsArea({ meta, filters }: ProductsAreaProps) {
+async function ProductsArea({ meta, filters, intentSurface }: ProductsAreaProps) {
 	const page = await loadCategoryProducts(filters);
-	return <ShopProductFeed initialPage={page} categoryLabel={meta.label} apiParams={{ category: meta.slug }} gridClassName={SHOP_CATEGORY_GRID_CLASS} />;
+	const apiParams: Record<string, string> = { category: meta.slug };
+	if (intentSurface?.showHeader) {
+		apiParams.brand = intentSurface.key.brandSlug;
+		apiParams.grade = intentSurface.key.gradeSlug;
+	}
+	return <ShopProductFeed initialPage={page} categoryLabel={meta.label} apiParams={apiParams} gridClassName={SHOP_CATEGORY_GRID_CLASS} />;
 }
 
 /* ─────────────────────── Static, data-free pieces ─────────────────────── */

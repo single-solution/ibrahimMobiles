@@ -9,7 +9,14 @@ import { ColoredPill } from "@/components/shared/ColoredPill";
 import type { AdminAttribute, AdminGrade } from "@/types/models";
 
 import { AttributeOptionTabRow, ATTRIBUTE_DIMENSION_LABEL_CLASS } from "./attributeOptionTabRow";
-import { attributeValuesOnDraft, type VariantDraft } from "./productFormState";
+import {
+	attributeValuesOnDraft,
+	attributeValuesInclude,
+	attributeValuesWithout,
+	canonicalizeSelectedOptionKeys,
+	resolveCanonicalAttributeOptionValue,
+	type VariantDraft,
+} from "./productFormState";
 
 interface VariantCardProps {
 	index: number;
@@ -223,23 +230,11 @@ function AttributeValuePicker({
 	onChange: (next: VariantDraft) => void;
 	allowMultiSelect?: boolean;
 }) {
-	const selectedValues = attributeValuesOnDraft(variant, attribute.slug);
+	const selectedValues = canonicalizeSelectedOptionKeys(attribute.options, attributeValuesOnDraft(variant, attribute.slug));
 	const hasMulti = allowMultiSelect && selectedValues.length > 0;
 	const selectedValue = hasMulti ? undefined : variant.attributes[attribute.slug];
 
-	function toggleMultiValue(value: string) {
-		const current = variant.attributesMulti?.[attribute.slug] ?? [];
-		const nextSet = current.includes(value) ? current.filter((entry) => entry !== value) : [...current, value];
-		const nextMulti = { ...(variant.attributesMulti ?? {}) };
-		const nextAttributes = { ...variant.attributes };
-		const nextDisplay = { ...(variant.attributeDisplay ?? {}) };
-		delete nextAttributes[attribute.slug];
-		delete nextDisplay[attribute.slug];
-		if (nextSet.length === 0) {
-			delete nextMulti[attribute.slug];
-		} else {
-			nextMulti[attribute.slug] = nextSet;
-		}
+	function applyAttributeSelection(nextAttributes: Record<string, string>, nextMulti: Record<string, string[]>, nextDisplay: Record<string, string>) {
 		onChange({
 			...variant,
 			attributes: nextAttributes,
@@ -248,23 +243,51 @@ function AttributeValuePicker({
 		});
 	}
 
-	function selectOption(value: string) {
+	function clearAttributeSelection(nextAttributes: Record<string, string>, nextMulti: Record<string, string[]>, nextDisplay: Record<string, string>) {
+		delete nextAttributes[attribute.slug];
+		delete nextMulti[attribute.slug];
+		delete nextDisplay[attribute.slug];
+	}
+
+	function toggleMultiValue(clickedValue: string) {
+		const canonical = resolveCanonicalAttributeOptionValue(attribute.options, clickedValue);
+		const current = canonicalizeSelectedOptionKeys(attribute.options, attributeValuesOnDraft(variant, attribute.slug));
+		const nextSet = attributeValuesInclude(current, canonical) ? attributeValuesWithout(current, canonical) : [...current, canonical];
+
+		const nextMulti = { ...(variant.attributesMulti ?? {}) };
+		const nextAttributes = { ...variant.attributes };
+		const nextDisplay = { ...(variant.attributeDisplay ?? {}) };
+		clearAttributeSelection(nextAttributes, nextMulti, nextDisplay);
+
+		if (nextSet.length > 0) {
+			nextMulti[attribute.slug] = nextSet;
+		}
+
+		applyAttributeSelection(nextAttributes, nextMulti, nextDisplay);
+	}
+
+	function selectOption(clickedValue: string) {
 		if (allowMultiSelect) {
-			toggleMultiValue(value);
+			toggleMultiValue(clickedValue);
 			return;
 		}
 
+		const canonical = resolveCanonicalAttributeOptionValue(attribute.options, clickedValue);
 		const nextDisplay = { ...(variant.attributeDisplay ?? {}) };
-		delete nextDisplay[attribute.slug];
-
 		const nextMulti = { ...(variant.attributesMulti ?? {}) };
+		const nextAttributes = { ...variant.attributes };
+		const currentValues = canonicalizeSelectedOptionKeys(attribute.options, attributeValuesOnDraft(variant, attribute.slug));
+
+		if (attributeValuesInclude(currentValues, canonical)) {
+			clearAttributeSelection(nextAttributes, nextMulti, nextDisplay);
+			applyAttributeSelection(nextAttributes, nextMulti, nextDisplay);
+			return;
+		}
+
+		delete nextDisplay[attribute.slug];
 		delete nextMulti[attribute.slug];
-		onChange({
-			...variant,
-			attributes: { ...variant.attributes, [attribute.slug]: value },
-			attributeDisplay: nextDisplay,
-			attributesMulti: nextMulti,
-		});
+		nextAttributes[attribute.slug] = canonical;
+		applyAttributeSelection(nextAttributes, nextMulti, nextDisplay);
 	}
 
 	const tabOptions = sortAttributeOptions(attribute.options, attribute.unit).map((option) => ({
@@ -272,7 +295,11 @@ function AttributeValuePicker({
 		label: formatAttributeOptionLabel(option.label, attribute.unit),
 	}));
 
-	const selectedKeys = allowMultiSelect ? selectedValues : selectedValue ? [selectedValue] : [];
+	const selectedKeys = allowMultiSelect
+		? selectedValues
+		: selectedValue
+			? [resolveCanonicalAttributeOptionValue(attribute.options, selectedValue)]
+			: [];
 
 	return (
 		<div className="flex flex-col gap-1.5 px-2.5 py-2 md:px-3 md:py-2.5">

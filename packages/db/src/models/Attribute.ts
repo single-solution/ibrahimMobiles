@@ -1,5 +1,6 @@
 import mongoose, { Schema, type HydratedDocument, type Model } from "mongoose";
-import { slugify } from "@store/shared";
+import { slugify, type SeoMeta } from "@store/shared";
+import { seoSchema } from "../schemas/seoSchema";
 
 /**
  * Admin-defined single-select filter dimension per category. Variant `attributes`
@@ -40,6 +41,8 @@ export interface AttributeAttributes {
 	visibility?: AttributeVisibility;
 	cardPosition: AttributeCardPosition;
 	isActive: boolean;
+	/** Glossary page SEO (formula + optional AI polish). */
+	seo?: SeoMeta;
 }
 
 const attributeVisibilitySchema = new Schema<AttributeVisibility>(
@@ -109,6 +112,7 @@ const attributeSchema = new Schema<AttributeAttributes>(
 			default: "title-chips",
 		},
 		isActive: { type: Boolean, required: true, default: true },
+		seo: { type: seoSchema, required: false, default: undefined },
 	},
 	{ timestamps: true },
 );

@@ -26,6 +26,7 @@
  */
 
 import { type Types } from "mongoose";
+import { after } from "next/server";
 
 import {
 	connectDB,
@@ -661,14 +662,17 @@ export async function POST(request: Request) {
 			}
 		}
 
-		const placedOrderNumber = createdOrder.orderNumber;
-		void fireOrderEventNotifications({
+		// Capture as a non-null const — the deferred `after()` closure loses the
+		// control-flow narrowing on the `let createdOrder: OrderDoc | null`.
+		const placedOrder = createdOrder;
+		const placedOrderNumber = placedOrder.orderNumber;
+		after(() => fireOrderEventNotifications({
 			event: "placed",
-			order: createdOrder,
+			order: placedOrder,
 			nextStatus: initialStatus,
 		}).catch((error: unknown) => {
 			logger.warn({ error, orderNumber: placedOrderNumber }, "Order notifications failed");
-		});
+		}));
 
 		if (payment === "card") {
 			const integration = await getIntegrationSettings();

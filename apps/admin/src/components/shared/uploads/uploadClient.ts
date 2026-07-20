@@ -8,6 +8,8 @@
 
 import type { StoredImage } from "@store/shared";
 
+import { encodeImageVariants } from "./imageEncoder";
+
 export interface UploadImageOptions {
 	file: File;
 	altTextBase?: string;
@@ -47,10 +49,19 @@ async function postUpload(form: FormData): Promise<unknown> {
 }
 
 export async function uploadImage(options: UploadImageOptions): Promise<StoredImage> {
+	// Variants are encoded in the browser (Workers can't run sharp); the server
+	// only validates + streams them to R2.
+	const encoded = await encodeImageVariants(options.file);
 	const form = new FormData();
-	form.set("file", options.file);
 	form.set("kind", "image");
-	if (options.altTextBase) form.set("altTextBase", options.altTextBase);
+	form.set("variant_thumb", encoded.variants.thumb, "thumb.webp");
+	form.set("variant_card", encoded.variants.card, "card.webp");
+	form.set("variant_detail", encoded.variants.detail, "detail.webp");
+	form.set("variant_full", encoded.variants.full, "full.webp");
+	form.set("blurDataURL", encoded.blurDataURL);
+	form.set("width", String(encoded.width));
+	form.set("height", String(encoded.height));
+	form.set("altTextBase", options.altTextBase || options.file.name.replace(/\.[^.]+$/, ""));
 	if (options.subjectKind) form.set("subjectKind", options.subjectKind);
 	if (options.subjectId) form.set("subjectId", options.subjectId);
 	return (await postUpload(form)) as StoredImage;

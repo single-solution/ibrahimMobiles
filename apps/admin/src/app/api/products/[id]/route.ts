@@ -8,6 +8,8 @@ import { toProductResponse, type ProductLean } from "@/lib/serializers/product";
 import { recordActivity } from "@/lib/services/activityLog";
 import { PRODUCT_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import { parseSeoPayload } from "@/lib/api/seoPayload";
+import { regenerateProductSeo } from "@/lib/seo/regenerateProductSeo";
+import { syncIntentSurfacesForProduct } from "@/lib/seo/syncIntentSurfacesForProduct";
 import { validateProductAttributeConfig } from "@/lib/api/productAttributeConfigValidation";
 
 interface RouteContext {
@@ -181,6 +183,19 @@ export async function PUT(request: Request, { params }: RouteContext) {
 			resourceLabel: doc.name,
 		});
 		bustAdminCaches();
+		const isSeoOnlyUpdate = Object.keys(update).length === 1 && "seo" in update;
+		if (!isSeoOnlyUpdate) {
+			await regenerateProductSeo(id);
+			await syncIntentSurfacesForProduct(id);
+			const refreshed = await Product.findById(id).lean<ProductLean>();
+			if (refreshed) {
+				const brandAfter = await Brand.findOne({
+					slug: refreshed.brandSlug,
+					categorySlugs: refreshed.categorySlug,
+				}).lean<BrandLean>();
+				return ok(toProductResponse(refreshed, brandAfter ?? undefined));
+			}
+		}
 		return ok(toProductResponse(doc, brand ?? undefined));
 	} catch (error) {
 		return handleMongoError(error);

@@ -1,10 +1,12 @@
 import { requireSession } from "@/lib/api/requireSession";
-import { badRequest, conflict, isValidationError, isValidId, noContent, normalizeStructuredContent, notFound, ok, parseBody, slugify, validateString } from "@store/shared";
+import { badRequest, conflict, isValidationError, isValidId, logger, noContent, normalizeStructuredContent, notFound, ok, parseBody, slugify, validateString } from "@store/shared";
 
 import { connectDB, Grade, handleMongoError } from "@store/db";
 
 import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
+import { regenerateGradeSeo } from "@/lib/seo/regenerateGlossarySeo";
+import { syncCatalogSeoAfterGradeChange } from "@/lib/seo/syncCatalogSeoAfterGradeChange";
 
 import { GRADE_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 
@@ -138,6 +140,10 @@ export async function PUT(request: Request, { params }: RouteContext) {
 			resourceLabel: doc.label,
 		});
 		bustAdminCaches();
+		await regenerateGradeSeo(id);
+		void syncCatalogSeoAfterGradeChange(id).catch((error) => {
+			logger.warn({ error, gradeId: id }, "grade-seo-cascade: background sync failed");
+		});
 		return ok(toGradeResponse(doc));
 	} catch (error) {
 		return handleMongoError(error);

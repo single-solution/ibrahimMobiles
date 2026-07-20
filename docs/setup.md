@@ -16,7 +16,7 @@ Zero-to-running guide for the Ibrahim Mobiles monorepo.
 Optional for production parity:
 
 - PayFast or Rapid Gateway (pay online)
-- Vercel Blob or S3 token (images and uploads)
+- Cloudflare R2 (or any S3-compatible) credentials (images and uploads)
 - Meta WhatsApp Cloud API (customer OTP + order/chat notifications)
 - Resend (admin password reset + staff email alerts)
 - OpenAI or Google AI key (chat assistant)
@@ -64,7 +64,7 @@ Production (configure in **Admin → Settings → Integrations**):
 | **PayFast / Rapid Gateway** | Pay online — pick one provider; webhooks `/api/webhooks/payfast` or `/api/webhooks/rapid-gateway` |
 | **Meta WhatsApp** | Customer OTP sign-in |
 | **Resend** | Admin password reset + staff email alerts |
-| **Storage** | Vercel Blob or S3 uploads |
+| **Storage** | Cloudflare R2 (S3-compatible) uploads |
 
 Env vars in `.env.example` are bootstrap fallbacks only. `AUTH_*` and `MONGODB_URI` must stay on the host.
 
@@ -76,8 +76,10 @@ Minimum to boot locally:
 | `AUTH_URL` | **Yes** | App origin — `http://localhost:3000` (storefront) or `http://localhost:3001` (admin-only dev) |
 | `AUTH_TRUST_HOST` | **Yes** | `true` |
 | `MONGODB_URI` | **Yes** | Connection string **with database name** in path |
-| `STORAGE_PROVIDER` | **Yes** | `vercel-blob` (default) or `s3` |
-| `BLOB_READ_WRITE_TOKEN` | **Yes** for uploads | Vercel Dashboard → Storage (skip only if not testing uploads) |
+| `AWS_S3_BUCKET` / `AWS_S3_REGION` | **Yes** for uploads | S3-compatible bucket (Cloudflare R2: region `auto`) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | **Yes** for uploads | R2/S3 API token credentials |
+| `AWS_S3_ENDPOINT` | **Yes** for R2 | `https://<account-id>.r2.cloudflarestorage.com` (blank = native AWS S3) |
+| `AWS_S3_PUBLIC_URL_BASE` | Optional | Public/CDN base URL for stored objects |
 
 Production (storefront `@store/web`):
 
@@ -110,7 +112,9 @@ Common optional:
 | `STAFF_NOTIFY_WHATSAPP` + `WHATSAPP_STAFF_NOTIFY_TEMPLATE` | Staff WhatsApp on orders + chat |
 | `WHATSAPP_CUSTOMER_ORDER_TEMPLATE` | Customer WhatsApp on orders + agent replies |
 | `OPENAI_API_KEY` / `GOOGLE_AI_API_KEY` / `ANTHROPIC_API_KEY` | Chat assistant |
-| `AWS_S3_*` | S3 storage when `STORAGE_PROVIDER=s3` |
+| `MERCHANT_FEED_TOKEN` | Optional bearer for `GET /api/feeds/merchant` |
+| `CRON_SECRET` | Bearer token for `GET /api/cron/seo-reconcile` (nightly SEO stats) |
+| `AWS_S3_*` / `AWS_S3_ENDPOINT` | S3-compatible media storage (Cloudflare R2) |
 | `DEV_SKIP_PUBLIC_DNS` | `true` if local DNS blocks public resolvers |
 
 Full list: [.env.example](../.env.example).
@@ -156,7 +160,7 @@ npm run dev:admin    # admin      → http://localhost:3001
 | 2 | **Settings → Site URLs** — public storefront URL |
 | 3 | **Store / Contact / Payments / Delivery / Policies** — card+COD, COD %, policy HTML |
 | 4 | **Catalog** — categories → grades → attributes → brands → products ([catalog.md](catalog.md)) |
-| 5 | Upload test product image — confirms Blob token |
+| 5 | Upload test product image — confirms R2/S3 credentials |
 | 6 | Storefront OTP sign-in — code in `@store/web` terminal when Meta WhatsApp env unset |
 
 ---
@@ -224,7 +228,7 @@ ibrahimMobiles/
 | Auth redirect loop | Missing `AUTH_SECRET` or wrong `AUTH_URL` | Match port 3000 |
 | DB connection fail | IP block or missing DB name in URI | Atlas Network Access |
 | SRV DNS `EREFUSED` | Local DNS cannot resolve Atlas SRV | Standard connection string or `DEV_SKIP_PUBLIC_DNS=true` |
-| Image 500 on Blob host (`ENOTFOUND` in terminal) | Browser resolves Blob CDN but Node `/_next/image` could not — local DNS/router issue | Dev loads product images directly (pre-optimized WebP). Production uses the optimizer. Fix DNS or set `DEV_SKIP_PUBLIC_DNS=false` (default). Restart `npm run dev` after `.env` changes. |
+| Image 500 on R2 host (`ENOTFOUND` in terminal) | Browser resolves the R2 public host but Node could not — local DNS/router issue | Dev loads product images directly (pre-sized WebP). Fix DNS or set `DEV_SKIP_PUBLIC_DNS=false` (default). Restart `npm run dev` after `.env` changes. |
 | No OTP in dev | Meta WhatsApp unset | Read `@store/web` terminal log |
 | Chat assistant silent | No AI API key | Add key or use human-only (Admin → Inquiries) |
 | Product missing on shop | Failed visibility cascade | [README § visibility](../README.md#1-catalog--domain-rules) |

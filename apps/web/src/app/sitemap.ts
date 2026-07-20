@@ -4,7 +4,7 @@
  * We list:
  *   - Static marketing routes (home, deals, account sign-in, etc.).
  *   - Each active category landing page.
- *   - Each active brand landing page (per category, as a query param).
+ *   - Quality-gated category x brand x grade intent surfaces.
  *   - Each visible product page (capped to MAX_PRODUCT_URLS so a runaway DB
  *     doesn't blow the 50 k entry sitemap limit). When we eventually need
  *     more, split into per-category sitemaps via `generateSitemaps`.
@@ -22,8 +22,17 @@ import type { MetadataRoute } from "next";
 
 import { logger } from "@store/shared";
 
+import { buildIntentSurfaceCanonicalQuery } from "@store/shared";
+
 import { getStorefrontBaseUrl } from "@/lib/core/baseUrl";
-import { getCategoriesCached, getSitemapBrandsCached, getSitemapProductsCached } from "@/lib/core/cached";
+import {
+	getCategoriesCached,
+	getSitemapAttributesCached,
+	getSitemapGradesCached,
+	getSitemapIntentSurfacesCached,
+	getSitemapProductsCached,
+} from "@/lib/core/cached";
+import { attributeGlossaryHref, gradeGlossaryHref } from "@/lib/catalog/glossaryPaths";
 
 export const revalidate = 3600;
 
@@ -39,14 +48,22 @@ const STATIC_PATHS: ReadonlyArray<{
 
 interface DynamicSitemapData {
 	categories: Awaited<ReturnType<typeof getCategoriesCached>>;
-	brands: Array<{ slug: string }>;
 	products: Array<{ slug: string; categorySlug: string; updatedAt?: Date }>;
+	grades: Array<{ categorySlug: string; slug: string; updatedAt?: Date }>;
+	attributes: Array<{ categorySlug: string; slug: string; updatedAt?: Date }>;
+	intentSurfaces: Awaited<ReturnType<typeof getSitemapIntentSurfacesCached>>;
 }
 
 async function loadDynamicData(): Promise<DynamicSitemapData | null> {
 	try {
-		const [categories, brands, products] = await Promise.all([getCategoriesCached(), getSitemapBrandsCached(), getSitemapProductsCached()]);
-		return { categories, brands, products };
+		const [categories, products, grades, attributes, intentSurfaces] = await Promise.all([
+			getCategoriesCached(),
+			getSitemapProductsCached(),
+			getSitemapGradesCached(),
+			getSitemapAttributesCached(),
+			getSitemapIntentSurfacesCached(),
+		]);
+		return { categories, products, grades, attributes, intentSurfaces };
 	} catch (error) {
 		logger.error({ error }, "sitemap: dynamic load failed, emitting static-only sitemap this generation");
 		return null;
@@ -69,7 +86,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		return entries;
 	}
 
-	const { categories, brands, products } = data;
+	const { categories, products, grades, attributes, intentSurfaces } = data;
 	const activeCategorySlugs = new Set(categories.filter((c) => c.isActive).map((c) => c.slug));
 
 	for (const category of categories) {
@@ -84,18 +101,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		});
 	}
 
-	for (const brand of brands) {
-		for (const category of categories) {
-			if (!category.isActive) {
-				continue;
-			}
-			entries.push({
-				url: `${base}/${category.slug}?brand=${encodeURIComponent(brand.slug)}`,
-				lastModified: now,
-				changeFrequency: "weekly",
-				priority: 0.6,
-			});
+	for (const combo of intentSurfaces) {
+		if (!activeCategorySlugs.has(combo.categorySlug)) {
+			continue;
 		}
+		const query = buildIntentSurfaceCanonicalQuery(combo.brandSlug, combo.gradeSlug);
+		entries.push({
+			url: `${base}/${combo.categorySlug}${query}`,
+			lastModified: now,
+			changeFrequency: "weekly",
+			priority: 0.65,
+		});
 	}
 
 	for (const product of products) {
@@ -107,6 +123,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			lastModified: product.updatedAt ?? now,
 			changeFrequency: "weekly",
 			priority: 0.7,
+		});
+	}
+
+	for (const grade of grades) {
+		if (!activeCategorySlugs.has(grade.categorySlug)) {
+			continue;
+		}
+		entries.push({
+			url: `${base}${gradeGlossaryHref(grade.categorySlug, grade.slug)}`,
+			lastModified: grade.updatedAt ?? now,
+			changeFrequency: "monthly",
+			priority: 0.5,
+		});
+	}
+
+	for (const attribute of attributes) {
+		if (!activeCategorySlugs.has(attribute.categorySlug)) {
+			continue;
+		}
+		entries.push({
+			url: `${base}${attributeGlossaryHref(attribute.categorySlug, attribute.slug)}`,
+			lastModified: attribute.updatedAt ?? now,
+			changeFrequency: "monthly",
+			priority: 0.5,
 		});
 	}
 

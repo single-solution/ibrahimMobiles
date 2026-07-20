@@ -1,10 +1,9 @@
-import bcrypt from "bcryptjs";
 import {
 	badRequest,
-	BCRYPT_ROUNDS,
 	conflict,
 	FIELD_LIMITS,
 	forbidden,
+	hashPassword,
 	isValidationError,
 	isValidId,
 	noContent,
@@ -137,7 +136,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
 		if (isValidationError(result)) {
 			return badRequest(result.error);
 		}
-		update.passwordHash = await bcrypt.hash(result, BCRYPT_ROUNDS);
+		update.passwordHash = await hashPassword(result);
 		update.passwordChangedAt = new Date();
 	}
 

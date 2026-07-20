@@ -268,56 +268,47 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 				</FormGrid>
 			</FormSection>
 
-			<FormSection title="Media storage" description={status?.storage.summary ?? "Product images and uploads."}>
+			<FormSection title="Media storage (Cloudflare R2 / S3)" description={status?.storage.summary ?? "Product images and uploads stream to your S3-compatible bucket."}>
 				<FormGrid cols={3}>
-					<SelectField
-						label="Storage provider"
-						value={draft.storageProvider}
-						onChange={(event) => setField("storageProvider", event.target.value as IntegrationSettingsValues["storageProvider"])}
-						options={[
-							{ value: "vercel-blob", label: "Vercel Blob" },
-							{ value: "s3", label: "Amazon S3" },
-						]}
+					<TextField
+						label="Bucket"
+						value={draft.awsS3Bucket}
+						onChange={(event) => setField("awsS3Bucket", event.target.value)}
 						disabled={!canUpdate}
 					/>
 					<TextField
-						label="Blob read/write token"
-						type="password"
-						value={draft.blobReadWriteToken}
-						onChange={(event) => setField("blobReadWriteToken", event.target.value)}
-						disabled={!canUpdate || draft.storageProvider !== "vercel-blob"}
-					/>
-					<TextField
-						label="S3 bucket"
-						value={draft.awsS3Bucket}
-						onChange={(event) => setField("awsS3Bucket", event.target.value)}
-						disabled={!canUpdate || draft.storageProvider !== "s3"}
-					/>
-					<TextField
-						label="S3 region"
+						label="Region"
 						value={draft.awsS3Region}
 						onChange={(event) => setField("awsS3Region", event.target.value)}
-						disabled={!canUpdate || draft.storageProvider !== "s3"}
+						placeholder="auto (Cloudflare R2)"
+						disabled={!canUpdate}
 					/>
 					<TextField
-						label="AWS access key ID"
+						label="Access key ID"
 						value={draft.awsAccessKeyId}
 						onChange={(event) => setField("awsAccessKeyId", event.target.value)}
-						disabled={!canUpdate || draft.storageProvider !== "s3"}
+						disabled={!canUpdate}
 					/>
 					<TextField
-						label="AWS secret access key"
+						label="Secret access key"
 						type="password"
 						value={draft.awsSecretAccessKey}
 						onChange={(event) => setField("awsSecretAccessKey", event.target.value)}
-						disabled={!canUpdate || draft.storageProvider !== "s3"}
+						disabled={!canUpdate}
 					/>
 					<TextField
-						label="S3 public URL base (optional)"
+						label="Public URL base (optional)"
 						value={draft.awsS3PublicUrlBase}
 						onChange={(event) => setField("awsS3PublicUrlBase", event.target.value)}
 						placeholder="https://cdn.yourdomain.com"
-						disabled={!canUpdate || draft.storageProvider !== "s3"}
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="S3 endpoint (set for Cloudflare R2)"
+						value={draft.awsS3Endpoint}
+						onChange={(event) => setField("awsS3Endpoint", event.target.value)}
+						placeholder="https://<account-id>.r2.cloudflarestorage.com"
+						disabled={!canUpdate}
 					/>
 				</FormGrid>
 			</FormSection>

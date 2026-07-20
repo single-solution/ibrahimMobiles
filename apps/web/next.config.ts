@@ -61,7 +61,7 @@ function buildContentSecurityPolicy(): string {
 		"object-src 'none'",
 		`script-src ${scriptSrc.join(" ")}`,
 		"style-src 'self' 'unsafe-inline'",
-		`img-src 'self' blob: data: https://images.unsplash.com https://cdn.simpleicons.org https://*.public.blob.vercel-storage.com https://www.facebook.com ${S3_IMAGE_HOSTS.join(" ")}`,
+		`img-src 'self' blob: data: https://images.unsplash.com https://cdn.simpleicons.org https://www.facebook.com ${S3_IMAGE_HOSTS.join(" ")}`,
 		"font-src 'self' data:",
 		`connect-src 'self' ${MARKETING_CONNECT_HOSTS.join(" ")}`,
 		"media-src 'self'",
@@ -119,17 +119,17 @@ const nextConfig: NextConfig = {
 	// via `worker_threads` and breaks when Webpack re-paths it into a vendor
 	// chunk (the symptom: `Cannot find module '.next/server/vendor-chunks/lib/
 	// worker.js'` followed by "the worker thread exited" in dev).
-	serverExternalPackages: ["pino", "pino-pretty", "thread-stream", "pino-abstract-transport", "sonic-boom", "mongoose", "bcryptjs"],
+	serverExternalPackages: ["pino", "pino-pretty", "thread-stream", "pino-abstract-transport", "sonic-boom", "mongoose"],
 	images: {
-		// Dev: load Blob URLs in the browser — skips `/_next/image` server fetch,
-		// which fails when local DNS cannot resolve `*.public.blob.vercel-storage.com`.
-		unoptimized: !isProduction,
+		// Variants are pre-sized WebP served straight from R2, so the runtime
+		// optimizer is unnecessary — disabling it avoids Vercel image-optimization
+		// usage and keeps CDN cache-hit ratio near 100%.
+		unoptimized: true,
 		formats: ["image/avif", "image/webp"],
 		qualities: [65, 70, 75, 80, 85],
 		remotePatterns: [
 			{ protocol: "https", hostname: "images.unsplash.com" },
 			{ protocol: "https", hostname: "cdn.simpleicons.org" },
-			{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
 			{ protocol: "https", hostname: "*.amazonaws.com" },
 			...(process.env.AWS_S3_PUBLIC_URL_BASE?.trim()
 				? (() => {

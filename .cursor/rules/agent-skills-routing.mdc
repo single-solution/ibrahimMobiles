@@ -1,0 +1,87 @@
+---
+description: Priority routing for global agent skills and MCP tools. Apply every session when UI, animation, 3D, shadcn, GSAP, Vercel, or document skills may apply.
+alwaysApply: true
+---
+
+# Agent Skills Routing
+
+How global agent skills and MCP tools are prioritized. Skills install machine-local; this rule syncs per project so every agent session follows the same routing.
+
+---
+
+## The Rule
+
+**Global skills (`-g`) are already available in every workspace** — new and existing — without per-project install. Cursor exposes skill *descriptions* automatically; the agent reads full `SKILL.md` only when a task matches.
+
+**Do not try to pre-load all skills.** ~70 skill descriptions compete for context. Load one primary skill per domain; use MCP tools when the task needs live catalog data.
+
+**MCP servers** in `~/.cursor/mcp.json` are machine-global. Restart Cursor after changes. Auth via `~/.zshrc` env vars (see `cursor-sync.md`).
+
+---
+
+## Layer Model
+
+| Layer | Location | Every project? | Pre-loaded? |
+|-------|----------|----------------|-------------|
+| vibeCodingRules | `<project>/.cursor/rules/*.mdc` | After copy/sync | `alwaysApply: true` rules only |
+| Global skills | `~/.agents/skills/` + `~/.cursor/skills/` | Yes (same machine) | Descriptions yes; full skill on trigger |
+| Global MCP | `~/.cursor/mcp.json` | Yes (same machine) | Tool defs when MCP connected |
+
+**New machine:** run skill installs + MCP setup from `cursor-sync.md` once, then copy rules (including this file) into each project.
+
+---
+
+## Priority Matrix (when multiple skills match)
+
+Use **one primary** per row. Read secondary only if primary is insufficient or user names it.
+
+| Domain | Primary | Secondary | Deprioritize / skip |
+|--------|---------|-----------|---------------------|
+| **Coding standards** | vibeCodingRules (`AGENTS.md` routing) | — | Never override with skills |
+| **UI layout + design system** | `ui-ux-pro-max` | `design-taste-frontend` | `minimalist-ui`, `industrial-brutalist-ui`, `high-end-visual-design` unless user picks antique/bold style |
+| **UI audit / a11y** | `web-design-guidelines` | `frontend-design` | — |
+| **UI redesign (existing app)** | `redesign-existing-projects` | `design-taste-frontend` | — |
+| **shadcn components** | 21st MCP + `21st-registry` | `shadcn-ui` MCP | `animated-component-libraries` unless Magic UI / React Bits named |
+| **GSAP API** | `gsap-core` → `gsap-timeline` → `gsap-scrolltrigger` | `gsap-react` (React) | — |
+| **Scroll (non-GSAP)** | `scroll-reveal-libraries` (simple) | `locomotive-scroll`, `barba-js` | — |
+| **Framer Motion** | `motion-framer` | `vercel-react-view-transitions` | — |
+| **Three.js (vanilla)** | `threejs-webgl` | — | `babylonjs-engine`, `playcanvas-engine` unless named |
+| **Three.js (React)** | `react-three-fiber` | `web3d-integration-patterns` | — |
+| **3D authoring export** | `blender-web-pipeline` | `spline-interactive`, `rive-interactive` | — |
+| **React / Next perf** | `vercel-react-best-practices` | `vercel-composition-patterns` | — |
+| **Vercel deploy / cost** | `deploy-to-vercel`, `vercel-optimize` | `vercel-cli-with-tokens` | — |
+| **Documents** | `docx`, `pdf`, `pptx`, `xlsx` | — | — |
+| **Create skills** | Anthropic `skill-creator` | — | — |
+| **MCP authoring** | `mcp-builder` | — | — |
+| **E2E / UI test** | `webapp-testing` | — | — |
+| **Docs prose review** | `writing-guidelines` | vibeCodingRules `writing-style.mdc` | — |
+
+---
+
+## MCP vs Skill
+
+| Need | Use |
+|------|-----|
+| Search/install 21st components | 21st MCP (`21st` in MCP panel) |
+| Browse shadcn source/demos | `shadcn-ui` MCP |
+| Install shadcn into repo | `npx shadcn@latest mcp init` in that project + CLI |
+| Design tokens / palettes / UX rules | `ui-ux-pro-max` skill (Python search script) |
+| Animation API correctness | Official GSAP skills |
+
+---
+
+## Noise Reduction
+
+Removed globally (duplicates / non-production): `template-skill`, `design-taste-frontend-v1`, `gpt-taste`, claudedesign `skill-creator`, claudedesign `gsap-scrolltrigger`, `web-artifacts-builder`, `internal-comms`, `slack-gif-creator`. Official GSAP `gsap-scrolltrigger` reinstalled from greensock/gsap-skills.
+
+Keep advanced packs (3D, motion, Taste style variants, imagegen) for daily unique site work.
+
+---
+
+## Agent Behavior
+
+1. Match task to **one primary** row in the matrix.
+2. **Read** that skill's `SKILL.md` before implementing (do not answer from memory for GSAP, shadcn, or design-system generation).
+3. **New / unique / out-of-the-box UI** (user did not name a library): read `ui-ux-pro-max` first; if output still feels generic, also read `design-taste-frontend`. Style hints: antique/vintage → `minimalist-ui` or `high-end-visual-design`; bold/raw → `industrial-brutalist-ui`.
+4. **Name conflicts:** if user says "use Taste" → `design-taste-frontend`; "use UI UX Pro Max" → `ui-ux-pro-max`; "official GSAP" → greensock pack.
+5. **Stack detection:** React + 3D → `react-three-fiber`; vanilla 3D → `threejs-webgl`; Next.js perf → Vercel skills first.

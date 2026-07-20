@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { after } from "next/server";
 
 import { getStoreSettings, Inquiry as InquiryModel, connectDB, getIntegrationSettings, resolveInquiryStaffNotifyTargets } from "@store/db";
 import {
@@ -306,7 +307,7 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { 
 		const { notifyEmails, notifyWhatsAppPhones } = await resolveInquiryStaffNotifyTargets(inquiry, integration, store);
 		if (notifyEmails.length || notifyWhatsAppPhones.length) {
 			const preview = bubbles[0] ?? "Customer requested a human agent.";
-			void notifyStaffOnInquiryEscalation({
+			after(() => notifyStaffOnInquiryEscalation({
 				inquiryId: inquiry._id.toString(),
 				customerName: inquiry.customerName ?? "Guest",
 				phoneNumber: inquiry.phoneNumber,
@@ -316,7 +317,7 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { 
 				whatsappStaffNotifyTemplate: integration.whatsappStaffNotifyTemplate.trim() || undefined,
 				siteName: store.siteName,
 				adminSiteUrl: integration.adminSiteUrl.trim() || undefined,
-			});
+			}));
 		}
 	}
 

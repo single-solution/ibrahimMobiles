@@ -1,5 +1,5 @@
 import { requireSession } from "@/lib/api/requireSession";
-import { badRequest, conflict, isValidationError, isValidId, noContent, notFound, ok, parseBody, validateString } from "@store/shared";
+import { badRequest, conflict, isValidationError, isValidId, logger, noContent, notFound, ok, parseBody, validateString } from "@store/shared";
 
 import { Attribute, connectDB, handleMongoError } from "@store/db";
 import { ATTRIBUTE_CARD_POSITIONS } from "@store/db";
@@ -7,6 +7,8 @@ import { ATTRIBUTE_CARD_POSITIONS } from "@store/db";
 import { ATTRIBUTE_FIELD_LIMITS } from "@/lib/api/fieldLimits";
 import { bustAdminCaches } from "@/lib/cached";
 import { recordActivity } from "@/lib/services/activityLog";
+import { regenerateAttributeSeo } from "@/lib/seo/regenerateGlossarySeo";
+import { syncCatalogSeoAfterAttributeChange } from "@/lib/seo/syncCatalogSeoAfterAttributeChange";
 import { toAttributeResponse, type AttributeLean } from "@/lib/serializers/attribute";
 import { parseAttributeOptions, parseAttributeUnit, parseAttributeVisibilityInput } from "@/lib/api/attributesPayload";
 import { cascadeAttributeSlugChange, slugFromCatalogLabel } from "@/lib/services/catalogSlugSync";
@@ -147,6 +149,10 @@ export async function PUT(request: Request, { params }: RouteContext) {
 			resourceLabel: doc.label,
 		});
 		bustAdminCaches();
+		await regenerateAttributeSeo(id);
+		void syncCatalogSeoAfterAttributeChange(id).catch((error) => {
+			logger.warn({ error, attributeId: id }, "attribute-seo-cascade: background sync failed");
+		});
 		return ok(toAttributeResponse(doc));
 	} catch (error) {
 		return handleMongoError(error);

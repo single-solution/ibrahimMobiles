@@ -12,7 +12,7 @@ import { DECIMAL_RADIX } from "@store/shared";
 
 const SEARCH_QUERY_MAX_CHARS = 100;
 /** Prefix on URL keys that carry an admin-defined attribute filter. */
-const ATTRIBUTE_PARAM_PREFIX = "attr.";
+export const ATTRIBUTE_PARAM_PREFIX = "attr.";
 
 /** Public URL keys. Keep these short and stable — they're shareable links. */
 export const FILTER_PARAM_KEYS = {

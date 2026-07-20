@@ -15,6 +15,8 @@
  *     sees it back in the active queue.
  */
 
+import { after } from "next/server";
+
 import { Inquiry as InquiryModel, connectDB, getStoreSettings, getIntegrationSettings, resolveInquiryStaffNotifyTargets } from "@store/db";
 import {
 	badRequest,
@@ -160,7 +162,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 		const [settings, integration] = await Promise.all([getStoreSettings(), getIntegrationSettings()]);
 		const { notifyEmails, notifyWhatsAppPhones } = await resolveInquiryStaffNotifyTargets(refreshed, integration, settings);
 		if (notifyEmails.length || notifyWhatsAppPhones.length) {
-			void notifyStaffOnCustomerMessage({
+			after(() => notifyStaffOnCustomerMessage({
 				inquiryId: inquiryId.toString(),
 				customerName: refreshed.customerName ?? "Guest",
 				phoneNumber: refreshed.phoneNumber,
@@ -170,7 +172,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 				whatsappStaffNotifyTemplate: integration.whatsappStaffNotifyTemplate.trim() || undefined,
 				siteName: settings.siteName,
 				adminSiteUrl: integration.adminSiteUrl.trim() || undefined,
-			});
+			}));
 		}
 
 		const verifiedCustomerId =

@@ -93,6 +93,14 @@ export function ProductEditDrawer({ productId, step, catalog, isOpen, onClose, o
 
 	const category = useMemo(() => (categorySlug ? (catalog.categories.find((row) => row.slug === categorySlug) ?? null) : null), [catalog.categories, categorySlug]);
 
+	const seoGradeLabels = useMemo(() => {
+		if (!product?.categorySlug) {
+			return {};
+		}
+		const grades = catalog.gradesByCategory[product.categorySlug] ?? [];
+		return Object.fromEntries(grades.map((grade) => [grade.slug, grade.label]));
+	}, [catalog.gradesByCategory, product?.categorySlug]);
+
 	const brands = categorySlug ? (catalog.brandsByCategory[categorySlug] ?? []) : [];
 
 	useEffect(() => {
@@ -311,6 +319,8 @@ export function ProductEditDrawer({ productId, step, catalog, isOpen, onClose, o
 									<CatalogSeoPanel
 										value={seo}
 										onChange={setSeo}
+										productId={product.id}
+										onSeoRegenerated={setSeo}
 										contextLabel={`Product · ${product.brand.name} ${name}`}
 										entity={{
 											type: "product",
@@ -328,9 +338,23 @@ export function ProductEditDrawer({ productId, step, catalog, isOpen, onClose, o
 														}
 													: undefined,
 												images: product.images,
+												attributeSlugs: attributeConfig.attributeSlugs,
+												gradeLabels: seoGradeLabels,
+												attributes: categoryAttributes.map((attribute) => ({
+													categorySlug: attribute.categorySlug,
+													slug: attribute.slug,
+													label: attribute.label,
+													unit: attribute.unit,
+													options: attribute.options,
+													cardPosition: attribute.cardPosition,
+												})),
 												variants: product.variants.map((variantItem) => ({
 													id: variantItem.id,
 													gradeSlug: variantItem.gradeSlug,
+													priceRupees: variantItem.priceRupees,
+													quantity: variantItem.quantity,
+													forceOutOfStock: variantItem.forceOutOfStock,
+													attributes: variantItem.attributes,
 												})),
 											},
 										}}

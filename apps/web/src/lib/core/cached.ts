@@ -19,7 +19,14 @@
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 
-import { Brand as BrandModel, connectDB, getIntegrationSettings as getIntegrationSettingsRaw, getStoreSettings as getStoreSettingsRaw, Product as ProductModel } from "@store/db";
+import {
+	Brand as BrandModel,
+	Product as ProductModel,
+	connectDB,
+	getIntegrationSettings as getIntegrationSettingsRaw,
+	getStoreSettings as getStoreSettingsRaw,
+	listIndexableIntentSurfacesForSitemap,
+} from "@store/db";
 import type { Product } from "@store/shared";
 
 import {
@@ -30,8 +37,10 @@ import {
 	getBrands as getBrandsRaw,
 	getGradeCounts as getGradeCountsRaw,
 	getAttributes as getAttributesRaw,
+	getAttributeGlossaryEntry as getAttributeGlossaryEntryRaw,
 	getCategories as getCategoriesRaw,
 	getCategoryMetaBySlug as getCategoryMetaBySlugRaw,
+	getGradeGlossaryEntry as getGradeGlossaryEntryRaw,
 	getGrades as getGradesRaw,
 	getOffers as getOffersRaw,
 	getActiveOffers as getActiveOffersRaw,
@@ -40,6 +49,9 @@ import {
 	getProductBySlug as getProductBySlugRaw,
 	getProducts as getProductsRaw,
 	getProductsPage as getProductsPageRaw,
+	getSeoSurface as getSeoSurfaceRaw,
+	getSitemapAttributes as getSitemapAttributesRaw,
+	getSitemapGrades as getSitemapGradesRaw,
 	hasAnyProducts as hasAnyProductsRaw,
 	searchCatalog as searchCatalogRaw,
 	type ProductFilters,
@@ -122,6 +134,24 @@ export const getCategoriesCached = unstable_cache(() => getCategoriesRaw(), ["st
 export const getGradesCached = unstable_cache(() => getGradesRaw(), ["storefront-grades"], { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] });
 
 export const getAttributesCached = unstable_cache(() => getAttributesRaw(), ["storefront-attributes"], { revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] });
+
+export const getGradeGlossaryEntryCached = unstable_cache(
+	(categorySlug: string, gradeSlug: string) => getGradeGlossaryEntryRaw(categorySlug, gradeSlug),
+	["storefront-grade-glossary"],
+	{ revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+export const getAttributeGlossaryEntryCached = unstable_cache(
+	(categorySlug: string, attributeSlug: string) => getAttributeGlossaryEntryRaw(categorySlug, attributeSlug),
+	["storefront-attribute-glossary"],
+	{ revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+export const getSeoSurfaceCached = unstable_cache(
+	(categorySlug: string, brandSlug: string, gradeSlug: string) => getSeoSurfaceRaw({ categorySlug, brandSlug, gradeSlug }),
+	["storefront-seo-surface"],
+	{ revalidate: STOREFRONT_CACHE_TTL_SECONDS, tags: [STOREFRONT_CACHE_TAG] },
+);
 
 export const getBrandsCached = unstable_cache((categorySlug?: string) => getBrandsRaw(categorySlug), ["storefront-brands"], {
 	revalidate: STOREFRONT_CACHE_TTL_SECONDS,
@@ -245,6 +275,36 @@ const loadSitemapBrandsInner = unstable_cache(
 
 export function getSitemapBrandsCached() {
 	return loadSitemapBrandsInner();
+}
+
+const loadSitemapGradesInner = unstable_cache(
+	async () => getSitemapGradesRaw(),
+	["storefront-sitemap-grades"],
+	{ revalidate: 3600, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+export function getSitemapGradesCached() {
+	return loadSitemapGradesInner();
+}
+
+const loadSitemapAttributesInner = unstable_cache(
+	async () => getSitemapAttributesRaw(),
+	["storefront-sitemap-attributes"],
+	{ revalidate: 3600, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+export function getSitemapAttributesCached() {
+	return loadSitemapAttributesInner();
+}
+
+const loadSitemapIntentSurfacesInner = unstable_cache(
+	async () => listIndexableIntentSurfacesForSitemap(),
+	["storefront-sitemap-intent-surfaces"],
+	{ revalidate: 3600, tags: [STOREFRONT_CACHE_TAG] },
+);
+
+export function getSitemapIntentSurfacesCached() {
+	return loadSitemapIntentSurfacesInner();
 }
 
 export function getProductsPageCached(filters: ProductFilters): Promise<ProductPage> {

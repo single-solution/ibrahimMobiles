@@ -16,5 +16,6 @@ export * from "./Offer";
 export * from "./Order";
 export * from "./OtpCode";
 export * from "./Product";
+export * from "./SeoSurface";
 export * from "./Setting";
 export * from "./User";

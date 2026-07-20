@@ -14,6 +14,8 @@
 		"dev": "turbo run dev --parallel",
 		"dev:web": "turbo run dev --filter=@store/web",
 		"dev:admin": "turbo run dev --filter=@store/admin",
+		"clean:next": "rm -rf apps/web/.next apps/admin/.next .turbo",
+		"dev:fresh": "npm run clean:next && npm run dev",
 		"build": "turbo run build",
 		"build:web": "turbo run build --filter=@store/web",
 		"build:admin": "turbo run build --filter=@store/admin",

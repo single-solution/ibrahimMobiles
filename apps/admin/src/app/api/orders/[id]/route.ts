@@ -1,3 +1,5 @@
+import { after } from "next/server";
+
 import { requireSession } from "@/lib/api/requireSession";
 import { hasPermission } from "@/lib/permissions";
 import { badRequest, conflict, FIELD_LIMITS, forbidden, isValidId, noContent, notFound, ok, parseBody } from "@store/shared";
@@ -306,12 +308,12 @@ export async function PUT(request: Request, { params }: RouteContext) {
 				actor,
 			});
 			const notifyEvent = nextStatus === "cancelled" ? "cancelled" : "status_changed";
-			void fireOrderEventNotifications({
+			after(() => fireOrderEventNotifications({
 				event: notifyEvent,
 				order,
 				previousStatus,
 				nextStatus,
-			}).catch(() => undefined);
+			}).catch(() => undefined));
 		}
 
 		await recordActivity({

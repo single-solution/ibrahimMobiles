@@ -7,27 +7,15 @@
  * in this bundle.
  */
 
-import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
 import { User, connectDB } from "@store/db";
-import { BCRYPT_ROUNDS, LOGIN_RATE_LIMIT_ATTEMPTS, LOGIN_RATE_LIMIT_WINDOW_MS, checkRateLimit, clearRateLimit, getClientIp, logger } from "@store/shared";
+import { LOGIN_RATE_LIMIT_ATTEMPTS, LOGIN_RATE_LIMIT_WINDOW_MS, checkRateLimit, clearRateLimit, decoyPasswordHash, getClientIp, logger, verifyPassword } from "@store/shared";
 
 import { authConfig } from "@/lib/authConfig";
 
 const LOGIN_RATE_LIMIT_SCOPE = "admin:login";
-
-/**
- * Pre-computed bcrypt hash used as a constant-time decoy when the supplied
- * email doesn't match any user. Comparing against this hash makes the
- * "user not found" path take the same wall-clock time as the "bad password"
- * path so an attacker can't enumerate accounts by login latency alone.
- *
- * The plaintext is never used — `bcrypt.compare` always returns `false`
- * here because the candidate password will never match this random hash.
- */
-const TIMING_DECOY_HASH = bcrypt.hashSync("admin-login:enum-defense:v1", BCRYPT_ROUNDS);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
 	...authConfig,
@@ -45,7 +33,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 				const email = String(credentials.email).toLowerCase().trim();
 				const password = String(credentials.password);
 
-				// Rate-limit BEFORE bcrypt so the slow hash compare isn't itself a
+				// Rate-limit BEFORE the hash verify so the slow compare isn't itself a
 				// DoS vector. Key on (ip, email) so an attacker can't rotate emails
 				// and a victim with a known email can't be locked out by a different
 				// attacker IP.
@@ -65,15 +53,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 				await connectDB();
 				const user = await User.findOne({ email, isActive: true }).select("+passwordHash passwordChangedAt");
 				if (!user) {
-					// Run a real bcrypt compare against a decoy hash so this branch
-					// takes the same time as the "bad password" branch below — no
-					// account-enumeration via response timing.
-					await bcrypt.compare(password, TIMING_DECOY_HASH);
+					// Run a real verify against a decoy hash so this branch takes the
+					// same time as the "bad password" branch below — no account
+					// enumeration via response timing.
+					await verifyPassword(password, await decoyPasswordHash());
 					logger.info({ email, ip }, "Admin login: user not found or inactive");
 					return null;
 				}
 
-				const isValid = await bcrypt.compare(password, user.passwordHash);
+				const isValid = await verifyPassword(password, user.passwordHash);
 				if (!isValid) {
 					logger.info({ email, ip }, "Admin login: bad password");
 					return null;

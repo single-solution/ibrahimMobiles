@@ -3,7 +3,7 @@ import type { Product, Variant } from "@store/shared";
 import { GRADE_DIMENSION_KEY, selectionFromVariant } from "@/lib/catalog/pdpSelection";
 
 /** App-router segments that must not be treated as catalog category slugs. */
-export const STOREFRONT_RESERVED_SEGMENTS = new Set(["about", "account", "api", "cart", "checkout", "deals"]);
+export const STOREFRONT_RESERVED_SEGMENTS = new Set(["about", "account", "api", "attributes", "cart", "checkout", "deals", "grades"]);
 
 export function catalogRootHref(): string {
 	return "/";

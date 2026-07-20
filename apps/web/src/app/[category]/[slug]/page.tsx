@@ -5,9 +5,10 @@ import { cache, Suspense } from "react";
 import { ChevronRight } from "lucide-react";
 
 import type { Product } from "@store/shared";
-import { productConfiguratorAttributeSlugs } from "@store/shared";
+import { buildProductSeoFacts, productConfiguratorAttributeSlugs, type GradeDescriptor } from "@store/shared";
 
 import { PdpScrollReset } from "./_components/PdpScrollReset";
+import { ProductAvailabilityFacts } from "./_components/ProductAvailabilityFacts";
 import { ProductChatBeacon } from "./_components/ProductChatBeacon";
 import { GradeShowcase } from "@/components/shared/GradeShowcase";
 import { VariantAwareGallery } from "@/components/shared/PdpGallery";
@@ -17,14 +18,14 @@ import { ProductCardSkeleton } from "@/components/shared/ProductCardSkeleton";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { VariantProvider } from "@/components/shared/VariantContext";
 import { VariantSelector } from "@/components/shared/VariantSelector";
-import { resolveExactVariantFromSearch } from "@/lib/catalog/pdpSelection";
+import { hasPdpConfigurationInSearch, resolveExactVariantFromSearch } from "@/lib/catalog/pdpSelection";
 import { getDefaultVariant } from "@/lib/productSummary";
 import { productAbsoluteUrl, productHref, categoryHref } from "@/lib/catalog/productPaths";
-import { getAttributesCached, getBrandBySlugCached, getCategoryBySlugCached, getProductBySlugCached, getProductsPageCached } from "@/lib/core/cached";
+import { getAttributesCached, getBrandBySlugCached, getCategoryBySlugCached, getGradesCached, getProductBySlugCached, getProductsPageCached } from "@/lib/core/cached";
 import { getProductLiveCommerce, mergeProductWithLiveCommerce } from "@/lib/core/liveCommerce";
-import { composeProductSeo } from "@/lib/seo/composeSeoMeta";
+import { composeProductPageSeo } from "@/lib/seo/composeSeoMeta";
 import { getSeoSettings } from "@/lib/seo/seoSettings";
-import { breadcrumbJsonLd, jsonLdScriptContent, productJsonLd } from "@/lib/seo/jsonLd";
+import { breadcrumbJsonLd, buildProductFaqJsonLd, faqPageJsonLd, jsonLdScriptContent, productJsonLd } from "@/lib/seo/jsonLd";
 import { STOREFRONT_SHELL_CLASS } from "@/lib/layout/storefrontShell";
 
 /**
@@ -60,32 +61,58 @@ function attributeSlugsForProduct(product: Product, allAttributes: Awaited<Retur
 	return productConfiguratorAttributeSlugs(product, categoryAttributes);
 }
 
+function gradeLabelsForCategory(grades: GradeDescriptor[], categorySlug: string): Record<string, string> {
+	const labels: Record<string, string> = {};
+	for (const grade of grades) {
+		if (grade.categorySlug === categorySlug) {
+			labels[grade.slug] = grade.label;
+		}
+	}
+	return labels;
+}
+
+function seoFactsContext(
+	product: Product,
+	allAttributes: Awaited<ReturnType<typeof getAttributesCached>>,
+	gradeLabels: Record<string, string>,
+) {
+	const categoryAttributes = allAttributes.filter((row) => row.categorySlug === product.categorySlug);
+	return {
+		gradeLabels,
+		attributes: categoryAttributes,
+	};
+}
+
 export async function generateMetadata({ params, searchParams }: ProductDetailPageProps): Promise<Metadata> {
 	const [{ category, slug }, search] = await Promise.all([params, searchParams]);
 	const product = await getProductBySlugCached(slug);
 	if (!product) {
 		return { title: "Not found" };
 	}
-	const [brand, categoryMeta, seoSettings, allAttributes] = await Promise.all([
+	const [brand, categoryMeta, seoSettings, allAttributes, allGrades] = await Promise.all([
 		getBrandBySlugCached(product.brandSlug, product.categorySlug),
 		getCategoryBySlugCached(category),
 		getSeoSettings(),
 		getAttributesCached(),
+		getGradesCached(),
 	]);
+	const gradeLabels = gradeLabelsForCategory(allGrades, product.categorySlug);
+	const factsContext = seoFactsContext(product, allAttributes, gradeLabels);
 	const attributeSlugs = attributeSlugsForProduct(product, allAttributes);
-	const variant = resolveExactVariantFromSearch(product, search, attributeSlugs) ?? getDefaultVariant(product);
+	const hasVariantQueryParams = hasPdpConfigurationInSearch(search, attributeSlugs);
+	const selectedVariant = hasVariantQueryParams ? resolveExactVariantFromSearch(product, search, attributeSlugs) : null;
 	const heroImage = product.images?.[0];
-	const resolved = composeProductSeo({
+	const resolved = composeProductPageSeo({
 		product,
-		variant,
 		brand: brand ? { slug: brand.slug, name: brand.name } : null,
 		category: categoryMeta ? { slug: categoryMeta.slug, label: categoryMeta.label } : null,
 		settings: seoSettings,
 		seo: product.seo,
+		factsContext,
+		selectedVariant,
+		hasVariantQueryParams,
 	});
-	const canonical = productAbsoluteUrl(seoSettings.siteUrl, product, {
-		variant,
-	});
+	const canonical = resolved.canonical;
 	const brandName = brand?.name ?? product.brandName;
 	return {
 		title: resolved.title,
@@ -120,11 +147,12 @@ export async function generateMetadata({ params, searchParams }: ProductDetailPa
 export default async function ProductDetailPage({ params, searchParams }: ProductDetailPageProps) {
 	const [{ category, slug }, search] = await Promise.all([params, searchParams]);
 
-	const [categoryMeta, product, allAttributes, liveVariants] = await Promise.all([
+	const [categoryMeta, product, allAttributes, liveVariants, allGrades] = await Promise.all([
 		getCategoryBySlugCached(category),
 		getProductBySlugCached(slug),
 		getAttributesCached(),
 		getProductLiveCommerce(slug),
+		getGradesCached(),
 	]);
 
 	if (!categoryMeta) {
@@ -152,14 +180,34 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
 	const [brand, seoSettings] = await Promise.all([getBrandBySlugCached(storefrontProduct.brandSlug, storefrontProduct.categorySlug), getSeoSettings()]);
 	const brandName = brand?.name ?? storefrontProduct.brandSlug;
 	const brandFilterHref = `${categoryHref(categoryMeta.slug)}?brand=${storefrontProduct.brandSlug}`;
+	const gradeLabels = gradeLabelsForCategory(allGrades, storefrontProduct.categorySlug);
+	const factsContext = seoFactsContext(storefrontProduct, allAttributes, gradeLabels);
+	const categoryGrades = allGrades.filter((grade) => grade.categorySlug === storefrontProduct.categorySlug);
+	const productFacts = buildProductSeoFacts(
+		storefrontProduct,
+		seoSettings.seoStoreName.trim() || seoSettings.siteName,
+		factsContext,
+		categoryMeta.label,
+	);
 
 	const productLd = productJsonLd({
 		product: storefrontProduct,
-		variant: variantForSeo,
 		brand: brand ? { slug: brand.slug, name: brand.name } : null,
 		category: { slug: categoryMeta.slug, label: categoryMeta.label },
 		settings: seoSettings,
+		gradeLabels,
+		attributes: factsContext.attributes,
+		facts: productFacts,
 	});
+	const faqLd =
+		storefrontProduct.seo?.faqs && storefrontProduct.seo.faqs.length > 0
+			? faqPageJsonLd(storefrontProduct.seo.faqs)
+			: buildProductFaqJsonLd(storefrontProduct, seoSettings, {
+					categoryLabel: categoryMeta.label,
+					gradeLabels,
+					attributes: factsContext.attributes,
+					grades: categoryGrades,
+				});
 	const breadcrumbLd = breadcrumbJsonLd([
 		{ name: "Home", url: seoSettings.siteUrl },
 		{
@@ -183,6 +231,7 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
 			<PdpScrollReset />
 			<ProductChatBeacon productId={storefrontProduct.id} productName={`${brandName} ${storefrontProduct.name}`} />
 			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(productLd) }} />
+			{faqLd ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(faqLd) }} /> : null}
 			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(breadcrumbLd) }} />
 			{/* Mobile */}
 			<div className="pdp-shell reveal-stagger pb-[calc(80px+env(safe-area-inset-bottom,0px))] pt-2 md:hidden">
@@ -195,6 +244,9 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
 				</div>
 
 				<div className={`pdp-content ${STOREFRONT_SHELL_CLASS} space-y-5 pt-4`}>
+					<div className="reveal">
+						<ProductAvailabilityFacts facts={productFacts} />
+					</div>
 					<div className="reveal">
 						<Suspense fallback={<VariantSelectorSkeleton layout="mobile" product={storefrontProduct} brandName={brandName} />}>
 							<VariantSelector product={storefrontProduct} brandName={brandName} />
@@ -229,7 +281,8 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
 						<PdpOfferBadgeOverlay product={storefrontProduct} />
 					</div>
 
-					<div className="reveal flex min-h-0 min-w-0 flex-col">
+					<div className="reveal flex min-h-0 min-w-0 flex-col space-y-5">
+						<ProductAvailabilityFacts facts={productFacts} />
 						<Suspense fallback={<VariantSelectorSkeleton layout="desktop" product={storefrontProduct} brandName={brandName} />}>
 							<VariantSelector product={storefrontProduct} brandName={brandName} />
 						</Suspense>

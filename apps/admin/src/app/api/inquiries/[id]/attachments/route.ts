@@ -13,25 +13,14 @@
  */
 
 import { Inquiry, connectDB } from "@store/db";
-import {
-	assertContentTypeMatches,
-	badRequest,
-	created,
-	inquiryStatusPatchAfterMessage,
-	logger,
-	notFound,
-	payloadTooLarge,
-	serverError,
-	SNIFF_BYTE_COUNT,
-	unsupportedMediaType,
-} from "@store/shared";
+import { badRequest, created, inquiryStatusPatchAfterMessage, logger, notFound, payloadTooLarge, serverError, unsupportedMediaType } from "@store/shared";
 import { resolveStorageProvider } from "@store/shared/server";
 
 import { requireSession } from "@/lib/api/requireSession";
 import { recordActivity } from "@/lib/services/activityLog";
 import { toInquiryLatestPage, type InquiryLean } from "@/lib/serializers/inquiry";
-import { ALLOWED_IMAGE_MIME, MAX_IMAGE_BYTES, MAX_IMAGE_MB, MAX_VIDEO_BYTES, MAX_VIDEO_MB } from "@/lib/uploads/limits";
-import { processImage, UploadValidationError } from "@/lib/uploads/processImage";
+import { MAX_VIDEO_BYTES, MAX_VIDEO_MB, type ImageVariantName } from "@/lib/uploads/limits";
+import { storeImage, UploadValidationError } from "@/lib/uploads/storeImage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -89,25 +78,13 @@ export async function POST(request: Request, { params }: RouteContext) {
 		return badRequest("Expected multipart/form-data body.");
 	}
 
-	const file = formData.get("file");
-	if (!(file instanceof File)) {
-		return badRequest("Missing `file` field in multipart form data.");
-	}
-
 	const body = formData.get("body")?.toString().trim() ?? "";
-	const fileType = file.type;
-	const isImage = (ALLOWED_IMAGE_MIME as readonly string[]).includes(fileType);
-	const isFile = (ALLOWED_FILE_MIME as readonly string[]).includes(fileType);
-
-	if (!isImage && !isFile) {
-		return unsupportedMediaType(`Unsupported type "${fileType}".`);
-	}
-
-	if (isImage && file.size > MAX_IMAGE_BYTES) {
-		return payloadTooLarge(`Image exceeds ${MAX_IMAGE_MB} MB.`);
-	}
-	if (isFile && file.size > MAX_VIDEO_BYTES) {
-		return payloadTooLarge(`File exceeds ${MAX_VIDEO_MB} MB.`);
+	// Images arrive as a pre-encoded WebP variant ladder (client-side); documents
+	// arrive as a single raw `file`.
+	const isImage = formData.get("variant_thumb") instanceof File;
+	const rawFile = formData.get("file");
+	if (!isImage && !(rawFile instanceof File)) {
+		return badRequest("Missing `file` field in multipart form data.");
 	}
 
 	await connectDB();
@@ -117,34 +94,49 @@ export async function POST(request: Request, { params }: RouteContext) {
 	}
 
 	try {
-		const arrayBuffer = await file.arrayBuffer();
-		const buffer = Buffer.from(arrayBuffer);
-		if (isImage) {
-			const sniffError = assertContentTypeMatches(buffer.subarray(0, SNIFF_BYTE_COUNT), fileType);
-			if (sniffError) {
-				return unsupportedMediaType(sniffError);
-			}
-		} else if (!fileSignatureMatches(buffer, fileType)) {
-			return unsupportedMediaType(`File contents do not match declared type "${fileType}".`);
-		}
 		const storage = await resolveStorageProvider();
 		const MAX_SAFE_FILENAME = 200;
 		const MAX_STORED_FILENAME = 240;
 		const MSG_PREVIEW_MAX_LENGTH = 280;
 		const keyPrefix = `chat/${existing._id.toString()}/${todayIsoDate()}`;
-
-		const previewBody = body || (isImage ? "(image)" : `(${file.name})`);
 		const now = new Date();
+
 		let attachment;
+		let previewBody: string;
 		if (isImage) {
-			const stored = await processImage({
-				buffer,
+			const variantOrder: ImageVariantName[] = ["thumb", "card", "detail", "full"];
+			const variants = {} as Record<ImageVariantName, Buffer>;
+			for (const name of variantOrder) {
+				const part = formData.get(`variant_${name}`);
+				if (!(part instanceof File)) {
+					return badRequest(`Missing "${name}" image variant.`);
+				}
+				variants[name] = Buffer.from(await part.arrayBuffer());
+			}
+			const stored = await storeImage({
+				variants,
+				blurDataURL: formData.get("blurDataURL")?.toString() ?? "",
+				width: Number(formData.get("width")),
+				height: Number(formData.get("height")),
+				alt: body || "image",
 				keyPrefix,
-				alt: body || file.name.replace(/\.[^.]+$/, ""),
 				storage,
 			});
 			attachment = { kind: "image" as const, image: stored };
+			previewBody = body || "(image)";
 		} else {
+			const file = rawFile as File;
+			const fileType = file.type;
+			if (!(ALLOWED_FILE_MIME as readonly string[]).includes(fileType)) {
+				return unsupportedMediaType(`Unsupported type "${fileType}".`);
+			}
+			if (file.size > MAX_VIDEO_BYTES) {
+				return payloadTooLarge(`File exceeds ${MAX_VIDEO_MB} MB.`);
+			}
+			const buffer = Buffer.from(await file.arrayBuffer());
+			if (!fileSignatureMatches(buffer, fileType)) {
+				return unsupportedMediaType(`File contents do not match declared type "${fileType}".`);
+			}
 			const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, MAX_SAFE_FILENAME);
 			const key = `${keyPrefix}/file-${Date.now().toString(36)}-${safeName}`;
 			const url = await storage.put(key, buffer, fileType);
@@ -155,6 +147,7 @@ export async function POST(request: Request, { params }: RouteContext) {
 				sizeBytes: buffer.length,
 				filename: file.name.slice(0, MAX_STORED_FILENAME),
 			};
+			previewBody = body || `(${file.name})`;
 		}
 
 		await Inquiry.updateOne(

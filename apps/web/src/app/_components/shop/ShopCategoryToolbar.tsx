@@ -1,4 +1,6 @@
 import { ShopActiveFilterChips } from "@/app/_components/shop/ShopActiveFilterChips";
+import { AttributeGlossaryCue } from "@/app/_components/shop/AttributeGlossaryCue";
+import { GradeGlossaryCue } from "@/app/_components/shop/GradeGlossaryCue";
 import { MobileCategoryPicker } from "@/app/_components/shop/MobileCategoryPicker";
 import { ShopCategoryRail } from "@/app/_components/shop/ShopCategoryRail";
 import { ShopFilterRow } from "@/app/_components/shop/ShopFilterRow";
@@ -46,6 +48,10 @@ export async function ShopCategoryToolbar({ activeSlug, filters }: ShopCategoryT
 					</div>
 				</div>
 				<ShopActiveFilterChips {...filterProps} />
+				<div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+					<GradeGlossaryCue categorySlug={activeSlug} />
+					<AttributeGlossaryCue categorySlug={activeSlug} />
+				</div>
 			</div>
 		</>
 	);

@@ -1,5 +1,4 @@
-import bcrypt from "bcryptjs";
-import { badRequest, BCRYPT_ROUNDS, FIELD_LIMITS, isValidationError, ok, parseBody, validateEmail, validatePassword, validateString } from "@store/shared";
+import { badRequest, FIELD_LIMITS, hashPassword, isValidationError, ok, parseBody, validateEmail, validatePassword, validateString } from "@store/shared";
 import { connectDB, handleMongoError, User } from "@store/db";
 
 import { requireSession } from "@/lib/api/requireSession";
@@ -70,7 +69,7 @@ export async function PUT(request: Request) {
 		if (isValidationError(result)) {
 			return badRequest(result.error);
 		}
-		update.passwordHash = await bcrypt.hash(result, BCRYPT_ROUNDS);
+		update.passwordHash = await hashPassword(result);
 		update.passwordChangedAt = new Date();
 	}
 

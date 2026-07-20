@@ -1,6 +1,7 @@
 import mongoose, { Schema, type HydratedDocument, type Model } from "mongoose";
 import { slugify } from "@store/shared";
-import type { StructuredContent } from "@store/shared";
+import type { SeoMeta, StructuredContent } from "@store/shared";
+import { seoSchema } from "../schemas/seoSchema";
 import { structuredContentSchema } from "../schemas/structuredContentSchema";
 
 /**
@@ -18,6 +19,8 @@ export interface GradeAttributes {
 	content?: StructuredContent;
 	/** Storefront visibility — hidden grades drop out of filters and chips. */
 	isActive: boolean;
+	/** Glossary page SEO (formula + optional AI polish). */
+	seo?: SeoMeta;
 }
 
 const CATEGORY_SLUG_MAX_LENGTH = 64;
@@ -62,6 +65,7 @@ const gradeSchema = new Schema<GradeAttributes>(
 		},
 		content: { type: structuredContentSchema, required: false, default: undefined },
 		isActive: { type: Boolean, required: true, default: true },
+		seo: { type: seoSchema, required: false, default: undefined },
 	},
 	{ timestamps: true },
 );

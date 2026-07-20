@@ -76,7 +76,6 @@ export async function PUT(request: Request) {
 		"payfastSecuredKey",
 		"rapidGatewaySecretKey",
 		"rapidGatewayWebhookSecret",
-		"blobReadWriteToken",
 		"awsSecretAccessKey",
 	]);
 

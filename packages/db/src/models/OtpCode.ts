@@ -1,10 +1,10 @@
 /**
  * One-time passcodes for customer sign-in via phone.
  *
- * Codes are stored as bcrypt hashes — the raw 6-digit value is only ever
- * delivered to the customer (via WhatsApp) and to the server during
- * verification. We store the canonical 10-digit phone fingerprint so we
- * can index efficiently and ignore prefix noise.
+ * Codes are stored as HMAC-SHA-256 hashes (`otpHash.ts`) — the raw 6-digit
+ * value is only ever delivered to the customer (via WhatsApp) and to the
+ * server during verification. We store the canonical 10-digit phone
+ * fingerprint so we can index efficiently and ignore prefix noise.
  *
  * Codes auto-expire via a TTL index on `expiresAt`. Verification flips
  * `consumedAt` to a non-null value so the same code can't be re-used; we
@@ -32,7 +32,7 @@ interface OtpCodeAttributes {
 	phoneFingerprint: string;
 	/** Raw phone string the customer entered, kept verbatim for support. */
 	phoneRaw: string;
-	/** bcrypt hash of the 6-digit code. */
+	/** HMAC-SHA-256 hash of the 6-digit code. */
 	codeHash: string;
 	purpose: OtpPurpose;
 	attempts: number;

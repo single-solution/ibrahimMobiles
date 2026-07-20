@@ -16,13 +16,14 @@ import { type PipelineStage } from "mongoose";
 import { unstable_cache } from "next/cache";
 
 import {
+	Attribute as AttributeModel,
 	Brand as BrandModel,
 	Category as CategoryModel,
-	Attribute as AttributeModel,
 	Grade as GradeModel,
 	Offer as OfferModel,
 	Order as OrderModel,
 	Product as ProductModel,
+	SeoSurface as SeoSurfaceModel,
 	connectDB,
 } from "@store/db";
 import {
@@ -31,6 +32,7 @@ import {
 	normalizeIconName,
 	normalizeStructuredContent,
 	slugify,
+	asString,
 	isCatalogDealOffer,
 	isCheckoutNoticeOffer,
 	isOfferEligible,
@@ -43,6 +45,9 @@ import {
 	type Offer,
 	type Product,
 	type StructuredContent,
+	type SeoMeta,
+	type IntentSurfaceKey,
+	resolveEffectiveIntentSurfaceCopy,
 } from "@store/shared";
 
 import {
@@ -92,6 +97,7 @@ interface CatalogVisibility {
 }
 
 async function loadCatalogVisibility(): Promise<CatalogVisibility> {
+	await connectDB();
 	const [categories, hiddenBrands] = await Promise.all([
 		CategoryModel.find({ isActive: true }).select("slug").lean<Array<{ slug: string }>>(),
 		BrandModel.find({ isActive: false }).select("slug categorySlugs").lean<Array<{ slug: string; categorySlugs: string[] }>>(),
@@ -211,6 +217,8 @@ export interface ProductFilters {
 	sort?: SortOption;
 	/** Live offer slug — limits listing to products in that promotion's catalog scope. */
 	offerSlug?: string;
+	/** Products that expose this attribute axis (glossary listings). */
+	attributeAxisSlug?: string;
 }
 
 /** Result type for paginated product lists. */
@@ -393,6 +401,11 @@ export function buildTopLevelMatch(filters: ProductFilters): Record<string, unkn
 		if (pattern) {
 			match.name = { $regex: new RegExp(pattern, "i") };
 		}
+	}
+
+	if (filters.attributeAxisSlug?.trim()) {
+		const axisSlug = filters.attributeAxisSlug.trim();
+		match.$or = [{ attributeSlugs: axisSlug }, { [`variants.attributes.${axisSlug}`]: { $exists: true } }];
 	}
 
 	return match;
@@ -809,6 +822,153 @@ export async function getCategoryMetaBySlug(slug: string): Promise<CategoryMeta 
 }
 
 /** Internal sanity check the homepage uses to know when DB is empty. */
+export interface GlossaryGradeEntry {
+	categorySlug: string;
+	categoryLabel: string;
+	slug: string;
+	label: string;
+	notes: string;
+	color: string;
+	video?: string;
+	content?: StructuredContent;
+	seo?: SeoMeta;
+	updatedAt?: Date;
+}
+
+export interface GlossaryAttributeEntry {
+	categorySlug: string;
+	categoryLabel: string;
+	slug: string;
+	label: string;
+	unit?: string;
+	options: AttributeDescriptor["options"];
+	seo?: SeoMeta;
+	updatedAt?: Date;
+}
+
+export async function getGradeGlossaryEntry(categorySlug: string, gradeSlug: string): Promise<GlossaryGradeEntry | null> {
+	await connectDB();
+	const [grade, category] = await Promise.all([
+		GradeModel.findOne({ categorySlug, slug: gradeSlug, isActive: true }).lean<GradeLean>(),
+		CategoryModel.findOne({ slug: categorySlug, isActive: true }).select({ label: 1 }).lean<{ label: string }>(),
+	]);
+	if (!grade || !category) {
+		return null;
+	}
+	const content = normalizeStructuredContent(grade.content, grade.notes);
+	return {
+		categorySlug,
+		categoryLabel: category.label,
+		slug: asString(grade.slug),
+		label: asString(grade.label),
+		notes: asString(grade.notes),
+		color: asString(grade.color),
+		video: grade.video || undefined,
+		content: attachBulletIconNodes(content),
+		seo: grade.seo,
+		updatedAt: grade.updatedAt,
+	};
+}
+
+export async function getAttributeGlossaryEntry(categorySlug: string, attributeSlug: string): Promise<GlossaryAttributeEntry | null> {
+	await connectDB();
+	const [attribute, category] = await Promise.all([
+		AttributeModel.findOne({ categorySlug, slug: attributeSlug, isActive: true }).lean<AttributeLean>(),
+		CategoryModel.findOne({ slug: categorySlug, isActive: true }).select({ label: 1 }).lean<{ label: string }>(),
+	]);
+	if (!attribute || !category) {
+		return null;
+	}
+	return {
+		categorySlug,
+		categoryLabel: category.label,
+		slug: asString(attribute.slug),
+		label: asString(attribute.label),
+		unit: asString(attribute.unit) || undefined,
+		options: toAttribute(attribute).options,
+		seo: attribute.seo,
+		updatedAt: attribute.updatedAt,
+	};
+}
+
+export async function getSitemapGrades(): Promise<Array<{ categorySlug: string; slug: string; updatedAt?: Date }>> {
+	await connectDB();
+	return GradeModel.find({ isActive: true })
+		.select({ categorySlug: 1, slug: 1, updatedAt: 1 })
+		.sort({ categorySlug: 1, slug: 1 })
+		.lean<Array<{ categorySlug: string; slug: string; updatedAt?: Date }>>();
+}
+
+export async function getSitemapAttributes(): Promise<Array<{ categorySlug: string; slug: string; updatedAt?: Date }>> {
+	await connectDB();
+	return AttributeModel.find({ isActive: true })
+		.select({ categorySlug: 1, slug: 1, updatedAt: 1 })
+		.sort({ categorySlug: 1, slug: 1 })
+		.lean<Array<{ categorySlug: string; slug: string; updatedAt?: Date }>>();
+}
+
+/** Full public catalog for merchant feeds (no pagination). */
+export async function getAllPublicProductsForFeed(): Promise<Product[]> {
+	await connectDB();
+	const filter: Record<string, unknown> = { ...PUBLIC_PRODUCT_FILTER };
+	applyCatalogVisibility(filter, await resolveCatalogVisibility());
+	const docs = await ProductModel.find(filter).lean<ProductLean[]>();
+	const brandLookup = await buildBrandLookup();
+	const products: Product[] = [];
+	for (const doc of docs) {
+		const converted = toProduct(doc, brandLookup);
+		if (converted) {
+			products.push(converted);
+		}
+	}
+	return products;
+}
+
+export interface PublicSeoSurface {
+	key: IntentSurfaceKey;
+	title: string;
+	description: string;
+	headline: string;
+	intro: string;
+	canonicalQuery: string;
+	isIndexable: boolean;
+	productCount: number;
+	inStockVariantCount: number;
+}
+
+export async function getSeoSurface(key: IntentSurfaceKey): Promise<PublicSeoSurface | null> {
+	await connectDB();
+	const doc = await SeoSurfaceModel.findOne({
+		categorySlug: key.categorySlug,
+		brandSlug: key.brandSlug,
+		gradeSlug: key.gradeSlug,
+	}).lean();
+	if (!doc) {
+		return null;
+	}
+	const effective = resolveEffectiveIntentSurfaceCopy({
+		title: asString(doc.title),
+		description: asString(doc.description),
+		headline: asString(doc.headline),
+		intro: asString(doc.intro),
+		titleOverride: doc.titleOverride,
+		descriptionOverride: doc.descriptionOverride,
+		headlineOverride: doc.headlineOverride,
+		introOverride: doc.introOverride,
+	});
+	return {
+		key,
+		title: effective.title,
+		description: effective.description,
+		headline: effective.headline,
+		intro: effective.intro,
+		canonicalQuery: asString(doc.canonicalQuery),
+		isIndexable: doc.isIndexable === true,
+		productCount: doc.productCount ?? 0,
+		inStockVariantCount: doc.inStockVariantCount ?? 0,
+	};
+}
+
 export async function hasAnyProducts(): Promise<boolean> {
 	await connectDB();
 	const exists = await ProductModel.exists(PUBLIC_PRODUCT_FILTER);

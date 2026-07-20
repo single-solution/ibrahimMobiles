@@ -14,6 +14,7 @@ Domain specification for the storefront, checkout, chat, loyalty, orders, and ad
 | [Catalog operations](docs/catalog.md) | Products, attributes, pools, variants in Admin |
 | [Website audit guide](docs/website-audit.md) | Checklist for auditing storefront + admin |
 | [Engineering handbook](docs/engineering-handbook.md) | Project standards, optimizations inventory, vibeCodingRules gaps, new-dev rules |
+| [SEO automation plan](docs/seo-automation-plan.md) | Intent surfaces, AI batch copy, glossary, feeds (GEO/AIO + organic + Shopping) |
 
 ```mermaid
 graph LR
@@ -575,7 +576,7 @@ Super-admin bypasses all permission checks.
 | **Policies** | Moneyback days, warranty months, return/privacy HTML → checkout modals |
 | **Loyalty** | Earn % on delivered orders |
 | **Inventory** | Low-stock threshold → dashboard + bell |
-| **SEO** | Global meta, OG, Organization JSON-LD (wired on storefront) |
+| **SEO** | Global meta, OG, Organization JSON-LD; product formula + AI copy; intent surfaces; glossary pages; merchant feed URL |
 | **Chat** | Widget, guest limit, assistant, **all provider API keys**, real-time transport, nudge |
 | **Integrations** | Social links, pixels, **PayFast / Rapid Gateway**, **Meta WhatsApp OTP**, Resend, staff/customer WhatsApp templates, **media storage status** |
 | **Data cleanup** | Owner-only bulk delete |
@@ -584,7 +585,24 @@ Super-admin bypasses all permission checks.
 
 ---
 
-## 12. Limits reference
+## 12. Storefront SEO (shipped)
+
+| Surface | URL / behavior |
+| ------- | -------------- |
+| **PDP** | `/{category}/{slug}` — one **indexable** URL; aggregate title/description; FAQ + AggregateOffer JSON-LD |
+| **PDP variant links** | `?grade=&attr=` — **noindex**; variant-specific share title; canonical → clean PDP |
+| **Intent landing** | `/{category}?brand={slug}&grade={slug}` — indexable when eligibility passes (≥2 products, ≥3 in-stock variants, copy exists); dedicated H1 + intro |
+| **Thin filters** | Any other active filter params → `noindex,follow`; bare `?brand=` also noindex when a brand+grade surface exists for that brand |
+| **Glossary** | `/grades/{category}/{grade}`, `/attributes/{category}/{attribute}` — linked from filter pages ("What is …?") |
+| **Sitemap** | `/sitemap.xml` — categories, products, glossary, indexable intent surfaces only |
+| **Merchant feed** | `GET /api/feeds/merchant` (XML default; `?format=csv`); optional `Authorization: Bearer {MERCHANT_FEED_TOKEN}` |
+| **Nightly reconcile** | `GET /api/cron/seo-reconcile` with `Authorization: Bearer {CRON_SECRET}` — refreshes `SeoSurface` stats and cache |
+
+**Rule:** Copy is formula-first, AI-polished on save, human override optional. Grade/attribute edits cascade affected product SEO and intent surfaces.
+
+---
+
+## 13. Limits reference
 
 | Area | Limit |
 | ---- | ----- |

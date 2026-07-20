@@ -52,16 +52,12 @@ export function resolveIntegrationSettings(db: IntegrationSettingsValues): Integ
 		rapidGatewayWebhookSecret: pickString(db.rapidGatewayWebhookSecret, process.env.RAPID_GATEWAY_WEBHOOK_SECRET),
 		rapidGatewaySandbox: pickBoolean(db.rapidGatewaySandbox, process.env.RAPID_GATEWAY_SANDBOX, true),
 
-		storageProvider:
-			db.storageProvider ||
-			((process.env.STORAGE_PROVIDER?.trim().toLowerCase().replace(/_/g, "-") as IntegrationSettingsValues["storageProvider"] | undefined) ??
-				"vercel-blob"),
-		blobReadWriteToken: pickString(db.blobReadWriteToken, process.env.BLOB_READ_WRITE_TOKEN),
 		awsS3Bucket: pickString(db.awsS3Bucket, process.env.AWS_S3_BUCKET),
 		awsS3Region: pickString(db.awsS3Region, process.env.AWS_S3_REGION),
 		awsAccessKeyId: pickString(db.awsAccessKeyId, process.env.AWS_ACCESS_KEY_ID),
 		awsSecretAccessKey: pickString(db.awsSecretAccessKey, process.env.AWS_SECRET_ACCESS_KEY),
 		awsS3PublicUrlBase: pickString(db.awsS3PublicUrlBase, process.env.AWS_S3_PUBLIC_URL_BASE),
+		awsS3Endpoint: pickString(db.awsS3Endpoint, process.env.AWS_S3_ENDPOINT),
 	};
 }
 

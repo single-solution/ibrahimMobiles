@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
-import bcrypt from "bcryptjs";
 import { connectDB, User, handleMongoError } from "@store/db";
 import {
 	logger,
 	validatePassword,
 	isValidationError,
-	BCRYPT_ROUNDS,
+	hashPassword,
 	checkRateLimit,
 	clearRateLimit,
 	getClientIp,
@@ -81,7 +80,7 @@ export async function POST(request: Request) {
 		}
 
 		// Update password
-		const passwordHash = await bcrypt.hash(validationResult, BCRYPT_ROUNDS);
+		const passwordHash = await hashPassword(validationResult);
 		user.passwordHash = passwordHash;
 		user.passwordChangedAt = new Date();
 

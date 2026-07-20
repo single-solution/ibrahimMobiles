@@ -8,6 +8,11 @@
  * serializers reference it directly so what the admin sees in the
  * editor is exactly what the storefront renderer reads back.
  */
+export interface SeoFaqEntry {
+	question: string;
+	answer: string;
+}
+
 export interface SeoMeta {
 	/** Override for `<title>` (post-template). */
 	title?: string;
@@ -25,6 +30,12 @@ export interface SeoMeta {
 	noindex?: boolean;
 	/** Adds `nofollow` to the robots meta. */
 	nofollow?: boolean;
+	/** AI-generated FAQ pairs for PDP JSON-LD (Layer 2). */
+	faqs?: SeoFaqEntry[];
+	/** ISO timestamp when Layer 2 AI last wrote title/description/faqs. */
+	aiGeneratedAt?: string;
+	/** Provider model id used for the last AI generation. */
+	aiModelId?: string;
 }
 
 export const SEO_META_FIELD_LIMITS = {
@@ -33,6 +44,9 @@ export const SEO_META_FIELD_LIMITS = {
 	canonicalUrl: 600,
 	ogImageUrl: 600,
 	focusKeyword: 80,
+	faqQuestion: 200,
+	faqAnswer: 320,
+	maxFaqs: 8,
 } as const;
 
 /**

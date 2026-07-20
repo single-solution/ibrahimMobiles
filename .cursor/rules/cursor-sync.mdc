@@ -43,7 +43,7 @@ Update `vibeCodingRules` whenever you:
 
 ## Full rulebook mirror (Cursor)
 
-**Minimum install** (every project): `vibe-rulebook.mdc`, `token-efficiency.mdc`, `feature-discovery.mdc`, `naming.mdc`, `documentation.mdc`, plus per-project sync rule.
+**Minimum install** (every project): `vibe-rulebook.mdc`, `token-efficiency.mdc`, `feature-discovery.mdc`, `naming.mdc`, `documentation.mdc`, `agent-skills-routing.mdc`, plus per-project sync rule.
 
 **Full mirror:** For each universal behavior agents must follow without opening the repo, maintain a paired `cursor/<topic>.mdc` whose body matches the root `*.md` (YAML frontmatter only). `vibe-rulebook.mdc` stays a pointer to `AGENTS.md` - not a duplicate of all chapters.
 
@@ -54,3 +54,73 @@ When grilling updates policy, edit root `*.md` first, then update the paired `.m
 ## Repo Path
 
 `[DEFAULT]` canonical clone path is machine-specific (e.g. `~/Github/vibeCodingRules`). Override per machine; keep the relative layout (`cursor/`, root `*.md`) the same.
+
+---
+
+## Global Agent Skills (New Machine)
+
+Rules sync per project; **agent skills do not**. After cloning `vibeCodingRules` and copying `.mdc` rules into a project, run these **once per machine** so Cursor agents pick them up in every workspace.
+
+| Skill pack | Install | Skills |
+|------------|---------|--------|
+| [GSAP](https://github.com/greensock/gsap-skills) | `npx skills add https://github.com/greensock/gsap-skills -g -a cursor -y --skill '*'` | `gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-plugins`, `gsap-utils`, `gsap-react`, `gsap-performance`, `gsap-frameworks` |
+| [Taste Skill](https://github.com/Leonxlnx/taste-skill) | `npx skills add https://github.com/Leonxlnx/taste-skill -g -a cursor -y --skill '*'` | `design-taste-frontend`, `design-taste-frontend-v1`, `gpt-taste`, `image-to-code`, `redesign-existing-projects`, `high-end-visual-design`, `full-output-enforcement`, `minimalist-ui`, `industrial-brutalist-ui`, `stitch-design-taste`, `imagegen-frontend-web`, `imagegen-frontend-mobile`, `brandkit` |
+| [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | `npx skills add https://github.com/nextlevelbuilder/ui-ux-pro-max-skill -g -a cursor -y --skill '*'` | `ui-ux-pro-max`, `design`, `design-system`, `ui-styling`, `brand`, `banner-design`, `slides` |
+| [Vercel Agent Skills](https://github.com/vercel-labs/agent-skills) | `npx skills add vercel-labs/agent-skills -g -a cursor -y --skill '*'` | `vercel-optimize`, `vercel-react-best-practices`, `web-design-guidelines`, `writing-guidelines`, `vercel-react-native-skills`, `vercel-react-view-transitions`, `vercel-composition-patterns`, `deploy-to-vercel`, `vercel-cli-with-tokens` |
+| [Anthropic Skills](https://github.com/anthropics/skills) | `npx skills add anthropics/skills -g -a cursor -y --skill '*'` | Documents: `docx`, `pdf`, `pptx`, `xlsx` · Dev: `mcp-builder`, `skill-creator`, `webapp-testing`, `web-artifacts-builder`, `claude-api` · Design: `frontend-design`, `canvas-design`, `theme-factory`, `algorithmic-art` · Other: `doc-coauthoring`, `internal-comms`, `brand-guidelines`, `slack-gif-creator`, `template-skill` |
+| [Claude Design Skillstack](https://github.com/freshtechbro/claudedesignskills) | `npx skills add freshtechbro/claudedesignskills -g -a cursor -y --skill '*'` | 3D: `threejs-webgl`, `react-three-fiber`, `babylonjs-engine`, `playcanvas-engine`, `aframe-webxr`, `pixijs-2d`, `lightweight-3d-effects` · Animation: `gsap-scrolltrigger`, `motion-framer`, `react-spring-physics`, `animejs`, `lottie-animations`, `scroll-reveal-libraries`, `locomotive-scroll`, `barba-js` · Authoring: `blender-web-pipeline`, `spline-interactive`, `rive-interactive`, `substance-3d-texturing` · Meta: `modern-web-design`, `web3d-integration-patterns`, `animated-component-libraries`, `skill-creator` |
+
+**Verify:** `npx skills list -g -a cursor`
+
+**Update:** `npx skills update -g`
+
+**Notes:**
+- Installs to `~/.agents/skills/` (skills CLI canonical store); not committed with projects.
+- Do not put third-party skills in `vibeCodingRules/cursor/` — list them here only.
+- If `npx` fails with npm cache `EACCES`, fix ownership of `~/.npm` or run with `NPM_CONFIG_CACHE=/tmp/npm-cache npx skills ...`.
+
+---
+
+## Global MCP Servers (New Machine)
+
+MCP config is machine-local (`~/.cursor/mcp.json`), not synced via project rules.
+
+| Service | Setup | Auth |
+|---------|-------|------|
+| [21st.dev](https://21st.dev/mcp) | From `$HOME`: `npx @21st-dev/cli@latest init --client cursor --write` | `npx @21st-dev/cli@latest login` (browser), **or** export `API_KEY_21ST` in `~/.zshrc` (key from [21st.dev/mcp](https://21st.dev/mcp)) |
+| [shadcn-ui-mcp](https://github.com/Jpisnice/shadcn-ui-mcp-server) | Merge into `~/.cursor/mcp.json` (see below) | Optional: export `GITHUB_PERSONAL_ACCESS_TOKEN` in `~/.zshrc` (60 req/h without; 5000 with — [token guide](https://github.com/Jpisnice/shadcn-ui-mcp-server/blob/master/docs/getting-started/github-token.md)) |
+
+**21st companion skills** (optional but recommended with MCP):
+
+```bash
+npx @21st-dev/cli@latest install-skill
+```
+
+Installs: `21st-cli-use`, `21st-ai`, `21st-registry`, `21st-design-sync` → `~/.cursor/skills/`
+
+**Verify:** Restart Cursor → MCP panel shows `21st` connected. CLI: `npx @21st-dev/cli@latest whoami`
+
+**shadcn-ui-mcp** block for `~/.cursor/mcp.json`:
+
+```json
+"shadcn-ui": {
+  "command": "npx",
+  "args": ["-y", "@jpisnice/shadcn-ui-mcp-server"],
+  "env": {
+    "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+  }
+}
+```
+
+**Optional (official install MCP):** per React project with `components.json`, run `npx shadcn@latest mcp init --client cursor` — adds registry install tools to that repo's `.cursor/mcp.json`. Complements shadcn-ui-mcp (browse source) with CLI install.
+
+---
+
+## Skill Priority Routing
+
+Full matrix: `agent-skills-routing.md` (sync `cursor/agent-skills-routing.mdc` with `alwaysApply: true` to every project).
+
+**Quick summary:**
+- Global `-g` skills = available in all workspaces on this machine (descriptions auto; full skill on trigger).
+- Rules + MCP = see layers in `agent-skills-routing.md`.
+- Default primaries: `ui-ux-pro-max` (UI), official GSAP pack (animation API), 21st MCP (component install), `vercel-react-best-practices` (Next perf).

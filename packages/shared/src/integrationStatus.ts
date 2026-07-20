@@ -16,8 +16,6 @@ export interface OtpIntegrationStatus {
 }
 
 export interface StorageIntegrationStatus {
-	provider: string;
-	tokenConfigured: boolean;
 	s3Configured: boolean;
 	ready: boolean;
 	summary: string;
@@ -75,8 +73,6 @@ export function readOtpIntegrationStatus(settings: IntegrationSettingsValues): O
 }
 
 export function readStorageIntegrationStatus(settings: IntegrationSettingsValues): StorageIntegrationStatus {
-	const provider = settings.storageProvider;
-	const tokenConfigured = Boolean(settings.blobReadWriteToken.trim());
 	const s3Configured = Boolean(
 		settings.awsS3Bucket.trim() &&
 			settings.awsS3Region.trim() &&
@@ -84,25 +80,12 @@ export function readStorageIntegrationStatus(settings: IntegrationSettingsValues
 			settings.awsSecretAccessKey.trim(),
 	);
 
-	let ready = false;
-	let summary = "Vercel Blob token missing — uploads will fail.";
-
-	if (provider === "s3") {
-		ready = s3Configured;
-		summary = s3Configured
-			? "S3 configured — product and brand uploads use your bucket."
-			: "S3 selected but bucket, region, or credentials are incomplete.";
-	} else if (tokenConfigured) {
-		ready = true;
-		summary = "Vercel Blob configured — product and brand uploads work.";
-	}
-
 	return {
-		provider,
-		tokenConfigured,
 		s3Configured,
-		ready,
-		summary,
+		ready: s3Configured,
+		summary: s3Configured
+			? "Bucket configured — product and brand uploads use your S3/R2 bucket."
+			: "Bucket, region, or credentials incomplete — uploads will fail.",
 	};
 }
 
