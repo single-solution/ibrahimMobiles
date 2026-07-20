@@ -7,7 +7,6 @@ import { classNames } from "@store/shared";
 
 import { SidebarBadge } from "./SidebarBadge";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
-import { resolvePublicSiteUrl } from "@store/shared";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 import { useAdminPermissions } from "@/lib/permissionsContext";
 
@@ -87,8 +86,7 @@ export function isNavItemVisible(href: string, can: (permission: PermissionKey) 
 
 export function Sidebar({ isCollapsed }: SidebarProps) {
 	const pathname = usePathname() ?? "";
-	const { publicSiteUrl: configuredStorefrontUrl } = useStoreSettings();
-	const publicSiteUrl = resolvePublicSiteUrl(configuredStorefrontUrl);
+	const { publicSiteUrl } = useStoreSettings();
 	const { can, isLoading } = useAdminPermissions();
 
 	return (

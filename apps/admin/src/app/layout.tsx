@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { cache } from "react";
 import { getStoreSettings } from "@store/db";
+import { resolvePublicSiteUrl } from "@store/shared";
 
 import { ToastProvider } from "@/components/ui/Toast";
 import { SessionProvider } from "@/components/layout/SessionProvider";
@@ -35,6 +36,11 @@ interface AdminRootLayoutProps {
 
 export default async function AdminRootLayout({ children }: AdminRootLayoutProps) {
 	const [settings, actor] = await Promise.all([getLayoutSettings(), getVerifiedSession()]);
+	// Resolve on the server — client components cannot read STOREFRONT_BASE_URL / AUTH_URL.
+	const clientSettings = {
+		...settings,
+		publicSiteUrl: resolvePublicSiteUrl(settings.publicSiteUrl),
+	};
 	const initialSession = actor
 		? {
 				id: actor.id,
@@ -65,7 +71,7 @@ export default async function AdminRootLayout({ children }: AdminRootLayoutProps
 			</head>
 			<body>
 				<SessionProvider>
-					<StoreSettingsProvider value={settings}>
+					<StoreSettingsProvider value={clientSettings}>
 						<ToastProvider>
 							<Shell initialSession={initialSession}>{children}</Shell>
 						</ToastProvider>

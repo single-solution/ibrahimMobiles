@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, ExternalLink, Eye, Globe2, Link2 } from "lucide-react";
-import { resolvePublicSiteUrl, STORE_SETTING_GROUPS } from "@store/shared";
+import { STORE_SETTING_GROUPS } from "@store/shared";
 import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";
 import { SettingsTabHero, type SettingsHeroMetric } from "@/app/settings/_components/settingsWorkspaceUi";
@@ -13,7 +13,9 @@ interface SiteUrlsSettingsProps extends SectionProps {
 }
 
 export function SiteUrlsSettings({ draft, saved, setField, onSaved, canUpdate, envFallbackStorefrontUrl }: SiteUrlsSettingsProps) {
-	const effectiveUrl = resolvePublicSiteUrl(draft.publicSiteUrl);
+	// Prefer saved DB URL; otherwise the server-resolved env fallback (client
+	// cannot read STOREFRONT_BASE_URL / AUTH_URL).
+	const effectiveUrl = draft.publicSiteUrl.trim().replace(/\/$/, "") || envFallbackStorefrontUrl;
 	const usesEnvFallback = draft.publicSiteUrl.trim().length === 0;
 	const heroMetrics: SettingsHeroMetric[] = [
 		{

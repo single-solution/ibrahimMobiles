@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import type { StoreSettings } from "@store/shared";
 import { TextField } from "@/components/forms/TextField";
 import { SettingsFormPanel, SettingsSaveFooter } from "@/app/settings/_components/settingsWorkspaceUi";
@@ -20,6 +21,7 @@ interface SaveableSectionProps {
 
 export function SaveableSection({ fields, draft, saved, setField, onSaved, canUpdate, children, hero }: SaveableSectionProps) {
 	const toast = useToast();
+	const router = useRouter();
 	const [isSaving, setIsSaving] = useState(false);
 
 	const dirtyCount = fields.reduce((count, field) => (draft[field] !== saved[field] ? count + 1 : count), 0);
@@ -44,6 +46,7 @@ export function SaveableSection({ fields, draft, saved, setField, onSaved, canUp
 			const body = (await response.json()) as { settings: StoreSettings };
 			onSaved(body.settings);
 			toast.success("Settings saved");
+			router.refresh();
 		} catch (error) {
 			toast.danger(error instanceof Error ? error.message : "Save failed");
 		} finally {

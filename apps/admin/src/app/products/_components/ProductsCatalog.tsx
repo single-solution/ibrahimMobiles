@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Boxes, Check, ExternalLink, EyeOff, Star } from "lucide-react";
-import { classNames, compareAlphabetically, emptyStructuredContent, formatPrice, resolvePublicSiteUrl, seoScoreTone } from "@store/shared";
+import { classNames, compareAlphabetically, emptyStructuredContent, formatPrice, seoScoreTone } from "@store/shared";
 
 import { CatalogSearchField } from "@/components/shared/catalogWorkspaceUi";
 import { Table, type TableColumn } from "@/components/ui/Table";
@@ -222,7 +222,7 @@ export function ProductsCatalog(props: ProductsCatalogProps) {
 
 function ProductsCatalogInner({ products, catalog }: ProductsCatalogProps) {
 	const store = useStoreSettings();
-	const publicUrl = resolvePublicSiteUrl(store.publicSiteUrl);
+	const publicUrl = store.publicSiteUrl;
 	const router = useRouter();
 	const { searchParams, replace } = useUrlParams();
 	const toast = useToast();

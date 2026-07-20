@@ -24,7 +24,7 @@
  * congratulatory state.
  */
 import { connectDB, getIntegrationSettings, getStoreSettings, Product } from "@store/db";
-import { STORE_SETTING_DEFAULTS, hasBankTransferDetailsConfigured, isOnlineCardCheckoutReady, readOnlinePaymentIntegrationStatus, resolveIntegrationSettings, resolvePublicSiteUrl, resolveWhatsAppCloudConfig, type StoreSettings } from "@store/shared";
+import { STORE_SETTING_DEFAULTS, hasBankTransferDetailsConfigured, isLocalPublicSiteUrlFallback, isOnlineCardCheckoutReady, readOnlinePaymentIntegrationStatus, readStorageIntegrationStatus, resolveIntegrationSettings, resolvePublicSiteUrl, resolveWhatsAppCloudConfig, type StoreSettings } from "@store/shared";
 
 import { LOW_STOCK_VARIANT_THRESHOLD } from "@/lib/server/dashboardStats";
 
@@ -198,12 +198,20 @@ function evaluateSettings(settings: StoreSettings, cardCheckoutReady: boolean): 
 		});
 	}
 
-	if (!resolvePublicSiteUrl(settings.publicSiteUrl).trim()) {
+	if (!settings.publicSiteUrl.trim() && !process.env.STOREFRONT_BASE_URL?.trim() && !process.env.NEXT_PUBLIC_STOREFRONT_URL?.trim() && !process.env.NEXT_PUBLIC_SITE_URL?.trim()) {
 		checks.push({
 			id: "settings-storefront-url",
 			title: "Set your storefront URL",
 			description: "SEO, canonical links, and admin “View storefront” need a public site address.",
 			severity: "warn",
+			href: "/settings?tab=urls",
+		});
+	} else if (isLocalPublicSiteUrlFallback(resolvePublicSiteUrl(settings.publicSiteUrl))) {
+		checks.push({
+			id: "settings-storefront-url-local",
+			title: "Storefront URL is still localhost",
+			description: "Save your live shop URL under Site URLs (or set STOREFRONT_BASE_URL on the admin deploy).",
+			severity: "error",
 			href: "/settings?tab=urls",
 		});
 	}
@@ -302,8 +310,19 @@ function evaluateIntegrations(
 			id: "notify-smtp-missing",
 			title: "Staff email alerts are not configured",
 			description:
-				"Add SMTP host, user, and password under Integrations (Gmail / Google Workspace / any SMTP) so orders and chats email the team.",
+				"Set SMTP_HOST, SMTP_USER, SMTP_PASS, and SMTP_FROM on the admin and web Vercel projects so password resets and staff alerts send.",
 			severity: "warn",
+			href: "/settings?tab=integrations",
+		});
+	}
+
+	const storage = readStorageIntegrationStatus(resolved);
+	if (!storage.ready) {
+		checks.push({
+			id: "storage-not-ready",
+			title: "Media storage is not ready",
+			description: storage.summary,
+			severity: "error",
 			href: "/settings?tab=integrations",
 		});
 	}

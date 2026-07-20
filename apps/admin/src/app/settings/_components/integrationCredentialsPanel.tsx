@@ -212,51 +212,20 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 
 			<FormSection
 				title="Email & staff alerts"
-				description="SMTP sends email to every active team member plus staff/support inboxes (Gmail, Google Workspace, or any SMTP host). WhatsApp goes to the staff number and any team member with a phone on their profile."
+				description="SMTP credentials (host, user, password, from) live in deploy env (SMTP_*). Configure notify targets and WhatsApp templates here."
 			>
+				<p className="mb-3 text-[12.5px] leading-relaxed text-[var(--color-ink-600)]">
+					Outbound email is managed on the host via <code className="text-[11.5px]">SMTP_HOST</code>,{" "}
+					<code className="text-[11.5px]">SMTP_USER</code>, <code className="text-[11.5px]">SMTP_PASS</code>, and{" "}
+					<code className="text-[11.5px]">SMTP_FROM</code>.
+				</p>
 				<FormGrid cols={3}>
-					<TextField
-						label="SMTP host"
-						value={draft.smtpHost}
-						onChange={(event) => setField("smtpHost", event.target.value)}
-						placeholder="smtp.gmail.com"
-						disabled={!canUpdate}
-					/>
-					<TextField
-						label="SMTP port"
-						value={draft.smtpPort}
-						onChange={(event) => setField("smtpPort", event.target.value)}
-						placeholder="587"
-						disabled={!canUpdate}
-					/>
-					<TextField
-						label="SMTP user"
-						value={draft.smtpUser}
-						onChange={(event) => setField("smtpUser", event.target.value)}
-						placeholder="you@yourdomain.com"
-						leadingIcon={<Mail size={14} />}
-						disabled={!canUpdate}
-					/>
-					<TextField
-						label="SMTP password"
-						type="password"
-						value={draft.smtpPass}
-						onChange={(event) => setField("smtpPass", event.target.value)}
-						hint="App password for Gmail / Workspace."
-						disabled={!canUpdate}
-					/>
-					<TextField
-						label="From email"
-						value={draft.smtpFrom}
-						onChange={(event) => setField("smtpFrom", event.target.value)}
-						placeholder="Store <notify@yourdomain.com>"
-						disabled={!canUpdate}
-					/>
 					<TextField
 						label="Staff notify email"
 						value={draft.staffNotifyEmail}
 						onChange={(event) => setField("staffNotifyEmail", event.target.value)}
 						hint="Falls back to store support email when empty."
+						leadingIcon={<Mail size={14} />}
 						disabled={!canUpdate}
 					/>
 					<TextField
@@ -265,7 +234,7 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 						value={draft.adminSiteUrl}
 						onChange={(event) => setField("adminSiteUrl", event.target.value)}
 						placeholder="https://admin.yourdomain.com"
-						hint="Password reset links and inquiry deep links."
+						hint="Password reset links and inquiry deep links. Or set ADMIN_SITE_URL on the host."
 						disabled={!canUpdate}
 					/>
 					<TextField
@@ -293,49 +262,23 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 				</FormGrid>
 			</FormSection>
 
-			<FormSection title="Media storage (Cloudflare R2 / S3)" description={status?.storage.summary ?? "Product images and uploads stream to your S3-compatible bucket."}>
-				<FormGrid cols={3}>
-					<TextField
-						label="Bucket"
-						value={draft.awsS3Bucket}
-						onChange={(event) => setField("awsS3Bucket", event.target.value)}
-						disabled={!canUpdate}
-					/>
-					<TextField
-						label="Region"
-						value={draft.awsS3Region}
-						onChange={(event) => setField("awsS3Region", event.target.value)}
-						placeholder="auto (Cloudflare R2)"
-						disabled={!canUpdate}
-					/>
-					<TextField
-						label="Access key ID"
-						value={draft.awsAccessKeyId}
-						onChange={(event) => setField("awsAccessKeyId", event.target.value)}
-						disabled={!canUpdate}
-					/>
-					<TextField
-						label="Secret access key"
-						type="password"
-						value={draft.awsSecretAccessKey}
-						onChange={(event) => setField("awsSecretAccessKey", event.target.value)}
-						disabled={!canUpdate}
-					/>
-					<TextField
-						label="Public URL base (optional)"
-						value={draft.awsS3PublicUrlBase}
-						onChange={(event) => setField("awsS3PublicUrlBase", event.target.value)}
-						placeholder="https://cdn.yourdomain.com"
-						disabled={!canUpdate}
-					/>
-					<TextField
-						label="S3 endpoint (set for Cloudflare R2)"
-						value={draft.awsS3Endpoint}
-						onChange={(event) => setField("awsS3Endpoint", event.target.value)}
-						placeholder="https://<account-id>.r2.cloudflarestorage.com"
-						disabled={!canUpdate}
-					/>
-				</FormGrid>
+			<FormSection
+				title="Media storage (Cloudflare R2 / S3)"
+				description={
+					status?.storage.summary ??
+					"Bucket credentials live in deploy env (AWS_S3_*). Set them on Vercel — not in this form."
+				}
+			>
+				<p className="text-[12.5px] leading-relaxed text-[var(--color-ink-600)]">
+					Required on the host: <code className="text-[11.5px]">AWS_S3_BUCKET</code>,{" "}
+					<code className="text-[11.5px]">AWS_S3_REGION</code>, <code className="text-[11.5px]">AWS_ACCESS_KEY_ID</code>,{" "}
+					<code className="text-[11.5px]">AWS_SECRET_ACCESS_KEY</code>, <code className="text-[11.5px]">AWS_S3_ENDPOINT</code>,{" "}
+					<code className="text-[11.5px]">AWS_S3_PUBLIC_URL_BASE</code>. Status:{" "}
+					<strong className="font-semibold text-[var(--color-ink-800)]">
+						{status?.storage.ready ? "ready" : "not ready"}
+					</strong>
+					.
+				</p>
 			</FormSection>
 
 			{canUpdate ? (

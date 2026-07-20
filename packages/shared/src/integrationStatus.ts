@@ -79,13 +79,23 @@ export function readStorageIntegrationStatus(settings: IntegrationSettingsValues
 			settings.awsAccessKeyId.trim() &&
 			settings.awsSecretAccessKey.trim(),
 	);
+	const publicBaseConfigured = Boolean(settings.awsS3PublicUrlBase.trim());
+	const usesCustomEndpoint = Boolean(settings.awsS3Endpoint.trim());
+	const ready = s3Configured && (!usesCustomEndpoint || publicBaseConfigured);
+
+	let summary = "Bucket, region, or credentials incomplete — uploads will fail.";
+	if (s3Configured && usesCustomEndpoint && !publicBaseConfigured) {
+		summary = "R2/S3 endpoint is set but AWS_S3_PUBLIC_URL_BASE is missing — uploads will use a broken URL.";
+	} else if (ready) {
+		summary = publicBaseConfigured
+			? "Bucket configured via deploy env — uploads use your public CDN / R2.dev URL."
+			: "Bucket configured — product and brand uploads use your S3 bucket.";
+	}
 
 	return {
 		s3Configured,
-		ready: s3Configured,
-		summary: s3Configured
-			? "Bucket configured — product and brand uploads use your S3/R2 bucket."
-			: "Bucket, region, or credentials incomplete — uploads will fail.",
+		ready,
+		summary,
 	};
 }
 

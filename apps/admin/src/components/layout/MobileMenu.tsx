@@ -10,7 +10,6 @@ import { useAdminPermissions } from "@/lib/permissionsContext";
 import { classNames } from "@store/shared";
 
 import { formatRole, getInitials } from "@/lib/initials";
-import { resolvePublicSiteUrl } from "@store/shared";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 import { AdminAlertsRow, useAdminAlerts } from "@/app/_components/dashboard/alertsUi";
 
@@ -23,11 +22,10 @@ export function MobileMenu({ isOpen, onClose }: MobileMenuProps) {
 	const pathname = usePathname() ?? "";
 	const router = useRouter();
 	const { data: session } = useSession();
-	const { siteName, publicSiteUrl: configuredStorefrontUrl } = useStoreSettings();
+	const { siteName, publicSiteUrl } = useStoreSettings();
 	const { can, isLoading } = useAdminPermissions();
 	const user = session?.user;
 	const brandShort = siteName?.split(" ")[0] ?? "Store";
-	const publicSiteUrl = resolvePublicSiteUrl(configuredStorefrontUrl);
 
 	async function handleLogout() {
 		onClose();

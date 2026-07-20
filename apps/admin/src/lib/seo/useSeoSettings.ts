@@ -6,7 +6,6 @@ import type { SeoSettings, StoredImage } from "@store/shared";
 import { isStoredImage } from "@store/shared";
 
 import { apiFetch } from "@/lib/api";
-import { resolvePublicSiteUrl } from "@store/shared";
 import { useStoreSettings } from "@/lib/storeSettingsContext";
 
 interface AdminSettingRow {
@@ -81,7 +80,7 @@ export function useSeoSettings(): {
 	const settings: SeoSettings = {
 		siteName: store.siteName,
 		siteTagline: store.siteTagline,
-		siteUrl: resolvePublicSiteUrl(store.publicSiteUrl),
+		siteUrl: store.publicSiteUrl,
 		...seoOverrides,
 	};
 
