@@ -11,7 +11,6 @@
 
 export const MAX_IMAGE_MB = 12;
 export const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
-export const MAX_SOURCE_DIMENSION = 4000;
 /** Per-variant upload cap — a 2400w WebP is well under this. */
 export const MAX_VARIANT_BYTES = 8 * 1024 * 1024;
 export const MAX_VIDEO_MB = 64;
@@ -37,7 +36,6 @@ export const IMAGE_VARIANT_WIDTHS = {
 export type ImageVariantName = keyof typeof IMAGE_VARIANT_WIDTHS;
 
 export const WEBP_QUALITY = 78;
-export const WEBP_EFFORT = 4;
 
 /** Dimension (square) used to generate the inline blur placeholder. */
 export const BLURHASH_DIMENSION = 32;

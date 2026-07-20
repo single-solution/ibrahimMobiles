@@ -14,7 +14,7 @@ const MAX_EMAIL_CHARS = 320;
 
 /** Minimum password length we accept on sign-in / change-password forms. */
 const MIN_PASSWORD_CHARS = 8;
-/** Hard cap on password length to prevent DoS via outsized bcrypt inputs. */
+/** Hard cap on password length to prevent DoS via outsized password inputs. */
 const MAX_PASSWORD_CHARS = 128;
 
 interface StringOptions {

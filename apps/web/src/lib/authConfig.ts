@@ -21,7 +21,7 @@ const isProduction = process.env.NODE_ENV === "production";
  * - Cookie is **persistent** (matches the JWT lifetime) — customers stay
  *   signed in across browser restarts so the cart / account stay
  *   handy. The admin app makes the opposite trade-off.
- * - Edge-safe: no Mongoose / bcrypt imports in this file. Anything that
+ * - Edge-safe: no Mongoose / password-hash imports in this file. Anything that
  *   needs the DB lives in `lib/auth.ts`.
  */
 export const authConfig: NextAuthConfig = {

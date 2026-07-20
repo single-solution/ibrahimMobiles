@@ -4,7 +4,7 @@
  * - `kind=image` (default): receives the WebP variant ladder + blur that the
  *   admin browser (`imageEncoder.ts`) already produced, validates each, and
  *   streams them to storage. Returns a fully-formed `StoredImage`. Resizing is
- *   client-side because `sharp` can't run on Cloudflare Workers.
+ *   client-side so the API only validates and streams to R2.
  * - `kind=video`: bypasses image processing and stores the original
  *   file directly. Returns `{ url, contentType, sizeBytes }` so the
  *   caller can persist a `Grade.video` URL.

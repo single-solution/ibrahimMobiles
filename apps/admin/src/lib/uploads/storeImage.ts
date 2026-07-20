@@ -4,7 +4,7 @@
  * The browser (`imageEncoder.ts`) already produced the WebP variant ladder +
  * blur placeholder — this module only validates the finished artefacts (magic
  * bytes, size caps) and streams each to the active `StorageProvider` (R2/S3).
- * No image CPU runs here, so it stays inside the Workers 10ms budget.
+ * No image CPU runs here — variants arrive pre-encoded from the browser.
  *
  * Failure handling: if any variant put fails, best-effort `remove` the ones
  * that already succeeded so we don't leak orphans into storage.

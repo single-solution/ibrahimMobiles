@@ -4,9 +4,9 @@
  */
 
 /**
- * Pre-rendered WebP variants generated server-side on upload. Every URL is
- * the right size for its consumer — no `?w=480&q=75` runtime params — which
- * keeps CDN cache-hit ratio near 100% and removes runtime optimization cost.
+ * Pre-rendered WebP variants generated in the browser on upload, then stored
+ * on R2. Every URL is the right size for its consumer — no `?w=480&q=75`
+ * runtime params — which keeps CDN cache-hit ratio near 100%.
  *
  *   - `thumb`  : ≤  160w — admin gallery thumbnails, hero badge crops, OG-card collage tiles.
  *   - `card`   : ≤  480w — storefront `ProductCard` hero, related-product rails, mobile PDP hero.
@@ -24,8 +24,7 @@ export interface StoredImageVariants {
  * The canonical image record. Persisted as an embedded sub-document on
  * every model that needs an image. Storage-agnostic by design — the
  * `variants.*` URLs are plain HTTPS strings, so the same `StoredImage` can
- * point at `*.public.blob.vercel-storage.com` today and `cdn.<domain>`
- * (S3 + CloudFront) tomorrow without touching the schema or any renderer.
+ * point at an R2.dev / custom CDN host without touching the schema or any renderer.
  *
  * `width`/`height` are SOURCE dimensions (needed by `next/image` to reserve
  * layout space and prevent CLS). `blurDataURL` is a ~200-byte base64 32×32

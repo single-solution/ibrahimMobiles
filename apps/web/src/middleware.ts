@@ -3,10 +3,7 @@ import { authConfig } from "@/lib/authConfig";
 
 /**
  * Edge middleware for the storefront (Auth.js).
- *
- * Named `middleware.ts` (not `proxy.ts`): the OpenNext Cloudflare adapter only
- * builds Edge middleware — Next 16's Node-runtime `proxy.ts` is unsupported.
- * A named `middleware` export keeps Turbopack route discovery stable in dev.
+ * Keep the file named `middleware.ts` so Turbopack discovers the Edge entry.
  */
 const { auth } = NextAuth(authConfig);
 

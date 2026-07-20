@@ -1,9 +1,10 @@
 /**
  * Allowlist for storage object URLs that may be deleted via admin APIs.
  * Prevents callers from passing arbitrary third-party URLs to `remove()`.
+ * Legacy Vercel Blob hosts remain allowed so old product images can still be deleted.
  */
 
-const VERCEL_BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
+const LEGACY_VERCEL_BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
 
 export function isAllowedStorageObjectUrl(url: string): boolean {
 	try {
@@ -12,7 +13,7 @@ export function isAllowedStorageObjectUrl(url: string): boolean {
 			return false;
 		}
 		const host = parsed.hostname.toLowerCase();
-		if (host.endsWith(VERCEL_BLOB_HOST_SUFFIX)) {
+		if (host.endsWith(LEGACY_VERCEL_BLOB_HOST_SUFFIX)) {
 			return true;
 		}
 

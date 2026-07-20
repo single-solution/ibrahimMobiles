@@ -3,11 +3,10 @@
 /**
  * Browser-side image variant encoder.
  *
- * Replaces server `sharp` processing (which can't run on Cloudflare Workers):
- * decodes the source once, then renders the same WebP variant ladder
+ * Decodes the source once, then renders the WebP variant ladder
  * (thumb/card/detail/full) + a tiny blur placeholder using a canvas. The
- * finished variants are uploaded to the Worker, which only validates and
- * streams them to R2 — no server image CPU.
+ * finished variants upload to `/api/uploads`, which only validates and PUTs
+ * them to R2 — no server image CPU.
  *
  * Output matches the server `StoredImage` contract exactly, so the storefront
  * renderers and `next/image` slots are unchanged.

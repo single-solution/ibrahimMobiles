@@ -93,13 +93,13 @@ export function ProductEditDrawer({ productId, step, catalog, isOpen, onClose, o
 
 	const category = useMemo(() => (categorySlug ? (catalog.categories.find((row) => row.slug === categorySlug) ?? null) : null), [catalog.categories, categorySlug]);
 
-	const seoGradeLabels = useMemo(() => {
+	const seoGradeLabels = (() => {
 		if (!product?.categorySlug) {
 			return {};
 		}
 		const grades = catalog.gradesByCategory[product.categorySlug] ?? [];
 		return Object.fromEntries(grades.map((grade) => [grade.slug, grade.label]));
-	}, [catalog.gradesByCategory, product?.categorySlug]);
+	})();
 
 	const brands = categorySlug ? (catalog.brandsByCategory[categorySlug] ?? []) : [];
 

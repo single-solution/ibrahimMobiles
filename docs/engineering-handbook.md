@@ -138,13 +138,11 @@ Everything below is **already implemented**. Do not remove or bypass without upd
 
 | Done | Detail |
 | ---- | ------ |
-| Next image optimizer (production) | AVIF + WebP (`apps/web/next.config.ts`) |
-| 7-day optimizer TTL | `minimumCacheTTL` on web |
-| Per-variant quality | 65 / 70 / 80 / 85 in `ProductImage` + `images.qualities` |
-| Dev image bypass | `unoptimized: true` in dev — avoids local Blob DNS / `/_next/image` 500s |
+| Pre-sized R2 WebP | Browser canvas ladder; `images.unoptimized: true` on web + admin |
+| CSP | `img-src` / `media-src` allowlist for R2 public base |
+| Remote patterns | R2/S3 public base (+ Unsplash / simpleicons where used) |
+| Upload validation | Magic-byte checks; browser canvas WebP ladder (admin) |
 | Dev DNS resolvers | `configureDevDnsResolvers()` in `next.config.ts` + `instrumentation.ts` |
-| Remote patterns | Blob, S3, Unsplash, simpleicons |
-| Upload validation | Magic-byte checks; Sharp variants (admin) |
 
 ### 2.3 Security & commerce
 
@@ -352,7 +350,7 @@ Audit date: June 2026. **Do not treat as launch blockers** unless marked high an
 | No i18n | Single locale — skip internationalization.md |
 | In-memory rate limits at launch | Documented; swap Redis when multi-instance |
 | `ProductCard` + `Card` primitive | naming.md Card exception |
-| Admin `unoptimized` images in dev | Local Blob DNS reliability |
+| Admin `unoptimized` images | Pre-sized R2 WebP — no `/_next/image` optimizer |
 | Motion animations kept | Product requirement; reduced-motion only |
 
 ---

@@ -317,7 +317,7 @@ sequenceDiagram
 | Identity | Phone only; no passwords |
 | OTP | 6 digits; **5 min** TTL; **5** max wrong guesses |
 | Rate limits | **5** issues / **15 min**; **10** verifies / **15 min** |
-| Resend | **1 min** throttle; UI cooldown **30s** |
+| OTP resend | **1 min** throttle; UI cooldown **30s** |
 | Fallback | Dev: codes in server log when Meta WhatsApp env unset |
 | Addresses | Max **6**; cannot delete last |
 | Sign-out | Clears session, guest chat cookies, cart |

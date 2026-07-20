@@ -9,9 +9,8 @@ let devDnsConfigured = false;
  *
  * Some routers and VPN DNS proxies refuse SRV/TXT lookups (MongoDB Atlas
  * `mongodb+srv://`) or intermittently fail `getaddrinfo` for cloud hosts
- * (Vercel Blob, etc.). Node uses `dns.getServers()` for all lookups — this
- * runs once per worker at boot so MongoDB, `/_next/image`, and outbound
- * fetches share the same resolver list.
+ * (Atlas SRV / R2 CDN / third-party hosts). Node uses `dns.getServers()` for all lookups — this
+ * runs once per worker at boot so MongoDB and outbound fetches share the same resolver list.
  *
  * Opt out with `DEV_SKIP_PUBLIC_DNS=true` when your network blocks public DNS.
  */

@@ -284,8 +284,7 @@ export function InquiryConversationPanel({
 		setIsUploading(true);
 		try {
 			const formData = new FormData();
-			// Images are encoded to the WebP variant ladder in-browser (Workers
-			// can't run sharp); documents upload as-is.
+			// Images are encoded to the WebP variant ladder in-browser; documents upload as-is.
 			if ((ALLOWED_IMAGE_MIME as readonly string[]).includes(file.type)) {
 				const encoded = await encodeImageVariants(file);
 				formData.append("variant_thumb", encoded.variants.thumb, "thumb.webp");

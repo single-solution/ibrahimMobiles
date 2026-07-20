@@ -49,7 +49,7 @@ async function postUpload(form: FormData): Promise<unknown> {
 }
 
 export async function uploadImage(options: UploadImageOptions): Promise<StoredImage> {
-	// Variants are encoded in the browser (Workers can't run sharp); the server
+	// Variants are encoded in the browser; the server
 	// only validates + streams them to R2.
 	const encoded = await encodeImageVariants(options.file);
 	const form = new FormData();

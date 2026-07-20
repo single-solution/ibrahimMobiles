@@ -44,21 +44,11 @@ const MAX_IDLE_TIME_MS = 60_000;
 const DNS_RETRY_ATTEMPTS = 3;
 const DNS_RETRY_BASE_DELAY_MS = 400;
 
-/**
- * Cloudflare Workers (workerd) exposes a partial Node runtime via
- * `nodejs_compat`: the MongoDB driver connects over the `net`/`tls` shims, but
- * native compression addons (`zstd`/`snappy`) and the libuv IPv4 `family` hint
- * don't exist there. Detect the runtime so those options are dropped only on
- * Workers — Node hosts (Vercel/local) keep the tuned behavior unchanged.
- */
-const isCloudflareWorkers = typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers";
-
 const MONGO_CONNECT_OPTIONS: ConnectOptions = {
 	bufferCommands: false,
 	// Force IPv4. Node 18+ prefers IPv6 by default, which can cause intermittent
-	// DNS resolution failures with MongoDB Atlas SRV records on Vercel. Not
-	// supported by the Workers socket shim, so omitted there.
-	family: isCloudflareWorkers ? undefined : IP_FAMILY_V4,
+	// DNS resolution failures with MongoDB Atlas SRV records on Vercel.
+	family: IP_FAMILY_V4,
 	// 15s ceiling on server selection + initial TCP — long enough to ride
 	// out a slow Atlas region cold-start, short enough that a truly dead
 	// cluster fails fast instead of hanging every Next.js request.
@@ -76,9 +66,8 @@ const MONGO_CONNECT_OPTIONS: ConnectOptions = {
 	// Wire-level compression. zstd is the fastest and most compact of
 	// the supported algorithms; the driver negotiates `snappy`/`zlib`
 	// as fallbacks if the server doesn't support zstd. Cuts payload
-	// bytes on big aggregations by ~3–5×. The addons are native, so the
-	// connection runs uncompressed on Workers.
-	compressors: isCloudflareWorkers ? undefined : ["zstd", "snappy", "zlib"],
+	// bytes on big aggregations by ~3–5×.
+	compressors: ["zstd", "snappy", "zlib"],
 	// Driver-level retry for transient read errors. Writes already retry
 	// by default on Atlas; this makes reads symmetric.
 	retryReads: true,

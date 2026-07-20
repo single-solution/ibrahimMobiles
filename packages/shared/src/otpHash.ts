@@ -3,8 +3,7 @@
  *
  * OTPs are short-lived, single-use, attempt-capped numeric codes — their
  * security comes from expiry + attempt limits + rate limiting, not from a slow
- * KDF. A keyed HMAC (server secret) runs sub-millisecond, so it fits the
- * Cloudflare Workers 10ms CPU budget where bcrypt (cost 12, ~200ms) cannot.
+ * KDF. A keyed HMAC (server secret) runs sub-millisecond on Node and Edge.
  *
  * Stored rows are already scoped to a phone fingerprint, so hashing the code
  * alone is sufficient; the server secret prevents matching a code from a DB

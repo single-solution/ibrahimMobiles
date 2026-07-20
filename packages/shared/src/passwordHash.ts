@@ -1,11 +1,8 @@
 /**
  * Password hashing (Web Crypto PBKDF2-HMAC-SHA-256).
  *
- * Replaces bcrypt so admin login/reset run on Cloudflare Workers: bcrypt (~50–
- * 100ms CPU) blows the 10ms request budget, while native PBKDF2 at Cloudflare's
- * maximum 100k iterations completes in a few ms. Security rests on the salted
- * KDF plus a server-side pepper (`AUTH_SECRET`) mixed into the input, so a DB
- * leak of salt+hash can't be cracked without also holding `AUTH_SECRET`.
+ * Salted KDF plus a server-side pepper (`AUTH_SECRET`) mixed into the input, so a
+ * DB leak of salt+hash can't be cracked without also holding `AUTH_SECRET`.
  *
  * Stored format: `pbkdf2$<iterations>$<saltBase64>$<hashBase64>`.
  */
@@ -13,7 +10,6 @@
 const encoder = new TextEncoder();
 
 const ALGORITHM_LABEL = "pbkdf2";
-// Cloudflare Workers rejects PBKDF2 above 100k iterations; use the ceiling.
 const PBKDF2_ITERATIONS = 100_000;
 const PBKDF2_HASH = "SHA-256";
 const DERIVED_KEY_BITS = 256;

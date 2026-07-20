@@ -36,7 +36,7 @@ function isAdminRole(role: unknown): role is AdminRole {
  *   is on a different name and host, so this app would never receive it,
  *   but the gate below also rejects anything other than admin roles
  *   defensively.
- * - Edge-safe: no Mongoose / bcrypt imports here. DB-touching code lives
+ * - Edge-safe: no Mongoose / password-hash imports here. DB-touching code lives
  *   in `lib/auth.ts`.
  */
 export const authConfig: NextAuthConfig = {

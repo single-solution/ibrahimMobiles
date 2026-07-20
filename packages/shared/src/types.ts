@@ -37,7 +37,7 @@ export interface GradeDescriptor {
 	label: string;
 	notes: string;
 	color: string;
-	/** Optional inspection video URL (Vercel Blob). */
+	/** Optional inspection video URL (R2/S3 public URL). */
 	video?: string;
 	/** Optional structured copy (summary + icon-tagged bullets). */
 	content?: StructuredContent;

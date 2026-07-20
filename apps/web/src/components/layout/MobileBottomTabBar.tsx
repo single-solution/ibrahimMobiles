@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -141,12 +141,12 @@ function TabMessageItem() {
 	const chatSettings = useChatSettings();
 	const { whatsappNumber } = useStoreSettings();
 	const [unread, setUnread] = useState(0);
-	const [isMounted, setIsMounted] = useState(false);
+	const isMounted = useSyncExternalStore(
+		() => () => {},
+		() => true,
+		() => false,
+	);
 	const isChatOpen = useChatOpenState();
-
-	useEffect(() => {
-		setIsMounted(true);
-	}, []);
 
 	useEffect(() => {
 		if (!chatSettings.enabled) {

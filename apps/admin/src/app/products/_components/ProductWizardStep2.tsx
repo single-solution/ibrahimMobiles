@@ -483,7 +483,7 @@ export function ProductWizardStep2({
 		}
 	}
 
-	const productScopedAttributes = useMemo(() => filterAttributesForProduct(attributes, attributeConfig), [attributes, attributeConfig]);
+	const productScopedAttributes = filterAttributesForProduct(attributes, attributeConfig);
 
 	if (!product) {
 		return null;

@@ -30,7 +30,7 @@ Technical map of the Ibrahim Mobiles monorepo — apps, packages, MongoDB, secur
 | Storefront | `@store/web` | 3000 | Shop, cart, checkout, account, chat |
 | Admin | `@store/admin` | 3001 | Catalog, orders, customers, offers, settings |
 
-Both share one MongoDB database and one Blob store.
+Both share one MongoDB database and one Cloudflare R2 bucket.
 
 ```mermaid
 graph TB
@@ -40,7 +40,7 @@ graph TB
   end
   subgraph data [Shared data]
     MONGO[(MongoDB)]
-    BLOB[Vercel Blob / S3]
+    BLOB[Cloudflare R2]
   end
   subgraph external [External services]
     PF[PayFast / Rapid]
@@ -261,4 +261,4 @@ flowchart LR
 - [go-live.md](go-live.md) — production launch
 - [website-audit.md](website-audit.md) — audit checklist
 - [setup.md](setup.md) — install
-
+
