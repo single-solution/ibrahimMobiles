@@ -24,7 +24,7 @@
  * congratulatory state.
  */
 import { connectDB, getIntegrationSettings, getStoreSettings, Product } from "@store/db";
-import { STORE_SETTING_DEFAULTS, hasBankTransferDetailsConfigured, isLocalPublicSiteUrlFallback, isOnlineCardCheckoutReady, readOnlinePaymentIntegrationStatus, readStorageIntegrationStatus, resolveIntegrationSettings, resolvePublicSiteUrl, resolveWhatsAppCloudConfig, type StoreSettings } from "@store/shared";
+import { STORE_SETTING_DEFAULTS, hasBankTransferDetailsConfigured, isLocalPublicSiteUrlFallback, readStorageIntegrationStatus, resolveIntegrationSettings, resolvePublicSiteUrl, type StoreSettings } from "@store/shared";
 
 import { LOW_STOCK_VARIANT_THRESHOLD } from "@/lib/server/dashboardStats";
 
@@ -184,7 +184,7 @@ function pluralise(count: number, singular: string, plural?: string): string {
 	return count === 1 ? singular : (plural ?? `${singular}s`);
 }
 
-function evaluateSettings(settings: StoreSettings, cardCheckoutReady: boolean): ShopHealthCheck[] {
+function evaluateSettings(settings: StoreSettings): ShopHealthCheck[] {
 	const checks: ShopHealthCheck[] = [];
 	const fallbackName = STORE_SETTING_DEFAULTS.siteName;
 
@@ -219,20 +219,20 @@ function evaluateSettings(settings: StoreSettings, cardCheckoutReady: boolean): 
 	if (!settings.supportPhone.trim() && !settings.whatsappNumber.trim()) {
 		checks.push({
 			id: "settings-no-contact",
-			title: "Add a support phone or WhatsApp",
+			title: "Add a support phone or contact WhatsApp",
 			description: "Customers can't reach you from the footer or product pages.",
 			severity: "error",
 			href: "/settings?tab=contact",
 		});
 	}
 
-	// Payment readiness — at least one method enabled.
-	const enabledMethods = [settings.paymentBankTransferEnabled, settings.paymentCardEnabled, settings.paymentCodEnabled].filter(Boolean).length;
+	// Payment readiness — bank transfer and/or COD (online card gateways are not used).
+	const enabledMethods = [settings.paymentBankTransferEnabled, settings.paymentCodEnabled].filter(Boolean).length;
 	if (enabledMethods === 0) {
 		checks.push({
 			id: "payments-none-enabled",
 			title: "No payment methods are enabled",
-			description: "Customers can't complete checkout right now.",
+			description: "Enable bank transfer and/or cash on delivery so customers can check out.",
 			severity: "error",
 			href: "/settings?tab=payments",
 		});
@@ -247,16 +247,6 @@ function evaluateSettings(settings: StoreSettings, cardCheckoutReady: boolean): 
 			description: "Add bank name and account number under Payments so customers know where to pay.",
 			severity: "warn",
 			href: "/settings?tab=payments",
-		});
-	}
-
-	if (settings.paymentCardEnabled && !cardCheckoutReady) {
-		checks.push({
-			id: "payments-card-gateway-off",
-			title: "Pay online is on but no gateway is ready",
-			description: "Card won't appear at checkout until PayFast or Rapid Gateway is configured under Integrations — or turn pay online off under Payments.",
-			severity: "warn",
-			href: "/settings?tab=integrations",
 		});
 	}
 
@@ -335,49 +325,6 @@ function evaluateIntegrations(
 			severity: "warn",
 			href: "/settings?tab=integrations",
 		});
-	}
-
-	const whatsappReady = Boolean(resolveWhatsAppCloudConfig(resolved));
-	if (!whatsappReady) {
-		checks.push({
-			id: "notify-whatsapp-cloud-missing",
-			title: "WhatsApp Cloud API is not configured",
-			description: "Customers won't get order updates on WhatsApp and staff won't get WhatsApp alerts until Cloud API credentials are set.",
-			severity: "warn",
-			href: "/settings?tab=integrations",
-		});
-	} else {
-		if (!resolved.whatsappStaffNotifyTemplate.trim()) {
-			checks.push({
-				id: "notify-staff-whatsapp-template-missing",
-				title: "Staff WhatsApp template is missing",
-				description: "Set the staff utility template under Integrations for order and chat alerts on WhatsApp.",
-				severity: "warn",
-				href: "/settings?tab=integrations",
-			});
-		}
-		if (!resolved.whatsappCustomerOrderTemplate.trim()) {
-			checks.push({
-				id: "notify-customer-order-template-missing",
-				title: "Customer order WhatsApp template is missing",
-				description: "Set the customer utility template so shoppers get order placed, status, and agent reply updates.",
-				severity: "warn",
-				href: "/settings?tab=integrations",
-			});
-		}
-	}
-
-	if (settings.paymentCardEnabled) {
-		const paymentStatus = readOnlinePaymentIntegrationStatus(integration);
-		if (paymentStatus.provider === "rapid-gateway" && paymentStatus.ready && !paymentStatus.webhookConfigured) {
-			checks.push({
-				id: "payments-rapid-webhook-missing",
-				title: "Rapid Gateway webhook secret is missing",
-				description: "Paid card orders won't auto-confirm until the webhook secret is saved under Integrations.",
-				severity: "warn",
-				href: "/settings?tab=integrations",
-			});
-		}
 	}
 
 	return checks;
@@ -469,11 +416,10 @@ export async function loadShopHealth(): Promise<ShopHealthSummary> {
 	// the dashboard. We swap in defaults so the catalog checks still run.
 	const settings = await getStoreSettings().catch(() => null);
 	const integration = await getIntegrationSettings().catch(() => null);
-	const cardCheckoutReady = integration ? isOnlineCardCheckoutReady(integration) : false;
 	const lowStockThreshold = settings?.lowStockThreshold ?? LOW_STOCK_VARIANT_THRESHOLD;
 	const productAgg = await loadProductHealth(lowStockThreshold).catch(() => null);
 
-	const settingsChecks = settings ? evaluateSettings(settings, cardCheckoutReady) : [];
+	const settingsChecks = settings ? evaluateSettings(settings) : [];
 	const integrationChecks = settings && integration ? evaluateIntegrations(settings, integration) : [];
 	const productChecks = evaluateProducts(productAgg, lowStockThreshold);
 

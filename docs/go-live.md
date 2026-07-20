@@ -17,7 +17,7 @@ Production launch checklist for Ibrahim Mobiles — configure integrations, depl
 | Criterion | Status in codebase |
 | --------- | ---------------- |
 | **Fast** | ISR (30s), boot cache warm, idle route prefetch, AVIF/WebP images, animations preserved |
-| **Secure** | Server-side pricing, atomic offer usage, idempotent checkout, rate limits, PayFast constant-time hash, RBAC on admin |
+| **Secure** | Server-side pricing, atomic offer usage, idempotent checkout, rate limits, RBAC on admin |
 | **Light** | Client bundle split (`@store/shared` vs `@store/shared/server` — no Mongo in browser) |
 | **Clean** | Typecheck + lint; Admin Shop Health card surfaces misconfig before customers hit it |
 
@@ -88,13 +88,9 @@ These **must** stay on the host — never rely on Admin UI alone.
 | `WHATSAPP_STAFF_NOTIFY_TEMPLATE` | Recommended | Meta utility template — staff order + chat alerts |
 | `WHATSAPP_CUSTOMER_ORDER_TEMPLATE` | Recommended | Meta utility template — customer order + status + agent replies |
 
-### Payments (env or Admin Integrations)
+### Payments
 
-| Variable | When |
-| -------- | ---- |
-| `ONLINE_PAYMENT_PROVIDER` | `payfast` or `rapid-gateway` |
-| `PAYFAST_*` | PayFast merchant credentials + sandbox flag |
-| `RAPID_GATEWAY_*` | Rapid secret + webhook secret + sandbox flag |
+Online card gateways are **not enabled**. Use bank transfer and/or COD under **Settings → Payments**.
 
 Full template: [.env.example](../.env.example).
 
@@ -108,43 +104,30 @@ Work through in order. **Dashboard → Shop Health** should trend toward all cle
 | - | -------- | ------ |
 | 1 | **Settings → Site URLs** | Public storefront URL (`publicSiteUrl`) |
 | 2 | **Settings → Store details** | Site name, tagline, logos, favicons |
-| 3 | **Settings → Contact** | Support phone, WhatsApp, email, address, hours |
-| 4 | **Settings → Payments** | Enable bank transfer / pay online / COD; bank name + account; COD % |
+| 3 | **Settings → Contact** | Support phone, WhatsApp (customer link), email, address, hours |
+| 4 | **Settings → Payments** | Enable bank transfer and/or COD; bank name + account; COD % |
 | 5 | **Settings → Delivery** | Courier fee + free-delivery threshold |
 | 6 | **Settings → Policies** | Return + privacy HTML (checkout modals), moneyback days |
-| 7 | **Settings → Integrations** | PayFast or Rapid Gateway; Meta WhatsApp; SMTP; storage; pixel IDs |
-| 8 | **Settings → Integrations** | `WHATSAPP_STAFF_NOTIFY_TEMPLATE`, `WHATSAPP_CUSTOMER_ORDER_TEMPLATE` |
-| 9 | **Catalog** | Active categories, products with images + in-stock variants ([catalog.md](catalog.md)) |
-| 10 | **Team** | Active admin users with correct emails/phones for staff alerts |
+| 7 | **Settings → Integrations** | Staff notify email, admin URL, pixel IDs; confirm SMTP + R2 via deploy env |
+| 8 | **Catalog** | Active categories, products with images + in-stock variants ([catalog.md](catalog.md)) |
+| 9 | **Team** | Active admin users with correct emails for staff alerts |
 
 ### Shop Health — resolve before launch
 
 | Check ID | Severity | Fix |
 | -------- | -------- | --- |
-| `payments-none-enabled` | error | Enable at least one payment method |
-| `payments-bank-details-missing` | error | Bank name + account when bank transfer on |
-| `payments-card-gateway-off` | warn | Configure PayFast/Rapid when pay online on |
-| `payments-rapid-webhook-missing` | warn | Set Rapid webhook secret + register URL |
-| `notify-smtp-missing` | warn | SMTP host + user + password |
+| `payments-none-enabled` | error | Enable at least one payment method (bank and/or COD) |
+| `payments-bank-details-missing` | warn | Bank name + account when bank transfer on |
+| `notify-smtp-missing` | warn | SMTP host + user + password on Vercel |
 | `notify-admin-url-missing` | warn | `ADMIN_SITE_URL` in Integrations or env |
-| `notify-whatsapp-cloud-missing` | warn | Meta WhatsApp credentials |
-| `notify-staff-whatsapp-template-missing` | warn | Staff utility template name |
-| `notify-customer-order-template-missing` | warn | Customer order template name |
+| `storage-not-ready` | error | Complete `AWS_S3_*` / R2 credentials |
 | Catalog hygiene (no images, low stock, etc.) | warn/info | Fix in Products / Inventory |
 
 ---
 
-## 4. Payment gateway webhooks
+## 4. Payment gateways
 
-Register these URLs on the provider dashboard (production domains).
-
-| Provider | Webhook / callback URL |
-| -------- | ---------------------- |
-| **PayFast** | `https://yourstore.pk/api/webhooks/payfast` |
-| **PayFast return** | `https://yourstore.pk/api/payments/callback/payfast` |
-| **Rapid Gateway** | `https://yourstore.pk/api/webhooks/rapid-gateway` |
-
-**Rule:** Card payments auto-confirm only when the gateway sends a verified payload **including the paid amount**. Missing amount → order stays `pending-payment` until admin confirms.
+**Skipped** — this shop does not use PayFast or Rapid Gateway.
 
 ---
 
@@ -178,12 +161,11 @@ Run on **production URLs** with a real phone number.
 | ---- | ------ |
 | 1 | Home → category → PDP loads; scroll reveals animate |
 | 2 | Add to cart → cart page → checkout |
-| 3 | Sign in via WhatsApp OTP |
+| 3 | Sign in via phone OTP (code in server / Vercel logs) |
 | 4 | Place **COD** order → success page → account order detail |
-| 5 | Place **bank transfer** order → `pending-payment`; WhatsApp screenshot flow works |
-| 6 | Place **pay online** order (if enabled) → gateway redirect → webhook confirms → `confirmed` |
-| 7 | Cancel order while `pending-payment` or `confirmed` (account) |
-| 8 | Open chat → send message → staff receives email/WhatsApp (if configured) |
+| 5 | Place **bank transfer** order → `pending-payment`; WhatsApp screenshot to contact number works |
+| 6 | Cancel order while `pending-payment` or `confirmed` (account) |
+| 7 | Open chat → send message → staff receives email (if SMTP configured) |
 
 ### Admin
 

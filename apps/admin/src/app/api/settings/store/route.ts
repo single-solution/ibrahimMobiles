@@ -125,6 +125,10 @@ export async function PUT(request: Request) {
 			}
 			value = trimmed as StoreSettings[keyof StoreSettings];
 		}
+		if (field === "paymentCardEnabled") {
+			// Online card gateways are not enabled for this shop.
+			value = false as StoreSettings[keyof StoreSettings];
+		}
 		if (field === "whatsappNumber") {
 			const digits = normalizeWhatsappNumber(typeof coerced === "string" ? coerced : "");
 			if (digits.length > 0 && !isValidWhatsappNumber(digits)) {

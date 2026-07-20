@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CloudUpload, CreditCard, Gauge, MapPin, MessageCircle, Share2, Sparkles, Video } from "lucide-react";
+import { CloudUpload, Gauge, MapPin, MessageCircle, Share2, Sparkles, Video } from "lucide-react";
 import { STORE_SETTING_GROUPS, type OtpIntegrationStatus, type OnlinePaymentIntegrationStatus, type StorageIntegrationStatus } from "@store/shared";
 import { apiFetch } from "@/lib/api";
 import { FormSection } from "@/components/forms/FormSection";
@@ -31,7 +31,6 @@ export function IntegrationsSettings({ draft, saved, setField, onSaved, canUpdat
 	const fields = useMemo(() => [...STORE_SETTING_GROUPS.social, ...STORE_SETTING_GROUPS.marketing], []);
 	const [otpStatus, setOtpStatus] = useState<OtpIntegrationStatus | null>(null);
 	const [storageStatus, setStorageStatus] = useState<StorageIntegrationStatus | null>(null);
-	const [onlinePaymentStatus, setOnlinePaymentStatus] = useState<OnlinePaymentIntegrationStatus | null>(null);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -43,7 +42,6 @@ export function IntegrationsSettings({ draft, saved, setField, onSaved, canUpdat
 				if (!cancelled) {
 					setOtpStatus(data.otp);
 					setStorageStatus(data.storage);
-					setOnlinePaymentStatus(data.onlinePayment);
 				}
 			} catch {
 				// Status panel is informational — tab still works without it.
@@ -76,37 +74,18 @@ export function IntegrationsSettings({ draft, saved, setField, onSaved, canUpdat
 		{ label: "Tag Manager", value: gtm.label, tone: gtm.tone, icon: Gauge },
 		{ label: "TikTok Pixel", value: tiktok.label, tone: tiktok.tone, icon: Sparkles },
 		{
-			label: "Online payments",
-			value:
-				onlinePaymentStatus?.ready
-					? onlinePaymentStatus.provider === "payfast"
-						? "PayFast ready"
-						: "Rapid ready"
-					: onlinePaymentStatus?.provider === "none"
-						? "Off"
-						: "Setup",
-			hint: onlinePaymentStatus?.summary,
-			tone: onlinePaymentStatus?.ready ? "good" : onlinePaymentStatus?.provider === "none" ? "off" : "warn",
-			icon: CreditCard,
-		},
-		{
-			label: "Sign-in OTP",
-			value:
-				otpStatus?.readyForProduction && otpStatus.activeProvider === "whatsapp-cloud"
-					? "Meta WhatsApp ready"
-					: otpStatus?.activeProvider === "whatsapp-cloud"
-						? "Meta partial"
-						: "Console (dev)",
-			hint: otpStatus?.summary,
-			tone: otpStatus?.readyForProduction ? "good" : otpStatus?.activeProvider === "console" ? "off" : "warn",
-			icon: MessageCircle,
-		},
-		{
 			label: "Media storage",
 			value: storageStatus?.ready ? "Ready" : "Incomplete",
 			hint: storageStatus?.summary,
 			tone: storageStatus?.ready ? "good" : "warn",
 			icon: CloudUpload,
+		},
+		{
+			label: "Sign-in OTP",
+			value: "Console logs",
+			hint: otpStatus?.summary ?? "OTP codes print to server logs (Meta WhatsApp not used).",
+			tone: "off",
+			icon: MessageCircle,
 		},
 	];
 
@@ -120,7 +99,7 @@ export function IntegrationsSettings({ draft, saved, setField, onSaved, canUpdat
 			canUpdate={canUpdate}
 			hero={
 				<SettingsTabHero
-					description="Social profiles, tracking pixels, and server credentials (PayFast, Rapid Gateway, WhatsApp OTP, email, storage). Manage secrets below — no developer needed for routine changes."
+					description="Social profiles, tracking pixels, staff email targets, and storage status. SMTP and R2 credentials live in deploy env."
 					metrics={heroMetrics}
 				/>
 			}

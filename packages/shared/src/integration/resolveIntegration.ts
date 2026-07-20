@@ -1,5 +1,5 @@
 import type { WhatsAppCloudConfig } from "../notifications/whatsappCloudApi";
-import type { IntegrationSettingsValues, OnlinePaymentProvider } from "./integrationSettingsSchema";
+import type { IntegrationSettingsValues } from "./integrationSettingsSchema";
 
 function pickString(dbValue: string, envValue: string | undefined): string {
 	const fromDb = dbValue.trim();
@@ -9,29 +9,14 @@ function pickString(dbValue: string, envValue: string | undefined): string {
 	return envValue?.trim() ?? "";
 }
 
-function pickBoolean(dbValue: boolean, envValue: string | undefined, fallback: boolean): boolean {
-	if (envValue?.trim()) {
-		return envValue.trim().toLowerCase() === "true";
-	}
-	return dbValue ?? fallback;
-}
-
-/** Resolved credentials — DB settings win; env vars are dev/bootstrap fallback. */
+/** Resolved credentials — DB settings win; env vars are bootstrap fallback.
+ * Online gateways and Meta WhatsApp Cloud are disabled for this deployment. */
 export function resolveIntegrationSettings(db: IntegrationSettingsValues): IntegrationSettingsValues {
-	const envProvider = (process.env.ONLINE_PAYMENT_PROVIDER?.trim().toLowerCase() ?? "") as OnlinePaymentProvider;
-	const resolvedProvider: OnlinePaymentProvider =
-		db.onlinePaymentProvider !== "none"
-			? db.onlinePaymentProvider
-			: envProvider === "payfast" || envProvider === "rapid-gateway"
-				? envProvider
-				: "none";
-
 	return {
-		otpProvider: db.otpProvider,
-		whatsappCloudAccessToken: pickString(db.whatsappCloudAccessToken, process.env.WHATSAPP_CLOUD_ACCESS_TOKEN),
-		whatsappPhoneNumberId: pickString(db.whatsappPhoneNumberId, process.env.WHATSAPP_PHONE_NUMBER_ID),
-		whatsappOtpTemplateName:
-			pickString(db.whatsappOtpTemplateName, process.env.WHATSAPP_OTP_TEMPLATE_NAME) || "authentication",
+		otpProvider: "console",
+		whatsappCloudAccessToken: "",
+		whatsappPhoneNumberId: "",
+		whatsappOtpTemplateName: "authentication",
 		whatsappCloudApiVersion: pickString(db.whatsappCloudApiVersion, process.env.WHATSAPP_CLOUD_API_VERSION) || "v21.0",
 		whatsappOtpTemplateIncludesButton: db.whatsappOtpTemplateIncludesButton,
 
@@ -41,19 +26,19 @@ export function resolveIntegrationSettings(db: IntegrationSettingsValues): Integ
 		smtpPass: pickString(db.smtpPass, process.env.SMTP_PASS),
 		smtpFrom: pickString(db.smtpFrom, process.env.SMTP_FROM),
 		staffNotifyEmail: pickString(db.staffNotifyEmail, process.env.STAFF_NOTIFY_EMAIL),
-		staffNotifyWhatsApp: pickString(db.staffNotifyWhatsApp, process.env.STAFF_NOTIFY_WHATSAPP),
-		whatsappStaffNotifyTemplate: pickString(db.whatsappStaffNotifyTemplate, process.env.WHATSAPP_STAFF_NOTIFY_TEMPLATE),
-		whatsappCustomerOrderTemplate: pickString(db.whatsappCustomerOrderTemplate, process.env.WHATSAPP_CUSTOMER_ORDER_TEMPLATE),
+		staffNotifyWhatsApp: "",
+		whatsappStaffNotifyTemplate: "",
+		whatsappCustomerOrderTemplate: "",
 		adminSiteUrl: pickString(db.adminSiteUrl, process.env.ADMIN_SITE_URL),
 
-		onlinePaymentProvider: resolvedProvider,
-		payfastMerchantId: pickString(db.payfastMerchantId, process.env.PAYFAST_MERCHANT_ID),
-		payfastSecuredKey: pickString(db.payfastSecuredKey, process.env.PAYFAST_SECURED_KEY),
-		payfastMerchantName: pickString(db.payfastMerchantName, process.env.PAYFAST_MERCHANT_NAME),
-		payfastSandbox: pickBoolean(db.payfastSandbox, process.env.PAYFAST_SANDBOX, true),
-		rapidGatewaySecretKey: pickString(db.rapidGatewaySecretKey, process.env.RAPID_GATEWAY_SECRET_KEY),
-		rapidGatewayWebhookSecret: pickString(db.rapidGatewayWebhookSecret, process.env.RAPID_GATEWAY_WEBHOOK_SECRET),
-		rapidGatewaySandbox: pickBoolean(db.rapidGatewaySandbox, process.env.RAPID_GATEWAY_SANDBOX, true),
+		onlinePaymentProvider: "none",
+		payfastMerchantId: "",
+		payfastSecuredKey: "",
+		payfastMerchantName: "",
+		payfastSandbox: true,
+		rapidGatewaySecretKey: "",
+		rapidGatewayWebhookSecret: "",
+		rapidGatewaySandbox: true,
 
 		awsS3Bucket: pickString(db.awsS3Bucket, process.env.AWS_S3_BUCKET),
 		awsS3Region: pickString(db.awsS3Region, process.env.AWS_S3_REGION),
@@ -77,13 +62,7 @@ export function resolveWhatsAppCloudConfig(settings: IntegrationSettingsValues):
 	};
 }
 
-/** True when admin selected a PK gateway and required credentials are present. */
-export function isOnlineCardCheckoutReady(settings: IntegrationSettingsValues): boolean {
-	if (settings.onlinePaymentProvider === "payfast") {
-		return Boolean(settings.payfastMerchantId.trim() && settings.payfastSecuredKey.trim());
-	}
-	if (settings.onlinePaymentProvider === "rapid-gateway") {
-		return Boolean(settings.rapidGatewaySecretKey.trim());
-	}
+/** Online card checkout is not offered on this deployment. */
+export function isOnlineCardCheckoutReady(_settings: IntegrationSettingsValues): boolean {
 	return false;
 }

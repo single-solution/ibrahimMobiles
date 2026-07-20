@@ -1,6 +1,6 @@
 "use client";
 
-import { Banknote, Building2, CreditCard, Percent } from "lucide-react";
+import { Banknote, Building2, Percent } from "lucide-react";
 import { STORE_SETTING_GROUPS } from "@store/shared";
 import { FormSection } from "@/components/forms/FormSection";
 import { Switch } from "@/components/forms/Switch";
@@ -10,13 +10,13 @@ import { NumberField, SaveableSection } from "@/app/settings/_components/setting
 import type { SectionProps } from "@/app/settings/_components/settingsSectionProps";
 
 export function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: SectionProps) {
-	const enabledCount = [draft.paymentBankTransferEnabled, draft.paymentCardEnabled, draft.paymentCodEnabled].filter(Boolean).length;
+	const enabledCount = [draft.paymentBankTransferEnabled, draft.paymentCodEnabled].filter(Boolean).length;
 	const heroMetrics: SettingsHeroMetric[] = [
 		{
 			label: "Methods at checkout",
-			value: `${enabledCount} of 3`,
+			value: `${enabledCount} of 2`,
 			hint: enabledCount === 0 ? "Checkout has no methods!" : "Live on storefront",
-			tone: enabledCount === 0 ? "warn" : enabledCount >= 2 ? "good" : "neutral",
+			tone: enabledCount === 0 ? "warn" : "good",
 			icon: Building2,
 		},
 		{
@@ -24,12 +24,6 @@ export function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: 
 			value: draft.paymentBankTransferEnabled ? "On" : "Off",
 			tone: draft.paymentBankTransferEnabled ? "good" : "off",
 			icon: Building2,
-		},
-		{
-			label: "Pay online",
-			value: draft.paymentCardEnabled ? "On" : "Off",
-			tone: draft.paymentCardEnabled ? "good" : "off",
-			icon: CreditCard,
 		},
 		{
 			label: "Cash on delivery",
@@ -45,33 +39,33 @@ export function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: 
 			icon: Percent,
 		},
 	];
+
 	return (
 		<SaveableSection
 			fields={STORE_SETTING_GROUPS.payments}
-			draft={draft}
-			saved={saved}
-			setField={setField}
-			onSaved={onSaved}
+			draft={{ ...draft, paymentCardEnabled: false }}
+			saved={{ ...saved, paymentCardEnabled: false }}
+			setField={(field, value) => {
+				if (field === "paymentCardEnabled") {
+					setField("paymentCardEnabled", false);
+					return;
+				}
+				setField(field, value);
+			}}
+			onSaved={(settings) => onSaved({ ...settings, paymentCardEnabled: false })}
 			canUpdate={canUpdate}
 			hero={<SettingsTabHero metrics={heroMetrics} />}
 		>
 			<FormSection
 				title="Methods enabled at checkout"
-				description="Bank transfer is the lowest-cost option for Pakistan (manual screenshot confirmation). Pay online uses PayFast or Rapid Gateway when configured under Integrations."
+				description="Bank transfer (manual confirmation) and cash on delivery / pickup. Online card gateways are not enabled for this shop."
 			>
 				<FormGrid>
 					<Switch
 						label="Bank transfer"
-						description="Customer transfers online, then sends payment screenshot on WhatsApp."
+						description="Customer transfers online, then uploads a payment screenshot for staff to confirm."
 						checked={draft.paymentBankTransferEnabled}
 						onCheckedChange={(value) => setField("paymentBankTransferEnabled", value)}
-						disabled={!canUpdate}
-					/>
-					<Switch
-						label="Pay online"
-						description="Optional — requires PayFast or Rapid Gateway in Integrations (off by default)."
-						checked={draft.paymentCardEnabled}
-						onCheckedChange={(value) => setField("paymentCardEnabled", value)}
 						disabled={!canUpdate}
 					/>
 					<Switch
@@ -84,7 +78,7 @@ export function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: 
 				</FormGrid>
 			</FormSection>
 
-			<FormSection title="Bank account details" description="Shown at checkout and on pending bank-transfer orders. Customers send a screenshot on WhatsApp after paying.">
+			<FormSection title="Bank account details" description="Shown at checkout and on pending bank-transfer orders.">
 				<FormGrid>
 					<TextField
 						label="Bank name"
@@ -138,14 +132,7 @@ export function PaymentSettings({ draft, saved, setField, onSaved, canUpdate }: 
 						label="Bank transfer note"
 						value={draft.paymentBankTransferNote}
 						onChange={(event) => setField("paymentBankTransferNote", event.target.value)}
-						placeholder="Transfer online — send payment screenshot on WhatsApp"
-						disabled={!canUpdate}
-					/>
-					<TextField
-						label="Card payment note"
-						value={draft.paymentCardNote}
-						onChange={(event) => setField("paymentCardNote", event.target.value)}
-						placeholder="Debit or credit card (when enabled)"
+						placeholder="Transfer online — upload your payment screenshot after paying"
 						disabled={!canUpdate}
 					/>
 					<TextField

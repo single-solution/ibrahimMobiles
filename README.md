@@ -268,7 +268,7 @@ flowchart TD
 | ---- | ----- |
 | **Contact** | Name min 2 chars; phone read-only from account. |
 | **Delivery** | **Pickup** — free. **Courier** — flat fee (default **Rs 1,500**, admin-configurable) unless subtotal **after offers** ≥ threshold (default **Rs 50,000**) → free, or a checkout offer grants free shipping. Address min 2 chars for courier. |
-| **Payment** | **Bank transfer**, **cash on delivery**, or **pay online** (optional). Admin toggles each method. **Bank transfer (default):** transfer online → send payment screenshot on WhatsApp → admin confirms. **COD:** order confirms immediately; pay cash on delivery. **Pay online:** PayFast or Rapid Gateway when enabled under Integrations (admin picks one). **COD surcharge:** admin % on merchandise subtotal after offers. Optional chip notes per method. |
+| **Payment** | **Bank transfer** and/or **cash on delivery**. Admin toggles each method. **Bank transfer (default):** transfer online → send payment screenshot on WhatsApp (contact number) → admin confirms. **COD:** order confirms immediately; pay cash on delivery. **COD surcharge:** admin % on merchandise subtotal after offers. Optional chip notes per method. Online card gateways are not enabled. |
 | **Loyalty** | Min **100** pts; max **20%** of subtotal; 1 pt = Rs 1. Blocked when checkout offer disallows points. |
 | **Policies** | Placing order agrees to return + privacy policies. Links open **modals** with admin HTML — no checkbox. |
 | **Placement** | Idempotency key **required**; max **5** orders / **15 min**; atomic stock reservation; server re-prices every line from DB. |
@@ -281,16 +281,17 @@ flowchart TD
 | **Offers** | Only active + eligible offers apply; discount capped at subtotal; catalog line offer must match server lock; usage reserved atomically before order create (rolled back on failure). |
 | **Idempotency** | `idempotencyKey` required on `POST /api/orders` — duplicate parallel submits return the same order. |
 | **Stock** | Reserved at placement; released on cancel / refund / return paths. |
-| **Payments** | PayFast hash verified with constant-time compare; Rapid webhook signature checked; paid amount required to auto-confirm card orders. |
+| **Payments** | Bank transfer and COD only — no online card gateway on this deployment. |
 | **Rate limits** | Checkout, cancel, OTP, chat, and public catalog APIs rate-limited per IP + identifier. |
 
 ### Payment methods (checkout)
 
 | Method | ID | Notes |
 | ------ | -- | ----- |
-| Bank transfer | `bank-transfer` | Toggle: `paymentBankTransferEnabled` (default on). Enter bank name + account number or IBAN in **Settings → Payments** — chip hidden and API blocked until details exist. Order stays **`pending-payment`** until admin confirms after WhatsApp screenshot. |
+| Bank transfer | `bank-transfer` | Toggle: `paymentBankTransferEnabled` (default on). Enter bank name and account number or IBAN in **Settings → Payments** — chip hidden and API blocked until details exist. Order stays **`pending-payment`** until admin confirms after WhatsApp screenshot. |
 | Cash on delivery | `cod` | Toggle: `paymentCodEnabled`; surcharge: `codSurchargePercent`. Order status **`confirmed`** on placement; pay cash when the parcel arrives. |
-| Pay online | `card` | Toggle: `paymentCardEnabled` (default off). **PayFast** or **Rapid Gateway** — admin picks active provider in **Settings → Integrations**. Auto-confirms via webhook or PayFast return callback. |
+
+**Rule:** Pay online / card checkout is locked off (`paymentCardEnabled` always false).
 
 ---
 
@@ -301,11 +302,10 @@ sequenceDiagram
   actor User
   participant UI as Sign-in page
   participant API as OTP API
-  participant WA as Meta WhatsApp Cloud API
 
   User->>UI: Enter phone
   UI->>API: Request OTP
-  API->>WA: Deliver 6-digit code
+  Note over API: 6-digit code printed to server logs
   User->>UI: Enter code
   UI->>API: Verify
   API-->>UI: Session cookie 30 days
@@ -318,7 +318,7 @@ sequenceDiagram
 | OTP | 6 digits; **5 min** TTL; **5** max wrong guesses |
 | Rate limits | **5** issues / **15 min**; **10** verifies / **15 min** |
 | OTP resend | **1 min** throttle; UI cooldown **30s** |
-| Fallback | Dev: codes in server log when Meta WhatsApp env unset |
+| Delivery | Codes print to **server logs** (Meta WhatsApp Cloud is not enabled) |
 | Addresses | Max **6**; cannot delete last |
 | Sign-out | Clears session, guest chat cookies, cart |
 
@@ -462,8 +462,8 @@ stateDiagram
 
 | Status | Admin / system behavior |
 | ------ | ----------------------- |
-| `pending-payment` | **Bank transfer or pay online** — awaiting WhatsApp screenshot (bank) or gateway payment; editable lines, address, payment, delivery |
-| `confirmed` | **COD lands here on place**; bank transfer after admin confirms; pay online after PayFast/Rapid confirms. Locked from line edits; fulfillment moves **one step at a time** (no skip to `delivered`) |
+| `pending-payment` | **Bank transfer** — awaiting WhatsApp screenshot; editable lines, address, payment, delivery |
+| `confirmed` | **COD lands here on place**; bank transfer after admin confirms. Locked from line edits; fulfillment moves **one step at a time** (no skip to `delivered`) |
 | `packed` | Requires `dispatchVideoUrl` |
 | `dispatched` | No backward step on happy path |
 | `returned` | Only from `delivered` |
@@ -479,27 +479,26 @@ Staff and customer alerts fire **after** successful writes (non-blocking — fai
 | Channel | Recipients |
 | ------- | ---------- |
 | **Email** | Every active admin `users` row with email + `staffNotifyEmail` (Integrations) + store support email |
-| **WhatsApp** | `staffNotifyWhatsApp` (Integrations) + phone on every active admin user (shop events); inquiries also notify assignee phone when set |
 
-### Customer WhatsApp
+### Customer contact WhatsApp
 
-Requires customer phone on order snapshot or inquiry thread + `whatsappCustomerOrderTemplate` in Integrations.
+Store **Contact** WhatsApp number is a customer link (Support tab / closest-match), not Meta Cloud messaging.
 
 ### Event matrix
 
-| Event | Staff email | Staff WhatsApp | Customer WhatsApp |
-| ----- | :---------: | :------------: | :---------------: |
-| Order placed | Yes | Yes | Yes |
-| Order status changed | Yes | Yes | Yes |
-| Payment confirmed (gateway or admin) | Yes | Yes | Yes |
-| Order cancelled | Yes | Yes | Yes |
-| Customer chat message | Yes | Yes (global + assignee) | — |
-| Inquiry escalated (AI / keywords) | Yes | Yes (global + assignee) | — |
-| Agent reply | — | — | Yes |
+| Event | Staff email |
+| ----- | :---------: |
+| Order placed | Yes |
+| Order status changed | Yes |
+| Payment confirmed (admin) | Yes |
+| Order cancelled | Yes |
+| Customer chat message | Yes |
+| Inquiry escalated (AI / keywords) | Yes |
+| Agent reply | — |
 
-**Limit:** Low-stock variants surface in Admin dashboard + bell only — no email/WhatsApp for inventory thresholds today.
+**Limit:** Low-stock variants surface in Admin dashboard + bell only — no email for inventory thresholds today.
 
-**Config:** Admin → Settings → Integrations (SMTP, Meta WhatsApp, template names). Shop Health warns when any channel is misconfigured.
+**Config:** Admin → Settings → Integrations (SMTP via deploy env, staff notify email, admin URL, media storage status). Shop Health warns when SMTP or storage is misconfigured.
 
 ---
 
@@ -570,7 +569,7 @@ Super-admin bypasses all permission checks.
 | **Site URLs** | `publicSiteUrl` |
 | **Store details** | Name, tagline, logos, favicons |
 | **Contact** | Phones, email, WhatsApp, address, hours |
-| **Payments** | Card/COD toggles, COD %, chip notes |
+| **Payments** | Bank transfer / COD toggles, COD %, chip notes, bank account details |
 | **Delivery** | Free-delivery threshold + courier flat fee |
 | **Notices** | Global delivery note, site banner |
 | **Policies** | Moneyback days, warranty months, return/privacy HTML → checkout modals |
@@ -578,7 +577,7 @@ Super-admin bypasses all permission checks.
 | **Inventory** | Low-stock threshold → dashboard + bell |
 | **SEO** | Global meta, OG, Organization JSON-LD; product formula + AI copy; intent surfaces; glossary pages; merchant feed URL |
 | **Chat** | Widget, guest limit, assistant, **all provider API keys**, real-time transport, nudge |
-| **Integrations** | Social links, pixels, **PayFast / Rapid Gateway**, **Meta WhatsApp OTP**, SMTP, staff/customer WhatsApp templates, **media storage status** |
+| **Integrations** | Social links, pixels, staff notify email, admin URL, **media storage status** (SMTP + R2 via deploy env) |
 | **Data cleanup** | Owner-only bulk delete |
 
 **Alerts bell:** unread inquiries + pending payments + low-stock (permission-scoped).

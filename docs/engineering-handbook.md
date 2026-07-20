@@ -70,7 +70,7 @@ Every new feature, route, or UI surface **must** follow these project rules in a
 | Sessions | `getVerifiedCustomer()` / `getVerifiedSession()` with DB enrichment |
 | Secrets | Env only; mask in admin JSON serializers |
 | Auth responses | Treat as `no-store` (see §3.2 — systemic gap to fix) |
-| Payments | PayFast constant-time hash; Rapid webhook signature |
+| Payments | Bank transfer / COD only (online gateways locked off) |
 
 ### 1.6 Performance expectations for new work
 

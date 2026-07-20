@@ -15,11 +15,11 @@ Zero-to-running guide for the Ibrahim Mobiles monorepo.
 
 Optional for production parity:
 
-- PayFast or Rapid Gateway (pay online)
 - Cloudflare R2 (or any S3-compatible) credentials (images and uploads)
-- Meta WhatsApp Cloud API (customer OTP + order/chat notifications)
 - SMTP (admin password reset + staff email alerts)
 - OpenAI or Google AI key (chat assistant)
+
+**Not used on this deployment:** Meta WhatsApp Cloud, PayFast, Rapid Gateway. Checkout is bank transfer and/or COD; OTP codes print to server logs.
 
 ---
 
@@ -57,14 +57,12 @@ npm install
 cp .env.example .env.local
 ```
 
-Production (configure in **Admin → Settings → Integrations**):
+Production (configure in **Admin → Settings → Integrations** + deploy env):
 
 | Area | Required for |
 | ---- | ------------ |
-| **PayFast / Rapid Gateway** | Pay online — pick one provider; webhooks `/api/webhooks/payfast` or `/api/webhooks/rapid-gateway` |
-| **Meta WhatsApp** | Customer OTP sign-in |
-| **SMTP** | Admin password reset + staff email alerts (Gmail / Google Workspace / any SMTP host) |
-| **Storage** | Cloudflare R2 (S3-compatible) uploads |
+| **SMTP** | Admin password reset + staff email alerts (Gmail / Google Workspace / any SMTP host) — set `SMTP_*` on Vercel |
+| **Storage** | Cloudflare R2 (S3-compatible) uploads — set `AWS_S3_*` on Vercel |
 
 Env vars in `.env.example` are bootstrap fallbacks only. `AUTH_*` and `MONGODB_URI` must stay on the host.
 
@@ -81,27 +79,15 @@ Minimum to boot locally:
 | `AWS_S3_ENDPOINT` | **Yes** for R2 | `https://<account-id>.r2.cloudflarestorage.com` (blank = native AWS S3) |
 | `AWS_S3_PUBLIC_URL_BASE` | Optional | Public/CDN base URL for stored objects |
 
-Production (storefront `@store/web`):
-
-| Variable | Required? | Purpose |
-| -------- | --------- | ------- |
-| `OTP_PROVIDER` | **Yes** | `whatsapp-cloud` |
-| `WHATSAPP_CLOUD_ACCESS_TOKEN` | **Yes** | Meta Business permanent token |
-| `WHATSAPP_PHONE_NUMBER_ID` | **Yes** | Sender phone number ID |
-| `WHATSAPP_OTP_TEMPLATE_NAME` | Recommended | Default `authentication` |
+Production (storefront `@store/web`): OTP codes print to server logs — no Meta WhatsApp env required.
 
 Production (admin `@store/admin`):
 
 | Variable | Required? | Purpose |
 | -------- | --------- | ------- |
-
-
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | **Yes** | Outbound email (Gmail / Workspace / any SMTP) |
 | `ADMIN_SITE_URL` | **Yes** | Reset links and inquiry deep links — e.g. `https://admin.yourdomain.com` |
 | `STAFF_NOTIFY_EMAIL` | Recommended | Extra staff inbox; **all active admin users** also receive email alerts |
-| `STAFF_NOTIFY_WHATSAPP` | Recommended | Global staff WhatsApp line for shop-wide alerts |
-| `WHATSAPP_STAFF_NOTIFY_TEMPLATE` | Recommended | Meta utility template — staff order + chat alerts |
-| `WHATSAPP_CUSTOMER_ORDER_TEMPLATE` | Recommended | Meta utility template — customer order placed, status updates, agent chat replies |
 
 Common optional:
 
@@ -110,8 +96,6 @@ Common optional:
 | `STOREFRONT_BASE_URL` | Canonical URL when Admin → Site URLs empty |
 | `ATLAS_SEARCH_ENABLED` | `false` forces regex search |
 | `MONGODB_SEARCH_INDEX` | Atlas index name (default `products_search`) |
-| `STAFF_NOTIFY_WHATSAPP` + `WHATSAPP_STAFF_NOTIFY_TEMPLATE` | Staff WhatsApp on orders + chat |
-| `WHATSAPP_CUSTOMER_ORDER_TEMPLATE` | Customer WhatsApp on orders + agent replies |
 | `OPENAI_API_KEY` / `GOOGLE_AI_API_KEY` / `ANTHROPIC_API_KEY` | Chat assistant |
 | `MERCHANT_FEED_TOKEN` | Optional bearer for `GET /api/feeds/merchant` |
 | `CRON_SECRET` | Bearer token for `GET /api/cron/seo-reconcile` (nightly SEO stats) |
@@ -159,10 +143,10 @@ npm run dev:admin    # admin      → http://localhost:3001
 | - | ---- |
 | 1 | Admin sign-in |
 | 2 | **Settings → Site URLs** — public storefront URL |
-| 3 | **Store / Contact / Payments / Delivery / Policies** — card+COD, COD %, policy HTML |
+| 3 | **Store / Contact / Payments / Delivery / Policies** — bank transfer + COD, COD %, policy HTML |
 | 4 | **Catalog** — categories → grades → attributes → brands → products ([catalog.md](catalog.md)) |
 | 5 | Upload test product image — confirms R2/S3 credentials |
-| 6 | Storefront OTP sign-in — code in `@store/web` terminal when Meta WhatsApp env unset |
+| 6 | Storefront OTP sign-in — code in `@store/web` server logs |
 
 ---
 
@@ -230,7 +214,7 @@ ibrahimMobiles/
 | DB connection fail | IP block or missing DB name in URI | Atlas Network Access |
 | SRV DNS `EREFUSED` | Local DNS cannot resolve Atlas SRV | Standard connection string or `DEV_SKIP_PUBLIC_DNS=true` |
 | Image 500 on R2 host (`ENOTFOUND` in terminal) | Browser resolves the R2 public host but Node could not — local DNS/router issue | Dev loads product images directly (pre-sized WebP). Fix DNS or set `DEV_SKIP_PUBLIC_DNS=false` (default). Restart `npm run dev` after `.env` changes. |
-| No OTP in dev | Meta WhatsApp unset | Read `@store/web` terminal log |
+| No OTP in logs | Request OTP then check `@store/web` / Vercel function logs | Look for the 6-digit code line |
 | Chat assistant silent | No AI API key | Add key or use human-only (Admin → Inquiries) |
 | Product missing on shop | Failed visibility cascade | [README § visibility](../README.md#1-catalog--domain-rules) |
 | Weak local search | No Atlas index | Create index or set `ATLAS_SEARCH_ENABLED=false` |

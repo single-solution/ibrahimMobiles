@@ -28,7 +28,6 @@ interface OfferRulesEditorProps {
 
 const PAYMENT_METHOD_OPTIONS = [
 	{ value: "bank-transfer", label: "Bank transfer", settingsKey: "paymentBankTransferEnabled" as const },
-	{ value: "card", label: "Card payment", settingsKey: "paymentCardEnabled" as const },
 	{ value: "cod", label: "Cash on delivery", settingsKey: "paymentCodEnabled" as const },
 ];
 

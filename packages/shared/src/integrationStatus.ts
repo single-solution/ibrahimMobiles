@@ -31,44 +31,18 @@ export interface OnlinePaymentIntegrationStatus {
 }
 
 export function readOtpIntegrationStatus(settings: IntegrationSettingsValues): OtpIntegrationStatus {
-	const explicit =
-		settings.otpProvider === "auto"
-			? (process.env.OTP_PROVIDER ?? "").trim().toLowerCase()
-			: settings.otpProvider;
-	const metaAccessConfigured = Boolean(settings.whatsappCloudAccessToken.trim());
-	const metaPhoneIdConfigured = Boolean(settings.whatsappPhoneNumberId.trim());
-	const metaReady = metaAccessConfigured && metaPhoneIdConfigured;
 	const otpTemplateName = settings.whatsappOtpTemplateName.trim() || "authentication";
-
-	let activeProvider: OtpRuntimeProviderId = "console";
-
-	if (explicit === "whatsapp-cloud" || explicit === "meta") {
-		activeProvider = metaReady ? "whatsapp-cloud" : "console";
-	} else if (explicit === "console") {
-		activeProvider = "console";
-	} else if (metaReady) {
-		activeProvider = "whatsapp-cloud";
-	}
-
-	const readyForProduction = activeProvider === "whatsapp-cloud";
-
-	let summary = "Console provider — codes print to server logs (development only).";
-	if (explicit === "whatsapp-cloud" && !metaReady) {
-		summary = "WhatsApp Cloud selected but access token or phone number ID is missing.";
-	} else if (activeProvider === "whatsapp-cloud") {
-		summary = `Meta WhatsApp Cloud API active — OTP template "${otpTemplateName}".`;
-	}
-
+	// Meta WhatsApp Cloud OTP is not used on this deployment — codes go to server logs.
 	return {
-		explicitProvider: explicit || "(auto)",
-		activeProvider,
+		explicitProvider: "console",
+		activeProvider: "console",
 		metaWhatsApp: {
-			accessTokenConfigured: metaAccessConfigured,
-			phoneNumberIdConfigured: metaPhoneIdConfigured,
+			accessTokenConfigured: false,
+			phoneNumberIdConfigured: false,
 			otpTemplateName,
 		},
-		readyForProduction,
-		summary,
+		readyForProduction: false,
+		summary: "OTP codes print to server logs (Meta WhatsApp Cloud is not enabled).",
 	};
 }
 
@@ -100,36 +74,13 @@ export function readStorageIntegrationStatus(settings: IntegrationSettingsValues
 }
 
 export function readOnlinePaymentIntegrationStatus(settings: IntegrationSettingsValues): OnlinePaymentIntegrationStatus {
-	const provider = settings.onlinePaymentProvider;
-	const payfastConfigured = Boolean(settings.payfastMerchantId.trim() && settings.payfastSecuredKey.trim());
-	const rapidConfigured = Boolean(settings.rapidGatewaySecretKey.trim());
-	const webhookConfigured =
-		provider === "rapid-gateway"
-			? Boolean(settings.rapidGatewayWebhookSecret.trim())
-			: provider === "payfast"
-				? payfastConfigured
-				: false;
 	const ready = isOnlineCardCheckoutReady(settings);
-
-	let summary = "No online gateway — bank transfer and COD are active. Pick PayFast or Rapid Gateway below.";
-	if (provider === "payfast" && !payfastConfigured) {
-		summary = "PayFast selected but merchant ID or secured key is missing.";
-	} else if (provider === "payfast" && ready) {
-		summary = `PayFast ready${settings.payfastSandbox ? " (sandbox)" : " (live)"} — cards and wallets on hosted checkout.`;
-	} else if (provider === "rapid-gateway" && !rapidConfigured) {
-		summary = "Rapid Gateway selected but secret key is missing.";
-	} else if (provider === "rapid-gateway" && ready && !settings.rapidGatewayWebhookSecret.trim()) {
-		summary = "Rapid Gateway checkout works — add webhook secret so paid orders auto-confirm.";
-	} else if (provider === "rapid-gateway" && ready) {
-		summary = `Rapid Gateway ready${settings.rapidGatewaySandbox ? " (sandbox)" : " (live)"} — cards, JazzCash, easypaisa.`;
-	}
-
 	return {
-		provider,
+		provider: "none",
 		ready,
-		payfastConfigured,
-		rapidConfigured,
-		webhookConfigured,
-		summary,
+		payfastConfigured: false,
+		rapidConfigured: false,
+		webhookConfigured: false,
+		summary: "Online card gateways are off — checkout uses bank transfer and/or cash on delivery.",
 	};
 }
