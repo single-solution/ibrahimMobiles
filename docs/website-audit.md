@@ -49,7 +49,7 @@ flowchart TD
 | Check | Expected |
 | ----- | -------- |
 | No `error` severity | Payments enabled; bank details if bank transfer on |
-| Notifications | Resend + WhatsApp + both template names when alerts expected |
+| Notifications | SMTP + WhatsApp + both template names when alerts expected |
 | Card gateway | PayFast/Rapid ready when pay online enabled |
 | Rapid webhook | Webhook secret set when Rapid is active provider |
 | Catalog hygiene | No active products without images (warn) |
@@ -258,7 +258,7 @@ flowchart TB
 | Loyalty | Earn %, bonuses |
 | Inventory | Low-stock threshold |
 | Chat | Widget, assistant, guest limit, nudge |
-| Integrations | PayFast/Rapid, WhatsApp, Resend, templates, pixels, storage |
+| Integrations | PayFast/Rapid, WhatsApp, SMTP, templates, pixels, storage |
 | Cleanup | Owner-only + confirmation phrase |
 
 ---

@@ -80,8 +80,8 @@ These **must** stay on the host — never rely on Admin UI alone.
 
 | Variable | Required? | Purpose |
 | -------- | --------- | ------- |
-| `RESEND_API_KEY` | **Yes** | Password reset + staff email alerts |
-| `RESEND_FROM_EMAIL` | **Yes** | Verified sender domain in Resend |
+| `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | **Yes** | Password reset + staff email alerts |
+| `SMTP_FROM` / `SMTP_PORT` | Prefer | From address + port (default 587) |
 | `ADMIN_SITE_URL` | **Yes** | Reset links + inquiry deep links — e.g. `https://admin.yourstore.pk` |
 | `STAFF_NOTIFY_EMAIL` | Optional | Extra staff inbox (all active admin users also receive alerts) |
 | `STAFF_NOTIFY_WHATSAPP` | Optional | Global staff WhatsApp for shop-wide alerts |
@@ -112,7 +112,7 @@ Work through in order. **Dashboard → Shop Health** should trend toward all cle
 | 4 | **Settings → Payments** | Enable bank transfer / pay online / COD; bank name + account; COD % |
 | 5 | **Settings → Delivery** | Courier fee + free-delivery threshold |
 | 6 | **Settings → Policies** | Return + privacy HTML (checkout modals), moneyback days |
-| 7 | **Settings → Integrations** | PayFast or Rapid Gateway; Meta WhatsApp; Resend; storage; pixel IDs |
+| 7 | **Settings → Integrations** | PayFast or Rapid Gateway; Meta WhatsApp; SMTP; storage; pixel IDs |
 | 8 | **Settings → Integrations** | `WHATSAPP_STAFF_NOTIFY_TEMPLATE`, `WHATSAPP_CUSTOMER_ORDER_TEMPLATE` |
 | 9 | **Catalog** | Active categories, products with images + in-stock variants ([catalog.md](catalog.md)) |
 | 10 | **Team** | Active admin users with correct emails/phones for staff alerts |
@@ -125,7 +125,7 @@ Work through in order. **Dashboard → Shop Health** should trend toward all cle
 | `payments-bank-details-missing` | error | Bank name + account when bank transfer on |
 | `payments-card-gateway-off` | warn | Configure PayFast/Rapid when pay online on |
 | `payments-rapid-webhook-missing` | warn | Set Rapid webhook secret + register URL |
-| `notify-resend-missing` | warn | Resend API key + from email |
+| `notify-smtp-missing` | warn | SMTP host + user + password |
 | `notify-admin-url-missing` | warn | `ADMIN_SITE_URL` in Integrations or env |
 | `notify-whatsapp-cloud-missing` | warn | Meta WhatsApp credentials |
 | `notify-staff-whatsapp-template-missing` | warn | Staff utility template name |
@@ -193,7 +193,7 @@ Run on **production URLs** with a real phone number.
 | 2 | New order appears in Orders; status stepper works |
 | 3 | Bank transfer: confirm payment → `confirmed` |
 | 4 | Reply to inquiry → customer WhatsApp (if template set) |
-| 5 | Password reset email delivers (Resend) |
+| 5 | Password reset email delivers (SMTP) |
 
 ### Notifications matrix
 
@@ -269,7 +269,7 @@ Full pass: [website-audit.md](website-audit.md).
 | ------- | ------------ | --- |
 | Build fails during static generation | Mongo unreachable in CI | Allowlist build IP; SEO loaders fall back to defaults — build should still finish |
 | Card paid but order `pending-payment` | Webhook missing amount or wrong secret | Gateway config; admin manual confirm |
-| No staff email | Resend key/from missing | Integrations + Shop Health |
+| No staff email | SMTP host/user/password missing | Integrations + Shop Health |
 | No WhatsApp alerts | Template not approved or wrong name | Meta Business Manager |
 | Customer OTP fails | WhatsApp Cloud token or template | Integrations status panel |
 | Blank reveals on first paint | JS disabled or extreme blocker | Normal with `no-js` stripped by `RevealRoot` |

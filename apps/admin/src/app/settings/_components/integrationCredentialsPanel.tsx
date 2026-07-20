@@ -210,20 +210,45 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 				</FormGrid>
 			</FormSection>
 
-			<FormSection title="Email & staff alerts" description="Resend sends email to every active team member plus staff/support inboxes. WhatsApp goes to the staff number and any team member with a phone on their profile.">
+			<FormSection
+				title="Email & staff alerts"
+				description="SMTP sends email to every active team member plus staff/support inboxes (Gmail, Google Workspace, or any SMTP host). WhatsApp goes to the staff number and any team member with a phone on their profile."
+			>
 				<FormGrid cols={3}>
 					<TextField
-						label="Resend API key"
-						type="password"
-						value={draft.resendApiKey}
-						onChange={(event) => setField("resendApiKey", event.target.value)}
+						label="SMTP host"
+						value={draft.smtpHost}
+						onChange={(event) => setField("smtpHost", event.target.value)}
+						placeholder="smtp.gmail.com"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="SMTP port"
+						value={draft.smtpPort}
+						onChange={(event) => setField("smtpPort", event.target.value)}
+						placeholder="587"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="SMTP user"
+						value={draft.smtpUser}
+						onChange={(event) => setField("smtpUser", event.target.value)}
+						placeholder="you@yourdomain.com"
 						leadingIcon={<Mail size={14} />}
 						disabled={!canUpdate}
 					/>
 					<TextField
+						label="SMTP password"
+						type="password"
+						value={draft.smtpPass}
+						onChange={(event) => setField("smtpPass", event.target.value)}
+						hint="App password for Gmail / Workspace."
+						disabled={!canUpdate}
+					/>
+					<TextField
 						label="From email"
-						value={draft.resendFromEmail}
-						onChange={(event) => setField("resendFromEmail", event.target.value)}
+						value={draft.smtpFrom}
+						onChange={(event) => setField("smtpFrom", event.target.value)}
 						placeholder="Store <notify@yourdomain.com>"
 						disabled={!canUpdate}
 					/>

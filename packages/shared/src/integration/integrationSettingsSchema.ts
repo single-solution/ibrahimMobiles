@@ -15,8 +15,11 @@ export interface IntegrationSettingsValues {
 	whatsappCloudApiVersion: string;
 	whatsappOtpTemplateIncludesButton: boolean;
 
-	resendApiKey: string;
-	resendFromEmail: string;
+	smtpHost: string;
+	smtpPort: string;
+	smtpUser: string;
+	smtpPass: string;
+	smtpFrom: string;
 	staffNotifyEmail: string;
 	staffNotifyWhatsApp: string;
 	whatsappStaffNotifyTemplate: string;
@@ -49,8 +52,11 @@ export const INTEGRATION_SETTING_DEFAULTS: IntegrationSettingsValues = {
 	whatsappCloudApiVersion: "v21.0",
 	whatsappOtpTemplateIncludesButton: true,
 
-	resendApiKey: "",
-	resendFromEmail: "",
+	smtpHost: "",
+	smtpPort: "587",
+	smtpUser: "",
+	smtpPass: "",
+	smtpFrom: "",
 	staffNotifyEmail: "",
 	staffNotifyWhatsApp: "",
 	whatsappStaffNotifyTemplate: "",
@@ -84,8 +90,11 @@ const INTEGRATION_SETTING_DB_KEYS: Record<keyof IntegrationSettingsValues, strin
 	whatsappCloudApiVersion: "integration.whatsappCloudApiVersion",
 	whatsappOtpTemplateIncludesButton: "integration.whatsappOtpTemplateIncludesButton",
 
-	resendApiKey: "integration.resendApiKey",
-	resendFromEmail: "integration.resendFromEmail",
+	smtpHost: "integration.smtpHost",
+	smtpPort: "integration.smtpPort",
+	smtpUser: "integration.smtpUser",
+	smtpPass: "integration.smtpPass",
+	smtpFrom: "integration.smtpFrom",
 	staffNotifyEmail: "integration.staffNotifyEmail",
 	staffNotifyWhatsApp: "integration.staffNotifyWhatsApp",
 	whatsappStaffNotifyTemplate: "integration.whatsappStaffNotifyTemplate",
@@ -164,11 +173,14 @@ export function coerceIntegrationSettingValue<K extends keyof IntegrationSetting
 		case "whatsappPhoneNumberId":
 		case "whatsappOtpTemplateName":
 		case "whatsappCloudApiVersion":
-		case "resendFromEmail":
+		case "smtpHost":
+		case "smtpPort":
+		case "smtpUser":
+		case "smtpFrom":
 		case "whatsappStaffNotifyTemplate":
 		case "whatsappCustomerOrderTemplate":
 			return trimSecret(value, 200) as IntegrationSettingsValues[K] | null;
-		case "resendApiKey":
+		case "smtpPass":
 		case "payfastSecuredKey":
 		case "rapidGatewaySecretKey":
 		case "rapidGatewayWebhookSecret":
@@ -210,8 +222,11 @@ export function mergeIntegrationSettingsFromDb(rows: ReadonlyArray<{ key: string
 		whatsappOtpTemplateName: readIntegrationSetting(map, "whatsappOtpTemplateName"),
 		whatsappCloudApiVersion: readIntegrationSetting(map, "whatsappCloudApiVersion"),
 		whatsappOtpTemplateIncludesButton: readIntegrationSetting(map, "whatsappOtpTemplateIncludesButton"),
-		resendApiKey: readIntegrationSetting(map, "resendApiKey"),
-		resendFromEmail: readIntegrationSetting(map, "resendFromEmail"),
+		smtpHost: readIntegrationSetting(map, "smtpHost"),
+		smtpPort: readIntegrationSetting(map, "smtpPort"),
+		smtpUser: readIntegrationSetting(map, "smtpUser"),
+		smtpPass: readIntegrationSetting(map, "smtpPass"),
+		smtpFrom: readIntegrationSetting(map, "smtpFrom"),
 		staffNotifyEmail: readIntegrationSetting(map, "staffNotifyEmail"),
 		staffNotifyWhatsApp: readIntegrationSetting(map, "staffNotifyWhatsApp"),
 		whatsappStaffNotifyTemplate: readIntegrationSetting(map, "whatsappStaffNotifyTemplate"),
@@ -239,7 +254,7 @@ export function toAdminIntegrationSettings(settings: IntegrationSettingsValues):
 	return {
 		...settings,
 		whatsappCloudAccessToken: maskSecret(settings.whatsappCloudAccessToken),
-		resendApiKey: maskSecret(settings.resendApiKey),
+		smtpPass: maskSecret(settings.smtpPass),
 		payfastSecuredKey: maskSecret(settings.payfastSecuredKey),
 		rapidGatewaySecretKey: maskSecret(settings.rapidGatewaySecretKey),
 		rapidGatewayWebhookSecret: maskSecret(settings.rapidGatewayWebhookSecret),

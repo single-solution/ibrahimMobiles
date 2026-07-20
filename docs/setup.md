@@ -18,7 +18,7 @@ Optional for production parity:
 - PayFast or Rapid Gateway (pay online)
 - Cloudflare R2 (or any S3-compatible) credentials (images and uploads)
 - Meta WhatsApp Cloud API (customer OTP + order/chat notifications)
-- Resend (admin password reset + staff email alerts)
+- SMTP (admin password reset + staff email alerts)
 - OpenAI or Google AI key (chat assistant)
 
 ---
@@ -63,7 +63,7 @@ Production (configure in **Admin → Settings → Integrations**):
 | ---- | ------------ |
 | **PayFast / Rapid Gateway** | Pay online — pick one provider; webhooks `/api/webhooks/payfast` or `/api/webhooks/rapid-gateway` |
 | **Meta WhatsApp** | Customer OTP sign-in |
-| **Resend** | Admin password reset + staff email alerts |
+| **SMTP** | Admin password reset + staff email alerts (Gmail / Google Workspace / any SMTP host) |
 | **Storage** | Cloudflare R2 (S3-compatible) uploads |
 
 Env vars in `.env.example` are bootstrap fallbacks only. `AUTH_*` and `MONGODB_URI` must stay on the host.
@@ -94,9 +94,9 @@ Production (admin `@store/admin`):
 
 | Variable | Required? | Purpose |
 | -------- | --------- | ------- |
-| `RESEND_API_KEY` | Prefer | Admin password reset + staff email alerts |
-| `RESEND_FROM_EMAIL` | Prefer | Verified sender in Resend |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Temp | Gmail/SMTP fallback when Resend is unset |
+
+
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | **Yes** | Outbound email (Gmail / Workspace / any SMTP) |
 | `ADMIN_SITE_URL` | **Yes** | Reset links and inquiry deep links — e.g. `https://admin.yourdomain.com` |
 | `STAFF_NOTIFY_EMAIL` | Recommended | Extra staff inbox; **all active admin users** also receive email alerts |
 | `STAFF_NOTIFY_WHATSAPP` | Recommended | Global staff WhatsApp line for shop-wide alerts |
@@ -236,4 +236,4 @@ ibrahimMobiles/
 | Weak local search | No Atlas index | Create index or set `ATLAS_SEARCH_ENABLED=false` |
 | Production build fails prerender | Rare after SEO fallbacks; still check Atlas + CI allowlist | [go-live.md](go-live.md) |
 | Card paid, order still pending | Webhook missing amount or bad secret | Gateway dashboard; admin manual confirm |
-| No staff notifications | Resend/WhatsApp/templates unset | Admin Integrations + Shop Health |
+| No staff notifications | SMTP/WhatsApp/templates unset | Admin Integrations + Shop Health |

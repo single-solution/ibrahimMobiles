@@ -17,7 +17,7 @@ Technical map of the Ibrahim Mobiles monorepo — apps, packages, MongoDB, secur
 | Styling | Tailwind CSS 4 |
 | Customer OTP | Meta WhatsApp Cloud API (Business account) |
 | Online payments | PayFast or Rapid Gateway (admin picks one active provider) |
-| Staff alerts | Resend email to all active team members + Meta WhatsApp (orders, chat, escalation) |
+| Staff alerts | SMTP email to all active team members + Meta WhatsApp (orders, chat, escalation) |
 | Customer order updates | Meta WhatsApp utility template (placed, status, payment, agent replies) |
 | AI chat | OpenAI, Google Gemini, or Anthropic (optional; DB or env keys) |
 
@@ -45,7 +45,7 @@ graph TB
   subgraph external [External services]
     PF[PayFast / Rapid]
     WA[Meta WhatsApp]
-    RS[Resend]
+    RS[SMTP]
   end
   WEB --> MONGO
   ADM --> MONGO
@@ -164,7 +164,7 @@ flowchart LR
     OEN[orderEventNotify]
     ISN[inquiryStaffNotify]
     STAFF[staffAlertDispatch]
-    RS[resendEmail]
+    RS[smtpEmail]
     WA[whatsappCloudApi]
   end
   OP --> FIRE --> OEN --> STAFF

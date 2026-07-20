@@ -209,7 +209,7 @@ Everything below is **already implemented**. Do not remove or bypass without upd
 | Staff email + WhatsApp | Orders, chat, escalation (fire-and-forget) |
 | Customer WhatsApp | Order events + agent replies (utility templates) |
 | Shop Health | Admin dashboard misconfig warnings |
-| Resend | Password reset + staff email |
+| SMTP | Password reset + staff email |
 
 ### 2.7 Admin & data
 

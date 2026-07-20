@@ -499,7 +499,7 @@ Requires customer phone on order snapshot or inquiry thread + `whatsappCustomerO
 
 **Limit:** Low-stock variants surface in Admin dashboard + bell only — no email/WhatsApp for inventory thresholds today.
 
-**Config:** Admin → Settings → Integrations (Resend, Meta WhatsApp, template names). Shop Health warns when any channel is misconfigured.
+**Config:** Admin → Settings → Integrations (SMTP, Meta WhatsApp, template names). Shop Health warns when any channel is misconfigured.
 
 ---
 
@@ -578,7 +578,7 @@ Super-admin bypasses all permission checks.
 | **Inventory** | Low-stock threshold → dashboard + bell |
 | **SEO** | Global meta, OG, Organization JSON-LD; product formula + AI copy; intent surfaces; glossary pages; merchant feed URL |
 | **Chat** | Widget, guest limit, assistant, **all provider API keys**, real-time transport, nudge |
-| **Integrations** | Social links, pixels, **PayFast / Rapid Gateway**, **Meta WhatsApp OTP**, Resend, staff/customer WhatsApp templates, **media storage status** |
+| **Integrations** | Social links, pixels, **PayFast / Rapid Gateway**, **Meta WhatsApp OTP**, SMTP, staff/customer WhatsApp templates, **media storage status** |
 | **Data cleanup** | Owner-only bulk delete |
 
 **Alerts bell:** unread inquiries + pending payments + low-stock (permission-scoped).

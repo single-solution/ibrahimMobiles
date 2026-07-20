@@ -297,16 +297,12 @@ function evaluateIntegrations(
 	const checks: ShopHealthCheck[] = [];
 	const resolved = resolveIntegrationSettings(integration);
 
-	const hasSmtp =
-		Boolean(process.env.SMTP_HOST?.trim()) &&
-		Boolean(process.env.SMTP_USER?.trim()) &&
-		Boolean(process.env.SMTP_PASS?.trim());
-	if ((!resolved.resendApiKey.trim() || !resolved.resendFromEmail.trim()) && !hasSmtp) {
+	if (!resolved.smtpHost.trim() || !resolved.smtpUser.trim() || !resolved.smtpPass.trim()) {
 		checks.push({
-			id: "notify-resend-missing",
+			id: "notify-smtp-missing",
 			title: "Staff email alerts are not configured",
 			description:
-				"Add Resend under Integrations, or set SMTP_* env (temporary Gmail) so orders and chats email the team.",
+				"Add SMTP host, user, and password under Integrations (Gmail / Google Workspace / any SMTP) so orders and chats email the team.",
 			severity: "warn",
 			href: "/settings?tab=integrations",
 		});

@@ -35,8 +35,11 @@ export function resolveIntegrationSettings(db: IntegrationSettingsValues): Integ
 		whatsappCloudApiVersion: pickString(db.whatsappCloudApiVersion, process.env.WHATSAPP_CLOUD_API_VERSION) || "v21.0",
 		whatsappOtpTemplateIncludesButton: db.whatsappOtpTemplateIncludesButton,
 
-		resendApiKey: pickString(db.resendApiKey, process.env.RESEND_API_KEY),
-		resendFromEmail: pickString(db.resendFromEmail, process.env.RESEND_FROM_EMAIL),
+		smtpHost: pickString(db.smtpHost, process.env.SMTP_HOST),
+		smtpPort: pickString(db.smtpPort, process.env.SMTP_PORT) || "587",
+		smtpUser: pickString(db.smtpUser, process.env.SMTP_USER),
+		smtpPass: pickString(db.smtpPass, process.env.SMTP_PASS),
+		smtpFrom: pickString(db.smtpFrom, process.env.SMTP_FROM),
 		staffNotifyEmail: pickString(db.staffNotifyEmail, process.env.STAFF_NOTIFY_EMAIL),
 		staffNotifyWhatsApp: pickString(db.staffNotifyWhatsApp, process.env.STAFF_NOTIFY_WHATSAPP),
 		whatsappStaffNotifyTemplate: pickString(db.whatsappStaffNotifyTemplate, process.env.WHATSAPP_STAFF_NOTIFY_TEMPLATE),
