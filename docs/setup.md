@@ -94,8 +94,9 @@ Production (admin `@store/admin`):
 
 | Variable | Required? | Purpose |
 | -------- | --------- | ------- |
-| `RESEND_API_KEY` | **Yes** | Admin password reset + staff email alerts |
-| `RESEND_FROM_EMAIL` | **Yes** | Verified sender in Resend |
+| `RESEND_API_KEY` | Prefer | Admin password reset + staff email alerts |
+| `RESEND_FROM_EMAIL` | Prefer | Verified sender in Resend |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Temp | Gmail/SMTP fallback when Resend is unset |
 | `ADMIN_SITE_URL` | **Yes** | Reset links and inquiry deep links — e.g. `https://admin.yourdomain.com` |
 | `STAFF_NOTIFY_EMAIL` | Recommended | Extra staff inbox; **all active admin users** also receive email alerts |
 | `STAFF_NOTIFY_WHATSAPP` | Recommended | Global staff WhatsApp line for shop-wide alerts |

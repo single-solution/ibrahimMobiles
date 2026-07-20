@@ -297,11 +297,16 @@ function evaluateIntegrations(
 	const checks: ShopHealthCheck[] = [];
 	const resolved = resolveIntegrationSettings(integration);
 
-	if (!resolved.resendApiKey.trim() || !resolved.resendFromEmail.trim()) {
+	const hasSmtp =
+		Boolean(process.env.SMTP_HOST?.trim()) &&
+		Boolean(process.env.SMTP_USER?.trim()) &&
+		Boolean(process.env.SMTP_PASS?.trim());
+	if ((!resolved.resendApiKey.trim() || !resolved.resendFromEmail.trim()) && !hasSmtp) {
 		checks.push({
 			id: "notify-resend-missing",
 			title: "Staff email alerts are not configured",
-			description: "Add Resend API key and from-address under Integrations so orders and chats email every team member.",
+			description:
+				"Add Resend under Integrations, or set SMTP_* env (temporary Gmail) so orders and chats email the team.",
 			severity: "warn",
 			href: "/settings?tab=integrations",
 		});
