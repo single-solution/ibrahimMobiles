@@ -166,7 +166,7 @@ flowchart TB
 | Variant-aware formulas | Extend `composeProductSeo` with `buildProductSeoFacts(product)` → min/max in-stock price, grade list, attribute summary. Feed into title/description patterns (§2). Expose new template vars (`{minPrice}`, `{gradeList}`, etc.) via `titleTemplate`. |
 | JSON-LD upgrade | `productJsonLd` → `ProductGroup` + `hasVariant` / `AggregateOffer` so all in-stock configs appear on one canonical URL. Match visible on-page facts block or risk rich-result drop. |
 | FAQ schema | Auto from grade copy, warranty, attribute labels on PDP. |
-| Visible facts block | Human-readable "specs at a glance" mirroring JSON-LD (GEO citation bait). |
+| Visible facts block | ~~Human-readable "specs at a glance"~~ — removed from PDP (facts stay in JSON-LD only). |
 | AI on product publish | Layer 2: facts block in prompt → `seo.title`, `seo.description`, 3–5 FAQs → persist in `product.seo`. |
 | Template fallback | Layer 1 formula always live; AI failure never blocks publish. |
 | Admin UX reframe | SEO tab = **preview** (SERP + social), "Auto-generated" / "AI-generated" badge, one-click **Regenerate**, overrides labeled "Fix only if wrong". Hide focus-keyword guilt for empty field. |

@@ -29,7 +29,8 @@ const MARKETING_CONNECT_HOSTS = [
 ] as const;
 
 function buildS3ImageHosts(): string[] {
-	const hosts = ["https://*.amazonaws.com", "https://*.s3.amazonaws.com"];
+	// R2 public buckets use `*.r2.dev`; custom CDN domains come from AWS_S3_PUBLIC_URL_BASE.
+	const hosts = ["https://*.amazonaws.com", "https://*.s3.amazonaws.com", "https://*.r2.dev"];
 	const publicBase = process.env.AWS_S3_PUBLIC_URL_BASE?.trim();
 	if (publicBase) {
 		try {
@@ -131,6 +132,7 @@ const nextConfig: NextConfig = {
 			{ protocol: "https", hostname: "images.unsplash.com" },
 			{ protocol: "https", hostname: "cdn.simpleicons.org" },
 			{ protocol: "https", hostname: "*.amazonaws.com" },
+			{ protocol: "https", hostname: "*.r2.dev" },
 			...(process.env.AWS_S3_PUBLIC_URL_BASE?.trim()
 				? (() => {
 						try {

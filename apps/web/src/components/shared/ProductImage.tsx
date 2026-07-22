@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 import type { StoredImage, StoredImageVariantKey } from "@store/shared";
 
 import { ProductVisual } from "@/components/shared/ProductVisual";
 import { scheduleStateUpdate } from "@/lib/scheduleStateUpdate";
-import { useGlobalEagerLoad } from "@/lib/useGlobalEagerLoad";
 
 interface ProductImageProps {
 	/** Multi-resolution image record. Optional so we can fall back to ProductVisual. */
@@ -56,7 +55,7 @@ export function ProductImage({
 }: ProductImageProps) {
 	const [hasFailed, setHasFailed] = useState(false);
 	const [hasLoaded, setHasLoaded] = useState(false);
-	const globalEager = useGlobalEagerLoad();
+	const hasLoadedRef = useRef(false);
 	// Logical OR (not `??`) so an empty-string variant (legacy seed data that
 	// wrote `""` instead of dropping the key) still falls through to the next
 	// best variant rather than producing `<Image src="">`. Without this the PDP
@@ -68,6 +67,7 @@ export function ProductImage({
 	useEffect(() => {
 		scheduleStateUpdate(() => {
 			setHasFailed(false);
+			hasLoadedRef.current = false;
 			if (showLoadFade) {
 				setHasLoaded(false);
 			}
@@ -88,17 +88,23 @@ export function ProductImage({
 				fill
 				sizes={sizes}
 				priority={priority}
-				loading={priority ? "eager" : globalEager ? "eager" : "lazy"}
+				loading={priority ? "eager" : "lazy"}
 				quality={quality}
 				placeholder={image.blurDataURL ? "blur" : undefined}
 				blurDataURL={image.blurDataURL || undefined}
 				data-img-fade={showLoadFade && !hasLoaded ? "false" : "true"}
 				className="object-cover object-center"
 				onLoad={() => {
+					hasLoadedRef.current = true;
 					setHasLoaded(true);
 					onLoadComplete?.();
 				}}
-				onError={() => setHasFailed(true)}
+				onError={() => {
+					// Aborted / remounted requests can fire error after a successful
+					// paint — keep the working image instead of swapping to ProductVisual.
+					if (hasLoadedRef.current) return;
+					setHasFailed(true);
+				}}
 			/>
 		</div>
 	);

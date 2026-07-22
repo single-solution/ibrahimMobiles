@@ -8,7 +8,6 @@ import type { Product } from "@store/shared";
 import { buildProductSeoFacts, productConfiguratorAttributeSlugs, type GradeDescriptor } from "@store/shared";
 
 import { PdpScrollReset } from "./_components/PdpScrollReset";
-import { ProductAvailabilityFacts } from "./_components/ProductAvailabilityFacts";
 import { ProductChatBeacon } from "./_components/ProductChatBeacon";
 import { GradeShowcase } from "@/components/shared/GradeShowcase";
 import { VariantAwareGallery } from "@/components/shared/PdpGallery";
@@ -245,9 +244,6 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
 
 				<div className={`pdp-content ${STOREFRONT_SHELL_CLASS} space-y-5 pt-4`}>
 					<div className="reveal">
-						<ProductAvailabilityFacts facts={productFacts} />
-					</div>
-					<div className="reveal">
 						<Suspense fallback={<VariantSelectorSkeleton layout="mobile" product={storefrontProduct} brandName={brandName} />}>
 							<VariantSelector product={storefrontProduct} brandName={brandName} />
 						</Suspense>
@@ -282,7 +278,6 @@ export default async function ProductDetailPage({ params, searchParams }: Produc
 					</div>
 
 					<div className="reveal flex min-h-0 min-w-0 flex-col space-y-5">
-						<ProductAvailabilityFacts facts={productFacts} />
 						<Suspense fallback={<VariantSelectorSkeleton layout="desktop" product={storefrontProduct} brandName={brandName} />}>
 							<VariantSelector product={storefrontProduct} brandName={brandName} />
 						</Suspense>

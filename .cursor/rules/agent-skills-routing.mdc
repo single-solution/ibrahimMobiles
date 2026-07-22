@@ -24,7 +24,7 @@ How global agent skills and MCP tools are prioritized. Skills install machine-lo
 | Layer | Location | Every project? | Pre-loaded? |
 |-------|----------|----------------|-------------|
 | vibeCodingRules | `<project>/.cursor/rules/*.mdc` | After copy/sync | `alwaysApply: true` rules only |
-| Global skills | `~/.agents/skills/` + `~/.cursor/skills/` | Yes (same machine) | Descriptions yes; full skill on trigger |
+| Global skills | `~/.agents/skills/` (CLI store) + **`~/.cursor/skills/`** (Cursor personal — symlink bridge; see `cursor-sync.md`) | Yes (same machine) | Descriptions yes; full skill on trigger |
 | Global MCP | `~/.cursor/mcp.json` | Yes (same machine) | Tool defs when MCP connected |
 
 **New machine:** run skill installs + MCP setup from `cursor-sync.md` once, then copy rules (including this file) into each project.
