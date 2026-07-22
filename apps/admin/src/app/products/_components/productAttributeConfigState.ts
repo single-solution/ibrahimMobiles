@@ -105,9 +105,9 @@ export function attributeConfigForEditor(
 	};
 }
 
-/** Default config for a category before the product is saved (all attributes + options). */
-export function attributeConfigForCategory(categoryAttributes: AdminAttribute[]): ProductAttributeConfig {
-	return resolveProductAttributeConfig({}, toCategoryAttributeRefs(categoryAttributes));
+/** Empty config for a new product — admin opts into attributes and options explicitly. */
+export function attributeConfigForCategory(_categoryAttributes: AdminAttribute[]): ProductAttributeConfig {
+	return { attributeSlugs: [], attributeOptionPool: {} };
 }
 
 /** Effective enabled values for one attribute (undefined pool key = all global options). */

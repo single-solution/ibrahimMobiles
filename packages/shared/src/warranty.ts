@@ -1,6 +1,9 @@
 /** Display grouping — 30-day months for customer-facing copy. */
 export const WARRANTY_DAYS_PER_MONTH = 30;
 
+/** Default warranty applied to new / unspecified variants. */
+export const DEFAULT_VARIANT_WARRANTY_DAYS = 14;
+
 export interface WarrantyCarrier {
 	warrantyDays?: number;
 }

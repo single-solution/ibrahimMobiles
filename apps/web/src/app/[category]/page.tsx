@@ -6,7 +6,6 @@ import { Suspense } from "react";
 import { logger } from "@store/shared";
 
 import { ShopProductFeed } from "@/components/shared/ShopProductFeed";
-import { IntentSurfaceHeader } from "@/app/_components/shop/IntentSurfaceHeader";
 import { ShopCategoryToolbar } from "@/app/_components/shop/ShopCategoryToolbar";
 import { SHOP_CATEGORY_GRID_CLASS, SHOP_CATEGORY_PAGE_CLASS } from "@/lib/catalog/shopListingGrid";
 import { ShopScrollReset } from "@/app/_components/shop/ShopScrollReset";
@@ -165,8 +164,6 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 						<ShopCategoryToolbar activeSlug={meta.slug} filters={filters} />
 					</Suspense>
 				</div>
-
-				{intentSurface?.showHeader ? <IntentSurfaceHeader headline={intentSurface.headline} intro={intentSurface.intro} /> : null}
 
 				<div className="shop-listing-mobile-scroll-pad pt-1">
 					<Suspense fallback={<ShopProductsAreaFallback />}>

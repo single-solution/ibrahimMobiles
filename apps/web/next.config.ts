@@ -65,7 +65,8 @@ function buildContentSecurityPolicy(): string {
 		`img-src 'self' blob: data: https://images.unsplash.com https://cdn.simpleicons.org https://www.facebook.com ${S3_IMAGE_HOSTS.join(" ")}`,
 		"font-src 'self' data:",
 		`connect-src 'self' ${MARKETING_CONNECT_HOSTS.join(" ")}`,
-		"media-src 'self'",
+		// Grade inspection `<video>` may be hosted on the same R2/CDN hosts as images.
+		`media-src 'self' blob: ${S3_IMAGE_HOSTS.join(" ")}`,
 		"manifest-src 'self'",
 		// Iframe sources:
 		//   - Google Maps embed lives on www.google.com / maps.google.com via the

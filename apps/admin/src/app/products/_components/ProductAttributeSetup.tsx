@@ -174,12 +174,14 @@ export function ProductAttributeSetup({ attributes, config, onChange, errorByPat
 		}
 
 		setExpandedSlugs((current) => new Set([...current, slug]));
+		// Start with an empty pool so enabling an attribute does not auto-select
+		// every catalog option — the admin picks values intentionally.
 		onChange((prev) => ({
 			...prev,
 			attributeSlugs: [...prev.attributeSlugs, slug],
 			attributeOptionPool: {
 				...prev.attributeOptionPool,
-				[slug]: attribute.options.map((option) => option.value.toLowerCase()),
+				[slug]: [],
 			},
 		}));
 	}

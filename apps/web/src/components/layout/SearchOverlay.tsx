@@ -293,8 +293,6 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
 	return createPortal(overlayElement, document.body);
 }
 
-import { useGlobalEagerLoad } from "@/lib/useGlobalEagerLoad";
-
 interface SearchHitProps {
 	result: SearchResult;
 	onNavigate: () => void;
@@ -303,7 +301,6 @@ interface SearchHitProps {
 function SearchHit({ result, onNavigate }: SearchHitProps) {
 	const href = result.categorySlug && result.slug ? productHref({ categorySlug: result.categorySlug, slug: result.slug }) : "/";
 	const thumb = result.image?.variants.thumb ?? null;
-	const globalEager = useGlobalEagerLoad();
 
 	return (
 		<li>
@@ -315,7 +312,7 @@ function SearchHit({ result, onNavigate }: SearchHitProps) {
 				<span className="product-media-well grid size-12 shrink-0 place-items-center rounded-[var(--radius-md)] bg-[var(--color-surface)] text-xs font-semibold uppercase text-[var(--color-ink-500)]">
 					{thumb ? (
 						// eslint-disable-next-line @next/next/no-img-element -- search thumbnail, no need for next/image
-						<img src={thumb} alt="" className="size-full object-cover" loading={globalEager ? "eager" : "lazy"} />
+						<img src={thumb} alt="" className="size-full object-cover" loading="lazy" />
 					) : (
 						(result.brandName || result.name).charAt(0).toUpperCase()
 					)}

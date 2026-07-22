@@ -57,7 +57,7 @@ const baseSecurityHeaders = [
 			`img-src 'self' blob: data: https://images.unsplash.com https://cdn.simpleicons.org ${S3_IMAGE_HOSTS.join(" ")}`,
 			"font-src 'self' data:",
 			"connect-src 'self'",
-			"media-src 'self'",
+			`media-src 'self' blob: ${S3_IMAGE_HOSTS.join(" ")}`,
 			"manifest-src 'self'",
 			// YouTube embed for the `Grade.video` editor preview. Without an
 			// explicit `frame-src`, the spec falls back to `default-src 'self'`

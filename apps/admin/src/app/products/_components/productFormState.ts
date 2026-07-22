@@ -4,7 +4,15 @@
  * the canonical conversion to a clean POST body.
  */
 
-import { compareAlphabetically, formatAttributeOptionLabel, filterAttributesForProduct, mergeProductPoolIntoAttributeOptions, type ProductAttributeConfig, type SeoMeta } from "@store/shared";
+import {
+	compareAlphabetically,
+	DEFAULT_VARIANT_WARRANTY_DAYS,
+	formatAttributeOptionLabel,
+	filterAttributesForProduct,
+	mergeProductPoolIntoAttributeOptions,
+	type ProductAttributeConfig,
+	type SeoMeta,
+} from "@store/shared";
 import type { GalleryImage } from "@/components/shared/uploads/imageStaging";
 
 import type { AdminAttribute, AdminBrand, AdminCategory, AdminGrade, AdminProduct, AdminVariant } from "@/types/models";
@@ -70,7 +78,7 @@ export function emptyVariantDraft(): VariantDraft {
 		priceRupees: 0,
 		quantity: 1,
 		forceOutOfStock: false,
-		warrantyDays: null,
+		warrantyDays: DEFAULT_VARIANT_WARRANTY_DAYS,
 		attributes: {},
 		attributeDisplay: {},
 		attributesMulti: {},
@@ -470,12 +478,7 @@ export function validateDraft(draft: ProductDraft, surface: CategorySurface | nu
 		};
 	}
 
-	const resolvedConfig =
-		productConfig ??
-		({
-			attributeSlugs: surface.attributes.map((attribute) => attribute.slug),
-			attributeOptionPool: Object.fromEntries(surface.attributes.map((attribute) => [attribute.slug, attribute.options.map((option) => option.value)])),
-		} satisfies ProductAttributeConfig);
+	const resolvedConfig = productConfig ?? ({ attributeSlugs: [], attributeOptionPool: {} } satisfies ProductAttributeConfig);
 
 	const variantErrors = collectVariantErrors(draft.variants, surface, draft.brandSlug, (index) => `variants.${index}`, resolvedConfig);
 	const imageErrors = collectProductImageErrors(draft.images);

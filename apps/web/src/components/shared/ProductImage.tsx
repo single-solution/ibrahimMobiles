@@ -62,7 +62,9 @@ export function ProductImage({
 	// hero shows a blank well while the listing card (which asks for the `card`
 	// variant directly) renders fine.
 	const src = image?.variants[variant] || image?.variants.card || image?.variants.full || "";
-	const showLoadFade = !priority;
+	// Skip opacity-0 fade when a blur placeholder is already painted — fading the
+	// whole <Image> hides the blur and reads as a flicker.
+	const showLoadFade = !priority && !image?.blurDataURL;
 
 	useEffect(() => {
 		scheduleStateUpdate(() => {

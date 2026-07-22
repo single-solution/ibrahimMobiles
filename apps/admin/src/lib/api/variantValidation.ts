@@ -1,4 +1,11 @@
-import { FIELD_LIMITS, isGlobalOptionInProductPool, resolveProductAttributeConfig, WARRANTY_DAYS_PER_MONTH, type ProductAttributeConfig } from "@store/shared";
+import {
+	DEFAULT_VARIANT_WARRANTY_DAYS,
+	FIELD_LIMITS,
+	isGlobalOptionInProductPool,
+	resolveProductAttributeConfig,
+	WARRANTY_DAYS_PER_MONTH,
+	type ProductAttributeConfig,
+} from "@store/shared";
 import { Attribute, connectDB, Grade, Product } from "@store/db";
 
 /**
@@ -8,8 +15,6 @@ import { Attribute, connectDB, Grade, Product } from "@store/db";
  */
 const MAX_RUPEE_AMOUNT = 100_000_000;
 
-/** Default warranty when the admin didn't specify (6 months). */
-const DEFAULT_WARRANTY_DAYS = 6 * WARRANTY_DAYS_PER_MONTH;
 /** Hard upper bound — 5 years in days. */
 const MAX_WARRANTY_DAYS = 60 * WARRANTY_DAYS_PER_MONTH;
 /** Hard upper bound on variant quantity. Anything past 100k is a typo. */
@@ -97,7 +102,7 @@ export async function validateVariant(input: VariantInput, requireAll: boolean, 
 	}
 
 	if (input.warrantyDays !== undefined || requireAll) {
-		const days = Number(input.warrantyDays ?? DEFAULT_WARRANTY_DAYS);
+		const days = Number(input.warrantyDays ?? DEFAULT_VARIANT_WARRANTY_DAYS);
 		if (!Number.isFinite(days) || days < 0 || days > MAX_WARRANTY_DAYS) {
 			return {
 				ok: false,
@@ -112,7 +117,7 @@ export async function validateVariant(input: VariantInput, requireAll: boolean, 
 		}
 		value.warrantyDays = days;
 	} else if (requireAll) {
-		value.warrantyDays = DEFAULT_WARRANTY_DAYS;
+		value.warrantyDays = DEFAULT_VARIANT_WARRANTY_DAYS;
 	}
 
 	// Images live on `product.images` — refuse any per-variant gallery payload.

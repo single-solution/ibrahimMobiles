@@ -2,7 +2,6 @@
 
 import { MapPin } from "lucide-react";
 import type { StoreSettings } from "@store/shared";
-import { useGlobalEagerLoad } from "@/lib/useGlobalEagerLoad";
 
 // Copied from homePageDesktopSections
 const MAP_EMBED_ZOOM = 17;
@@ -13,7 +12,6 @@ export interface StoreMapEmbedProps {
 }
 
 export function StoreMapEmbed({ className = "", settings }: StoreMapEmbedProps) {
-	const globalEager = useGlobalEagerLoad();
 	const mapQuery = `${settings.storeAddressLine1}, ${settings.storeAddressLine2}`;
 	const mapEmbedUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&z=${MAP_EMBED_ZOOM}&output=embed`;
 
@@ -22,7 +20,7 @@ export function StoreMapEmbed({ className = "", settings }: StoreMapEmbedProps) 
 			<iframe
 				title={`Map of ${mapQuery}`}
 				src={mapEmbedUrl}
-				loading={globalEager ? "eager" : "lazy"}
+				loading="lazy"
 				referrerPolicy="no-referrer-when-downgrade"
 				allowFullScreen
 				className="absolute inset-0 h-full w-full border-0"

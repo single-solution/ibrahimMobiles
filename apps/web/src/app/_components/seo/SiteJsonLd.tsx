@@ -103,14 +103,20 @@ async function loadSiteJsonLdPayload() {
 
 /** Global Organization + WebSite JSON-LD on every storefront page. */
 export async function SiteJsonLd() {
-	const payload = await loadSiteJsonLdPayload();
-	const organization = organizationJsonLd(payload);
-	const website = websiteJsonLd(payload);
+	try {
+		const payload = await loadSiteJsonLdPayload();
+		const organization = organizationJsonLd(payload);
+		const website = websiteJsonLd(payload);
 
-	return (
-		<>
-			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(organization) }} />
-			<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(website) }} />
-		</>
-	);
+		return (
+			<>
+				<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(organization) }} />
+				<script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdScriptContent(website) }} />
+			</>
+		);
+	} catch {
+		// Build / cold Mongo must not fail prerender (e.g. `/_not-found` during
+		// `next build` when MONGODB_URI is unset on the build machine).
+		return null;
+	}
 }

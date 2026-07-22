@@ -159,7 +159,7 @@ npm run build
 npm run format
 ```
 
-**Production build:** `npm run build` may connect to MongoDB during static generation. Atlas should be reachable from CI, but SEO/metadata loaders **fall back to factory defaults** when Mongo is down — the build should still complete. Prefer a stable connection so prerendered titles/OG tags use live admin settings.
+**Production build:** `npm run build` may connect to MongoDB during static generation. Atlas should be reachable from CI, but SEO/metadata loaders and `SiteJsonLd` **fall back** when Mongo/`MONGODB_URI` is unavailable — the build should still complete. Prefer a stable connection so prerendered titles/OG tags use live admin settings. Set `MONGODB_URI` on the Vercel project for both **Build** and **Runtime** so production prerender uses live data.
 
 Per-app builds:
 

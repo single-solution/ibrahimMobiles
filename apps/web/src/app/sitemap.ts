@@ -4,7 +4,7 @@
  * We list:
  *   - Static marketing routes (home, deals, account sign-in, etc.).
  *   - Each active category landing page.
- *   - Quality-gated category x brand x grade intent surfaces.
+ *   - Quality-gated category x brand x grade intent surfaces (filtered category URLs).
  *   - Each visible product page (capped to MAX_PRODUCT_URLS so a runaway DB
  *     doesn't blow the 50 k entry sitemap limit). When we eventually need
  *     more, split into per-category sitemaps via `generateSitemaps`.
@@ -20,19 +20,10 @@
  */
 import type { MetadataRoute } from "next";
 
-import { logger } from "@store/shared";
-
-import { buildIntentSurfaceCanonicalQuery } from "@store/shared";
+import { buildIntentSurfaceCanonicalQuery, logger } from "@store/shared";
 
 import { getStorefrontBaseUrl } from "@/lib/core/baseUrl";
-import {
-	getCategoriesCached,
-	getSitemapAttributesCached,
-	getSitemapGradesCached,
-	getSitemapIntentSurfacesCached,
-	getSitemapProductsCached,
-} from "@/lib/core/cached";
-import { attributeGlossaryHref, gradeGlossaryHref } from "@/lib/catalog/glossaryPaths";
+import { getCategoriesCached, getSitemapIntentSurfacesCached, getSitemapProductsCached } from "@/lib/core/cached";
 
 export const revalidate = 3600;
 
@@ -49,21 +40,17 @@ const STATIC_PATHS: ReadonlyArray<{
 interface DynamicSitemapData {
 	categories: Awaited<ReturnType<typeof getCategoriesCached>>;
 	products: Array<{ slug: string; categorySlug: string; updatedAt?: Date }>;
-	grades: Array<{ categorySlug: string; slug: string; updatedAt?: Date }>;
-	attributes: Array<{ categorySlug: string; slug: string; updatedAt?: Date }>;
 	intentSurfaces: Awaited<ReturnType<typeof getSitemapIntentSurfacesCached>>;
 }
 
 async function loadDynamicData(): Promise<DynamicSitemapData | null> {
 	try {
-		const [categories, products, grades, attributes, intentSurfaces] = await Promise.all([
+		const [categories, products, intentSurfaces] = await Promise.all([
 			getCategoriesCached(),
 			getSitemapProductsCached(),
-			getSitemapGradesCached(),
-			getSitemapAttributesCached(),
 			getSitemapIntentSurfacesCached(),
 		]);
-		return { categories, products, grades, attributes, intentSurfaces };
+		return { categories, products, intentSurfaces };
 	} catch (error) {
 		logger.error({ error }, "sitemap: dynamic load failed, emitting static-only sitemap this generation");
 		return null;
@@ -86,8 +73,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 		return entries;
 	}
 
-	const { categories, products, grades, attributes, intentSurfaces } = data;
-	const activeCategorySlugs = new Set(categories.filter((c) => c.isActive).map((c) => c.slug));
+	const { categories, products, intentSurfaces } = data;
+	const activeCategorySlugs = new Set(categories.filter((category) => category.isActive).map((category) => category.slug));
 
 	for (const category of categories) {
 		if (!category.isActive) {
@@ -123,30 +110,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			lastModified: product.updatedAt ?? now,
 			changeFrequency: "weekly",
 			priority: 0.7,
-		});
-	}
-
-	for (const grade of grades) {
-		if (!activeCategorySlugs.has(grade.categorySlug)) {
-			continue;
-		}
-		entries.push({
-			url: `${base}${gradeGlossaryHref(grade.categorySlug, grade.slug)}`,
-			lastModified: grade.updatedAt ?? now,
-			changeFrequency: "monthly",
-			priority: 0.5,
-		});
-	}
-
-	for (const attribute of attributes) {
-		if (!activeCategorySlugs.has(attribute.categorySlug)) {
-			continue;
-		}
-		entries.push({
-			url: `${base}${attributeGlossaryHref(attribute.categorySlug, attribute.slug)}`,
-			lastModified: attribute.updatedAt ?? now,
-			changeFrequency: "monthly",
-			priority: 0.5,
 		});
 	}
 

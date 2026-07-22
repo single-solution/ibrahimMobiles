@@ -73,7 +73,7 @@ flowchart TB
 | ----- | ----- | ------- |
 | **Category attribute** | `attributes` collection | Shared dimensions (Storage, Color, PTA, …) with `options[]` for filters and labels. |
 | **Product config** | `attributeSlugs`, pools, custom options, defaults | Which dimensions apply; whitelisted values; product-only values. |
-| **Variant row** | `products.variants[]` | SKU: `gradeSlug`, `priceRupees`, `quantity`, `forceOutOfStock`, `warrantyDays`, attributes. |
+| **Variant row** | `products.variants[]` | SKU: `gradeSlug`, `priceRupees`, `quantity`, `forceOutOfStock`, `warrantyDays` (default **14 days** when unset), attributes. |
 
 **Rule:** Variant values must sit in the product pool. Duplicate combinations within the same grade are rejected.
 
@@ -575,7 +575,7 @@ Super-admin bypasses all permission checks.
 | **Policies** | Moneyback days, warranty months, return/privacy HTML → checkout modals |
 | **Loyalty** | Earn % on delivered orders |
 | **Inventory** | Low-stock threshold → dashboard + bell |
-| **SEO** | Global meta, OG, Organization JSON-LD; product formula + AI copy; intent surfaces; glossary pages; merchant feed URL |
+| **SEO** | Global meta, OG, Organization JSON-LD; product formula + AI copy; intent filter URLs; merchant feed URL |
 | **Chat** | Widget, guest limit, assistant, **all provider API keys**, real-time transport, nudge |
 | **Integrations** | Social links, pixels, staff notify email, admin URL, **media storage status** (SMTP + R2 via deploy env) |
 | **Data cleanup** | Owner-only bulk delete |
@@ -590,10 +590,10 @@ Super-admin bypasses all permission checks.
 | ------- | -------------- |
 | **PDP** | `/{category}/{slug}` — one **indexable** URL; aggregate title/description; FAQ + AggregateOffer JSON-LD |
 | **PDP variant links** | `?grade=&attr=` — **noindex**; variant-specific share title; canonical → clean PDP |
-| **Intent landing** | `/{category}?brand={slug}&grade={slug}` — indexable when eligibility passes (≥2 products, ≥3 in-stock variants, copy exists); dedicated H1 + intro |
+| **Intent landing** | `/{category}?brand={slug}&grade={slug}` — indexable when eligibility passes (≥2 products, ≥3 in-stock variants, copy exists); meta/JSON-LD only (no extra on-page H1 block) |
 | **Thin filters** | Any other active filter params → `noindex,follow`; bare `?brand=` also noindex when a brand+grade surface exists for that brand |
-| **Glossary** | `/grades/{category}/{grade}`, `/attributes/{category}/{attribute}` — linked from filter pages ("What is …?") |
-| **Sitemap** | `/sitemap.xml` — categories, products, glossary, indexable intent surfaces only |
+| **Glossary redirects** | `/grades/...` and `/attributes/...` permanently redirect to the category listing (grade filter when applicable) |
+| **Sitemap** | `/sitemap.xml` — categories, products, indexable intent filter URLs only |
 | **Merchant feed** | `GET /api/feeds/merchant` (XML default; `?format=csv`); optional `Authorization: Bearer {MERCHANT_FEED_TOKEN}` |
 | **Nightly reconcile** | `GET /api/cron/seo-reconcile` with `Authorization: Bearer {CRON_SECRET}` — refreshes `SeoSurface` stats and cache |
 
