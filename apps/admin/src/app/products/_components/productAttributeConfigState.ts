@@ -1,4 +1,5 @@
 import {
+	capitalizeEachWord,
 	compactAttributeOptionValue,
 	formatAttributeOptionLabel,
 	getProductOptionPool,
@@ -159,7 +160,7 @@ export function previewProductCustomOptionSlug(attribute: AdminAttribute, label:
 }
 
 export function addProductCustomOption(config: ProductAttributeConfig, attribute: AdminAttribute, label: string): AddProductCustomOptionResult {
-	const trimmed = label.trim();
+	const trimmed = capitalizeEachWord(label).trim();
 	if (!trimmed) {
 		return { ok: false, reason: "empty" };
 	}

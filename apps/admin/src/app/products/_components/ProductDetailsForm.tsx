@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ImageGallery } from "@/components/shared/uploads";
 import type { GalleryImage } from "@/components/shared/uploads/imageStaging";
 import type { Dispatch, SetStateAction } from "react";
-import type { ProductAttributeConfig } from "@store/shared";
+import { capitalizeEachWord, type ProductAttributeConfig } from "@store/shared";
 import type { AdminAttribute, AdminBrand, AdminCategory } from "@/types/models";
 
 import { ProductAttributeSetup } from "./ProductAttributeSetup";
@@ -124,7 +124,7 @@ export function ProductDetailsForm({
 									type="text"
 									required
 									value={name}
-									onChange={(event) => onNameChange(event.target.value)}
+									onChange={(event) => onNameChange(capitalizeEachWord(event.target.value))}
 									maxLength={120}
 									placeholder="Product name"
 									disabled={nameDisabled}

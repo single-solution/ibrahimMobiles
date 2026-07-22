@@ -2,7 +2,14 @@
 
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
-import { classNames, compareAlphabetically, formatAttributeOptionLabel, type ProductAttributeConfig, sortAttributeOptions } from "@store/shared";
+import {
+	capitalizeEachWord,
+	classNames,
+	compareAlphabetically,
+	formatAttributeOptionLabel,
+	type ProductAttributeConfig,
+	sortAttributeOptions,
+} from "@store/shared";
 
 import { Toggle } from "@/components/ui/Toggle";
 import type { AdminAttribute } from "@/types/models";
@@ -377,7 +384,7 @@ export function ProductAttributeSetup({ attributes, config, onChange, errorByPat
 													type="text"
 													value={customDraft}
 													onChange={(event) => {
-														const value = event.target.value;
+														const value = capitalizeEachWord(event.target.value);
 														setCustomDrafts((current) => ({
 															...current,
 															[attribute.slug]: value,

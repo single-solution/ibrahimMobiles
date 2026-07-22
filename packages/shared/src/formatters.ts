@@ -1,5 +1,13 @@
 import { HOURS_PER_DAY, MINUTES_PER_HOUR, MS_PER_MINUTE } from "./constants";
 
+/**
+ * Uppercase the first letter of every whitespace-separated word.
+ * Leaves the rest of each word as typed (so "iPhone" / "S24" stay intact).
+ */
+export function capitalizeEachWord(value: string): string {
+	return value.replace(/(^|\s)(\S)/g, (_match, boundary: string, character: string) => `${boundary}${character.toUpperCase()}`);
+}
+
 const DAYS_PER_WEEK = 7;
 /** Approximate days/months used for "Xmo ago" / "Xy ago" rendering only. */
 const DAYS_PER_MONTH = 30;

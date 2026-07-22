@@ -5,6 +5,7 @@
  */
 
 import {
+	capitalizeEachWord,
 	compareAlphabetically,
 	DEFAULT_VARIANT_WARRANTY_DAYS,
 	formatAttributeOptionLabel,
@@ -323,7 +324,7 @@ export function validateShellDraft(draft: Pick<ProductDraft, "categorySlug" | "b
 	if (!draft.brandSlug) {
 		errors.push({ path: "brandSlug", message: "Pick a brand." });
 	}
-	const name = draft.name.trim();
+	const name = capitalizeEachWord(draft.name).trim();
 	if (name.length < 2) {
 		errors.push({ path: "name", message: "Product name is required." });
 	} else if (name.length > 120) {
