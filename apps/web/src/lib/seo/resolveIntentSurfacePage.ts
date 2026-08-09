@@ -157,4 +157,4 @@ export const resolveIntentSurfacePage = cache(async function resolveIntentSurfac
 		isIndexable,
 		showHeader: true,
 	};
-}
+});
