@@ -345,7 +345,7 @@ export function VideoRibbonGallery({ looks = DEFAULT_VIDEOS, className }: VideoR
 		sideEntries.forEach((entry, staggerIndex) => {
 			const pose = ribbonPose(entry.delta, count);
 			const image = entry.slide.querySelector<HTMLElement>(`.${styles.ribbonParallax}`);
-			const startAt = \`main-done+=\${staggerIndex * 0.08}\`;
+			const startAt = `main-done+=${staggerIndex * 0.08}`;
 			timeline.to(
 				entry.slide,
 				{
@@ -457,7 +457,7 @@ export function VideoRibbonGallery({ looks = DEFAULT_VIDEOS, className }: VideoR
 	return (
 		<section
 			ref={rootRef}
-			className={\`\${styles.lookStage} \${styles.lookStageRibbon} \${className ?? ""}\`}
+			className={`${styles.lookStage} ${styles.lookStageRibbon} ${className ?? ""}`}
 			aria-label="Video Showcase"
 		>
 			<div className={styles.ribbonViewport}>
@@ -470,7 +470,7 @@ export function VideoRibbonGallery({ looks = DEFAULT_VIDEOS, className }: VideoR
 								type="button"
 								className={styles.ribbonSlide}
 								tabIndex={isActive ? 0 : -1}
-								aria-label={isActive ? \`\${look.label} — click to play\` : \`Show \${look.label}\`}
+								aria-label={isActive ? `${look.label} — click to play` : `Show ${look.label}`}
 								aria-current={isActive ? "true" : undefined}
 								onClick={() => {
 									if (pointerHandledRef.current) {
@@ -509,10 +509,10 @@ export function VideoRibbonGallery({ looks = DEFAULT_VIDEOS, className }: VideoR
 				</div>
 				{count > 1 ? (
 					<div className={styles.ribbonNav} role="group" aria-label="Video navigation">
-						<button type="button" className={\`\${styles.ribbonNavButton} \${styles.ribbonNavPrev}\`} aria-label="Previous video" onClick={() => goTo(index - 1)}>
+						<button type="button" className={`${styles.ribbonNavButton} ${styles.ribbonNavPrev}`} aria-label="Previous video" onClick={() => goTo(index - 1)}>
 							<ChevronLeft size={20} strokeWidth={1.75} aria-hidden />
 						</button>
-						<button type="button" className={\`\${styles.ribbonNavButton} \${styles.ribbonNavNext}\`} aria-label="Next video" onClick={() => goTo(index + 1)}>
+						<button type="button" className={`${styles.ribbonNavButton} ${styles.ribbonNavNext}`} aria-label="Next video" onClick={() => goTo(index + 1)}>
 							<ChevronRight size={20} strokeWidth={1.75} aria-hidden />
 						</button>
 					</div>
