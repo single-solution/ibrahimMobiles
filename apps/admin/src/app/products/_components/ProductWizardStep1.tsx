@@ -13,7 +13,7 @@ import type { ProductWizardCatalog } from "@/lib/products/loadProductWizardCatal
 
 import { collectProductImageErrors, emptyDraft, errorsByPath, validateShellDraft, type CategorySurface, type ProductDraft, type ProductValidationError } from "./productFormState";
 import { ProductDetailsForm } from "./ProductDetailsForm";
-import { attributeConfigForCategory, buildAttributeConfigForSave } from "./productAttributeConfigState";
+import { attributeConfigForCategory, buildAttributeConfigForSave, enabledAttributesWithoutOptions } from "./productAttributeConfigState";
 
 interface ProductWizardStep1Props {
 	onClose: () => void;
@@ -66,11 +66,22 @@ export function ProductWizardStep1({ onClose, catalog, onCreated }: ProductWizar
 		setErrors((prev) => prev.filter((row) => row.path !== "images"));
 	}
 
+	const emptyOptionAttributes = useMemo(
+		() => enabledAttributesWithoutOptions(attributeConfig, surface?.attributes ?? []),
+		[attributeConfig, surface?.attributes],
+	);
+	const canSaveAttributes = emptyOptionAttributes.length === 0;
+
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		const form = event.currentTarget;
 		if (!form.reportValidity()) return;
 		if (submitting) return;
+		if (!canSaveAttributes) {
+			const labels = emptyOptionAttributes.map((attribute) => attribute.label).join(", ");
+			toast.danger(`Select at least one option for: ${labels}. Or turn those attributes off.`);
+			return;
+		}
 		const shell = validateShellDraft(draft);
 		const imageErrors = collectProductImageErrors(draft.images);
 		if (!shell.ok || imageErrors.length > 0) {
@@ -139,7 +150,7 @@ export function ProductWizardStep1({ onClose, catalog, onCreated }: ProductWizar
 						<Button variant="ghost" size="sm" type="button" onClick={handleClose} disabled={submitting}>
 							Cancel
 						</Button>
-						<Button variant="primary" size="sm" type="submit" form="product-wizard-step1" isLoading={submitting}>
+						<Button variant="primary" size="sm" type="submit" form="product-wizard-step1" isLoading={submitting} disabled={!canSaveAttributes}>
 							Save &amp; continue
 						</Button>
 					</div>

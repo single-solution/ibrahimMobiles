@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -5,6 +6,7 @@ import { redirect } from "next/navigation";
 import { logger } from "@store/shared";
 
 import { ShopIntroHero } from "@/app/_components/shop/ShopIntroHero";
+import { ShopProductsAreaFallback } from "@/components/shared/ShopListingSkeleton";
 import { ShopProductFeed } from "@/components/shared/ShopProductFeed";
 import { catalogRootHref, categoryHref } from "@/lib/catalog/productPaths";
 import { getCategoriesCached, getProductsPageCached, getStoreSettingsCached } from "@/lib/core/cached";
@@ -64,7 +66,20 @@ export default async function CatalogIndexPage({ searchParams }: CatalogIndexPag
 	redirect(categoryHref(firstActive.slug));
 }
 
-async function CatalogSearchResults({ query, requestedPage }: { query: string; requestedPage: number }) {
+function CatalogSearchResults({ query, requestedPage }: { query: string; requestedPage: number }) {
+	return (
+		<>
+			<ShopIntroHero />
+			<div className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-2 md:px-6 md:pb-16 md:pt-4 lg:px-8">
+				<Suspense fallback={<ShopProductsAreaFallback />}>
+					<SearchResultsList query={query} requestedPage={requestedPage} />
+				</Suspense>
+			</div>
+		</>
+	);
+}
+
+async function SearchResultsList({ query, requestedPage }: { query: string; requestedPage: number }) {
 	let page: Awaited<ReturnType<typeof getProductsPageCached>>;
 	try {
 		page = await getProductsPageCached({
@@ -78,25 +93,20 @@ async function CatalogSearchResults({ query, requestedPage }: { query: string; r
 		page = { products: [], total: 0, page: 1, pageSize: SEARCH_PAGE_SIZE, pageCount: 1 };
 	}
 
+	if (page.products.length === 0) {
+		return <EmptySearchState />;
+	}
+
 	return (
-		<>
-			<ShopIntroHero />
-			<div className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-2 md:px-6 md:pb-16 md:pt-4 lg:px-8">
-				{page.products.length > 0 ? (
-					<div className="cv-auto-lg mt-4">
-						<ShopProductFeed
-							initialPage={page}
-							categoryLabel="results"
-							apiParams={{}}
-							showResultsCount
-							gridClassName="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 lg:grid-cols-4"
-						/>
-					</div>
-				) : (
-					<EmptySearchState />
-				)}
-			</div>
-		</>
+		<div className="cv-auto-lg mt-4">
+			<ShopProductFeed
+				initialPage={page}
+				categoryLabel="results"
+				apiParams={{}}
+				showResultsCount
+				gridClassName="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 lg:grid-cols-4"
+			/>
+		</div>
 	);
 }
 

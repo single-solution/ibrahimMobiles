@@ -119,6 +119,16 @@ export function effectiveProductOptionPool(config: ProductAttributeConfig, attri
 	});
 }
 
+/** Enabled attributes that have an empty option pool (invalid for save). */
+export function enabledAttributesWithoutOptions(config: ProductAttributeConfig, categoryAttributes: AdminAttribute[]): AdminAttribute[] {
+	return categoryAttributes.filter((attribute) => {
+		if (!config.attributeSlugs.includes(attribute.slug)) {
+			return false;
+		}
+		return effectiveProductOptionPool(config, attribute).length === 0;
+	});
+}
+
 /** Exact payload for PUT /api/products/:id/attribute-config — no implicit pool expansion. */
 export function buildAttributeConfigForSave(config: ProductAttributeConfig, categoryAttributes: AdminAttribute[]) {
 	const attributeSlugs = config.attributeSlugs.map((slug) => slug.trim().toLowerCase());

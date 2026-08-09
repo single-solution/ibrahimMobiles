@@ -329,5 +329,15 @@ export async function validateProductAttributeConfig(
 		config.attributeDefaults = attributeDefaults;
 	}
 
+	for (const slug of config.attributeSlugs) {
+		const pool = config.attributeOptionPool[slug] ?? [];
+		if (pool.length === 0) {
+			return {
+				ok: false,
+				error: `Attribute '${slug}' is enabled but has no options selected. Pick at least one option or turn the attribute off.`,
+			};
+		}
+	}
+
 	return { ok: true, value: config };
 }

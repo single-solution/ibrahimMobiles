@@ -354,8 +354,8 @@ export function ProductAttributeSetup({ attributes, config, onChange, errorByPat
 										) : null}
 
 										{pool.length === 0 ? (
-											<p className="rounded-md border border-dashed border-[var(--color-amber-200)] bg-[var(--color-amber-50)] px-2.5 py-2 text-[11px] leading-snug text-[var(--color-amber-800)]">
-												No options selected — add options before creating variants.
+											<p className="rounded-md border border-dashed border-[var(--color-rose-200)] bg-[var(--color-rose-50)] px-2.5 py-2 text-[11px] leading-snug text-[var(--color-rose-800)]">
+												Select at least one option (or turn this attribute off) before saving.
 											</p>
 										) : null}
 

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { aggregateIntentSurfaceComboStats } from "@store/db";
 import {
 	buildIntentSurfaceCanonicalQuery,
@@ -77,7 +78,7 @@ function buildFormulaSurface(input: {
 	};
 }
 
-export async function resolveIntentSurfacePage({
+export const resolveIntentSurfacePage = cache(async function resolveIntentSurfacePage({
 	category,
 	filters,
 	rawSearchParams,

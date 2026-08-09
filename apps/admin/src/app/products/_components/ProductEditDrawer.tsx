@@ -24,6 +24,7 @@ import {
 	analyzeAttributeConfigImpact,
 	buildAttributeConfigForSave,
 	countVariantsUsingAttribute,
+	enabledAttributesWithoutOptions,
 	formatAttributeConfigImpactLines,
 	hasAttributeConfigImpact,
 	type AttributeConfigImpactSummary,
@@ -143,6 +144,12 @@ export function ProductEditDrawer({ productId, step, catalog, isOpen, onClose, o
 		};
 	}, [isOpen, productId]);
 
+	const emptyOptionAttributes = useMemo(
+		() => enabledAttributesWithoutOptions(attributeConfig, categoryAttributes),
+		[attributeConfig, categoryAttributes],
+	);
+	const canSaveAttributes = emptyOptionAttributes.length === 0;
+
 	async function performStep1Save() {
 		if (!product || saving) return;
 
@@ -151,6 +158,11 @@ export function ProductEditDrawer({ productId, step, catalog, isOpen, onClose, o
 			const trimmed = name.trim();
 			if (trimmed.length < 2) {
 				toast.danger("Product name is required.");
+				return;
+			}
+			if (!canSaveAttributes) {
+				const labels = emptyOptionAttributes.map((attribute) => attribute.label).join(", ");
+				toast.danger(`Select at least one option for: ${labels}. Or turn those attributes off.`);
 				return;
 			}
 			const imageProblems = collectProductImageErrors(images);
@@ -208,6 +220,11 @@ export function ProductEditDrawer({ productId, step, catalog, isOpen, onClose, o
 		if (!product || saving) return;
 
 		if (step === 1) {
+			if (!canSaveAttributes) {
+				const labels = emptyOptionAttributes.map((attribute) => attribute.label).join(", ");
+				toast.danger(`Select at least one option for: ${labels}. Or turn those attributes off.`);
+				return;
+			}
 			if (!skipAttributeSaveConfirmRef.current) {
 				const impact = analyzeAttributeConfigImpact(attributeConfig, product.variants, categoryAttributes);
 				if (hasAttributeConfigImpact(impact)) {
@@ -243,7 +260,14 @@ export function ProductEditDrawer({ productId, step, catalog, isOpen, onClose, o
 				<Button variant="ghost" size="md" type="button" onClick={onClose} disabled={saving}>
 					Close
 				</Button>
-				<Button variant="primary" size="md" type="submit" form="product-edit-drawer" isLoading={saving} disabled={loading || !product}>
+				<Button
+					variant="primary"
+					size="md"
+					type="submit"
+					form="product-edit-drawer"
+					isLoading={saving}
+					disabled={loading || !product || (step === 1 && !canSaveAttributes)}
+				>
 					Save
 				</Button>
 			</div>
