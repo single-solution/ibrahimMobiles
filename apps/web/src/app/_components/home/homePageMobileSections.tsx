@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, ChevronDown, MapPin } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ChevronDown, MapPin, Sparkles } from "lucide-react";
 import { GradesByCategoryTabs } from "@/app/_components/home/GradesByCategoryTabs";
 import { HeroHeadlineWithTrendingProducts } from "@/app/_components/home/HeroTrendingProductBand";
 import { ShopTypeCard, type HeroProps, type ProcessSectionProps, type ShopTypesSectionProps, type VisitStoreSectionProps } from "@/app/_components/home/homePageDesktopSections";
@@ -7,6 +7,7 @@ import { StoreMapEmbed } from "@/components/shared/StoreMapEmbed";
 import { KineticHeading } from "@/components/shared/motion/KineticHeading";
 import { MagneticHover } from "@/components/shared/motion/MagneticHover";
 import { classNames, getPaymentMethods } from "@store/shared";
+import { ButtonLink } from "@store/ui";
 import { getCategoriesCached, getGradesCached } from "@/lib/core/cached";
 import { buildGradeCategoryGroups } from "@/lib/core/gradeGroups";
 import { HOME_FEATURED_CATEGORY_COUNT, formatCategorySectionTitle, getHomeCategoryGridClass, shouldShowBrowseAllCategories } from "@/lib/core/categoryDisplay";
@@ -79,7 +80,7 @@ export function MobileShopTypesSection({ categories }: ShopTypesSectionProps) {
 
 const MOBILE_HERO_GRADIENT = "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 55%, var(--color-canvas)) 0%, var(--color-canvas) 55%, var(--color-canvas) 100%)";
 
-export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreButton = true, showWeAreDifferentCue = true, layout = "viewport", heroDeals = [] }: HeroProps) {
+export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreButton = true, showWeAreDifferentCue = true, showHowWeWorkButton = false, layout = "viewport", heroDeals = [] }: HeroProps) {
 	const productNames = heroProducts.map((product) => product.name);
 	const isContentLayout = layout === "content";
 
@@ -115,19 +116,35 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 				) : null}
 			</div>
 
-			{showVisitStoreButton ? (
-				<div className={classNames("relative z-10 flex w-full flex-col items-center gap-3", !isContentLayout && "reveal")}>
-					<MagneticHover strength={0.3} maxOffset={25}>
-						<Link
+			<div className="relative z-10 flex w-full flex-col items-center">
+				{showVisitStoreButton ? (
+					<div className={classNames("flex flex-col items-center gap-6", !isContentLayout && "reveal")}>
+						<ButtonLink
 							href={shopHref}
-							className="cta-arrow tap inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent-500)] px-6 text-[14px] font-semibold text-[var(--color-ink-900)] shadow-[0_8px_24px_-12px_color-mix(in_srgb,var(--color-accent-500)_70%,transparent)] transition-shadow active:bg-[var(--color-accent-600)]"
+							variant="primary"
+							size="lg"
+							className="cta-arrow !rounded-full shadow-[0_12px_36px_-16px_color-mix(in_srgb,var(--color-accent-500)_75%,transparent)]"
+							trailingIcon={<ArrowUpRight size={17} strokeWidth={2.4} />}
 						>
 							Visit store
-							<ArrowUpRight size={15} strokeWidth={2.4} />
-						</Link>
-					</MagneticHover>
-				</div>
-			) : null}
+						</ButtonLink>
+					</div>
+				) : null}
+
+				{showHowWeWorkButton ? (
+					<div className={classNames("flex flex-col items-center mt-6", !isContentLayout && "reveal")}>
+						<ButtonLink
+							href="/about"
+							variant="secondary"
+							size="lg"
+							className="cta-arrow !rounded-full shadow-[0_12px_36px_-16px_color-mix(in_srgb,var(--color-ink-900)_20%,transparent)]"
+							trailingIcon={<Sparkles size={17} strokeWidth={2.4} />}
+						>
+							How we work
+						</ButtonLink>
+					</div>
+				) : null}
+			</div>
 
 			{showWeAreDifferentCue ? (
 				<a

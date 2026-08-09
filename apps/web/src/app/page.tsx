@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import { logger } from "@store/shared";
 
 import { ShopIntroHero } from "@/app/_components/shop/ShopIntroHero";
-import { VideoRibbonGallery } from "@/components/shared/VideoRibbonGallery";
 import { ShopProductsAreaFallback } from "@/components/shared/ShopListingSkeleton";
 import { ShopProductFeed } from "@/components/shared/ShopProductFeed";
 import { catalogRootHref, categoryHref } from "@/lib/catalog/productPaths";
@@ -71,7 +70,6 @@ function CatalogSearchResults({ query, requestedPage }: { query: string; request
 	return (
 		<>
 			<ShopIntroHero />
-			<VideoRibbonGallery />
 			<div className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-2 md:px-6 md:pb-16 md:pt-4 lg:px-8">
 				<Suspense fallback={<ShopProductsAreaFallback />}>
 					<SearchResultsList query={query} requestedPage={requestedPage} />

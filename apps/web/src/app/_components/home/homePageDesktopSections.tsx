@@ -37,6 +37,8 @@ export interface HeroProps {
 	layout?: "viewport" | "content";
 	/** Live storefront offers — drives the deals CTA under the headline on shop banners. */
 	heroDeals?: Offer[];
+	/** If true, displays a premium 'How We Work' button. */
+	showHowWeWorkButton?: boolean;
 }
 
 export interface ShopTypesSectionProps {
@@ -53,7 +55,7 @@ export interface VisitStoreSectionProps {
 
 const DESKTOP_HERO_GRADIENT = "linear-gradient(180deg, color-mix(in srgb, var(--color-accent-50) 60%, var(--color-canvas)) 0%, var(--color-canvas) 60%, var(--color-canvas) 100%)";
 
-export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreButton = true, showWeAreDifferentCue = true, layout = "viewport", heroDeals = [] }: HeroProps) {
+export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreButton = true, showWeAreDifferentCue = true, showHowWeWorkButton = false, layout = "viewport", heroDeals = [] }: HeroProps) {
 	const productNames = heroProducts.map((product) => product.name);
 	const isContentLayout = layout === "content";
 
@@ -100,6 +102,22 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 								trailingIcon={<ArrowUpRight size={17} strokeWidth={2.4} />}
 							>
 								Visit store
+							</ButtonLink>
+						</MagneticHover>
+					</div>
+				) : null}
+
+				{showHowWeWorkButton ? (
+					<div className={classNames("flex flex-col items-center mt-6", !isContentLayout && "reveal")}>
+						<MagneticHover fieldSelector="[data-magnetic-field]" strength={0.2} maxOffset={30}>
+							<ButtonLink
+								href="/about"
+								variant="secondary"
+								size="lg"
+								className="cta-arrow !rounded-full shadow-[0_12px_36px_-16px_color-mix(in_srgb,var(--color-ink-900)_20%,transparent)]"
+								trailingIcon={<Sparkles size={17} strokeWidth={2.4} />}
+							>
+								How we work
 							</ButtonLink>
 						</MagneticHover>
 					</div>

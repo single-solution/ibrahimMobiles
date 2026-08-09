@@ -30,6 +30,7 @@ export async function ShopIntroHero({ excludeCategorySlug }: ShopIntroHeroProps 
 					layout="content"
 					showVisitStoreButton={false}
 					showWeAreDifferentCue={false}
+					showHowWeWorkButton={true}
 					heroDeals={heroDeals}
 				/>
 			</div>
@@ -41,6 +42,7 @@ export async function ShopIntroHero({ excludeCategorySlug }: ShopIntroHeroProps 
 					layout="content"
 					showVisitStoreButton={false}
 					showWeAreDifferentCue={false}
+					showHowWeWorkButton={true}
 					heroDeals={heroDeals}
 				/>
 			</div>
