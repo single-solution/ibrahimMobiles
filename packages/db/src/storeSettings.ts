@@ -67,8 +67,6 @@ async function loadFromDb(): Promise<StoreSettings> {
 		// through the `for…of` iteration.
 		(merged[field] as StoreSettings[typeof field]) = coerced;
 	}
-	// Online card gateways are not enabled for this shop.
-	merged.paymentCardEnabled = false;
 	return merged;
 }
 
