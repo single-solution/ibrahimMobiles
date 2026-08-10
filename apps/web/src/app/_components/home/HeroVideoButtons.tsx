@@ -29,14 +29,17 @@ export function HeroVideoButtons({ whoWeAreUrl = "", howWeDeliverUrl = "" }: Her
 		<>
 			<div className="mt-5 flex flex-wrap items-center justify-center gap-2.5 md:gap-3.5">
 				{/* Button 1: Who We Are & What We Do */}
-				<MagneticHover fieldSelector="[data-magnetic-field]" strength={0.15} maxOffset={18}>
+				<MagneticHover fieldSelector="[data-magnetic-field]" strength={0.18} maxOffset={20}>
 					<button
 						type="button"
 						onClick={() => openModal("Who We Are & What We Do", whoWeAreUrl)}
-						className="group relative inline-flex items-center gap-2 rounded-full bg-[var(--color-accent-500)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-900)] shadow-[0_6px_20px_-6px_color-mix(in_srgb,var(--color-accent-500)_60%,transparent)] transition-all duration-300 hover:bg-[var(--color-accent-600)] active:scale-95 md:px-5 md:py-2.5 md:text-xs animate-hero-btn-pulse"
+						className="group relative inline-flex items-center gap-2.5 rounded-full bg-[var(--color-accent-500)] px-4.5 py-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-900)] shadow-[0_6px_22px_-6px_color-mix(in_srgb,var(--color-accent-500)_60%,transparent)] transition-all duration-300 hover:scale-105 hover:bg-[var(--color-accent-600)] active:scale-95 animate-hero-btn-pulse"
 					>
-						{/* Outer button ping ring */}
-						<span className="pointer-events-none absolute -inset-0.5 animate-ping rounded-full border border-[var(--color-accent-500)] opacity-40" />
+						{/* Live Pinging Status Dot */}
+						<span className="relative flex h-2 w-2 shrink-0">
+							<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--color-ink-900)] opacity-65" />
+							<span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--color-ink-900)]" />
+						</span>
 
 						<Sparkles size={14} className="shrink-0 transition-transform duration-300 group-hover:rotate-12" />
 						<span>Who We Are &amp; What We Do</span>
@@ -44,16 +47,19 @@ export function HeroVideoButtons({ whoWeAreUrl = "", howWeDeliverUrl = "" }: Her
 				</MagneticHover>
 
 				{/* Button 2: How We Get & Deliver */}
-				<MagneticHover fieldSelector="[data-magnetic-field]" strength={0.15} maxOffset={18}>
+				<MagneticHover fieldSelector="[data-magnetic-field]" strength={0.18} maxOffset={20}>
 					<button
 						type="button"
 						onClick={() => openModal("How We Get & Deliver", howWeDeliverUrl)}
-						className="group relative inline-flex items-center gap-2 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-900)] shadow-[var(--shadow-sm)] transition-all duration-300 hover:border-[var(--color-accent-500)] hover:text-[var(--color-accent-700)] active:scale-95 md:px-5 md:py-2.5 md:text-xs animate-hero-btn-pulse-delay"
+						className="group relative inline-flex items-center gap-2.5 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-4.5 py-2.5 text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-900)] shadow-[var(--shadow-sm)] transition-all duration-300 hover:scale-105 hover:border-[var(--color-accent-500)] hover:text-[var(--color-accent-700)] active:scale-95 animate-hero-btn-pulse-delay"
 					>
-						{/* Outer button ping ring */}
-						<span className="pointer-events-none absolute -inset-0.5 animate-ping rounded-full border border-[var(--color-ink-300)] opacity-35" />
+						{/* Live Pinging Status Dot */}
+						<span className="relative flex h-2 w-2 shrink-0">
+							<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--color-accent-500)] opacity-75" />
+							<span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--color-accent-500)]" />
+						</span>
 
-						<Truck size={14} className="shrink-0 text-[var(--color-accent-700)] transition-transform duration-300 group-hover:-translate-x-0.5" />
+						<Truck size={14} className="shrink-0 text-[var(--color-accent-600)] transition-transform duration-300 group-hover:-translate-x-0.5" />
 						<span>How We Get &amp; Deliver</span>
 						<Play size={11} className="shrink-0 fill-current opacity-80 transition-transform duration-300 group-hover:scale-110" />
 					</button>
