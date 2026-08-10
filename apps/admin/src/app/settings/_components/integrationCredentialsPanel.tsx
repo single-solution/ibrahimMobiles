@@ -67,6 +67,12 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 					smtpFrom: draft.smtpFrom,
 					staffNotifyEmail: draft.staffNotifyEmail,
 					adminSiteUrl: draft.adminSiteUrl,
+					awsS3Bucket: draft.awsS3Bucket,
+					awsS3Region: draft.awsS3Region,
+					awsAccessKeyId: draft.awsAccessKeyId,
+					awsSecretAccessKey: draft.awsSecretAccessKey,
+					awsS3PublicUrlBase: draft.awsS3PublicUrlBase,
+					awsS3Endpoint: draft.awsS3Endpoint,
 				}),
 			});
 			setDraft(data.settings);
@@ -141,21 +147,53 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 
 			<FormSection
 				title="Media storage (Cloudflare R2 / S3)"
-				description={
-					status?.storage.summary ??
-					"Bucket credentials live in deploy env (AWS_S3_*). Set them on Vercel — not in this form."
-				}
+				description="Manage Cloudflare R2 / S3 bucket credentials for image uploads and storage."
 			>
-				<p className="text-[12.5px] leading-relaxed text-[var(--color-ink-600)]">
-					Required on the host: <code className="text-[11.5px]">AWS_S3_BUCKET</code>,{" "}
-					<code className="text-[11.5px]">AWS_S3_REGION</code>, <code className="text-[11.5px]">AWS_ACCESS_KEY_ID</code>,{" "}
-					<code className="text-[11.5px]">AWS_SECRET_ACCESS_KEY</code>, <code className="text-[11.5px]">AWS_S3_ENDPOINT</code>,{" "}
-					<code className="text-[11.5px]">AWS_S3_PUBLIC_URL_BASE</code>. Status:{" "}
-					<strong className="font-semibold text-[var(--color-ink-800)]">
-						{status?.storage.ready ? "ready" : "not ready"}
-					</strong>
-					.
-				</p>
+				<FormGrid cols={3}>
+					<TextField
+						label="Bucket Name"
+						value={draft.awsS3Bucket}
+						onChange={(event) => setField("awsS3Bucket", event.target.value)}
+						placeholder="my-store-bucket"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="Region"
+						value={draft.awsS3Region}
+						onChange={(event) => setField("awsS3Region", event.target.value)}
+						placeholder="auto"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="Access Key ID"
+						value={draft.awsAccessKeyId}
+						onChange={(event) => setField("awsAccessKeyId", event.target.value)}
+						placeholder="Access Key ID"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="Secret Access Key"
+						type="password"
+						value={draft.awsSecretAccessKey}
+						onChange={(event) => setField("awsSecretAccessKey", event.target.value)}
+						placeholder="••••••••••••"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="Public URL Base (CDN / r2.dev)"
+						value={draft.awsS3PublicUrlBase}
+						onChange={(event) => setField("awsS3PublicUrlBase", event.target.value)}
+						placeholder="https://pub-xxxx.r2.dev"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="S3 / R2 Endpoint"
+						value={draft.awsS3Endpoint}
+						onChange={(event) => setField("awsS3Endpoint", event.target.value)}
+						placeholder="https://<account_id>.r2.cloudflarestorage.com"
+						disabled={!canUpdate}
+					/>
+				</FormGrid>
 			</FormSection>
 
 			{canUpdate ? (
