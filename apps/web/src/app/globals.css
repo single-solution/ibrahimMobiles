@@ -2090,26 +2090,29 @@ html {
 	}
 }
 
-/* Hero video button periodic idle attention bounce (pauses smoothly on hover) */
+/* Hero video button periodic elastic spring bounce & shake */
 @keyframes hero-btn-idle-bounce {
-	0%, 86%, 100% {
-		transform: scale(1) translateY(0);
+	0%, 70%, 100% {
+		transform: scale(1) translateY(0) rotate(0deg);
 	}
-	90% {
-		transform: scale(1.03) translateY(-3px);
+	75% {
+		transform: scale(1.08) translateY(-5px) rotate(-2.5deg);
 	}
-	94% {
-		transform: scale(0.99) translateY(0);
+	81% {
+		transform: scale(0.96) translateY(2px) rotate(2.5deg);
 	}
-	97% {
-		transform: scale(1.01) translateY(-1px);
+	87% {
+		transform: scale(1.03) translateY(-2px) rotate(-1.2deg);
+	}
+	93% {
+		transform: scale(0.99) translateY(0.5px) rotate(0.6deg);
 	}
 }
 
-.animate-hero-btn-pulse:not(:hover) {
-	animation: hero-btn-idle-bounce 6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+.animate-hero-btn-pulse {
+	animation: hero-btn-idle-bounce 5.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
 }
 
-.animate-hero-btn-pulse-delay:not(:hover) {
-	animation: hero-btn-idle-bounce 6s cubic-bezier(0.16, 1, 0.3, 1) infinite 3s;
+.animate-hero-btn-pulse-delay {
+	animation: hero-btn-idle-bounce 5.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite 2.6s;
 }
