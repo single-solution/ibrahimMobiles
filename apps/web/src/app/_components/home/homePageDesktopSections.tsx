@@ -20,6 +20,8 @@ import { HOME_FEATURED_CATEGORY_COUNT, formatCategorySectionTitle, getHomeCatego
 import { homeCategoryHref } from "@/lib/catalog/homeCategoryHref";
 import type { HomePageCategory } from "@/lib/core/pageData";
 
+import { HeroVideoButtons } from "@/app/_components/home/HeroVideoButtons";
+
 export const DESKTOP_CATEGORY_STAGGER_MS = 100;
 
 /** Google Maps zoom level used in the embedded store-locator iframe — 17
@@ -108,18 +110,11 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 				) : null}
 
 				{showHowWeWorkButton ? (
-					<div className={classNames("flex flex-col items-center mt-6", !isContentLayout && "reveal")}>
-						<MagneticHover fieldSelector="[data-magnetic-field]" strength={0.2} maxOffset={30}>
-							<ButtonLink
-								href="/about"
-								variant="secondary"
-								size="lg"
-								className="cta-arrow !rounded-full shadow-[0_12px_36px_-16px_color-mix(in_srgb,var(--color-ink-900)_20%,transparent)]"
-								trailingIcon={<Sparkles size={17} strokeWidth={2.4} />}
-							>
-								How we work
-							</ButtonLink>
-						</MagneticHover>
+					<div className={classNames("w-full px-0.5", !isContentLayout && "reveal")}>
+						<HeroVideoButtons
+							whoWeAreUrl={settings?.heroVideoWhoWeAreUrl}
+							howWeDeliverUrl={settings?.heroVideoHowWeDeliverUrl}
+						/>
 					</div>
 				) : null}
 

@@ -3,6 +3,7 @@ import { ArrowRight, ArrowUpRight, ChevronDown, MapPin, Sparkles } from "lucide-
 import { GradesByCategoryTabs } from "@/app/_components/home/GradesByCategoryTabs";
 import { HeroHeadlineWithTrendingProducts } from "@/app/_components/home/HeroTrendingProductBand";
 import { ShopTypeCard, type HeroProps, type ProcessSectionProps, type ShopTypesSectionProps, type VisitStoreSectionProps } from "@/app/_components/home/homePageDesktopSections";
+import { HeroVideoButtons } from "@/app/_components/home/HeroVideoButtons";
 import { StoreMapEmbed } from "@/components/shared/StoreMapEmbed";
 import { KineticHeading } from "@/components/shared/motion/KineticHeading";
 import { MagneticHover } from "@/components/shared/motion/MagneticHover";
@@ -132,16 +133,11 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 				) : null}
 
 				{showHowWeWorkButton ? (
-					<div className={classNames("flex flex-col items-center mt-6", !isContentLayout && "reveal")}>
-						<ButtonLink
-							href="/about"
-							variant="secondary"
-							size="lg"
-							className="cta-arrow !rounded-full shadow-[0_12px_36px_-16px_color-mix(in_srgb,var(--color-ink-900)_20%,transparent)]"
-							trailingIcon={<Sparkles size={17} strokeWidth={2.4} />}
-						>
-							How we work
-						</ButtonLink>
+					<div className={classNames("w-full px-0.5", !isContentLayout && "reveal")}>
+						<HeroVideoButtons
+							whoWeAreUrl={settings?.heroVideoWhoWeAreUrl}
+							howWeDeliverUrl={settings?.heroVideoHowWeDeliverUrl}
+						/>
 					</div>
 				) : null}
 			</div>

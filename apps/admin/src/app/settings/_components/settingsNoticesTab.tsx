@@ -22,7 +22,7 @@ export function NoticesSettings({ draft, saved, setField, onSaved, canUpdate }: 
 	];
 	return (
 		<SaveableSection
-			fields={["globalDeliveryNote", "storeNoticeText", "storeNoticeEnabled"] as const}
+			fields={["globalDeliveryNote", "storeNoticeText", "storeNoticeEnabled", "heroVideoWhoWeAreUrl", "heroVideoHowWeDeliverUrl"] as const}
 			draft={draft}
 			saved={saved}
 			setField={setField}
@@ -39,6 +39,30 @@ export function NoticesSettings({ draft, saved, setField, onSaved, canUpdate }: 
 					hint="Appears on PDPs and at checkout."
 					disabled={!canUpdate}
 				/>
+			</FormSection>
+
+			<FormSection
+				title="Hero Video Previews"
+				description="Manage video preview links for the interactive hero buttons on the storefront."
+			>
+				<div className="space-y-4">
+					<TextField
+						label="Who We Are & What We Do Video URL"
+						value={draft.heroVideoWhoWeAreUrl}
+						onChange={(event) => setField("heroVideoWhoWeAreUrl", event.target.value)}
+						placeholder="https://... (Direct MP4 URL or video link)"
+						hint="Opens in a video preview modal when customer clicks 'Who We Are'."
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="How We Get & Deliver Video URL"
+						value={draft.heroVideoHowWeDeliverUrl}
+						onChange={(event) => setField("heroVideoHowWeDeliverUrl", event.target.value)}
+						placeholder="https://... (Direct MP4 URL or video link)"
+						hint="Opens in a video preview modal when customer clicks 'How We Deliver'."
+						disabled={!canUpdate}
+					/>
+				</div>
 			</FormSection>
 
 			<FormSection
