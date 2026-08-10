@@ -60,11 +60,13 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 			}>("/api/settings/integrations", {
 				method: "PUT",
 				body: JSON.stringify({
+					smtpHost: draft.smtpHost,
+					smtpPort: draft.smtpPort,
+					smtpUser: draft.smtpUser,
+					smtpPass: draft.smtpPass,
+					smtpFrom: draft.smtpFrom,
 					staffNotifyEmail: draft.staffNotifyEmail,
 					adminSiteUrl: draft.adminSiteUrl,
-					// Locked off — this storefront does not use Meta WhatsApp or online gateways.
-					otpProvider: "console",
-					onlinePaymentProvider: "none",
 				}),
 			});
 			setDraft(data.settings);
@@ -87,29 +89,51 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 
 			<FormSection
 				title="Email & staff alerts"
-				description="SMTP credentials live in deploy env (SMTP_*). Staff get order and chat alerts by email."
+				description="Configure outbound SMTP credentials (Gmail, Google Workspace, or custom SMTP server) for customer notifications and staff alerts."
 			>
-				<p className="mb-3 text-[12.5px] leading-relaxed text-[var(--color-ink-600)]">
-					Host env: <code className="text-[11.5px]">SMTP_HOST</code>, <code className="text-[11.5px]">SMTP_USER</code>,{" "}
-					<code className="text-[11.5px]">SMTP_PASS</code>, <code className="text-[11.5px]">SMTP_FROM</code>. Customer
-					sign-in OTP prints to server logs (console). Online card gateways are not enabled for this shop.
-				</p>
-				<FormGrid cols={2}>
+				<FormGrid cols={3}>
+					<TextField
+						label="SMTP Host"
+						value={draft.smtpHost}
+						onChange={(event) => setField("smtpHost", event.target.value)}
+						placeholder="e.g. smtp.gmail.com"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="SMTP Port"
+						value={draft.smtpPort}
+						onChange={(event) => setField("smtpPort", event.target.value)}
+						placeholder="587"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="SMTP From Email"
+						value={draft.smtpFrom}
+						onChange={(event) => setField("smtpFrom", event.target.value)}
+						placeholder="no-reply@yourdomain.com"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="SMTP Username / Email"
+						value={draft.smtpUser}
+						onChange={(event) => setField("smtpUser", event.target.value)}
+						placeholder="user@domain.com"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="SMTP Password / App Password"
+						type="password"
+						value={draft.smtpPass}
+						onChange={(event) => setField("smtpPass", event.target.value)}
+						placeholder="••••••••••••"
+						disabled={!canUpdate}
+					/>
 					<TextField
 						label="Staff notify email"
 						value={draft.staffNotifyEmail}
 						onChange={(event) => setField("staffNotifyEmail", event.target.value)}
-						hint="Falls back to store support email when empty."
+						hint="Staff email target for order alerts."
 						leadingIcon={<Mail size={14} />}
-						disabled={!canUpdate}
-					/>
-					<TextField
-						label="Admin site URL"
-						type="url"
-						value={draft.adminSiteUrl}
-						onChange={(event) => setField("adminSiteUrl", event.target.value)}
-						placeholder="https://admin.yourdomain.com"
-						hint="Password reset and inquiry deep links. Or set ADMIN_SITE_URL on the host."
 						disabled={!canUpdate}
 					/>
 				</FormGrid>
