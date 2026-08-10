@@ -33,17 +33,20 @@ export function HeroVideoButtons({ whoWeAreUrl = "", howWeDeliverUrl = "" }: Her
 					<button
 						type="button"
 						onClick={() => openModal("Who We Are & What We Do", whoWeAreUrl)}
-						className="group relative inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 px-5 py-3 text-xs font-extrabold uppercase tracking-wider text-slate-950 shadow-[0_8px_25px_rgba(16,185,129,0.35)] transition-all duration-300 hover:scale-105 hover:shadow-[0_12px_35px_rgba(16,185,129,0.5)] active:scale-95 md:px-6 md:py-3.5 md:text-sm"
+						className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full border border-cyan-500/35 bg-[var(--color-surface)]/85 px-5 py-3 text-xs font-bold uppercase tracking-wider text-[var(--color-ink-900)] backdrop-blur-md shadow-[0_4px_22px_rgba(6,182,212,0.18)] transition-all duration-300 hover:border-cyan-400 hover:bg-[var(--color-surface)] hover:shadow-[0_8px_32px_rgba(6,182,212,0.4)] active:scale-95 md:px-6 md:py-3.5 md:text-sm animate-hero-btn-pulse"
 					>
-						{/* Pinging pulse dot */}
-						<span className="relative flex h-2.5 w-2.5">
-							<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-slate-950 opacity-75" />
-							<span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-slate-950" />
+						{/* Shimmer sweep effect */}
+						<span className="pointer-events-none absolute -inset-full top-0 block h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent transition-all duration-1000 group-hover:left-full" />
+
+						{/* Pinging glowing play badge */}
+						<span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500 text-slate-950 shadow-[0_0_14px_rgba(6,182,212,0.65)] transition-transform duration-300 group-hover:scale-110">
+							<span className="absolute inset-0 animate-ping rounded-full bg-cyan-400 opacity-75" />
+							<Play className="relative z-10 h-3.5 w-3.5 translate-x-0.5 fill-slate-950 text-slate-950" />
 						</span>
-						<Sparkles className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12" />
-						<span>Who We Are &amp; What We Do</span>
-						<span className="ml-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-slate-950/15 transition-transform duration-300 group-hover:scale-110">
-							<Play className="h-3 w-3 translate-x-0.5 fill-slate-950 text-slate-950" />
+
+						<span className="flex items-center gap-2">
+							<Sparkles className="h-4 w-4 text-cyan-400 transition-transform duration-300 group-hover:rotate-12" />
+							<span>Who We Are &amp; What We Do</span>
 						</span>
 					</button>
 				</MagneticHover>
@@ -53,17 +56,19 @@ export function HeroVideoButtons({ whoWeAreUrl = "", howWeDeliverUrl = "" }: Her
 					<button
 						type="button"
 						onClick={() => openModal("How We Get & Deliver", howWeDeliverUrl)}
-						className="group relative inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 px-5 py-3 text-xs font-extrabold uppercase tracking-wider text-slate-950 shadow-[0_8px_25px_rgba(245,158,11,0.35)] transition-all duration-300 hover:scale-105 hover:shadow-[0_12px_35px_rgba(245,158,11,0.5)] active:scale-95 md:px-6 md:py-3.5 md:text-sm"
+						className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full border border-amber-500/35 bg-[var(--color-surface)]/85 px-5 py-3 text-xs font-bold uppercase tracking-wider text-[var(--color-ink-900)] backdrop-blur-md shadow-[0_4px_22px_rgba(245,158,11,0.18)] transition-all duration-300 hover:border-amber-400 hover:bg-[var(--color-surface)] hover:shadow-[0_8px_32px_rgba(245,158,11,0.4)] active:scale-95 md:px-6 md:py-3.5 md:text-sm animate-hero-btn-pulse-delay"
 					>
-						{/* Pinging pulse dot */}
-						<span className="relative flex h-2.5 w-2.5">
-							<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-slate-950 opacity-75" />
-							<span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-slate-950" />
+						{/* Shimmer sweep effect */}
+						<span className="pointer-events-none absolute -inset-full top-0 block h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent transition-all duration-1000 group-hover:left-full" />
+
+						{/* Pinging glowing play badge */}
+						<span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-slate-950 shadow-[0_0_14px_rgba(245,158,11,0.65)] transition-transform duration-300 group-hover:scale-110">
+							<span className="absolute inset-0 animate-ping rounded-full bg-amber-400 opacity-75" />
+							<Truck className="relative z-10 h-3.5 w-3.5 text-slate-950" />
 						</span>
-						<Truck className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-0.5" />
-						<span>How We Get &amp; Deliver</span>
-						<span className="ml-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-slate-950/15 transition-transform duration-300 group-hover:scale-110">
-							<Play className="h-3 w-3 translate-x-0.5 fill-slate-950 text-slate-950" />
+
+						<span className="flex items-center gap-2">
+							<span>How We Get &amp; Deliver</span>
 						</span>
 					</button>
 				</MagneticHover>
