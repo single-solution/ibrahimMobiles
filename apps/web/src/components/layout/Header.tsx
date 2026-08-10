@@ -82,9 +82,9 @@ export function Header({ onOpenSearch }: HeaderProps) {
 						type="button"
 						onClick={onOpenSearch}
 						aria-label="Search products"
-						className="tap inline-flex h-10 items-center gap-1.5 rounded-full border border-transparent px-3.5 text-sm font-medium text-[var(--color-ink-800)] transition-colors hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)] focus-visible:outline-none"
+						className="tap inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--color-ink-200)]/80 bg-[var(--color-surface)]/80 px-3.5 text-xs font-semibold text-[var(--color-ink-900)] shadow-[var(--shadow-xs)] transition-all hover:border-[var(--color-accent-500)] hover:bg-[var(--color-accent-50)]/50 focus-visible:outline-none"
 					>
-						<Search size={15} />
+						<Search size={14} />
 						<span>Search</span>
 					</button>
 					<HeaderAccountLink isActive={pathname.startsWith("/account")} />
@@ -95,18 +95,18 @@ export function Header({ onOpenSearch }: HeaderProps) {
 						aria-haspopup="dialog"
 						aria-expanded={isCartOpen}
 						className={classNames(
-							"tap relative z-[2] inline-flex h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors focus-visible:outline-none",
+							"tap relative z-[2] inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition-all focus-visible:outline-none",
 							isCartOpen
-								? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-accent-800)] shadow-[var(--shadow-sm)]"
-								: "border-transparent text-[var(--color-ink-800)] hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)]",
+								? "border-[var(--color-accent-500)] bg-[var(--color-accent-500)] text-[var(--color-ink-900)] shadow-[0_0_14px_rgba(225,255,81,0.5)]"
+								: "border-[var(--color-ink-200)]/80 bg-[var(--color-surface)]/80 text-[var(--color-ink-900)] shadow-[var(--shadow-xs)] hover:border-[var(--color-accent-500)] hover:bg-[var(--color-accent-50)]/50",
 						)}
 					>
-						<ShoppingBag size={15} />
+						<ShoppingBag size={14} />
 						<span>Cart</span>
 						{cart.itemCount > 0 && (
 							<span
 								key={cart.itemCount}
-								className="animate-badge-pop ml-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--color-accent-500)] px-1 text-[11px] font-semibold text-[var(--color-ink-900)]"
+								className="animate-badge-pop animate-ping-glow ml-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-[var(--color-accent-500)] px-1 text-[10px] font-extrabold text-[var(--color-ink-900)] shadow-[var(--shadow-xs)]"
 							>
 								{cart.itemCount}
 							</span>
@@ -128,6 +128,8 @@ interface HeaderNavLinkProps {
 
 function HeaderNavLink({ href, label, isActive }: HeaderNavLinkProps) {
 	const prefetchHandlers = usePrefetchOnIntent(isActive ? null : href);
+	const isDeals = label === "Deals";
+
 	return (
 		<Link
 			href={href}
@@ -136,11 +138,21 @@ function HeaderNavLink({ href, label, isActive }: HeaderNavLinkProps) {
 			onTouchStart={prefetchHandlers.onTouchStart}
 			onFocus={prefetchHandlers.onFocus}
 			className={classNames(
-				"tap rounded-[var(--radius-md)] px-3 py-2 text-sm transition-colors",
-				isActive ? "font-semibold text-[var(--color-accent-800)]" : "font-medium text-[var(--color-ink-600)] hover:text-[var(--color-ink-900)]",
+				"tap inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all",
+				isDeals
+					? "animate-interval-bounce border border-[var(--color-accent-500)]/60 bg-[var(--color-accent-500)]/20 font-bold text-[var(--color-ink-900)] shadow-[var(--shadow-xs)] hover:bg-[var(--color-accent-500)]/40"
+					: isActive
+						? "bg-[var(--color-ink-100)] font-semibold text-[var(--color-ink-900)]"
+						: "font-medium text-[var(--color-ink-600)] hover:text-[var(--color-ink-900)]",
 			)}
 		>
-			{label}
+			{isDeals && (
+				<span className="relative flex size-2">
+					<span className="absolute inline-flex size-full animate-ping rounded-full bg-[var(--color-accent-500)] opacity-75"></span>
+					<span className="relative inline-flex size-2 rounded-full bg-[var(--color-accent-600)]"></span>
+				</span>
+			)}
+			<span>{label}</span>
 		</Link>
 	);
 }
@@ -162,13 +174,13 @@ function HeaderAccountLink({ isActive }: { isActive: boolean }) {
 			onTouchStart={prefetchHandlers.onTouchStart}
 			onFocus={prefetchHandlers.onFocus}
 			className={classNames(
-				"tap inline-flex h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors focus-visible:outline-none",
+				"tap inline-flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-xs font-semibold transition-all focus-visible:outline-none",
 				isActive
-					? "border-[var(--color-ink-200)] bg-[var(--color-surface)] text-[var(--color-ink-900)] shadow-[var(--shadow-sm)]"
-					: "border-transparent text-[var(--color-ink-800)] hover:border-[var(--color-ink-200)] hover:text-[var(--color-ink-900)] focus-visible:border-[var(--color-ink-200)] focus-visible:text-[var(--color-ink-900)]",
+					? "border-[var(--color-accent-500)] bg-[var(--color-accent-50)] text-[var(--color-ink-900)] shadow-[var(--shadow-sm)]"
+					: "border-[var(--color-ink-200)]/80 bg-[var(--color-surface)]/80 text-[var(--color-ink-900)] shadow-[var(--shadow-xs)] hover:border-[var(--color-accent-500)] hover:bg-[var(--color-accent-50)]/50",
 			)}
 		>
-			<User size={15} />
+			<User size={14} />
 			<span>{label}</span>
 		</Link>
 	);

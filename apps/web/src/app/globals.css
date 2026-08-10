@@ -2089,3 +2089,45 @@ html {
 		opacity: 0;
 	}
 }
+
+/* Attention-grabbing interval bounce / subtle shake for key header CTA buttons */
+@keyframes interval-ping-bounce {
+	0%, 82%, 100% {
+		transform: translateY(0) scale(1) rotate(0deg);
+	}
+	85% {
+		transform: translateY(-5px) scale(1.06) rotate(-3deg);
+	}
+	88% {
+		transform: translateY(2px) scale(0.97) rotate(3deg);
+	}
+	91% {
+		transform: translateY(-3px) scale(1.03) rotate(-1.5deg);
+	}
+	94% {
+		transform: translateY(1px) scale(0.99) rotate(1deg);
+	}
+	97% {
+		transform: translateY(0) scale(1) rotate(0deg);
+	}
+}
+
+@keyframes ping-glow-ring {
+	0% {
+		box-shadow: 0 0 0 0 rgba(225, 255, 81, 0.7);
+	}
+	70% {
+		box-shadow: 0 0 0 8px rgba(225, 255, 81, 0);
+	}
+	100% {
+		box-shadow: 0 0 0 0 rgba(225, 255, 81, 0);
+	}
+}
+
+.animate-interval-bounce {
+	animation: interval-ping-bounce 6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.animate-ping-glow {
+	animation: ping-glow-ring 2.5s infinite;
+}

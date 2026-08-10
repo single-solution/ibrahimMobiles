@@ -41,18 +41,31 @@ export function MobileHeader({ onOpenSearch }: MobileHeaderProps) {
 			className={classNames("scroll-header sticky top-0 z-[var(--z-sticky)] border-b safe-top md:hidden")}
 			style={{ height: "var(--mobile-header-h)" }}
 		>
-			<div className="flex h-full items-center gap-2 px-3">
+			<div className="flex h-full items-center justify-between gap-2 px-3">
 				<BrandLockup href={catalogHomeHref} siteName={siteName} logoUrl={brandLogoLight || brandLogoDark} tone="light" size="sm" />
 
-				<button
-					type="button"
-					onClick={onOpenSearch}
-					aria-label="Search products"
-					className="tap focus-ring ml-auto inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-[var(--color-ink-800)]"
-				>
-					<Search size={14} />
-					<span>Search</span>
-				</button>
+				<div className="flex items-center gap-2">
+					<a
+						href="/deals"
+						className="tap animate-interval-bounce inline-flex h-8 items-center gap-1.5 rounded-full border border-[var(--color-accent-500)]/60 bg-[var(--color-accent-500)]/20 px-2.5 text-[11px] font-bold text-[var(--color-ink-900)] shadow-[var(--shadow-xs)] active:bg-[var(--color-accent-500)]/40"
+					>
+						<span className="relative flex size-2">
+							<span className="absolute inline-flex size-full animate-ping rounded-full bg-[var(--color-accent-500)] opacity-75"></span>
+							<span className="relative inline-flex size-2 rounded-full bg-[var(--color-accent-600)]"></span>
+						</span>
+						<span>Deals</span>
+					</a>
+
+					<button
+						type="button"
+						onClick={onOpenSearch}
+						aria-label="Search products"
+						className="tap inline-flex h-8 items-center gap-1.5 rounded-full border border-[var(--color-ink-200)]/80 bg-[var(--color-surface)]/80 px-3 text-[12px] font-semibold text-[var(--color-ink-900)] shadow-[var(--shadow-xs)] active:bg-[var(--color-accent-50)]/50"
+					>
+						<Search size={13} />
+						<span>Search</span>
+					</button>
+				</div>
 			</div>
 		</header>
 	);
