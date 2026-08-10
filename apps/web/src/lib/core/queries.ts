@@ -750,29 +750,34 @@ function resolveCategorySlug(category: { slug?: string; label?: string }): strin
 }
 
 export async function getCategories(): Promise<CategoryMeta[]> {
-	await connectDB();
-	const categories = await CategoryModel.find().sort({ sortOrder: 1, label: 1 }).lean();
-	if (categories.length === 0) {
-		logger.warn("getCategories: no categories in DB; storefront may render empty");
-	}
-	return categories.flatMap((category) => {
-		const slug = resolveCategorySlug(category);
-		if (!slug) {
-			return [];
+	try {
+		await connectDB();
+		const categories = await CategoryModel.find().sort({ sortOrder: 1, label: 1 }).lean();
+		if (categories.length === 0) {
+			logger.warn("getCategories: no categories in DB; storefront may render empty");
 		}
-		const content = normalizeStructuredContent(category?.content, category?.description);
-		const icon = normalizeIconName(category?.icon);
-		return {
-			slug,
-			label: category?.label ?? "",
-			description: category?.description ?? "",
-			icon,
-			iconNode: resolveIconNode(icon),
-			isActive: category?.isActive ?? false,
-			sortOrder: category?.sortOrder ?? 0,
-			content: attachBulletIconNodes(content),
-		};
-	});
+		return categories.flatMap((category) => {
+			const slug = resolveCategorySlug(category);
+			if (!slug) {
+				return [];
+			}
+			const content = normalizeStructuredContent(category?.content, category?.description);
+			const icon = normalizeIconName(category?.icon);
+			return {
+				slug,
+				label: category?.label ?? "",
+				description: category?.description ?? "",
+				icon,
+				iconNode: resolveIconNode(icon),
+				isActive: category?.isActive ?? false,
+				sortOrder: category?.sortOrder ?? 0,
+				content: attachBulletIconNodes(content),
+			};
+		});
+	} catch (error) {
+		logger.error({ error }, "getCategories failed, returning empty list");
+		return [];
+	}
 }
 
 /**
