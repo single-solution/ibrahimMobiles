@@ -27,49 +27,35 @@ export function HeroVideoButtons({ whoWeAreUrl = "", howWeDeliverUrl = "" }: Her
 
 	return (
 		<>
-			<div className="mt-6 flex flex-wrap items-center justify-center gap-3 md:gap-4">
+			<div className="mt-5 flex flex-wrap items-center justify-center gap-2.5 md:gap-3.5">
 				{/* Button 1: Who We Are & What We Do */}
-				<MagneticHover fieldSelector="[data-magnetic-field]" strength={0.2} maxOffset={25}>
+				<MagneticHover fieldSelector="[data-magnetic-field]" strength={0.15} maxOffset={18}>
 					<button
 						type="button"
 						onClick={() => openModal("Who We Are & What We Do", whoWeAreUrl)}
-						className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full border border-cyan-500/35 bg-[var(--color-surface)]/85 px-5 py-3 text-xs font-bold uppercase tracking-wider text-[var(--color-ink-900)] backdrop-blur-md shadow-[0_4px_22px_rgba(6,182,212,0.18)] transition-all duration-300 hover:border-cyan-400 hover:bg-[var(--color-surface)] hover:shadow-[0_8px_32px_rgba(6,182,212,0.4)] active:scale-95 md:px-6 md:py-3.5 md:text-sm animate-hero-btn-pulse"
+						className="group relative inline-flex items-center gap-2 rounded-full bg-[var(--color-accent-500)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-900)] shadow-[0_6px_20px_-6px_color-mix(in_srgb,var(--color-accent-500)_60%,transparent)] transition-all duration-300 hover:bg-[var(--color-accent-600)] active:scale-95 md:px-5 md:py-2.5 md:text-xs animate-hero-btn-pulse"
 					>
-						{/* Shimmer sweep effect */}
-						<span className="pointer-events-none absolute -inset-full top-0 block h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent transition-all duration-1000 group-hover:left-full" />
+						{/* Outer button ping ring */}
+						<span className="pointer-events-none absolute -inset-0.5 animate-ping rounded-full border border-[var(--color-accent-500)] opacity-40" />
 
-						{/* Pinging glowing play badge */}
-						<span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500 text-slate-950 shadow-[0_0_14px_rgba(6,182,212,0.65)] transition-transform duration-300 group-hover:scale-110">
-							<span className="absolute inset-0 animate-ping rounded-full bg-cyan-400 opacity-75" />
-							<Play className="relative z-10 h-3.5 w-3.5 translate-x-0.5 fill-slate-950 text-slate-950" />
-						</span>
-
-						<span className="flex items-center gap-2">
-							<Sparkles className="h-4 w-4 text-cyan-400 transition-transform duration-300 group-hover:rotate-12" />
-							<span>Who We Are &amp; What We Do</span>
-						</span>
+						<Sparkles size={14} className="shrink-0 transition-transform duration-300 group-hover:rotate-12" />
+						<span>Who We Are &amp; What We Do</span>
 					</button>
 				</MagneticHover>
 
 				{/* Button 2: How We Get & Deliver */}
-				<MagneticHover fieldSelector="[data-magnetic-field]" strength={0.2} maxOffset={25}>
+				<MagneticHover fieldSelector="[data-magnetic-field]" strength={0.15} maxOffset={18}>
 					<button
 						type="button"
 						onClick={() => openModal("How We Get & Deliver", howWeDeliverUrl)}
-						className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full border border-amber-500/35 bg-[var(--color-surface)]/85 px-5 py-3 text-xs font-bold uppercase tracking-wider text-[var(--color-ink-900)] backdrop-blur-md shadow-[0_4px_22px_rgba(245,158,11,0.18)] transition-all duration-300 hover:border-amber-400 hover:bg-[var(--color-surface)] hover:shadow-[0_8px_32px_rgba(245,158,11,0.4)] active:scale-95 md:px-6 md:py-3.5 md:text-sm animate-hero-btn-pulse-delay"
+						className="group relative inline-flex items-center gap-2 rounded-full border border-[var(--color-ink-200)] bg-[var(--color-surface)] px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-900)] shadow-[var(--shadow-sm)] transition-all duration-300 hover:border-[var(--color-accent-500)] hover:text-[var(--color-accent-700)] active:scale-95 md:px-5 md:py-2.5 md:text-xs animate-hero-btn-pulse-delay"
 					>
-						{/* Shimmer sweep effect */}
-						<span className="pointer-events-none absolute -inset-full top-0 block h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent transition-all duration-1000 group-hover:left-full" />
+						{/* Outer button ping ring */}
+						<span className="pointer-events-none absolute -inset-0.5 animate-ping rounded-full border border-[var(--color-ink-300)] opacity-35" />
 
-						{/* Pinging glowing play badge */}
-						<span className="relative flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-slate-950 shadow-[0_0_14px_rgba(245,158,11,0.65)] transition-transform duration-300 group-hover:scale-110">
-							<span className="absolute inset-0 animate-ping rounded-full bg-amber-400 opacity-75" />
-							<Truck className="relative z-10 h-3.5 w-3.5 text-slate-950" />
-						</span>
-
-						<span className="flex items-center gap-2">
-							<span>How We Get &amp; Deliver</span>
-						</span>
+						<Truck size={14} className="shrink-0 text-[var(--color-accent-700)] transition-transform duration-300 group-hover:-translate-x-0.5" />
+						<span>How We Get &amp; Deliver</span>
+						<Play size={11} className="shrink-0 fill-current opacity-80 transition-transform duration-300 group-hover:scale-110" />
 					</button>
 				</MagneticHover>
 			</div>

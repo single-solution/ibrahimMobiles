@@ -2090,26 +2090,26 @@ html {
 	}
 }
 
-/* Hero video button periodic attention bounce & shimmer */
+/* Hero video button periodic attention bounce & ping */
 @keyframes hero-btn-bounce {
-	0%, 75%, 100% {
-		transform: scale(1) translateY(0) rotate(0deg);
+	0%, 82%, 100% {
+		transform: scale(1) translateY(0);
 	}
-	80% {
-		transform: scale(1.05) translateY(-3px) rotate(-1.5deg);
-	}
-	85% {
-		transform: scale(1.03) translateY(0) rotate(1.5deg);
+	86% {
+		transform: scale(1.025) translateY(-2.5px);
 	}
 	90% {
-		transform: scale(1.04) translateY(-1px) rotate(-0.8deg);
+		transform: scale(0.995) translateY(0);
+	}
+	94% {
+		transform: scale(1.01) translateY(-1px);
 	}
 }
 
 .animate-hero-btn-pulse {
-	animation: hero-btn-bounce 4.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+	animation: hero-btn-bounce 5s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
 .animate-hero-btn-pulse-delay {
-	animation: hero-btn-bounce 4.8s cubic-bezier(0.16, 1, 0.3, 1) infinite 2.4s;
+	animation: hero-btn-bounce 5s cubic-bezier(0.16, 1, 0.3, 1) infinite 2.5s;
 }
