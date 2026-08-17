@@ -60,7 +60,7 @@ const DESKTOP_HERO_GRADIENT = "linear-gradient(180deg, color-mix(in srgb, var(--
 export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreButton = true, showWeAreDifferentCue = true, showHowWeWorkButton = false, layout = "viewport", heroDeals = [] }: HeroProps) {
 	const productNames = heroProducts.map((product) => product.name);
 	const isContentLayout = layout === "content";
-	const bgVideoUrl = settings?.heroBackgroundVideoUrl?.trim() || "/videos/hero-banner-bg.mp4";
+	const bgVideoUrl = settings?.heroBackgroundVideoUrl?.trim();
 
 	return (
 		<section
@@ -84,7 +84,7 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 						muted
 						loop
 						playsInline
-						preload="auto"
+						preload="metadata"
 						tabIndex={-1}
 						className="h-full w-full object-cover opacity-85 dark:opacity-75 transform-gpu motion-reduce:hidden"
 					>

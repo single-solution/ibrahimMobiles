@@ -70,13 +70,28 @@ export async function POST(request: Request) {
 	}
 
 	const kindRaw = (formData.get("kind") ?? "image").toString().toLowerCase();
-	const kind = kindRaw === "video" ? "video" : "image";
+	const kind = kindRaw === "video" ? "video" : kindRaw === "presigned" ? "presigned" : "image";
 
 	const subjectKind = formData.get("subjectKind")?.toString() ?? null;
 	const subjectId = formData.get("subjectId")?.toString() ?? null;
 	const altTextBase = formData.get("altTextBase")?.toString().trim() ?? "";
 
 	try {
+		if (kind === "presigned") {
+			const storage = await resolveStorageProvider();
+			if (!storage.createPresignedUploadUrl) {
+				return badRequest("Direct presigned upload not available for current storage provider.");
+			}
+			const contentType = formData.get("contentType")?.toString() || "video/mp4";
+			const keyPrefix = buildKeyPrefix(subjectKind, subjectId);
+			const extension = contentType === "video/webm" ? "webm" : "mp4";
+			const RADIX_BASE36 = 36;
+			const key = `${keyPrefix}/video-${Date.now().toString(RADIX_BASE36)}.${extension}`;
+			const presigned = await storage.createPresignedUploadUrl(key, contentType);
+			logger.info({ userId, subjectKind, subjectId, key }, "uploads: presigned url generated");
+			return ok(presigned);
+		}
+
 		if (kind === "image") {
 			const storage = await resolveStorageProvider();
 			const keyPrefix = buildKeyPrefix(subjectKind, subjectId);
