@@ -67,14 +67,13 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 		<section
 			data-magnetic-field
 			className={classNames(
-				"relative flex overflow-hidden",
+				"relative flex w-full overflow-hidden",
 				!isContentLayout && "border-b border-[var(--color-ink-100)]",
-				"-mt-[var(--desktop-header-h)]",
-				isContentLayout ? "flex-col pb-8 pt-[calc(var(--desktop-header-h)+2rem)] md:pb-10 md:pt-[calc(var(--desktop-header-h)+2.5rem)]" : "flex-col pt-[var(--desktop-header-h)]",
+				isContentLayout ? "flex-col py-10 md:py-16" : "flex-col justify-center",
 			)}
 			style={{
 				background: DESKTOP_HERO_GRADIENT,
-				...(isContentLayout ? {} : { minHeight: "100dvh" }),
+				...(isContentLayout ? { minHeight: "clamp(460px, 50vw, 620px)" } : { minHeight: "calc(100dvh - var(--desktop-header-h))" }),
 			}}
 		>
 			{bgVideoUrl ? (
@@ -92,10 +91,15 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 					>
 						<source src={bgVideoUrl} type="video/mp4" />
 					</video>
+					{/* Top blur & gradient fade into header */}
+					<div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-20 bg-gradient-to-b from-[var(--color-canvas)] to-transparent backdrop-blur-[3px]" />
+					{/* Middle soft contrast overlay */}
 					<div
-						className="absolute inset-0 bg-gradient-to-b from-[var(--color-canvas)]/40 via-transparent to-[var(--color-canvas)]"
+						className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-[var(--color-canvas)]/30 via-transparent to-[var(--color-canvas)]/60"
 						style={{ opacity: Math.max(0.15, 1 - videoOpacity * 0.4) }}
 					/>
+					{/* Bottom blur & gradient fade into page content */}
+					<div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-28 bg-gradient-to-t from-[var(--color-canvas)] via-[var(--color-canvas)]/70 to-transparent backdrop-blur-[3px]" />
 				</div>
 			) : null}
 
@@ -142,7 +146,7 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 					</div>
 				) : null}
 
-				{showHowWeWorkButton ? (
+				{showHowWeWorkButton && !settings?.heroVideoButtonsHidden ? (
 					<div className={classNames("w-full px-0.5", !isContentLayout && "reveal")}>
 						<HeroVideoButtons
 							whoWeAreUrl={settings?.heroVideoWhoWeAreUrl}

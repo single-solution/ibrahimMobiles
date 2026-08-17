@@ -157,6 +157,13 @@ export function HeroHeadlineWithTrendingProducts({
 }: HeroHeadlineWithTrendingProductsProps) {
 	const wideSpread = density === "compact";
 	const showFlanks = floatingProductsEnabled && productNames.length > 0;
+	const text1 = line1 !== undefined ? line1.trim() : "Inspected";
+	const text2 = line2 !== undefined ? line2.trim() : "Trusted";
+	const hasHeadline = (!line1Hidden && text1.length > 0) || (!line2Hidden && text2.length > 0);
+
+	if (!showFlanks && !hasHeadline) {
+		return null;
+	}
 
 	return (
 		<div
@@ -170,16 +177,18 @@ export function HeroHeadlineWithTrendingProducts({
 			)}
 		>
 			{showFlanks ? <HeroTrendingProductBand productNames={productNames} variant={variant} side="left" density={density} /> : null}
-			<div className={classNames("shrink-0 self-center justify-self-center px-0.5", density === "compact" ? "py-1.5 md:py-2" : "py-1")}>
-				<HeroMaskSweepHeadline
-					variant={variant}
-					density={density}
-					line1={line1}
-					line1Hidden={line1Hidden}
-					line2={line2}
-					line2Hidden={line2Hidden}
-				/>
-			</div>
+			{hasHeadline ? (
+				<div className={classNames("shrink-0 self-center justify-self-center px-0.5", density === "compact" ? "py-1.5 md:py-2" : "py-1")}>
+					<HeroMaskSweepHeadline
+						variant={variant}
+						density={density}
+						line1={line1}
+						line1Hidden={line1Hidden}
+						line2={line2}
+						line2Hidden={line2Hidden}
+					/>
+				</div>
+			) : null}
 			{showFlanks ? <HeroTrendingProductBand productNames={productNames} variant={variant} side="right" density={density} /> : null}
 		</div>
 	);

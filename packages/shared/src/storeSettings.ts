@@ -131,6 +131,8 @@ export interface StoreSettings {
 	heroVideoWhoWeAreUrl: string;
 	/** Video URL for "How We Get & Deliver" hero modal. */
 	heroVideoHowWeDeliverUrl: string;
+	/** Whether the hero action video preview buttons are hidden. */
+	heroVideoButtonsHidden: boolean;
 	/** Ambient background video URL played behind the storefront hero banner. */
 	heroBackgroundVideoUrl: string;
 	/** Opacity (0 to 100%) of the ambient background video. */
@@ -218,6 +220,7 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
 	heroBadgeHidden: false,
 	heroVideoWhoWeAreUrl: "",
 	heroVideoHowWeDeliverUrl: "",
+	heroVideoButtonsHidden: false,
 	heroBackgroundVideoUrl: "",
 	heroBackgroundVideoOpacity: 85,
 
@@ -257,6 +260,7 @@ export const STORE_SETTING_GROUPS = {
 		"heroBadgeHidden",
 		"heroVideoWhoWeAreUrl",
 		"heroVideoHowWeDeliverUrl",
+		"heroVideoButtonsHidden",
 		"heroBackgroundVideoUrl",
 		"heroBackgroundVideoOpacity",
 	] as const,

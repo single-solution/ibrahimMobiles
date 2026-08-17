@@ -36,6 +36,7 @@ export function NoticesSettings({ draft, saved, setField, onSaved, canUpdate }: 
 				"heroBadgeHidden",
 				"heroVideoWhoWeAreUrl",
 				"heroVideoHowWeDeliverUrl",
+				"heroVideoButtonsHidden",
 				"heroBackgroundVideoUrl",
 				"heroBackgroundVideoOpacity",
 			] as const}
@@ -155,22 +156,33 @@ export function NoticesSettings({ draft, saved, setField, onSaved, canUpdate }: 
 				description="Manage video preview links for the interactive hero buttons on the storefront."
 			>
 				<div className="space-y-4">
-					<TextField
-						label="Who We Are & What We Do Video URL"
-						value={draft.heroVideoWhoWeAreUrl}
-						onChange={(event) => setField("heroVideoWhoWeAreUrl", event.target.value)}
-						placeholder="https://... (Direct MP4 URL or video link)"
-						hint="Opens in a video preview modal when customer clicks 'Who We Are'."
+					<Switch
+						label="Hide video preview buttons"
+						description="Hide the 'Store Tour & Live Inventory' and 'See How We Inspect & Ship' buttons from the hero banner."
+						checked={draft.heroVideoButtonsHidden ?? false}
+						onCheckedChange={(checked) => setField("heroVideoButtonsHidden", checked)}
 						disabled={!canUpdate}
 					/>
-					<TextField
-						label="How We Get & Deliver Video URL"
-						value={draft.heroVideoHowWeDeliverUrl}
-						onChange={(event) => setField("heroVideoHowWeDeliverUrl", event.target.value)}
-						placeholder="https://... (Direct MP4 URL or video link)"
-						hint="Opens in a video preview modal when customer clicks 'How We Deliver'."
-						disabled={!canUpdate}
-					/>
+					{!draft.heroVideoButtonsHidden && (
+						<>
+							<TextField
+								label="Who We Are & What We Do Video URL"
+								value={draft.heroVideoWhoWeAreUrl}
+								onChange={(event) => setField("heroVideoWhoWeAreUrl", event.target.value)}
+								placeholder="https://... (Direct MP4 URL or video link)"
+								hint="Opens in a video preview modal when customer clicks 'Who We Are'."
+								disabled={!canUpdate}
+							/>
+							<TextField
+								label="How We Get & Deliver Video URL"
+								value={draft.heroVideoHowWeDeliverUrl}
+								onChange={(event) => setField("heroVideoHowWeDeliverUrl", event.target.value)}
+								placeholder="https://... (Direct MP4 URL or video link)"
+								hint="Opens in a video preview modal when customer clicks 'How We Deliver'."
+								disabled={!canUpdate}
+							/>
+						</>
+					)}
 				</div>
 			</FormSection>
 

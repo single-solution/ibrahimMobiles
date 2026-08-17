@@ -90,15 +90,14 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 	return (
 		<section
 			className={classNames(
-				"relative flex flex-col items-center overflow-hidden text-center",
+				"relative flex w-full flex-col items-center overflow-hidden text-center",
 				!isContentLayout && "reveal-stagger",
 				!isContentLayout && "-mx-4 border-b border-[var(--color-ink-100)] px-4",
-				"-mt-[var(--mobile-header-h)]",
-				isContentLayout ? "pb-8 pt-[calc(var(--mobile-header-h)+1.75rem)] md:pb-10 md:pt-[calc(var(--mobile-header-h)+2.25rem)]" : "justify-evenly pt-[var(--mobile-header-h)]",
+				isContentLayout ? "py-8 md:py-10" : "justify-evenly",
 			)}
 			style={{
 				background: MOBILE_HERO_GRADIENT,
-				...(isContentLayout ? {} : { minHeight: "calc(100dvh - var(--mobile-tabbar-h))" }),
+				...(isContentLayout ? { minHeight: "clamp(380px, 80vw, 500px)" } : { minHeight: "calc(100dvh - var(--mobile-tabbar-h) - var(--mobile-header-h))" }),
 			}}
 		>
 			{bgVideoUrl ? (
@@ -116,10 +115,15 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 					>
 						<source src={bgVideoUrl} type="video/mp4" />
 					</video>
+					{/* Top blur & gradient fade into header */}
+					<div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-16 bg-gradient-to-b from-[var(--color-canvas)] to-transparent backdrop-blur-[2px]" />
+					{/* Middle soft contrast overlay */}
 					<div
-						className="absolute inset-0 bg-gradient-to-b from-[var(--color-canvas)]/40 via-transparent to-[var(--color-canvas)]"
+						className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-[var(--color-canvas)]/30 via-transparent to-[var(--color-canvas)]/60"
 						style={{ opacity: Math.max(0.15, 1 - videoOpacity * 0.4) }}
 					/>
+					{/* Bottom blur & gradient fade into page content */}
+					<div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-20 bg-gradient-to-t from-[var(--color-canvas)] via-[var(--color-canvas)]/70 to-transparent backdrop-blur-[2px]" />
 				</div>
 			) : null}
 
@@ -165,7 +169,7 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 					</div>
 				) : null}
 
-				{showHowWeWorkButton ? (
+				{showHowWeWorkButton && !settings?.heroVideoButtonsHidden ? (
 					<div className={classNames("w-full px-0.5", !isContentLayout && "reveal")}>
 						<HeroVideoButtons
 							whoWeAreUrl={settings?.heroVideoWhoWeAreUrl}

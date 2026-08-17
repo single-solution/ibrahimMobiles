@@ -22,7 +22,7 @@ const settingSchema = new Schema<SettingAttributes>(
 			maxlength: SETTING_KEY_MAX_LENGTH,
 			index: true,
 		},
-		value: { type: Schema.Types.Mixed, required: true },
+		value: { type: Schema.Types.Mixed },
 		description: { type: String, trim: true, maxlength: SETTING_DESC_MAX_LENGTH },
 		group: { type: String, trim: true, maxlength: SETTING_GROUP_MAX_LENGTH, index: true },
 		updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
