@@ -110,7 +110,7 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 						playsInline
 						preload="metadata"
 						tabIndex={-1}
-						className="h-full w-full object-cover opacity-85 dark:opacity-75 transform-gpu motion-reduce:hidden"
+						className="h-full w-full object-cover opacity-85 dark:opacity-75 transform-gpu"
 					>
 						<source src={bgVideoUrl} type="video/mp4" />
 					</video>
