@@ -137,24 +137,50 @@ interface HeroHeadlineWithTrendingProductsProps {
 	productNames: string[];
 	variant: BandVariant;
 	density?: HeadlineDensity;
+	line1?: string;
+	line1Hidden?: boolean;
+	line2?: string;
+	line2Hidden?: boolean;
+	floatingProductsEnabled?: boolean;
 }
 
 /** Inspected / Trusted lockup with cycling product names flanking each side. */
-export function HeroHeadlineWithTrendingProducts({ productNames, variant, density = "default" }: HeroHeadlineWithTrendingProductsProps) {
+export function HeroHeadlineWithTrendingProducts({
+	productNames,
+	variant,
+	density = "default",
+	line1,
+	line1Hidden,
+	line2,
+	line2Hidden,
+	floatingProductsEnabled = true,
+}: HeroHeadlineWithTrendingProductsProps) {
 	const wideSpread = density === "compact";
+	const showFlanks = floatingProductsEnabled && productNames.length > 0;
 
 	return (
 		<div
 			className={classNames(
 				"w-full min-w-0 items-stretch",
-				wideSpread ? "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-3 sm:gap-x-5 md:gap-x-8 lg:gap-x-10" : "flex justify-between gap-2 sm:gap-3 md:gap-5 lg:gap-6",
+				showFlanks
+					? wideSpread
+						? "grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-x-3 sm:gap-x-5 md:gap-x-8 lg:gap-x-10"
+						: "flex justify-between gap-2 sm:gap-3 md:gap-5 lg:gap-6"
+					: "flex justify-center",
 			)}
 		>
-			<HeroTrendingProductBand productNames={productNames} variant={variant} side="left" density={density} />
+			{showFlanks ? <HeroTrendingProductBand productNames={productNames} variant={variant} side="left" density={density} /> : null}
 			<div className={classNames("shrink-0 self-center justify-self-center px-0.5", density === "compact" ? "py-1.5 md:py-2" : "py-1")}>
-				<HeroMaskSweepHeadline variant={variant} density={density} />
+				<HeroMaskSweepHeadline
+					variant={variant}
+					density={density}
+					line1={line1}
+					line1Hidden={line1Hidden}
+					line2={line2}
+					line2Hidden={line2Hidden}
+				/>
 			</div>
-			<HeroTrendingProductBand productNames={productNames} variant={variant} side="right" density={density} />
+			{showFlanks ? <HeroTrendingProductBand productNames={productNames} variant={variant} side="right" density={density} /> : null}
 		</div>
 	);
 }

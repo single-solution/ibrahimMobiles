@@ -83,6 +83,13 @@ export async function PUT(request: Request) {
 			}
 			value = trimmed.replace(/\/$/, "") as StoreSettings[keyof StoreSettings];
 		}
+		if (field === "heroBackgroundVideoOpacity") {
+			const numeric = typeof coerced === "number" ? coerced : Number(coerced);
+			if (!Number.isFinite(numeric) || numeric < 0 || numeric > 100) {
+				return badRequest("Video opacity must be between 0 and 100%.");
+			}
+			value = Math.round(numeric) as StoreSettings[keyof StoreSettings];
+		}
 		if (field === "lowStockThreshold") {
 			const numeric = typeof coerced === "number" ? coerced : Number(coerced);
 			if (!Number.isFinite(numeric) || numeric < 0 || numeric > LOW_STOCK_THRESHOLD_MAX) {

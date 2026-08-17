@@ -27,6 +27,10 @@ interface HeroMaskSweepHeadlineProps {
 	variant: HeroMaskVariant;
 	align?: "center" | "left";
 	density?: HeroHeadlineDensity;
+	line1?: string;
+	line1Hidden?: boolean;
+	line2?: string;
+	line2Hidden?: boolean;
 }
 
 interface WordSpec {
@@ -130,7 +134,15 @@ function MaskSweepLine({ mode, ghostStyle, fullStyle, children }: { mode: "paint
 	);
 }
 
-export function HeroMaskSweepHeadline({ variant, align = "center", density = "default" }: HeroMaskSweepHeadlineProps) {
+export function HeroMaskSweepHeadline({
+	variant,
+	align = "center",
+	density = "default",
+	line1 = "Inspected",
+	line1Hidden = false,
+	line2 = "Trusted",
+	line2Hidden = false,
+}: HeroMaskSweepHeadlineProps) {
 	const isCompact = density === "compact";
 	const inspectedSpec = isCompact ? INSPECTED_SPEC_COMPACT[variant] : INSPECTED_SPEC[variant];
 	const trustedSpec = isCompact ? TRUSTED_SPEC_COMPACT[variant] : TRUSTED_SPEC[variant];
@@ -143,41 +155,56 @@ export function HeroMaskSweepHeadline({ variant, align = "center", density = "de
 	const desktopInspectedStroke = isCompact ? 1.15 : 1;
 	const desktopTrustedStroke = isCompact ? 1.55 : 1.4;
 
+	const text1 = line1?.trim() || "";
+	const text2 = line2?.trim() || "";
+	const showLine1 = !line1Hidden && text1.length > 0;
+	const showLine2 = !line2Hidden && text2.length > 0;
+
+	if (!showLine1 && !showLine2) {
+		return null;
+	}
+
+	const srText = [showLine1 ? text1 : "", showLine2 ? text2 : ""].filter(Boolean).join(" ");
+
 	return (
 		<h1 className={`flex flex-col ${alignClass}`}>
-			<span className="sr-only">Inspected Trusted</span>
-			<span
-				className="inline-block"
-				style={{
-					transform: `scale(${scaleX}, ${scaleY})`,
-					transformOrigin: `${xOrigin} 100%`,
-					marginTop: scaleOverflow(inspectedSpec.fontSize, scaleY),
-				}}
-			>
-				<MaskSweepLine
-					mode="erase"
-					ghostStyle={outlineStyle(inspectedSpec, variant === "mobile" ? mobileInspectedStroke : desktopInspectedStroke, 0.35, headlineWeight)}
-					fullStyle={outlineStyle(inspectedSpec, variant === "mobile" ? (isCompact ? 1.05 : 1) : desktopInspectedStroke, 1, headlineWeight)}
+			<span className="sr-only">{srText}</span>
+			{showLine1 ? (
+				<span
+					className="inline-block"
+					style={{
+						transform: `scale(${scaleX}, ${scaleY})`,
+						transformOrigin: `${xOrigin} 100%`,
+						marginTop: scaleOverflow(inspectedSpec.fontSize, scaleY),
+					}}
 				>
-					Inspected
-				</MaskSweepLine>
-			</span>
-			<span
-				className="inline-block"
-				style={{
-					transform: `scale(${scaleX}, ${scaleY})`,
-					transformOrigin: `${xOrigin} 0%`,
-					marginBottom: scaleOverflow(trustedSpec.fontSize, scaleY),
-				}}
-			>
-				<MaskSweepLine
-					mode="paint"
-					ghostStyle={outlineStyle(trustedSpec, variant === "mobile" ? mobileTrustedStroke : desktopTrustedStroke, 0.35, headlineWeight)}
-					fullStyle={fillStyle(trustedSpec, headlineWeight)}
+					<MaskSweepLine
+						mode="erase"
+						ghostStyle={outlineStyle(inspectedSpec, variant === "mobile" ? mobileInspectedStroke : desktopInspectedStroke, 0.35, headlineWeight)}
+						fullStyle={outlineStyle(inspectedSpec, variant === "mobile" ? (isCompact ? 1.05 : 1) : desktopInspectedStroke, 1, headlineWeight)}
+					>
+						{text1}
+					</MaskSweepLine>
+				</span>
+			) : null}
+			{showLine2 ? (
+				<span
+					className="inline-block"
+					style={{
+						transform: `scale(${scaleX}, ${scaleY})`,
+						transformOrigin: `${xOrigin} 0%`,
+						marginBottom: scaleOverflow(trustedSpec.fontSize, scaleY),
+					}}
 				>
-					Trusted
-				</MaskSweepLine>
-			</span>
+					<MaskSweepLine
+						mode="paint"
+						ghostStyle={outlineStyle(trustedSpec, variant === "mobile" ? mobileTrustedStroke : desktopTrustedStroke, 0.35, headlineWeight)}
+						fullStyle={fillStyle(trustedSpec, headlineWeight)}
+					>
+						{text2}
+					</MaskSweepLine>
+				</span>
+			) : null}
 		</h1>
 	);
 }

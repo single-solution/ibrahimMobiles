@@ -58,8 +58,8 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
 			},
 			{
 				id: "notices",
-				label: "Notices",
-				description: "Global delivery notes and store-wide banner alerts.",
+				label: "Home banner & notices",
+				description: "Hero headlines, background video, animated products, and store alerts.",
 			},
 			{
 				id: "loyalty",

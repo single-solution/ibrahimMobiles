@@ -23,7 +23,22 @@ export function NoticesSettings({ draft, saved, setField, onSaved, canUpdate }: 
 	];
 	return (
 		<SaveableSection
-			fields={["globalDeliveryNote", "storeNoticeText", "storeNoticeEnabled", "heroVideoWhoWeAreUrl", "heroVideoHowWeDeliverUrl", "heroBackgroundVideoUrl"] as const}
+			fields={[
+				"globalDeliveryNote",
+				"storeNoticeText",
+				"storeNoticeEnabled",
+				"heroHeadlineLine1",
+				"heroHeadlineLine1Hidden",
+				"heroHeadlineLine2",
+				"heroHeadlineLine2Hidden",
+				"heroFloatingProductsEnabled",
+				"heroBadgeText",
+				"heroBadgeHidden",
+				"heroVideoWhoWeAreUrl",
+				"heroVideoHowWeDeliverUrl",
+				"heroBackgroundVideoUrl",
+				"heroBackgroundVideoOpacity",
+			] as const}
 			draft={draft}
 			saved={saved}
 			setField={setField}
@@ -31,28 +46,108 @@ export function NoticesSettings({ draft, saved, setField, onSaved, canUpdate }: 
 			canUpdate={canUpdate}
 			hero={<SettingsTabHero metrics={heroMetrics} />}
 		>
-			<FormSection title="Delivery note" description="Global note displayed to customers on product pages and checkout regarding delivery times.">
-				<TextField
-					label="Global delivery note"
-					value={draft.globalDeliveryNote}
-					onChange={(event) => setField("globalDeliveryNote", event.target.value)}
-					placeholder="e.g. 3 to 5 working days"
-					hint="Appears on PDPs and at checkout."
-					disabled={!canUpdate}
-				/>
+			<FormSection
+				title="Home Banner Headline & Text"
+				description="Manage the primary animated hero lockup text and visibility on the storefront."
+			>
+				<div className="space-y-6">
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+						<div className="space-y-3 rounded-lg border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4">
+							<TextField
+								label="Headline line 1"
+								value={draft.heroHeadlineLine1 ?? ""}
+								onChange={(event) => setField("heroHeadlineLine1", event.target.value)}
+								placeholder="e.g. Inspected"
+								hint="First line (sweeping outline/fill effect)."
+								disabled={!canUpdate || draft.heroHeadlineLine1Hidden}
+							/>
+							<Switch
+								label="Hide line 1"
+								description="Do not render the first headline line."
+								checked={draft.heroHeadlineLine1Hidden ?? false}
+								onCheckedChange={(checked) => setField("heroHeadlineLine1Hidden", checked)}
+								disabled={!canUpdate}
+							/>
+						</div>
+
+						<div className="space-y-3 rounded-lg border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4">
+							<TextField
+								label="Headline line 2"
+								value={draft.heroHeadlineLine2 ?? ""}
+								onChange={(event) => setField("heroHeadlineLine2", event.target.value)}
+								placeholder="e.g. Trusted"
+								hint="Second line (bold accent color)."
+								disabled={!canUpdate || draft.heroHeadlineLine2Hidden}
+							/>
+							<Switch
+								label="Hide line 2"
+								description="Do not render the second headline line."
+								checked={draft.heroHeadlineLine2Hidden ?? false}
+								onCheckedChange={(checked) => setField("heroHeadlineLine2Hidden", checked)}
+								disabled={!canUpdate}
+							/>
+						</div>
+					</div>
+
+					<div className="rounded-lg border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4">
+						<Switch
+							label="Floating animated products"
+							description="Show animated trending product names floating on the left & right sides of the main headline."
+							checked={draft.heroFloatingProductsEnabled ?? true}
+							onCheckedChange={(checked) => setField("heroFloatingProductsEnabled", checked)}
+							disabled={!canUpdate}
+						/>
+					</div>
+
+					<div className="rounded-lg border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 space-y-3">
+						<TextField
+							label="Bottom scroll cue text"
+							value={draft.heroBadgeText ?? ""}
+							onChange={(event) => setField("heroBadgeText", event.target.value)}
+							placeholder="e.g. We Are Different"
+							hint="Text displayed above the bouncing scroll arrow."
+							disabled={!canUpdate || draft.heroBadgeHidden}
+						/>
+						<Switch
+							label="Hide bottom scroll cue"
+							description="Hide the bottom badge and bouncing scroll arrow."
+							checked={draft.heroBadgeHidden ?? false}
+							onCheckedChange={(checked) => setField("heroBadgeHidden", checked)}
+							disabled={!canUpdate}
+						/>
+					</div>
+				</div>
 			</FormSection>
 
 			<FormSection
 				title="Home Banner Background Video"
 				description="Ambient, muted background video that plays seamlessly behind the main storefront hero banner."
 			>
-				<VideoUpload
-					value={draft.heroBackgroundVideoUrl}
-					onChange={(url) => setField("heroBackgroundVideoUrl", url)}
-					subjectKind="hero-bg"
-					label="Banner background video"
-					hint="Upload a video file or paste a CloudFront / Cloudflare R2 / MP4 video link."
-				/>
+				<div className="space-y-4">
+					<VideoUpload
+						value={draft.heroBackgroundVideoUrl}
+						onChange={(url) => setField("heroBackgroundVideoUrl", url)}
+						subjectKind="hero-bg"
+						label="Banner background video"
+						hint="Upload a video file or paste a CloudFront / Cloudflare R2 / MP4 video link."
+					/>
+					<div className="max-w-xs">
+						<TextField
+							type="number"
+							label="Video opacity (%)"
+							value={String(draft.heroBackgroundVideoOpacity ?? 85)}
+							onChange={(event) => {
+								const val = Number(event.target.value);
+								if (!isNaN(val)) {
+									setField("heroBackgroundVideoOpacity", Math.min(100, Math.max(0, val)));
+								}
+							}}
+							placeholder="85"
+							hint="Sets how strong the video shows through (0 = invisible, 100 = full brightness)."
+							disabled={!canUpdate}
+						/>
+					</div>
+				</div>
 			</FormSection>
 
 			<FormSection
@@ -77,6 +172,17 @@ export function NoticesSettings({ draft, saved, setField, onSaved, canUpdate }: 
 						disabled={!canUpdate}
 					/>
 				</div>
+			</FormSection>
+
+			<FormSection title="Delivery note" description="Global note displayed to customers on product pages and checkout regarding delivery times.">
+				<TextField
+					label="Global delivery note"
+					value={draft.globalDeliveryNote}
+					onChange={(event) => setField("globalDeliveryNote", event.target.value)}
+					placeholder="e.g. 3 to 5 working days"
+					hint="Appears on PDPs and at checkout."
+					disabled={!canUpdate}
+				/>
 			</FormSection>
 
 			<FormSection

@@ -85,6 +85,7 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 	const productNames = heroProducts.map((product) => product.name);
 	const isContentLayout = layout === "content";
 	const bgVideoUrl = settings?.heroBackgroundVideoUrl?.trim();
+	const videoOpacity = Math.min(1, Math.max(0, (settings?.heroBackgroundVideoOpacity ?? 85) / 100));
 
 	return (
 		<section
@@ -110,7 +111,8 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 						playsInline
 						preload="metadata"
 						tabIndex={-1}
-						className="h-full w-full object-cover opacity-85 dark:opacity-75 transform-gpu"
+						style={{ opacity: videoOpacity }}
+						className="h-full w-full object-cover transform-gpu"
 					>
 						<source src={bgVideoUrl} type="video/mp4" />
 					</video>
@@ -126,7 +128,16 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 				)}
 			>
 				<div className={classNames("w-full min-w-0 overflow-hidden px-0.5 py-1.5", !isContentLayout && "reveal")}>
-					<HeroHeadlineWithTrendingProducts productNames={productNames} variant="mobile" density={isContentLayout ? "compact" : "default"} />
+					<HeroHeadlineWithTrendingProducts
+						productNames={productNames}
+						variant="mobile"
+						density={isContentLayout ? "compact" : "default"}
+						line1={settings?.heroHeadlineLine1}
+						line1Hidden={settings?.heroHeadlineLine1Hidden}
+						line2={settings?.heroHeadlineLine2}
+						line2Hidden={settings?.heroHeadlineLine2Hidden}
+						floatingProductsEnabled={settings?.heroFloatingProductsEnabled ?? true}
+					/>
 				</div>
 
 				{isContentLayout && heroDeals.length > 0 ? (
@@ -161,7 +172,7 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 				) : null}
 			</div>
 
-			{showWeAreDifferentCue ? (
+			{showWeAreDifferentCue && !settings?.heroBadgeHidden ? (
 				<a
 					href="#how-to-buy"
 					aria-label="Scroll to next section"
@@ -170,7 +181,7 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 						!isContentLayout && "reveal",
 					)}
 				>
-					<span className="text-[10px] font-semibold uppercase tracking-[0.2em]">We Are Different</span>
+					<span className="text-[10px] font-semibold uppercase tracking-[0.2em]">{settings?.heroBadgeText || "We Are Different"}</span>
 					<ChevronDown size={18} strokeWidth={2.2} className="animate-bounce" />
 				</a>
 			) : null}

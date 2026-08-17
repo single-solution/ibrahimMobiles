@@ -113,12 +113,28 @@ export interface StoreSettings {
 	storeNoticeText: string;
 	/** Whether the global store notice banner is enabled. */
 	storeNoticeEnabled: boolean;
+	/** Main headline line 1 text (e.g. "Inspected"). */
+	heroHeadlineLine1: string;
+	/** Whether main headline line 1 is hidden. */
+	heroHeadlineLine1Hidden: boolean;
+	/** Main headline line 2 text (e.g. "Trusted"). */
+	heroHeadlineLine2: string;
+	/** Whether main headline line 2 is hidden. */
+	heroHeadlineLine2Hidden: boolean;
+	/** Whether floating animating product names are enabled in the hero banner. */
+	heroFloatingProductsEnabled: boolean;
+	/** Badge / scroll cue text at bottom of hero (e.g. "We Are Different"). */
+	heroBadgeText: string;
+	/** Whether the bottom scroll cue / badge is hidden. */
+	heroBadgeHidden: boolean;
 	/** Video URL for "Who We Are & What We Do" hero modal. */
 	heroVideoWhoWeAreUrl: string;
 	/** Video URL for "How We Get & Deliver" hero modal. */
 	heroVideoHowWeDeliverUrl: string;
 	/** Ambient background video URL played behind the storefront hero banner. */
 	heroBackgroundVideoUrl: string;
+	/** Opacity (0 to 100%) of the ambient background video. */
+	heroBackgroundVideoOpacity: number;
 
 	// ── Inventory ───────────────────────────────────────────────────────────
 	/**
@@ -193,9 +209,17 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
 	globalDeliveryNote: "3 to 5 working days",
 	storeNoticeText: "",
 	storeNoticeEnabled: false,
+	heroHeadlineLine1: "Inspected",
+	heroHeadlineLine1Hidden: false,
+	heroHeadlineLine2: "Trusted",
+	heroHeadlineLine2Hidden: false,
+	heroFloatingProductsEnabled: true,
+	heroBadgeText: "We Are Different",
+	heroBadgeHidden: false,
 	heroVideoWhoWeAreUrl: "",
 	heroVideoHowWeDeliverUrl: "",
 	heroBackgroundVideoUrl: "",
+	heroBackgroundVideoOpacity: 85,
 
 	lowStockThreshold: 2,
 
@@ -220,7 +244,22 @@ export const STORE_SETTING_GROUPS = {
 	branding: ["siteName", "siteTagline", "brandLogoLight", "brandLogoDark", "brandFaviconLight", "brandFaviconDark"] as const,
 	contact: ["supportPhone", "supportLandline", "supportEmail", "whatsappNumber"] as const,
 	address: ["storeAddressLine1", "storeAddressLine2", "storeHours"] as const,
-	notices: ["globalDeliveryNote", "storeNoticeText", "storeNoticeEnabled", "heroVideoWhoWeAreUrl", "heroVideoHowWeDeliverUrl", "heroBackgroundVideoUrl"] as const,
+	notices: [
+		"globalDeliveryNote",
+		"storeNoticeText",
+		"storeNoticeEnabled",
+		"heroHeadlineLine1",
+		"heroHeadlineLine1Hidden",
+		"heroHeadlineLine2",
+		"heroHeadlineLine2Hidden",
+		"heroFloatingProductsEnabled",
+		"heroBadgeText",
+		"heroBadgeHidden",
+		"heroVideoWhoWeAreUrl",
+		"heroVideoHowWeDeliverUrl",
+		"heroBackgroundVideoUrl",
+		"heroBackgroundVideoOpacity",
+	] as const,
 	social: ["socialFacebook", "socialInstagram", "socialTiktok", "socialYoutube", "socialGoogleMaps"] as const,
 	policy: ["defaultWarrantyMonths", "moneybackDays", "returnPolicyHtml", "privacyPolicyHtml"] as const,
 	delivery: ["freeDeliveryThresholdRupees", "courierFlatFeeRupees"] as const,
