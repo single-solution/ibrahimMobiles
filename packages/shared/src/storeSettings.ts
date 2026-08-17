@@ -195,7 +195,7 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
 	storeNoticeEnabled: false,
 	heroVideoWhoWeAreUrl: "",
 	heroVideoHowWeDeliverUrl: "",
-	heroBackgroundVideoUrl: "",
+	heroBackgroundVideoUrl: "/videos/hero-banner-bg.mp4",
 
 	lowStockThreshold: 2,
 

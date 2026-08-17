@@ -84,7 +84,7 @@ const MOBILE_HERO_GRADIENT = "linear-gradient(180deg, color-mix(in srgb, var(--c
 export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreButton = true, showWeAreDifferentCue = true, showHowWeWorkButton = false, layout = "viewport", heroDeals = [] }: HeroProps) {
 	const productNames = heroProducts.map((product) => product.name);
 	const isContentLayout = layout === "content";
-	const bgVideoUrl = settings?.heroBackgroundVideoUrl?.trim();
+	const bgVideoUrl = settings?.heroBackgroundVideoUrl?.trim() || "/videos/hero-banner-bg.mp4";
 
 	return (
 		<section
@@ -103,6 +103,7 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 			{bgVideoUrl ? (
 				<div className="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none" aria-hidden="true">
 					<video
+						src={bgVideoUrl}
 						autoPlay
 						muted
 						loop
@@ -111,7 +112,7 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 						tabIndex={-1}
 						className="h-full w-full object-cover opacity-85 dark:opacity-75 transform-gpu motion-reduce:hidden"
 					>
-						<source src={bgVideoUrl} />
+						<source src={bgVideoUrl} type="video/mp4" />
 					</video>
 					<div className="absolute inset-0 bg-gradient-to-b from-[var(--color-canvas)]/60 via-[var(--color-canvas)]/20 to-[var(--color-canvas)]" />
 				</div>
