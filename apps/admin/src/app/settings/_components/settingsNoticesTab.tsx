@@ -4,6 +4,7 @@ import { Megaphone } from "lucide-react";
 import { FormSection } from "@/components/forms/FormSection";
 import { TextField } from "@/components/forms/TextField";
 import { Switch } from "@/components/forms/Switch";
+import { VideoUpload } from "@/components/shared/uploads";
 import { SettingsTabHero, type SettingsHeroMetric } from "@/app/settings/_components/settingsWorkspaceUi";
 import { SaveableSection } from "@/app/settings/_components/settingsSaveableSection";
 import type { SectionProps } from "@/app/settings/_components/settingsSectionProps";
@@ -45,13 +46,12 @@ export function NoticesSettings({ draft, saved, setField, onSaved, canUpdate }: 
 				title="Home Banner Background Video"
 				description="Ambient, muted background video that plays seamlessly behind the main storefront hero banner."
 			>
-				<TextField
-					label="Banner background video URL"
+				<VideoUpload
 					value={draft.heroBackgroundVideoUrl}
-					onChange={(event) => setField("heroBackgroundVideoUrl", event.target.value)}
-					placeholder="https://... (e.g. Cloudflare R2 / CDN link or /videos/hero-banner-bg.mp4)"
-					hint="Paste your video URL here. Plays muted in the background with zero controls for blazing fast load times."
-					disabled={!canUpdate}
+					onChange={(url) => setField("heroBackgroundVideoUrl", url)}
+					subjectKind="hero-bg"
+					label="Banner background video"
+					hint="Upload a video file or paste a CloudFront / Cloudflare R2 / MP4 video link."
 				/>
 			</FormSection>
 
