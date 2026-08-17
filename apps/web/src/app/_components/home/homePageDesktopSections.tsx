@@ -60,6 +60,7 @@ const DESKTOP_HERO_GRADIENT = "linear-gradient(180deg, color-mix(in srgb, var(--
 export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreButton = true, showWeAreDifferentCue = true, showHowWeWorkButton = false, layout = "viewport", heroDeals = [] }: HeroProps) {
 	const productNames = heroProducts.map((product) => product.name);
 	const isContentLayout = layout === "content";
+	const bgVideoUrl = settings?.heroBackgroundVideoUrl?.trim();
 
 	return (
 		<section
@@ -75,6 +76,23 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 				...(isContentLayout ? {} : { minHeight: "100dvh" }),
 			}}
 		>
+			{bgVideoUrl ? (
+				<div className="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none" aria-hidden="true">
+					<video
+						autoPlay
+						muted
+						loop
+						playsInline
+						preload="auto"
+						tabIndex={-1}
+						className="h-full w-full object-cover opacity-25 dark:opacity-20 scale-105 transform-gpu motion-reduce:hidden"
+					>
+						<source src={bgVideoUrl} />
+					</video>
+					<div className="absolute inset-0 bg-gradient-to-b from-[var(--color-canvas)]/40 via-transparent to-[var(--color-canvas)]" />
+				</div>
+			) : null}
+
 			<div
 				className={classNames(
 					"relative z-10 flex w-full flex-col items-center text-center",

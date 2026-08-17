@@ -117,6 +117,8 @@ export interface StoreSettings {
 	heroVideoWhoWeAreUrl: string;
 	/** Video URL for "How We Get & Deliver" hero modal. */
 	heroVideoHowWeDeliverUrl: string;
+	/** Ambient background video URL played behind the storefront hero banner. */
+	heroBackgroundVideoUrl: string;
 
 	// ── Inventory ───────────────────────────────────────────────────────────
 	/**
@@ -193,6 +195,7 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
 	storeNoticeEnabled: false,
 	heroVideoWhoWeAreUrl: "",
 	heroVideoHowWeDeliverUrl: "",
+	heroBackgroundVideoUrl: "",
 
 	lowStockThreshold: 2,
 
@@ -217,7 +220,7 @@ export const STORE_SETTING_GROUPS = {
 	branding: ["siteName", "siteTagline", "brandLogoLight", "brandLogoDark", "brandFaviconLight", "brandFaviconDark"] as const,
 	contact: ["supportPhone", "supportLandline", "supportEmail", "whatsappNumber"] as const,
 	address: ["storeAddressLine1", "storeAddressLine2", "storeHours"] as const,
-	notices: ["globalDeliveryNote", "storeNoticeText", "storeNoticeEnabled", "heroVideoWhoWeAreUrl", "heroVideoHowWeDeliverUrl"] as const,
+	notices: ["globalDeliveryNote", "storeNoticeText", "storeNoticeEnabled", "heroVideoWhoWeAreUrl", "heroVideoHowWeDeliverUrl", "heroBackgroundVideoUrl"] as const,
 	social: ["socialFacebook", "socialInstagram", "socialTiktok", "socialYoutube", "socialGoogleMaps"] as const,
 	policy: ["defaultWarrantyMonths", "moneybackDays", "returnPolicyHtml", "privacyPolicyHtml"] as const,
 	delivery: ["freeDeliveryThresholdRupees", "courierFlatFeeRupees"] as const,
