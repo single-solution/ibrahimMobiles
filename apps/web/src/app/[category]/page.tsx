@@ -158,7 +158,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 				<CategoryJsonLd meta={meta} filters={filters} intentSurface={intentSurface} />
 			</Suspense>
 
-			<div className={`${SHOP_CATEGORY_PAGE_CLASS} pb-10 md:pb-20`}>
+			<div className={`${SHOP_CATEGORY_PAGE_CLASS} pt-8 sm:pt-10 md:pt-14 pb-10 md:pb-20`}>
 				<div className="reveal reveal-rise">
 					<Suspense fallback={<ShopCatalogToolbarFallback />}>
 						<ShopCategoryToolbar activeSlug={meta.slug} filters={filters} />

@@ -68,7 +68,7 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 			data-magnetic-field
 			className={classNames(
 				"relative flex w-full overflow-hidden",
-				isContentLayout ? "flex-col py-12 md:py-20" : "flex-col justify-center pb-14 md:pb-18",
+				isContentLayout ? "flex-col justify-end pb-8 pt-16 md:pb-12 md:pt-24" : "flex-col justify-end pb-12 md:pb-16",
 			)}
 			style={{
 				background: DESKTOP_HERO_GRADIENT,
@@ -109,9 +109,9 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 
 			<div
 				className={classNames(
-					"relative z-10 flex w-full flex-col items-center text-center",
-					!isContentLayout && "reveal-stagger",
-					isContentLayout ? SHOP_CATEGORY_PAGE_CLASS : "mx-auto max-w-5xl justify-evenly px-6",
+					"relative z-10 flex w-full flex-col items-center justify-end text-center",
+					!isContentLayout && "reveal-stagger gap-6",
+					isContentLayout ? `${SHOP_CATEGORY_PAGE_CLASS} justify-end` : "mx-auto max-w-5xl px-6",
 				)}
 				style={isContentLayout ? undefined : { minHeight: "calc(100dvh - var(--desktop-header-h))" }}
 			>

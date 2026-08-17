@@ -92,7 +92,7 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 			className={classNames(
 				"relative flex w-full flex-col items-center overflow-hidden text-center",
 				!isContentLayout && "reveal-stagger",
-				isContentLayout ? "py-10 pb-14 md:py-12 md:pb-16" : "justify-evenly pb-10",
+				isContentLayout ? "justify-end pb-8 pt-12 md:pb-10" : "justify-end pb-8",
 			)}
 			style={{
 				background: MOBILE_HERO_GRADIENT,
@@ -133,9 +133,9 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 
 			<div
 				className={classNames(
-					"relative z-10 flex w-full flex-col items-center text-center",
-					!isContentLayout && "reveal-stagger",
-					isContentLayout ? SHOP_CATEGORY_PAGE_CLASS : "w-full",
+					"relative z-10 flex w-full flex-col items-center justify-end text-center",
+					!isContentLayout && "reveal-stagger gap-4",
+					isContentLayout ? `${SHOP_CATEGORY_PAGE_CLASS} justify-end` : "w-full",
 				)}
 			>
 				<div className={classNames("w-full min-w-0 overflow-hidden px-0.5 py-1.5", !isContentLayout && "reveal")}>
