@@ -84,22 +84,24 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 						muted
 						loop
 						playsInline
-						preload="metadata"
+						preload="auto"
+						disablePictureInPicture
+						disableRemotePlayback
 						tabIndex={-1}
 						style={{ opacity: videoOpacity }}
-						className="h-full w-full object-cover transform-gpu transition-opacity duration-300"
+						className="h-full w-full object-cover transform-gpu will-change-transform transition-opacity duration-300"
 					>
 						<source src={bgVideoUrl} type="video/mp4" />
 					</video>
-					{/* Top blur & gradient fade into header */}
-					<div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-20 bg-gradient-to-b from-[var(--color-canvas)] to-transparent backdrop-blur-[3px]" />
+					{/* Top edge subtle feather */}
+					<div className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-8 md:h-10 bg-gradient-to-b from-[var(--color-canvas)]/80 to-transparent backdrop-blur-[1.5px]" />
 					{/* Middle soft contrast overlay */}
 					<div
-						className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-[var(--color-canvas)]/30 via-transparent to-[var(--color-canvas)]/60"
-						style={{ opacity: Math.max(0.15, 1 - videoOpacity * 0.4) }}
+						className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-[var(--color-canvas)]/25 via-transparent to-[var(--color-canvas)]/40"
+						style={{ opacity: Math.max(0.1, 1 - videoOpacity * 0.4) }}
 					/>
-					{/* Bottom blur & gradient fade into page content */}
-					<div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-28 bg-gradient-to-t from-[var(--color-canvas)] via-[var(--color-canvas)]/70 to-transparent backdrop-blur-[3px]" />
+					{/* Bottom edge subtle feather */}
+					<div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-10 md:h-12 bg-gradient-to-t from-[var(--color-canvas)]/90 to-transparent backdrop-blur-[1.5px]" />
 				</div>
 			) : null}
 
