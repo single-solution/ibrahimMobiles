@@ -85,11 +85,11 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 						playsInline
 						preload="auto"
 						tabIndex={-1}
-						className="h-full w-full object-cover opacity-25 dark:opacity-20 scale-105 transform-gpu motion-reduce:hidden"
+						className="h-full w-full object-cover opacity-85 dark:opacity-75 transform-gpu motion-reduce:hidden"
 					>
 						<source src={bgVideoUrl} />
 					</video>
-					<div className="absolute inset-0 bg-gradient-to-b from-[var(--color-canvas)]/40 via-transparent to-[var(--color-canvas)]" />
+					<div className="absolute inset-0 bg-gradient-to-b from-[var(--color-canvas)]/60 via-[var(--color-canvas)]/20 to-[var(--color-canvas)]" />
 				</div>
 			) : null}
 
