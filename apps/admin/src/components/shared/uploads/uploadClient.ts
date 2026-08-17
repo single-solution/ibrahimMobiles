@@ -68,31 +68,38 @@ export async function uploadImage(options: UploadImageOptions): Promise<StoredIm
 }
 
 export async function uploadVideo(options: UploadVideoOptions): Promise<UploadVideoResult> {
-	// Try direct presigned cloud upload first to bypass serverless payload limits
-	try {
-		const presignForm = new FormData();
-		presignForm.set("kind", "presigned");
-		presignForm.set("contentType", options.file.type || "video/mp4");
-		if (options.subjectKind) presignForm.set("subjectKind", options.subjectKind);
-		if (options.subjectId) presignForm.set("subjectId", options.subjectId);
+	const presignForm = new FormData();
+	presignForm.set("kind", "presigned");
+	presignForm.set("contentType", options.file.type || "video/mp4");
+	if (options.subjectKind) presignForm.set("subjectKind", options.subjectKind);
+	if (options.subjectId) presignForm.set("subjectId", options.subjectId);
 
-		const presignedRes = (await postUpload(presignForm)) as { uploadUrl?: string; publicUrl?: string };
-		if (presignedRes?.uploadUrl && presignedRes?.publicUrl) {
-			const putRes = await fetch(presignedRes.uploadUrl, {
-				method: "PUT",
-				headers: { "Content-Type": options.file.type || "video/mp4" },
-				body: options.file,
-			});
-			if (putRes.ok) {
-				return {
-					url: presignedRes.publicUrl,
-					contentType: options.file.type || "video/mp4",
-					sizeBytes: options.file.size,
-				};
-			}
-		}
+	let presignedRes: { uploadUrl?: string; publicUrl?: string } | null = null;
+	try {
+		presignedRes = (await postUpload(presignForm)) as { uploadUrl?: string; publicUrl?: string };
 	} catch {
-		// Fallback to standard server multipart upload
+		// Presign endpoint failed
+	}
+
+	if (presignedRes?.uploadUrl && presignedRes?.publicUrl) {
+		const putRes = await fetch(presignedRes.uploadUrl, {
+			method: "PUT",
+			body: options.file,
+		});
+		if (!putRes.ok) {
+			const errorText = await putRes.text().catch(() => "");
+			throw new Error(`Direct cloud upload failed (${putRes.status}): ${errorText || "Upload rejected by cloud storage."}`);
+		}
+		return {
+			url: presignedRes.publicUrl,
+			contentType: options.file.type || "video/mp4",
+			sizeBytes: options.file.size,
+		};
+	}
+
+	// For files larger than 4MB, don't attempt serverless multipart upload
+	if (options.file.size > 4 * 1024 * 1024) {
+		throw new Error("File exceeds direct upload size limit. Please ensure Cloudflare R2 / S3 storage is configured.");
 	}
 
 	const form = new FormData();

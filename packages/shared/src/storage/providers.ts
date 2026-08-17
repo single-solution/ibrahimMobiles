@@ -77,9 +77,11 @@ export function resolveStorageProviderFromSettings(settings?: IntegrationSetting
 			const command = new PutObjectCommand({
 				Bucket: bucket,
 				Key: key,
-				ContentType: contentType,
 			});
-			const uploadUrl = await getSignedUrl(client, command, { expiresIn: 900 });
+			const uploadUrl = await getSignedUrl(client, command, {
+				expiresIn: 900,
+				signableHeaders: new Set(["host"]),
+			});
 			const publicUrl = publicUrlForS3Key(key, bucket, region, settings);
 			return { uploadUrl, publicUrl };
 		},
