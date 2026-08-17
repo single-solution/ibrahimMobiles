@@ -92,11 +92,11 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 			className={classNames(
 				"relative flex w-full flex-col items-center overflow-hidden text-center",
 				!isContentLayout && "reveal-stagger",
-				isContentLayout ? "justify-end pb-8 pt-12 md:pb-10" : "justify-end pb-8",
+				isContentLayout ? "justify-end pb-6 pt-10 md:pb-8" : "justify-end pb-6 pt-10",
 			)}
 			style={{
 				background: MOBILE_HERO_GRADIENT,
-				...(isContentLayout ? { minHeight: "clamp(400px, 82vw, 540px)" } : { minHeight: "calc(100dvh - var(--mobile-tabbar-h) - var(--mobile-header-h))" }),
+				minHeight: "clamp(260px, 58vw, 400px)",
 			}}
 		>
 			{bgVideoUrl ? (
@@ -177,7 +177,9 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 					<div className={classNames("w-full px-0.5", !isContentLayout && "reveal")}>
 						<HeroVideoButtons
 							whoWeAreUrl={settings?.heroVideoWhoWeAreUrl}
+							whoWeAreHidden={settings?.heroVideoWhoWeAreHidden}
 							howWeDeliverUrl={settings?.heroVideoHowWeDeliverUrl}
+							howWeDeliverHidden={settings?.heroVideoHowWeDeliverHidden}
 						/>
 					</div>
 				) : null}

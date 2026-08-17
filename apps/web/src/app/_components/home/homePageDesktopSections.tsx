@@ -154,7 +154,9 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 					<div className={classNames("w-full px-0.5", !isContentLayout && "reveal")}>
 						<HeroVideoButtons
 							whoWeAreUrl={settings?.heroVideoWhoWeAreUrl}
+							whoWeAreHidden={settings?.heroVideoWhoWeAreHidden}
 							howWeDeliverUrl={settings?.heroVideoHowWeDeliverUrl}
+							howWeDeliverHidden={settings?.heroVideoHowWeDeliverHidden}
 						/>
 					</div>
 				) : null}

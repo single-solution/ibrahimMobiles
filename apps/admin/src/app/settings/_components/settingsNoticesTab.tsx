@@ -35,7 +35,9 @@ export function NoticesSettings({ draft, saved, setField, onSaved, canUpdate }: 
 				"heroBadgeText",
 				"heroBadgeHidden",
 				"heroVideoWhoWeAreUrl",
+				"heroVideoWhoWeAreHidden",
 				"heroVideoHowWeDeliverUrl",
+				"heroVideoHowWeDeliverHidden",
 				"heroVideoButtonsHidden",
 				"heroBackgroundVideoUrl",
 				"heroBackgroundVideoOpacity",
@@ -152,37 +154,49 @@ export function NoticesSettings({ draft, saved, setField, onSaved, canUpdate }: 
 			</FormSection>
 
 			<FormSection
-				title="Hero Video Previews"
-				description="Manage video preview links for the interactive hero buttons on the storefront."
+				title="Hero Video Action Buttons"
+				description="Manage video preview links and visibility for the two interactive buttons on the hero banner."
 			>
-				<div className="space-y-4">
-					<Switch
-						label="Hide video preview buttons"
-						description="Hide the 'Store Tour & Live Inventory' and 'See How We Inspect & Ship' buttons from the hero banner."
-						checked={draft.heroVideoButtonsHidden ?? false}
-						onCheckedChange={(checked) => setField("heroVideoButtonsHidden", checked)}
-						disabled={!canUpdate}
-					/>
-					{!draft.heroVideoButtonsHidden && (
-						<>
-							<TextField
-								label="Who We Are & What We Do Video URL"
-								value={draft.heroVideoWhoWeAreUrl}
-								onChange={(event) => setField("heroVideoWhoWeAreUrl", event.target.value)}
-								placeholder="https://... (Direct MP4 URL or video link)"
-								hint="Opens in a video preview modal when customer clicks 'Who We Are'."
-								disabled={!canUpdate}
-							/>
-							<TextField
-								label="How We Get & Deliver Video URL"
-								value={draft.heroVideoHowWeDeliverUrl}
-								onChange={(event) => setField("heroVideoHowWeDeliverUrl", event.target.value)}
-								placeholder="https://... (Direct MP4 URL or video link)"
-								hint="Opens in a video preview modal when customer clicks 'How We Deliver'."
-								disabled={!canUpdate}
-							/>
-						</>
-					)}
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					{/* Button 1: Who We Are */}
+					<div className="space-y-3 rounded-lg border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4">
+						<div className="font-semibold text-sm text-[var(--color-ink-900)]">Button 1: Store Tour & Live Inventory</div>
+						<TextField
+							label="Video URL"
+							value={draft.heroVideoWhoWeAreUrl ?? ""}
+							onChange={(event) => setField("heroVideoWhoWeAreUrl", event.target.value)}
+							placeholder="https://... (Direct MP4 URL or video link)"
+							hint="Opens in video preview modal."
+							disabled={!canUpdate || draft.heroVideoWhoWeAreHidden}
+						/>
+						<Switch
+							label="Hide button 1"
+							description="Do not show 'Store Tour & Live Inventory' on the banner."
+							checked={draft.heroVideoWhoWeAreHidden ?? false}
+							onCheckedChange={(checked) => setField("heroVideoWhoWeAreHidden", checked)}
+							disabled={!canUpdate}
+						/>
+					</div>
+
+					{/* Button 2: How We Deliver */}
+					<div className="space-y-3 rounded-lg border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4">
+						<div className="font-semibold text-sm text-[var(--color-ink-900)]">Button 2: See How We Inspect & Ship</div>
+						<TextField
+							label="Video URL"
+							value={draft.heroVideoHowWeDeliverUrl ?? ""}
+							onChange={(event) => setField("heroVideoHowWeDeliverUrl", event.target.value)}
+							placeholder="https://... (Direct MP4 URL or video link)"
+							hint="Opens in video preview modal."
+							disabled={!canUpdate || draft.heroVideoHowWeDeliverHidden}
+						/>
+						<Switch
+							label="Hide button 2"
+							description="Do not show 'See How We Inspect & Ship' on the banner."
+							checked={draft.heroVideoHowWeDeliverHidden ?? false}
+							onCheckedChange={(checked) => setField("heroVideoHowWeDeliverHidden", checked)}
+							disabled={!canUpdate}
+						/>
+					</div>
 				</div>
 			</FormSection>
 

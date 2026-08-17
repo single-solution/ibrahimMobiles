@@ -129,8 +129,12 @@ export interface StoreSettings {
 	heroBadgeHidden: boolean;
 	/** Video URL for "Who We Are & What We Do" hero modal. */
 	heroVideoWhoWeAreUrl: string;
+	/** Whether the "Who We Are & What We Do" preview button is hidden. */
+	heroVideoWhoWeAreHidden: boolean;
 	/** Video URL for "How We Get & Deliver" hero modal. */
 	heroVideoHowWeDeliverUrl: string;
+	/** Whether the "How We Get & Deliver" preview button is hidden. */
+	heroVideoHowWeDeliverHidden: boolean;
 	/** Whether the hero action video preview buttons are hidden. */
 	heroVideoButtonsHidden: boolean;
 	/** Ambient background video URL played behind the storefront hero banner. */
@@ -219,7 +223,9 @@ export const STORE_SETTING_DEFAULTS: StoreSettings = {
 	heroBadgeText: "We Are Different",
 	heroBadgeHidden: false,
 	heroVideoWhoWeAreUrl: "",
+	heroVideoWhoWeAreHidden: false,
 	heroVideoHowWeDeliverUrl: "",
+	heroVideoHowWeDeliverHidden: false,
 	heroVideoButtonsHidden: false,
 	heroBackgroundVideoUrl: "",
 	heroBackgroundVideoOpacity: 85,
@@ -259,7 +265,9 @@ export const STORE_SETTING_GROUPS = {
 		"heroBadgeText",
 		"heroBadgeHidden",
 		"heroVideoWhoWeAreUrl",
+		"heroVideoWhoWeAreHidden",
 		"heroVideoHowWeDeliverUrl",
+		"heroVideoHowWeDeliverHidden",
 		"heroVideoButtonsHidden",
 		"heroBackgroundVideoUrl",
 		"heroBackgroundVideoOpacity",
