@@ -24,7 +24,8 @@
 		"lint": "turbo run lint",
 		"typecheck": "turbo run typecheck",
 		"format": "prettier --write .",
-		"format:check": "prettier --check ."
+		"format:check": "prettier --check .",
+		"optimize:video": "node scripts/optimize-hero-video.mjs"
 	},
 	"devDependencies": {
 		"@types/node": "^22.10.0",

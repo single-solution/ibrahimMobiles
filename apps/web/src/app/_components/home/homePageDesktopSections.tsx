@@ -68,12 +68,11 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 			data-magnetic-field
 			className={classNames(
 				"relative flex w-full overflow-hidden",
-				!isContentLayout && "border-b border-[var(--color-ink-100)]",
-				isContentLayout ? "flex-col py-10 md:py-16" : "flex-col justify-center",
+				isContentLayout ? "flex-col py-12 md:py-20" : "flex-col justify-center pb-14 md:pb-18",
 			)}
 			style={{
 				background: DESKTOP_HERO_GRADIENT,
-				...(isContentLayout ? { minHeight: "clamp(460px, 50vw, 620px)" } : { minHeight: "calc(100dvh - var(--desktop-header-h))" }),
+				...(isContentLayout ? { minHeight: "clamp(500px, 52vw, 660px)" } : { minHeight: "calc(100dvh - var(--desktop-header-h))" }),
 			}}
 		>
 			{bgVideoUrl ? (
@@ -88,7 +87,10 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 						disablePictureInPicture
 						disableRemotePlayback
 						tabIndex={-1}
-						style={{ opacity: videoOpacity }}
+						style={{
+							opacity: videoOpacity,
+							filter: "contrast(1.04) brightness(1.02) saturate(1.04)",
+						}}
 						className="h-full w-full object-cover transform-gpu will-change-transform transition-opacity duration-300"
 					>
 						<source src={bgVideoUrl} type="video/mp4" />

@@ -92,12 +92,11 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 			className={classNames(
 				"relative flex w-full flex-col items-center overflow-hidden text-center",
 				!isContentLayout && "reveal-stagger",
-				!isContentLayout && "-mx-4 border-b border-[var(--color-ink-100)] px-4",
-				isContentLayout ? "py-8 md:py-10" : "justify-evenly",
+				isContentLayout ? "py-10 pb-14 md:py-12 md:pb-16" : "justify-evenly pb-10",
 			)}
 			style={{
 				background: MOBILE_HERO_GRADIENT,
-				...(isContentLayout ? { minHeight: "clamp(380px, 80vw, 500px)" } : { minHeight: "calc(100dvh - var(--mobile-tabbar-h) - var(--mobile-header-h))" }),
+				...(isContentLayout ? { minHeight: "clamp(400px, 82vw, 540px)" } : { minHeight: "calc(100dvh - var(--mobile-tabbar-h) - var(--mobile-header-h))" }),
 			}}
 		>
 			{bgVideoUrl ? (
@@ -112,7 +111,10 @@ export function MobileHero({ heroProducts, settings, shopHref, showVisitStoreBut
 						disablePictureInPicture
 						disableRemotePlayback
 						tabIndex={-1}
-						style={{ opacity: videoOpacity }}
+						style={{
+							opacity: videoOpacity,
+							filter: "contrast(1.04) brightness(1.02) saturate(1.04)",
+						}}
 						className="h-full w-full object-cover transform-gpu will-change-transform transition-opacity duration-300"
 					>
 						<source src={bgVideoUrl} type="video/mp4" />
