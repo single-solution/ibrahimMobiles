@@ -68,6 +68,7 @@ export async function uploadImage(options: UploadImageOptions): Promise<StoredIm
 }
 
 export async function uploadVideo(options: UploadVideoOptions): Promise<UploadVideoResult> {
+	console.info("[Upload] Initiating direct cloud upload for:", options.file.name, `(${(options.file.size / (1024 * 1024)).toFixed(2)} MB)`);
 	const presignForm = new FormData();
 	presignForm.set("kind", "presigned");
 	presignForm.set("contentType", options.file.type || "video/mp4");
@@ -77,19 +78,23 @@ export async function uploadVideo(options: UploadVideoOptions): Promise<UploadVi
 	let presignedRes: { uploadUrl?: string; publicUrl?: string } | null = null;
 	try {
 		presignedRes = (await postUpload(presignForm)) as { uploadUrl?: string; publicUrl?: string };
-	} catch {
-		// Presign endpoint failed
+		console.info("[Upload] Received presigned ticket from server:", presignedRes);
+	} catch (err) {
+		console.warn("[Upload] Presign endpoint request failed:", err);
 	}
 
 	if (presignedRes?.uploadUrl && presignedRes?.publicUrl) {
+		console.info("[Upload] Streaming binary directly to Cloudflare R2...");
 		const putRes = await fetch(presignedRes.uploadUrl, {
 			method: "PUT",
 			body: options.file,
 		});
 		if (!putRes.ok) {
 			const errorText = await putRes.text().catch(() => "");
+			console.error("[Upload] Direct R2 PUT failed with status:", putRes.status, errorText);
 			throw new Error(`Direct cloud upload failed (${putRes.status}): ${errorText || "Upload rejected by cloud storage."}`);
 		}
+		console.info("[Upload] Direct cloud upload succeeded! Public URL:", presignedRes.publicUrl);
 		return {
 			url: presignedRes.publicUrl,
 			contentType: options.file.type || "video/mp4",
