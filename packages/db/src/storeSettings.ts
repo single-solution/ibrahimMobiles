@@ -27,8 +27,8 @@ import {
 import { connectDB } from "./connection";
 import { Setting } from "./models/Setting";
 
-/** In-process cache TTL — eventual consistency is fine for branding/policy. */
-const CACHE_TTL_MS = MS_PER_MINUTE;
+/** In-process cache TTL — instant in dev so admin changes reflect immediately. */
+const CACHE_TTL_MS = process.env.NODE_ENV === "production" ? MS_PER_MINUTE : 1000;
 
 interface CacheEntry {
 	value: StoreSettings;

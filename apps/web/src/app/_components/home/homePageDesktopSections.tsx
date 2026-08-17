@@ -88,11 +88,14 @@ export function DesktopHero({ heroProducts, settings, shopHref, showVisitStoreBu
 						preload="metadata"
 						tabIndex={-1}
 						style={{ opacity: videoOpacity }}
-						className="h-full w-full object-cover transform-gpu"
+						className="h-full w-full object-cover transform-gpu transition-opacity duration-300"
 					>
 						<source src={bgVideoUrl} type="video/mp4" />
 					</video>
-					<div className="absolute inset-0 bg-gradient-to-b from-[var(--color-canvas)]/60 via-[var(--color-canvas)]/20 to-[var(--color-canvas)]" />
+					<div
+						className="absolute inset-0 bg-gradient-to-b from-[var(--color-canvas)]/40 via-transparent to-[var(--color-canvas)]"
+						style={{ opacity: Math.max(0.15, 1 - videoOpacity * 0.4) }}
+					/>
 				</div>
 			) : null}
 

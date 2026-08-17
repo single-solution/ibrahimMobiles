@@ -66,7 +66,7 @@ import type { AttributeFacet } from "@/lib/core/facets";
 export const STOREFRONT_CACHE_TAG = "storefront";
 
 /** Seconds the cross-request layer holds onto storefront reads. */
-const STOREFRONT_CACHE_TTL_SECONDS = 60;
+const STOREFRONT_CACHE_TTL_SECONDS = process.env.NODE_ENV === "production" ? 60 : 1;
 
 /* ─────────── two-tier dedupe (unstable_cache + React cache) ─────────── */
 
