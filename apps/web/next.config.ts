@@ -30,7 +30,7 @@ const MARKETING_CONNECT_HOSTS = [
 
 function buildS3ImageHosts(): string[] {
 	// R2 public buckets use `*.r2.dev`; custom CDN domains come from AWS_S3_PUBLIC_URL_BASE.
-	const hosts = ["https://*.amazonaws.com", "https://*.s3.amazonaws.com", "https://*.r2.dev"];
+	const hosts = ["https://*.amazonaws.com", "https://*.s3.amazonaws.com", "https://*.r2.dev", "https://*.r2.cloudflarestorage.com", "https://*.cloudflarestorage.com"];
 	const publicBase = process.env.AWS_S3_PUBLIC_URL_BASE?.trim();
 	if (publicBase) {
 		try {
@@ -66,7 +66,7 @@ function buildContentSecurityPolicy(): string {
 		"font-src 'self' data:",
 		`connect-src 'self' ${MARKETING_CONNECT_HOSTS.join(" ")}`,
 		// Grade inspection `<video>` may be hosted on the same R2/CDN hosts as images.
-		`media-src 'self' blob: ${S3_IMAGE_HOSTS.join(" ")}`,
+		`media-src 'self' blob: https://*.r2.dev https://*.r2.cloudflarestorage.com https://*.cloudflarestorage.com https://*.amazonaws.com ${S3_IMAGE_HOSTS.join(" ")}`,
 		"manifest-src 'self'",
 		// Iframe sources:
 		//   - Google Maps embed lives on www.google.com / maps.google.com via the
