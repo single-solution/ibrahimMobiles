@@ -12,13 +12,17 @@ import {
 	Cpu,
 	ExternalLink,
 	Eye,
+	Filter,
 	Gauge,
 	Globe,
-	Layers,
+	Info,
 	Laptop,
+	Layers,
+	Maximize2,
 	Monitor,
 	MousePointerClick,
 	Radio,
+	Search,
 	Share2,
 	ShoppingBag,
 	Smartphone,
@@ -29,8 +33,17 @@ import {
 	Users,
 	Zap,
 } from "lucide-react";
-import type { AnalyticsPeriod, AnalyticsSummary, FunnelSummary, SpeedInsightsSummary, WebVitalMetricSummary } from "@/lib/server/analyticsData";
+import type {
+	AnalyticsEventItem,
+	AnalyticsPeriod,
+	AnalyticsSummary,
+	FunnelSummary,
+	SpeedInsightsSummary,
+	WebVitalMetricSummary,
+} from "@/lib/server/analyticsData";
 import { classNames } from "@store/shared";
+import { Modal } from "@/components/ui/Modal";
+import { StatusPill, type StatusTone } from "@/components/shared/StatusPill";
 
 interface AnalyticsDashboardClientProps {
 	initialSummary: AnalyticsSummary;
@@ -46,33 +59,51 @@ const PERIOD_OPTIONS: Array<{ label: string; value: AnalyticsPeriod }> = [
 	{ label: "Last 90 Days", value: "90d" },
 ];
 
-export function AnalyticsDashboardClient({ initialSummary, initialSpeed, initialFunnel, period }: AnalyticsDashboardClientProps) {
+export function AnalyticsDashboardClient({
+	initialSummary,
+	initialSpeed,
+	initialFunnel,
+	period,
+}: AnalyticsDashboardClientProps) {
 	const router = useRouter();
-	const [activeTab, setActiveTab] = useState<"traffic" | "speed" | "funnel">("traffic");
+
+	// Modal States
+	const [isPagesModalOpen, setIsPagesModalOpen] = useState(false);
+	const [isReferrersModalOpen, setIsReferrersModalOpen] = useState(false);
+	const [isVitalsModalOpen, setIsVitalsModalOpen] = useState(false);
+	const [selectedMetric, setSelectedMetric] = useState<WebVitalMetricSummary | null>(null);
+	const [selectedSession, setSelectedSession] = useState<AnalyticsEventItem | null>(null);
+	const [pageSearchQuery, setPageSearchQuery] = useState("");
 
 	function handlePeriodChange(newPeriod: AnalyticsPeriod) {
 		router.push(`/analytics?period=${newPeriod}`);
 	}
 
+	const filteredPages = initialSummary.topPages.filter(
+		(p) => p.path.toLowerCase().includes(pageSearchQuery.toLowerCase()) || p.title.toLowerCase().includes(pageSearchQuery.toLowerCase()),
+	);
+
 	return (
-		<div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4 md:p-6">
-			{/* Top Header Bar */}
+		<div className="flex flex-1 flex-col gap-5 overflow-y-auto p-3 md:p-5">
+			{/* ═══════════════════════════════════════════════════
+			    HEADER & CONTROLS
+			    ═══════════════════════════════════════════════════ */}
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<div>
-					<div className="flex items-center gap-2.5">
-						<span className="grid size-8 place-items-center rounded-[var(--radius-md)] bg-[var(--color-accent-100)] text-[var(--color-accent-700)]">
-							<BarChart3 size={18} strokeWidth={2.4} />
-						</span>
-						<h1 className="text-xl font-bold tracking-tight text-[var(--color-ink-900)]">Analytics & Speed Insights</h1>
-					</div>
-					<p className="mt-0.5 text-xs text-[var(--color-ink-500)]">
-						Real-time visitor telemetry, storefront traffic, and Core Web Vitals performance.
+					<p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">
+						Storefront Telemetry
+					</p>
+					<h1 className="mt-0.5 text-[20px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)]">
+						Analytics & Speed Insights
+					</h1>
+					<p className="mt-0.5 text-[12px] text-[var(--color-ink-500)]">
+						Live customer sessions, conversion funnel, and real-device Core Web Vitals.
 					</p>
 				</div>
 
-				<div className="flex flex-wrap items-center gap-2">
-					{/* Live Indicator */}
-					<div className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50/80 px-3 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-400">
+				<div className="flex flex-wrap items-center gap-2.5">
+					{/* Live Online Badge */}
+					<div className="flex items-center gap-1.5 rounded-[var(--radius-full)] border border-emerald-200 bg-emerald-50/90 px-3 py-1 text-[11.5px] font-semibold text-emerald-800 shadow-xs">
 						<span className="relative flex size-2">
 							<span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
 							<span className="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
@@ -80,17 +111,17 @@ export function AnalyticsDashboardClient({ initialSummary, initialSpeed, initial
 						<span>{initialSummary.liveVisitors} Online Now</span>
 					</div>
 
-					{/* Period Selector */}
-					<div className="flex rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-0.5 shadow-sm">
+					{/* Period Selector Tabs */}
+					<div className="flex rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-0.5 shadow-xs">
 						{PERIOD_OPTIONS.map((opt) => (
 							<button
 								key={opt.value}
 								type="button"
 								onClick={() => handlePeriodChange(opt.value)}
 								className={classNames(
-									"rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-medium transition-colors",
+									"rounded-[var(--radius-sm)] px-2.5 py-1 text-[11.5px] font-semibold transition-all",
 									period === opt.value
-										? "bg-[var(--color-accent-500)] text-white shadow-xs"
+										? "bg-[var(--color-accent-100)] text-[var(--color-accent-900)] shadow-xs"
 										: "text-[var(--color-ink-600)] hover:text-[var(--color-ink-900)]",
 								)}
 							>
@@ -101,247 +132,175 @@ export function AnalyticsDashboardClient({ initialSummary, initialSpeed, initial
 				</div>
 			</div>
 
-			{/* Main Navigation Tabs */}
-			<div className="flex border-b border-[var(--color-ink-100)]">
-				<button
-					type="button"
-					onClick={() => setActiveTab("traffic")}
-					className={classNames(
-						"flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold transition-colors",
-						activeTab === "traffic"
-							? "border-[var(--color-accent-500)] text-[var(--color-accent-700)]"
-							: "border-transparent text-[var(--color-ink-500)] hover:text-[var(--color-ink-800)]",
-					)}
-				>
-					<Eye size={15} />
-					Traffic & Visitors
-				</button>
-				<button
-					type="button"
-					onClick={() => setActiveTab("speed")}
-					className={classNames(
-						"flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold transition-colors",
-						activeTab === "speed"
-							? "border-[var(--color-accent-500)] text-[var(--color-accent-700)]"
-							: "border-transparent text-[var(--color-ink-500)] hover:text-[var(--color-ink-800)]",
-					)}
-				>
-					<Gauge size={15} />
-					Speed Insights (Core Web Vitals)
-					<span className="rounded-full bg-emerald-100 px-1.5 py-0.2 text-[10px] font-bold text-emerald-800">
-						{initialSpeed.overallScore}/100
-					</span>
-				</button>
-				<button
-					type="button"
-					onClick={() => setActiveTab("funnel")}
-					className={classNames(
-						"flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold transition-colors",
-						activeTab === "funnel"
-							? "border-[var(--color-accent-500)] text-[var(--color-accent-700)]"
-							: "border-transparent text-[var(--color-ink-500)] hover:text-[var(--color-ink-800)]",
-					)}
-				>
-					<Layers size={15} />
-					Conversion Funnel
-				</button>
+			{/* ═══════════════════════════════════════════════════
+			    ROW 1: TOP KPI CARDS (BENTO GRID)
+			    ═══════════════════════════════════════════════════ */}
+			<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+				<AnalyticsKpiCard
+					label="Total Pageviews"
+					value={initialSummary.totalPageViews.toLocaleString()}
+					changePercent={initialSummary.pageViewsChange}
+					icon={<Eye size={15} />}
+				/>
+				<AnalyticsKpiCard
+					label="Unique Visitors"
+					value={initialSummary.uniqueVisitors.toLocaleString()}
+					changePercent={initialSummary.uniqueVisitorsChange}
+					icon={<Users size={15} />}
+				/>
+				<AnalyticsKpiCard
+					label="Active Sessions"
+					value={initialSummary.totalSessions.toLocaleString()}
+					subtext="Visits with interaction"
+					icon={<Compass size={15} />}
+				/>
+				<AnalyticsKpiCard
+					label="Avg Session Dwell"
+					value={`${Math.floor(initialSummary.avgDurationSeconds / 60)}m ${initialSummary.avgDurationSeconds % 60}s`}
+					subtext="Time spent on store"
+					icon={<Clock size={15} />}
+				/>
+				<AnalyticsKpiCard
+					label="Bounce Rate"
+					value={`${initialSummary.bounceRate}%`}
+					subtext="Single-page exits"
+					icon={<MousePointerClick size={15} />}
+				/>
+				<AnalyticsKpiCard
+					label="Store Speed Score"
+					value={`${initialSpeed.overallScore}/100`}
+					tone={initialSpeed.rating === "good" ? "accent" : initialSpeed.rating === "needs-improvement" ? "default" : "default"}
+					subtext={initialSpeed.overallScore >= 85 ? "Fast Experience" : "Optimization Recommended"}
+					icon={<Gauge size={15} />}
+				/>
 			</div>
 
-			{/* TAB 1: Traffic & Visitors */}
-			{activeTab === "traffic" && (
-				<div className="flex flex-col gap-4">
-					{/* KPI Stats Grid */}
-					<div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-						<KpiCard
-							title="Total Pageviews"
-							value={initialSummary.totalPageViews.toLocaleString()}
-							change={initialSummary.pageViewsChange}
-							icon={Eye}
-						/>
-						<KpiCard
-							title="Unique Visitors"
-							value={initialSummary.uniqueVisitors.toLocaleString()}
-							change={initialSummary.uniqueVisitorsChange}
-							icon={Users}
-						/>
-						<KpiCard
-							title="Avg Time on Store"
-							value={`${Math.floor(initialSummary.avgDurationSeconds / 60)}m ${initialSummary.avgDurationSeconds % 60}s`}
-							subtext="Per active session"
-							icon={Clock}
-						/>
-						<KpiCard
-							title="Estimated Bounce Rate"
-							value={`${initialSummary.bounceRate}%`}
-							subtext="Single-page visits"
-							icon={MousePointerClick}
-						/>
-					</div>
-
-					{/* Middle Grids: Top Pages & Top Referrers */}
-					<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-						{/* Top Visited Pages */}
-						<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-sm">
-							<div className="mb-3 flex items-center justify-between">
-								<h3 className="text-sm font-bold text-[var(--color-ink-900)]">Top Landing & Store Pages</h3>
-								<span className="text-xs text-[var(--color-ink-400)]">{initialSummary.topPages.length} pages tracked</span>
-							</div>
-
-							{initialSummary.topPages.length === 0 ? (
-								<p className="py-8 text-center text-xs text-[var(--color-ink-400)]">No pageview data recorded yet.</p>
-							) : (
-								<div className="divide-y divide-[var(--color-ink-50)] text-xs">
-									{initialSummary.topPages.map((page, idx) => (
-										<div key={idx} className="flex items-center justify-between py-2">
-											<div className="min-w-0 flex-1 pr-3">
-												<p className="truncate font-medium text-[var(--color-ink-900)]">{page.title || page.path}</p>
-												<p className="truncate font-mono text-[11px] text-[var(--color-ink-400)]">{page.path}</p>
-											</div>
-											<div className="text-right">
-												<span className="font-bold text-[var(--color-ink-900)]">{page.views.toLocaleString()}</span>
-												<span className="ml-1 text-[11px] text-[var(--color-ink-400)]">views</span>
-											</div>
-										</div>
-									))}
-								</div>
-							)}
+			{/* ═══════════════════════════════════════════════════
+			    ROW 2: SPEED INSIGHTS (CORE WEB VITALS)
+			    ═══════════════════════════════════════════════════ */}
+			<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+				<div className="flex flex-col gap-2 border-b border-[var(--color-ink-100)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+					<div>
+						<div className="flex items-center gap-2">
+							<span className="grid size-6 place-items-center rounded-[var(--radius-sm)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]">
+								<Gauge size={14} strokeWidth={2.4} />
+							</span>
+							<h2 className="text-sm font-semibold text-[var(--color-ink-900)]">Real User Speed Insights (Core Web Vitals)</h2>
 						</div>
-
-						{/* Traffic Sources / Referrers */}
-						<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-sm">
-							<div className="mb-3 flex items-center justify-between">
-								<h3 className="text-sm font-bold text-[var(--color-ink-900)]">Top Acquisition Channels & Referrers</h3>
-								<span className="text-xs text-[var(--color-ink-400)]">Traffic sources</span>
-							</div>
-
-							{initialSummary.topReferrers.length === 0 ? (
-								<p className="py-8 text-center text-xs text-[var(--color-ink-400)]">No referrer data recorded yet.</p>
-							) : (
-								<div className="space-y-3 pt-1 text-xs">
-									{initialSummary.topReferrers.map((ref, idx) => (
-										<div key={idx} className="space-y-1">
-											<div className="flex justify-between font-medium">
-												<span className="text-[var(--color-ink-800)]">{ref.referrer}</span>
-												<span className="text-[var(--color-ink-500)]">{ref.count} visits ({ref.percentage}%)</span>
-											</div>
-											<div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-ink-100)]">
-												<div
-													className="h-full rounded-full bg-[var(--color-accent-500)]"
-													style={{ width: `${ref.percentage}%` }}
-												/>
-											</div>
-										</div>
-									))}
-								</div>
-							)}
-						</div>
-					</div>
-
-					{/* Bottom Grid: Devices & Browsers */}
-					<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-						{/* Device Distribution */}
-						<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-sm">
-							<h3 className="mb-3 text-sm font-bold text-[var(--color-ink-900)]">Device Share</h3>
-							<div className="grid grid-cols-3 gap-3">
-								{initialSummary.devices.map((d) => (
-									<div key={d.device} className="flex flex-col items-center rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-3 text-center">
-										{d.device === "mobile" ? <Smartphone size={20} className="text-indigo-500 mb-1" /> : d.device === "tablet" ? <Tablet size={20} className="text-purple-500 mb-1" /> : <Monitor size={20} className="text-blue-500 mb-1" />}
-										<span className="capitalize font-semibold text-xs text-[var(--color-ink-800)]">{d.device}</span>
-										<span className="text-sm font-extrabold text-[var(--color-ink-900)] mt-0.5">{d.percentage}%</span>
-										<span className="text-[10px] text-[var(--color-ink-400)]">{d.count} hits</span>
-									</div>
-								))}
-							</div>
-						</div>
-
-						{/* Browser Distribution */}
-						<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-sm">
-							<h3 className="mb-3 text-sm font-bold text-[var(--color-ink-900)]">Browser Distribution</h3>
-							<div className="space-y-2 pt-1 text-xs">
-								{initialSummary.browsers.map((b) => (
-									<div key={b.browser} className="flex items-center justify-between py-1 border-b border-[var(--color-ink-50)] last:border-none">
-										<span className="font-medium text-[var(--color-ink-800)]">{b.browser}</span>
-										<span className="font-semibold text-[var(--color-ink-900)]">{b.percentage}% ({b.count} visits)</span>
-									</div>
-								))}
-							</div>
-						</div>
-					</div>
-				</div>
-			)}
-
-			{/* TAB 2: Speed Insights (Core Web Vitals) */}
-			{activeTab === "speed" && (
-				<div className="flex flex-col gap-4">
-					{/* Overall Score Header Banner */}
-					<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-[var(--radius-lg)] border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4 sm:p-6 dark:border-emerald-900/40 dark:from-emerald-950/20 dark:to-teal-950/20">
-						<div>
-							<div className="flex items-center gap-2">
-								<span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-									Vercel Speed Insights Alternative
-								</span>
-							</div>
-							<h2 className="mt-1 text-lg font-bold text-[var(--color-ink-900)]">Real User Store Performance (RUM)</h2>
-							<p className="mt-0.5 max-w-xl text-xs text-[var(--color-ink-600)]">
-								Calculated from real browser visits using Google&apos;s Core Web Vitals 75th percentile standard.
-							</p>
-						</div>
-
-						<div className="mt-3 sm:mt-0 flex items-center gap-3">
-							<div className="text-right">
-								<span className="text-3xl font-extrabold text-emerald-700 dark:text-emerald-400">{initialSpeed.overallScore}</span>
-								<span className="text-xs font-bold text-emerald-600 dark:text-emerald-500">/100</span>
-								<p className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
-									{initialSpeed.overallScore >= 90 ? "Excellent Experience" : initialSpeed.overallScore >= 70 ? "Good Performance" : "Needs Optimization"}
-								</p>
-							</div>
-						</div>
-					</div>
-
-					{/* 5 Web Vitals Cards Grid */}
-					<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-						<VitalCard summary={initialSpeed.metrics.LCP} title="Largest Contentful Paint" description="Main content render time (<= 2.5s is Good)" />
-						<VitalCard summary={initialSpeed.metrics.CLS} title="Cumulative Layout Shift" description="Visual stability (<= 0.1 is Good)" />
-						<VitalCard summary={initialSpeed.metrics.INP} title="Interaction to Next Paint" description="Click / tap responsiveness (<= 200ms is Good)" />
-						<VitalCard summary={initialSpeed.metrics.TTFB} title="Time to First Byte" description="Server response time (<= 800ms is Good)" />
-						<VitalCard summary={initialSpeed.metrics.FCP} title="First Contentful Paint" description="First visual element painted (<= 1.8s is Good)" />
-					</div>
-
-					{/* Slowest Pages Breakdown */}
-					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-sm">
-						<h3 className="mb-2 text-sm font-bold text-[var(--color-ink-900)]">Page-Level Speed Breakdown</h3>
-						<p className="mb-3 text-xs text-[var(--color-ink-500)]">
-							Identifies storefront paths with render delays or layout shifts to help prioritize optimizations.
+						<p className="mt-0.5 text-[11.5px] text-[var(--color-ink-500)]">
+							Field measurements captured directly from shoppers&apos; devices using Google&apos;s p75 standard.
 						</p>
+					</div>
 
-						{initialSpeed.slowestPages.length === 0 ? (
-							<p className="py-6 text-center text-xs text-[var(--color-ink-400)]">No page vitals samples captured yet.</p>
+					<button
+						type="button"
+						onClick={() => setIsVitalsModalOpen(true)}
+						className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-canvas)] px-2.5 py-1 text-[11.5px] font-semibold text-[var(--color-ink-700)] transition-colors hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-ink-900)]"
+					>
+						<Sparkles size={13} className="text-[var(--color-accent-700)]" />
+						Inspect Diagnostics & Fixes
+					</button>
+				</div>
+
+				<div className="grid grid-cols-1 divide-y divide-[var(--color-ink-100)] sm:grid-cols-2 sm:divide-y-0 sm:divide-x lg:grid-cols-5">
+					<VitalItemCard
+						metric="LCP"
+						name="Largest Contentful Paint"
+						summary={initialSpeed.metrics.LCP}
+						onInspect={() => {
+							setSelectedMetric(initialSpeed.metrics.LCP);
+							setIsVitalsModalOpen(true);
+						}}
+					/>
+					<VitalItemCard
+						metric="CLS"
+						name="Cumulative Layout Shift"
+						summary={initialSpeed.metrics.CLS}
+						onInspect={() => {
+							setSelectedMetric(initialSpeed.metrics.CLS);
+							setIsVitalsModalOpen(true);
+						}}
+					/>
+					<VitalItemCard
+						metric="INP"
+						name="Interaction to Next Paint"
+						summary={initialSpeed.metrics.INP}
+						onInspect={() => {
+							setSelectedMetric(initialSpeed.metrics.INP);
+							setIsVitalsModalOpen(true);
+						}}
+					/>
+					<VitalItemCard
+						metric="TTFB"
+						name="Time to First Byte"
+						summary={initialSpeed.metrics.TTFB}
+						onInspect={() => {
+							setSelectedMetric(initialSpeed.metrics.TTFB);
+							setIsVitalsModalOpen(true);
+						}}
+					/>
+					<VitalItemCard
+						metric="FCP"
+						name="First Contentful Paint"
+						summary={initialSpeed.metrics.FCP}
+						onInspect={() => {
+							setSelectedMetric(initialSpeed.metrics.FCP);
+							setIsVitalsModalOpen(true);
+						}}
+					/>
+				</div>
+			</div>
+
+			{/* ═══════════════════════════════════════════════════
+			    ROW 3: 12-COLUMN MAIN BENTO GRID
+			    ═══════════════════════════════════════════════════ */}
+			<div className="grid items-start gap-4 xl:grid-cols-12">
+				{/* LEFT COLUMN: Top Pages & Funnel (8 Cols) */}
+				<div className="min-w-0 flex-1 space-y-4 xl:col-span-8">
+					{/* Top Pages Table */}
+					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+						<div className="flex items-center justify-between border-b border-[var(--color-ink-100)] px-4 py-3">
+							<div>
+								<h3 className="text-sm font-semibold text-[var(--color-ink-900)]">Top Storefront Pages & Landing Paths</h3>
+								<p className="text-[11px] text-[var(--color-ink-500)]">Ranked by total pageviews and engagement duration.</p>
+							</div>
+							<button
+								type="button"
+								onClick={() => setIsPagesModalOpen(true)}
+								className="text-[11.5px] font-semibold text-[var(--color-accent-800)] hover:underline"
+							>
+								View all ({initialSummary.topPages.length})
+							</button>
+						</div>
+
+						{initialSummary.topPages.length === 0 ? (
+							<p className="py-8 text-center text-xs text-[var(--color-ink-400)]">No pageview data recorded yet.</p>
 						) : (
 							<div className="overflow-x-auto">
 								<table className="w-full text-left text-xs">
 									<thead>
-										<tr className="border-b border-[var(--color-ink-100)] text-[var(--color-ink-400)] uppercase text-[10px] tracking-wider">
-											<th className="pb-2">Page URL Path</th>
-											<th className="pb-2">Avg LCP</th>
-											<th className="pb-2">Avg CLS</th>
-											<th className="pb-2">Samples</th>
-											<th className="pb-2 text-right">Status</th>
+										<tr className="border-b border-[var(--color-ink-100)] bg-[var(--color-surface-muted)] text-[10.5px] font-semibold uppercase tracking-wider text-[var(--color-ink-500)]">
+											<th className="px-4 py-2">Page Path</th>
+											<th className="px-3 py-2 text-right">Views</th>
+											<th className="px-3 py-2 text-right">Avg Dwell</th>
+											<th className="px-4 py-2 text-right">Bounce Rate</th>
 										</tr>
 									</thead>
-									<tbody className="divide-y divide-[var(--color-ink-50)]">
-										{initialSpeed.slowestPages.map((p, idx) => (
-											<tr key={idx} className="py-2.5">
-												<td className="py-2.5 font-mono text-[11px] font-medium text-[var(--color-ink-800)]">{p.path}</td>
-												<td className="py-2.5 font-semibold">{p.avgLcp} ms</td>
-												<td className="py-2.5 font-semibold">{p.avgCls}</td>
-												<td className="py-2.5 text-[var(--color-ink-500)]">{p.samples} visits</td>
-												<td className="py-2.5 text-right">
-													<span className={classNames(
-														"rounded-full px-2 py-0.5 text-[10px] font-bold",
-														p.avgLcp <= 2500 ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
-													)}>
-														{p.avgLcp <= 2500 ? "Fast" : "Needs Review"}
-													</span>
+									<tbody className="divide-y divide-[var(--color-ink-100)]">
+										{initialSummary.topPages.slice(0, 6).map((page, idx) => (
+											<tr key={idx} className="transition-colors hover:bg-[var(--color-surface-muted)]/50">
+												<td className="px-4 py-2.5">
+													<p className="font-semibold text-[var(--color-ink-900)] truncate max-w-[280px] sm:max-w-md">{page.title || page.path}</p>
+													<p className="font-mono text-[11px] text-[var(--color-ink-500)] truncate">{page.path}</p>
+												</td>
+												<td className="px-3 py-2.5 text-right font-bold tabular-nums text-[var(--color-ink-900)]">
+													{page.views.toLocaleString()}
+												</td>
+												<td className="px-3 py-2.5 text-right tabular-nums text-[var(--color-ink-600)]">
+													{page.avgDuration}s
+												</td>
+												<td className="px-4 py-2.5 text-right tabular-nums text-[var(--color-ink-600)]">
+													{page.bounceRate}%
 												</td>
 											</tr>
 										))}
@@ -350,43 +309,44 @@ export function AnalyticsDashboardClient({ initialSummary, initialSpeed, initial
 							</div>
 						)}
 					</div>
-				</div>
-			)}
 
-			{/* TAB 3: Conversion Funnel */}
-			{activeTab === "funnel" && (
-				<div className="flex flex-col gap-4">
-					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 sm:p-6 shadow-sm">
-						<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-4 border-b border-[var(--color-ink-100)]">
+					{/* Conversion Funnel */}
+					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+						<div className="flex items-center justify-between border-b border-[var(--color-ink-100)] pb-3">
 							<div>
-								<h3 className="text-base font-bold text-[var(--color-ink-900)]">Storefront E-Commerce Funnel</h3>
-								<p className="text-xs text-[var(--color-ink-500)] mt-0.5">
-									Tracks progression from initial storefront visit through to confirmed purchase.
+								<div className="flex items-center gap-2">
+									<span className="grid size-6 place-items-center rounded-[var(--radius-sm)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]">
+										<Layers size={13} strokeWidth={2.4} />
+									</span>
+									<h3 className="text-sm font-semibold text-[var(--color-ink-900)]">E-Commerce Conversion Progression</h3>
+								</div>
+								<p className="mt-0.5 text-[11.5px] text-[var(--color-ink-500)]">
+									Visualizing shopper drop-off across the buying journey.
 								</p>
 							</div>
-							<div className="mt-2 sm:mt-0 rounded-[var(--radius-md)] bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-right">
-								<span className="text-[11px] font-semibold text-emerald-800">Overall Store Conversion</span>
-								<p className="text-lg font-extrabold text-emerald-700">{initialFunnel.overallConversionRate}%</p>
+
+							<div className="text-right">
+								<span className="text-[11px] font-medium text-[var(--color-ink-500)]">Store Conversion</span>
+								<p className="text-base font-bold text-[var(--color-accent-800)]">{initialFunnel.overallConversionRate}%</p>
 							</div>
 						</div>
 
-						{/* Funnel Steps */}
-						<div className="space-y-4">
+						<div className="mt-4 space-y-3.5">
 							{initialFunnel.stages.map((stage, idx) => (
-								<div key={idx} className="space-y-1.5">
-									<div className="flex items-center justify-between text-xs font-semibold">
-										<span className="text-[var(--color-ink-900)]">{stage.name}</span>
-										<div className="flex items-center gap-3">
-											<span className="text-[var(--color-ink-900)] font-bold">{stage.count.toLocaleString()}</span>
-											<span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[10px] font-bold">
-												{stage.conversionRate}% conversion
+								<div key={idx} className="space-y-1">
+									<div className="flex items-center justify-between text-xs">
+										<span className="font-semibold text-[var(--color-ink-900)]">{stage.name}</span>
+										<div className="flex items-center gap-2">
+											<span className="font-bold tabular-nums text-[var(--color-ink-900)]">{stage.count.toLocaleString()}</span>
+											<span className="rounded bg-[var(--color-accent-100)] px-1.5 py-0.5 text-[10.5px] font-bold text-[var(--color-accent-900)]">
+												{stage.conversionRate}%
 											</span>
 										</div>
 									</div>
-									<div className="h-3 w-full overflow-hidden rounded-full bg-[var(--color-ink-100)]">
+									<div className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-ink-100)]">
 										<div
-											className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-emerald-500 transition-all duration-500"
-											style={{ width: `${Math.max(stage.conversionRate, 2)}%` }}
+											className="h-full rounded-full bg-[var(--color-accent-500)] transition-all duration-300"
+											style={{ width: `${Math.max(stage.conversionRate, 3)}%` }}
 										/>
 									</div>
 								</div>
@@ -394,90 +354,411 @@ export function AnalyticsDashboardClient({ initialSummary, initialSpeed, initial
 						</div>
 					</div>
 				</div>
-			)}
-		</div>
-	);
-}
 
-function KpiCard({
-	title,
-	value,
-	change,
-	subtext,
-	icon: Icon,
-}: {
-	title: string;
-	value: string;
-	change?: number;
-	subtext?: string;
-	icon: React.ComponentType<{ size?: number; className?: string }>;
-}) {
-	return (
-		<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-sm">
-			<div className="flex items-center justify-between">
-				<span className="text-xs font-medium text-[var(--color-ink-500)]">{title}</span>
-				<span className="grid size-7 place-items-center rounded-[var(--radius-sm)] bg-[var(--color-ink-50)] text-[var(--color-ink-600)]">
-					<Icon size={14} />
-				</span>
-			</div>
-			<div className="mt-2 flex items-baseline gap-2">
-				<span className="text-xl font-extrabold tracking-tight text-[var(--color-ink-900)]">{value}</span>
-				{change !== undefined && (
-					<span
-						className={classNames(
-							"flex items-center text-[10px] font-bold",
-							change >= 0 ? "text-emerald-600" : "text-rose-600",
+				{/* RIGHT COLUMN: Channels & Technology (4 Cols) */}
+				<div className="min-w-0 flex-1 space-y-4 xl:col-span-4">
+					{/* Traffic Channels */}
+					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+						<div className="flex items-center justify-between border-b border-[var(--color-ink-100)] pb-3">
+							<div>
+								<h3 className="text-sm font-semibold text-[var(--color-ink-900)]">Acquisition Channels</h3>
+								<p className="text-[11px] text-[var(--color-ink-500)]">Where shoppers originate from.</p>
+							</div>
+							<button
+								type="button"
+								onClick={() => setIsReferrersModalOpen(true)}
+								className="text-[11.5px] font-semibold text-[var(--color-accent-800)] hover:underline"
+							>
+								Details
+							</button>
+						</div>
+
+						{initialSummary.topReferrers.length === 0 ? (
+							<p className="py-6 text-center text-xs text-[var(--color-ink-400)]">No referrer data recorded yet.</p>
+						) : (
+							<div className="mt-3 space-y-3">
+								{initialSummary.topReferrers.slice(0, 5).map((ref, idx) => (
+									<div key={idx} className="space-y-1">
+										<div className="flex justify-between text-xs">
+											<span className="font-medium text-[var(--color-ink-800)] truncate max-w-[180px]">{ref.referrer}</span>
+											<span className="font-semibold text-[var(--color-ink-900)] tabular-nums">{ref.count} ({ref.percentage}%)</span>
+										</div>
+										<div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-ink-100)]">
+											<div
+												className="h-full rounded-full bg-[var(--color-ink-700)]"
+												style={{ width: `${ref.percentage}%` }}
+											/>
+										</div>
+									</div>
+								))}
+							</div>
 						)}
-					>
-						{change >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-						{Math.abs(change)}%
-					</span>
+					</div>
+
+					{/* Device & Browser Grid */}
+					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+						<h3 className="border-b border-[var(--color-ink-100)] pb-2.5 text-sm font-semibold text-[var(--color-ink-900)]">
+							Devices & Operating Systems
+						</h3>
+
+						<div className="mt-3 grid grid-cols-3 gap-2 text-center">
+							{initialSummary.devices.map((d) => (
+								<div key={d.device} className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface-muted)] p-2">
+									<div className="flex justify-center mb-1 text-[var(--color-ink-700)]">
+										{d.device === "mobile" ? <Smartphone size={16} /> : d.device === "tablet" ? <Tablet size={16} /> : <Monitor size={16} />}
+									</div>
+									<p className="text-[10px] font-semibold uppercase text-[var(--color-ink-500)]">{d.device}</p>
+									<p className="text-xs font-bold text-[var(--color-ink-900)]">{d.percentage}%</p>
+								</div>
+							))}
+						</div>
+
+						<div className="mt-3.5 space-y-1.5 border-t border-[var(--color-ink-100)] pt-3 text-xs">
+							<p className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--color-ink-400)]">Top Platforms</p>
+							{initialSummary.operatingSystems.slice(0, 4).map((os) => (
+								<div key={os.os} className="flex justify-between py-0.5">
+									<span className="text-[var(--color-ink-700)]">{os.os}</span>
+									<span className="font-semibold text-[var(--color-ink-900)]">{os.percentage}%</span>
+								</div>
+							))}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			{/* ═══════════════════════════════════════════════════
+			    ROW 4: REAL-TIME ACTIVITY STREAM
+			    ═══════════════════════════════════════════════════ */}
+			<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
+				<div className="flex items-center justify-between border-b border-[var(--color-ink-100)] px-4 py-3">
+					<div>
+						<div className="flex items-center gap-2">
+							<span className="grid size-6 place-items-center rounded-[var(--radius-sm)] bg-emerald-100 text-emerald-800">
+								<Radio size={13} strokeWidth={2.4} />
+							</span>
+							<h3 className="text-sm font-semibold text-[var(--color-ink-900)]">Real-Time Shopper Activity Stream</h3>
+						</div>
+						<p className="text-[11px] text-[var(--color-ink-500)]">Recent events recorded live from storefront interactions.</p>
+					</div>
+					<span className="text-xs text-[var(--color-ink-400)]">Last 25 events</span>
+				</div>
+
+				{initialSummary.recentEvents.length === 0 ? (
+					<p className="py-8 text-center text-xs text-[var(--color-ink-400)]">No live events stream recorded yet.</p>
+				) : (
+					<div className="overflow-x-auto">
+						<table className="w-full text-left text-xs">
+							<thead>
+								<tr className="border-b border-[var(--color-ink-100)] bg-[var(--color-surface-muted)] text-[10.5px] font-semibold uppercase tracking-wider text-[var(--color-ink-500)]">
+									<th className="px-4 py-2">Time</th>
+									<th className="px-3 py-2">Event</th>
+									<th className="px-3 py-2">Path / Target</th>
+									<th className="px-3 py-2">Device & OS</th>
+									<th className="px-4 py-2 text-right">Action</th>
+								</tr>
+							</thead>
+							<tbody className="divide-y divide-[var(--color-ink-100)]">
+								{initialSummary.recentEvents.map((evt) => (
+									<tr key={evt.id} className="transition-colors hover:bg-[var(--color-surface-muted)]/50">
+										<td className="px-4 py-2 text-[11px] text-[var(--color-ink-500)] tabular-nums">
+											{evt.timeAgo}
+										</td>
+										<td className="px-3 py-2">
+											<StatusPill tone={evt.eventType === "page_view" ? "info" : evt.eventType === "web_vital" ? "accent" : "neutral"}>
+												{evt.eventType === "page_view" ? "Pageview" : evt.eventType === "web_vital" ? `${evt.vitalMetric} (${evt.vitalRating})` : evt.eventType}
+											</StatusPill>
+										</td>
+										<td className="px-3 py-2">
+											<span className="font-mono text-[11px] text-[var(--color-ink-800)] truncate block max-w-[240px] sm:max-w-xs">{evt.path}</span>
+										</td>
+										<td className="px-3 py-2 text-[11px] text-[var(--color-ink-600)]">
+											{evt.device} · {evt.os} · {evt.browser}
+										</td>
+										<td className="px-4 py-2 text-right">
+											<button
+												type="button"
+												onClick={() => setSelectedSession(evt)}
+												className="rounded p-1 text-[var(--color-ink-500)] hover:bg-[var(--color-ink-100)] hover:text-[var(--color-ink-900)] transition-colors"
+												title="Inspect Event"
+											>
+												<Maximize2 size={13} />
+											</button>
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
 				)}
 			</div>
-			{subtext && <p className="mt-0.5 text-[11px] text-[var(--color-ink-400)]">{subtext}</p>}
+
+			{/* ═══════════════════════════════════════════════════
+			    MODAL 1: FULL PAGES CATALOG MODAL
+			    ═══════════════════════════════════════════════════ */}
+			<Modal
+				isOpen={isPagesModalOpen}
+				onClose={() => setIsPagesModalOpen(false)}
+				title="All Storefront Landing Pages"
+				maxWidth="3xl"
+			>
+				<div className="space-y-3">
+					<div className="relative">
+						<Search size={14} className="absolute left-3 top-2.5 text-[var(--color-ink-400)]" />
+						<input
+							type="text"
+							placeholder="Search by path or title..."
+							value={pageSearchQuery}
+							onChange={(e) => setPageSearchQuery(e.target.value)}
+							className="w-full rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] py-1.5 pl-8 pr-3 text-xs text-[var(--color-ink-900)] outline-hidden focus:border-[var(--color-accent-500)]"
+						/>
+					</div>
+
+					<div className="max-h-[60vh] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-ink-100)]">
+						<table className="w-full text-left text-xs">
+							<thead>
+								<tr className="border-b border-[var(--color-ink-100)] bg-[var(--color-surface-muted)] text-[10.5px] font-semibold uppercase tracking-wider text-[var(--color-ink-500)] sticky top-0">
+									<th className="px-3 py-2">Page Title & Path</th>
+									<th className="px-3 py-2 text-right">Views</th>
+									<th className="px-3 py-2 text-right">Avg Duration</th>
+									<th className="px-3 py-2 text-right">Bounce Rate</th>
+								</tr>
+							</thead>
+							<tbody className="divide-y divide-[var(--color-ink-100)]">
+								{filteredPages.map((page, idx) => (
+									<tr key={idx} className="hover:bg-[var(--color-surface-muted)]/50">
+										<td className="px-3 py-2">
+											<p className="font-semibold text-[var(--color-ink-900)]">{page.title || page.path}</p>
+											<p className="font-mono text-[11px] text-[var(--color-ink-500)]">{page.path}</p>
+										</td>
+										<td className="px-3 py-2 text-right font-bold tabular-nums">{page.views.toLocaleString()}</td>
+										<td className="px-3 py-2 text-right tabular-nums">{page.avgDuration}s</td>
+										<td className="px-3 py-2 text-right tabular-nums">{page.bounceRate}%</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</Modal>
+
+			{/* ═══════════════════════════════════════════════════
+			    MODAL 2: FULL REFERRERS & CHANNELS MODAL
+			    ═══════════════════════════════════════════════════ */}
+			<Modal
+				isOpen={isReferrersModalOpen}
+				onClose={() => setIsReferrersModalOpen(false)}
+				title="Acquisition Channels & Traffic Sources"
+				maxWidth="lg"
+			>
+				<div className="space-y-3 max-h-[60vh] overflow-y-auto">
+					{initialSummary.topReferrers.map((ref, idx) => (
+						<div key={idx} className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-3 space-y-1.5">
+							<div className="flex justify-between text-xs font-semibold">
+								<span className="text-[var(--color-ink-900)]">{ref.referrer}</span>
+								<span className="text-[var(--color-accent-800)]">{ref.count} hits ({ref.percentage}%)</span>
+							</div>
+							<div className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-ink-100)]">
+								<div className="h-full rounded-full bg-[var(--color-accent-500)]" style={{ width: `${ref.percentage}%` }} />
+							</div>
+						</div>
+					))}
+				</div>
+			</Modal>
+
+			{/* ═══════════════════════════════════════════════════
+			    MODAL 3: CORE WEB VITALS DIAGNOSTICS MODAL
+			    ═══════════════════════════════════════════════════ */}
+			<Modal
+				isOpen={isVitalsModalOpen}
+				onClose={() => {
+					setIsVitalsModalOpen(false);
+					setSelectedMetric(null);
+				}}
+				title="Core Web Vitals Speed Diagnostics"
+				maxWidth="2xl"
+			>
+				<div className="space-y-4">
+					<div className="rounded-[var(--radius-md)] border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] p-3 text-xs text-[var(--color-accent-900)]">
+						<p className="font-semibold">Google 75th Percentile Evaluation Standard</p>
+						<p className="mt-0.5 text-[11.5px] opacity-90">
+							Google determines your search rankings based on real-world user page speeds over the last 28 days.
+						</p>
+					</div>
+
+					<div className="space-y-3">
+						{Object.values(initialSpeed.metrics).map((m) => (
+							<div key={m.metric} className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-3 space-y-2">
+								<div className="flex items-center justify-between">
+									<div className="flex items-center gap-2">
+										<span className="font-bold text-sm text-[var(--color-ink-900)]">{m.metric}</span>
+										<span className="text-xs text-[var(--color-ink-500)]">
+											p75: <strong className="text-[var(--color-ink-900)]">{m.metric === "CLS" ? m.p75.toFixed(2) : m.p75 >= 1000 ? (m.p75 / 1000).toFixed(2) + "s" : m.p75 + "ms"}</strong>
+										</span>
+									</div>
+									<StatusPill tone={m.rating === "good" ? "success" : m.rating === "needs-improvement" ? "warn" : "danger"}>
+										{m.rating}
+									</StatusPill>
+								</div>
+
+								<p className="text-xs text-[var(--color-ink-600)]">{m.description}</p>
+
+								{/* Distribution Bar */}
+								<div className="space-y-1">
+									<div className="flex justify-between text-[10.5px] text-[var(--color-ink-500)]">
+										<span>Good ({m.goodPercent}%)</span>
+										<span>Needs Improvement ({m.needsImprovementPercent}%)</span>
+										<span>Poor ({m.poorPercent}%)</span>
+									</div>
+									<div className="flex h-2 w-full overflow-hidden rounded-full bg-[var(--color-ink-100)]">
+										<div className="bg-emerald-500 h-full" style={{ width: `${m.goodPercent}%` }} />
+										<div className="bg-amber-500 h-full" style={{ width: `${m.needsImprovementPercent}%` }} />
+										<div className="bg-rose-500 h-full" style={{ width: `${m.poorPercent}%` }} />
+									</div>
+								</div>
+
+								<div className="rounded bg-[var(--color-surface-muted)] p-2 text-[11px] text-[var(--color-ink-700)]">
+									💡 <strong>Recommended Action:</strong> {m.recommendation}
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			</Modal>
+
+			{/* ═══════════════════════════════════════════════════
+			    MODAL 4: SESSION & EVENT DETAIL INSPECTOR
+			    ═══════════════════════════════════════════════════ */}
+			<Modal
+				isOpen={Boolean(selectedSession)}
+				onClose={() => setSelectedSession(null)}
+				title="Visitor Session Inspector"
+				maxWidth="md"
+			>
+				{selectedSession && (
+					<div className="space-y-3 text-xs">
+						<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface-muted)] p-3">
+							<p className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--color-ink-400)]">Target Path</p>
+							<p className="mt-0.5 font-mono text-sm font-bold text-[var(--color-ink-900)]">{selectedSession.path}</p>
+							<p className="text-[11px] text-[var(--color-ink-500)]">{selectedSession.title}</p>
+						</div>
+
+						<div className="grid grid-cols-2 gap-2">
+							<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-2.5">
+								<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Event Type</span>
+								<p className="font-semibold text-[var(--color-ink-900)] mt-0.5 capitalize">{selectedSession.eventType}</p>
+							</div>
+							<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-2.5">
+								<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Device Type</span>
+								<p className="font-semibold text-[var(--color-ink-900)] mt-0.5 capitalize">{selectedSession.device} ({selectedSession.os})</p>
+							</div>
+							<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-2.5">
+								<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Browser</span>
+								<p className="font-semibold text-[var(--color-ink-900)] mt-0.5">{selectedSession.browser}</p>
+							</div>
+							<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-2.5">
+								<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Referrer</span>
+								<p className="font-semibold text-[var(--color-ink-900)] mt-0.5 truncate">{selectedSession.referrer}</p>
+							</div>
+						</div>
+
+						<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-2.5">
+							<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Session Identifier</span>
+							<p className="font-mono text-[11px] text-[var(--color-ink-700)] mt-0.5 truncate">{selectedSession.sessionId}</p>
+						</div>
+					</div>
+				)}
+			</Modal>
 		</div>
 	);
 }
 
-function VitalCard({
-	summary,
-	title,
-	description,
+function AnalyticsKpiCard({
+	label,
+	value,
+	changePercent,
+	subtext,
+	icon,
+	tone = "default",
 }: {
+	label: string;
+	value: string;
+	changePercent?: number;
+	subtext?: string;
+	icon?: React.ReactNode;
+	tone?: "default" | "accent";
+}) {
+	const isPositive = (changePercent ?? 0) >= 0;
+	return (
+		<div
+			className={classNames(
+				"group flex h-full flex-col justify-center rounded-[var(--radius-lg)] border p-3.5 sm:p-4 transition-all shadow-[var(--shadow-sm)]",
+				tone === "accent"
+					? "border-[var(--color-accent-200)] bg-[var(--color-accent-50)]"
+					: "border-[var(--color-ink-200)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-muted)]/50",
+			)}
+		>
+			<div className="flex items-center justify-between gap-1.5">
+				<p className="text-[12px] font-medium text-[var(--color-ink-600)] truncate">{label}</p>
+				{icon && <span className="text-[var(--color-ink-400)] group-hover:text-[var(--color-ink-600)]">{icon}</span>}
+			</div>
+
+			<div className="mt-2 flex items-baseline justify-between gap-1">
+				<p className="text-[20px] font-semibold leading-none tracking-tight text-[var(--color-ink-900)] sm:text-[22px]">
+					{value}
+				</p>
+				{typeof changePercent === "number" && (
+					<p className={classNames("flex items-center text-[10.5px] font-semibold", isPositive ? "text-emerald-700" : "text-rose-600")}>
+						{isPositive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+						{Math.abs(changePercent)}%
+					</p>
+				)}
+			</div>
+			{subtext && <p className="mt-1 text-[10.5px] text-[var(--color-ink-400)] truncate">{subtext}</p>}
+		</div>
+	);
+}
+
+function VitalItemCard({
+	metric,
+	name,
+	summary,
+	onInspect,
+}: {
+	metric: string;
+	name: string;
 	summary: WebVitalMetricSummary;
-	title: string;
-	description: string;
+	onInspect: () => void;
 }) {
 	const isGood = summary.rating === "good";
 	const isWarn = summary.rating === "needs-improvement";
 
 	return (
-		<div className="flex flex-col justify-between rounded-[var(--radius-lg)] border border-[var(--color-ink-100)] bg-[var(--color-surface)] p-4 shadow-sm">
+		<div
+			onClick={onInspect}
+			className="group flex flex-col justify-between p-3.5 sm:p-4 transition-colors hover:bg-[var(--color-surface-muted)]/50 cursor-pointer"
+		>
 			<div>
 				<div className="flex items-center justify-between">
-					<span className="font-bold text-sm text-[var(--color-ink-900)]">{summary.metric}</span>
-					<span
-						className={classNames(
-							"rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
-							isGood ? "bg-emerald-100 text-emerald-800" : isWarn ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-800",
-						)}
-					>
+					<span className="font-bold text-sm text-[var(--color-ink-900)]">{metric}</span>
+					<StatusPill tone={isGood ? "success" : isWarn ? "warn" : "danger"}>
 						{summary.rating}
-					</span>
+					</StatusPill>
 				</div>
-				<p className="text-[11px] text-[var(--color-ink-500)] mt-0.5">{title}</p>
-				<div className="mt-3 flex items-baseline gap-1">
-					<span className="text-2xl font-extrabold text-[var(--color-ink-900)]">
-						{summary.metric === "CLS" ? summary.p75.toFixed(2) : summary.p75 >= 1000 ? (summary.p75 / 1000).toFixed(2) : summary.p75}
+				<p className="text-[11px] text-[var(--color-ink-500)] mt-0.5 truncate" title={name}>{name}</p>
+
+				<div className="mt-2.5 flex items-baseline gap-1">
+					<span className="text-[20px] font-bold text-[var(--color-ink-900)]">
+						{metric === "CLS" ? summary.p75.toFixed(2) : summary.p75 >= 1000 ? (summary.p75 / 1000).toFixed(2) : summary.p75}
 					</span>
-					<span className="text-xs font-semibold text-[var(--color-ink-400)]">
-						{summary.metric === "CLS" ? "" : summary.p75 >= 1000 ? "s" : "ms"} (p75)
+					<span className="text-[11px] font-semibold text-[var(--color-ink-400)]">
+						{metric === "CLS" ? "" : summary.p75 >= 1000 ? "s" : "ms"} (p75)
 					</span>
 				</div>
 			</div>
 
-			<div className="mt-3 pt-2 border-t border-[var(--color-ink-50)] text-[10px] text-[var(--color-ink-400)]">
-				{description}
+			<div className="mt-2.5 flex items-center justify-between border-t border-[var(--color-ink-100)] pt-2 text-[10.5px] text-[var(--color-ink-400)] group-hover:text-[var(--color-accent-800)]">
+				<span>Target: {summary.targetThreshold.split("·")[0]}</span>
+				<span>Inspect →</span>
 			</div>
 		</div>
 	);

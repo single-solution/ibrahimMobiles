@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { requirePagePermission } from "@/lib/server/requirePageSession";
 import { firstParam, type AdminPageSearchParams } from "@/lib/server/searchParams";
-import { adminWorkspacePageClass } from "@/components/shared/workspaceUi";
+import { adminDefaultPageClass } from "@/components/shared/workspaceUi";
 import { AnalyticsDashboardClient } from "./_components/AnalyticsDashboardClient";
 import {
 	loadAnalyticsOverview,
@@ -25,7 +25,7 @@ export default async function AdminAnalyticsPage({ searchParams }: AdminAnalytic
 		rawPeriod === "24h" || rawPeriod === "7d" || rawPeriod === "30d" || rawPeriod === "90d" ? rawPeriod : "7d";
 
 	return (
-		<div className={adminWorkspacePageClass}>
+		<div className={adminDefaultPageClass}>
 			<section className="flex min-h-0 flex-1 flex-col">
 				<Suspense fallback={<AnalyticsSkeleton />}>
 					<AnalyticsDataLoader period={period} />
