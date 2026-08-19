@@ -1,14 +1,14 @@
 import { badRequest, ok } from "@store/shared";
-import { connectDB, AnalyticsEvent, type DeviceType, type WebVitalMetric, type VitalRating } from "@store/db";
+import { connectDB, AnalyticsEvent, type DeviceType, type WebVitalMetric, type VitalRating, type AnalyticsEventType } from "@store/db";
 import { enforcePublicRateLimit } from "@/lib/api/publicRateLimit";
 import { PER_MINUTE_WINDOW_MS } from "@store/shared";
 
 export const dynamic = "force-dynamic";
 
-const TELEMETRY_PER_MINUTE = 120;
+const TELEMETRY_PER_MINUTE = 180;
 
 interface TelemetryPayload {
-	eventType: "page_view" | "web_vital" | "custom";
+	eventType: AnalyticsEventType;
 	path: string;
 	title?: string;
 	referrer?: string;
@@ -75,14 +75,27 @@ export async function POST(request: Request) {
 	}
 
 	const ua = request.headers.get("user-agent") ?? "";
+	const rawCity = request.headers.get("x-vercel-ip-city") ?? request.headers.get("cf-ipcity");
+	const rawRegion = request.headers.get("x-vercel-ip-country-region");
 	const country = request.headers.get("x-vercel-ip-country") ?? request.headers.get("cf-ipcountry") ?? undefined;
+
+	let city: string | undefined = undefined;
+	if (rawCity) {
+		try {
+			city = decodeURIComponent(rawCity);
+		} catch {
+			city = rawCity;
+		}
+	}
+
+	const region = rawRegion || undefined;
 	const { device, browser, os } = parseUserAgent(ua);
 
 	await connectDB();
 
 	const validEvents = rawEvents
 		.filter((e) => e && typeof e.path === "string" && typeof e.sessionId === "string")
-		.slice(0, 50) // clamp max batch
+		.slice(0, 50)
 		.map((e) => ({
 			eventType: e.eventType || "page_view",
 			path: e.path.slice(0, 500),
@@ -94,6 +107,8 @@ export async function POST(request: Request) {
 			browser,
 			os,
 			country,
+			city,
+			region,
 			vitalMetric: e.vitalMetric,
 			vitalValue: typeof e.vitalValue === "number" && Number.isFinite(e.vitalValue) ? e.vitalValue : undefined,
 			vitalRating: e.vitalRating,
@@ -106,7 +121,7 @@ export async function POST(request: Request) {
 		try {
 			await AnalyticsEvent.insertMany(validEvents, { ordered: false });
 		} catch {
-			// Telemetry ingestion is resilient — best-effort
+			// Best-effort ingestion
 		}
 	}
 

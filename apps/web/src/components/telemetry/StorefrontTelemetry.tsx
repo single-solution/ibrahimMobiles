@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useReportWebVitals } from "next/web-vitals";
-import type { WebVitalMetric, VitalRating } from "@store/db";
+import type { WebVitalMetric, VitalRating, AnalyticsEventType } from "@store/db";
 
 const SESSION_KEY = "_im_sid";
 const VISITOR_KEY = "_im_vid";
@@ -62,14 +62,14 @@ export function StorefrontTelemetry() {
 	const prevPathRef = useRef<string | null>(null);
 	const pageEnteredAtRef = useRef<number>(Date.now());
 
-	// 1. Pageview & Engagement Duration Tracking
+	// 1. Pageview, Search, 404, and Duration Tracking
 	useEffect(() => {
 		if (!pathname) return;
 
 		const fullPath = searchParams?.toString() ? `${pathname}?${searchParams.toString()}` : pathname;
 		const now = Date.now();
 
-		// Record duration on previous page if navigating
+		// Record duration on previous page before navigating
 		if (prevPathRef.current && prevPathRef.current !== fullPath) {
 			const durationMs = now - pageEnteredAtRef.current;
 			sendTelemetry({
@@ -84,14 +84,25 @@ export function StorefrontTelemetry() {
 		pageEnteredAtRef.current = now;
 		prevPathRef.current = fullPath;
 
-		// Send initial pageview event
+		const is404 = document.title.toLowerCase().includes("404") || document.title.toLowerCase().includes("not found");
+		const searchQuery = searchParams?.get("q") || searchParams?.get("query") || searchParams?.get("search");
+
+		let eventType: AnalyticsEventType = "page_view";
+		if (is404) {
+			eventType = "error_404";
+		} else if (searchQuery && (pathname.includes("search") || pathname.includes("catalog") || pathname === "/")) {
+			eventType = "search";
+		}
+
 		sendTelemetry({
-			eventType: "page_view",
+			eventType,
 			path: fullPath,
 			title: document.title,
 			referrer: document.referrer || "direct",
 			sessionId: getSessionId(),
 			visitorId: getVisitorId(),
+			eventName: searchQuery ? `search:${searchQuery.slice(0, 50)}` : is404 ? "error_404" : undefined,
+			eventData: searchQuery ? { query: searchQuery } : undefined,
 		});
 
 		const handleVisibilityChange = () => {

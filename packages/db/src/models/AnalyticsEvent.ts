@@ -1,6 +1,6 @@
 import mongoose, { Schema, type Model } from "mongoose";
 
-export const ANALYTICS_EVENT_TYPES = ["page_view", "web_vital", "custom"] as const;
+export const ANALYTICS_EVENT_TYPES = ["page_view", "web_vital", "custom", "search", "error_404"] as const;
 export type AnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number];
 
 export const WEB_VITAL_METRICS = ["LCP", "CLS", "INP", "FID", "TTFB"] as const;
@@ -23,6 +23,8 @@ export interface AnalyticsEventAttributes {
 	browser?: string;
 	os?: string;
 	country?: string;
+	city?: string;
+	region?: string;
 	vitalMetric?: WebVitalMetric;
 	vitalValue?: number;
 	vitalRating?: VitalRating;
@@ -43,6 +45,8 @@ const analyticsEventSchema = new Schema<AnalyticsEventAttributes>(
 		browser: { type: String, trim: true },
 		os: { type: String, trim: true },
 		country: { type: String, trim: true },
+		city: { type: String, trim: true, index: true },
+		region: { type: String, trim: true },
 		vitalMetric: { type: String, enum: WEB_VITAL_METRICS, index: true },
 		vitalValue: { type: Number },
 		vitalRating: { type: String, enum: VITAL_RATINGS },
@@ -58,6 +62,8 @@ analyticsEventSchema.index({ eventType: 1, createdAt: -1 });
 analyticsEventSchema.index({ path: 1, createdAt: -1 });
 analyticsEventSchema.index({ vitalMetric: 1, createdAt: -1 });
 analyticsEventSchema.index({ sessionId: 1, createdAt: -1 });
+analyticsEventSchema.index({ eventName: 1, createdAt: -1 });
+analyticsEventSchema.index({ city: 1, createdAt: -1 });
 
 export const AnalyticsEvent: Model<AnalyticsEventAttributes> =
 	(mongoose.models.AnalyticsEvent as Model<AnalyticsEventAttributes>) ??

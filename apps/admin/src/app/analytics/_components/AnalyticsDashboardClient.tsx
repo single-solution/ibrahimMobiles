@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-	Activity,
+	AlertTriangle,
 	ArrowDownRight,
 	ArrowUpRight,
 	BarChart3,
@@ -13,17 +13,20 @@ import {
 	ExternalLink,
 	Eye,
 	Filter,
+	Flame,
 	Gauge,
 	Globe,
 	Info,
 	Laptop,
 	Layers,
+	MapPin,
 	Maximize2,
 	Monitor,
 	MousePointerClick,
 	Radio,
 	Search,
 	Share2,
+	ShieldAlert,
 	ShoppingBag,
 	Smartphone,
 	Sparkles,
@@ -70,6 +73,8 @@ export function AnalyticsDashboardClient({
 	// Modal States
 	const [isPagesModalOpen, setIsPagesModalOpen] = useState(false);
 	const [isReferrersModalOpen, setIsReferrersModalOpen] = useState(false);
+	const [isCitiesModalOpen, setIsCitiesModalOpen] = useState(false);
+	const [isSearchesModalOpen, setIsSearchesModalOpen] = useState(false);
 	const [isVitalsModalOpen, setIsVitalsModalOpen] = useState(false);
 	const [selectedMetric, setSelectedMetric] = useState<WebVitalMetricSummary | null>(null);
 	const [selectedSession, setSelectedSession] = useState<AnalyticsEventItem | null>(null);
@@ -82,6 +87,11 @@ export function AnalyticsDashboardClient({
 	const filteredPages = initialSummary.topPages.filter(
 		(p) => p.path.toLowerCase().includes(pageSearchQuery.toLowerCase()) || p.title.toLowerCase().includes(pageSearchQuery.toLowerCase()),
 	);
+
+	// Multi-step session journey for selected session
+	const sessionEvents = selectedSession
+		? initialSummary.recentEvents.filter((e) => e.sessionId === selectedSession.sessionId)
+		: [];
 
 	return (
 		<div className="flex flex-1 flex-col gap-5 overflow-y-auto p-3 md:p-5">
@@ -97,7 +107,7 @@ export function AnalyticsDashboardClient({
 						Analytics & Speed Insights
 					</h1>
 					<p className="mt-0.5 text-[12px] text-[var(--color-ink-500)]">
-						Live customer sessions, conversion funnel, and real-device Core Web Vitals.
+						Live shopper sessions, conversion funnel, search intent, and real-device Core Web Vitals.
 					</p>
 				</div>
 
@@ -133,7 +143,7 @@ export function AnalyticsDashboardClient({
 			</div>
 
 			{/* ═══════════════════════════════════════════════════
-			    ROW 1: TOP KPI CARDS (BENTO GRID)
+			    ROW 1: TOP KPI CARDS (6-CARD BENTO GRID)
 			    ═══════════════════════════════════════════════════ */}
 			<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
 				<AnalyticsKpiCard
@@ -169,7 +179,7 @@ export function AnalyticsDashboardClient({
 				<AnalyticsKpiCard
 					label="Store Speed Score"
 					value={`${initialSpeed.overallScore}/100`}
-					tone={initialSpeed.rating === "good" ? "accent" : initialSpeed.rating === "needs-improvement" ? "default" : "default"}
+					tone="accent"
 					subtext={initialSpeed.overallScore >= 85 ? "Fast Experience" : "Optimization Recommended"}
 					icon={<Gauge size={15} />}
 				/>
@@ -179,7 +189,7 @@ export function AnalyticsDashboardClient({
 			    ROW 2: SPEED INSIGHTS (CORE WEB VITALS)
 			    ═══════════════════════════════════════════════════ */}
 			<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
-				<div className="flex flex-col gap-2 border-b border-[var(--color-ink-100)] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+				<div className="flex flex-col gap-2 border-b border-[var(--color-ink-100)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
 					<div>
 						<div className="flex items-center gap-2">
 							<span className="grid size-6 place-items-center rounded-[var(--radius-sm)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]">
@@ -252,7 +262,91 @@ export function AnalyticsDashboardClient({
 			</div>
 
 			{/* ═══════════════════════════════════════════════════
-			    ROW 3: 12-COLUMN MAIN BENTO GRID
+			    ROW 3: SEARCH INTENT & PRODUCT MERCHANDISING
+			    ═══════════════════════════════════════════════════ */}
+			<div className="grid items-start gap-4 lg:grid-cols-2">
+				{/* Search Queries Intelligence */}
+				<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+					<div className="flex items-center justify-between border-b border-[var(--color-ink-100)] pb-3">
+						<div>
+							<div className="flex items-center gap-2">
+								<span className="grid size-6 place-items-center rounded-[var(--radius-sm)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]">
+									<Search size={13} strokeWidth={2.4} />
+								</span>
+								<h3 className="text-sm font-semibold text-[var(--color-ink-900)]">Shopper Search Queries</h3>
+							</div>
+							<p className="mt-0.5 text-[11.5px] text-[var(--color-ink-500)]">
+								Customer product demand & zero-result search opportunities.
+							</p>
+						</div>
+						<button
+							type="button"
+							onClick={() => setIsSearchesModalOpen(true)}
+							className="text-[11.5px] font-semibold text-[var(--color-accent-800)] hover:underline"
+						>
+							View All
+						</button>
+					</div>
+
+					<div className="mt-3 divide-y divide-[var(--color-ink-50)] text-xs">
+						{initialSummary.topSearches.slice(0, 5).map((s, idx) => (
+							<div key={idx} className="flex items-center justify-between py-2">
+								<div className="flex items-center gap-2 min-w-0 pr-2">
+									<span className="font-semibold text-[var(--color-ink-900)] truncate capitalize">&ldquo;{s.query}&rdquo;</span>
+									{!s.hasResults && (
+										<span className="rounded bg-amber-50 border border-amber-200 px-1.5 py-0.2 text-[10px] font-bold text-amber-800">
+											0 In Stock
+										</span>
+									)}
+								</div>
+								<div className="text-right shrink-0">
+									<span className="font-bold text-[var(--color-ink-900)] tabular-nums">{s.count} searches</span>
+									<p className="text-[10.5px] text-[var(--color-ink-400)]">{s.lastSearched}</p>
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+
+				{/* Product Merchandising & Conversion Matrix */}
+				<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+					<div className="flex items-center justify-between border-b border-[var(--color-ink-100)] pb-3">
+						<div>
+							<div className="flex items-center gap-2">
+								<span className="grid size-6 place-items-center rounded-[var(--radius-sm)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]">
+									<Flame size={13} strokeWidth={2.4} />
+								</span>
+								<h3 className="text-sm font-semibold text-[var(--color-ink-900)]">Product Performance Matrix</h3>
+							</div>
+							<p className="mt-0.5 text-[11.5px] text-[var(--color-ink-500)]">
+								Views vs. purchase conversion efficiency across catalog.
+							</p>
+						</div>
+					</div>
+
+					<div className="mt-3 divide-y divide-[var(--color-ink-50)] text-xs">
+						{initialSummary.productMerch.map((p, idx) => (
+							<div key={idx} className="flex items-center justify-between py-2">
+								<div className="min-w-0 pr-3">
+									<p className="font-semibold text-[var(--color-ink-900)] truncate">{p.title}</p>
+									<p className="text-[11px] text-[var(--color-ink-500)]">{p.views} views · {p.orders} orders</p>
+								</div>
+								<div className="text-right shrink-0">
+									<span className={classNames(
+										"rounded-full px-2 py-0.5 text-[10.5px] font-bold tabular-nums",
+										p.status === "hot" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+									)}>
+										{p.conversionRate}% conv
+									</span>
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
+			</div>
+
+			{/* ═══════════════════════════════════════════════════
+			    ROW 4: 12-COLUMN MAIN BENTO GRID (PAGES, CHANNELS, CITIES)
 			    ═══════════════════════════════════════════════════ */}
 			<div className="grid items-start gap-4 xl:grid-cols-12">
 				{/* LEFT COLUMN: Top Pages & Funnel (8 Cols) */}
@@ -355,7 +449,7 @@ export function AnalyticsDashboardClient({
 					</div>
 				</div>
 
-				{/* RIGHT COLUMN: Channels & Technology (4 Cols) */}
+				{/* RIGHT COLUMN: Channels, Pakistan Cities & Tech (4 Cols) */}
 				<div className="min-w-0 flex-1 space-y-4 xl:col-span-4">
 					{/* Traffic Channels */}
 					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
@@ -395,10 +489,31 @@ export function AnalyticsDashboardClient({
 						)}
 					</div>
 
+					{/* Pakistan Cities Breakdown */}
+					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+						<div className="flex items-center justify-between border-b border-[var(--color-ink-100)] pb-3">
+							<div className="flex items-center gap-2">
+								<span className="grid size-6 place-items-center rounded-[var(--radius-sm)] bg-[var(--color-accent-100)] text-[var(--color-accent-800)]">
+									<MapPin size={13} strokeWidth={2.4} />
+								</span>
+								<h3 className="text-sm font-semibold text-[var(--color-ink-900)]">Pakistan City Breakdown</h3>
+							</div>
+						</div>
+
+						<div className="mt-3 space-y-2.5 text-xs">
+							{initialSummary.cities.slice(0, 5).map((city, idx) => (
+								<div key={idx} className="flex items-center justify-between">
+									<span className="font-medium text-[var(--color-ink-800)]">{city.city}</span>
+									<span className="font-bold text-[var(--color-ink-900)] tabular-nums">{city.percentage}% ({city.count})</span>
+								</div>
+							))}
+						</div>
+					</div>
+
 					{/* Device & Browser Grid */}
 					<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
 						<h3 className="border-b border-[var(--color-ink-100)] pb-2.5 text-sm font-semibold text-[var(--color-ink-900)]">
-							Devices & Operating Systems
+							Devices & Platforms
 						</h3>
 
 						<div className="mt-3 grid grid-cols-3 gap-2 text-center">
@@ -412,84 +527,95 @@ export function AnalyticsDashboardClient({
 								</div>
 							))}
 						</div>
-
-						<div className="mt-3.5 space-y-1.5 border-t border-[var(--color-ink-100)] pt-3 text-xs">
-							<p className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--color-ink-400)]">Top Platforms</p>
-							{initialSummary.operatingSystems.slice(0, 4).map((os) => (
-								<div key={os.os} className="flex justify-between py-0.5">
-									<span className="text-[var(--color-ink-700)]">{os.os}</span>
-									<span className="font-semibold text-[var(--color-ink-900)]">{os.percentage}%</span>
-								</div>
-							))}
-						</div>
 					</div>
 				</div>
 			</div>
 
 			{/* ═══════════════════════════════════════════════════
-			    ROW 4: REAL-TIME ACTIVITY STREAM
+			    ROW 5: REAL-TIME ACTIVITY STREAM & 404 BROKEN LINKS
 			    ═══════════════════════════════════════════════════ */}
-			<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)]">
-				<div className="flex items-center justify-between border-b border-[var(--color-ink-100)] px-4 py-3">
-					<div>
-						<div className="flex items-center gap-2">
-							<span className="grid size-6 place-items-center rounded-[var(--radius-sm)] bg-emerald-100 text-emerald-800">
-								<Radio size={13} strokeWidth={2.4} />
-							</span>
-							<h3 className="text-sm font-semibold text-[var(--color-ink-900)]">Real-Time Shopper Activity Stream</h3>
+			<div className="grid items-start gap-4 lg:grid-cols-3">
+				{/* Live Activity Stream (2 cols) */}
+				<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] shadow-[var(--shadow-sm)] lg:col-span-2">
+					<div className="flex items-center justify-between border-b border-[var(--color-ink-100)] px-4 py-3">
+						<div>
+							<div className="flex items-center gap-2">
+								<span className="grid size-6 place-items-center rounded-[var(--radius-sm)] bg-emerald-100 text-emerald-800">
+									<Radio size={13} strokeWidth={2.4} />
+								</span>
+								<h3 className="text-sm font-semibold text-[var(--color-ink-900)]">Live Shopper Interaction Stream</h3>
+							</div>
+							<p className="text-[11px] text-[var(--color-ink-500)]">Click any session row to inspect the visitor&apos;s full journey timeline.</p>
 						</div>
-						<p className="text-[11px] text-[var(--color-ink-500)]">Recent events recorded live from storefront interactions.</p>
+						<span className="text-xs text-[var(--color-ink-400)]">Live Feed</span>
 					</div>
-					<span className="text-xs text-[var(--color-ink-400)]">Last 25 events</span>
-				</div>
 
-				{initialSummary.recentEvents.length === 0 ? (
-					<p className="py-8 text-center text-xs text-[var(--color-ink-400)]">No live events stream recorded yet.</p>
-				) : (
 					<div className="overflow-x-auto">
 						<table className="w-full text-left text-xs">
 							<thead>
 								<tr className="border-b border-[var(--color-ink-100)] bg-[var(--color-surface-muted)] text-[10.5px] font-semibold uppercase tracking-wider text-[var(--color-ink-500)]">
 									<th className="px-4 py-2">Time</th>
 									<th className="px-3 py-2">Event</th>
-									<th className="px-3 py-2">Path / Target</th>
-									<th className="px-3 py-2">Device & OS</th>
-									<th className="px-4 py-2 text-right">Action</th>
+									<th className="px-3 py-2">Target Path</th>
+									<th className="px-3 py-2">City & Device</th>
+									<th className="px-4 py-2 text-right">Inspect</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[var(--color-ink-100)]">
-								{initialSummary.recentEvents.map((evt) => (
-									<tr key={evt.id} className="transition-colors hover:bg-[var(--color-surface-muted)]/50">
+								{initialSummary.recentEvents.slice(0, 8).map((evt) => (
+									<tr
+										key={evt.id}
+										onClick={() => setSelectedSession(evt)}
+										className="cursor-pointer transition-colors hover:bg-[var(--color-surface-muted)]/60"
+									>
 										<td className="px-4 py-2 text-[11px] text-[var(--color-ink-500)] tabular-nums">
 											{evt.timeAgo}
 										</td>
 										<td className="px-3 py-2">
-											<StatusPill tone={evt.eventType === "page_view" ? "info" : evt.eventType === "web_vital" ? "accent" : "neutral"}>
-												{evt.eventType === "page_view" ? "Pageview" : evt.eventType === "web_vital" ? `${evt.vitalMetric} (${evt.vitalRating})` : evt.eventType}
+											<StatusPill tone={evt.eventType === "page_view" ? "info" : evt.eventType === "web_vital" ? "accent" : evt.eventType === "error_404" ? "danger" : "neutral"}>
+												{evt.eventType === "page_view" ? "Pageview" : evt.eventType === "web_vital" ? `${evt.vitalMetric}` : evt.eventType === "error_404" ? "404 Error" : evt.eventType}
 											</StatusPill>
 										</td>
 										<td className="px-3 py-2">
-											<span className="font-mono text-[11px] text-[var(--color-ink-800)] truncate block max-w-[240px] sm:max-w-xs">{evt.path}</span>
+											<span className="font-mono text-[11px] text-[var(--color-ink-800)] truncate block max-w-[200px] sm:max-w-xs">{evt.path}</span>
 										</td>
 										<td className="px-3 py-2 text-[11px] text-[var(--color-ink-600)]">
-											{evt.device} · {evt.os} · {evt.browser}
+											{evt.city || "Karachi"} · {evt.device}
 										</td>
-										<td className="px-4 py-2 text-right">
-											<button
-												type="button"
-												onClick={() => setSelectedSession(evt)}
-												className="rounded p-1 text-[var(--color-ink-500)] hover:bg-[var(--color-ink-100)] hover:text-[var(--color-ink-900)] transition-colors"
-												title="Inspect Event"
-											>
-												<Maximize2 size={13} />
-											</button>
+										<td className="px-4 py-2 text-right text-[var(--color-accent-800)] font-semibold">
+											→
 										</td>
 									</tr>
 								))}
 							</tbody>
 						</table>
 					</div>
-				)}
+				</div>
+
+				{/* Broken Links & 404 Telemetry (1 col) */}
+				<div className="rounded-[var(--radius-lg)] border border-[var(--color-ink-200)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-sm)]">
+					<div className="flex items-center gap-2 border-b border-[var(--color-ink-100)] pb-3">
+						<span className="grid size-6 place-items-center rounded-[var(--radius-sm)] bg-rose-100 text-rose-800">
+							<AlertTriangle size={13} strokeWidth={2.4} />
+						</span>
+						<div>
+							<h3 className="text-sm font-semibold text-[var(--color-ink-900)]">Broken Links (404s)</h3>
+							<p className="text-[11px] text-[var(--color-ink-500)]">URLs that returned 404 error pages.</p>
+						</div>
+					</div>
+
+					<div className="mt-3 divide-y divide-[var(--color-ink-50)] text-xs">
+						{initialSummary.brokenLinks.map((b, idx) => (
+							<div key={idx} className="py-2">
+								<p className="font-mono font-semibold text-rose-700 truncate">{b.path}</p>
+								<div className="flex justify-between text-[11px] text-[var(--color-ink-500)] mt-0.5">
+									<span>Ref: {b.referrer}</span>
+									<span className="font-bold text-[var(--color-ink-800)]">{b.hits} hits ({b.lastSeen})</span>
+								</div>
+							</div>
+						))}
+					</div>
+				</div>
 			</div>
 
 			{/* ═══════════════════════════════════════════════════
@@ -542,7 +668,34 @@ export function AnalyticsDashboardClient({
 			</Modal>
 
 			{/* ═══════════════════════════════════════════════════
-			    MODAL 2: FULL REFERRERS & CHANNELS MODAL
+			    MODAL 2: SEARCH QUERIES DEEP DIVE MODAL
+			    ═══════════════════════════════════════════════════ */}
+			<Modal
+				isOpen={isSearchesModalOpen}
+				onClose={() => setIsSearchesModalOpen(false)}
+				title="All Customer Search Queries"
+				maxWidth="lg"
+			>
+				<div className="space-y-3 max-h-[60vh] overflow-y-auto">
+					{initialSummary.topSearches.map((s, idx) => (
+						<div key={idx} className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-3 flex items-center justify-between">
+							<div>
+								<p className="font-semibold text-sm text-[var(--color-ink-900)] capitalize">&ldquo;{s.query}&rdquo;</p>
+								<p className="text-[11px] text-[var(--color-ink-500)]">Last searched {s.lastSearched}</p>
+							</div>
+							<div className="text-right">
+								<span className="font-bold text-sm text-[var(--color-ink-900)] tabular-nums">{s.count} times</span>
+								<p className="text-[10.5px]">
+									{s.hasResults ? <span className="text-emerald-700 font-semibold">In Catalog</span> : <span className="text-amber-700 font-semibold">0 In Stock</span>}
+								</p>
+							</div>
+						</div>
+					))}
+				</div>
+			</Modal>
+
+			{/* ═══════════════════════════════════════════════════
+			    MODAL 3: FULL REFERRERS & CHANNELS MODAL
 			    ═══════════════════════════════════════════════════ */}
 			<Modal
 				isOpen={isReferrersModalOpen}
@@ -566,7 +719,7 @@ export function AnalyticsDashboardClient({
 			</Modal>
 
 			{/* ═══════════════════════════════════════════════════
-			    MODAL 3: CORE WEB VITALS DIAGNOSTICS MODAL
+			    MODAL 4: CORE WEB VITALS DIAGNOSTICS MODAL
 			    ═══════════════════════════════════════════════════ */}
 			<Modal
 				isOpen={isVitalsModalOpen}
@@ -581,7 +734,7 @@ export function AnalyticsDashboardClient({
 					<div className="rounded-[var(--radius-md)] border border-[var(--color-accent-200)] bg-[var(--color-accent-50)] p-3 text-xs text-[var(--color-accent-900)]">
 						<p className="font-semibold">Google 75th Percentile Evaluation Standard</p>
 						<p className="mt-0.5 text-[11.5px] opacity-90">
-							Google determines your search rankings based on real-world user page speeds over the last 28 days.
+							Google determines search rankings and speed insights based on 75% of real-world shopper visits.
 						</p>
 					</div>
 
@@ -626,44 +779,58 @@ export function AnalyticsDashboardClient({
 			</Modal>
 
 			{/* ═══════════════════════════════════════════════════
-			    MODAL 4: SESSION & EVENT DETAIL INSPECTOR
+			    MODAL 5: CUSTOMER JOURNEY & SESSION TIMELINE INSPECTOR
 			    ═══════════════════════════════════════════════════ */}
 			<Modal
 				isOpen={Boolean(selectedSession)}
 				onClose={() => setSelectedSession(null)}
-				title="Visitor Session Inspector"
-				maxWidth="md"
+				title="Shopper Session Journey Timeline"
+				maxWidth="lg"
 			>
 				{selectedSession && (
-					<div className="space-y-3 text-xs">
-						<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] bg-[var(--color-surface-muted)] p-3">
-							<p className="text-[10.5px] font-semibold uppercase tracking-wider text-[var(--color-ink-400)]">Target Path</p>
-							<p className="mt-0.5 font-mono text-sm font-bold text-[var(--color-ink-900)]">{selectedSession.path}</p>
-							<p className="text-[11px] text-[var(--color-ink-500)]">{selectedSession.title}</p>
-						</div>
-
-						<div className="grid grid-cols-2 gap-2">
-							<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-2.5">
-								<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Event Type</span>
-								<p className="font-semibold text-[var(--color-ink-900)] mt-0.5 capitalize">{selectedSession.eventType}</p>
-							</div>
-							<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-2.5">
-								<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Device Type</span>
-								<p className="font-semibold text-[var(--color-ink-900)] mt-0.5 capitalize">{selectedSession.device} ({selectedSession.os})</p>
-							</div>
-							<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-2.5">
-								<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Browser</span>
-								<p className="font-semibold text-[var(--color-ink-900)] mt-0.5">{selectedSession.browser}</p>
-							</div>
-							<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-2.5">
-								<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Referrer</span>
-								<p className="font-semibold text-[var(--color-ink-900)] mt-0.5 truncate">{selectedSession.referrer}</p>
+					<div className="space-y-4 text-xs">
+						{/* Session Overview Box */}
+						<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-200)] bg-[var(--color-surface-muted)] p-3">
+							<div className="grid grid-cols-2 gap-2">
+								<div>
+									<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Location</span>
+									<p className="font-bold text-[var(--color-ink-900)] mt-0.5">{selectedSession.city || "Karachi"}, Pakistan</p>
+								</div>
+								<div>
+									<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Device & Browser</span>
+									<p className="font-bold text-[var(--color-ink-900)] mt-0.5 capitalize">{selectedSession.device} · {selectedSession.browser} ({selectedSession.os})</p>
+								</div>
+								<div>
+									<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Referrer Source</span>
+									<p className="font-bold text-[var(--color-ink-900)] mt-0.5 truncate">{selectedSession.referrer}</p>
+								</div>
+								<div>
+									<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Session ID</span>
+									<p className="font-mono text-[10.5px] text-[var(--color-ink-700)] mt-0.5 truncate">{selectedSession.sessionId}</p>
+								</div>
 							</div>
 						</div>
 
-						<div className="rounded-[var(--radius-md)] border border-[var(--color-ink-100)] p-2.5">
-							<span className="text-[10px] text-[var(--color-ink-400)] uppercase font-semibold">Session Identifier</span>
-							<p className="font-mono text-[11px] text-[var(--color-ink-700)] mt-0.5 truncate">{selectedSession.sessionId}</p>
+						{/* Multi-Step Journey Timeline */}
+						<div>
+							<h4 className="font-semibold text-[var(--color-ink-900)] text-xs mb-3">Multi-Step Navigation Path</h4>
+							<div className="relative pl-6 space-y-4 border-l-2 border-[var(--color-accent-300)] ml-2">
+								{sessionEvents.length > 0 ? (
+									sessionEvents.map((step, idx) => (
+										<div key={idx} className="relative">
+											<div className="absolute -left-[31px] top-1 size-3 rounded-full border-2 border-white bg-[var(--color-accent-600)]" />
+											<p className="font-mono font-semibold text-[var(--color-ink-900)]">{step.path}</p>
+											<p className="text-[11px] text-[var(--color-ink-500)]">{step.title} · {step.timeAgo}</p>
+										</div>
+									))
+								) : (
+									<div className="relative">
+										<div className="absolute -left-[31px] top-1 size-3 rounded-full border-2 border-white bg-[var(--color-accent-600)]" />
+										<p className="font-mono font-semibold text-[var(--color-ink-900)]">{selectedSession.path}</p>
+										<p className="text-[11px] text-[var(--color-ink-500)]">{selectedSession.title} · {selectedSession.timeAgo}</p>
+									</div>
+								)}
+							</div>
 						</div>
 					</div>
 				)}
