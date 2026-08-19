@@ -38,10 +38,18 @@ class ConnectivityPkOtpProvider implements OtpProvider {
 			settings.connectivitySenderId.trim() ||
 			(process.env.CONNECTIVITY_SENDER_ID ?? "").trim() ||
 			(process.env.CONNECTIVITY_INSTANCE_ID ?? "").trim();
-		this.apiUrl =
+
+		let rawUrl =
 			settings.connectivityApiUrl.trim() ||
 			(process.env.CONNECTIVITY_API_URL ?? "").trim() ||
 			"https://connectivity.pk/api/messages/chat";
+
+		// Auto-migrate legacy or erroneous endpoint to official Connectivity.pk endpoint
+		if (rawUrl.includes("send-whatsapp")) {
+			rawUrl = "https://connectivity.pk/api/messages/chat";
+		}
+		this.apiUrl = rawUrl;
+
 		this.messageTemplate =
 			settings.connectivityOtpMessage.trim() ||
 			"Your Ibrahim Mobiles verification code is {{code}}. Valid for {{minutes}} minutes.";
@@ -63,14 +71,6 @@ class ConnectivityPkOtpProvider implements OtpProvider {
 		formParams.append("token", this.token);
 		formParams.append("to", formattedPhone);
 		formParams.append("body", messageText);
-
-		// Secondary fallbacks for legacy gateway endpoints
-		formParams.append("receiver", formattedPhone);
-		formParams.append("phone", formattedPhone);
-		formParams.append("number", formattedPhone);
-		formParams.append("message", messageText);
-		formParams.append("api_key", this.token);
-		formParams.append("type", "text");
 
 		logger.info(
 			{
