@@ -71,7 +71,7 @@ export async function PUT(request: Request) {
 	}> = [];
 
 	const secretFields = new Set<keyof IntegrationSettingsValues>([
-		"whatsappCloudAccessToken",
+		"connectivityApiKey",
 		"smtpPass",
 		"payfastSecuredKey",
 		"rapidGatewaySecretKey",

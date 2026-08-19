@@ -42,7 +42,5 @@ export async function fireOrderEventNotifications(options: FireOrderEventOptions
 		adminSiteUrl: integration.adminSiteUrl.trim() || undefined,
 		staffEmails,
 		staffWhatsAppPhones,
-		whatsappStaffNotifyTemplate: integration.whatsappStaffNotifyTemplate.trim() || undefined,
-		whatsappCustomerOrderTemplate: integration.whatsappCustomerOrderTemplate.trim() || undefined,
 	});
 }

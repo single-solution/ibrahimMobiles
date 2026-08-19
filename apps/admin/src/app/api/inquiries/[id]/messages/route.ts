@@ -114,7 +114,6 @@ export async function POST(request: Request, { params }: RouteContext) {
 			agentName: actor.name,
 			messagePreview: bodyResult,
 			siteName: settings.siteName,
-			whatsappCustomerOrderTemplate: integration.whatsappCustomerOrderTemplate.trim() || undefined,
 		}));
 
 		return created(toInquiryLatestPage(refreshed));

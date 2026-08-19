@@ -1,6 +1,6 @@
 /** Server-managed integration credentials — editable in Admin → Settings → Integrations. */
 
-export type IntegrationOtpProvider = "auto" | "whatsapp-cloud" | "console";
+export type IntegrationOtpProvider = "auto" | "connectivity-pk" | "console";
 
 /** Pakistan online payment gateway — admin picks one active provider. */
 export type OnlinePaymentProvider = "none" | "payfast" | "rapid-gateway";
@@ -9,11 +9,10 @@ export const ONLINE_PAYMENT_PROVIDERS = ["none", "payfast", "rapid-gateway"] as 
 
 export interface IntegrationSettingsValues {
 	otpProvider: IntegrationOtpProvider;
-	whatsappCloudAccessToken: string;
-	whatsappPhoneNumberId: string;
-	whatsappOtpTemplateName: string;
-	whatsappCloudApiVersion: string;
-	whatsappOtpTemplateIncludesButton: boolean;
+	connectivityApiKey: string;
+	connectivitySenderId: string;
+	connectivityApiUrl: string;
+	connectivityOtpMessage: string;
 
 	smtpHost: string;
 	smtpPort: string;
@@ -22,8 +21,6 @@ export interface IntegrationSettingsValues {
 	smtpFrom: string;
 	staffNotifyEmail: string;
 	staffNotifyWhatsApp: string;
-	whatsappStaffNotifyTemplate: string;
-	whatsappCustomerOrderTemplate: string;
 	adminSiteUrl: string;
 
 	onlinePaymentProvider: OnlinePaymentProvider;
@@ -46,11 +43,10 @@ export interface IntegrationSettingsValues {
 
 export const INTEGRATION_SETTING_DEFAULTS: IntegrationSettingsValues = {
 	otpProvider: "auto",
-	whatsappCloudAccessToken: "",
-	whatsappPhoneNumberId: "",
-	whatsappOtpTemplateName: "authentication",
-	whatsappCloudApiVersion: "v21.0",
-	whatsappOtpTemplateIncludesButton: true,
+	connectivityApiKey: "",
+	connectivitySenderId: "IbrahimMob",
+	connectivityApiUrl: "https://connectivity.pk/api/send-whatsapp",
+	connectivityOtpMessage: "Your Ibrahim Mobiles verification code is {{code}}. Valid for 5 minutes. Do not share this code.",
 
 	smtpHost: "",
 	smtpPort: "587",
@@ -59,8 +55,6 @@ export const INTEGRATION_SETTING_DEFAULTS: IntegrationSettingsValues = {
 	smtpFrom: "",
 	staffNotifyEmail: "",
 	staffNotifyWhatsApp: "",
-	whatsappStaffNotifyTemplate: "",
-	whatsappCustomerOrderTemplate: "",
 	adminSiteUrl: "",
 
 	onlinePaymentProvider: "none",
@@ -84,11 +78,10 @@ export const INTEGRATION_SETTING_KEYS = Object.keys(INTEGRATION_SETTING_DEFAULTS
 
 const INTEGRATION_SETTING_DB_KEYS: Record<keyof IntegrationSettingsValues, string> = {
 	otpProvider: "integration.otpProvider",
-	whatsappCloudAccessToken: "integration.whatsappCloudAccessToken",
-	whatsappPhoneNumberId: "integration.whatsappPhoneNumberId",
-	whatsappOtpTemplateName: "integration.whatsappOtpTemplateName",
-	whatsappCloudApiVersion: "integration.whatsappCloudApiVersion",
-	whatsappOtpTemplateIncludesButton: "integration.whatsappOtpTemplateIncludesButton",
+	connectivityApiKey: "integration.connectivityApiKey",
+	connectivitySenderId: "integration.connectivitySenderId",
+	connectivityApiUrl: "integration.connectivityApiUrl",
+	connectivityOtpMessage: "integration.connectivityOtpMessage",
 
 	smtpHost: "integration.smtpHost",
 	smtpPort: "integration.smtpPort",
@@ -97,8 +90,6 @@ const INTEGRATION_SETTING_DB_KEYS: Record<keyof IntegrationSettingsValues, strin
 	smtpFrom: "integration.smtpFrom",
 	staffNotifyEmail: "integration.staffNotifyEmail",
 	staffNotifyWhatsApp: "integration.staffNotifyWhatsApp",
-	whatsappStaffNotifyTemplate: "integration.whatsappStaffNotifyTemplate",
-	whatsappCustomerOrderTemplate: "integration.whatsappCustomerOrderTemplate",
 	adminSiteUrl: "integration.adminSiteUrl",
 
 	onlinePaymentProvider: "integration.onlinePaymentProvider",
@@ -146,11 +137,10 @@ export function coerceIntegrationSettingValue<K extends keyof IntegrationSetting
 ): IntegrationSettingsValues[K] | null {
 	switch (field) {
 		case "otpProvider":
-			if (value === "auto" || value === "whatsapp-cloud" || value === "console") {
+			if (value === "auto" || value === "connectivity-pk" || value === "console") {
 				return value as IntegrationSettingsValues[K];
 			}
 			return null;
-		case "whatsappOtpTemplateIncludesButton":
 		case "payfastSandbox":
 		case "rapidGatewaySandbox":
 			if (typeof value === "boolean") {
@@ -168,18 +158,17 @@ export function coerceIntegrationSettingValue<K extends keyof IntegrationSetting
 				return value as IntegrationSettingsValues[K];
 			}
 			return null;
-		case "whatsappCloudAccessToken":
-			return trimSecret(value, 4_000) as IntegrationSettingsValues[K] | null;
-		case "whatsappPhoneNumberId":
-		case "whatsappOtpTemplateName":
-		case "whatsappCloudApiVersion":
+		case "connectivityApiKey":
+			return trimSecret(value, 1_000) as IntegrationSettingsValues[K] | null;
+		case "connectivitySenderId":
+		case "connectivityApiUrl":
 		case "smtpHost":
 		case "smtpPort":
 		case "smtpUser":
 		case "smtpFrom":
-		case "whatsappStaffNotifyTemplate":
-		case "whatsappCustomerOrderTemplate":
 			return trimSecret(value, 200) as IntegrationSettingsValues[K] | null;
+		case "connectivityOtpMessage":
+			return trimSecret(value, 500) as IntegrationSettingsValues[K] | null;
 		case "smtpPass":
 		case "payfastSecuredKey":
 		case "rapidGatewaySecretKey":
@@ -217,11 +206,10 @@ export function mergeIntegrationSettingsFromDb(rows: ReadonlyArray<{ key: string
 	const map = new Map(rows.map((row) => [row.key, row.value]));
 	return {
 		otpProvider: readIntegrationSetting(map, "otpProvider"),
-		whatsappCloudAccessToken: readIntegrationSetting(map, "whatsappCloudAccessToken"),
-		whatsappPhoneNumberId: readIntegrationSetting(map, "whatsappPhoneNumberId"),
-		whatsappOtpTemplateName: readIntegrationSetting(map, "whatsappOtpTemplateName"),
-		whatsappCloudApiVersion: readIntegrationSetting(map, "whatsappCloudApiVersion"),
-		whatsappOtpTemplateIncludesButton: readIntegrationSetting(map, "whatsappOtpTemplateIncludesButton"),
+		connectivityApiKey: readIntegrationSetting(map, "connectivityApiKey"),
+		connectivitySenderId: readIntegrationSetting(map, "connectivitySenderId"),
+		connectivityApiUrl: readIntegrationSetting(map, "connectivityApiUrl"),
+		connectivityOtpMessage: readIntegrationSetting(map, "connectivityOtpMessage"),
 		smtpHost: readIntegrationSetting(map, "smtpHost"),
 		smtpPort: readIntegrationSetting(map, "smtpPort"),
 		smtpUser: readIntegrationSetting(map, "smtpUser"),
@@ -229,8 +217,6 @@ export function mergeIntegrationSettingsFromDb(rows: ReadonlyArray<{ key: string
 		smtpFrom: readIntegrationSetting(map, "smtpFrom"),
 		staffNotifyEmail: readIntegrationSetting(map, "staffNotifyEmail"),
 		staffNotifyWhatsApp: readIntegrationSetting(map, "staffNotifyWhatsApp"),
-		whatsappStaffNotifyTemplate: readIntegrationSetting(map, "whatsappStaffNotifyTemplate"),
-		whatsappCustomerOrderTemplate: readIntegrationSetting(map, "whatsappCustomerOrderTemplate"),
 		adminSiteUrl: readIntegrationSetting(map, "adminSiteUrl"),
 		onlinePaymentProvider: readIntegrationSetting(map, "onlinePaymentProvider"),
 		payfastMerchantId: readIntegrationSetting(map, "payfastMerchantId"),
@@ -253,7 +239,7 @@ export function mergeIntegrationSettingsFromDb(rows: ReadonlyArray<{ key: string
 export function toAdminIntegrationSettings(settings: IntegrationSettingsValues): IntegrationSettingsValues {
 	return {
 		...settings,
-		whatsappCloudAccessToken: maskSecret(settings.whatsappCloudAccessToken),
+		connectivityApiKey: maskSecret(settings.connectivityApiKey),
 		smtpPass: maskSecret(settings.smtpPass),
 		payfastSecuredKey: maskSecret(settings.payfastSecuredKey),
 		rapidGatewaySecretKey: maskSecret(settings.rapidGatewaySecretKey),

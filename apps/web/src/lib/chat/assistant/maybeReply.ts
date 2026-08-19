@@ -314,7 +314,6 @@ export async function maybeReplyWithAssistant(inquiry: InquiryLean, options?: { 
 				messagePreview: preview,
 				notifyEmails,
 				notifyWhatsAppPhones,
-				whatsappStaffNotifyTemplate: integration.whatsappStaffNotifyTemplate.trim() || undefined,
 				siteName: store.siteName,
 				adminSiteUrl: integration.adminSiteUrl.trim() || undefined,
 			}));

@@ -1,4 +1,3 @@
-import type { WhatsAppCloudConfig } from "../notifications/whatsappCloudApi";
 import type { IntegrationSettingsValues } from "./integrationSettingsSchema";
 
 function pickString(dbValue: string, envValue: string | undefined): string {
@@ -9,16 +8,14 @@ function pickString(dbValue: string, envValue: string | undefined): string {
 	return envValue?.trim() ?? "";
 }
 
-/** Resolved credentials — DB settings win; env vars are bootstrap fallback.
- * Online gateways and Meta WhatsApp Cloud are disabled for this deployment. */
+/** Resolved credentials — DB settings win; env vars are bootstrap fallback. */
 export function resolveIntegrationSettings(db: IntegrationSettingsValues): IntegrationSettingsValues {
 	return {
-		otpProvider: "console",
-		whatsappCloudAccessToken: "",
-		whatsappPhoneNumberId: "",
-		whatsappOtpTemplateName: "authentication",
-		whatsappCloudApiVersion: pickString(db.whatsappCloudApiVersion, process.env.WHATSAPP_CLOUD_API_VERSION) || "v21.0",
-		whatsappOtpTemplateIncludesButton: db.whatsappOtpTemplateIncludesButton,
+		otpProvider: db.otpProvider || "auto",
+		connectivityApiKey: pickString(db.connectivityApiKey, process.env.CONNECTIVITY_API_KEY),
+		connectivitySenderId: pickString(db.connectivitySenderId, process.env.CONNECTIVITY_SENDER_ID) || "IbrahimMob",
+		connectivityApiUrl: pickString(db.connectivityApiUrl, process.env.CONNECTIVITY_API_URL) || "https://connectivity.pk/api/send-whatsapp",
+		connectivityOtpMessage: db.connectivityOtpMessage || "Your Ibrahim Mobiles verification code is {{code}}. Valid for 5 minutes.",
 
 		smtpHost: pickString(db.smtpHost, process.env.SMTP_HOST),
 		smtpPort: pickString(db.smtpPort, process.env.SMTP_PORT) || "587",
@@ -26,9 +23,7 @@ export function resolveIntegrationSettings(db: IntegrationSettingsValues): Integ
 		smtpPass: pickString(db.smtpPass, process.env.SMTP_PASS),
 		smtpFrom: pickString(db.smtpFrom, process.env.SMTP_FROM),
 		staffNotifyEmail: pickString(db.staffNotifyEmail, process.env.STAFF_NOTIFY_EMAIL),
-		staffNotifyWhatsApp: "",
-		whatsappStaffNotifyTemplate: "",
-		whatsappCustomerOrderTemplate: "",
+		staffNotifyWhatsApp: pickString(db.staffNotifyWhatsApp, process.env.STAFF_NOTIFY_WHATSAPP),
 		adminSiteUrl: pickString(db.adminSiteUrl, process.env.ADMIN_SITE_URL),
 
 		onlinePaymentProvider: "none",
@@ -46,19 +41,6 @@ export function resolveIntegrationSettings(db: IntegrationSettingsValues): Integ
 		awsSecretAccessKey: pickString(db.awsSecretAccessKey, process.env.AWS_SECRET_ACCESS_KEY),
 		awsS3PublicUrlBase: pickString(db.awsS3PublicUrlBase, process.env.AWS_S3_PUBLIC_URL_BASE),
 		awsS3Endpoint: pickString(db.awsS3Endpoint, process.env.AWS_S3_ENDPOINT),
-	};
-}
-
-export function resolveWhatsAppCloudConfig(settings: IntegrationSettingsValues): WhatsAppCloudConfig | null {
-	const accessToken = settings.whatsappCloudAccessToken.trim();
-	const phoneNumberId = settings.whatsappPhoneNumberId.trim();
-	if (!accessToken || !phoneNumberId) {
-		return null;
-	}
-	return {
-		accessToken,
-		phoneNumberId,
-		apiVersion: settings.whatsappCloudApiVersion.trim() || "v21.0",
 	};
 }
 

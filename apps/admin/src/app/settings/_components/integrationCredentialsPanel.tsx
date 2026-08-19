@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Mail } from "lucide-react";
+import { Mail, MessageSquare } from "lucide-react";
 import {
 	type IntegrationSettingsValues,
 	type OtpIntegrationStatus,
@@ -18,7 +18,7 @@ interface IntegrationCredentialsPanelProps {
 	canUpdate: boolean;
 }
 
-/** Host-env integrations (SMTP, R2). Ops fields for staff email alerts only. */
+/** Host-env integrations (Connectivity.pk WhatsApp, SMTP, R2). */
 export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredentialsPanelProps) {
 	const [draft, setDraft] = useState<IntegrationSettingsValues | null>(null);
 	const [status, setStatus] = useState<{
@@ -60,6 +60,11 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 			}>("/api/settings/integrations", {
 				method: "PUT",
 				body: JSON.stringify({
+					otpProvider: draft.otpProvider,
+					connectivityApiKey: draft.connectivityApiKey,
+					connectivitySenderId: draft.connectivitySenderId,
+					connectivityApiUrl: draft.connectivityApiUrl,
+					connectivityOtpMessage: draft.connectivityOtpMessage,
 					smtpHost: draft.smtpHost,
 					smtpPort: draft.smtpPort,
 					smtpUser: draft.smtpUser,
@@ -92,6 +97,44 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 	return (
 		<div className="space-y-8">
 			{message ? <p className="text-[13px] text-[var(--color-ink-700)]">{message}</p> : null}
+
+			<FormSection
+				title="WhatsApp OTP Gateway (Connectivity.pk)"
+				description="Direct WhatsApp OTP delivery for customer sign-in in Pakistan. Rate limited to 1 attempt/min and max 5 attempts per hour."
+			>
+				<FormGrid cols={2}>
+					<TextField
+						label="Connectivity.pk API Key / Token"
+						type="password"
+						value={draft.connectivityApiKey}
+						onChange={(event) => setField("connectivityApiKey", event.target.value)}
+						placeholder="••••••••••••"
+						leadingIcon={<MessageSquare size={14} />}
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="Sender / Masking ID"
+						value={draft.connectivitySenderId}
+						onChange={(event) => setField("connectivitySenderId", event.target.value)}
+						placeholder="IbrahimMob"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="API Gateway Endpoint URL"
+						value={draft.connectivityApiUrl}
+						onChange={(event) => setField("connectivityApiUrl", event.target.value)}
+						placeholder="https://connectivity.pk/api/send-whatsapp"
+						disabled={!canUpdate}
+					/>
+					<TextField
+						label="OTP Message Template"
+						value={draft.connectivityOtpMessage}
+						onChange={(event) => setField("connectivityOtpMessage", event.target.value)}
+						placeholder="Your Ibrahim Mobiles code is {{code}}."
+						disabled={!canUpdate}
+					/>
+				</FormGrid>
+			</FormSection>
 
 			<FormSection
 				title="Email & staff alerts"

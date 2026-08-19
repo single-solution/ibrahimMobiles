@@ -147,16 +147,7 @@ export async function trySendWhatsAppCloudUtilityText(input: {
 	bodyText: string;
 	languageCode?: string;
 }): Promise<void> {
-	let config = readWhatsAppCloudConfigFromEnv();
-	if (!config) {
-		try {
-			const { getIntegrationSettings } = await import("@store/db");
-			const { resolveWhatsAppCloudConfig } = await import("../integration/resolveIntegration");
-			config = resolveWhatsAppCloudConfig(await getIntegrationSettings());
-		} catch {
-			return;
-		}
-	}
+	const config = readWhatsAppCloudConfigFromEnv();
 	if (!config) {
 		return;
 	}

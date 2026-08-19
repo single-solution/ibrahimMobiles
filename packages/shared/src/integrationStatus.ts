@@ -1,15 +1,15 @@
 import type { IntegrationSettingsValues, OnlinePaymentProvider } from "./integration/integrationSettingsSchema";
 import { isOnlineCardCheckoutReady } from "./integration/resolveIntegration";
 
-export type OtpRuntimeProviderId = "whatsapp-cloud" | "console";
+export type OtpRuntimeProviderId = "connectivity-pk" | "console";
 
 export interface OtpIntegrationStatus {
 	explicitProvider: string;
 	activeProvider: OtpRuntimeProviderId;
-	metaWhatsApp: {
-		accessTokenConfigured: boolean;
-		phoneNumberIdConfigured: boolean;
-		otpTemplateName: string;
+	connectivityPk: {
+		apiKeyConfigured: boolean;
+		senderId: string;
+		apiUrl: string;
 	};
 	readyForProduction: boolean;
 	summary: string;
@@ -31,18 +31,21 @@ export interface OnlinePaymentIntegrationStatus {
 }
 
 export function readOtpIntegrationStatus(settings: IntegrationSettingsValues): OtpIntegrationStatus {
-	const otpTemplateName = settings.whatsappOtpTemplateName.trim() || "authentication";
-	// Meta WhatsApp Cloud OTP is not used on this deployment — codes go to server logs.
+	const apiKeyConfigured = Boolean(settings.connectivityApiKey.trim());
+	const activeProvider: OtpRuntimeProviderId = apiKeyConfigured ? "connectivity-pk" : "console";
+
 	return {
-		explicitProvider: "console",
-		activeProvider: "console",
-		metaWhatsApp: {
-			accessTokenConfigured: false,
-			phoneNumberIdConfigured: false,
-			otpTemplateName,
+		explicitProvider: settings.otpProvider,
+		activeProvider,
+		connectivityPk: {
+			apiKeyConfigured,
+			senderId: settings.connectivitySenderId || "IbrahimMob",
+			apiUrl: settings.connectivityApiUrl || "https://connectivity.pk/api/send-whatsapp",
 		},
-		readyForProduction: false,
-		summary: "OTP codes print to server logs (Meta WhatsApp Cloud is not enabled).",
+		readyForProduction: apiKeyConfigured,
+		summary: apiKeyConfigured
+			? "Connectivity.pk WhatsApp OTP Gateway is active for customer sign-in."
+			: "OTP codes print to server logs (Connectivity.pk API key not yet entered).",
 	};
 }
 

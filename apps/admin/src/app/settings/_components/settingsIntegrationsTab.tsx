@@ -82,9 +82,9 @@ export function IntegrationsSettings({ draft, saved, setField, onSaved, canUpdat
 		},
 		{
 			label: "Sign-in OTP",
-			value: "Console logs",
-			hint: otpStatus?.summary ?? "OTP codes print to server logs (Meta WhatsApp not used).",
-			tone: "off",
+			value: otpStatus?.readyForProduction ? "WhatsApp Active" : "Console Logs",
+			hint: otpStatus?.summary ?? "OTP codes dispatch via Connectivity.pk WhatsApp.",
+			tone: otpStatus?.readyForProduction ? "good" : "off",
 			icon: MessageCircle,
 		},
 	];

@@ -169,7 +169,6 @@ export async function POST(request: Request, { params }: RouteContext) {
 				messagePreview: bodyResult,
 				notifyEmails,
 				notifyWhatsAppPhones,
-				whatsappStaffNotifyTemplate: integration.whatsappStaffNotifyTemplate.trim() || undefined,
 				siteName: settings.siteName,
 				adminSiteUrl: integration.adminSiteUrl.trim() || undefined,
 			}));
