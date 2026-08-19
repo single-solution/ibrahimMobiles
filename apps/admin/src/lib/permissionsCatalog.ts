@@ -48,6 +48,7 @@ const PERMISSION_KEYS = [
 	"team_remove",
 
 	"activity_view",
+	"analytics_view",
 	"ai_view",
 
 	// Destructive bulk-data tooling lives behind its own permission so it
@@ -91,6 +92,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, ReadonlyArray<PermissionKey>> = 
 		"settings_update",
 		"team_view",
 		"activity_view",
+		"analytics_view",
 		"ai_view",
 	],
 	product_manager: [
@@ -104,8 +106,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, ReadonlyArray<PermissionKey>> = 
 		"media_upload",
 		"media_delete",
 		"activity_view",
+		"analytics_view",
 		"ai_view",
 	],
-	marketing_manager: ["product_view", "offer_manage", "category_manage", "brand_manage", "media_view", "media_upload", "media_delete", "activity_view", "ai_view"],
+	marketing_manager: ["product_view", "offer_manage", "category_manage", "brand_manage", "media_view", "media_upload", "media_delete", "activity_view", "analytics_view", "ai_view"],
 	support_staff: ["product_view", "order_view", "customer_view", "inquiry_view", "inquiry_reply", "media_view", "ai_view"],
 };

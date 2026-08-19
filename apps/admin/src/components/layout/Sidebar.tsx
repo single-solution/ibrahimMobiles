@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, BadgePercent, ExternalLink, FolderTree, LayoutDashboard, MessageSquare, Package, Settings, ShieldCheck, ShoppingCart, UserCircle } from "lucide-react";
+import { Activity, BadgePercent, BarChart3, ExternalLink, FolderTree, LayoutDashboard, MessageSquare, Package, Settings, ShieldCheck, ShoppingCart, UserCircle } from "lucide-react";
 import { classNames } from "@store/shared";
 
 import { SidebarBadge } from "./SidebarBadge";
@@ -27,6 +27,7 @@ interface SidebarItem {
 
 /** Nav items hidden when the signed-in user lacks the permission key. */
 export const NAV_ITEM_PERMISSIONS: Partial<Record<string, PermissionKey>> = {
+	"/analytics": "analytics_view",
 	"/orders": "order_view",
 	"/inquiries": "inquiry_view",
 	"/customers": "customer_view",
@@ -41,7 +42,10 @@ export const NAV_ITEM_PERMISSIONS: Partial<Record<string, PermissionKey>> = {
 export const SIDEBAR_SECTIONS: SidebarSection[] = [
 	{
 		title: "Overview",
-		items: [{ href: "/", label: "Dashboard", icon: LayoutDashboard, exact: true }],
+		items: [
+			{ href: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+			{ href: "/analytics", label: "Analytics & Speed", icon: BarChart3, permission: "analytics_view" },
+		],
 	},
 	{
 		title: "Sales",

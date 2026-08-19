@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Bricolage_Grotesque, Oswald } from "next/font/google";
 import { Footer } from "@/components/layout/Footer";
 import { AppShell } from "@/components/layout/AppShell";
 import { MarketingPixels, MarketingPixelsNoScript } from "@/app/_components/marketing/MarketingPixels";
+import { StorefrontTelemetry } from "@/components/telemetry/StorefrontTelemetry";
 import { SiteJsonLd } from "@/app/_components/seo/SiteJsonLd";
 import { getStorefrontBaseUrl } from "@/lib/core/baseUrl";
 import { getAttributesCached, getCategoriesCached, getGradesCached, getIntegrationSettingsCached, getStoreSettingsCached } from "@/lib/core/cached";
@@ -220,6 +222,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
 				// does NOT suppress mismatches in our own components.
 				suppressHydrationWarning
 			>
+				<Suspense fallback={null}>
+					<StorefrontTelemetry />
+				</Suspense>
 				<SiteJsonLd />
 				<MarketingPixelsNoScript googleTagManagerId={settings.googleTagManagerId} />
 				<StoreSettingsProvider value={storefrontSettings}>

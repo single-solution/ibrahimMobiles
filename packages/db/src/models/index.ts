@@ -5,6 +5,7 @@
  */
 
 export * from "./ActivityEntry";
+export * from "./AnalyticsEvent";
 export * from "./Attribute";
 export * from "./Brand";
 export * from "./Category";

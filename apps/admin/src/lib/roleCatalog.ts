@@ -89,6 +89,7 @@ export const PERMISSION_LABEL: Record<PermissionKey, string> = {
 	team_remove: "Remove team members",
 
 	activity_view: "Read activity log",
+	analytics_view: "View analytics & speed insights",
 	ai_view: "Use AI tools",
 
 	data_cleanup: "Run destructive data cleanup",
@@ -146,9 +147,9 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
 	},
 	{
 		id: "observability",
-		label: "Activity & AI tools",
-		description: "Audit log and AI assistant features.",
-		permissions: ["activity_view", "ai_view"],
+		label: "Analytics, Activity & AI",
+		description: "Storefront traffic, Core Web Vitals, audit log, and AI tools.",
+		permissions: ["analytics_view", "activity_view", "ai_view"],
 	},
 ];
 
