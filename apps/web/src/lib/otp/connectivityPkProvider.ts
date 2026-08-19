@@ -48,14 +48,18 @@ class ConnectivityPkOtpProvider implements OtpProvider {
 			.replace(/\{\{minutes\}\}/g, String(expiresInMinutes))
 			.replace(/\{\{brand\}\}/g, brand);
 
-		const requestBody = {
+		const payload = {
 			api_key: this.apiKey,
+			token: this.apiKey,
+			api_token: this.apiKey,
+			instance_id: this.senderId,
+			sender: this.senderId,
 			receiver: formattedPhone,
-			phone: formattedPhone,
 			recipient: formattedPhone,
+			number: formattedPhone,
+			phone: formattedPhone,
 			message,
 			msg: message,
-			sender: this.senderId,
 			type: "text",
 		};
 
@@ -68,15 +72,40 @@ class ConnectivityPkOtpProvider implements OtpProvider {
 			`[OTP] Dispatching WhatsApp OTP via Connectivity.pk to ${formattedPhone}`,
 		);
 
-		const response = await fetch(this.apiUrl, {
+		const headers: Record<string, string> = {
+			"Content-Type": "application/json",
+			Accept: "application/json",
+			"X-Requested-With": "XMLHttpRequest",
+			Authorization: `Bearer ${this.apiKey}`,
+		};
+
+		// 1. Try standard JSON POST with Bearer and XMLHttpRequest headers
+		let response = await fetch(this.apiUrl, {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Accept: "application/json",
-			},
-			body: JSON.stringify(requestBody),
+			headers,
+			body: JSON.stringify(payload),
 			signal: AbortSignal.timeout(10_000),
 		});
+
+		// 2. If 419 (CSRF) or 415 returned, retry with URL-encoded form data
+		if (response.status === 419 || response.status === 415) {
+			const formBody = new URLSearchParams();
+			for (const [k, v] of Object.entries(payload)) {
+				formBody.append(k, String(v));
+			}
+
+			response = await fetch(this.apiUrl, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
+					Accept: "application/json",
+					"X-Requested-With": "XMLHttpRequest",
+					Authorization: `Bearer ${this.apiKey}`,
+				},
+				body: formBody.toString(),
+				signal: AbortSignal.timeout(10_000),
+			});
+		}
 
 		if (!response.ok) {
 			const errorText = await response.text().catch(() => "");
