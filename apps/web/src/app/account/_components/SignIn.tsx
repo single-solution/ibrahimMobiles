@@ -17,10 +17,7 @@ export function SignIn() {
 	const next = requestedNext && requestedNext.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/account";
 
 	function handleVerified() {
-		startNavigation(() => {
-			router.push(next);
-			router.refresh();
-		});
+		window.location.href = next;
 	}
 
 	return (

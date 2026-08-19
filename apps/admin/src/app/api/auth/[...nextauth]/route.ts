@@ -22,6 +22,9 @@ function stripExpiry(cookie: string): string {
 }
 
 function shouldStrip(cookie: string): boolean {
+	if (cookie.includes("Max-Age=0") || cookie.includes("Expires=Thu, 01 Jan 1970") || cookie.includes("=;")) {
+		return false;
+	}
 	return COOKIE_NAME_PREFIXES.some((name) => cookie.startsWith(`${name}=`));
 }
 

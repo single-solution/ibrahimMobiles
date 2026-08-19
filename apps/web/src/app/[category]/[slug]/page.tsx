@@ -325,8 +325,7 @@ function VariantSelectorSkeleton({ layout, product, brandName }: VariantSelector
 		return (
 			<div className="space-y-3">
 				<div className="space-y-1.5">
-					<p className="text-[10.5px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-700)]">{brandName}</p>
-					<h1 className="font-headline text-[24px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)]">{product.name}</h1>
+					<h1 className="font-headline text-[24px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)]">{`${brandName} ${product.name}`}</h1>
 				</div>
 				<Skeleton shape="text" className="h-8 w-36" />
 				<Skeleton shape="text" className="h-3 w-32" />
@@ -341,8 +340,7 @@ function VariantSelectorSkeleton({ layout, product, brandName }: VariantSelector
 	return (
 		<div className="space-y-5">
 			<div className="space-y-1.5">
-				<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-700)]">{brandName}</p>
-				<h1 className="font-headline text-[34px] font-semibold leading-[1.05] tracking-tight text-[var(--color-ink-900)]">{product.name}</h1>
+				<h1 className="font-headline text-[34px] font-semibold leading-[1.05] tracking-tight text-[var(--color-ink-900)]">{`${brandName} ${product.name}`}</h1>
 			</div>
 			<div className="space-y-1.5">
 				<Skeleton shape="text" className="h-9 w-44" />

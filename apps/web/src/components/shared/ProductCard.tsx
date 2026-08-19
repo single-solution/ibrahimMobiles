@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 
-import { type Product } from "@store/shared";
+import { formatPrice, type Product } from "@store/shared";
 import { GradeBadge } from "@/components/shared/GradeBadge";
 import { ProductImage } from "@/components/shared/ProductImage";
 import { productHref } from "@/lib/catalog/productPaths";
@@ -11,7 +11,7 @@ import { GRADE_DIMENSION_KEY } from "@/lib/catalog/pdpSelection";
 import { usePrefetchOnIntent } from "@/lib/navigation/usePrefetchOnIntent";
 import { useActiveOffers } from "@/lib/pricing/useActiveOffers";
 import { resolveProductCatalogDealOffers } from "@/lib/pricing/productOfferMatch";
-import { countProductGrades, getProductGradesInDisplayOrder, isProductInStock, resolveListingVariant, resolveProductHeroImage, scopeProductToGrade } from "@/lib/productSummary";
+import { countProductGrades, getProductGradesInDisplayOrder, getProductPriceRange, isProductInStock, resolveListingVariant, resolveProductHeroImage, scopeProductToGrade } from "@/lib/productSummary";
 import { useAttributesForCategory, useGradesForCategory } from "@/lib/core/storefrontReferenceContext";
 
 import { ProductDealAvailableBadge } from "./ProductDealAvailableBadge";
@@ -174,14 +174,29 @@ export function ProductCard({ product, catalogProduct, pinnedGradeSlug, priority
 
 				<div className="flex flex-1 flex-col">
 					<div className="flex flex-1 flex-col gap-1 p-2 md:gap-1.5 md:p-2.5">
-						<div className="space-y-0.5">
-							<div className="flex items-center justify-between gap-2">
-								<span className="line-clamp-1 text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--color-ink-500)]">{brandName}</span>
-								{showGradeCountChip && <ProductListingCountChip label={`${gradeCount} ${gradeCount === 1 ? "grade" : "grades"} available`} />}
-								{showVariantCountChip && <ProductListingCountChip label={`${variantsInGradeCount} ${variantsInGradeCount === 1 ? "variant" : "variants"} available`} />}
-							</div>
-							<h3 className="line-clamp-1 text-[13px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)] md:text-[15px]">{product.name}</h3>
+						<div className="space-y-1">
+							{(showGradeCountChip || showVariantCountChip) && (
+								<div className="flex items-center justify-between gap-2">
+									{showGradeCountChip && <ProductListingCountChip label={`${gradeCount} ${gradeCount === 1 ? "grade" : "grades"} available`} />}
+									{showVariantCountChip && <ProductListingCountChip label={`${variantsInGradeCount} ${variantsInGradeCount === 1 ? "variant" : "variants"} available`} />}
+								</div>
+							)}
+							<h3 className="line-clamp-1 text-[13px] font-semibold leading-tight tracking-tight text-[var(--color-ink-900)] md:text-[15px]">{`${brandName} ${product.name}`}</h3>
 						</div>
+						{(() => {
+							const priceRange = getProductPriceRange(isGradeListing ? product : catalog);
+							if (!priceRange || priceRange.min <= 0) {
+								return null;
+							}
+							const isRange = priceRange.min !== priceRange.max;
+							return (
+								<div className="mt-auto flex items-baseline gap-1 pt-1">
+									<span className="text-[13px] font-semibold tabular-nums text-[var(--color-ink-900)] md:text-[14.5px]">
+										{isRange ? `${formatPrice(priceRange.min)} – ${formatPrice(priceRange.max)}` : formatPrice(priceRange.min)}
+									</span>
+								</div>
+							);
+						})()}
 					</div>
 
 					{/* Attribute chips sit in their own tinted footer band — keeps
