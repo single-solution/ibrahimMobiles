@@ -1,8 +1,10 @@
 /**
  * Connectivity.pk WhatsApp OTP delivery provider.
  *
- * Dispatches verification codes via Connectivity.pk WhatsApp Gateway API
- * to Pakistani mobile numbers (923XXXXXXXXX).
+ * Dispatches verification codes via Connectivity.pk WhatsApp REST API:
+ * POST https://connectivity.pk/api/messages/chat
+ * Headers: { 'content-type': 'application/x-www-form-urlencoded' }
+ * Body: { instance_id, token, to, body }
  */
 
 import type { IntegrationSettingsValues } from "@store/shared";
@@ -25,87 +27,71 @@ function formatPakistanWhatsAppNumber(rawPhone: string): string {
 
 class ConnectivityPkOtpProvider implements OtpProvider {
 	readonly id = "connectivity-pk";
-	private readonly apiKey: string;
+	private readonly token: string;
+	private readonly instanceId: string;
 	private readonly apiUrl: string;
-	private readonly senderId: string;
 	private readonly messageTemplate: string;
 
 	constructor(settings: IntegrationSettingsValues) {
-		this.apiKey = settings.connectivityApiKey.trim() || (process.env.CONNECTIVITY_API_KEY ?? "").trim();
-		this.apiUrl = settings.connectivityApiUrl.trim() || (process.env.CONNECTIVITY_API_URL ?? "").trim() || "https://connectivity.pk/api/send-whatsapp";
-		this.senderId = settings.connectivitySenderId.trim() || (process.env.CONNECTIVITY_SENDER_ID ?? "").trim() || "IbrahimMob";
-		this.messageTemplate = settings.connectivityOtpMessage.trim() || "Your Ibrahim Mobiles verification code is {{code}}. Valid for {{minutes}} minutes.";
+		this.token = settings.connectivityApiKey.trim() || (process.env.CONNECTIVITY_API_KEY ?? "").trim();
+		this.instanceId =
+			settings.connectivitySenderId.trim() ||
+			(process.env.CONNECTIVITY_SENDER_ID ?? "").trim() ||
+			(process.env.CONNECTIVITY_INSTANCE_ID ?? "").trim();
+		this.apiUrl =
+			settings.connectivityApiUrl.trim() ||
+			(process.env.CONNECTIVITY_API_URL ?? "").trim() ||
+			"https://connectivity.pk/api/messages/chat";
+		this.messageTemplate =
+			settings.connectivityOtpMessage.trim() ||
+			"Your Ibrahim Mobiles verification code is {{code}}. Valid for {{minutes}} minutes.";
 	}
 
 	async send({ phoneRaw, code, expiresInMinutes, brand }: OtpDeliveryRequest): Promise<void> {
-		if (!this.apiKey) {
-			throw new Error("Connectivity.pk API Key is missing. Please enter it in Admin → Settings → Integrations.");
+		if (!this.token) {
+			throw new Error("Connectivity.pk API Token is missing. Please enter it in Admin → Settings → Integrations.");
 		}
 
 		const formattedPhone = formatPakistanWhatsAppNumber(phoneRaw);
-		const message = this.messageTemplate
+		const messageText = this.messageTemplate
 			.replace(/\{\{code\}\}/g, code)
 			.replace(/\{\{minutes\}\}/g, String(expiresInMinutes))
 			.replace(/\{\{brand\}\}/g, brand);
 
-		const payload = {
-			api_key: this.apiKey,
-			token: this.apiKey,
-			api_token: this.apiKey,
-			instance_id: this.senderId,
-			sender: this.senderId,
-			receiver: formattedPhone,
-			recipient: formattedPhone,
-			number: formattedPhone,
-			phone: formattedPhone,
-			message,
-			msg: message,
-			type: "text",
-		};
+		const formParams = new URLSearchParams();
+		formParams.append("instance_id", this.instanceId);
+		formParams.append("token", this.token);
+		formParams.append("to", formattedPhone);
+		formParams.append("body", messageText);
+
+		// Secondary fallbacks for legacy gateway endpoints
+		formParams.append("receiver", formattedPhone);
+		formParams.append("phone", formattedPhone);
+		formParams.append("number", formattedPhone);
+		formParams.append("message", messageText);
+		formParams.append("api_key", this.token);
+		formParams.append("type", "text");
 
 		logger.info(
 			{
-				phone: formattedPhone,
+				to: formattedPhone,
+				instance_id: this.instanceId || "<empty>",
 				provider: this.id,
 				apiUrl: this.apiUrl,
 			},
-			`[OTP] Dispatching WhatsApp OTP via Connectivity.pk to ${formattedPhone}`,
+			`[OTP] Dispatching WhatsApp OTP via Connectivity.pk (/api/messages/chat) to ${formattedPhone}`,
 		);
 
-		const headers: Record<string, string> = {
-			"Content-Type": "application/json",
-			Accept: "application/json",
-			"X-Requested-With": "XMLHttpRequest",
-			Authorization: `Bearer ${this.apiKey}`,
-		};
-
-		// 1. Try standard JSON POST with Bearer and XMLHttpRequest headers
-		let response = await fetch(this.apiUrl, {
+		const response = await fetch(this.apiUrl, {
 			method: "POST",
-			headers,
-			body: JSON.stringify(payload),
-			signal: AbortSignal.timeout(10_000),
+			headers: {
+				"content-type": "application/x-www-form-urlencoded",
+				Accept: "application/json",
+				"X-Requested-With": "XMLHttpRequest",
+			},
+			body: formParams.toString(),
+			signal: AbortSignal.timeout(12_000),
 		});
-
-		// 2. If 419 (CSRF) or 415 returned, retry with URL-encoded form data
-		if (response.status === 419 || response.status === 415) {
-			const formBody = new URLSearchParams();
-			for (const [k, v] of Object.entries(payload)) {
-				formBody.append(k, String(v));
-			}
-
-			response = await fetch(this.apiUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/x-www-form-urlencoded",
-					Accept: "application/json",
-					"X-Requested-With": "XMLHttpRequest",
-					Authorization: `Bearer ${this.apiKey}`,
-				},
-				body: formBody.toString(),
-				signal: AbortSignal.timeout(10_000),
-			});
-		}
 
 		if (!response.ok) {
 			const errorText = await response.text().catch(() => "");

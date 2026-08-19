@@ -113,17 +113,17 @@ export function IntegrationCredentialsPanel({ canUpdate }: IntegrationCredential
 						disabled={!canUpdate}
 					/>
 					<TextField
-						label="Sender / Masking ID"
+						label="Instance ID"
 						value={draft.connectivitySenderId}
 						onChange={(event) => setField("connectivitySenderId", event.target.value)}
-						placeholder="IbrahimMob"
+						placeholder="Your Connectivity.pk Instance ID"
 						disabled={!canUpdate}
 					/>
 					<TextField
 						label="API Gateway Endpoint URL"
 						value={draft.connectivityApiUrl}
 						onChange={(event) => setField("connectivityApiUrl", event.target.value)}
-						placeholder="https://connectivity.pk/api/send-whatsapp"
+						placeholder="https://connectivity.pk/api/messages/chat"
 						disabled={!canUpdate}
 					/>
 					<TextField

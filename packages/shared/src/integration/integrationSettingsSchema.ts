@@ -44,8 +44,8 @@ export interface IntegrationSettingsValues {
 export const INTEGRATION_SETTING_DEFAULTS: IntegrationSettingsValues = {
 	otpProvider: "auto",
 	connectivityApiKey: "",
-	connectivitySenderId: "IbrahimMob",
-	connectivityApiUrl: "https://connectivity.pk/api/send-whatsapp",
+	connectivitySenderId: "",
+	connectivityApiUrl: "https://connectivity.pk/api/messages/chat",
 	connectivityOtpMessage: "Your Ibrahim Mobiles verification code is {{code}}. Valid for 5 minutes. Do not share this code.",
 
 	smtpHost: "",

@@ -39,8 +39,8 @@ export function readOtpIntegrationStatus(settings: IntegrationSettingsValues): O
 		activeProvider,
 		connectivityPk: {
 			apiKeyConfigured,
-			senderId: settings.connectivitySenderId || "IbrahimMob",
-			apiUrl: settings.connectivityApiUrl || "https://connectivity.pk/api/send-whatsapp",
+			senderId: settings.connectivitySenderId || "",
+			apiUrl: settings.connectivityApiUrl || "https://connectivity.pk/api/messages/chat",
 		},
 		readyForProduction: apiKeyConfigured,
 		summary: apiKeyConfigured

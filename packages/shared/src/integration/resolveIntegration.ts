@@ -13,8 +13,8 @@ export function resolveIntegrationSettings(db: IntegrationSettingsValues): Integ
 	return {
 		otpProvider: db.otpProvider || "auto",
 		connectivityApiKey: pickString(db.connectivityApiKey, process.env.CONNECTIVITY_API_KEY),
-		connectivitySenderId: pickString(db.connectivitySenderId, process.env.CONNECTIVITY_SENDER_ID) || "IbrahimMob",
-		connectivityApiUrl: pickString(db.connectivityApiUrl, process.env.CONNECTIVITY_API_URL) || "https://connectivity.pk/api/send-whatsapp",
+		connectivitySenderId: pickString(db.connectivitySenderId, process.env.CONNECTIVITY_SENDER_ID || process.env.CONNECTIVITY_INSTANCE_ID),
+		connectivityApiUrl: pickString(db.connectivityApiUrl, process.env.CONNECTIVITY_API_URL) || "https://connectivity.pk/api/messages/chat",
 		connectivityOtpMessage: db.connectivityOtpMessage || "Your Ibrahim Mobiles verification code is {{code}}. Valid for 5 minutes.",
 
 		smtpHost: pickString(db.smtpHost, process.env.SMTP_HOST),
