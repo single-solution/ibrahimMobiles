@@ -3,8 +3,7 @@
  *
  * Dispatches verification codes via Connectivity.pk WhatsApp REST API:
  * POST https://connectivity.pk/api/messages/chat
- * Headers: { 'content-type': 'application/x-www-form-urlencoded' }
- * Body: { instance_id, token, to, body }
+ * Parameters: instance_id, token, to, body, priority=0
  */
 
 import type { IntegrationSettingsValues } from "@store/shared";
@@ -44,7 +43,6 @@ class ConnectivityPkOtpProvider implements OtpProvider {
 			(process.env.CONNECTIVITY_API_URL ?? "").trim() ||
 			"https://connectivity.pk/api/messages/chat";
 
-		// Auto-migrate legacy or erroneous endpoint to official Connectivity.pk endpoint
 		if (rawUrl.includes("send-whatsapp")) {
 			rawUrl = "https://connectivity.pk/api/messages/chat";
 		}
@@ -67,22 +65,32 @@ class ConnectivityPkOtpProvider implements OtpProvider {
 			.replace(/\{\{brand\}\}/g, brand);
 
 		const formParams = new URLSearchParams();
-		formParams.append("instance_id", this.instanceId);
+		formParams.append("instance_id", this.instanceId || "1");
 		formParams.append("token", this.token);
 		formParams.append("to", formattedPhone);
 		formParams.append("body", messageText);
+		formParams.append("priority", "0");
 
 		logger.info(
 			{
 				to: formattedPhone,
-				instance_id: this.instanceId || "<empty>",
+				instance_id: this.instanceId || "1",
 				provider: this.id,
 				apiUrl: this.apiUrl,
 			},
 			`[OTP] Dispatching WhatsApp OTP via Connectivity.pk (/api/messages/chat) to ${formattedPhone}`,
 		);
 
-		const response = await fetch(this.apiUrl, {
+		// Build URL with query params as well for maximum gateway compatibility
+		const targetUrl = new URL(this.apiUrl);
+		targetUrl.searchParams.set("instance_id", this.instanceId || "1");
+		targetUrl.searchParams.set("token", this.token);
+		targetUrl.searchParams.set("to", formattedPhone);
+		targetUrl.searchParams.set("body", messageText);
+		targetUrl.searchParams.set("priority", "0");
+
+		// 1. Try POST with form body and query params
+		let response = await fetch(targetUrl.toString(), {
 			method: "POST",
 			headers: {
 				"content-type": "application/x-www-form-urlencoded",
@@ -92,6 +100,19 @@ class ConnectivityPkOtpProvider implements OtpProvider {
 			body: formParams.toString(),
 			signal: AbortSignal.timeout(12_000),
 		});
+
+		// 2. If POST fails or returns 405/419, fallback to GET (supported by Connectivity.pk)
+		if (!response.ok && (response.status === 405 || response.status === 419 || response.status === 404)) {
+			logger.warn({ status: response.status }, "POST rejected by gateway, retrying with GET endpoint format");
+			response = await fetch(targetUrl.toString(), {
+				method: "GET",
+				headers: {
+					Accept: "application/json",
+					"X-Requested-With": "XMLHttpRequest",
+				},
+				signal: AbortSignal.timeout(12_000),
+			});
+		}
 
 		if (!response.ok) {
 			const errorText = await response.text().catch(() => "");
